@@ -11,6 +11,7 @@ services:
       - db_data:/var/lib/mysql
 
   mailpit:
+    profiles: ["mailpit"]
     image: axllent/mailpit:latest
     restart: unless-stopped
     ports:
@@ -21,7 +22,6 @@ services:
     restart: unless-stopped
     depends_on:
       - db
-      - mailpit
     ports:
       - "8080:80"
     environment:
@@ -30,6 +30,7 @@ services:
       WORDPRESS_DB_USER: wordpress
       WORDPRESS_DB_PASSWORD: wordpress
       WORDPRESS_DEBUG: "1"
+      MAILPIT_ENABLED: "${MAILPIT_ENABLED:-false}"
     volumes:
       - .:/var/www/html/wp-content/plugins/periscolaire-registration
       - ./mu-plugins:/var/www/html/wp-content/mu-plugins

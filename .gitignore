@@ -1,6 +1,6 @@
 # Environnement de développement local
-mu-plugins/
 .claude/
+.env
 
 # Variables d'environnement
 .env
