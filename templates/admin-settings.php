@@ -55,9 +55,130 @@
 </td>
 </tr>
 </table>
+<?php
+$logo_left_id  = (int) get_option('psc_billing_logo_left_id', 0);
+$logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
+?>
+<h2>Facturation</h2>
+<p>Ces informations apparaissent sur les factures PDF envoyées aux familles.</p>
+<table class="form-table">
+<tr>
+<th><label for="psc-org-intro">Ligne d'introduction</label></th>
+<td>
+    <input id="psc-org-intro" type="text" name="org_intro" class="large-text"
+        value="<?php echo esc_attr(get_option('psc_billing_org_intro', '')); ?>"
+        placeholder="Ex : Syndicat Intercommunal d'Intérêt Scolaire de">
+    <p class="description">Texte en petit au-dessus du nom (optionnel).</p>
+</td>
+</tr>
+<tr>
+<th><label for="psc-org-name">Nom de l'organisme</label></th>
+<td>
+    <input id="psc-org-name" type="text" name="org_name" class="large-text"
+        value="<?php echo esc_attr(get_option('psc_billing_org_name', '')); ?>"
+        placeholder="Ex : COURCELLES / MONTGEROULT">
+    <p class="description">Affiché en gras et grand dans l'en-tête.</p>
+</td>
+</tr>
+<tr>
+<th><label for="psc-org-address">Siège social / Adresse</label></th>
+<td><input id="psc-org-address" type="text" name="org_address" class="large-text"
+    value="<?php echo esc_attr(get_option('psc_billing_org_address', '')); ?>"
+    placeholder="Ex : Siège social : rue de la Vallée 95650 Montgeroult"></td>
+</tr>
+<tr>
+<th><label for="psc-org-phone">Téléphone</label></th>
+<td><input id="psc-org-phone" type="text" name="org_phone" class="regular-text"
+    value="<?php echo esc_attr(get_option('psc_billing_org_phone', '')); ?>"></td>
+</tr>
+<tr>
+<th><label for="psc-org-fax">Télécopie</label></th>
+<td><input id="psc-org-fax" type="text" name="org_fax" class="regular-text"
+    value="<?php echo esc_attr(get_option('psc_billing_org_fax', '')); ?>"></td>
+</tr>
+<tr>
+<th><label for="psc-org-email">E-mail de contact</label></th>
+<td><input id="psc-org-email" type="email" name="org_email" class="regular-text"
+    value="<?php echo esc_attr(get_option('psc_billing_org_email', '')); ?>"></td>
+</tr>
+<tr>
+<th><label for="psc-org-city">Commune</label></th>
+<td>
+    <input id="psc-org-city" type="text" name="org_city" class="regular-text"
+        value="<?php echo esc_attr(get_option('psc_billing_org_city', '')); ?>"
+        placeholder="Ex : Montgeroult">
+    <p class="description">Utilisée dans "Montgeroult, le 7 août 2026" en haut de la facture.</p>
+</td>
+</tr>
+<tr>
+<th>Logo gauche</th>
+<td>
+    <div id="psc-logo-left-preview" style="margin-bottom:6px;">
+        <?php if ($logo_left_id) echo wp_get_attachment_image($logo_left_id, 'thumbnail', false, array('style' => 'max-height:60px;max-width:120px;')); ?>
+    </div>
+    <input type="hidden" name="logo_left_id" id="psc-logo-left-id" value="<?php echo esc_attr($logo_left_id ?: ''); ?>">
+    <button type="button" class="button psc-media-select" data-target="psc-logo-left-id" data-preview="psc-logo-left-preview">
+        <?php echo $logo_left_id ? 'Changer' : 'Choisir une image'; ?>
+    </button>
+    <?php if ($logo_left_id): ?>
+    <button type="button" class="button psc-media-remove" data-target="psc-logo-left-id" data-preview="psc-logo-left-preview">Supprimer</button>
+    <?php endif; ?>
+</td>
+</tr>
+<tr>
+<th>Logo droit</th>
+<td>
+    <div id="psc-logo-right-preview" style="margin-bottom:6px;">
+        <?php if ($logo_right_id) echo wp_get_attachment_image($logo_right_id, 'thumbnail', false, array('style' => 'max-height:60px;max-width:120px;')); ?>
+    </div>
+    <input type="hidden" name="logo_right_id" id="psc-logo-right-id" value="<?php echo esc_attr($logo_right_id ?: ''); ?>">
+    <button type="button" class="button psc-media-select" data-target="psc-logo-right-id" data-preview="psc-logo-right-preview">
+        <?php echo $logo_right_id ? 'Changer' : 'Choisir une image'; ?>
+    </button>
+    <?php if ($logo_right_id): ?>
+    <button type="button" class="button psc-media-remove" data-target="psc-logo-right-id" data-preview="psc-logo-right-preview">Supprimer</button>
+    <?php endif; ?>
+</td>
+</tr>
+<tr>
+<th><label for="psc-billing-footer">Texte pied de page</label></th>
+<td>
+    <input id="psc-billing-footer" type="text" name="footer" class="large-text"
+           value="<?php echo esc_attr(get_option('psc_billing_footer', '')); ?>"
+           placeholder="Ex : Cette somme sera prélevée le 15 du mois suivant.">
+    <p class="description">Affiché en bas de chaque facture PDF.</p>
+</td>
+</tr>
+</table>
+
 <?php submit_button('Enregistrer'); ?>
 </form>
 </div>
+
+<script>
+(function() {
+    document.querySelectorAll('.psc-media-select').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var targetId  = this.dataset.target;
+            var previewId = this.dataset.preview;
+            var frame = wp.media({ title: 'Choisir un logo', multiple: false, library: { type: 'image' } });
+            frame.on('select', function() {
+                var att = frame.state().get('selection').first().toJSON();
+                document.getElementById(targetId).value = att.id;
+                document.getElementById(previewId).innerHTML =
+                    '<img src="' + att.url + '" style="max-height:60px;max-width:120px;">';
+            });
+            frame.open();
+        });
+    });
+    document.querySelectorAll('.psc-media-remove').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.getElementById(this.dataset.target).value = '';
+            document.getElementById(this.dataset.preview).innerHTML = '';
+        });
+    });
+})();
+</script>
 
 <div class="psc-box">
 <h2>Envoi des e-mails</h2>

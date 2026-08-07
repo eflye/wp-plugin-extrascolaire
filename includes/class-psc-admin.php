@@ -52,6 +52,9 @@ class Psc_Admin {
     public static function assets($hook) {
         if (strpos($hook, 'psc_') === false) return;
         wp_enqueue_style('psc-admin', PSC_URL . 'assets/css/admin.css', array(), PSC_VERSION);
+        if (strpos($hook, 'psc_settings') !== false) {
+            wp_enqueue_media();
+        }
     }
 
     public static function menu() {
@@ -228,6 +231,26 @@ class Psc_Admin {
 
         $mairie_mail = isset($_POST['mairie_email']) ? sanitize_email(wp_unslash($_POST['mairie_email'])) : '';
         update_option('psc_mairie_email', is_email($mairie_mail) ? $mairie_mail : '');
+
+        // Billing / invoice settings
+        $billing_fields = array(
+            'psc_billing_org_intro'   => 'sanitize_text_field',
+            'psc_billing_org_name'    => 'sanitize_text_field',
+            'psc_billing_org_address' => 'sanitize_text_field',
+            'psc_billing_org_phone'   => 'sanitize_text_field',
+            'psc_billing_org_fax'     => 'sanitize_text_field',
+            'psc_billing_org_email'   => 'sanitize_email',
+            'psc_billing_org_city'    => 'sanitize_text_field',
+            'psc_billing_footer'      => 'sanitize_text_field',
+        );
+        foreach ($billing_fields as $option => $sanitizer) {
+            $post_key = str_replace('psc_billing_', '', $option);
+            $val = isset($_POST[$post_key]) ? call_user_func($sanitizer, wp_unslash($_POST[$post_key])) : '';
+            update_option($option, $val);
+        }
+        update_option('psc_billing_logo_left_id',  absint(isset($_POST['logo_left_id'])  ? $_POST['logo_left_id']  : 0));
+        update_option('psc_billing_logo_right_id', absint(isset($_POST['logo_right_id']) ? $_POST['logo_right_id'] : 0));
+
         self::redirect('psc_settings', 'saved');
     }
 
