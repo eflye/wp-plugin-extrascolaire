@@ -1,0 +1,41 @@
+# Environnement de développement local
+mu-plugins/
+.claude/
+
+# Variables d'environnement
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+error_log
+
+# Éditeurs / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.editorconfig
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Node (si outils de build front ajoutés ultérieurement)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Composer (aucune dépendance pour l'instant, mais par précaution)
+vendor/
+
+# WordPress
+wp-cli.local.yml

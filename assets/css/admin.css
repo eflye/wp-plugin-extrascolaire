@@ -1,0 +1,32 @@
+.psc-admin .psc-box {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    padding: 16px 20px;
+    margin: 20px 0;
+    max-width: 900px;
+}
+.psc-admin .psc-filters {
+    margin: 15px 0;
+}
+.psc-admin .psc-recap .psc-center {
+    text-align: center;
+}
+.psc-admin .psc-active {
+    color: #2271b1;
+}
+.psc-admin .psc-request { border-left: 4px solid #2271b1; }
+.psc-admin .psc-request h3 { margin-top: 0; }
+.psc-admin .psc-request-meta { margin-bottom: 1.2em; }
+.psc-admin .psc-request-meta th { width: 140px; text-align: left; }
+.psc-admin .psc-reject { margin-top: 1em; }
+.psc-admin .psc-reject > summary { cursor: pointer; color: #b32d2e; }
+.psc-admin .psc-count {
+    display: inline-block;
+    background: #d63638;
+    color: #fff;
+    border-radius: 10px;
+    padding: 1px 9px;
+    font-size: 0.7em;
+    vertical-align: middle;
+}
+.psc-admin .psc-actions { margin-top: 1em; }
