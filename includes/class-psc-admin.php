@@ -582,9 +582,14 @@ class Psc_Admin {
         if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         global $wpdb;
         $pending = Psc_Requests::by_status('pending');
-        $t = psc_table('requests');
+        $t   = psc_table('requests');
+        $t_p = psc_table('parents');
         $handled = $wpdb->get_results(
-            "SELECT * FROM $t WHERE status IN ('approved','rejected') ORDER BY decided_at DESC LIMIT 100"
+            "SELECT r.*, COALESCE(p.nom, r.nom) AS nom
+             FROM $t r
+             LEFT JOIN $t_p p ON p.email = r.email
+             WHERE r.status IN ('approved','rejected')
+             ORDER BY r.decided_at DESC LIMIT 100"
         );
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         include PSC_PATH . 'templates/admin-requests.php';
