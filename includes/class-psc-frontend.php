@@ -145,6 +145,22 @@ class Psc_Frontend {
                  ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at)",
                 $child_id, $trimestre->id, $date, $service, current_time('mysql')
             ));
+            // FORF inclut GM+CANT+GS : retirer les prestations individuelles si elles existent
+            if ($service === 'FORF') {
+                foreach (array('GM', 'CANT', 'GS') as $svc) {
+                    $wpdb->delete($t_reg,
+                        array('child_id' => $child_id, 'jour_date' => $date, 'service' => $svc),
+                        array('%d', '%s', '%s')
+                    );
+                }
+            }
+            // Une prestation individuelle est incompatible avec FORF
+            if (in_array($service, array('GM', 'CANT', 'GS'), true)) {
+                $wpdb->delete($t_reg,
+                    array('child_id' => $child_id, 'jour_date' => $date, 'service' => 'FORF'),
+                    array('%d', '%s', '%s')
+                );
+            }
         } else {
             $wpdb->delete(
                 $t_reg,
@@ -185,7 +201,18 @@ class Psc_Frontend {
         }
 
         $reg_map = self::reg_map($trimestre->id, $children);
-        $sent = Psc_Mailer::send_recap($parent, $trimestre, $children, $reg_map, psc_services());
+
+        // Calcul du diff par rapport au dernier récapitulatif envoyé
+        $snapshot_key = 'psc_recap_snap_' . $parent->id . '_' . $trimestre->id;
+        $prev_map     = get_transient($snapshot_key);
+        if (!is_array($prev_map)) $prev_map = array();
+
+        $diff_added   = array_keys(array_diff_key($reg_map, $prev_map));
+        $diff_removed = array_keys(array_diff_key($prev_map, $reg_map));
+
+        set_transient($snapshot_key, $reg_map, 180 * DAY_IN_SECONDS);
+
+        $sent = Psc_Mailer::send_recap($parent, $trimestre, $children, $reg_map, psc_services(), $diff_added, $diff_removed);
 
         if (!$sent) {
             wp_send_json_error(array(

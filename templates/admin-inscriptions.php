@@ -85,6 +85,7 @@
 <input type="checkbox"
        name="regs[<?php echo esc_attr($child->id); ?>][<?php echo esc_attr($d->jour_date); ?>][<?php echo esc_attr($s); ?>]"
        value="1"
+       data-service="<?php echo esc_attr($s); ?>"
        aria-label="<?php echo esc_attr($services[$s]['label'] . ' — ' . psc_day_label($d->jour_date) . ' ' . date_i18n('d/m', strtotime($d->jour_date)) . ' — ' . $child->prenom); ?>"
        <?php checked($checked); ?>>
 </td>
@@ -107,3 +108,27 @@
 <?php endif; ?>
 
 </div>
+<script>
+(function () {
+    function applyForfait(forf, isChecked) {
+        var row = forf.closest('tr');
+        if (!row) return;
+        row.querySelectorAll('input[type="checkbox"][data-service]').forEach(function (c) {
+            if (c === forf) return;
+            if (isChecked) {
+                c.checked = false;
+                c.disabled = true;
+            } else {
+                c.disabled = false;
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('input[type="checkbox"][data-service="FORF"]').forEach(function (cb) {
+            if (cb.checked) applyForfait(cb, true);
+            cb.addEventListener('change', function () { applyForfait(cb, cb.checked); });
+        });
+    });
+})();
+</script>
