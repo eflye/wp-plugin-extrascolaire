@@ -55,25 +55,101 @@
         setTimeout(function () { span.remove(); }, 7000);
     }
 
+    function recomputeMonthSummary(monthBlock) {
+        var summaryEl = monthBlock.querySelector('[data-month-summary]');
+        if (!summaryEl) return;
+
+        var daysWithReg = {};
+        var total = 0;
+        monthBlock.querySelectorAll('.psc-check').forEach(function (cb) {
+            if (!cb.checked) return;
+            daysWithReg[cb.dataset.date] = true;
+            total += parseFloat(cb.dataset.price) || 0;
+        });
+
+        var count = Object.keys(daysWithReg).length;
+        if (count > 0) {
+            summaryEl.textContent = count + ' jour' + (count > 1 ? 's' : '') + ' · ' +
+                total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+            summaryEl.classList.add('psc-month-summary-active');
+            summaryEl.classList.remove('psc-month-summary-empty');
+        } else {
+            summaryEl.textContent = 'Aucun jour déclaré';
+            summaryEl.classList.remove('psc-month-summary-active');
+            summaryEl.classList.add('psc-month-summary-empty');
+        }
+    }
+
+    function applyForfaitUI(forf, isChecked) {
+        var row = forf.closest('tr');
+        if (!row) return;
+        row.querySelectorAll('.psc-check').forEach(function (c) {
+            if (c === forf) return;
+            if (isChecked) {
+                c.checked = false;
+                c.disabled = true;
+            } else if (!row.classList.contains('psc-row-locked')) {
+                c.disabled = false;
+            }
+        });
+    }
+
     function onToggle(cb) {
         cb.disabled = true;
+
+        var isForf = cb.dataset.service === 'FORF';
+        var willBeChecked = cb.checked;
+        var monthBlock = cb.closest('.psc-month-block');
+
+        // Pour FORF : appliquer le changement d'UI immédiatement, sans attendre l'AJAX.
+        // On collecte d'abord les cases cochées à décocher côté serveur.
+        var siblingsToUncheck = [];
+        if (isForf) {
+            if (willBeChecked) {
+                var row = cb.closest('tr');
+                if (row) {
+                    row.querySelectorAll('.psc-check').forEach(function (c) {
+                        if (c !== cb && c.checked && !c.disabled) siblingsToUncheck.push(c);
+                    });
+                }
+            }
+            applyForfaitUI(cb, willBeChecked);
+        }
+
+        if (monthBlock) recomputeMonthSummary(monthBlock);
 
         post({
             action: 'psc_toggle',
             child_id: cb.dataset.child,
             date: cb.dataset.date,
             service: cb.dataset.service,
-            checked: cb.checked ? '1' : '0'
+            checked: willBeChecked ? '1' : '0'
         }).then(function (res) {
             if (res && res.success) {
                 cb.disabled = false;
                 var cell = cb.closest('td');
                 cell.classList.add('psc-ok');
                 setTimeout(function () { cell.classList.remove('psc-ok'); }, 700);
+
+                if (isForf && willBeChecked) {
+                    siblingsToUncheck.forEach(function (sib) {
+                        post({
+                            action: 'psc_toggle',
+                            child_id: sib.dataset.child,
+                            date: sib.dataset.date,
+                            service: sib.dataset.service,
+                            checked: '0'
+                        });
+                    });
+                }
                 return;
             }
 
-            cb.checked = !cb.checked;
+            // Erreur : annuler le changement d'UI
+            cb.checked = !willBeChecked;
+            if (isForf) applyForfaitUI(cb, !willBeChecked);
+            if (monthBlock) recomputeMonthSummary(monthBlock);
+
             var code = res && res.data && res.data.code;
 
             // Si le serveur signale un verrou, la case reste désactivée :
@@ -86,7 +162,9 @@
             cellNotice(cb, messageFor(res, 'generic'));
         }).catch(function () {
             cb.disabled = false;
-            cb.checked = !cb.checked;
+            cb.checked = !willBeChecked;
+            if (isForf) applyForfaitUI(cb, !willBeChecked);
+            if (monthBlock) recomputeMonthSummary(monthBlock);
             cellNotice(cb, MESSAGES.network);
         });
     }
@@ -120,6 +198,14 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
+        // Écouteur FORF indépendant : applique l'UI immédiatement, avant toute logique AJAX.
+        document.querySelectorAll('.psc-check[data-service="FORF"]').forEach(function (forf) {
+            if (forf.checked) applyForfaitUI(forf, true);
+            forf.addEventListener('change', function () {
+                applyForfaitUI(forf, forf.checked);
+            });
+        });
+
         document.querySelectorAll('.psc-check').forEach(function (cb) {
             cb.addEventListener('change', function () { onToggle(cb); });
         });

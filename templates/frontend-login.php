@@ -19,18 +19,22 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     <p class="psc-notice psc-notice-<?php echo esc_attr($type); ?>"><?php echo esc_html($text); ?></p>
 <?php endif; ?>
 
-<h2>Inscription périscolaire</h2>
-<p>Saisissez l'adresse e-mail que vous avez communiquée à la mairie. Vous recevrez un lien pour accéder à votre planning — aucun mot de passe n'est nécessaire.</p>
+<div class="psc-card psc-login-card">
+  <h2>Déclarer les jours de présence</h2>
+  <p class="psc-lead">Votre famille est déjà inscrite au service périscolaire ?</p>
+  <p class="psc-card-intro">Saisissez l'adresse e-mail que vous avez communiquée à la mairie : vous recevrez un lien pour accéder à votre planning. Aucun mot de passe à créer ni à retenir.</p>
 
-<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="psc-login-form">
-  <?php wp_nonce_field('psc_request_link'); ?>
-  <input type="hidden" name="action" value="psc_request_link">
-  <p>
-    <label for="psc-email">Votre adresse e-mail</label><br>
-    <input id="psc-email" type="email" name="psc_email" autocomplete="email" required>
-  </p>
-  <p><button type="submit" class="psc-btn">Recevoir mon lien d'accès</button></p>
-</form>
+  <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="psc-login-form">
+    <?php wp_nonce_field('psc_request_link'); ?>
+    <input type="hidden" name="action" value="psc_request_link">
+    <p>
+      <label for="psc-email">Adresse e-mail</label><br>
+      <input id="psc-email" type="email" name="psc_email" autocomplete="email" required>
+    </p>
+    <p><button type="submit" class="psc-btn">Recevoir mon lien d'accès</button></p>
+  </form>
+  <p class="psc-form-hint">Vous ne recevez rien après quelques minutes ? Pensez à vérifier vos spams, ou contactez la mairie.</p>
+</div>
 
 <?php include PSC_PATH . 'templates/frontend-request.php'; ?>
 

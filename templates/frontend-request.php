@@ -1,13 +1,15 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 
-<details class="psc-request-block" <?php echo in_array($psc_msg, array('need_child', 'bad_email'), true) ? 'open' : ''; ?>>
-  <summary><strong>Première inscription ?</strong> Faire une demande auprès de la mairie</summary>
+<details class="psc-card psc-request-block" <?php echo in_array($psc_msg, array('need_child', 'bad_email'), true) ? 'open' : ''; ?>>
+  <summary><strong>Première inscription</strong></summary>
 
-  <p class="psc-help">
-    Si votre famille n'est pas encore connue du service périscolaire, remplissez
-    ce formulaire. Vous recevrez d'abord un e-mail pour confirmer votre adresse,
-    puis la mairie examinera votre demande et vous répondra.
-  </p>
+  <p class="psc-lead">Votre famille n'est pas encore connue du service périscolaire</p>
+  <p class="psc-card-intro">Remplissez le formulaire ci-dessous. La suite se déroule en trois temps :</p>
+  <ol class="psc-steps">
+    <li>Vous recevez un e-mail pour confirmer votre adresse ;</li>
+    <li>La mairie examine votre demande ;</li>
+    <li>Une fois validée, vous accédez à votre planning avec un simple lien e-mail.</li>
+  </ol>
 
   <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="psc-request-form">
     <?php wp_nonce_field('psc_submit_request'); ?>

@@ -45,6 +45,13 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     avant la date concernée. Passé ce délai, la case est grisée : contactez la mairie.
   </p>
 
+  <ul class="psc-glossary">
+    <li><strong>G.M.</strong> : Garderie Matin</li>
+    <li><strong>Cant.</strong> : Cantine</li>
+    <li><strong>G.S.</strong> : Garderie Soir</li>
+    <li><strong>Forf.</strong> : Forfait journée</li>
+  </ul>
+
   <?php foreach ($children as $child): ?>
 
     <h2 class="psc-child-name">
@@ -60,11 +67,38 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
       foreach ($days as $d) {
           if (!psc_is_locked($d->jour_date)) { $has_open = true; break; }
       }
+
+      // Résumé du mois : nombre de jours déclarés et montant correspondant,
+      // affichés dans l'en-tête pour éviter d'avoir à déplier chaque mois.
+      $month_days_count = 0;
+      $month_total = 0.0;
+      foreach ($days as $d) {
+          $day_has_reg = false;
+          foreach (psc_allowed_services() as $s) {
+              if (isset($reg_map[$child->id . '|' . $d->jour_date . '|' . $s])) {
+                  $day_has_reg = true;
+                  $month_total += (float) $services[$s]['price'];
+              }
+          }
+          if ($day_has_reg) $month_days_count++;
+      }
       ?>
-      <details class="psc-month-block" <?php echo $has_open ? 'open' : ''; ?>>
+      <details class="psc-month-block">
         <summary class="psc-month">
-          <?php echo esc_html(ucfirst($month_label)); ?>
-          <?php if (!$has_open): ?><span class="psc-badge">clôturé</span><?php endif; ?>
+          <span class="psc-month-chevron" aria-hidden="true"></span>
+          <span class="psc-month-name">
+            <?php echo esc_html(ucfirst($month_label)); ?>
+            <?php if (!$has_open): ?><span class="psc-badge">clôturé</span><?php endif; ?>
+          </span>
+          <span class="psc-month-summary <?php echo $month_days_count > 0 ? 'psc-month-summary-active' : 'psc-month-summary-empty'; ?>"
+                data-month-summary>
+            <?php if ($month_days_count > 0): ?>
+              <?php echo esc_html($month_days_count); ?> jour<?php echo $month_days_count > 1 ? 's' : ''; ?>
+              · <?php echo esc_html(number_format_i18n($month_total, 2)); ?> €
+            <?php else: ?>
+              Aucun jour déclaré
+            <?php endif; ?>
+          </span>
         </summary>
 
         <table class="psc-calendar">
@@ -109,6 +143,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
                          data-child="<?php echo esc_attr($child->id); ?>"
                          data-date="<?php echo esc_attr($date); ?>"
                          data-service="<?php echo esc_attr($s); ?>"
+                         data-price="<?php echo esc_attr($services[$s]['price']); ?>"
                          <?php checked($checked); ?>
                          <?php disabled($locked); ?>>
                 </td>
