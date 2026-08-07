@@ -126,90 +126,15 @@ class Psc_Mailer {
         $subject = Psc_Email_Templates::subject('recap', array('site' => $site, 'trimestre' => $trimestre->label));
         $intro   = Psc_Email_Templates::body_html('recap', array('site' => $site, 'trimestre' => $trimestre->label));
 
-        $grand_total = 0.0;
-        $has_any     = false;
-        $body        = self::h2('Confirmation de votre planning')
-            . '<p style="color:#444;font-size:14px;line-height:1.7;margin:0 0 12px;">' . $intro . '</p>';
+        $tables = self::_build_planning_tables($children, $reg_map, $services);
+        $body   = self::h2('Confirmation de votre planning')
+            . '<p style="color:#444;font-size:14px;line-height:1.7;margin:0 0 12px;">' . $intro . '</p>'
+            . $tables['html'];
 
-        foreach ($children as $child) {
-            $child_label = strtoupper($child->prenom . ' ' . $child->nom)
-                . ($child->classe ? ' <span style="color:#666;font-weight:normal;font-size:13px;">(' . esc_html($child->classe) . ')</span>' : '');
-
-            $body .= '<div style="margin:24px 0;">';
-            $body .= '<h3 style="font-size:15px;color:#23478B;margin:0 0 10px;padding:8px 12px;'
-                   . 'background:#f0f4fb;border-radius:4px;">' . $child_label . '</h3>';
-
-            $dates = array();
-            foreach ($reg_map as $key => $v) {
-                list($cid, $date, $service) = explode('|', $key);
-                if ((int) $cid !== (int) $child->id) continue;
-                $dates[$date][] = $service;
-            }
-            ksort($dates);
-
-            if (empty($dates)) {
-                $body .= '<p style="color:#888;font-size:14px;font-style:italic;margin:0;">Aucune inscription enregistrée.</p>';
-                $body .= '</div>';
-                continue;
-            }
-
-            $has_any     = true;
-            $child_total = 0.0;
-            $counts      = array_fill_keys(psc_allowed_services(), 0);
-
-            // Tableau des jours
-            $body .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:12px;font-size:13px;">';
-            $body .= '<thead><tr>'
-                   . '<th style="background:#e8edf5;color:#23478B;padding:7px 10px;text-align:left;border:1px solid #d0d8e8;">Date</th>'
-                   . '<th style="background:#e8edf5;color:#23478B;padding:7px 10px;text-align:left;border:1px solid #d0d8e8;">Jour</th>'
-                   . '<th style="background:#e8edf5;color:#23478B;padding:7px 10px;text-align:left;border:1px solid #d0d8e8;">Prestations</th>'
-                   . '</tr></thead><tbody>';
-
-            $alt = false;
-            foreach ($dates as $date => $servs) {
-                $labels = array();
-                foreach (psc_allowed_services() as $code) {
-                    if (!in_array($code, $servs, true)) continue;
-                    $labels[] = $services[$code]['label'];
-                    $counts[$code]++;
-                    $child_total += (float) $services[$code]['price'];
-                }
-                $bg = $alt ? '#f8f9fb' : '#ffffff';
-                $body .= '<tr style="background:' . $bg . ';">'
-                       . '<td style="padding:6px 10px;border:1px solid #e5e9f0;white-space:nowrap;">' . date_i18n('d/m/Y', strtotime($date)) . '</td>'
-                       . '<td style="padding:6px 10px;border:1px solid #e5e9f0;white-space:nowrap;">' . esc_html(psc_day_label($date)) . '</td>'
-                       . '<td style="padding:6px 10px;border:1px solid #e5e9f0;">' . esc_html(implode(', ', $labels)) . '</td>'
-                       . '</tr>';
-                $alt = !$alt;
-            }
-            $body .= '</tbody></table>';
-
-            // Sous-totaux
-            $body .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:13px;margin-bottom:8px;">';
-            foreach (psc_allowed_services() as $code) {
-                if ($counts[$code] === 0) continue;
-                $st    = $counts[$code] * (float) $services[$code]['price'];
-                $body .= '<tr>'
-                       . '<td style="padding:4px 10px;color:#555;">' . esc_html($services[$code]['label']) . '</td>'
-                       . '<td style="padding:4px 10px;color:#555;text-align:center;">' . $counts[$code] . ' j.</td>'
-                       . '<td style="padding:4px 10px;color:#555;text-align:right;">' . number_format($services[$code]['price'], 2, ',', ' ') . ' €</td>'
-                       . '<td style="padding:4px 10px;color:#333;text-align:right;font-weight:bold;">' . number_format($st, 2, ',', ' ') . ' €</td>'
-                       . '</tr>';
-            }
-            $body .= '<tr style="border-top:2px solid #23478B;">'
-                   . '<td colspan="3" style="padding:7px 10px;font-weight:bold;color:#23478B;">Montant indicatif</td>'
-                   . '<td style="padding:7px 10px;font-weight:bold;color:#23478B;text-align:right;">' . number_format($child_total, 2, ',', ' ') . ' €</td>'
-                   . '</tr>';
-            $body .= '</table>';
-            $body .= '</div>';
-
-            $grand_total += $child_total;
-        }
-
-        if ($has_any && count($children) > 1) {
+        if ($tables['has_any'] && count($children) > 1) {
             $body .= '<div style="background:#23478B;border-radius:4px;padding:14px 20px;margin:16px 0;">'
                    . '<p style="margin:0;color:#ffffff;font-size:16px;font-weight:bold;">'
-                   . 'Montant indicatif total : ' . number_format($grand_total, 2, ',', ' ') . ' €'
+                   . 'Montant indicatif total : ' . number_format($tables['grand_total'], 2, ',', ' ') . ' €'
                    . '</p></div>';
         }
 
@@ -250,6 +175,178 @@ class Psc_Mailer {
         }
 
         return $sent;
+    }
+
+    public static function send_admin_correction($parent, $trimestre, $children, $reg_map, $services, $diff_added = array(), $diff_removed = array()) {
+        $site    = self::site_name();
+        $subject = sprintf('[%s] Votre planning périscolaire a été mis à jour — %s', $site, $trimestre->label);
+
+        // Index children by id for lookup.
+        $child_index = array();
+        foreach ($children as $c) {
+            $child_index[(int) $c->id] = $c;
+        }
+
+        // --- Block 1 : diff ---
+        $body = self::h2('Modifications apportées par la mairie');
+
+        if (empty($diff_added) && empty($diff_removed)) {
+            $body .= '<p style="color:#888;font-size:14px;font-style:italic;margin:0 0 24px;">Aucune modification.</p>';
+        } else {
+            $body .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:13px;margin-bottom:24px;">';
+            $body .= '<thead><tr>'
+                   . '<th style="background:#e8edf5;color:#23478B;padding:7px 10px;text-align:left;border:1px solid #d0d8e8;">Date</th>'
+                   . '<th style="background:#e8edf5;color:#23478B;padding:7px 10px;text-align:left;border:1px solid #d0d8e8;">Enfant</th>'
+                   . '<th style="background:#e8edf5;color:#23478B;padding:7px 10px;text-align:left;border:1px solid #d0d8e8;">Prestation</th>'
+                   . '<th style="background:#e8edf5;color:#23478B;padding:7px 10px;text-align:center;border:1px solid #d0d8e8;">Modification</th>'
+                   . '</tr></thead><tbody>';
+
+            // Merge and sort all diff entries by date then child.
+            $diff_rows = array();
+            foreach ($diff_added as $key) {
+                $diff_rows[] = array('key' => $key, 'type' => 'add');
+            }
+            foreach ($diff_removed as $key) {
+                $diff_rows[] = array('key' => $key, 'type' => 'remove');
+            }
+            usort($diff_rows, function ($a, $b) {
+                list($ca, $da, $sa) = explode('|', $a['key']);
+                list($cb, $db, $sb) = explode('|', $b['key']);
+                return ($da . $ca . $sa) <=> ($db . $cb . $sb);
+            });
+
+            foreach ($diff_rows as $row) {
+                list($cid, $date, $svc) = explode('|', $row['key']);
+                $child     = isset($child_index[(int) $cid]) ? $child_index[(int) $cid] : null;
+                $child_lbl = $child ? esc_html($child->prenom . ' ' . $child->nom) : '';
+                $svc_lbl   = isset($services[$svc]) ? esc_html($services[$svc]['label']) : esc_html($svc);
+                $date_lbl  = esc_html(psc_day_label($date) . ' ' . date_i18n('d/m/Y', strtotime($date)));
+                if ($row['type'] === 'add') {
+                    $badge = '<span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:3px;font-weight:bold;font-size:12px;">+ Ajout</span>';
+                    $bg    = '#f6fff8';
+                } else {
+                    $badge = '<span style="background:#f8d7da;color:#721c24;padding:2px 8px;border-radius:3px;font-weight:bold;font-size:12px;">− Suppression</span>';
+                    $bg    = '#fff8f8';
+                }
+                $body .= '<tr style="background:' . $bg . ';">'
+                       . '<td style="padding:6px 10px;border:1px solid #e5e9f0;white-space:nowrap;">' . $date_lbl . '</td>'
+                       . '<td style="padding:6px 10px;border:1px solid #e5e9f0;">' . $child_lbl . '</td>'
+                       . '<td style="padding:6px 10px;border:1px solid #e5e9f0;">' . $svc_lbl . '</td>'
+                       . '<td style="padding:6px 10px;border:1px solid #e5e9f0;text-align:center;">' . $badge . '</td>'
+                       . '</tr>';
+            }
+            $body .= '</tbody></table>';
+        }
+
+        // --- Block 2 : full recap (totals only, no day-by-day table) ---
+        $body .= self::h2('Récapitulatif complet — ' . esc_html($trimestre->label));
+
+        $tables = self::_build_planning_tables($children, $reg_map, $services, false);
+        $body  .= $tables['html'];
+
+        if ($tables['has_any'] && count($children) > 1) {
+            $body .= '<div style="background:#23478B;border-radius:4px;padding:14px 20px;margin:16px 0;">'
+                   . '<p style="margin:0;color:#ffffff;font-size:16px;font-weight:bold;">'
+                   . 'Montant indicatif total : ' . number_format($tables['grand_total'], 2, ',', ' ') . ' €'
+                   . '</p></div>';
+        }
+
+        $body .= self::warning_box(
+            'Ce montant est donné <strong>à titre indicatif</strong>. '
+            . 'La facturation définitive est établie par la mairie.'
+        );
+        $body .= self::btn(self::form_page_url(), 'Consulter mon planning');
+
+        return self::send($parent->email, $subject, self::layout($body, $subject));
+    }
+
+    private static function _build_planning_tables($children, $reg_map, $services, $show_days = true) {
+        $grand_total = 0.0;
+        $has_any     = false;
+        $html        = '';
+
+        foreach ($children as $child) {
+            $child_label = strtoupper($child->prenom . ' ' . $child->nom)
+                . ($child->classe ? ' <span style="color:#666;font-weight:normal;font-size:13px;">(' . esc_html($child->classe) . ')</span>' : '');
+
+            $html .= '<div style="margin:24px 0;">';
+            $html .= '<h3 style="font-size:15px;color:#23478B;margin:0 0 10px;padding:8px 12px;'
+                   . 'background:#f0f4fb;border-radius:4px;">' . $child_label . '</h3>';
+
+            $dates = array();
+            foreach ($reg_map as $key => $v) {
+                list($cid, $date, $service) = explode('|', $key);
+                if ((int) $cid !== (int) $child->id) continue;
+                $dates[$date][] = $service;
+            }
+            ksort($dates);
+
+            if (empty($dates)) {
+                $html .= '<p style="color:#888;font-size:14px;font-style:italic;margin:0;">Aucune inscription enregistrée.</p>';
+                $html .= '</div>';
+                continue;
+            }
+
+            $has_any     = true;
+            $child_total = 0.0;
+            $counts      = array_fill_keys(psc_allowed_services(), 0);
+
+            // Compute counts (always needed for subtotals).
+            foreach ($dates as $date => $servs) {
+                foreach (psc_allowed_services() as $code) {
+                    if (!in_array($code, $servs, true)) continue;
+                    $counts[$code]++;
+                    $child_total += (float) $services[$code]['price'];
+                }
+            }
+
+            if ($show_days) {
+                $html .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:12px;font-size:13px;">';
+                $html .= '<thead><tr>'
+                       . '<th style="background:#e8edf5;color:#23478B;padding:7px 10px;text-align:left;border:1px solid #d0d8e8;">Date</th>'
+                       . '<th style="background:#e8edf5;color:#23478B;padding:7px 10px;text-align:left;border:1px solid #d0d8e8;">Jour</th>'
+                       . '<th style="background:#e8edf5;color:#23478B;padding:7px 10px;text-align:left;border:1px solid #d0d8e8;">Prestations</th>'
+                       . '</tr></thead><tbody>';
+
+                $alt = false;
+                foreach ($dates as $date => $servs) {
+                    $labels = array();
+                    foreach (psc_allowed_services() as $code) {
+                        if (in_array($code, $servs, true)) $labels[] = $services[$code]['label'];
+                    }
+                    $bg    = $alt ? '#f8f9fb' : '#ffffff';
+                    $html .= '<tr style="background:' . $bg . ';">'
+                           . '<td style="padding:6px 10px;border:1px solid #e5e9f0;white-space:nowrap;">' . date_i18n('d/m/Y', strtotime($date)) . '</td>'
+                           . '<td style="padding:6px 10px;border:1px solid #e5e9f0;white-space:nowrap;">' . esc_html(psc_day_label($date)) . '</td>'
+                           . '<td style="padding:6px 10px;border:1px solid #e5e9f0;">' . esc_html(implode(', ', $labels)) . '</td>'
+                           . '</tr>';
+                    $alt = !$alt;
+                }
+                $html .= '</tbody></table>';
+            }
+
+            $html .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:13px;margin-bottom:8px;">';
+            foreach (psc_allowed_services() as $code) {
+                if ($counts[$code] === 0) continue;
+                $st    = $counts[$code] * (float) $services[$code]['price'];
+                $html .= '<tr>'
+                       . '<td style="padding:4px 10px;color:#555;">' . esc_html($services[$code]['label']) . '</td>'
+                       . '<td style="padding:4px 10px;color:#555;text-align:center;">' . $counts[$code] . ' j.</td>'
+                       . '<td style="padding:4px 10px;color:#555;text-align:right;">' . number_format($services[$code]['price'], 2, ',', ' ') . ' €</td>'
+                       . '<td style="padding:4px 10px;color:#333;text-align:right;font-weight:bold;">' . number_format($st, 2, ',', ' ') . ' €</td>'
+                       . '</tr>';
+            }
+            $html .= '<tr style="border-top:2px solid #23478B;">'
+                   . '<td colspan="3" style="padding:7px 10px;font-weight:bold;color:#23478B;">Montant indicatif</td>'
+                   . '<td style="padding:7px 10px;font-weight:bold;color:#23478B;text-align:right;">' . number_format($child_total, 2, ',', ' ') . ' €</td>'
+                   . '</tr>';
+            $html .= '</table>';
+            $html .= '</div>';
+
+            $grand_total += $child_total;
+        }
+
+        return array('html' => $html, 'grand_total' => $grand_total, 'has_any' => $has_any);
     }
 
     /* ------------------------------------------------------------------ */
