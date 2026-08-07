@@ -205,7 +205,7 @@ class Psc_Admin {
         global $wpdb;
         $t_child = psc_table('children');
         $t_parent = psc_table('parents');
-        $children = $wpdb->get_results("SELECT c.*, p.email AS parent_email FROM $t_child c LEFT JOIN $t_parent p ON p.id = c.parent_id ORDER BY c.nom");
+        $children = $wpdb->get_results("SELECT c.*, p.nom AS parent_nom, p.email AS parent_email FROM $t_child c LEFT JOIN $t_parent p ON p.id = c.parent_id ORDER BY c.nom");
         $parents = Psc_Parents::all();
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         include PSC_PATH . 'templates/admin-children.php';

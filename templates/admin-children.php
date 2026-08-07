@@ -53,7 +53,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <td><?php echo esc_html($c->nom); ?></td>
 <td><?php echo esc_html($c->prenom); ?></td>
 <td><?php echo esc_html($c->classe); ?></td>
-<td><?php echo $c->parent_email ? esc_html($c->parent_email) : '<em>famille supprimée</em>'; ?></td>
+<td><?php echo $c->parent_email ? esc_html($c->parent_nom ?: $c->parent_email) : '<em>famille supprimée</em>'; ?></td>
 <td>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline" onsubmit="return confirm('Supprimer cet enfant et toutes ses inscriptions ? Cette action est irréversible.');">
 <?php wp_nonce_field('psc_delete_child'); ?>
