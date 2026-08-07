@@ -184,24 +184,27 @@ class Psc_Invoices {
         $commune     = get_option('blogname', 'la mairie');
         $site_name   = wp_specialchars_decode(get_bloginfo('name'), ENT_QUOTES);
 
-        $subject = sprintf('Facture périscolaire — %s', $month_label);
+        $subject = Psc_Email_Templates::subject('invoice', array(
+            'mois'    => $month_label,
+            'nom'     => $nom,
+            'commune' => $commune,
+            'total'   => number_format((float) $invoice->total, 2, ',', ' ') . ' €',
+        ));
+
+        $body_text = Psc_Email_Templates::body_html('invoice', array(
+            'mois'    => $month_label,
+            'nom'     => $nom,
+            'commune' => $commune,
+            'total'   => number_format((float) $invoice->total, 2, ',', ' ') . ' €',
+        ));
 
         $body_html =
             '<h2 style="color:#23478B;font-size:17px;margin:0 0 16px;padding-bottom:8px;border-bottom:2px solid #e8edf5;">'
             . 'Votre facture périscolaire — ' . esc_html($month_label) . '</h2>'
-            . '<p style="color:#444;font-size:14px;line-height:1.7;margin:0 0 12px;">'
-            . 'Bonjour ' . esc_html($nom) . ','
-            . '</p>'
-            . '<p style="color:#444;font-size:14px;line-height:1.7;margin:0 0 20px;">'
-            . 'Veuillez trouver en pièce jointe votre facture de services périscolaires pour le mois de '
-            . '<strong>' . esc_html($month_label) . '</strong>.'
-            . '</p>'
+            . '<p style="color:#444;font-size:14px;line-height:1.7;margin:0 0 20px;">' . $body_text . '</p>'
             . '<div style="background:#f0f4fb;border-left:4px solid #23478B;border-radius:0 4px 4px 0;padding:14px 18px;margin:20px 0;font-size:14px;color:#444;line-height:1.6;">'
             . '<strong>Montant total :</strong> ' . number_format((float) $invoice->total, 2, ',', ' ') . ' €'
-            . '</div>'
-            . '<p style="color:#444;font-size:14px;line-height:1.7;margin:0 0 12px;">'
-            . 'Pour toute question, n\'hésitez pas à contacter le secrétariat de ' . esc_html($commune) . '.'
-            . '</p>';
+            . '</div>';
 
         ob_start();
         $title     = $subject;

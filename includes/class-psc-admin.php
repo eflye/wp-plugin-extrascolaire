@@ -15,6 +15,9 @@ class Psc_Admin {
         add_action('admin_post_psc_add_parent', array(__CLASS__, 'handle_add_parent'));
         add_action('admin_post_psc_toggle_parent', array(__CLASS__, 'handle_toggle_parent'));
         add_action('admin_post_psc_send_link', array(__CLASS__, 'handle_send_link'));
+        add_action('admin_post_psc_save_email_templates', array(__CLASS__, 'handle_save_email_templates'));
+        add_action('admin_post_psc_reset_email_template', array(__CLASS__, 'handle_reset_email_template'));
+        add_action('admin_post_psc_reset_email_templates', array(__CLASS__, 'handle_reset_email_templates'));
         add_action('admin_post_psc_generate_invoices', array(__CLASS__, 'handle_generate_invoices'));
         add_action('admin_post_psc_send_invoice', array(__CLASS__, 'handle_send_invoice'));
         add_action('admin_post_psc_send_all_invoices', array(__CLASS__, 'handle_send_all_invoices'));
@@ -64,6 +67,7 @@ class Psc_Admin {
         add_submenu_page('psc_inscriptions', 'Familles', 'Familles', $cap, 'psc_parents', array(__CLASS__, 'page_parents'));
         add_submenu_page('psc_inscriptions', 'Enfants', 'Enfants', $cap, 'psc_children', array(__CLASS__, 'page_children'));
         add_submenu_page('psc_inscriptions', 'Factures', 'Factures', $cap, 'psc_factures', array(__CLASS__, 'page_factures'));
+        add_submenu_page('psc_inscriptions', 'Modèles e-mails', 'Modèles e-mails', $cap, 'psc_email_templates', array(__CLASS__, 'page_email_templates'));
         add_submenu_page('psc_inscriptions', 'Réglages', 'Réglages', $cap, 'psc_settings', array(__CLASS__, 'page_settings'));
     }
 
@@ -401,6 +405,45 @@ class Psc_Admin {
         $parents = Psc_Parents::all();
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         include PSC_PATH . 'templates/admin-parents.php';
+    }
+
+    /* ---------------- Modèles e-mails ---------------- */
+
+    public static function handle_save_email_templates() {
+        self::guard('psc_save_email_templates');
+        $input = isset($_POST['templates']) ? wp_unslash($_POST['templates']) : array();
+        Psc_Email_Templates::save(is_array($input) ? $input : array());
+        self::redirect('psc_email_templates', 'saved');
+    }
+
+    public static function handle_reset_email_template() {
+        if (!psc_user_can_manage()) {
+            wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        }
+        $key = isset($_GET['key']) ? sanitize_key(wp_unslash($_GET['key'])) : '';
+        check_admin_referer('psc_reset_email_template_' . $key);
+        if ($key) {
+            Psc_Email_Templates::reset($key);
+        }
+        self::redirect('psc_email_templates', 'reset_one');
+    }
+
+    public static function handle_reset_email_templates() {
+        if (!psc_user_can_manage()) {
+            wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        }
+        check_admin_referer('psc_reset_email_templates');
+        Psc_Email_Templates::reset();
+        self::redirect('psc_email_templates', 'reset_all');
+    }
+
+    public static function page_email_templates() {
+        if (!psc_user_can_manage()) {
+            wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        }
+        $templates = Psc_Email_Templates::get_all();
+        $psc_msg   = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
+        include PSC_PATH . 'templates/admin-email-templates.php';
     }
 
     /* ---------------- Factures ---------------- */

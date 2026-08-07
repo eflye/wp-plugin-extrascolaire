@@ -98,20 +98,15 @@ class Psc_Mailer {
         $site    = self::site_name();
         $minutes = (int) (psc_login_link_ttl() / MINUTE_IN_SECONDS);
 
-        if ($context === 'approved') {
-            $subject = sprintf('[%s] Votre accès aux inscriptions périscolaires est activé', $site);
-            $intro   = 'Votre demande d\'inscription a été validée par la mairie. '
-                     . 'Vous pouvez dès maintenant accéder à votre espace et planifier vos inscriptions.';
-            $btn_label = 'Accéder à mon espace';
-        } else {
-            $subject   = sprintf('[%s] Votre lien d\'accès aux inscriptions périscolaires', $site);
-            $intro     = 'Voici votre lien d\'accès au formulaire d\'inscription périscolaire. '
-                       . 'Cliquez sur le bouton ci-dessous pour vous connecter.';
-            $btn_label = 'Me connecter';
-        }
+        $tpl_key   = ($context === 'approved') ? 'login_approved' : 'login_link';
+        $btn_label = ($context === 'approved') ? 'Accéder à mon espace' : 'Me connecter';
+        $h2_label  = ($context === 'approved') ? 'Votre compte est activé ✓' : 'Votre lien de connexion';
 
-        $body = self::h2($context === 'approved' ? 'Votre compte est activé ✓' : 'Votre lien de connexion')
-            . self::p($intro)
+        $subject = Psc_Email_Templates::subject($tpl_key, array('site' => $site));
+        $intro   = Psc_Email_Templates::body_html($tpl_key, array('site' => $site, 'minutes' => $minutes));
+
+        $body = self::h2($h2_label)
+            . '<p style="color:#444;font-size:14px;line-height:1.7;margin:0 0 12px;">' . $intro . '</p>'
             . self::btn($url, $btn_label)
             . self::info_box(
                 '<strong>⏱ Durée de validité :</strong> ce lien expire dans <strong>' . $minutes . ' minutes</strong> '
@@ -128,12 +123,13 @@ class Psc_Mailer {
 
     public static function send_recap($parent, $trimestre, $children, $reg_map, $services) {
         $site    = self::site_name();
-        $subject = sprintf('[%s] Confirmation de votre planning périscolaire — %s', $site, $trimestre->label);
+        $subject = Psc_Email_Templates::subject('recap', array('site' => $site, 'trimestre' => $trimestre->label));
+        $intro   = Psc_Email_Templates::body_html('recap', array('site' => $site, 'trimestre' => $trimestre->label));
 
         $grand_total = 0.0;
         $has_any     = false;
         $body        = self::h2('Confirmation de votre planning')
-            . self::p('Voici le récapitulatif de vos inscriptions pour : ' . $trimestre->label);
+            . '<p style="color:#444;font-size:14px;line-height:1.7;margin:0 0 12px;">' . $intro . '</p>';
 
         foreach ($children as $child) {
             $child_label = strtoupper($child->prenom . ' ' . $child->nom)
@@ -262,15 +258,11 @@ class Psc_Mailer {
 
     public static function send_request_verification($email, $url) {
         $site    = self::site_name();
-        $subject = sprintf('[%s] Confirmez votre demande d\'inscription périscolaire', $site);
+        $subject = Psc_Email_Templates::subject('request_verify', array('site' => $site));
+        $intro   = Psc_Email_Templates::body_html('request_verify', array('site' => $site));
 
         $body = self::h2('Confirmez votre demande d\'inscription')
-            . self::p(
-                'Une demande d\'inscription au service périscolaire vient d\'être déposée avec cette adresse e-mail.'
-            )
-            . self::p(
-                'Pour la transmettre à la mairie, confirmez votre adresse en cliquant sur le bouton ci-dessous.'
-            )
+            . '<p style="color:#444;font-size:14px;line-height:1.7;margin:0 0 12px;">' . $intro . '</p>'
             . self::btn($url, 'Confirmer ma demande')
             . self::info_box(
                 '<strong>⏱ Ce lien est valable 3 jours.</strong><br>'
@@ -285,7 +277,8 @@ class Psc_Mailer {
 
     public static function notify_mairie_new_request($req, $children) {
         $site    = self::site_name();
-        $subject = sprintf('[%s] Nouvelle demande d\'inscription périscolaire', $site);
+        $subject = Psc_Email_Templates::subject('notify_mairie', array('site' => $site));
+        $intro   = Psc_Email_Templates::body_html('notify_mairie', array('site' => $site));
 
         $contact = '<strong>E-mail :</strong> ' . esc_html($req->email) . '<br>';
         if ($req->nom)       $contact .= '<strong>Famille :</strong> ' . esc_html($req->nom) . '<br>';
@@ -301,6 +294,7 @@ class Psc_Mailer {
         $children_list .= '</ul>';
 
         $body = self::h2('Nouvelle demande d\'inscription')
+            . '<p style="color:#444;font-size:14px;line-height:1.7;margin:0 0 12px;">' . $intro . '</p>'
             . self::info_box($contact)
             . '<p style="color:#444;font-size:14px;font-weight:bold;margin:16px 0 6px;">Enfant(s) déclaré(s) :</p>'
             . $children_list;
@@ -323,10 +317,11 @@ class Psc_Mailer {
 
     public static function send_request_rejected($email, $note = '') {
         $site    = self::site_name();
-        $subject = sprintf('[%s] Suite à votre demande d\'inscription périscolaire', $site);
+        $subject = Psc_Email_Templates::subject('request_rejected', array('site' => $site));
+        $intro   = Psc_Email_Templates::body_html('request_rejected', array('site' => $site));
 
         $body = self::h2('Votre demande d\'inscription')
-            . self::p('Votre demande d\'inscription au service périscolaire n\'a pas pu être validée en l\'état.');
+            . '<p style="color:#444;font-size:14px;line-height:1.7;margin:0 0 12px;">' . $intro . '</p>';
 
         if ($note !== '') {
             $body .= '<p style="color:#444;font-size:14px;font-weight:bold;margin:16px 0 6px;">Motif communiqué :</p>'
@@ -335,8 +330,6 @@ class Psc_Mailer {
                    . nl2br(esc_html($note))
                    . '</blockquote>';
         }
-
-        $body .= self::p('Pour toute précision ou pour soumettre une nouvelle demande, contactez directement la mairie.');
 
         return self::send($email, $subject, self::layout($body, $subject));
     }
