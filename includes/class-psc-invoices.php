@@ -461,8 +461,18 @@ class Psc_Invoices {
         $pdf->SetFont('Helvetica', '', 10);
         $pdf->SetXY($ml, $y_addr);
         $pdf->Cell($pw / 2, 5, self::enc($nom_famille), 0, 2, 'L');
-        $pdf->SetX($ml);
-        $pdf->Cell($pw / 2, 5, self::enc($parent->email), 0, 0, 'L');
+        if (!empty($parent->adresse)) {
+            $pdf->SetX($ml);
+            $pdf->Cell($pw / 2, 5, self::enc($parent->adresse), 0, 2, 'L');
+        }
+        if (!empty($parent->code_postal) || !empty($parent->ville)) {
+            $pdf->SetX($ml);
+            $pdf->Cell($pw / 2, 5, self::enc(trim(($parent->code_postal ?? '') . ' ' . ($parent->ville ?? ''))), 0, 2, 'L');
+        }
+        if (empty($parent->adresse) && empty($parent->ville)) {
+            $pdf->SetX($ml);
+            $pdf->Cell($pw / 2, 5, self::enc($parent->email), 0, 0, 'L');
+        }
 
         // Ville + date sur la même ligne que le nom famille
         $pdf->SetXY($ml, $y_addr);

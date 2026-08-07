@@ -15,6 +15,7 @@ class Psc_Admin {
         add_action('admin_post_psc_add_parent', array(__CLASS__, 'handle_add_parent'));
         add_action('admin_post_psc_toggle_parent', array(__CLASS__, 'handle_toggle_parent'));
         add_action('admin_post_psc_send_link', array(__CLASS__, 'handle_send_link'));
+        add_action('admin_post_psc_edit_parent', array(__CLASS__, 'handle_edit_parent'));
         add_action('admin_post_psc_save_email_templates', array(__CLASS__, 'handle_save_email_templates'));
         add_action('admin_post_psc_reset_email_template', array(__CLASS__, 'handle_reset_email_template'));
         add_action('admin_post_psc_reset_email_templates', array(__CLASS__, 'handle_reset_email_templates'));
@@ -423,10 +424,27 @@ class Psc_Admin {
         self::redirect('psc_parents', $ok ? 'link_sent' : 'mail_failed');
     }
 
+    public static function handle_edit_parent() {
+        self::guard('psc_edit_parent');
+
+        $id = psc_post_int('id');
+        if (!$id) self::redirect('psc_parents', 'invalid');
+
+        Psc_Parents::update($id, array(
+            'nom'         => psc_post('nom'),
+            'adresse'     => psc_post('adresse'),
+            'code_postal' => psc_post('code_postal'),
+            'ville'       => psc_post('ville'),
+        ));
+        self::redirect('psc_parents', 'updated');
+    }
+
     public static function page_parents() {
         if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
-        $parents = Psc_Parents::all();
-        $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
+        $parents     = Psc_Parents::all();
+        $psc_msg     = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
+        $edit_id     = psc_get_int('edit');
+        $edit_parent = $edit_id ? Psc_Parents::get_by_id($edit_id) : null;
         include PSC_PATH . 'templates/admin-parents.php';
     }
 

@@ -34,6 +34,20 @@
         <label for="psc-req-tel">Téléphone</label><br>
         <input id="psc-req-tel" type="tel" name="req_telephone" maxlength="40" autocomplete="tel">
       </p>
+      <p>
+        <label for="psc-req-adresse">Adresse postale</label><br>
+        <input id="psc-req-adresse" type="text" name="req_adresse" maxlength="255" autocomplete="street-address">
+      </p>
+      <p style="display:flex;gap:12px;">
+        <span style="flex:0 0 100px;">
+          <label for="psc-req-cp">Code postal</label><br>
+          <input id="psc-req-cp" type="text" name="req_code_postal" maxlength="10" autocomplete="postal-code" style="width:100%">
+        </span>
+        <span style="flex:1;">
+          <label for="psc-req-ville">Ville</label><br>
+          <input id="psc-req-ville" type="text" name="req_ville" maxlength="100" autocomplete="address-level2" style="width:100%">
+        </span>
+      </p>
     </fieldset>
 
     <fieldset>

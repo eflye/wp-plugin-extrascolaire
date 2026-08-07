@@ -165,6 +165,9 @@ class Psc_Requests {
 
         $nom       = psc_post('req_nom');
         $telephone = psc_post('req_telephone');
+        $adresse     = psc_post('req_adresse');
+        $code_postal = psc_post('req_code_postal');
+        $ville       = psc_post('req_ville');
         $message   = isset($_POST['req_message'])
             ? sanitize_textarea_field(wp_unslash($_POST['req_message'])) : '';
 
@@ -193,6 +196,9 @@ class Psc_Requests {
             'email'          => $email,
             'nom'            => mb_substr($nom, 0, 190),
             'telephone'      => mb_substr($telephone, 0, 40),
+            'adresse'      => mb_substr($adresse, 0, 255),
+            'code_postal'  => mb_substr($code_postal, 0, 10),
+            'ville'        => mb_substr($ville, 0, 100),
             'children_json'  => wp_json_encode($children),
             'message'        => mb_substr($message, 0, 1000),
             'verify_hash'    => psc_hash_token($token),
@@ -304,7 +310,11 @@ class Psc_Requests {
         if ($parent) {
             $parent_id = (int) $parent->id;
         } else {
-            $parent_id = Psc_Parents::create($req->email, $req->nom);
+            $parent_id = Psc_Parents::create($req->email, $req->nom, array(
+                'adresse'     => $req->adresse ?? '',
+                'code_postal' => $req->code_postal ?? '',
+                'ville'       => $req->ville ?? '',
+            ));
             if (is_wp_error($parent_id)) {
                 Psc_Admin::redirect_public('psc_requests', 'invalid');
             }

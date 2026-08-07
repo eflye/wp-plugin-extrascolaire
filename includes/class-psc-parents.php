@@ -235,7 +235,7 @@ class Psc_Parents {
 
     /* ---------------- Administration ---------------- */
 
-    public static function create($email, $nom = '') {
+    public static function create($email, $nom = '', $extra = array()) {
         global $wpdb;
 
         $email = strtolower(sanitize_email($email));
@@ -247,13 +247,40 @@ class Psc_Parents {
         }
 
         $wpdb->insert(psc_table('parents'), array(
-            'email'      => $email,
-            'nom'        => mb_substr(sanitize_text_field($nom), 0, 190),
-            'active'     => 1,
-            'created_at' => current_time('mysql'),
-        ), array('%s', '%s', '%d', '%s'));
+            'email'       => $email,
+            'nom'         => mb_substr(sanitize_text_field($nom), 0, 190),
+            'adresse'     => mb_substr(sanitize_text_field($extra['adresse'] ?? ''), 0, 255),
+            'code_postal' => mb_substr(sanitize_text_field($extra['code_postal'] ?? ''), 0, 10),
+            'ville'       => mb_substr(sanitize_text_field($extra['ville'] ?? ''), 0, 100),
+            'active'      => 1,
+            'created_at'  => current_time('mysql'),
+        ), array('%s', '%s', '%s', '%s', '%s', '%d', '%s'));
 
         return (int) $wpdb->insert_id;
+    }
+
+    public static function update($parent_id, $data) {
+        global $wpdb;
+        $parent_id = absint($parent_id);
+        if (!$parent_id) return false;
+
+        $allowed = array(
+            'nom'         => 190,
+            'adresse'     => 255,
+            'code_postal' => 10,
+            'ville'       => 100,
+        );
+        $set     = array();
+        $formats = array();
+        foreach ($allowed as $field => $max) {
+            if (array_key_exists($field, $data)) {
+                $set[$field] = mb_substr(sanitize_text_field($data[$field]), 0, $max);
+                $formats[]   = '%s';
+            }
+        }
+        if (empty($set)) return false;
+
+        return $wpdb->update(psc_table('parents'), $set, array('id' => $parent_id), $formats, array('%d'));
     }
 
     public static function all() {

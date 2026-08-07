@@ -11,6 +11,7 @@ $psc_notices = array(
     'mail_failed' => array('error', "L'envoi a échoué. Vérifiez la configuration e-mail du site (une extension SMTP est souvent nécessaire)."),
     'deactivated' => array('success', 'Accès désactivé.'),
     'reactivated' => array('success', 'Accès réactivé.'),
+    'updated'     => array('success', 'Informations de la famille mises à jour.'),
 );
 if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     list($type, $text) = $psc_notices[$psc_msg]; ?>
@@ -25,6 +26,32 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
   dans l'onglet « Enfants ».
 </p>
 </div>
+
+<?php if (!empty($edit_parent)): ?>
+<div class="psc-box">
+<h2>Modifier — <?php echo esc_html($edit_parent->nom ?: $edit_parent->email); ?></h2>
+<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+<?php wp_nonce_field('psc_edit_parent'); ?>
+<input type="hidden" name="action" value="psc_edit_parent">
+<input type="hidden" name="id" value="<?php echo esc_attr($edit_parent->id); ?>">
+<table class="form-table">
+<tr><th><label for="psc-edit-nom">Nom de la famille</label></th>
+<td><input id="psc-edit-nom" type="text" name="nom" class="regular-text" maxlength="190"
+    value="<?php echo esc_attr($edit_parent->nom ?? ''); ?>"></td></tr>
+<tr><th><label for="psc-edit-adresse">Adresse</label></th>
+<td><input id="psc-edit-adresse" type="text" name="adresse" class="large-text" maxlength="255"
+    value="<?php echo esc_attr($edit_parent->adresse ?? ''); ?>"></td></tr>
+<tr><th><label for="psc-edit-cp">Code postal</label></th>
+<td><input id="psc-edit-cp" type="text" name="code_postal" class="small-text" maxlength="10"
+    value="<?php echo esc_attr($edit_parent->code_postal ?? ''); ?>"></td></tr>
+<tr><th><label for="psc-edit-ville">Ville</label></th>
+<td><input id="psc-edit-ville" type="text" name="ville" class="regular-text" maxlength="100"
+    value="<?php echo esc_attr($edit_parent->ville ?? ''); ?>"></td></tr>
+</table>
+<?php submit_button('Enregistrer les modifications'); ?>
+</form>
+</div>
+<?php endif; ?>
 
 <div class="psc-box">
 <h2>Enregistrer une famille</h2>
@@ -42,7 +69,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <div class="psc-box">
 <h2>Familles enregistrées</h2>
 <table class="widefat striped">
-<thead><tr><th>Nom</th><th>E-mail</th><th>Dernière connexion</th><th>Statut</th><th>Actions</th></tr></thead>
+<thead><tr><th>Nom</th><th>E-mail</th><th>Adresse</th><th>Dernière connexion</th><th>Statut</th><th>Actions</th></tr></thead>
 <tbody>
 <?php if (empty($parents)): ?>
 <tr><td colspan="5">Aucune famille enregistrée.</td></tr>
@@ -50,9 +77,12 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <tr>
 <td><?php echo $p->nom ? esc_html($p->nom) : '—'; ?></td>
 <td><?php echo esc_html($p->email); ?></td>
+<td><?php echo esc_html(trim(($p->adresse ?? '') . ($p->code_postal ? ' — ' . $p->code_postal : '') . ($p->ville ? ' ' . $p->ville : ''))); ?></td>
 <td><?php echo $p->last_login ? esc_html(date_i18n('d/m/Y H:i', strtotime($p->last_login))) : '<em>jamais</em>'; ?></td>
 <td><?php echo $p->active ? '<span class="psc-active">Actif</span>' : '<em>désactivé</em>'; ?></td>
 <td>
+  <a href="<?php echo esc_url(add_query_arg(array('page' => 'psc_parents', 'edit' => $p->id), admin_url('admin.php'))); ?>"
+     class="button">Éditer</a>
   <?php if ($p->active): ?>
   <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
     <?php wp_nonce_field('psc_send_link'); ?>
