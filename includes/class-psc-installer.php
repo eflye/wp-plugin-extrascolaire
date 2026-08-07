@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '2.3.0';
+    const DB_VERSION = '2.5.0';
 
     public static function activate() {
         self::create_tables();
@@ -16,10 +16,45 @@ class Psc_Installer {
      * de fichiers (cas fréquent : le hook d'activation n'est pas rejoué).
      */
     public static function maybe_upgrade() {
-        if (get_option('psc_db_version') !== self::DB_VERSION) {
+        $current = get_option('psc_db_version');
+        if ($current !== self::DB_VERSION) {
+            if ($current && version_compare($current, '2.5.0', '<')) {
+                self::migrate_2_5_0();
+            }
             self::create_tables();
             update_option('psc_db_version', self::DB_VERSION);
         }
+    }
+
+    /**
+     * Passe la facturation mensuelle (colonne 'mois') au modèle par trimestre.
+     * Les anciennes factures sont supprimées : elles devront être regénérées
+     * avec le nouveau modèle. La colonne 'mois' est retirée de la table.
+     */
+    private static function migrate_2_5_0() {
+        global $wpdb;
+        $t_inv = psc_table('invoices');
+
+        $has_mois = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+             AND TABLE_NAME = '{$t_inv}' AND COLUMN_NAME = 'mois'"
+        );
+        if (!$has_mois) return;
+
+        $wpdb->query("DELETE FROM {$t_inv}");
+
+        foreach (array('parent_mois', 'mois') as $idx) {
+            $exists = (int) $wpdb->get_var(
+                "SELECT COUNT(*) FROM information_schema.STATISTICS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                 AND TABLE_NAME = '{$t_inv}' AND INDEX_NAME = '{$idx}'"
+            );
+            if ($exists) {
+                $wpdb->query("ALTER TABLE {$t_inv} DROP INDEX `{$idx}`");
+            }
+        }
+        $wpdb->query("ALTER TABLE {$t_inv} DROP COLUMN `mois`");
     }
 
     protected static function create_tables() {
@@ -68,6 +103,7 @@ CREATE TABLE $t_child (
             nom VARCHAR(191) NOT NULL,
             prenom VARCHAR(191) NOT NULL,
             classe VARCHAR(100) NULL,
+            active TINYINT(1) NOT NULL DEFAULT 1,
             created_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
             KEY parent_id (parent_id)
@@ -121,14 +157,14 @@ CREATE TABLE $t_req (
 CREATE TABLE $t_inv (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             parent_id BIGINT UNSIGNED NOT NULL,
-            mois CHAR(7) NOT NULL,
+            trimestre_id BIGINT UNSIGNED NOT NULL,
             total DECIMAL(10,2) NOT NULL DEFAULT 0.00,
             pdf_path VARCHAR(500) NULL,
             sent_at DATETIME NULL,
             created_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
-            UNIQUE KEY parent_mois (parent_id, mois),
-            KEY mois (mois),
+            UNIQUE KEY parent_trimestre (parent_id, trimestre_id),
+            KEY trimestre_id (trimestre_id),
             KEY parent_id (parent_id)
         ) $charset_collate;";
 

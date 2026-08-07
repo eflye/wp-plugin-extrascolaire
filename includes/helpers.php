@@ -162,6 +162,24 @@ function psc_services() {
 }
 
 /**
+ * Liste ordonnée des niveaux scolaires pour les menus déroulants.
+ * Clé = valeur stockée en base, valeur = libellé affiché.
+ */
+function psc_classe_options() {
+    return array(
+        ''   => '— Classe —',
+        'PS' => 'Petite Section (PS)',
+        'MS' => 'Moyenne Section (MS)',
+        'GS' => 'Grande Section (GS)',
+        'CP' => 'CP',
+        'CE1'=> 'CE1',
+        'CE2'=> 'CE2',
+        'CM1'=> 'CM1',
+        'CM2'=> 'CM2',
+    );
+}
+
+/**
  * Neutralise l'injection de formules CSV (Excel / LibreOffice).
  *
  * Une valeur commençant par = + - @ (ou tabulation / retour chariot) est

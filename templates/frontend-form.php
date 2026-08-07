@@ -3,8 +3,13 @@
 
 <?php
 $psc_notices = array(
-    'welcome' => array('ok', 'Vous êtes connecté.'),
+    'welcome'       => array('ok',  'Vous êtes connecté.'),
+    'child_updated' => array('ok',  'Informations de l\'enfant mises à jour.'),
+    'child_added'   => array('ok',  'Enfant ajouté à votre compte.'),
+    'child_invalid' => array('err', 'Merci de renseigner le prénom et le nom.'),
+    'child_limit'   => array('err', 'Nombre maximum d\'enfants atteint.'),
 );
+$child_msg = in_array($psc_msg, array('child_updated', 'child_added', 'child_invalid', 'child_limit'), true);
 if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     list($type, $text) = $psc_notices[$psc_msg]; ?>
     <p class="psc-notice psc-notice-<?php echo esc_attr($type); ?>"><?php echo esc_html($text); ?></p>
@@ -128,5 +133,68 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
   </div>
 
 <?php endif; ?>
+
+<?php /* ---- Section gestion des enfants ---- */ ?>
+<details class="psc-children-mgmt" <?php echo $child_msg ? 'open' : ''; ?>>
+  <summary><strong>Mes enfants</strong></summary>
+
+  <?php if (!empty($all_children)): ?>
+  <table class="psc-children-table">
+    <thead>
+      <tr>
+        <th>Prénom</th><th>Nom</th><th>Classe</th><th>Actif</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+    <?php foreach ($all_children as $c): ?>
+      <tr class="<?php echo (int)$c->active ? '' : 'psc-child-inactive'; ?>">
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+          <?php wp_nonce_field('psc_parent_update_child'); ?>
+          <input type="hidden" name="action" value="psc_parent_update_child">
+          <input type="hidden" name="child_id" value="<?php echo esc_attr($c->id); ?>">
+          <td><?php echo esc_html($c->prenom); ?></td>
+          <td><?php echo esc_html($c->nom); ?></td>
+          <td>
+            <select name="classe" aria-label="Classe de <?php echo esc_attr($c->prenom); ?>">
+              <?php foreach (psc_classe_options() as $v => $l): ?>
+              <option value="<?php echo esc_attr($v); ?>" <?php selected($c->classe, $v); ?>><?php echo esc_html($l); ?></option>
+              <?php endforeach; ?>
+            </select>
+          </td>
+          <td>
+            <label class="psc-toggle" aria-label="Activer ou désactiver <?php echo esc_attr($c->prenom); ?>">
+              <input type="checkbox" name="active" value="1" <?php checked((int)$c->active, 1); ?>>
+              <span class="psc-toggle-track"></span>
+            </label>
+          </td>
+          <td><button type="submit" class="psc-btn-sm">Enregistrer</button></td>
+        </form>
+      </tr>
+    <?php endforeach; ?>
+    </tbody>
+  </table>
+  <?php endif; ?>
+
+  <details class="psc-add-child-block">
+    <summary>Ajouter un enfant</summary>
+    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="psc-add-child-form">
+      <?php wp_nonce_field('psc_parent_add_child'); ?>
+      <input type="hidden" name="action" value="psc_parent_add_child">
+      <div class="psc-child-row">
+        <label class="screen-reader-text" for="psc-new-prenom">Prénom</label>
+        <input id="psc-new-prenom" type="text" name="new_prenom" placeholder="Prénom" maxlength="190" required>
+        <label class="screen-reader-text" for="psc-new-nom">Nom</label>
+        <input id="psc-new-nom" type="text" name="new_nom" placeholder="Nom" maxlength="190" required>
+        <label class="screen-reader-text" for="psc-new-classe">Classe</label>
+        <select id="psc-new-classe" name="new_classe">
+          <?php foreach (psc_classe_options() as $v => $l): ?>
+          <option value="<?php echo esc_attr($v); ?>"><?php echo esc_html($l); ?></option>
+          <?php endforeach; ?>
+        </select>
+        <button type="submit" class="psc-btn-sm">Ajouter</button>
+      </div>
+    </form>
+  </details>
+</details>
 
 </div>

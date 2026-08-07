@@ -204,8 +204,17 @@
     display: flex;
     gap: 8px;
     margin-bottom: 8px;
+    align-items: center;
 }
 .psc-child-row input { flex: 1; min-width: 0; }
+.psc-child-row select { flex: 0 0 auto; }
+.psc-child-remove {
+    flex: 0 0 auto;
+    color: #b32d2e;
+    font-size: 1.2em;
+    line-height: 1;
+    padding: 0 4px;
+}
 .psc-req { color: #b32d2e; }
 .psc-rgpd {
     font-size: 0.82em;
@@ -214,6 +223,72 @@
     border-left: 3px solid #dfe4ea;
     padding-left: 10px;
 }
+/* ---- Gestion des enfants ---- */
+.psc-children-mgmt {
+    margin-top: 32px;
+    border: 1px solid #dde4ee;
+    border-radius: 6px;
+    padding: 0 16px 16px;
+}
+.psc-children-mgmt > summary {
+    padding: 12px 0;
+    cursor: pointer;
+    color: #23478B;
+    font-size: 1em;
+}
+.psc-children-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+    margin-bottom: 16px;
+}
+.psc-children-table th,
+.psc-children-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #eef0f5;
+    text-align: left;
+    vertical-align: middle;
+}
+.psc-children-table th { color: #555; font-weight: 600; font-size: 0.85em; text-transform: uppercase; letter-spacing: .03em; }
+.psc-child-inactive td { color: #aaa; }
+.psc-btn-sm {
+    background: #23478B;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 14px;
+    font-size: 0.85em;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.psc-btn-sm:hover { background: #1a3568; }
+/* Toggle actif/inactif */
+.psc-toggle { display: inline-flex; align-items: center; cursor: pointer; }
+.psc-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.psc-toggle-track {
+    display: inline-block;
+    width: 36px; height: 20px;
+    background: #ccc;
+    border-radius: 10px;
+    position: relative;
+    transition: background .2s;
+}
+.psc-toggle-track::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    transition: left .2s;
+}
+.psc-toggle input:checked + .psc-toggle-track { background: #23478B; }
+.psc-toggle input:checked + .psc-toggle-track::after { left: 19px; }
+/* Ajouter un enfant */
+.psc-add-child-block { margin-top: 12px; border: none; }
+.psc-add-child-block > summary { cursor: pointer; color: #23478B; font-size: 0.9em; padding: 6px 0; }
+.psc-add-child-form .psc-child-row { flex-wrap: wrap; }
+
 /* Champ piège : masqué visuellement sans display:none, que certains
    robots détectent. */
 .psc-hp {

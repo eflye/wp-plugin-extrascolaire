@@ -14,6 +14,12 @@ class Psc_Frontend {
         add_action('wp_ajax_psc_toggle', array(__CLASS__, 'ajax_toggle'));
         add_action('wp_ajax_nopriv_psc_confirm', array(__CLASS__, 'ajax_confirm'));
         add_action('wp_ajax_psc_confirm', array(__CLASS__, 'ajax_confirm'));
+
+        // Gestion des enfants par le parent (formulaires POST classiques).
+        add_action('admin_post_nopriv_psc_parent_update_child', array(__CLASS__, 'handle_parent_update_child'));
+        add_action('admin_post_psc_parent_update_child', array(__CLASS__, 'handle_parent_update_child'));
+        add_action('admin_post_nopriv_psc_parent_add_child', array(__CLASS__, 'handle_parent_add_child'));
+        add_action('admin_post_psc_parent_add_child', array(__CLASS__, 'handle_parent_add_child'));
     }
 
     public static function assets() {
@@ -35,11 +41,12 @@ class Psc_Frontend {
         return $wpdb->get_row("SELECT * FROM $t_trim WHERE active = 1 ORDER BY id DESC LIMIT 1");
     }
 
-    protected static function children_of($parent_id) {
+    protected static function children_of($parent_id, $active_only = false) {
         global $wpdb;
         $t_child = psc_table('children');
+        $where   = $active_only ? 'AND active = 1' : '';
         return $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM $t_child WHERE parent_id = %d ORDER BY prenom", $parent_id
+            "SELECT * FROM $t_child WHERE parent_id = %d $where ORDER BY prenom", $parent_id
         ));
     }
 
@@ -192,6 +199,77 @@ class Psc_Frontend {
         ));
     }
 
+    /* ---------------- Gestion des enfants par le parent ---------------- */
+
+    protected static function parent_form_redirect($msg) {
+        wp_safe_redirect(add_query_arg('psc_msg', $msg, Psc_Mailer::form_page_url()));
+        exit;
+    }
+
+    public static function handle_parent_update_child() {
+        check_admin_referer('psc_parent_update_child');
+
+        $parent = Psc_Parents::current();
+        if (!$parent) self::parent_form_redirect('auth');
+
+        $child_id = psc_post_int('child_id');
+        $classe   = psc_post('classe');
+        $active   = isset($_POST['active']) ? 1 : 0;
+
+        $allowed = array_keys(psc_classe_options());
+        if (!in_array($classe, $allowed, true)) $classe = '';
+
+        global $wpdb;
+        $t_child = psc_table('children');
+        $owned = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $t_child WHERE id = %d AND parent_id = %d", $child_id, $parent->id
+        ));
+        if (!$owned) self::parent_form_redirect('invalid');
+
+        $wpdb->update(
+            $t_child,
+            array('classe' => $classe, 'active' => $active),
+            array('id' => $child_id),
+            array('%s', '%d'),
+            array('%d')
+        );
+        self::parent_form_redirect('child_updated');
+    }
+
+    public static function handle_parent_add_child() {
+        check_admin_referer('psc_parent_add_child');
+
+        $parent = Psc_Parents::current();
+        if (!$parent) self::parent_form_redirect('auth');
+
+        $prenom = psc_post('new_prenom');
+        $nom    = psc_post('new_nom');
+        $classe = psc_post('new_classe');
+
+        if ($prenom === '' || $nom === '') self::parent_form_redirect('child_invalid');
+
+        $allowed = array_keys(psc_classe_options());
+        if (!in_array($classe, $allowed, true)) $classe = '';
+
+        global $wpdb;
+        $t_child = psc_table('children');
+        $count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $t_child WHERE parent_id = %d", $parent->id
+        ));
+        if ($count >= psc_max_children_per_user()) self::parent_form_redirect('child_limit');
+
+        $wpdb->insert($t_child, array(
+            'parent_id'  => $parent->id,
+            'nom'        => mb_substr($nom, 0, 190),
+            'prenom'     => mb_substr($prenom, 0, 190),
+            'classe'     => mb_substr($classe, 0, 100),
+            'active'     => 1,
+            'created_at' => current_time('mysql'),
+        ), array('%d', '%s', '%s', '%s', '%d', '%s'));
+
+        self::parent_form_redirect('child_added');
+    }
+
     /* ---------------- Affichage ---------------- */
 
     public static function shortcode($atts) {
@@ -205,8 +283,9 @@ class Psc_Frontend {
             return ob_get_clean();
         }
 
-        $trimestre = self::active_trimestre();
-        $children = self::children_of($parent->id);
+        $trimestre    = self::active_trimestre();
+        $all_children = self::children_of($parent->id);               // pour la section "Mes enfants"
+        $children     = self::children_of($parent->id, true);         // uniquement actifs → calendrier
         $days_by_month = array();
         $reg_map = array();
 

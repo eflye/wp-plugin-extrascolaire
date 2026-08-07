@@ -53,18 +53,27 @@
     <fieldset>
       <legend>Votre ou vos enfants <span class="psc-req">*</span></legend>
       <p class="psc-help">Renseignez au moins un enfant.</p>
-      <?php for ($i = 0; $i < 3; $i++): ?>
-        <div class="psc-child-row">
-          <label class="screen-reader-text" for="psc-cp-<?php echo (int) $i; ?>">Prénom de l'enfant <?php echo (int) $i + 1; ?></label>
-          <input id="psc-cp-<?php echo (int) $i; ?>" type="text" name="child_prenom_<?php echo (int) $i; ?>" placeholder="Prénom" maxlength="190">
 
-          <label class="screen-reader-text" for="psc-cn-<?php echo (int) $i; ?>">Nom de l'enfant <?php echo (int) $i + 1; ?></label>
-          <input id="psc-cn-<?php echo (int) $i; ?>" type="text" name="child_nom_<?php echo (int) $i; ?>" placeholder="Nom" maxlength="190">
+      <div id="psc-children-list">
+        <div class="psc-child-row" data-index="0">
+          <label class="screen-reader-text" for="psc-cp-0">Prénom de l'enfant 1</label>
+          <input id="psc-cp-0" type="text" name="child_prenom_0" placeholder="Prénom" maxlength="190" required>
 
-          <label class="screen-reader-text" for="psc-cc-<?php echo (int) $i; ?>">Classe de l'enfant <?php echo (int) $i + 1; ?></label>
-          <input id="psc-cc-<?php echo (int) $i; ?>" type="text" name="child_classe_<?php echo (int) $i; ?>" placeholder="Classe" maxlength="100">
+          <label class="screen-reader-text" for="psc-cn-0">Nom de l'enfant 1</label>
+          <input id="psc-cn-0" type="text" name="child_nom_0" placeholder="Nom" maxlength="190" required>
+
+          <label class="screen-reader-text" for="psc-cc-0">Classe de l'enfant 1</label>
+          <select id="psc-cc-0" name="child_classe_0">
+            <?php foreach (psc_classe_options() as $v => $l): ?>
+            <option value="<?php echo esc_attr($v); ?>"><?php echo esc_html($l); ?></option>
+            <?php endforeach; ?>
+          </select>
         </div>
-      <?php endfor; ?>
+      </div>
+
+      <p>
+        <button type="button" id="psc-add-child" class="psc-link-btn" aria-label="Ajouter un enfant">+ Ajouter un enfant</button>
+      </p>
     </fieldset>
 
     <p>
@@ -82,3 +91,95 @@
     <p><button type="submit" class="psc-btn">Envoyer ma demande</button></p>
   </form>
 </details>
+
+<script>
+(function () {
+  var MAX   = 5;
+  var next  = 1;
+  var list  = document.getElementById('psc-children-list');
+  var addBtn = document.getElementById('psc-add-child');
+
+  var classeOptions = <?php echo json_encode(psc_classe_options()); ?>;
+
+  function buildSelect(name, id) {
+    var sel = document.createElement('select');
+    sel.name = name;
+    sel.id   = id;
+    Object.keys(classeOptions).forEach(function (v) {
+      var opt = document.createElement('option');
+      opt.value       = v;
+      opt.textContent = classeOptions[v];
+      sel.appendChild(opt);
+    });
+    return sel;
+  }
+
+  function updateAddBtn() {
+    addBtn.style.display = (list.children.length >= MAX) ? 'none' : '';
+  }
+
+  addBtn.addEventListener('click', function () {
+    if (list.children.length >= MAX) return;
+
+    var idx = next++;
+    var n   = list.children.length + 1;
+
+    var row = document.createElement('div');
+    row.className        = 'psc-child-row';
+    row.dataset.index    = idx;
+
+    var lblP = document.createElement('label');
+    lblP.className = 'screen-reader-text';
+    lblP.setAttribute('for', 'psc-cp-' + idx);
+    lblP.textContent = 'Prénom de l\'enfant ' + n;
+
+    var inP = document.createElement('input');
+    inP.type        = 'text';
+    inP.id          = 'psc-cp-' + idx;
+    inP.name        = 'child_prenom_' + idx;
+    inP.placeholder = 'Prénom';
+    inP.maxLength   = 190;
+
+    var lblN = document.createElement('label');
+    lblN.className = 'screen-reader-text';
+    lblN.setAttribute('for', 'psc-cn-' + idx);
+    lblN.textContent = 'Nom de l\'enfant ' + n;
+
+    var inN = document.createElement('input');
+    inN.type        = 'text';
+    inN.id          = 'psc-cn-' + idx;
+    inN.name        = 'child_nom_' + idx;
+    inN.placeholder = 'Nom';
+    inN.maxLength   = 190;
+
+    var lblC = document.createElement('label');
+    lblC.className = 'screen-reader-text';
+    lblC.setAttribute('for', 'psc-cc-' + idx);
+    lblC.textContent = 'Classe de l\'enfant ' + n;
+
+    var sel = buildSelect('child_classe_' + idx, 'psc-cc-' + idx);
+
+    var removeBtn = document.createElement('button');
+    removeBtn.type      = 'button';
+    removeBtn.className = 'psc-child-remove psc-link-btn';
+    removeBtn.setAttribute('aria-label', 'Supprimer cet enfant');
+    removeBtn.textContent = '×';
+    removeBtn.addEventListener('click', function () {
+      row.parentNode.removeChild(row);
+      updateAddBtn();
+    });
+
+    row.appendChild(lblP);
+    row.appendChild(inP);
+    row.appendChild(lblN);
+    row.appendChild(inN);
+    row.appendChild(lblC);
+    row.appendChild(sel);
+    row.appendChild(removeBtn);
+
+    list.appendChild(row);
+    inP.focus();
+    updateAddBtn();
+  });
+})();
+</script>

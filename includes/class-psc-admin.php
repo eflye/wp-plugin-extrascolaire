@@ -596,18 +596,18 @@ class Psc_Admin {
     public static function handle_generate_invoices() {
         self::guard('psc_generate_invoices');
 
-        $mois = isset($_POST['mois']) ? sanitize_text_field(wp_unslash($_POST['mois'])) : '';
-        if (!preg_match('/^\d{4}-\d{2}$/', $mois)) {
+        $trimestre_id = psc_post_int('trimestre_id');
+        if (!$trimestre_id) {
             self::redirect('psc_factures', 'invalid');
         }
 
-        $count = Psc_Invoices::generate_month($mois);
+        $count = Psc_Invoices::generate_trimestre($trimestre_id);
         if (is_wp_error($count)) {
             self::redirect('psc_factures', 'gen_error');
         }
 
         wp_safe_redirect(add_query_arg(
-            array('page' => 'psc_factures', 'mois' => $mois, 'psc_msg' => ($count > 0 ? 'generated' : 'gen_zero')),
+            array('page' => 'psc_factures', 'trimestre_id' => $trimestre_id, 'psc_msg' => ($count > 0 ? 'generated' : 'gen_zero')),
             admin_url('admin.php')
         ));
         exit;
@@ -616,22 +616,20 @@ class Psc_Admin {
     public static function handle_send_invoice() {
         self::guard('psc_send_invoice');
 
-        $invoice_id = psc_post_int('invoice_id');
-        $mois       = isset($_POST['mois']) ? sanitize_text_field(wp_unslash($_POST['mois'])) : '';
+        $invoice_id   = psc_post_int('invoice_id');
+        $trimestre_id = psc_post_int('trimestre_id');
         if (!$invoice_id) {
             self::redirect('psc_factures', 'invalid');
         }
 
         $result = Psc_Invoices::send($invoice_id);
         $msg    = is_wp_error($result) ? $result->get_error_code() : 'sent';
-        if ($msg === 'no_file') {
-            // gardez le message tel quel
-        } elseif (is_wp_error($result)) {
+        if ($msg !== 'no_file' && is_wp_error($result)) {
             $msg = 'mail_failed';
         }
 
         wp_safe_redirect(add_query_arg(
-            array('page' => 'psc_factures', 'mois' => $mois, 'psc_msg' => $msg),
+            array('page' => 'psc_factures', 'trimestre_id' => $trimestre_id, 'psc_msg' => $msg),
             admin_url('admin.php')
         ));
         exit;
@@ -640,12 +638,12 @@ class Psc_Admin {
     public static function handle_send_all_invoices() {
         self::guard('psc_send_all_invoices');
 
-        $mois = isset($_POST['mois']) ? sanitize_text_field(wp_unslash($_POST['mois'])) : '';
-        if (!preg_match('/^\d{4}-\d{2}$/', $mois)) {
+        $trimestre_id = psc_post_int('trimestre_id');
+        if (!$trimestre_id) {
             self::redirect('psc_factures', 'invalid');
         }
 
-        $invoices = Psc_Invoices::get_for_month($mois);
+        $invoices = Psc_Invoices::get_for_trimestre($trimestre_id);
         foreach ($invoices as $inv) {
             if (!$inv->sent_at) {
                 Psc_Invoices::send((int) $inv->id);
@@ -653,7 +651,7 @@ class Psc_Admin {
         }
 
         wp_safe_redirect(add_query_arg(
-            array('page' => 'psc_factures', 'mois' => $mois, 'psc_msg' => 'sent_all'),
+            array('page' => 'psc_factures', 'trimestre_id' => $trimestre_id, 'psc_msg' => 'sent_all'),
             admin_url('admin.php')
         ));
         exit;
@@ -670,13 +668,22 @@ class Psc_Admin {
 
     public static function page_factures() {
         if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        global $wpdb;
 
-        $all_months    = Psc_Invoices::months_with_data();
-        $selected_mois = isset($_GET['mois']) ? sanitize_text_field(wp_unslash($_GET['mois'])) : '';
-        if (!$selected_mois && !empty($all_months)) {
-            $selected_mois = $all_months[0];
+        $trimestres        = $wpdb->get_results('SELECT * FROM ' . psc_table('trimestres') . ' ORDER BY date_debut DESC');
+        $selected_trim_id  = psc_get_int('trimestre_id');
+        if (!$selected_trim_id && !empty($trimestres)) {
+            foreach ($trimestres as $t) {
+                if ($t->active) { $selected_trim_id = (int) $t->id; break; }
+            }
+            if (!$selected_trim_id) $selected_trim_id = (int) $trimestres[0]->id;
         }
-        $invoices = $selected_mois ? Psc_Invoices::get_for_month($selected_mois) : array();
+        $selected_trimestre = null;
+        foreach ($trimestres as $t) {
+            if ((int) $t->id === $selected_trim_id) { $selected_trimestre = $t; break; }
+        }
+
+        $invoices = $selected_trim_id ? Psc_Invoices::get_for_trimestre($selected_trim_id) : array();
         $psc_msg  = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
 
         include PSC_PATH . 'templates/admin-factures.php';
