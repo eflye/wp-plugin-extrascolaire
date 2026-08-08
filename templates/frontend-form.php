@@ -181,44 +181,6 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 
 <?php endif; ?>
 
-<?php /* ---- Section factures ---- */ ?>
-<details class="psc-invoices-mgmt">
-  <summary><strong>Mes factures</strong></summary>
-
-  <?php if (empty($invoices)): ?>
-  <p class="psc-help">Aucune facture n'a encore été émise pour votre famille.</p>
-  <?php else: ?>
-  <table class="psc-invoices-table">
-    <thead>
-      <tr><th>Mois</th><th>Montant</th><th>Statut</th><th></th></tr>
-    </thead>
-    <tbody>
-    <?php foreach ($invoices as $inv): ?>
-      <tr>
-        <td><?php echo esc_html(Psc_Invoices::month_label($inv->mois)); ?></td>
-        <td><?php echo esc_html(number_format_i18n((float) $inv->total, 2)); ?> €</td>
-        <td>
-          <?php if ($inv->sent_at): ?>
-            <span class="psc-active">Envoyée le <?php echo esc_html(date_i18n('d/m/Y', strtotime($inv->sent_at))); ?></span>
-          <?php else: ?>
-            <em>Pas encore envoyée</em>
-          <?php endif; ?>
-        </td>
-        <td>
-          <?php if ($inv->pdf_path): ?>
-          <a class="psc-btn-sm"
-             href="<?php echo esc_url(wp_nonce_url(add_query_arg(array('action' => 'psc_parent_download_invoice', 'invoice_id' => $inv->id), admin_url('admin-post.php')), 'psc_parent_download_invoice_' . $inv->id)); ?>">
-            Télécharger
-          </a>
-          <?php endif; ?>
-        </td>
-      </tr>
-    <?php endforeach; ?>
-    </tbody>
-  </table>
-  <?php endif; ?>
-</details>
-
 <?php /* ---- Section gestion des enfants ---- */ ?>
 <details class="psc-children-mgmt" <?php echo $child_msg ? 'open' : ''; ?>>
   <summary><strong>Mes enfants</strong></summary>
@@ -294,6 +256,44 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
       </div>
     </form>
   </details>
+</details>
+
+<?php /* ---- Section factures ---- */ ?>
+<details class="psc-invoices-mgmt">
+  <summary><strong>Mes factures</strong></summary>
+
+  <?php if (empty($invoices)): ?>
+  <p class="psc-help">Aucune facture n'a encore été émise pour votre famille.</p>
+  <?php else: ?>
+  <table class="psc-invoices-table">
+    <thead>
+      <tr><th>Mois</th><th>Montant</th><th>Statut</th><th></th></tr>
+    </thead>
+    <tbody>
+    <?php foreach ($invoices as $inv): ?>
+      <tr>
+        <td><?php echo esc_html(Psc_Invoices::month_label($inv->mois)); ?></td>
+        <td><?php echo esc_html(number_format_i18n((float) $inv->total, 2)); ?> €</td>
+        <td>
+          <?php if ($inv->sent_at): ?>
+            <span class="psc-active">Envoyée le <?php echo esc_html(date_i18n('d/m/Y', strtotime($inv->sent_at))); ?></span>
+          <?php else: ?>
+            <em>Pas encore envoyée</em>
+          <?php endif; ?>
+        </td>
+        <td>
+          <?php if ($inv->pdf_path): ?>
+          <a class="psc-btn-sm"
+             href="<?php echo esc_url(wp_nonce_url(add_query_arg(array('action' => 'psc_parent_download_invoice', 'invoice_id' => $inv->id), admin_url('admin-post.php')), 'psc_parent_download_invoice_' . $inv->id)); ?>">
+            Télécharger
+          </a>
+          <?php endif; ?>
+        </td>
+      </tr>
+    <?php endforeach; ?>
+    </tbody>
+  </table>
+  <?php endif; ?>
 </details>
 
 </div>
