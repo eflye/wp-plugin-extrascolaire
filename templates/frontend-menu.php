@@ -10,7 +10,7 @@
           Menu de la cantine — semaine du <?php echo esc_html(date_i18n('d/m/Y', strtotime($menu_week))); ?>
         </h2>
         <?php if (!$is_current_week): ?>
-          <a class="psc-menu-today-link" href="<?php echo esc_url(remove_query_arg('psc_semaine')); ?>">Revenir à cette semaine</a>
+          <a class="psc-menu-today-link" href="<?php echo esc_url(remove_query_arg(array('psc_semaine', 'psc_msg'))); ?>">Revenir à cette semaine</a>
         <?php endif; ?>
       </div>
 

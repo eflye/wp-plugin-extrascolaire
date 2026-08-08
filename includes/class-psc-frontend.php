@@ -337,8 +337,10 @@ class Psc_Frontend {
 
         $prev_week = gmdate('Y-m-d', strtotime($menu_week . ' -7 days'));
         $next_week = gmdate('Y-m-d', strtotime($menu_week . ' +7 days'));
-        $prev_url  = add_query_arg('psc_semaine', $prev_week);
-        $next_url  = add_query_arg('psc_semaine', $next_week);
+        // psc_msg est un message transitoire (ex: "Vous êtes déconnecté") : il
+        // ne doit pas survivre à la navigation dans le calendrier du menu.
+        $prev_url  = add_query_arg('psc_semaine', $prev_week, remove_query_arg('psc_msg'));
+        $next_url  = add_query_arg('psc_semaine', $next_week, remove_query_arg('psc_msg'));
         $is_current_week = ($menu_week === psc_week_start(current_time('Y-m-d')));
 
         include PSC_PATH . 'templates/frontend-menu.php';
