@@ -29,7 +29,14 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     list($type, $text) = $psc_notices[$psc_msg];
     $is_toast = in_array($psc_msg, $psc_toast_messages, true);
     ?>
-    <p class="psc-notice psc-notice-<?php echo esc_attr($type); ?><?php echo $is_toast ? ' psc-toast' : ''; ?>" data-testid="notice-<?php echo esc_attr($psc_msg); ?>"><?php echo esc_html($text); ?></p>
+    <?php if ($is_toast): ?>
+    <div class="psc-notice psc-notice-<?php echo esc_attr($type); ?> psc-toast" data-testid="notice-<?php echo esc_attr($psc_msg); ?>">
+      <span class="psc-toast-text"><?php echo esc_html($text); ?></span>
+      <button type="button" class="psc-toast-close" aria-label="Fermer">&times;</button>
+    </div>
+    <?php else: ?>
+    <p class="psc-notice psc-notice-<?php echo esc_attr($type); ?>" data-testid="notice-<?php echo esc_attr($psc_msg); ?>"><?php echo esc_html($text); ?></p>
+    <?php endif; ?>
 <?php endif; ?>
 
 <div class="psc-card psc-login-card" data-testid="login-card">

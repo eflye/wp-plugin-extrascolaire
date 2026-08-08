@@ -236,18 +236,38 @@
     restoreScroll();
 
     // Popin auto-masquée (ex : "lien de connexion envoyé") : disparaît
-    // seule après 3 s, et nettoie ?psc_msg de l'URL pour qu'un
-    // rechargement de page ne la réaffiche pas.
+    // seule après 3 s (ou plus tôt via la croix de fermeture), et nettoie
+    // ?psc_msg de l'URL pour qu'un rechargement de page ne la réaffiche pas.
+    function hideToast(toast) {
+        if (toast.classList.contains('psc-toast-hide')) return;
+        toast.classList.add('psc-toast-hide');
+
+        var removed = false;
+        var remove = function () {
+            if (removed) return;
+            removed = true;
+            toast.remove();
+        };
+        toast.addEventListener('animationend', remove, { once: true });
+        // Filet de sécurité : un onglet en arrière-plan ou un réglage
+        // "réduire les animations" peut empêcher animationend de se
+        // déclencher — la popin ne doit jamais rester bloquée à l'écran.
+        setTimeout(remove, 400);
+    }
+
     function initToast() {
         var toast = document.querySelector('.psc-toast');
         if (!toast) return;
 
-        setTimeout(function () {
-            toast.classList.add('psc-toast-hide');
-            toast.addEventListener('animationend', function () {
-                toast.remove();
-            }, { once: true });
-        }, 3000);
+        var timer = setTimeout(function () { hideToast(toast); }, 3000);
+
+        var closeBtn = toast.querySelector('.psc-toast-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function () {
+                clearTimeout(timer);
+                hideToast(toast);
+            });
+        }
 
         if (window.history && window.history.replaceState) {
             var url = new URL(window.location.href);

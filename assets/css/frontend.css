@@ -120,10 +120,30 @@
     max-width: min(90vw, 480px);
     box-shadow: 0 6px 24px rgba(0, 0, 0, .2);
     animation: psc-toast-in .25s ease-out;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding-right: 34px;
 }
 .psc-toast.psc-toast-hide {
     animation: psc-toast-out .3s ease-in forwards;
 }
+.psc-toast-text { flex: 1; }
+.psc-toast-close {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    border: none;
+    background: none;
+    padding: 4px 7px;
+    font-size: 1.1em;
+    line-height: 1;
+    color: inherit;
+    opacity: .55;
+    cursor: pointer;
+    border-radius: 3px;
+}
+.psc-toast-close:hover { opacity: 1; background: rgba(0, 0, 0, .06); }
 @keyframes psc-toast-in {
     from { opacity: 0; transform: translate(-50%, -50%) scale(.94); }
     to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
