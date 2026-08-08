@@ -184,7 +184,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
   <table class="psc-children-table">
     <thead>
       <tr>
-        <th>Prénom</th><th>Nom</th><th>Classe</th><th>Actif</th><th></th>
+        <th>Prénom</th><th>Nom</th><th>Classe</th><th>Régime cantine</th><th>Actif</th><th></th>
       </tr>
     </thead>
     <tbody>
@@ -202,6 +202,16 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
               <option value="<?php echo esc_attr($v); ?>" <?php selected($c->classe, $v); ?>><?php echo esc_html($l); ?></option>
               <?php endforeach; ?>
             </select>
+          </td>
+          <td class="psc-diet-options">
+            <label>
+              <input type="checkbox" name="sans_porc" value="1" <?php checked((int)$c->sans_porc, 1); ?>>
+              Sans porc
+            </label>
+            <label>
+              <input type="checkbox" name="vegan" value="1" <?php checked((int)$c->vegan, 1); ?>>
+              Vegan
+            </label>
           </td>
           <td>
             <label class="psc-toggle" aria-label="Activer ou désactiver <?php echo esc_attr($c->prenom); ?>">
@@ -233,6 +243,10 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
           <option value="<?php echo esc_attr($v); ?>"><?php echo esc_html($l); ?></option>
           <?php endforeach; ?>
         </select>
+        <span class="psc-diet-options">
+          <label><input type="checkbox" name="new_sans_porc" value="1"> Sans porc</label>
+          <label><input type="checkbox" name="new_vegan" value="1"> Vegan</label>
+        </span>
         <button type="submit" class="psc-btn-sm">Ajouter</button>
       </div>
     </form>

@@ -67,6 +67,21 @@ function psc_valid_date($date) {
 }
 
 /**
+ * Lundi de la semaine contenant $date (une "semaine" de menu de cantine
+ * commence toujours un lundi, quelle que soit la date saisie par l'admin).
+ */
+function psc_week_start($date) {
+    $date = psc_valid_date($date);
+    if (!$date) return false;
+    $d = new DateTime($date);
+    $dow = (int) $d->format('N'); // 1 (lundi) .. 7 (dimanche)
+    if ($dow > 1) {
+        $d->modify('-' . ($dow - 1) . ' days');
+    }
+    return $d->format('Y-m-d');
+}
+
+/**
  * Nombre maximum de jours qu'un trimestre peut couvrir.
  * Garde-fou contre une saisie erronée qui générerait des millions de lignes.
  */

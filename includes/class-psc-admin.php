@@ -24,6 +24,9 @@ class Psc_Admin {
         add_action('admin_post_psc_send_all_invoices', array(__CLASS__, 'handle_send_all_invoices'));
         add_action('admin_post_psc_download_invoice', array(__CLASS__, 'handle_download_invoice'));
         add_action('admin_post_psc_admin_update_registrations', array(__CLASS__, 'handle_admin_update_registrations'));
+        add_action('admin_post_psc_save_menu', array(__CLASS__, 'handle_save_menu'));
+        add_action('admin_post_psc_send_menu', array(__CLASS__, 'handle_send_menu'));
+        add_action('admin_post_psc_delete_menu', array(__CLASS__, 'handle_delete_menu'));
         add_action('admin_enqueue_scripts', array(__CLASS__, 'assets'));
     }
 
@@ -72,6 +75,7 @@ class Psc_Admin {
         add_submenu_page('psc_inscriptions', 'Familles', 'Familles', $cap, 'psc_parents', array(__CLASS__, 'page_parents'));
         add_submenu_page('psc_inscriptions', 'Enfants', 'Enfants', $cap, 'psc_children', array(__CLASS__, 'page_children'));
         add_submenu_page('psc_inscriptions', 'Factures', 'Factures', $cap, 'psc_factures', array(__CLASS__, 'page_factures'));
+        add_submenu_page('psc_inscriptions', 'Menus cantine', 'Menus cantine', $cap, 'psc_menus', array(__CLASS__, 'page_menus'));
         add_submenu_page('psc_inscriptions', 'Modèles e-mails', 'Modèles e-mails', $cap, 'psc_email_templates', array(__CLASS__, 'page_email_templates'));
         add_submenu_page('psc_inscriptions', 'Réglages', 'Réglages', $cap, 'psc_settings', array(__CLASS__, 'page_settings'));
     }
@@ -687,6 +691,73 @@ class Psc_Admin {
         $psc_msg  = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
 
         include PSC_PATH . 'templates/admin-factures.php';
+    }
+
+    /* ---------------- Menus cantine ---------------- */
+
+    public static function handle_save_menu() {
+        self::guard('psc_save_menu');
+
+        $id      = psc_post_int('id');
+        $semaine = psc_post('semaine_debut');
+        $jours   = array();
+        foreach (Psc_Menus::JOURS as $jour) {
+            // Pas psc_post() ici : sanitize_text_field() collapse les
+            // retours à la ligne (conçu pour du texte sur une ligne). Ces
+            // champs sont des textarea multi-lignes ; Psc_Menus::save()
+            // applique déjà sanitize_textarea_field(), qui les préserve —
+            // un seul point de sanitization, sur la bonne fonction.
+            $jours[$jour] = isset($_POST[$jour]) ? wp_unslash($_POST[$jour]) : '';
+        }
+
+        $result = Psc_Menus::save($id, $semaine, $jours);
+        if (is_wp_error($result)) {
+            self::redirect('psc_menus', 'invalid');
+        }
+        self::redirect_to_menu($result, 'saved');
+    }
+
+    public static function handle_send_menu() {
+        self::guard('psc_send_menu');
+
+        $id   = psc_post_int('id');
+        $menu = Psc_Menus::get($id);
+        if (!$menu) self::redirect('psc_menus', 'invalid');
+
+        $count = Psc_Menus::send($menu);
+        self::redirect_to_menu($id, $count > 0 ? 'sent' : 'sent_zero');
+    }
+
+    public static function handle_delete_menu() {
+        self::guard('psc_delete_menu');
+        $id = psc_post_int('id');
+        if ($id) Psc_Menus::delete($id);
+        self::redirect('psc_menus', 'deleted');
+    }
+
+    private static function redirect_to_menu($id, $msg) {
+        wp_safe_redirect(add_query_arg(
+            array('page' => 'psc_menus', 'edit' => $id, 'psc_msg' => $msg),
+            admin_url('admin.php')
+        ));
+        exit;
+    }
+
+    public static function page_menus() {
+        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+
+        $edit_id = psc_get_int('edit');
+        $editing = $edit_id ? Psc_Menus::get($edit_id) : null;
+
+        // Par défaut, semaine prochaine : ce formulaire sert à préparer le
+        // menu à venir, pas à consulter l'historique (la liste ci-dessous
+        // s'en charge).
+        $default_week = $editing ? $editing->semaine_debut : psc_week_start(gmdate('Y-m-d', strtotime('+7 days')));
+
+        $recent  = Psc_Menus::recent(12);
+        $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
+
+        include PSC_PATH . 'templates/admin-menus.php';
     }
 
     public static function page_requests() {

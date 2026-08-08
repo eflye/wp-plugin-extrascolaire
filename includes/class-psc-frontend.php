@@ -239,9 +239,11 @@ class Psc_Frontend {
         $parent = Psc_Parents::current();
         if (!$parent) self::parent_form_redirect('auth');
 
-        $child_id = psc_post_int('child_id');
-        $classe   = psc_post('classe');
-        $active   = isset($_POST['active']) ? 1 : 0;
+        $child_id  = psc_post_int('child_id');
+        $classe    = psc_post('classe');
+        $active    = isset($_POST['active']) ? 1 : 0;
+        $sans_porc = isset($_POST['sans_porc']) ? 1 : 0;
+        $vegan     = isset($_POST['vegan']) ? 1 : 0;
 
         $allowed = array_keys(psc_classe_options());
         if (!in_array($classe, $allowed, true)) $classe = '';
@@ -255,9 +257,9 @@ class Psc_Frontend {
 
         $wpdb->update(
             $t_child,
-            array('classe' => $classe, 'active' => $active),
+            array('classe' => $classe, 'active' => $active, 'sans_porc' => $sans_porc, 'vegan' => $vegan),
             array('id' => $child_id),
-            array('%s', '%d'),
+            array('%s', '%d', '%d', '%d'),
             array('%d')
         );
         self::parent_form_redirect('child_updated');
@@ -269,9 +271,11 @@ class Psc_Frontend {
         $parent = Psc_Parents::current();
         if (!$parent) self::parent_form_redirect('auth');
 
-        $prenom = psc_post('new_prenom');
-        $nom    = psc_post('new_nom');
-        $classe = psc_post('new_classe');
+        $prenom    = psc_post('new_prenom');
+        $nom       = psc_post('new_nom');
+        $classe    = psc_post('new_classe');
+        $sans_porc = isset($_POST['new_sans_porc']) ? 1 : 0;
+        $vegan     = isset($_POST['new_vegan']) ? 1 : 0;
 
         if ($prenom === '' || $nom === '') self::parent_form_redirect('child_invalid');
 
@@ -290,9 +294,11 @@ class Psc_Frontend {
             'nom'        => mb_substr($nom, 0, 190),
             'prenom'     => mb_substr($prenom, 0, 190),
             'classe'     => mb_substr($classe, 0, 100),
+            'sans_porc'  => $sans_porc,
+            'vegan'      => $vegan,
             'active'     => 1,
             'created_at' => current_time('mysql'),
-        ), array('%d', '%s', '%s', '%s', '%d', '%s'));
+        ), array('%d', '%s', '%s', '%s', '%d', '%d', '%d', '%s'));
 
         self::parent_form_redirect('child_added');
     }

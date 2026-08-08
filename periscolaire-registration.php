@@ -26,6 +26,7 @@ require_once PSC_PATH . 'includes/class-psc-requests.php';
 require_once PSC_PATH . 'includes/class-psc-email-templates.php';
 require_once PSC_PATH . 'includes/class-psc-admin.php';
 require_once PSC_PATH . 'includes/class-psc-invoices.php';
+require_once PSC_PATH . 'includes/class-psc-menus.php';
 require_once PSC_PATH . 'includes/class-psc-frontend.php';
 
 register_activation_hook(__FILE__, function () {

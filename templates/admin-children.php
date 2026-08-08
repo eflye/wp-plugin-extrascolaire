@@ -44,15 +44,23 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <div class="psc-box">
 <h2>Liste des enfants</h2>
 <table class="widefat striped">
-<thead><tr><th>Nom</th><th>Prénom</th><th>Classe</th><th>Famille</th><th>Action</th></tr></thead>
+<thead><tr><th>Nom</th><th>Prénom</th><th>Classe</th><th>Régime cantine</th><th>Famille</th><th>Action</th></tr></thead>
 <tbody>
 <?php if (empty($children)): ?>
-<tr><td colspan="5">Aucun enfant enregistré.</td></tr>
+<tr><td colspan="6">Aucun enfant enregistré.</td></tr>
 <?php else: foreach ($children as $c): ?>
 <tr>
 <td><?php echo esc_html($c->nom); ?></td>
 <td><?php echo esc_html($c->prenom); ?></td>
 <td><?php echo esc_html($c->classe); ?></td>
+<td>
+<?php
+$diet = array();
+if ((int) $c->sans_porc) $diet[] = 'Sans porc';
+if ((int) $c->vegan) $diet[] = 'Vegan';
+echo $diet ? esc_html(implode(' · ', $diet)) : '—';
+?>
+</td>
 <td><?php echo $c->parent_email ? esc_html($c->parent_nom ?: $c->parent_email) : '<em>famille supprimée</em>'; ?></td>
 <td>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline" onsubmit="return confirm('Supprimer cet enfant et toutes ses inscriptions ? Cette action est irréversible.');">

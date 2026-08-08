@@ -355,6 +355,15 @@
 }
 .psc-children-table th { color: #555; font-weight: 600; font-size: 0.85em; text-transform: uppercase; letter-spacing: .03em; }
 .psc-child-inactive td { color: #aaa; }
+.psc-diet-options {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.92em;
+    white-space: nowrap;
+}
+.psc-diet-options label { display: flex; align-items: center; gap: 4px; font-weight: normal; }
+span.psc-diet-options { flex-direction: row; gap: 12px; }
 .psc-btn-sm {
     background: #23478B;
     color: #fff;

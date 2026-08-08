@@ -61,6 +61,13 @@ class Psc_Email_Templates {
                 'vars'    => array('{{site}}'),
                 'note'    => 'Les coordonnées de la famille, la liste des enfants et le lien vers le backoffice sont ajoutés automatiquement.',
             ),
+            'weekly_menu' => array(
+                'label'   => 'Menu de cantine hebdomadaire',
+                'subject' => '[{{site}}] Menu de la cantine — semaine du {{semaine}}',
+                'body'    => "Voici le menu de la cantine pour la semaine du {{semaine}}.",
+                'vars'    => array('{{site}}', '{{semaine}}'),
+                'note'    => 'Le détail des repas jour par jour est ajouté automatiquement.',
+            ),
             'invoice' => array(
                 'label'   => 'Envoi de facture',
                 'subject' => 'Facture périscolaire — {{mois}}',

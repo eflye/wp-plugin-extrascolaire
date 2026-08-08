@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '2.5.0';
+    const DB_VERSION = '2.6.0';
 
     public static function activate() {
         self::create_tables();
@@ -69,6 +69,7 @@ class Psc_Installer {
         $t_reg   = psc_table('registrations');
         $t_req   = psc_table('requests');
         $t_inv   = psc_table('invoices');
+        $t_menu  = psc_table('menus');
 
         $sql = "CREATE TABLE $t_trim (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -103,6 +104,8 @@ CREATE TABLE $t_child (
             nom VARCHAR(191) NOT NULL,
             prenom VARCHAR(191) NOT NULL,
             classe VARCHAR(100) NULL,
+            sans_porc TINYINT(1) NOT NULL DEFAULT 0,
+            vegan TINYINT(1) NOT NULL DEFAULT 0,
             active TINYINT(1) NOT NULL DEFAULT 1,
             created_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
@@ -166,6 +169,21 @@ CREATE TABLE $t_inv (
             UNIQUE KEY parent_trimestre (parent_id, trimestre_id),
             KEY trimestre_id (trimestre_id),
             KEY parent_id (parent_id)
+        ) $charset_collate;
+
+CREATE TABLE $t_menu (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            semaine_debut DATE NOT NULL,
+            lundi TEXT NULL,
+            mardi TEXT NULL,
+            mercredi TEXT NULL,
+            jeudi TEXT NULL,
+            vendredi TEXT NULL,
+            sent_at DATETIME NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY semaine (semaine_debut)
         ) $charset_collate;";
 
         dbDelta($sql);

@@ -409,6 +409,44 @@ class Psc_Mailer {
     }
 
     /* ------------------------------------------------------------------ */
+    /* Menu de cantine hebdomadaire                                         */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Un seul menu, identique pour toutes les familles (les préférences
+     * sans_porc/vegan ne changent pas ce message — cf. Psc_Menus::send()).
+     */
+    public static function send_weekly_menu($parent, $menu) {
+        $site          = self::site_name();
+        $semaine_label = date_i18n('d/m/Y', strtotime($menu->semaine_debut));
+
+        $subject = Psc_Email_Templates::subject('weekly_menu', array('site' => $site, 'semaine' => $semaine_label));
+        $intro   = Psc_Email_Templates::body_html('weekly_menu', array('site' => $site, 'semaine' => $semaine_label));
+
+        $body = self::h2('Menu de la semaine du ' . $semaine_label)
+            . '<p style="color:#444;font-size:14px;line-height:1.7;margin:0 0 12px;">' . $intro . '</p>';
+
+        $body .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:14px;margin:16px 0;">';
+        $has_content = false;
+        foreach (Psc_Menus::jour_labels() as $key => $label) {
+            $content = trim((string) $menu->$key);
+            if ($content === '') continue;
+            $has_content = true;
+            $body .= '<tr>'
+                . '<td style="background:#e8edf5;color:#23478B;font-weight:bold;padding:8px 12px;'
+                . 'border:1px solid #d0d8e8;width:110px;vertical-align:top;white-space:nowrap;">' . esc_html($label) . '</td>'
+                . '<td style="padding:8px 12px;border:1px solid #e5e9f0;">' . nl2br(esc_html($content)) . '</td>'
+                . '</tr>';
+        }
+        $body .= '</table>';
+        if (!$has_content) {
+            $body .= '<p style="color:#888;font-size:14px;font-style:italic;">Menu non encore renseigné pour cette semaine.</p>';
+        }
+
+        return self::send($parent->email, $subject, self::layout($body, $subject));
+    }
+
+    /* ------------------------------------------------------------------ */
     /* Demandes d'inscription                                               */
     /* ------------------------------------------------------------------ */
 
