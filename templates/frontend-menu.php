@@ -18,9 +18,13 @@
          href="<?php echo esc_url($next_url); ?>" aria-label="Semaine suivante">&rarr;</a>
     </div>
 
-    <?php if ($has_content): ?>
+    <?php if ($no_school_week): ?>
+      <p class="psc-menu-empty" data-testid="menu-no-school">Pas d'école cette semaine (vacances scolaires) : pas de périscolaire ni de cantine.</p>
+    <?php elseif ($has_content): ?>
       <table class="psc-menu-table">
         <?php foreach (Psc_Menus::jour_labels() as $key => $label):
+          $day_date = gmdate('Y-m-d', strtotime($menu_week . ' +' . Psc_Menus::JOUR_OFFSETS[$key] . ' days'));
+          if (!psc_is_school_day($day_date)) continue;
           $content = trim((string) $menu->$key);
           if ($content === '') continue;
         ?>

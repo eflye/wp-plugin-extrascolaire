@@ -27,6 +27,10 @@ class Psc_Admin {
         add_action('admin_post_psc_save_menu', array(__CLASS__, 'handle_save_menu'));
         add_action('admin_post_psc_send_menu', array(__CLASS__, 'handle_send_menu'));
         add_action('admin_post_psc_delete_menu', array(__CLASS__, 'handle_delete_menu'));
+        add_action('admin_post_psc_import_school_calendar', array(__CLASS__, 'handle_import_school_calendar'));
+        add_action('admin_post_psc_close_school_day', array(__CLASS__, 'handle_close_school_day'));
+        add_action('admin_post_psc_open_school_day', array(__CLASS__, 'handle_open_school_day'));
+        add_action('admin_post_psc_cancel_school_day_close', array(__CLASS__, 'handle_cancel_school_day_close'));
         add_action('admin_enqueue_scripts', array(__CLASS__, 'assets'));
     }
 
@@ -76,6 +80,7 @@ class Psc_Admin {
         add_submenu_page('psc_inscriptions', 'Enfants', 'Enfants', $cap, 'psc_children', array(__CLASS__, 'page_children'));
         add_submenu_page('psc_inscriptions', 'Factures', 'Factures', $cap, 'psc_factures', array(__CLASS__, 'page_factures'));
         add_submenu_page('psc_inscriptions', 'Menus cantine', 'Menus cantine', $cap, 'psc_menus', array(__CLASS__, 'page_menus'));
+        add_submenu_page('psc_inscriptions', 'Calendrier scolaire', 'Calendrier scolaire', $cap, 'psc_school_calendar', array(__CLASS__, 'page_school_calendar'));
         add_submenu_page('psc_inscriptions', 'Modèles e-mails', 'Modèles e-mails', $cap, 'psc_email_templates', array(__CLASS__, 'page_email_templates'));
         add_submenu_page('psc_inscriptions', 'Réglages', 'Réglages', $cap, 'psc_settings', array(__CLASS__, 'page_settings'));
     }
@@ -749,6 +754,118 @@ class Psc_Admin {
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
 
         include PSC_PATH . 'templates/admin-menus.php';
+    }
+
+    /* ---------------- Calendrier scolaire ---------------- */
+
+    protected static function pending_close_key() {
+        return 'psc_pending_close_' . get_current_user_id();
+    }
+
+    public static function handle_import_school_calendar() {
+        self::guard('psc_import_school_calendar');
+
+        $result = Psc_School_Calendar::import();
+        if (is_wp_error($result)) {
+            self::redirect('psc_school_calendar', 'import_failed');
+        }
+        wp_safe_redirect(add_query_arg(
+            array('page' => 'psc_school_calendar', 'psc_msg' => 'imported', 'n' => (int) $result),
+            admin_url('admin.php')
+        ));
+        exit;
+    }
+
+    /**
+     * Fermeture manuelle d'un jour. Si des inscriptions existent déjà ce
+     * jour-là, on n'exécute rien au premier passage : on stocke la
+     * demande et on redirige vers un écran d'avertissement. Ce n'est
+     * qu'après confirmation explicite (confirm=1) que la fermeture, la
+     * suppression des inscriptions et l'e-mail aux familles ont lieu.
+     */
+    public static function handle_close_school_day() {
+        self::guard('psc_close_school_day');
+
+        $date  = psc_valid_date(psc_post('date'));
+        $label = psc_post('label');
+        $confirm = psc_post_int('confirm');
+
+        if (!$date) {
+            self::redirect('psc_school_calendar', 'invalid');
+        }
+
+        $affected = Psc_School_Calendar::affected_families($date);
+
+        if ($affected['registrations'] > 0 && !$confirm) {
+            set_transient(self::pending_close_key(), array('date' => $date, 'label' => $label), 10 * MINUTE_IN_SECONDS);
+            self::redirect('psc_school_calendar', 'confirm_needed');
+        }
+
+        delete_transient(self::pending_close_key());
+        Psc_School_Calendar::close_day($date, $label);
+        self::redirect('psc_school_calendar', 'closed');
+    }
+
+    public static function handle_cancel_school_day_close() {
+        self::guard('psc_cancel_school_day_close');
+        delete_transient(self::pending_close_key());
+        self::redirect('psc_school_calendar', 'cancelled');
+    }
+
+    public static function handle_open_school_day() {
+        self::guard('psc_open_school_day');
+
+        $date = psc_valid_date(psc_post('date'));
+        if (!$date) {
+            self::redirect('psc_school_calendar', 'invalid');
+        }
+
+        Psc_School_Calendar::open_day($date);
+        self::redirect('psc_school_calendar', 'opened');
+    }
+
+    /**
+     * Regroupe les jours fermés consécutifs (même libellé) en périodes,
+     * pour un affichage lisible plutôt qu'une liste de ~150 lignes.
+     */
+    protected static function group_closed_days($rows) {
+        $groups = array();
+        $current = null;
+
+        foreach ($rows as $row) {
+            if (!$row->is_closed) continue;
+
+            $is_next_day = $current && (strtotime($row->jour_date) - strtotime($current['end'])) === DAY_IN_SECONDS;
+            if ($current && $is_next_day && $row->label === $current['label'] && $row->source === $current['source']) {
+                $current['end'] = $row->jour_date;
+                $current['count']++;
+            } else {
+                if ($current) $groups[] = $current;
+                $current = array(
+                    'start' => $row->jour_date, 'end' => $row->jour_date,
+                    'label' => $row->label, 'source' => $row->source, 'count' => 1,
+                );
+            }
+        }
+        if ($current) $groups[] = $current;
+
+        return $groups;
+    }
+
+    public static function page_school_calendar() {
+        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+
+        $rows   = Psc_School_Calendar::all();
+        $groups = self::group_closed_days($rows);
+
+        $pending = get_transient(self::pending_close_key());
+        $pending_affected = $pending ? Psc_School_Calendar::affected_families($pending['date']) : null;
+
+        $imported_at = get_option('psc_school_calendar_imported_at', '');
+        $psc_msg     = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
+        $imported_n  = psc_get_int('n');
+
+        include PSC_PATH . 'templates/admin-school-calendar.php';
     }
 
     public static function page_requests() {

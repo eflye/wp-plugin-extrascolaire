@@ -447,6 +447,46 @@ class Psc_Mailer {
     }
 
     /* ------------------------------------------------------------------ */
+    /* Fermeture d'un jour (calendrier scolaire)                            */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Prévient une famille que des inscriptions qu'elle avait déclarées
+     * ont été retirées parce que le jour concerné vient d'être fermé
+     * (vacances scolaires, formation des enseignants, fermeture
+     * exceptionnelle...). $fam : array('email'=>, 'nom'=>, 'items'=>
+     * [objets avec service, child_nom, child_prenom]).
+     */
+    public static function send_day_closed($fam, $date_str, $label) {
+        $site      = self::site_name();
+        $date_lbl  = psc_day_label($date_str) . ' ' . date_i18n('d/m/Y', strtotime($date_str));
+        $services  = psc_services();
+        $subject   = sprintf('[%s] Jour sans école le %s : vos inscriptions ont été retirées', $site, $date_lbl);
+
+        $body = self::h2('Un jour d\'école a été annulé')
+            . self::p(sprintf(
+                'La mairie vient de fermer le %s (%s). Il n\'y a donc ni périscolaire ni cantine ce jour-là.',
+                $date_lbl, $label
+            ));
+
+        $items_list = '<ul style="margin:8px 0;padding-left:20px;">';
+        foreach ($fam['items'] as $item) {
+            $svc_lbl = isset($services[$item->service]) ? $services[$item->service]['label'] : $item->service;
+            $items_list .= '<li style="color:#444;font-size:14px;margin-bottom:4px;">'
+                . esc_html($item->child_prenom . ' ' . $item->child_nom) . ' — ' . esc_html($svc_lbl)
+                . '</li>';
+        }
+        $items_list .= '</ul>';
+
+        $body .= '<p style="color:#444;font-size:14px;font-weight:bold;margin:16px 0 6px;">Inscriptions retirées :</p>'
+            . $items_list
+            . self::warning_box('Ces prestations ne seront <strong>pas facturées</strong>.')
+            . self::btn(self::form_page_url(), 'Consulter mon planning');
+
+        return self::send($fam['email'], $subject, self::layout($body, $subject));
+    }
+
+    /* ------------------------------------------------------------------ */
     /* Demandes d'inscription                                               */
     /* ------------------------------------------------------------------ */
 

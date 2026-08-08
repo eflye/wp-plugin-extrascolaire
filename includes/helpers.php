@@ -156,6 +156,32 @@ function psc_is_wednesday($date_str) {
     return (int) date('N', strtotime($date_str)) === 3;
 }
 
+/**
+ * Vacances scolaires de la zone C (Créteil, Montpellier, Paris, Toulouse,
+ * Versailles) — chargées par la mairie depuis le calendrier officiel du
+ * ministère de l'Éducation nationale (Périscolaire > Calendrier scolaire).
+ * Voir Psc_School_Calendar.
+ */
+function psc_school_vacation_label($date_str) {
+    return Psc_School_Calendar::label($date_str);
+}
+
+function psc_is_school_vacation($date_str) {
+    return Psc_School_Calendar::is_closed($date_str);
+}
+
+/**
+ * Un jour est-il un jour d'école (donc de service périscolaire/cantine
+ * potentiel) ? Ne dépend d'aucun trimestre en base : utilisable même avant
+ * la création d'un trimestre (ex : widget menu public).
+ */
+function psc_is_school_day($date_str) {
+    if (psc_is_weekend($date_str) || psc_is_wednesday($date_str)) return false;
+    if (psc_is_school_vacation($date_str)) return false;
+    if (psc_is_holiday($date_str)) return false;
+    return true;
+}
+
 function psc_day_label($date_str) {
     $jours = array('Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche');
     $dow = (int) date('N', strtotime($date_str));

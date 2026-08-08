@@ -319,10 +319,18 @@ class Psc_Frontend {
             $menu_week = psc_week_start(current_time('Y-m-d'));
         }
 
+        $no_school_week = true;
+        foreach (Psc_Menus::JOUR_OFFSETS as $offset) {
+            $day_date = gmdate('Y-m-d', strtotime($menu_week . " +{$offset} days"));
+            if (psc_is_school_day($day_date)) { $no_school_week = false; break; }
+        }
+
         $menu = Psc_Menus::get_by_week($menu_week);
         $has_content = false;
-        if ($menu) {
-            foreach (Psc_Menus::JOURS as $jour) {
+        if ($menu && !$no_school_week) {
+            foreach (Psc_Menus::JOUR_OFFSETS as $jour => $offset) {
+                $day_date = gmdate('Y-m-d', strtotime($menu_week . " +{$offset} days"));
+                if (!psc_is_school_day($day_date)) continue;
                 if (trim((string) $menu->$jour) !== '') { $has_content = true; break; }
             }
         }

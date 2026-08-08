@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '2.8.0';
+    const DB_VERSION = '2.10.0';
 
     public static function activate() {
         self::create_tables();
@@ -18,6 +18,12 @@ class Psc_Installer {
     public static function maybe_upgrade() {
         $current = get_option('psc_db_version');
         if ($current !== self::DB_VERSION) {
+            // dbDelta() est additif (ajoute tables/colonnes manquantes,
+            // ne supprime jamais) : l'exécuter en premier garantit que les
+            // migrations ci-dessous trouvent les tables dont elles ont
+            // besoin (ex : migrate_2_10_0 a besoin de wp_psc_school_calendar).
+            self::create_tables();
+
             if ($current && version_compare($current, '2.5.0', '<')) {
                 self::migrate_2_5_0();
             }
@@ -27,7 +33,12 @@ class Psc_Installer {
             if ($current && version_compare($current, '2.8.0', '<')) {
                 self::migrate_2_8_0();
             }
-            self::create_tables();
+            if ($current && version_compare($current, '2.9.0', '<')) {
+                self::migrate_2_9_0();
+            }
+            if ($current && version_compare($current, '2.10.0', '<')) {
+                self::migrate_2_10_0();
+            }
             update_option('psc_db_version', self::DB_VERSION);
         }
     }
@@ -122,6 +133,63 @@ class Psc_Installer {
         }
     }
 
+    /**
+     * Fermait rétroactivement les jours de vacances scolaires (zone C)
+     * d'après un tableau codé en dur. Entièrement remplacée et corrigée
+     * par migrate_2_10_0() (le tableau codé en dur fermait aussi, par
+     * erreur, le jour de reprise) — no-op conservé pour l'historique des
+     * migrations.
+     */
+    private static function migrate_2_9_0() {
+    }
+
+    /**
+     * Remplace le tableau de vacances codé en dur par le vrai calendrier
+     * scolaire officiel (zone C), chargé depuis le flux iCal du ministère.
+     *
+     * L'ancien tableau fermait aussi le jour de reprise (bug : DTEND dans
+     * le flux officiel est exclusif — ce jour est un jour d'école, pas de
+     * vacances). On rouvre donc d'abord tout ce que migrate_2_9_0 avait
+     * fermé, puis l'import référme uniquement les bons jours.
+     */
+    private static function migrate_2_10_0() {
+        global $wpdb;
+        $t_days = psc_table('calendar_days');
+        $t_reg  = psc_table('registrations');
+        $t_sch  = psc_table('school_calendar');
+
+        $old_labels = array(
+            'Vacances de la Toussaint', 'Vacances de Noël',
+            "Vacances d'hiver", 'Vacances de printemps', "Vacances d'été",
+        );
+        $placeholders = implode(',', array_fill(0, count($old_labels), '%s'));
+        $wpdb->query($wpdb->prepare(
+            "UPDATE {$t_days} SET is_open = 1, label = NULL WHERE label IN ($placeholders)",
+            $old_labels
+        ));
+
+        $result = Psc_School_Calendar::import();
+        if (is_wp_error($result)) {
+            // Pas de réseau au moment de la migration : l'admin pourra
+            // charger le calendrier manuellement depuis Périscolaire >
+            // Calendrier scolaire.
+            return;
+        }
+
+        $wpdb->query(
+            "UPDATE {$t_days} d INNER JOIN {$t_sch} s ON s.jour_date = d.jour_date
+             SET d.is_open = 0, d.label = s.label
+             WHERE s.is_closed = 1 AND d.is_open = 1"
+        );
+        // Il n'y a jamais eu de service ces jours-là : les inscriptions
+        // déjà enregistrées dessus n'ont pas lieu d'être (et ne doivent
+        // pas être facturées).
+        $wpdb->query(
+            "DELETE r FROM {$t_reg} r INNER JOIN {$t_sch} s ON s.jour_date = r.jour_date
+             WHERE s.is_closed = 1"
+        );
+    }
+
     protected static function create_tables() {
         global $wpdb;
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -135,6 +203,7 @@ class Psc_Installer {
         $t_req   = psc_table('requests');
         $t_inv   = psc_table('invoices');
         $t_menu  = psc_table('menus');
+        $t_sch   = psc_table('school_calendar');
 
         $sql = "CREATE TABLE $t_trim (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -248,6 +317,18 @@ CREATE TABLE $t_menu (
             updated_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY semaine (semaine_debut)
+        ) $charset_collate;
+
+CREATE TABLE $t_sch (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            jour_date DATE NOT NULL,
+            label VARCHAR(191) NULL,
+            is_closed TINYINT(1) NOT NULL DEFAULT 1,
+            source VARCHAR(10) NOT NULL DEFAULT 'import',
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY jour_date (jour_date)
         ) $charset_collate;";
 
         dbDelta($sql);
@@ -288,6 +369,9 @@ CREATE TABLE $t_menu (
             } elseif (psc_is_wednesday($date_str)) {
                 $is_open = 0;
                 $label = 'Mercredi';
+            } elseif (psc_is_school_vacation($date_str)) {
+                $is_open = 0;
+                $label = psc_school_vacation_label($date_str);
             } elseif (psc_is_holiday($date_str)) {
                 $is_open = 0;
                 $label = 'Férié';

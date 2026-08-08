@@ -13,6 +13,9 @@ class Psc_Menus {
 
     const JOURS = array('lundi', 'mardi', 'jeudi', 'vendredi');
 
+    /** Décalage en jours depuis le lundi de la semaine. */
+    const JOUR_OFFSETS = array('lundi' => 0, 'mardi' => 1, 'jeudi' => 3, 'vendredi' => 4);
+
     public static function jour_labels() {
         return array(
             'lundi'     => 'Lundi',
