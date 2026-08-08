@@ -47,3 +47,7 @@ vendor/
 
 # WordPress
 wp-cli.local.yml
+
+# Artefacts vidéo/planche-contact générés localement (non versionnés)
+/demo-*.mp4
+/planche*.png
