@@ -176,6 +176,70 @@
 }
 .psc-steps li { margin-bottom: 0.3em; }
 
+/* Menu de cantine (accès libre, avant connexion) */
+.psc-menu-widget {
+    margin-bottom: 1.4em;
+}
+.psc-menu-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 1.2em;
+}
+.psc-menu-nav-btn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid #dfe4ea;
+    border-radius: 50%;
+    color: #2271b1;
+    text-decoration: none;
+    font-size: 1.1em;
+    background: #f5f7fa;
+}
+.psc-menu-nav-btn:hover { background: #e8edf5; }
+.psc-menu-week {
+    flex: 1;
+    text-align: center;
+}
+.psc-menu-week-label {
+    margin: 0;
+    font-size: 1.15em;
+    font-weight: 600;
+}
+.psc-menu-today-link {
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 0.85em;
+}
+.psc-menu-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.psc-menu-table th,
+.psc-menu-table td {
+    border: 1px solid #e5e9f0;
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+}
+.psc-menu-table th {
+    background: #e8edf5;
+    color: #23478B;
+    font-weight: 600;
+    white-space: nowrap;
+    width: 110px;
+}
+.psc-menu-empty {
+    color: #888;
+    font-style: italic;
+    margin: 0;
+}
+
 /* Connexion */
 .psc-login-card {
     margin-bottom: 1.4em;

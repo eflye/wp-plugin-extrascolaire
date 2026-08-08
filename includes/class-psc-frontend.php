@@ -303,6 +303,39 @@ class Psc_Frontend {
         self::parent_form_redirect('child_added');
     }
 
+    /* ---------------- Menu de cantine (accès libre) ---------------- */
+
+    /**
+     * Navigation "type calendrier" par semaine : ?psc_semaine=<n'importe
+     * quelle date de la semaine visée>, toujours ramenée au lundi. Par
+     * défaut, la semaine contenant aujourd'hui. Aucune limite de
+     * navigation avant/après : une semaine sans menu saisi affiche
+     * simplement l'état vide, comme n'importe quel calendrier.
+     */
+    protected static function render_menu_widget() {
+        $requested = isset($_GET['psc_semaine']) ? sanitize_text_field(wp_unslash($_GET['psc_semaine'])) : '';
+        $menu_week = $requested ? psc_week_start($requested) : false;
+        if (!$menu_week) {
+            $menu_week = psc_week_start(current_time('Y-m-d'));
+        }
+
+        $menu = Psc_Menus::get_by_week($menu_week);
+        $has_content = false;
+        if ($menu) {
+            foreach (Psc_Menus::JOURS as $jour) {
+                if (trim((string) $menu->$jour) !== '') { $has_content = true; break; }
+            }
+        }
+
+        $prev_week = gmdate('Y-m-d', strtotime($menu_week . ' -7 days'));
+        $next_week = gmdate('Y-m-d', strtotime($menu_week . ' +7 days'));
+        $prev_url  = add_query_arg('psc_semaine', $prev_week);
+        $next_url  = add_query_arg('psc_semaine', $next_week);
+        $is_current_week = ($menu_week === psc_week_start(current_time('Y-m-d')));
+
+        include PSC_PATH . 'templates/frontend-menu.php';
+    }
+
     /* ---------------- Affichage ---------------- */
 
     public static function shortcode($atts) {
@@ -310,6 +343,10 @@ class Psc_Frontend {
 
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         $parent = Psc_Parents::current();
+
+        // Menu de cantine : en accès libre, avant la connexion — affiché
+        // que la famille soit identifiée ou non.
+        self::render_menu_widget();
 
         if (!$parent) {
             include PSC_PATH . 'templates/frontend-login.php';
