@@ -191,21 +191,74 @@ class Psc_Requests {
             exit;
         }
 
+        // Règlement intérieur : acceptation obligatoire pour toute demande.
+        if (empty($_POST['reglement_accepted'])) {
+            wp_safe_redirect(add_query_arg('psc_msg', 'reglement_required', $back));
+            exit;
+        }
+
+        // Mode de paiement : si prélèvement, le mandat SEPA et le règlement
+        // dédié sont obligatoires eux aussi.
+        $payment_mode = (isset($_POST['payment_mode']) && $_POST['payment_mode'] === 'prelevement')
+            ? 'prelevement' : 'autre';
+
+        $sepa_reglement_accepted_at = null;
+        $sepa_titulaire = $sepa_adresse = $sepa_code_postal = $sepa_ville = '';
+        $sepa_iban = $sepa_bic = null;
+
+        if ($payment_mode === 'prelevement') {
+            if (empty($_POST['sepa_reglement_accepted'])) {
+                wp_safe_redirect(add_query_arg('psc_msg', 'sepa_reglement_required', $back));
+                exit;
+            }
+
+            $sepa_titulaire   = psc_post('sepa_titulaire');
+            $sepa_adresse     = psc_post('sepa_adresse');
+            $sepa_code_postal = psc_post('sepa_code_postal');
+            $sepa_ville       = psc_post('sepa_ville');
+            if ($sepa_titulaire === '') {
+                wp_safe_redirect(add_query_arg('psc_msg', 'sepa_missing', $back));
+                exit;
+            }
+
+            $sepa_iban = psc_valid_iban(psc_post('sepa_iban'));
+            if (!$sepa_iban) {
+                wp_safe_redirect(add_query_arg('psc_msg', 'bad_iban', $back));
+                exit;
+            }
+            $sepa_bic = psc_valid_bic(psc_post('sepa_bic'));
+            if (!$sepa_bic) {
+                wp_safe_redirect(add_query_arg('psc_msg', 'bad_bic', $back));
+                exit;
+            }
+
+            $sepa_reglement_accepted_at = current_time('mysql');
+        }
+
         $token = bin2hex(random_bytes(32));
         $data = array(
-            'email'          => $email,
-            'nom'            => mb_substr($nom, 0, 190),
-            'telephone'      => mb_substr($telephone, 0, 40),
-            'adresse'      => mb_substr($adresse, 0, 255),
-            'code_postal'  => mb_substr($code_postal, 0, 10),
-            'ville'        => mb_substr($ville, 0, 100),
-            'children_json'  => wp_json_encode($children),
-            'message'        => mb_substr($message, 0, 1000),
-            'verify_hash'    => psc_hash_token($token),
-            'verify_expires' => gmdate('Y-m-d H:i:s', time() + 3 * DAY_IN_SECONDS),
-            'verified'       => 0,
-            'status'         => 'unverified',
-            'created_at'     => current_time('mysql'),
+            'email'                      => $email,
+            'nom'                        => mb_substr($nom, 0, 190),
+            'telephone'                  => mb_substr($telephone, 0, 40),
+            'adresse'                    => mb_substr($adresse, 0, 255),
+            'code_postal'                => mb_substr($code_postal, 0, 10),
+            'ville'                      => mb_substr($ville, 0, 100),
+            'children_json'              => wp_json_encode($children),
+            'message'                    => mb_substr($message, 0, 1000),
+            'verify_hash'                => psc_hash_token($token),
+            'verify_expires'             => gmdate('Y-m-d H:i:s', time() + 3 * DAY_IN_SECONDS),
+            'verified'                   => 0,
+            'status'                     => 'unverified',
+            'reglement_accepted_at'      => current_time('mysql'),
+            'payment_mode'               => $payment_mode,
+            'sepa_reglement_accepted_at' => $sepa_reglement_accepted_at,
+            'sepa_iban'                  => $sepa_iban,
+            'sepa_bic'                   => $sepa_bic,
+            'sepa_titulaire'             => mb_substr($sepa_titulaire, 0, 190) ?: null,
+            'sepa_adresse'               => mb_substr($sepa_adresse, 0, 255) ?: null,
+            'sepa_code_postal'           => mb_substr($sepa_code_postal, 0, 10) ?: null,
+            'sepa_ville'                 => mb_substr($sepa_ville, 0, 100) ?: null,
+            'created_at'                 => current_time('mysql'),
         );
 
         if ($existing) {
@@ -305,16 +358,35 @@ class Psc_Requests {
             Psc_Admin::redirect_public('psc_requests', 'need_child');
         }
 
+        // Règlement, mode de paiement et mandat SEPA déclarés dans la
+        // demande : reportés tels quels sur le compte famille créé.
+        $parent_extra = array(
+            'adresse'                    => $req->adresse ?? '',
+            'code_postal'                => $req->code_postal ?? '',
+            'ville'                      => $req->ville ?? '',
+            'payment_mode'               => $req->payment_mode ?? 'autre',
+            'sepa_iban'                  => $req->sepa_iban ?? null,
+            'sepa_bic'                   => $req->sepa_bic ?? null,
+            'sepa_titulaire'             => $req->sepa_titulaire ?? null,
+            'sepa_adresse'               => $req->sepa_adresse ?? null,
+            'sepa_code_postal'           => $req->sepa_code_postal ?? null,
+            'sepa_ville'                 => $req->sepa_ville ?? null,
+            'reglement_accepted_at'      => $req->reglement_accepted_at ?? null,
+            'sepa_reglement_accepted_at' => $req->sepa_reglement_accepted_at ?? null,
+        );
+        if (($req->payment_mode ?? 'autre') === 'prelevement') {
+            // Référence unique de mandat (RUM) : dérivée de l'id de la
+            // demande, stable et unique sans écriture supplémentaire.
+            $parent_extra['sepa_mandate_ref'] = 'RUM' . str_pad($req->id, 8, '0', STR_PAD_LEFT);
+        }
+
         // Création de la famille (ou récupération si elle existe déjà).
         $parent = Psc_Parents::get_by_email($req->email);
         if ($parent) {
             $parent_id = (int) $parent->id;
+            Psc_Parents::update($parent_id, $parent_extra);
         } else {
-            $parent_id = Psc_Parents::create($req->email, $req->nom, array(
-                'adresse'     => $req->adresse ?? '',
-                'code_postal' => $req->code_postal ?? '',
-                'ville'       => $req->ville ?? '',
-            ));
+            $parent_id = Psc_Parents::create($req->email, $req->nom, $parent_extra);
             if (is_wp_error($parent_id)) {
                 Psc_Admin::redirect_public('psc_requests', 'invalid');
             }

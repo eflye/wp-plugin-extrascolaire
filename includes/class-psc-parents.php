@@ -246,15 +246,29 @@ class Psc_Parents {
             return new WP_Error('psc_exists', 'Cette adresse est déjà enregistrée.');
         }
 
-        $wpdb->insert(psc_table('parents'), array(
-            'email'       => $email,
-            'nom'         => mb_substr(sanitize_text_field($nom), 0, 190),
-            'adresse'     => mb_substr(sanitize_text_field($extra['adresse'] ?? ''), 0, 255),
-            'code_postal' => mb_substr(sanitize_text_field($extra['code_postal'] ?? ''), 0, 10),
-            'ville'       => mb_substr(sanitize_text_field($extra['ville'] ?? ''), 0, 100),
-            'active'      => 1,
-            'created_at'  => current_time('mysql'),
-        ), array('%s', '%s', '%s', '%s', '%s', '%d', '%s'));
+        $payment_mode = ($extra['payment_mode'] ?? '') === 'prelevement' ? 'prelevement' : 'autre';
+
+        $data = array(
+            'email'                      => $email,
+            'nom'                        => mb_substr(sanitize_text_field($nom), 0, 190),
+            'adresse'                    => mb_substr(sanitize_text_field($extra['adresse'] ?? ''), 0, 255),
+            'code_postal'                => mb_substr(sanitize_text_field($extra['code_postal'] ?? ''), 0, 10),
+            'ville'                      => mb_substr(sanitize_text_field($extra['ville'] ?? ''), 0, 100),
+            'active'                     => 1,
+            'payment_mode'               => $payment_mode,
+            'sepa_iban'                  => $extra['sepa_iban'] ?? null,
+            'sepa_bic'                   => $extra['sepa_bic'] ?? null,
+            'sepa_titulaire'             => mb_substr(sanitize_text_field($extra['sepa_titulaire'] ?? ''), 0, 190) ?: null,
+            'sepa_adresse'               => mb_substr(sanitize_text_field($extra['sepa_adresse'] ?? ''), 0, 255) ?: null,
+            'sepa_code_postal'           => mb_substr(sanitize_text_field($extra['sepa_code_postal'] ?? ''), 0, 10) ?: null,
+            'sepa_ville'                 => mb_substr(sanitize_text_field($extra['sepa_ville'] ?? ''), 0, 100) ?: null,
+            'sepa_mandate_ref'           => $extra['sepa_mandate_ref'] ?? null,
+            'reglement_accepted_at'      => $extra['reglement_accepted_at'] ?? null,
+            'sepa_reglement_accepted_at' => $extra['sepa_reglement_accepted_at'] ?? null,
+            'created_at'                 => current_time('mysql'),
+        );
+
+        $wpdb->insert(psc_table('parents'), $data);
 
         return (int) $wpdb->insert_id;
     }
@@ -265,19 +279,51 @@ class Psc_Parents {
         if (!$parent_id) return false;
 
         $allowed = array(
-            'nom'         => 190,
-            'adresse'     => 255,
-            'code_postal' => 10,
-            'ville'       => 100,
+            'nom'              => 190,
+            'adresse'          => 255,
+            'code_postal'      => 10,
+            'ville'            => 100,
+            'sepa_titulaire'   => 190,
+            'sepa_adresse'     => 255,
+            'sepa_code_postal' => 10,
+            'sepa_ville'       => 100,
         );
         $set     = array();
         $formats = array();
         foreach ($allowed as $field => $max) {
             if (array_key_exists($field, $data)) {
-                $set[$field] = mb_substr(sanitize_text_field($data[$field]), 0, $max);
+                $val = mb_substr(sanitize_text_field((string) $data[$field]), 0, $max);
+                $set[$field] = $val !== '' ? $val : null;
                 $formats[]   = '%s';
             }
         }
+
+        // Champs à validation dédiée (pas de simple sanitize_text_field).
+        if (array_key_exists('payment_mode', $data)) {
+            $set['payment_mode'] = ($data['payment_mode'] === 'prelevement') ? 'prelevement' : 'autre';
+            $formats[] = '%s';
+        }
+        if (array_key_exists('sepa_iban', $data)) {
+            $iban = !empty($data['sepa_iban']) ? psc_valid_iban($data['sepa_iban']) : null;
+            if (!empty($data['sepa_iban']) && !$iban) return new WP_Error('psc_bad_iban', 'IBAN invalide.');
+            $set['sepa_iban'] = $iban;
+            $formats[] = '%s';
+        }
+        if (array_key_exists('sepa_bic', $data)) {
+            $bic = !empty($data['sepa_bic']) ? psc_valid_bic($data['sepa_bic']) : null;
+            if (!empty($data['sepa_bic']) && !$bic) return new WP_Error('psc_bad_bic', 'BIC invalide.');
+            $set['sepa_bic'] = $bic;
+            $formats[] = '%s';
+        }
+
+        // Champs générés côté serveur (pas de saisie libre à nettoyer).
+        foreach (array('sepa_mandate_ref', 'reglement_accepted_at', 'sepa_reglement_accepted_at') as $field) {
+            if (array_key_exists($field, $data)) {
+                $set[$field] = $data[$field] ?: null;
+                $formats[]   = '%s';
+            }
+        }
+
         if (empty($set)) return false;
 
         return $wpdb->update(psc_table('parents'), $set, array('id' => $parent_id), $formats, array('%d'));

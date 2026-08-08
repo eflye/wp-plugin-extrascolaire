@@ -12,6 +12,8 @@ $psc_notices = array(
     'deactivated' => array('success', 'Accès désactivé.'),
     'reactivated' => array('success', 'Accès réactivé.'),
     'updated'     => array('success', 'Informations de la famille mises à jour.'),
+    'bad_iban'    => array('error', 'IBAN invalide.'),
+    'bad_bic'     => array('error', 'BIC invalide.'),
 );
 if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     list($type, $text) = $psc_notices[$psc_msg]; ?>
@@ -47,6 +49,32 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <tr><th><label for="psc-edit-ville">Ville</label></th>
 <td><input id="psc-edit-ville" type="text" name="ville" class="regular-text" maxlength="100"
     value="<?php echo esc_attr($edit_parent->ville ?? ''); ?>"></td></tr>
+<tr><th>Mode de paiement</th>
+<td>
+    <label><input type="radio" name="payment_mode" value="autre" <?php checked(($edit_parent->payment_mode ?? 'autre') !== 'prelevement'); ?>> Chèque ou espèces</label><br>
+    <label><input type="radio" name="payment_mode" value="prelevement" <?php checked(($edit_parent->payment_mode ?? 'autre') === 'prelevement'); ?>> Prélèvement automatique (SEPA)</label>
+</td></tr>
+<tr><th><label for="psc-edit-sepa-titulaire">Titulaire du compte</label></th>
+<td><input id="psc-edit-sepa-titulaire" type="text" name="sepa_titulaire" class="regular-text" maxlength="190"
+    value="<?php echo esc_attr($edit_parent->sepa_titulaire ?? ''); ?>"></td></tr>
+<tr><th><label for="psc-edit-sepa-adresse">Adresse du titulaire</label></th>
+<td><input id="psc-edit-sepa-adresse" type="text" name="sepa_adresse" class="large-text" maxlength="255"
+    value="<?php echo esc_attr($edit_parent->sepa_adresse ?? ''); ?>"></td></tr>
+<tr><th><label for="psc-edit-sepa-cp">Code postal (titulaire)</label></th>
+<td><input id="psc-edit-sepa-cp" type="text" name="sepa_code_postal" class="small-text" maxlength="10"
+    value="<?php echo esc_attr($edit_parent->sepa_code_postal ?? ''); ?>"></td></tr>
+<tr><th><label for="psc-edit-sepa-ville">Ville (titulaire)</label></th>
+<td><input id="psc-edit-sepa-ville" type="text" name="sepa_ville" class="regular-text" maxlength="100"
+    value="<?php echo esc_attr($edit_parent->sepa_ville ?? ''); ?>"></td></tr>
+<tr><th><label for="psc-edit-sepa-iban">IBAN</label></th>
+<td><input id="psc-edit-sepa-iban" type="text" name="sepa_iban" class="large-text" maxlength="42"
+    value="<?php echo esc_attr($edit_parent->sepa_iban ?? ''); ?>" placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX"></td></tr>
+<tr><th><label for="psc-edit-sepa-bic">BIC</label></th>
+<td><input id="psc-edit-sepa-bic" type="text" name="sepa_bic" class="regular-text" maxlength="11"
+    value="<?php echo esc_attr($edit_parent->sepa_bic ?? ''); ?>" placeholder="XXXXFRPPXXX"></td></tr>
+<?php if (!empty($edit_parent->sepa_mandate_ref)): ?>
+<tr><th>Référence du mandat SEPA</th><td><code><?php echo esc_html($edit_parent->sepa_mandate_ref); ?></code></td></tr>
+<?php endif; ?>
 </table>
 <?php submit_button('Enregistrer les modifications'); ?>
 </form>
@@ -69,15 +97,22 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <div class="psc-box">
 <h2>Familles enregistrées</h2>
 <table class="widefat striped">
-<thead><tr><th>Nom</th><th>E-mail</th><th>Adresse</th><th>Dernière connexion</th><th>Statut</th><th>Actions</th></tr></thead>
+<thead><tr><th>Nom</th><th>E-mail</th><th>Adresse</th><th>Paiement</th><th>Dernière connexion</th><th>Statut</th><th>Actions</th></tr></thead>
 <tbody>
 <?php if (empty($parents)): ?>
-<tr><td colspan="5">Aucune famille enregistrée.</td></tr>
+<tr><td colspan="6">Aucune famille enregistrée.</td></tr>
 <?php else: foreach ($parents as $p): ?>
 <tr>
 <td><?php echo $p->nom ? esc_html($p->nom) : '—'; ?></td>
 <td><?php echo esc_html($p->email); ?></td>
 <td><?php echo esc_html(trim(($p->adresse ?? '') . ($p->code_postal ? ' — ' . $p->code_postal : '') . ($p->ville ? ' ' . $p->ville : ''))); ?></td>
+<td>
+  <?php if (($p->payment_mode ?? 'autre') === 'prelevement'): ?>
+    Prélèvement<br><small><?php echo esc_html($p->sepa_iban ? psc_mask_iban($p->sepa_iban) : '—'); ?></small>
+  <?php else: ?>
+    Chèque / espèces
+  <?php endif; ?>
+</td>
 <td><?php echo $p->last_login ? esc_html(date_i18n('d/m/Y H:i', strtotime($p->last_login))) : '<em>jamais</em>'; ?></td>
 <td><?php echo $p->active ? '<span class="psc-active">Actif</span>' : '<em>désactivé</em>'; ?></td>
 <td>

@@ -13,6 +13,11 @@ $psc_notices = array(
     'bad_verify'    => array('err', 'Ce lien de confirmation n\'est pas valide.'),
     'expired_verify'=> array('err', 'Ce lien de confirmation a expiré. Vous pouvez déposer une nouvelle demande.'),
     'need_child'    => array('err', 'Merci d\'indiquer au moins un enfant (nom et prénom).'),
+    'reglement_required'      => array('err', 'Merci de prendre connaissance du règlement intérieur et de cocher la case d\'approbation.'),
+    'sepa_reglement_required' => array('err', 'Merci de prendre connaissance du règlement concernant le prélèvement et de cocher la case d\'approbation.'),
+    'sepa_missing'            => array('err', 'Merci de renseigner le titulaire du compte à débiter.'),
+    'bad_iban'                => array('err', 'L\'IBAN saisi n\'est pas valide. Vérifiez sa saisie.'),
+    'bad_bic'                 => array('err', 'Le BIC saisi n\'est pas valide. Vérifiez sa saisie.'),
 );
 if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     list($type, $text) = $psc_notices[$psc_msg]; ?>

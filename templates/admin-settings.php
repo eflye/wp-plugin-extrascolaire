@@ -111,6 +111,15 @@ $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
 </td>
 </tr>
 <tr>
+<th><label for="psc-org-ics">Identifiant créancier SEPA (ICS)</label></th>
+<td>
+    <input id="psc-org-ics" type="text" name="org_ics" class="regular-text"
+        value="<?php echo esc_attr(get_option('psc_billing_org_ics', '')); ?>"
+        placeholder="Ex : FR15ZZZ612780">
+    <p class="description">Affiché sur le mandat de prélèvement SEPA proposé aux familles lors de l'inscription.</p>
+</td>
+</tr>
+<tr>
 <th>Logo gauche</th>
 <td>
     <div id="psc-logo-left-preview" style="margin-bottom:6px;">

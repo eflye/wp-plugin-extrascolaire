@@ -45,6 +45,39 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
       <?php if ($req->message): ?>
       <tr><th>Message</th><td><?php echo nl2br(esc_html($req->message)); ?></td></tr>
       <?php endif; ?>
+      <tr>
+        <th>Règlement intérieur</th>
+        <td>
+          <?php if (!empty($req->reglement_accepted_at)): ?>
+            <span style="color:#46b450">✔ Accepté le <?php echo esc_html(date_i18n('d/m/Y à H:i', strtotime($req->reglement_accepted_at))); ?></span>
+          <?php else: ?>
+            <span style="color:#b32d2e">✘ Non accepté</span>
+          <?php endif; ?>
+        </td>
+      </tr>
+      <tr>
+        <th>Mode de paiement</th>
+        <td>
+          <?php if (($req->payment_mode ?? 'autre') === 'prelevement'): ?>
+            <strong>Prélèvement automatique (SEPA)</strong>
+            <ul style="margin:6px 0 0;padding-left:18px;">
+              <li>Titulaire : <?php echo esc_html($req->sepa_titulaire ?: '—'); ?></li>
+              <li>Adresse : <?php echo esc_html(trim(($req->sepa_adresse ?? '') . ' ' . ($req->sepa_code_postal ?? '') . ' ' . ($req->sepa_ville ?? '')) ?: '—'); ?></li>
+              <li>IBAN : <?php echo esc_html($req->sepa_iban ? psc_mask_iban($req->sepa_iban) : '—'); ?></li>
+              <li>BIC : <?php echo esc_html($req->sepa_bic ?: '—'); ?></li>
+              <li>Règlement prélèvement :
+                <?php if (!empty($req->sepa_reglement_accepted_at)): ?>
+                  <span style="color:#46b450">✔ Accepté le <?php echo esc_html(date_i18n('d/m/Y à H:i', strtotime($req->sepa_reglement_accepted_at))); ?></span>
+                <?php else: ?>
+                  <span style="color:#b32d2e">✘ Non accepté</span>
+                <?php endif; ?>
+              </li>
+            </ul>
+          <?php else: ?>
+            Chèque ou espèces
+          <?php endif; ?>
+        </td>
+      </tr>
     </table>
 
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="psc-approve-form">

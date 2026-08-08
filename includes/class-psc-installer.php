@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '2.10.0';
+    const DB_VERSION = '2.11.0';
 
     public static function activate() {
         self::create_tables();
@@ -226,6 +226,16 @@ CREATE TABLE $t_parent (
             token_expires DATETIME NULL,
             last_login DATETIME NULL,
             active TINYINT(1) NOT NULL DEFAULT 1,
+            payment_mode VARCHAR(20) NOT NULL DEFAULT 'autre',
+            sepa_iban VARCHAR(34) NULL,
+            sepa_bic VARCHAR(11) NULL,
+            sepa_titulaire VARCHAR(191) NULL,
+            sepa_adresse VARCHAR(255) NULL,
+            sepa_code_postal VARCHAR(10) NULL,
+            sepa_ville VARCHAR(100) NULL,
+            sepa_mandate_ref VARCHAR(35) NULL,
+            reglement_accepted_at DATETIME NULL,
+            sepa_reglement_accepted_at DATETIME NULL,
             created_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY email (email),
@@ -284,6 +294,15 @@ CREATE TABLE $t_req (
             verified TINYINT(1) NOT NULL DEFAULT 0,
             status VARCHAR(20) NOT NULL DEFAULT 'unverified',
             note TEXT NULL,
+            reglement_accepted_at DATETIME NULL,
+            payment_mode VARCHAR(20) NOT NULL DEFAULT 'autre',
+            sepa_reglement_accepted_at DATETIME NULL,
+            sepa_iban VARCHAR(34) NULL,
+            sepa_bic VARCHAR(11) NULL,
+            sepa_titulaire VARCHAR(191) NULL,
+            sepa_adresse VARCHAR(255) NULL,
+            sepa_code_postal VARCHAR(10) NULL,
+            sepa_ville VARCHAR(100) NULL,
             created_at DATETIME NOT NULL,
             decided_at DATETIME NULL,
             PRIMARY KEY  (id),

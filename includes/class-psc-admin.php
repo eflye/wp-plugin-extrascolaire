@@ -252,6 +252,7 @@ class Psc_Admin {
             'psc_billing_org_fax'     => 'sanitize_text_field',
             'psc_billing_org_email'   => 'sanitize_email',
             'psc_billing_org_city'    => 'sanitize_text_field',
+            'psc_billing_org_ics'     => 'sanitize_text_field',
             'psc_billing_footer'      => 'sanitize_text_field',
         );
         foreach ($billing_fields as $option => $sanitizer) {
@@ -543,12 +544,26 @@ class Psc_Admin {
         $id = psc_post_int('id');
         if (!$id) self::redirect('psc_parents', 'invalid');
 
-        Psc_Parents::update($id, array(
-            'nom'         => psc_post('nom'),
-            'adresse'     => psc_post('adresse'),
-            'code_postal' => psc_post('code_postal'),
-            'ville'       => psc_post('ville'),
+        $result = Psc_Parents::update($id, array(
+            'nom'              => psc_post('nom'),
+            'adresse'          => psc_post('adresse'),
+            'code_postal'      => psc_post('code_postal'),
+            'ville'            => psc_post('ville'),
+            'payment_mode'     => psc_post('payment_mode'),
+            'sepa_titulaire'   => psc_post('sepa_titulaire'),
+            'sepa_adresse'     => psc_post('sepa_adresse'),
+            'sepa_code_postal' => psc_post('sepa_code_postal'),
+            'sepa_ville'       => psc_post('sepa_ville'),
+            'sepa_iban'        => psc_post('sepa_iban'),
+            'sepa_bic'         => psc_post('sepa_bic'),
         ));
+        if (is_wp_error($result)) {
+            wp_safe_redirect(add_query_arg(
+                array('page' => 'psc_parents', 'edit' => $id, 'psc_msg' => $result->get_error_code() === 'psc_bad_iban' ? 'bad_iban' : 'bad_bic'),
+                admin_url('admin.php')
+            ));
+            exit;
+        }
         self::redirect('psc_parents', 'updated');
     }
 
