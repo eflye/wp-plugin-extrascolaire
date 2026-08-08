@@ -12,15 +12,15 @@ $psc_notices = array(
 $child_msg = in_array($psc_msg, array('child_updated', 'child_added', 'child_invalid', 'child_limit'), true);
 if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     list($type, $text) = $psc_notices[$psc_msg]; ?>
-    <p class="psc-notice psc-notice-<?php echo esc_attr($type); ?>"><?php echo esc_html($text); ?></p>
+    <p class="psc-notice psc-notice-<?php echo esc_attr($type); ?>" data-testid="notice-<?php echo esc_attr($psc_msg); ?>"><?php echo esc_html($text); ?></p>
 <?php endif; ?>
 
-<div class="psc-account">
-  <span>Connecté avec <strong><?php echo esc_html($parent->email); ?></strong></span>
+<div class="psc-account" data-testid="account-bar">
+  <span>Connecté avec <strong data-testid="account-email"><?php echo esc_html($parent->email); ?></strong></span>
   <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
     <?php wp_nonce_field('psc_logout'); ?>
     <input type="hidden" name="action" value="psc_logout">
-    <button type="submit" class="psc-link-btn">Se déconnecter</button>
+    <button type="submit" class="psc-link-btn" data-testid="logout-button">Se déconnecter</button>
   </form>
 </div>
 
@@ -37,7 +37,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 
 <?php else: ?>
 
-  <p class="psc-period">Période en cours : <strong><?php echo esc_html($trimestre->label); ?></strong></p>
+  <p class="psc-period" data-testid="period-label">Période en cours : <strong><?php echo esc_html($trimestre->label); ?></strong></p>
 
   <p class="psc-help">
     Cochez les jours et prestations souhaités : l'enregistrement est automatique.
@@ -52,15 +52,19 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     <li><strong>Forf.</strong> : Forfait journée</li>
   </ul>
 
-  <?php foreach ($children as $child): ?>
+  <?php $child_index = 0; foreach ($children as $child): ?>
 
-    <h2 class="psc-child-name">
+    <h2 class="psc-child-name" data-testid="child-name-<?php echo esc_attr($child_index); ?>">
       <?php echo esc_html($child->prenom . ' ' . $child->nom); ?>
       <?php if ($child->classe): ?><span class="psc-classe">(<?php echo esc_html($child->classe); ?>)</span><?php endif; ?>
     </h2>
 
     <?php foreach ($days_by_month as $month_label => $days): ?>
       <?php
+      // Clé YYYY-MM utilisée dans les testid : le test connaît la date
+      // ciblée, il n'a pas à recalculer un index de mois pour la retrouver.
+      $month_key = date('Y-m', strtotime($days[0]->jour_date));
+
       // On masque un mois entièrement verrouillé plutôt que d'afficher
       // des dizaines de lignes grisées inutilisables.
       $has_open = false;
@@ -83,15 +87,16 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
           if ($day_has_reg) $month_days_count++;
       }
       ?>
-      <details class="psc-month-block">
-        <summary class="psc-month">
+      <details class="psc-month-block" data-testid="month-block-<?php echo esc_attr($child_index); ?>-<?php echo esc_attr($month_key); ?>">
+        <summary class="psc-month" data-testid="month-toggle-<?php echo esc_attr($child_index); ?>-<?php echo esc_attr($month_key); ?>">
           <span class="psc-month-chevron" aria-hidden="true"></span>
           <span class="psc-month-name">
             <?php echo esc_html(ucfirst($month_label)); ?>
             <?php if (!$has_open): ?><span class="psc-badge">clôturé</span><?php endif; ?>
           </span>
           <span class="psc-month-summary <?php echo $month_days_count > 0 ? 'psc-month-summary-active' : 'psc-month-summary-empty'; ?>"
-                data-month-summary>
+                data-month-summary
+                data-testid="month-summary-<?php echo esc_attr($child_index); ?>-<?php echo esc_attr($month_key); ?>">
             <?php if ($month_days_count > 0): ?>
               <?php echo esc_html($month_days_count); ?> jour<?php echo $month_days_count > 1 ? 's' : ''; ?>
               · <?php echo esc_html(number_format_i18n($month_total, 2)); ?> €
@@ -101,7 +106,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
           </span>
         </summary>
 
-        <table class="psc-calendar">
+        <table class="psc-calendar" data-testid="calendar-table-<?php echo esc_attr($child_index); ?>-<?php echo esc_attr($month_key); ?>">
           <caption class="screen-reader-text">
             Calendrier périscolaire de <?php echo esc_html($child->prenom); ?> pour <?php echo esc_html($month_label); ?>
           </caption>
@@ -123,7 +128,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
               $date = $d->jour_date;
               $locked = psc_is_locked($date);
           ?>
-            <tr class="<?php echo $locked ? 'psc-row-locked' : ''; ?>">
+            <tr class="<?php echo $locked ? 'psc-row-locked' : ''; ?>" data-testid="day-row-<?php echo esc_attr($child_index); ?>-<?php echo esc_attr($date); ?>">
               <th scope="row" class="psc-daylabel">
                 <?php echo esc_html(psc_day_label($date) . ' ' . date_i18n('d/m', strtotime($date))); ?>
                 <?php if ($locked): ?>
@@ -132,8 +137,9 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
               </th>
               <?php foreach (psc_allowed_services() as $s):
                   $checked = isset($reg_map[$child->id . '|' . $date . '|' . $s]);
+                  $cell_testid = $child_index . '-' . $date . '-' . $s;
               ?>
-                <td class="psc-cell">
+                <td class="psc-cell" data-testid="cell-<?php echo esc_attr($cell_testid); ?>">
                   <input type="checkbox" class="psc-check"
                          aria-label="<?php echo esc_attr(
                              $services[$s]['label'] . ' — ' . psc_day_label($date) . ' '
@@ -144,6 +150,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
                          data-date="<?php echo esc_attr($date); ?>"
                          data-service="<?php echo esc_attr($s); ?>"
                          data-price="<?php echo esc_attr($services[$s]['price']); ?>"
+                         data-testid="check-<?php echo esc_attr($cell_testid); ?>"
                          <?php checked($checked); ?>
                          <?php disabled($locked); ?>>
                 </td>
@@ -155,16 +162,16 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
       </details>
     <?php endforeach; ?>
 
-  <?php endforeach; ?>
+  <?php $child_index++; endforeach; ?>
 
-  <div class="psc-confirm-block">
+  <div class="psc-confirm-block" data-testid="confirm-block">
     <h3>Confirmer mon planning</h3>
     <p>
       Vos inscriptions sont déjà enregistrées. Ce bouton vous envoie par e-mail
       un récapitulatif complet, à conserver comme preuve de votre saisie.
     </p>
-    <button type="button" class="psc-btn" id="psc-confirm">Valider et recevoir mon planning</button>
-    <p class="psc-confirm-feedback" id="psc-confirm-feedback" role="status" aria-live="polite"></p>
+    <button type="button" class="psc-btn" id="psc-confirm" data-testid="confirm-button">Valider et recevoir mon planning</button>
+    <p class="psc-confirm-feedback" id="psc-confirm-feedback" role="status" aria-live="polite" data-testid="confirm-feedback"></p>
   </div>
 
 <?php endif; ?>

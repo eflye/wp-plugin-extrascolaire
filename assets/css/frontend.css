@@ -206,16 +206,34 @@
 }
 .psc-month-block > summary::-webkit-details-marker { display: none; }
 .psc-month-chevron {
+    position: relative;
     flex: 0 0 auto;
-    width: 8px;
-    height: 8px;
-    border-right: 2px solid #555;
-    border-bottom: 2px solid #555;
-    transform: rotate(-45deg);
-    transition: transform 0.15s ease;
+    width: 14px;
+    height: 14px;
 }
-.psc-month-block[open] > summary .psc-month-chevron {
-    transform: rotate(45deg);
+.psc-month-chevron::before,
+.psc-month-chevron::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    background: #555;
+    border-radius: 1px;
+}
+.psc-month-chevron::before {
+    width: 14px;
+    height: 2px;
+    transform: translate(-50%, -50%);
+}
+.psc-month-chevron::after {
+    width: 2px;
+    height: 14px;
+    transform: translate(-50%, -50%);
+    transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.psc-month-block[open] > summary .psc-month-chevron::after {
+    transform: translate(-50%, -50%) rotate(90deg);
+    opacity: 0;
 }
 .psc-month-name { font-weight: 600; flex: 1; }
 .psc-month-summary {

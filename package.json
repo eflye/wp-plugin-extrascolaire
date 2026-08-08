@@ -1,0 +1,15 @@
+{
+  "name": "plugin-extrascolaire",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Plugin WordPress pour la gestion des inscriptions aux services périscolaires municipaux (garderie matin, cantine, garderie soir, forfait journée).",
+  "scripts": {
+    "test:e2e": "playwright test --project=test",
+    "demo:e2e": "playwright test --project=demo"
+  },
+  "license": "GPL-2.0-or-later",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  }
+}

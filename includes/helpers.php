@@ -309,8 +309,19 @@ function psc_hash_token($token) {
 /**
  * Limitation de fréquence (anti-spam / anti-énumération).
  * Renvoie false si la limite est atteinte.
+ *
+ * Désactivée en environnement local/développement (WP_ENVIRONMENT_TYPE),
+ * ou via le filtre psc_rate_limit_enabled : évite d'avoir à purger des
+ * transients entre deux runs de test.
  */
 function psc_rate_limit($key, $max, $window) {
+    if (in_array(wp_get_environment_type(), array('local', 'development'), true)) {
+        return true;
+    }
+    if (!apply_filters('psc_rate_limit_enabled', true)) {
+        return true;
+    }
+
     $transient = 'psc_rl_' . md5($key);
     $count = (int) get_transient($transient);
     if ($count >= $max) {

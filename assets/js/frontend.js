@@ -50,6 +50,7 @@
         var span = document.createElement('span');
         span.className = 'psc-error';
         span.setAttribute('role', 'alert');
+        span.setAttribute('data-testid', 'toggle-error');
         span.textContent = message;
         cell.appendChild(span);
         setTimeout(function () { span.remove(); }, 7000);
