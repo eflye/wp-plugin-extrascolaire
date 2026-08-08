@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '2.6.0';
+    const DB_VERSION = '2.7.0';
 
     public static function activate() {
         self::create_tables();
@@ -20,6 +20,9 @@ class Psc_Installer {
         if ($current !== self::DB_VERSION) {
             if ($current && version_compare($current, '2.5.0', '<')) {
                 self::migrate_2_5_0();
+            }
+            if ($current && version_compare($current, '2.7.0', '<')) {
+                self::migrate_2_7_0();
             }
             self::create_tables();
             update_option('psc_db_version', self::DB_VERSION);
@@ -55,6 +58,47 @@ class Psc_Installer {
             }
         }
         $wpdb->query("ALTER TABLE {$t_inv} DROP COLUMN `mois`");
+    }
+
+    /**
+     * Revient à la facturation mensuelle : retire 'trimestre_id', restaure
+     * 'mois'. Les factures trimestrielles sont supprimées : elles devront
+     * être regénérées avec le modèle mensuel.
+     *
+     * Ferme aussi rétroactivement les mercredis déjà ouverts dans le
+     * calendrier : il n'y a jamais eu de service (périscolaire/cantine) ce
+     * jour-là, c'était un oubli du générateur de calendrier.
+     */
+    private static function migrate_2_7_0() {
+        global $wpdb;
+        $t_inv = psc_table('invoices');
+
+        $has_trimestre = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+             AND TABLE_NAME = '{$t_inv}' AND COLUMN_NAME = 'trimestre_id'"
+        );
+        if ($has_trimestre) {
+            $wpdb->query("DELETE FROM {$t_inv}");
+
+            foreach (array('parent_trimestre', 'trimestre_id') as $idx) {
+                $exists = (int) $wpdb->get_var(
+                    "SELECT COUNT(*) FROM information_schema.STATISTICS
+                     WHERE TABLE_SCHEMA = DATABASE()
+                     AND TABLE_NAME = '{$t_inv}' AND INDEX_NAME = '{$idx}'"
+                );
+                if ($exists) {
+                    $wpdb->query("ALTER TABLE {$t_inv} DROP INDEX `{$idx}`");
+                }
+            }
+            $wpdb->query("ALTER TABLE {$t_inv} DROP COLUMN `trimestre_id`");
+        }
+
+        $t_days = psc_table('calendar_days');
+        $wpdb->query(
+            "UPDATE {$t_days} SET is_open = 0, label = 'Mercredi'
+             WHERE DAYOFWEEK(jour_date) = 4 AND is_open = 1"
+        );
     }
 
     protected static function create_tables() {
@@ -160,14 +204,14 @@ CREATE TABLE $t_req (
 CREATE TABLE $t_inv (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             parent_id BIGINT UNSIGNED NOT NULL,
-            trimestre_id BIGINT UNSIGNED NOT NULL,
+            mois CHAR(7) NOT NULL,
             total DECIMAL(10,2) NOT NULL DEFAULT 0.00,
             pdf_path VARCHAR(500) NULL,
             sent_at DATETIME NULL,
             created_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
-            UNIQUE KEY parent_trimestre (parent_id, trimestre_id),
-            KEY trimestre_id (trimestre_id),
+            UNIQUE KEY parent_mois (parent_id, mois),
+            KEY mois (mois),
             KEY parent_id (parent_id)
         ) $charset_collate;
 
@@ -221,6 +265,9 @@ CREATE TABLE $t_menu (
             if (psc_is_weekend($date_str)) {
                 $is_open = 0;
                 $label = 'Week-end';
+            } elseif (psc_is_wednesday($date_str)) {
+                $is_open = 0;
+                $label = 'Mercredi';
             } elseif (psc_is_holiday($date_str)) {
                 $is_open = 0;
                 $label = 'Férié';

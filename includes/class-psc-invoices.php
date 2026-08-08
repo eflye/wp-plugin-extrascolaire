@@ -4,15 +4,26 @@ if (!defined('ABSPATH')) exit;
 class Psc_Invoices {
 
     /**
-     * Génère les factures PDF pour toutes les familles actives ayant des
-     * inscriptions sur le trimestre donné. Retourne le nombre de factures créées.
+     * Retourne les mois (YYYY-MM) pour lesquels des inscriptions existent.
      */
-    public static function generate_trimestre($trimestre_id) {
+    public static function months_with_data() {
+        global $wpdb;
+        return $wpdb->get_col(
+            "SELECT DISTINCT DATE_FORMAT(jour_date, '%Y-%m') AS mois
+             FROM " . psc_table('registrations') . "
+             ORDER BY mois DESC"
+        );
+    }
+
+    /**
+     * Génère les factures PDF pour toutes les familles actives ayant des
+     * inscriptions sur le mois donné. Retourne le nombre de factures créées.
+     */
+    public static function generate_month($mois) {
         global $wpdb;
 
-        $trimestre_id = (int) $trimestre_id;
-        if (!$trimestre_id) {
-            return new WP_Error('invalid', 'Trimestre invalide.');
+        if (!preg_match('/^\d{4}-\d{2}$/', $mois)) {
+            return new WP_Error('invalid_month', 'Format de mois invalide.');
         }
 
         $t_reg   = psc_table('registrations');
@@ -24,13 +35,14 @@ class Psc_Invoices {
              FROM $t_reg r
              JOIN $t_child c ON c.id = r.child_id
              JOIN $t_par   p ON p.id = c.parent_id
-             WHERE r.trimestre_id = %d AND p.active = 1",
-            $trimestre_id
+             WHERE DATE_FORMAT(r.jour_date, '%%Y-%%m') = %s
+               AND p.active = 1",
+            $mois
         ));
 
         $count = 0;
         foreach ($parent_ids as $parent_id) {
-            $result = self::generate_one((int) $parent_id, $trimestre_id);
+            $result = self::generate_one((int) $parent_id, $mois);
             if (!is_wp_error($result)) {
                 $count++;
             }
@@ -39,11 +51,11 @@ class Psc_Invoices {
     }
 
     /**
-     * Génère (ou regénère) la facture PDF d'une famille pour un trimestre.
+     * Génère (ou regénère) la facture PDF d'une famille pour un mois donné.
      * Regénérer réinitialise la date d'envoi.
      * Retourne l'ID de la facture en base, ou WP_Error.
      */
-    public static function generate_one($parent_id, $trimestre_id) {
+    public static function generate_one($parent_id, $mois) {
         global $wpdb;
 
         $parent = $wpdb->get_row($wpdb->prepare(
@@ -54,18 +66,10 @@ class Psc_Invoices {
             return new WP_Error('no_parent', 'Famille introuvable.');
         }
 
-        $trimestre = $wpdb->get_row($wpdb->prepare(
-            'SELECT * FROM ' . psc_table('trimestres') . ' WHERE id = %d',
-            $trimestre_id
-        ));
-        if (!$trimestre) {
-            return new WP_Error('no_trimestre', 'Trimestre introuvable.');
-        }
-
         $t_reg   = psc_table('registrations');
         $t_child = psc_table('children');
 
-        // Tous les enfants de la famille (apparaissent dans le PDF même sans inscription)
+        // All children of this parent (shown in PDF even with 0 registrations)
         $children = $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM $t_child WHERE parent_id = %d ORDER BY nom, prenom",
             $parent_id
@@ -74,27 +78,31 @@ class Psc_Invoices {
             return new WP_Error('no_children', 'Aucun enfant pour cette famille.');
         }
 
-        // Inscriptions du trimestre : service + child_id
+        // Registrations for this month: service + child_id
         $regs = $wpdb->get_results($wpdb->prepare(
             "SELECT r.service, c.id AS child_id
              FROM $t_reg r
              JOIN $t_child c ON c.id = r.child_id
-             WHERE c.parent_id = %d AND r.trimestre_id = %d",
-            $parent_id, $trimestre_id
+             WHERE c.parent_id = %d
+               AND DATE_FORMAT(r.jour_date, '%%Y-%%m') = %s",
+            $parent_id, $mois
         ));
         if (empty($regs)) {
-            return new WP_Error('no_data', 'Aucune inscription ce trimestre.');
+            return new WP_Error('no_data', 'Aucune inscription ce mois-ci.');
         }
 
-        // Grille grid[service_code][child_id] = count
+        // Build grid[service_code][child_id] = count
         $grid = array();
         foreach ($regs as $r) {
-            if (!isset($grid[$r->service])) $grid[$r->service] = array();
+            if (!isset($grid[$r->service])) {
+                $grid[$r->service] = array();
+            }
             $grid[$r->service][$r->child_id] = ($grid[$r->service][$r->child_id] ?? 0) + 1;
         }
 
         $services = psc_services();
 
+        // Compute total from grid
         $total = 0.0;
         foreach ($grid as $code => $child_counts) {
             if (!isset($services[$code])) continue;
@@ -104,11 +112,11 @@ class Psc_Invoices {
             }
         }
 
-        // Upsert DB avant de générer le PDF (l'invoice_id sert pour la numérotation)
+        // Upsert DB record first to get invoice_id (needed for the invoice number on the PDF)
         $t_inv    = psc_table('invoices');
         $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $t_inv WHERE parent_id = %d AND trimestre_id = %d",
-            $parent_id, $trimestre_id
+            "SELECT id FROM $t_inv WHERE parent_id = %d AND mois = %s",
+            $parent_id, $mois
         ));
 
         if ($existing) {
@@ -119,27 +127,28 @@ class Psc_Invoices {
             $invoice_id = (int) $existing;
         } else {
             $wpdb->insert($t_inv, array(
-                'parent_id'    => $parent_id,
-                'trimestre_id' => $trimestre_id,
-                'total'        => $total,
-                'pdf_path'     => null,
-                'sent_at'      => null,
-                'created_at'   => current_time('mysql'),
-            ), array('%d', '%d', '%f', '%s', '%s', '%s'));
+                'parent_id'  => $parent_id,
+                'mois'       => $mois,
+                'total'      => $total,
+                'pdf_path'   => null,
+                'sent_at'    => null,
+                'created_at' => current_time('mysql'),
+            ), array('%d', '%s', '%f', '%s', '%s', '%s'));
             $invoice_id = (int) $wpdb->insert_id;
         }
 
-        // Génération PDF
-        $pdf_path = self::pdf_path($trimestre_id, $parent_id);
+        // Generate PDF
+        $pdf_path = self::pdf_path($mois, $parent_id);
         if (!wp_mkdir_p(dirname($pdf_path))) {
             return new WP_Error('mkdir_fail', 'Impossible de créer le répertoire des factures.');
         }
 
-        $build_ok = self::build_pdf($parent, $trimestre, $children, $grid, $services, $pdf_path, $invoice_id);
+        $build_ok = self::build_pdf($parent, $mois, $children, $grid, $services, $pdf_path, $invoice_id);
         if (is_wp_error($build_ok)) {
             return $build_ok;
         }
 
+        // Store relative path
         $upload_dir = wp_upload_dir();
         $rel_path   = str_replace(trailingslashit($upload_dir['basedir']), '', $pdf_path);
         $wpdb->update($t_inv, array('pdf_path' => $rel_path), array('id' => $invoice_id), array('%s'), array('%d'));
@@ -148,37 +157,33 @@ class Psc_Invoices {
     }
 
     /**
-     * Retourne la liste des factures pour un trimestre (avec nom, email famille).
+     * Retourne la liste des factures pour un mois (avec nom et email famille).
      */
-    public static function get_for_trimestre($trimestre_id) {
+    public static function get_for_month($mois) {
         global $wpdb;
-        $t_inv  = psc_table('invoices');
-        $t_par  = psc_table('parents');
-        $t_trim = psc_table('trimestres');
+        $t_inv = psc_table('invoices');
+        $t_par = psc_table('parents');
         return $wpdb->get_results($wpdb->prepare(
-            "SELECT i.*, p.nom AS parent_nom, p.email AS parent_email, t.label AS trimestre_label
+            "SELECT i.*, p.nom AS parent_nom, p.email AS parent_email
              FROM $t_inv i
-             JOIN $t_par  p ON p.id = i.parent_id
-             JOIN $t_trim t ON t.id = i.trimestre_id
-             WHERE i.trimestre_id = %d
+             JOIN $t_par p ON p.id = i.parent_id
+             WHERE i.mois = %s
              ORDER BY p.nom, p.email",
-            $trimestre_id
+            $mois
         ));
     }
 
     /**
-     * Retourne une facture par son ID (avec nom, email famille et libellé trimestre).
+     * Retourne une facture par son ID (avec nom et email famille).
      */
     public static function get($invoice_id) {
         global $wpdb;
-        $t_inv  = psc_table('invoices');
-        $t_par  = psc_table('parents');
-        $t_trim = psc_table('trimestres');
+        $t_inv = psc_table('invoices');
+        $t_par = psc_table('parents');
         return $wpdb->get_row($wpdb->prepare(
-            "SELECT i.*, p.nom AS parent_nom, p.email AS parent_email, t.label AS trimestre_label
+            "SELECT i.*, p.nom AS parent_nom, p.email AS parent_email
              FROM $t_inv i
-             JOIN $t_par  p ON p.id = i.parent_id
-             JOIN $t_trim t ON t.id = i.trimestre_id
+             JOIN $t_par p ON p.id = i.parent_id
              WHERE i.id = %d",
             $invoice_id
         ));
@@ -200,20 +205,20 @@ class Psc_Invoices {
             return new WP_Error('no_file', 'Le fichier PDF est introuvable. Regénérez la facture.');
         }
 
-        $nom             = $invoice->parent_nom ?: $invoice->parent_email;
-        $trimestre_label = $invoice->trimestre_label;
-        $commune         = get_option('blogname', 'la mairie');
+        $nom         = $invoice->parent_nom ?: $invoice->parent_email;
+        $month_label = self::month_label($invoice->mois);
+        $commune     = get_option('blogname', 'la mairie');
         $site_name   = wp_specialchars_decode(get_bloginfo('name'), ENT_QUOTES);
 
         $subject = Psc_Email_Templates::subject('invoice', array(
-            'mois'    => $trimestre_label,
+            'mois'    => $month_label,
             'nom'     => $nom,
             'commune' => $commune,
             'total'   => number_format((float) $invoice->total, 2, ',', ' ') . ' €',
         ));
 
         $body_text = Psc_Email_Templates::body_html('invoice', array(
-            'mois'    => $trimestre_label,
+            'mois'    => $month_label,
             'nom'     => $nom,
             'commune' => $commune,
             'total'   => number_format((float) $invoice->total, 2, ',', ' ') . ' €',
@@ -221,7 +226,7 @@ class Psc_Invoices {
 
         $body_html =
             '<h2 style="color:#23478B;font-size:17px;margin:0 0 16px;padding-bottom:8px;border-bottom:2px solid #e8edf5;">'
-            . 'Votre facture périscolaire — ' . esc_html($trimestre_label) . '</h2>'
+            . 'Votre facture périscolaire — ' . esc_html($month_label) . '</h2>'
             . '<p style="color:#444;font-size:14px;line-height:1.7;margin:0 0 20px;">' . $body_text . '</p>'
             . '<div style="background:#f0f4fb;border-left:4px solid #23478B;border-radius:0 4px 4px 0;padding:14px 18px;margin:20px 0;font-size:14px;color:#444;line-height:1.6;">'
             . '<strong>Montant total :</strong> ' . number_format((float) $invoice->total, 2, ',', ' ') . ' €'
@@ -277,8 +282,7 @@ class Psc_Invoices {
         }
 
         $slug     = sanitize_file_name($invoice->parent_nom ?: $invoice->parent_email);
-        $trim_slug = sanitize_file_name($invoice->trimestre_label);
-        $filename = 'facture-' . $trim_slug . '-' . $slug . '.pdf';
+        $filename = 'facture-' . $invoice->mois . '-' . $slug . '.pdf';
 
         nocache_headers();
         header('Content-Type: application/pdf');
@@ -289,10 +293,26 @@ class Psc_Invoices {
         exit;
     }
 
-    private static function pdf_path($trimestre_id, $parent_id) {
+    /**
+     * Libellé français d'un mois au format YYYY-MM.
+     */
+    public static function month_label($mois) {
+        static $mois_fr = array(
+            '01' => 'Janvier',   '02' => 'Février',  '03' => 'Mars',
+            '04' => 'Avril',     '05' => 'Mai',       '06' => 'Juin',
+            '07' => 'Juillet',   '08' => 'Août',      '09' => 'Septembre',
+            '10' => 'Octobre',   '11' => 'Novembre',  '12' => 'Décembre',
+        );
+        list($year, $month) = explode('-', $mois . '-01');
+        return ($mois_fr[$month] ?? $month) . ' ' . $year;
+    }
+
+    /* ------------------------------------------------------------------ */
+
+    private static function pdf_path($mois, $parent_id) {
         $upload_dir = wp_upload_dir();
         return trailingslashit($upload_dir['basedir'])
-            . 'periscolaire/factures/trimestre-' . (int) $trimestre_id
+            . 'periscolaire/factures/' . $mois
             . '/facture-' . (int) $parent_id . '.pdf';
     }
 
@@ -346,15 +366,15 @@ class Psc_Invoices {
 
     /**
      * @param object   $parent     Row from wp_psc_parents
-     * @param object   $trimestre  Row from wp_psc_trimestres
+     * @param string   $mois       YYYY-MM
      * @param object[] $children   All children of this parent
      * @param array    $grid       $grid[service_code][child_id] = count
      * @param array    $services   psc_services() output
      * @param string   $path       Absolute filesystem path for the PDF
-     * @param int      $invoice_id Used to build the invoice number YY-NNN
+     * @param int      $invoice_id Used to build the invoice number YY-MM-NNN
      * @return true|WP_Error
      */
-    private static function build_pdf($parent, $trimestre, $children, $grid, $services, $path, $invoice_id) {
+    private static function build_pdf($parent, $mois, $children, $grid, $services, $path, $invoice_id) {
         require_once PSC_PATH . 'includes/fpdf/fpdf.php';
 
         // Billing settings
@@ -369,8 +389,9 @@ class Psc_Invoices {
         $logo_left_id  = (int) get_option('psc_billing_logo_left_id',  0);
         $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
 
-        $year        = substr($trimestre->date_debut, 0, 4);
-        $invoice_num = substr($year, 2) . '-' . str_pad($invoice_id, 3, '0', STR_PAD_LEFT);
+        list($year, $month_num) = explode('-', $mois);
+        $invoice_num  = substr($year, 2) . '-' . $month_num . '-' . str_pad($invoice_id, 3, '0', STR_PAD_LEFT);
+        $month_label  = self::month_label($mois);
         $nom_famille  = trim(($parent->nom ?? '') ?: $parent->email);
         $date_fr      = self::french_full_date((int) current_time('timestamp'));
         $city_date    = $org_city ? self::enc($org_city . ', le ' . $date_fr) : self::enc($date_fr);
@@ -471,9 +492,9 @@ class Psc_Invoices {
         $pdf->Ln(9);
 
         $pdf->SetFont('Helvetica', '', 10);
-        $pdf->Cell($pw, 5, self::enc('Période :'), 0, 1, 'L');
+        $pdf->Cell($pw, 5, self::enc('Prestation du mois de :'), 0, 1, 'L');
         $pdf->SetFont('Helvetica', 'B', 10);
-        $pdf->Cell($pw, 5, self::enc($trimestre->label), 0, 1, 'L');
+        $pdf->Cell($pw, 5, self::enc($month_label), 0, 1, 'L');
         $pdf->Ln(5);
 
         // ---- TABLEAU ----

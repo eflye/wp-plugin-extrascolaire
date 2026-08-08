@@ -149,6 +149,13 @@ function psc_is_weekend($date_str) {
     return $dow >= 6;
 }
 
+/**
+ * Le mercredi n'est pas un jour de service (pas de périscolaire ni de cantine).
+ */
+function psc_is_wednesday($date_str) {
+    return (int) date('N', strtotime($date_str)) === 3;
+}
+
 function psc_day_label($date_str) {
     $jours = array('Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche');
     $dow = (int) date('N', strtotime($date_str));
