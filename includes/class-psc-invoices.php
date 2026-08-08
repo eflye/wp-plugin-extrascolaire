@@ -174,6 +174,21 @@ class Psc_Invoices {
     }
 
     /**
+     * Retourne toutes les factures d'une famille, triées du mois le plus
+     * récent au plus ancien. Utilisé par l'espace famille (accès à ses
+     * propres factures uniquement — le contrôle d'appartenance est fait
+     * par l'appelant).
+     */
+    public static function get_for_parent($parent_id) {
+        global $wpdb;
+        $t_inv = psc_table('invoices');
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $t_inv WHERE parent_id = %d ORDER BY mois DESC",
+            $parent_id
+        ));
+    }
+
+    /**
      * Retourne une facture par son ID (avec nom et email famille).
      */
     public static function get($invoice_id) {

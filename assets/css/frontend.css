@@ -471,6 +471,33 @@ span.psc-diet-options { flex-direction: row; gap: 12px; }
     white-space: nowrap;
 }
 .psc-btn-sm:hover { background: #1a3568; }
+/* ---- Factures ---- */
+.psc-invoices-mgmt {
+    margin-top: 32px;
+    border: 1px solid #dde4ee;
+    border-radius: 6px;
+    padding: 0 16px 16px;
+}
+.psc-invoices-mgmt > summary {
+    padding: 12px 0;
+    cursor: pointer;
+    color: #23478B;
+    font-size: 1em;
+}
+.psc-invoices-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+}
+.psc-invoices-table th,
+.psc-invoices-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #eef0f5;
+    text-align: left;
+    vertical-align: middle;
+}
+.psc-invoices-table th { color: #555; font-weight: 600; font-size: 0.85em; text-transform: uppercase; letter-spacing: .03em; }
+.psc-invoices-table .psc-active { color: #2e7d32; }
 /* Toggle actif/inactif */
 .psc-toggle { display: inline-flex; align-items: center; cursor: pointer; }
 .psc-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }

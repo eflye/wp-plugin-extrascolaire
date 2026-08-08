@@ -20,6 +20,9 @@ class Psc_Frontend {
         add_action('admin_post_psc_parent_update_child', array(__CLASS__, 'handle_parent_update_child'));
         add_action('admin_post_nopriv_psc_parent_add_child', array(__CLASS__, 'handle_parent_add_child'));
         add_action('admin_post_psc_parent_add_child', array(__CLASS__, 'handle_parent_add_child'));
+
+        add_action('admin_post_nopriv_psc_parent_download_invoice', array(__CLASS__, 'handle_parent_download_invoice'));
+        add_action('admin_post_psc_parent_download_invoice', array(__CLASS__, 'handle_parent_download_invoice'));
     }
 
     public static function assets() {
@@ -303,6 +306,32 @@ class Psc_Frontend {
         self::parent_form_redirect('child_added');
     }
 
+    /* ---------------- Factures (espace famille) ---------------- */
+
+    /**
+     * Téléchargement d'une facture par la famille elle-même. Le nonce
+     * prouve l'intention, mais le contrôle qui compte vraiment est la
+     * vérification d'appartenance ci-dessous : sans elle, une famille
+     * connectée pourrait télécharger la facture d'une autre en devinant
+     * un identifiant dans l'URL.
+     */
+    public static function handle_parent_download_invoice() {
+        $parent = Psc_Parents::current();
+        if (!$parent) {
+            wp_die(esc_html__('Vous devez être connecté pour accéder à cette facture.', 'periscolaire-registration'), '', array('response' => 403));
+        }
+
+        $invoice_id = psc_get_int('invoice_id');
+        check_admin_referer('psc_parent_download_invoice_' . $invoice_id);
+
+        $invoice = Psc_Invoices::get($invoice_id);
+        if (!$invoice || (int) $invoice->parent_id !== (int) $parent->id) {
+            wp_die(esc_html__('Facture introuvable.', 'periscolaire-registration'), '', array('response' => 404));
+        }
+
+        Psc_Invoices::download($invoice_id);
+    }
+
     /* ---------------- Menu de cantine (accès libre) ---------------- */
 
     /**
@@ -383,6 +412,7 @@ class Psc_Frontend {
         }
 
         $services = psc_services();
+        $invoices = Psc_Invoices::get_for_parent($parent->id);
         include PSC_PATH . 'templates/frontend-form.php';
         return ob_get_clean();
     }
