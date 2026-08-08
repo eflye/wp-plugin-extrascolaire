@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '2.7.0';
+    const DB_VERSION = '2.8.0';
 
     public static function activate() {
         self::create_tables();
@@ -23,6 +23,9 @@ class Psc_Installer {
             }
             if ($current && version_compare($current, '2.7.0', '<')) {
                 self::migrate_2_7_0();
+            }
+            if ($current && version_compare($current, '2.8.0', '<')) {
+                self::migrate_2_8_0();
             }
             self::create_tables();
             update_option('psc_db_version', self::DB_VERSION);
@@ -99,6 +102,24 @@ class Psc_Installer {
             "UPDATE {$t_days} SET is_open = 0, label = 'Mercredi'
              WHERE DAYOFWEEK(jour_date) = 4 AND is_open = 1"
         );
+    }
+
+    /**
+     * Il n'y a pas de service le mercredi (cf. migrate_2_7_0) : la colonne
+     * 'mercredi' de la table des menus de cantine n'a donc plus d'usage.
+     */
+    private static function migrate_2_8_0() {
+        global $wpdb;
+        $t_menu = psc_table('menus');
+
+        $has_mercredi = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+             AND TABLE_NAME = '{$t_menu}' AND COLUMN_NAME = 'mercredi'"
+        );
+        if ($has_mercredi) {
+            $wpdb->query("ALTER TABLE {$t_menu} DROP COLUMN `mercredi`");
+        }
     }
 
     protected static function create_tables() {
@@ -220,7 +241,6 @@ CREATE TABLE $t_menu (
             semaine_debut DATE NOT NULL,
             lundi TEXT NULL,
             mardi TEXT NULL,
-            mercredi TEXT NULL,
             jeudi TEXT NULL,
             vendredi TEXT NULL,
             sent_at DATETIME NULL,

@@ -11,13 +11,12 @@ if (!defined('ABSPATH')) exit;
  */
 class Psc_Menus {
 
-    const JOURS = array('lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi');
+    const JOURS = array('lundi', 'mardi', 'jeudi', 'vendredi');
 
     public static function jour_labels() {
         return array(
             'lundi'     => 'Lundi',
             'mardi'     => 'Mardi',
-            'mercredi'  => 'Mercredi',
             'jeudi'     => 'Jeudi',
             'vendredi'  => 'Vendredi',
         );
