@@ -198,7 +198,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     <tbody>
     <?php foreach ($all_children as $c): ?>
       <tr class="<?php echo (int)$c->active ? '' : 'psc-child-inactive'; ?>">
-        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="psc-child-update-form">
           <?php wp_nonce_field('psc_parent_update_child'); ?>
           <input type="hidden" name="action" value="psc_parent_update_child">
           <input type="hidden" name="child_id" value="<?php echo esc_attr($c->id); ?>">

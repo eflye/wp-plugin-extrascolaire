@@ -198,6 +198,43 @@
         });
     }
 
+    // Les formulaires du plan (connexion, inscription, gestion des
+    // enfants) restent des POST classiques (rechargement de page) : sans
+    // intervention, le navigateur revient en haut de page après chaque
+    // enregistrement. On mémorise la position juste avant l'envoi, et on
+    // la restaure au chargement suivant — la popin reste alors visible
+    // au même endroit, sans que la page ne "remonte".
+    var SCROLL_KEY = 'psc_scroll_restore';
+
+    function initScrollSave() {
+        document.addEventListener('submit', function (e) {
+            var form = e.target;
+            if (form.matches('.psc-login-form, .psc-request-form, .psc-child-update-form, .psc-add-child-form')) {
+                sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
+            }
+        });
+    }
+
+    function restoreScroll() {
+        var saved = sessionStorage.getItem(SCROLL_KEY);
+        if (saved === null) return;
+        sessionStorage.removeItem(SCROLL_KEY);
+
+        var y = parseInt(saved, 10);
+        if (isNaN(y)) return;
+
+        window.scrollTo(0, y);
+        // Filet de sécurité : si des éléments encore en cours de chargement
+        // (images, polices) décalent la mise en page, on recale une fois
+        // tout chargé.
+        window.addEventListener('load', function () { window.scrollTo(0, y); }, { once: true });
+    }
+
+    // Au tout début du script (chargé en pied de page, le DOM du contenu
+    // est déjà présent) : restaurer avant la première peinture visible
+    // limite le "saut" perceptible en haut de page.
+    restoreScroll();
+
     // Popin auto-masquée (ex : "lien de connexion envoyé") : disparaît
     // seule après 3 s, et nettoie ?psc_msg de l'URL pour qu'un
     // rechargement de page ne la réaffiche pas.
@@ -223,6 +260,7 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         initToast();
+        initScrollSave();
 
         // Écouteur FORF indépendant : applique l'UI immédiatement, avant toute logique AJAX.
         document.querySelectorAll('.psc-check[data-service="FORF"]').forEach(function (forf) {

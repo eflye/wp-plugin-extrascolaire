@@ -110,25 +110,27 @@
     border-left: 4px solid #b32d2e;
 }
 .psc-toast {
+    /* Centrée dans le viewport visible, pas dans la page : reste au
+       même endroit quel que soit l'ascenseur, sans avoir à faire défiler. */
     position: fixed;
-    top: 16px;
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translate(-50%, -50%);
     z-index: 9999;
     max-width: min(90vw, 480px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, .18);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, .2);
     animation: psc-toast-in .25s ease-out;
 }
 .psc-toast.psc-toast-hide {
     animation: psc-toast-out .3s ease-in forwards;
 }
 @keyframes psc-toast-in {
-    from { opacity: 0; transform: translate(-50%, -12px); }
-    to   { opacity: 1; transform: translate(-50%, 0); }
+    from { opacity: 0; transform: translate(-50%, -50%) scale(.94); }
+    to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 @keyframes psc-toast-out {
-    from { opacity: 1; transform: translate(-50%, 0); }
-    to   { opacity: 0; transform: translate(-50%, -12px); }
+    from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    to   { opacity: 0; transform: translate(-50%, -50%) scale(.94); }
 }
 .screen-reader-text {
     position: absolute;
