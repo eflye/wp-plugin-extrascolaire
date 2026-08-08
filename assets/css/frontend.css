@@ -109,6 +109,27 @@
     background: #fbeaea;
     border-left: 4px solid #b32d2e;
 }
+.psc-toast {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    max-width: min(90vw, 480px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .18);
+    animation: psc-toast-in .25s ease-out;
+}
+.psc-toast.psc-toast-hide {
+    animation: psc-toast-out .3s ease-in forwards;
+}
+@keyframes psc-toast-in {
+    from { opacity: 0; transform: translate(-50%, -12px); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes psc-toast-out {
+    from { opacity: 1; transform: translate(-50%, 0); }
+    to   { opacity: 0; transform: translate(-50%, -12px); }
+}
 .screen-reader-text {
     position: absolute;
     width: 1px;

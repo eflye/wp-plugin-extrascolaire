@@ -198,7 +198,32 @@
         });
     }
 
+    // Popin auto-masquée (ex : "lien de connexion envoyé") : disparaît
+    // seule après 3 s, et nettoie ?psc_msg de l'URL pour qu'un
+    // rechargement de page ne la réaffiche pas.
+    function initToast() {
+        var toast = document.querySelector('.psc-toast');
+        if (!toast) return;
+
+        setTimeout(function () {
+            toast.classList.add('psc-toast-hide');
+            toast.addEventListener('animationend', function () {
+                toast.remove();
+            }, { once: true });
+        }, 3000);
+
+        if (window.history && window.history.replaceState) {
+            var url = new URL(window.location.href);
+            if (url.searchParams.has('psc_msg')) {
+                url.searchParams.delete('psc_msg');
+                window.history.replaceState({}, '', url);
+            }
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
+        initToast();
+
         // Écouteur FORF indépendant : applique l'UI immédiatement, avant toute logique AJAX.
         document.querySelectorAll('.psc-check[data-service="FORF"]').forEach(function (forf) {
             if (forf.checked) applyForfaitUI(forf, true);

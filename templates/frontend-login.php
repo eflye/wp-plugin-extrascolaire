@@ -19,15 +19,23 @@ $psc_notices = array(
     'bad_iban'                => array('err', 'L\'IBAN saisi n\'est pas valide. Vérifiez sa saisie.'),
     'bad_bic'                 => array('err', 'Le BIC saisi n\'est pas valide. Vérifiez sa saisie.'),
 );
+// Messages du parcours de connexion : affichés en popin, qui disparaît
+// seule au bout de 3 secondes (cf. assets/js/frontend.js). Les messages
+// liés au formulaire d'inscription (erreurs de saisie à corriger) restent
+// des bandeaux classiques : l'utilisateur doit avoir le temps de les lire
+// en corrigeant le champ concerné.
+$psc_toast_messages = array('link_sent', 'logged_out', 'bad_token', 'expired_token');
 if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
-    list($type, $text) = $psc_notices[$psc_msg]; ?>
-    <p class="psc-notice psc-notice-<?php echo esc_attr($type); ?>" data-testid="notice-<?php echo esc_attr($psc_msg); ?>"><?php echo esc_html($text); ?></p>
+    list($type, $text) = $psc_notices[$psc_msg];
+    $is_toast = in_array($psc_msg, $psc_toast_messages, true);
+    ?>
+    <p class="psc-notice psc-notice-<?php echo esc_attr($type); ?><?php echo $is_toast ? ' psc-toast' : ''; ?>" data-testid="notice-<?php echo esc_attr($psc_msg); ?>"><?php echo esc_html($text); ?></p>
 <?php endif; ?>
 
 <div class="psc-card psc-login-card" data-testid="login-card">
-  <h2>Déclarer les jours de présence</h2>
+  <h2>Se connecter à l'espace famille</h2>
   <p class="psc-lead">Votre famille est déjà inscrite au service périscolaire ?</p>
-  <p class="psc-card-intro">Saisissez l'adresse e-mail que vous avez communiquée à la mairie : vous recevrez un lien pour accéder à votre planning. Aucun mot de passe à créer ni à retenir.</p>
+  <p class="psc-card-intro">Saisissez l'adresse e-mail que vous avez communiquée à la mairie : vous recevrez un lien pour accéder à votre planning et déclarer les jours de présence de vos enfants. Aucun mot de passe à créer ni à retenir.</p>
 
   <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="psc-login-form" data-testid="login-form">
     <?php wp_nonce_field('psc_request_link'); ?>

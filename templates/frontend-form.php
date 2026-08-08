@@ -10,9 +10,14 @@ $psc_notices = array(
     'child_limit'   => array('err', 'Nombre maximum d\'enfants atteint.'),
 );
 $child_msg = in_array($psc_msg, array('child_updated', 'child_added', 'child_invalid', 'child_limit'), true);
+// « Vous êtes connecté » n'apporte rien de plus après quelques secondes :
+// popin auto-masquée (cf. assets/js/frontend.js), contrairement aux
+// retours sur la gestion des enfants qui doivent rester lisibles.
 if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
-    list($type, $text) = $psc_notices[$psc_msg]; ?>
-    <p class="psc-notice psc-notice-<?php echo esc_attr($type); ?>" data-testid="notice-<?php echo esc_attr($psc_msg); ?>"><?php echo esc_html($text); ?></p>
+    list($type, $text) = $psc_notices[$psc_msg];
+    $is_toast = ($psc_msg === 'welcome');
+    ?>
+    <p class="psc-notice psc-notice-<?php echo esc_attr($type); ?><?php echo $is_toast ? ' psc-toast' : ''; ?>" data-testid="notice-<?php echo esc_attr($psc_msg); ?>"><?php echo esc_html($text); ?></p>
 <?php endif; ?>
 
 <div class="psc-account" data-testid="account-bar">
