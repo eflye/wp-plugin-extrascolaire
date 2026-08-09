@@ -27,12 +27,12 @@ faite.
 |---|---|---|
 | `db` (MySQL 8) | Base de données WordPress | — (interne) |
 | `wordpress` | WordPress + le plugin (monté depuis ce dépôt) | `8085` → 80 |
-| `mailpit` | Capture tous les e-mails sortants du plugin | `8086` → 8025 |
+| `mailpit` | Capture tous les e-mails sortants du plugin | `8087` → 8025 |
 
 Nginx Proxy Manager (géré séparément) fait deux **Proxy Hosts** vers ce
 serveur, chacun avec son propre certificat Let's Encrypt :
 - domaine du site → `http://<ip-du-serveur>:8085`
-- domaine Mailpit → `http://<ip-du-serveur>:8086`, avec un contrôle
+- domaine Mailpit → `http://<ip-du-serveur>:8087`, avec un contrôle
   d'accès (Access List, utilisateur/mot de passe) côté Nginx Proxy
   Manager — tous les e-mails des bêta-testeurs, dont leurs liens de
   connexion, y transitent.
@@ -109,7 +109,7 @@ Dans Nginx Proxy Manager, créer deux **Proxy Hosts** vers ce serveur :
 | Domain | Forward Hostname/IP | Forward Port | Notes |
 |---|---|---|---|
 | domaine du site | IP du serveur | `8085` | SSL Let's Encrypt + « Force SSL » |
-| domaine Mailpit | IP du serveur | `8086` | SSL Let's Encrypt + **Access List** (utilisateur/mot de passe) |
+| domaine Mailpit | IP du serveur | `8087` | SSL Let's Encrypt + **Access List** (utilisateur/mot de passe) |
 
 L'Access List sur le Proxy Host Mailpit est importante : tous les e-mails
 des bêta-testeurs (dont leur lien de connexion) sont lisibles sur cette
@@ -218,4 +218,4 @@ scolaire** (voir README).
 variable `MAILPIT_ENABLED` est bien à `"true"` pour le service
 `wordpress` dans `docker-compose.prod.yml` (c'est le cas par défaut dans
 ce guide), et que le Proxy Host Mailpit pointe bien vers
-`<ip-du-serveur>:8086`.
+`<ip-du-serveur>:8087`.

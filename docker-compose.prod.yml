@@ -19,12 +19,12 @@ services:
   # commande fournisseur...) atterrissent ici plutôt que d'être réellement
   # envoyés — pratique pour un test bêta : rien ne part chez de vrais
   # destinataires par erreur. Reverse proxy géré en dehors de ce fichier
-  # (Nginx Proxy Manager) — pointer un Proxy Host vers ce serveur, port 8086.
+  # (Nginx Proxy Manager) — pointer un Proxy Host vers ce serveur, port 8087.
   mailpit:
     image: axllent/mailpit:latest
     restart: unless-stopped
     ports:
-      - "8086:8025"
+      - "8087:8025"
     volumes:
       - mailpit_data:/data
     environment:
