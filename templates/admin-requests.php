@@ -87,7 +87,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 
       <h4>Enfant(s) déclaré(s) — corrigez si nécessaire</h4>
       <table class="widefat striped">
-        <thead><tr><th>Prénom</th><th>Nom</th><th>Classe</th></tr></thead>
+        <thead><tr><th>Prénom</th><th>Nom</th><th>Classe</th><th>Régime cantine</th></tr></thead>
         <tbody>
         <?php for ($i = 0; $i < Psc_Requests::MAX_CHILDREN; $i++):
             $c = isset($req_children[$i]) ? $req_children[$i] : null;
@@ -100,6 +100,10 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
                        value="<?php echo $c ? esc_attr($c['nom']) : ''; ?>"></td>
             <td><input type="text" name="child_classe_<?php echo (int) $i; ?>" maxlength="100"
                        value="<?php echo $c ? esc_attr($c['classe']) : ''; ?>"></td>
+            <td class="psc-diet-options">
+              <label><input type="checkbox" name="child_sans_porc_<?php echo (int) $i; ?>" value="1" <?php checked($c && !empty($c['sans_porc'])); ?>> Sans porc</label>
+              <label><input type="checkbox" name="child_vegan_<?php echo (int) $i; ?>" value="1" <?php checked($c && !empty($c['vegan'])); ?>> Sans viande</label>
+            </td>
           </tr>
         <?php endfor; ?>
         </tbody>

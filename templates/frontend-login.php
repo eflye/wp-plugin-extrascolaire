@@ -24,7 +24,7 @@ $psc_notices = array(
 // liés au formulaire d'inscription (erreurs de saisie à corriger) restent
 // des bandeaux classiques : l'utilisateur doit avoir le temps de les lire
 // en corrigeant le champ concerné.
-$psc_toast_messages = array('link_sent', 'logged_out', 'bad_token', 'expired_token');
+$psc_toast_messages = array('link_sent', 'logged_out', 'bad_token', 'expired_token', 'request_sent');
 if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     list($type, $text) = $psc_notices[$psc_msg];
     $is_toast = in_array($psc_msg, $psc_toast_messages, true);

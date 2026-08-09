@@ -627,9 +627,13 @@ class Psc_Mailer {
 
         $children_list = '<ul style="margin:8px 0;padding-left:20px;">';
         foreach ($children as $c) {
+            $badges = array();
+            if (!empty($c['sans_porc'])) $badges[] = 'sans porc';
+            if (!empty($c['vegan']))     $badges[] = 'sans viande';
             $children_list .= '<li style="color:#444;font-size:14px;margin-bottom:4px;">'
                 . esc_html($c['prenom'] . ' ' . $c['nom'])
                 . ($c['classe'] ? ' <span style="color:#888;">(' . esc_html($c['classe']) . ')</span>' : '')
+                . ($badges ? ' <span style="color:#888;">— ' . esc_html(implode(', ', $badges)) . '</span>' : '')
                 . '</li>';
         }
         $children_list .= '</ul>';

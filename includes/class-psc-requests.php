@@ -111,7 +111,13 @@ class Psc_Requests {
             $prenom = isset($c['prenom']) ? sanitize_text_field($c['prenom']) : '';
             $classe = isset($c['classe']) ? sanitize_text_field($c['classe']) : '';
             if ($nom === '' || $prenom === '') continue;
-            $out[] = array('nom' => $nom, 'prenom' => $prenom, 'classe' => $classe);
+            $out[] = array(
+                'nom'       => $nom,
+                'prenom'    => $prenom,
+                'classe'    => $classe,
+                'sans_porc' => !empty($c['sans_porc']) ? 1 : 0,
+                'vegan'     => !empty($c['vegan']) ? 1 : 0,
+            );
             if (count($out) >= self::MAX_CHILDREN) break;
         }
         return $out;
@@ -180,9 +186,11 @@ class Psc_Requests {
             if ($cn === '' && $cp === '') continue;
             if ($cn === '' || $cp === '') continue;
             $children[] = array(
-                'nom'    => mb_substr($cn, 0, 190),
-                'prenom' => mb_substr($cp, 0, 190),
-                'classe' => mb_substr($cc, 0, 100),
+                'nom'       => mb_substr($cn, 0, 190),
+                'prenom'    => mb_substr($cp, 0, 190),
+                'classe'    => mb_substr($cc, 0, 100),
+                'sans_porc' => isset($_POST['child_sans_porc_' . $i]) ? 1 : 0,
+                'vegan'     => isset($_POST['child_vegan_' . $i]) ? 1 : 0,
             );
         }
 
@@ -346,9 +354,11 @@ class Psc_Requests {
             $cc = psc_post('child_classe_' . $i);
             if ($cn === '' || $cp === '') continue;
             $children[] = array(
-                'nom'    => mb_substr($cn, 0, 190),
-                'prenom' => mb_substr($cp, 0, 190),
-                'classe' => mb_substr($cc, 0, 100),
+                'nom'       => mb_substr($cn, 0, 190),
+                'prenom'    => mb_substr($cp, 0, 190),
+                'classe'    => mb_substr($cc, 0, 100),
+                'sans_porc' => isset($_POST['child_sans_porc_' . $i]) ? 1 : 0,
+                'vegan'     => isset($_POST['child_vegan_' . $i]) ? 1 : 0,
             );
         }
         if (empty($children)) {
@@ -398,8 +408,10 @@ class Psc_Requests {
                 'nom'        => $c['nom'],
                 'prenom'     => $c['prenom'],
                 'classe'     => $c['classe'],
+                'sans_porc'  => !empty($c['sans_porc']) ? 1 : 0,
+                'vegan'      => !empty($c['vegan']) ? 1 : 0,
                 'created_at' => current_time('mysql'),
-            ), array('%d', '%s', '%s', '%s', '%s'));
+            ), array('%d', '%s', '%s', '%s', '%d', '%d', '%s'));
         }
 
         $wpdb->update(

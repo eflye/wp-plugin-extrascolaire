@@ -67,7 +67,7 @@ Un bouton « Valider et recevoir mon planning » envoie à la demande un récapi
 
 ### 5. Gestion des enfants (libre-service)
 
-Depuis son espace, une famille peut ajouter un enfant (dans la limite d'un nombre maximum configurable) et déclarer, pour chacun, des préférences alimentaires cantine — **sans porc** et/ou **végétarien** — visibles par la mairie dans la liste des enfants (pour transmission au prestataire de restauration).
+Depuis son espace, une famille peut ajouter un enfant (dans la limite d'un nombre maximum configurable) et déclarer, pour chacun, des préférences alimentaires cantine — **sans porc** et/ou **sans viande** — visibles par la mairie dans la liste des enfants (pour transmission au prestataire de restauration).
 
 ### 6. Menu de cantine — accès libre
 
@@ -97,7 +97,7 @@ Liste de toutes les familles, avec mode de paiement et IBAN masqué en un coup d
 
 ### Enfants
 
-Liste de tous les enfants avec leur famille de rattachement et leur régime cantine (sans porc / végétarien). Rattachement d'un nouvel enfant à une famille existante (la mairie tient cette liste — les familles ne peuvent pas créer un enfant sans rattachement).
+Liste de tous les enfants avec leur famille de rattachement et leur régime cantine (sans porc / sans viande). Rattachement d'un nouvel enfant à une famille existante (la mairie tient cette liste — les familles ne peuvent pas créer un enfant sans rattachement).
 
 ### Factures
 

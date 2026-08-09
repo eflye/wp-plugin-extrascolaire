@@ -57,7 +57,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <?php
 $diet = array();
 if ((int) $c->sans_porc) $diet[] = 'Sans porc';
-if ((int) $c->vegan) $diet[] = 'Vegan';
+if ((int) $c->vegan) $diet[] = 'Sans viande';
 echo $diet ? esc_html(implode(' · ', $diet)) : '—';
 ?>
 </td>

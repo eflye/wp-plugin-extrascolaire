@@ -225,7 +225,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
             </label>
             <label>
               <input type="checkbox" name="vegan" value="1" <?php checked((int)$c->vegan, 1); ?>>
-              Vegan
+              Sans viande
             </label>
           </td>
           <td>
@@ -260,7 +260,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
         </select>
         <span class="psc-diet-options">
           <label><input type="checkbox" name="new_sans_porc" value="1"> Sans porc</label>
-          <label><input type="checkbox" name="new_vegan" value="1"> Vegan</label>
+          <label><input type="checkbox" name="new_vegan" value="1"> Sans viande</label>
         </span>
         <button type="submit" class="psc-btn-sm">Ajouter</button>
       </div>

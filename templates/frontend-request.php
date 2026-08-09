@@ -73,6 +73,11 @@
             <option value="<?php echo esc_attr($v); ?>"><?php echo esc_html($l); ?></option>
             <?php endforeach; ?>
           </select>
+
+          <span class="psc-diet-options">
+            <label><input type="checkbox" name="child_sans_porc_0" value="1"> Sans porc</label>
+            <label><input type="checkbox" name="child_vegan_0" value="1"> Sans viande</label>
+          </span>
         </div>
       </div>
 
@@ -261,6 +266,28 @@
 
     var sel = buildSelect('child_classe_' + idx, 'psc-cc-' + idx);
 
+    var dietWrap = document.createElement('span');
+    dietWrap.className = 'psc-diet-options';
+
+    var lblPorc = document.createElement('label');
+    var cbPorc  = document.createElement('input');
+    cbPorc.type = 'checkbox';
+    cbPorc.name = 'child_sans_porc_' + idx;
+    cbPorc.value = '1';
+    lblPorc.appendChild(cbPorc);
+    lblPorc.appendChild(document.createTextNode(' Sans porc'));
+
+    var lblVegan = document.createElement('label');
+    var cbVegan  = document.createElement('input');
+    cbVegan.type = 'checkbox';
+    cbVegan.name = 'child_vegan_' + idx;
+    cbVegan.value = '1';
+    lblVegan.appendChild(cbVegan);
+    lblVegan.appendChild(document.createTextNode(' Sans viande'));
+
+    dietWrap.appendChild(lblPorc);
+    dietWrap.appendChild(lblVegan);
+
     var removeBtn = document.createElement('button');
     removeBtn.type      = 'button';
     removeBtn.className = 'psc-child-remove psc-link-btn';
@@ -277,6 +304,7 @@
     row.appendChild(inN);
     row.appendChild(lblC);
     row.appendChild(sel);
+    row.appendChild(dietWrap);
     row.appendChild(removeBtn);
 
     list.appendChild(row);
