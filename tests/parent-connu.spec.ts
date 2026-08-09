@@ -20,10 +20,10 @@ import { test, expect, type Response } from '@playwright/test';
 import { readSeedResult } from '../playwright/seed-result';
 import { installDemoOverlay, spotlight, subtitle, carton } from '../helpers/demo-overlay';
 import { installMouseHelper } from '../helpers/mouse-helper';
+import { findLatestMessage } from '../helpers/mailpit';
 
 const APP_BASE = 'http://localhost:8080';
 const APP_PAGE = `${APP_BASE}/?page_id=6`;
-const MAILPIT_API = 'http://localhost:8025/api/v1';
 
 // includes/helpers.php:psc_services() — valeurs par défaut. Pas exposées
 // par le contrat de sortie de bin/seed-journey.php (qui documente
@@ -41,34 +41,6 @@ function dayLabelFr(iso: string): string {
 }
 
 const monthKeyOf = (iso: string) => iso.slice(0, 7);
-
-/* ------------------------------------------------------------------ */
-/* Mailpit — étapes 04 et 11 : lecture via l'API, jamais via l'UI       */
-/* ------------------------------------------------------------------ */
-
-interface MailpitSummary { ID: string; Created: string; Subject: string }
-interface MailpitFull { Text: string; HTML: string; Subject: string }
-
-async function findLatestMessage(
-  toEmail: string,
-  subjectContains: string,
-  timeoutMs = 10_000
-): Promise<MailpitFull> {
-  const query = `to:${toEmail} subject:"${subjectContains}"`;
-  const deadline = Date.now() + timeoutMs;
-
-  while (Date.now() < deadline) {
-    const res = await fetch(`${MAILPIT_API}/search?${new URLSearchParams({ query, limit: '5' })}`);
-    const data = (await res.json()) as { messages: MailpitSummary[] };
-    if (data.messages.length > 0) {
-      const latest = data.messages.reduce((a, b) => (a.Created > b.Created ? a : b));
-      const full = await fetch(`${MAILPIT_API}/message/${latest.ID}`);
-      return (await full.json()) as MailpitFull;
-    }
-    await new Promise((r) => setTimeout(r, 400));
-  }
-  throw new Error(`Mailpit : aucun message pour ${toEmail} contenant "${subjectContains}" sous ${timeoutMs}ms.`);
-}
 
 /* ------------------------------------------------------------------ */
 

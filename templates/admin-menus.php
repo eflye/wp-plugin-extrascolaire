@@ -17,25 +17,34 @@ if ($psc_msg && isset($msgs[$psc_msg])):
 <?php endif; ?>
 
 <div class="psc-box">
-<h2><?php echo $editing ? 'Modifier le menu' : 'Saisir un menu'; ?></h2>
+<h2><?php echo $editing ? 'Modifier le menu' : 'Saisir un menu'; ?> — semaine du <?php echo esc_html(date_i18n('d/m/Y', strtotime($target_week))); ?></h2>
 <p>
-    Une semaine = un menu. Choisissez n'importe quelle date de la semaine
-    visée, elle sera automatiquement ramenée au lundi. L'e-mail n'est
-    envoyé qu'après avoir cliqué sur « Envoyer aux familles » ci-dessous —
-    l'enregistrement seul reste un brouillon.
+    Une semaine = un menu. Seuls les jours d'école effectivement ouverts sont
+    proposés ci-dessous : les vacances scolaires et les fermetures ponctuelles
+    (Périscolaire &gt; Calendrier scolaire) sont pris en compte automatiquement.
+    L'e-mail n'est envoyé qu'après avoir cliqué sur « Envoyer aux familles »
+    dans la liste ci-dessous — l'enregistrement seul reste un brouillon.
 </p>
+
+<form method="get" style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+    <input type="hidden" name="page" value="psc_menus">
+    <label for="psc-menu-week-picker"><strong>Semaine du</strong></label>
+    <input id="psc-menu-week-picker" type="date" name="semaine_debut" value="<?php echo esc_attr($target_week); ?>">
+    <button type="submit" class="button">Changer de semaine</button>
+</form>
+
+<?php if (empty($open_days)): ?>
+<p><em>Aucun jour d'école cette semaine-là (vacances scolaires ou jour férié) — pas de service cantine, rien à saisir.</em></p>
+<?php else: ?>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
 <?php wp_nonce_field('psc_save_menu'); ?>
 <input type="hidden" name="action" value="psc_save_menu">
 <input type="hidden" name="id" value="<?php echo esc_attr($editing ? $editing->id : 0); ?>">
+<input type="hidden" name="semaine_debut" value="<?php echo esc_attr($target_week); ?>">
 <table class="form-table">
+<?php foreach (Psc_Menus::jour_labels() as $key => $label): if (!isset($open_days[$key])) continue; ?>
 <tr>
-    <th><label for="psc-menu-semaine">Semaine du</label></th>
-    <td><input id="psc-menu-semaine" type="date" name="semaine_debut" value="<?php echo esc_attr($default_week); ?>" required></td>
-</tr>
-<?php foreach (Psc_Menus::jour_labels() as $key => $label): ?>
-<tr>
-    <th><label for="psc-menu-<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></label></th>
+    <th><label for="psc-menu-<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?> <span class="description">(<?php echo esc_html(date_i18n('d/m', strtotime($open_days[$key]))); ?>)</span></label></th>
     <td>
         <textarea id="psc-menu-<?php echo esc_attr($key); ?>" name="<?php echo esc_attr($key); ?>" rows="3" class="large-text" maxlength="2000"><?php
             echo esc_textarea($editing ? $editing->$key : '');
@@ -46,6 +55,7 @@ if ($psc_msg && isset($msgs[$psc_msg])):
 </table>
 <?php submit_button($editing ? 'Enregistrer les modifications' : 'Enregistrer le menu'); ?>
 </form>
+<?php endif; ?>
 </div>
 
 <div class="psc-box">
@@ -82,7 +92,7 @@ if ($psc_msg && isset($msgs[$psc_msg])):
         <?php endif; ?>
     </td>
     <td style="white-space:nowrap">
-        <a class="button button-small" href="<?php echo esc_url(add_query_arg(array('page' => 'psc_menus', 'edit' => $m->id), admin_url('admin.php'))); ?>">
+        <a class="button button-small" href="<?php echo esc_url(add_query_arg(array('page' => 'psc_menus', 'semaine_debut' => $m->semaine_debut), admin_url('admin.php'))); ?>">
             Modifier
         </a>
         &nbsp;

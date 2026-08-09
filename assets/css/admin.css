@@ -30,3 +30,59 @@
     vertical-align: middle;
 }
 .psc-admin .psc-actions { margin-top: 1em; }
+
+/* ---- Tableau de bord ---- */
+.psc-dash-stats {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin: 20px 0;
+}
+.psc-dash-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 14px 20px;
+    min-width: 180px;
+    display: flex;
+    flex-direction: column;
+}
+.psc-dash-card-label {
+    font-size: 0.78em;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: #646970;
+    margin-bottom: 4px;
+}
+.psc-dash-card-value {
+    font-size: 1.6em;
+    font-weight: 600;
+    color: #1d2327;
+}
+.psc-dash-card-empty { color: #b32d2e; font-size: 1.1em; }
+.psc-dash-card-sub { font-size: 0.85em; color: #646970; margin-top: 2px; }
+.psc-dash-todos { margin: 0; }
+.psc-dash-todo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f1;
+}
+.psc-dash-todo:last-child { border-bottom: none; }
+.psc-dash-todo-icon { font-size: 1.1em; width: 1.2em; text-align: center; }
+.psc-dash-todo-done .psc-dash-todo-icon { color: #2e7d32; }
+.psc-dash-todo-pending .psc-dash-todo-icon { color: #f5a623; }
+.psc-dash-todo-done a { color: #646970; }
+.psc-dash-todo a { text-decoration: none; }
+.psc-dash-todo a:hover { text-decoration: underline; }
+
+/* ---- Regroupement visuel du sous-menu (5 blocs) ---- */
+#adminmenu .wp-submenu a[href*="page=psc_parents"],
+#adminmenu .wp-submenu a[href*="page=psc_menus"],
+#adminmenu .wp-submenu a[href*="page=psc_factures"],
+#adminmenu .wp-submenu a[href*="page=psc_email_templates"] {
+    border-top: 1px solid rgba(240, 246, 252, .15);
+    margin-top: 6px;
+    padding-top: 8px;
+}

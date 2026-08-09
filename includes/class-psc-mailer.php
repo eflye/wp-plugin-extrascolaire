@@ -447,6 +447,81 @@ class Psc_Mailer {
     }
 
     /* ------------------------------------------------------------------ */
+    /* Commande fournisseur (cantine)                                        */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Construit et envoie la commande fournisseur hebdomadaire (nombre de
+     * repas par classe et par jour). $data est le tableau retourné par
+     * Psc_Supplier_Orders::compute_counts(). Renvoie un tableau
+     * ('sent' => bool, 'subject' => string, 'html' => string) : le sujet
+     * et le corps sont renvoyés même en cas d'échec d'envoi, pour
+     * permettre à l'appelant de diagnostiquer sans reconstruire l'e-mail.
+     */
+    public static function send_supplier_order($supplier_email, $data) {
+        $site          = self::site_name();
+        $semaine_label = date_i18n('d/m/Y', strtotime($data['semaine_debut']));
+
+        $subject = Psc_Email_Templates::subject('supplier_order', array(
+            'site'    => $site,
+            'semaine' => $semaine_label,
+            'total'   => $data['total'],
+        ));
+        $intro = Psc_Email_Templates::body_html('supplier_order', array(
+            'site'    => $site,
+            'semaine' => $semaine_label,
+            'total'   => $data['total'],
+        ));
+
+        $body = self::h2('Commande cantine — semaine du ' . $semaine_label)
+            . '<p style="color:#444;font-size:14px;line-height:1.7;margin:0 0 20px;">' . $intro . '</p>';
+
+        // Seuls les jours d'école réellement ouverts cette semaine-là
+        // figurent dans $data['jours'] (Psc_Supplier_Orders::compute_counts).
+        $all_labels = Psc_Supplier_Orders::jour_labels();
+        $jours      = array_keys($data['jours']);
+
+        $body .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:13px;margin:16px 0;">';
+        $body .= '<thead><tr>'
+            . '<th style="background:#e8edf5;color:#23478B;padding:7px 10px;text-align:left;border:1px solid #d0d8e8;">Classe</th>';
+        foreach ($jours as $jour) {
+            $body .= '<th style="background:#e8edf5;color:#23478B;padding:7px 10px;text-align:center;border:1px solid #d0d8e8;">'
+                . esc_html($all_labels[$jour]) . '<br><small>' . esc_html(date_i18n('d/m', strtotime($data['jours'][$jour]))) . '</small></th>';
+        }
+        $body .= '<th style="background:#d3d9ea;color:#23478B;padding:7px 10px;text-align:center;border:1px solid #d0d8e8;">Total</th>';
+        $body .= '</tr></thead><tbody>';
+
+        if (empty($data['classes'])) {
+            $body .= '<tr><td colspan="' . (count($jours) + 2) . '" style="padding:10px;color:#888;font-style:italic;border:1px solid #e5e9f0;">Aucun repas de cantine déclaré cette semaine.</td></tr>';
+        }
+
+        foreach ($data['classes'] as $code => $label) {
+            $body .= '<tr>'
+                . '<td style="padding:6px 10px;border:1px solid #e5e9f0;font-weight:bold;">' . esc_html($label) . '</td>';
+            foreach ($jours as $jour) {
+                $n = $data['counts'][$code][$jour] ?? 0;
+                $body .= '<td style="padding:6px 10px;border:1px solid #e5e9f0;text-align:center;">' . ($n > 0 ? $n : '—') . '</td>';
+            }
+            $body .= '<td style="padding:6px 10px;border:1px solid #e5e9f0;text-align:center;font-weight:bold;">' . (int) $data['totaux_classe'][$code] . '</td>';
+            $body .= '</tr>';
+        }
+
+        $body .= '<tr style="background:#f0f4fb;">'
+            . '<td style="padding:7px 10px;border:1px solid #d0d8e8;font-weight:bold;">TOTAL</td>';
+        foreach ($jours as $jour) {
+            $body .= '<td style="padding:7px 10px;border:1px solid #d0d8e8;text-align:center;font-weight:bold;">' . (int) $data['totaux_jour'][$jour] . '</td>';
+        }
+        $body .= '<td style="padding:7px 10px;border:1px solid #d0d8e8;text-align:center;font-weight:bold;color:#23478B;">' . (int) $data['total'] . '</td>';
+        $body .= '</tr>';
+        $body .= '</tbody></table>';
+
+        $html = self::layout($body, $subject);
+        $sent = self::send($supplier_email, $subject, $html);
+
+        return array('sent' => (bool) $sent, 'subject' => $subject, 'html' => $html);
+    }
+
+    /* ------------------------------------------------------------------ */
     /* Fermeture d'un jour (calendrier scolaire)                            */
     /* ------------------------------------------------------------------ */
 
@@ -481,6 +556,38 @@ class Psc_Mailer {
         $body .= '<p style="color:#444;font-size:14px;font-weight:bold;margin:16px 0 6px;">Inscriptions retirées :</p>'
             . $items_list
             . self::warning_box('Ces prestations ne seront <strong>pas facturées</strong>.')
+            . self::btn(self::form_page_url(), 'Consulter mon planning');
+
+        return self::send($fam['email'], $subject, self::layout($body, $subject));
+    }
+
+    /**
+     * Prévient une famille que la cantine de son/ses enfant(s) a été
+     * annulée pour un jour précis, à l'échelle d'une classe entière
+     * (sortie scolaire, fermeture ponctuelle...). $fam : array('email'=>,
+     * 'nom'=>, 'items'=> [objets avec child_nom, child_prenom]).
+     */
+    public static function send_cantine_cancelled($fam, $date_str, $classe_label, $reason) {
+        $site     = self::site_name();
+        $date_lbl = psc_day_label($date_str) . ' ' . date_i18n('d/m/Y', strtotime($date_str));
+        $subject  = sprintf('[%s] Cantine annulée le %s (%s)', $site, $date_lbl, $classe_label);
+
+        $body = self::h2('Cantine annulée')
+            . self::p(sprintf(
+                "La cantine est annulée le %s pour la classe %s.\nMotif : %s",
+                $date_lbl, $classe_label, $reason
+            ));
+
+        $items_list = '<ul style="margin:8px 0;padding-left:20px;">';
+        foreach ($fam['items'] as $item) {
+            $items_list .= '<li style="color:#444;font-size:14px;margin-bottom:4px;">'
+                . esc_html($item->child_prenom . ' ' . $item->child_nom) . '</li>';
+        }
+        $items_list .= '</ul>';
+
+        $body .= '<p style="color:#444;font-size:14px;font-weight:bold;margin:16px 0 6px;">Enfant(s) concerné(s) :</p>'
+            . $items_list
+            . self::warning_box('Cette prestation ne sera <strong>pas facturée</strong>.')
             . self::btn(self::form_page_url(), 'Consulter mon planning');
 
         return self::send($fam['email'], $subject, self::layout($body, $subject));

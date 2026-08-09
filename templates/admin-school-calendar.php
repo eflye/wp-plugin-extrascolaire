@@ -5,7 +5,11 @@
 <?php
 $msgs = array(
     'imported'       => array('updated', $imported_n . ' jour(s) importé(s)/mis à jour depuis le calendrier officiel.'),
-    'import_failed'  => array('error', 'Le calendrier officiel n\'a pas pu être téléchargé. Réessayez plus tard.'),
+    'import_failed'  => array('error', 'Le calendrier officiel n\'a pas pu être téléchargé. Réessayez plus tard, ou chargez le fichier manuellement ci-dessous.'),
+    'uploaded'       => array('updated', $imported_n . ' jour(s) importé(s)/mis à jour depuis le fichier envoyé.'),
+    'upload_failed'  => array('error', 'Le fichier n\'a pas pu être lu. Vérifiez qu\'il s\'agit bien d\'un export .ics valide.'),
+    'upload_invalid_type' => array('error', 'Le fichier doit être au format .ics.'),
+    'upload_too_large'    => array('error', 'Le fichier dépasse la taille maximale autorisée (2 Mo).'),
     'closed'         => array('updated', 'Jour fermé.'),
     'opened'         => array('updated', 'Jour réouvert.'),
     'cancelled'      => array('notice-warning', 'Fermeture annulée.'),
@@ -34,6 +38,24 @@ if ($psc_msg && isset($msgs[$psc_msg])):
 <input type="hidden" name="action" value="psc_import_school_calendar">
 <?php submit_button($imported_at ? 'Recharger le calendrier officiel' : 'Charger le calendrier officiel', 'primary', 'submit', false); ?>
 </form>
+
+<p style="margin-top:20px;">
+    Le serveur n'a pas d'accès Internet sortant ? Téléchargez le fichier .ics depuis
+    <a href="https://www.education.gouv.fr/les-dates-des-vacances-scolaires-9079" target="_blank" rel="noopener noreferrer">education.gouv.fr</a>
+    sur votre ordinateur, puis chargez-le ici :
+</p>
+<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+<?php wp_nonce_field('psc_upload_school_calendar'); ?>
+<input type="hidden" name="action" value="psc_upload_school_calendar">
+<input type="file" name="ics_file" accept=".ics,text/calendar" required>
+<?php submit_button('Importer le fichier', 'secondary', 'submit', false); ?>
+</form>
+
+<p class="description" style="margin-top:12px;">
+    URL utilisée pour le chargement automatique ci-dessus :
+    <code><?php echo esc_html(Psc_School_Calendar::ics_url()); ?></code>
+    — modifiable dans <a href="<?php echo esc_url(admin_url('admin.php?page=psc_settings')); ?>">Réglages</a>.
+</p>
 </div>
 
 <?php if ($pending): ?>

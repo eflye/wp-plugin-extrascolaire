@@ -166,7 +166,8 @@ WP_CLI::add_command('seed-journey', function ($args, $assoc_args) {
     foreach ($old_trim_ids as $trim_id) {
         $wpdb->delete($t_reg, array('trimestre_id' => $trim_id), array('%d'));
         $wpdb->delete($t_days, array('trimestre_id' => $trim_id), array('%d'));
-        $wpdb->delete($t_inv, array('trimestre_id' => $trim_id), array('%d'));
+        // Les factures sont désormais mensuelles (parent_id + mois), plus
+        // trimestrielles : déjà purgées ci-dessus via le parent_id.
         $wpdb->delete($t_trim, array('id' => $trim_id), array('%d'));
     }
 

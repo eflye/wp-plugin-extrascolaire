@@ -12,6 +12,12 @@ class Psc_School_Calendar {
 
     const ICS_URL = 'https://fr.ftp.opendatasoft.com/openscol/fr-en-calendrier-scolaire/Zone-A-B-C-Corse.ics';
 
+    /** URL effectivement utilisée pour le chargement automatique (réglable dans Réglages). */
+    public static function ics_url() {
+        $custom = get_option('psc_school_calendar_ics_url', '');
+        return $custom !== '' ? $custom : self::ICS_URL;
+    }
+
     /** Tous les jours enregistrés (fermés ou réouverts manuellement), triés. */
     public static function all() {
         global $wpdb;
@@ -42,7 +48,7 @@ class Psc_School_Calendar {
      * jours importés/mis à jour, ou WP_Error.
      */
     public static function import() {
-        $response = wp_remote_get(self::ICS_URL, array('timeout' => 20));
+        $response = wp_remote_get(self::ics_url(), array('timeout' => 20));
         if (is_wp_error($response)) {
             return $response;
         }
@@ -55,6 +61,22 @@ class Psc_School_Calendar {
             return new WP_Error('psc_ics_empty', 'Réponse vide.');
         }
 
+        return self::import_ics_content($body);
+    }
+
+    /**
+     * Importe un fichier .ics fourni manuellement par l'admin (contournement
+     * en cas d'accès Internet sortant indisponible depuis le serveur).
+     */
+    public static function import_from_upload($body) {
+        if (!$body) {
+            return new WP_Error('psc_ics_empty', 'Fichier vide.');
+        }
+        return self::import_ics_content($body);
+    }
+
+    /** Logique d'import commune, que le contenu iCal vienne du réseau ou d'un upload. */
+    private static function import_ics_content($body) {
         $closed_days = self::parse_ics($body);
         if (is_wp_error($closed_days)) {
             return $closed_days;

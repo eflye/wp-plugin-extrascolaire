@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '2.11.0';
+    const DB_VERSION = '2.12.0';
 
     public static function activate() {
         self::create_tables();
@@ -204,6 +204,7 @@ class Psc_Installer {
         $t_inv   = psc_table('invoices');
         $t_menu  = psc_table('menus');
         $t_sch   = psc_table('school_calendar');
+        $t_sup   = psc_table('supplier_orders');
 
         $sql = "CREATE TABLE $t_trim (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -348,6 +349,19 @@ CREATE TABLE $t_sch (
             updated_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY jour_date (jour_date)
+        ) $charset_collate;
+
+CREATE TABLE $t_sup (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            semaine_debut DATE NOT NULL,
+            counts_json TEXT NOT NULL,
+            total_repas INT UNSIGNED NOT NULL DEFAULT 0,
+            supplier_email VARCHAR(191) NOT NULL,
+            email_subject VARCHAR(255) NOT NULL,
+            email_body LONGTEXT NOT NULL,
+            sent_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            KEY semaine (semaine_debut)
         ) $charset_collate;";
 
         dbDelta($sql);

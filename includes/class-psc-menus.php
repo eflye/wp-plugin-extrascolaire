@@ -45,6 +45,16 @@ class Psc_Menus {
         return $wpdb->get_results('SELECT * FROM ' . psc_table('menus') . " ORDER BY semaine_debut DESC LIMIT $limit");
     }
 
+    /** Voir psc_open_days() — un jour fermé n'a pas de menu à saisir. */
+    public static function open_days($monday) {
+        return psc_open_days($monday);
+    }
+
+    /** Voir psc_next_open_week(). */
+    public static function next_open_week($from_date) {
+        return psc_next_open_week($from_date);
+    }
+
     /**
      * Crée ou met à jour le menu d'une semaine. Une semaine = une seule
      * ligne : si $id ne correspond pas à la semaine visée mais qu'une
@@ -63,10 +73,16 @@ class Psc_Menus {
             return new WP_Error('psc_invalid_week', 'Date de semaine invalide.');
         }
 
+        // Un jour fermé (vacances, férié, fermeture ponctuelle) n'a jamais de
+        // contenu, quoi que le formulaire ait pu envoyer — appliqué ici aussi
+        // (pas seulement à l'affichage) car c'est la seule garantie fiable.
+        $open   = self::open_days($semaine);
         $data   = array('semaine_debut' => $semaine, 'updated_at' => current_time('mysql'));
         $format = array('%s', '%s');
         foreach (self::JOURS as $jour) {
-            $data[$jour] = isset($jours[$jour]) ? mb_substr(sanitize_textarea_field($jours[$jour]), 0, 2000) : '';
+            $data[$jour] = (isset($open[$jour]) && isset($jours[$jour]))
+                ? mb_substr(sanitize_textarea_field($jours[$jour]), 0, 2000)
+                : '';
             $format[]    = '%s';
         }
 

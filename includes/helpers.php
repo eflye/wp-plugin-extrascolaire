@@ -182,6 +182,48 @@ function psc_is_school_day($date_str) {
     return true;
 }
 
+/**
+ * Décalage en jours depuis le lundi pour chacun des 4 jours de service
+ * (lundi/mardi/jeudi/vendredi) — le mercredi n'est jamais un jour de
+ * service périscolaire/cantine. Partagé par les menus de cantine et les
+ * commandes fournisseur.
+ */
+function psc_service_jour_offsets() {
+    return array('lundi' => 0, 'mardi' => 1, 'jeudi' => 3, 'vendredi' => 4);
+}
+
+/**
+ * Jours scolaires ouverts (parmi lundi/mardi/jeudi/vendredi) de la
+ * semaine donnée, sous la forme [jour => date Y-m-d]. Un jour fermé
+ * (vacances, jour férié, fermeture ponctuelle) n'a pas de service
+ * périscolaire/cantine ce jour-là, donc rien à saisir ni à commander.
+ */
+function psc_open_days($monday) {
+    $monday = psc_week_start($monday);
+    if (!$monday) return array();
+    $open = array();
+    foreach (psc_service_jour_offsets() as $jour => $offset) {
+        $date = gmdate('Y-m-d', strtotime($monday . " +{$offset} days"));
+        if (psc_is_school_day($date)) $open[$jour] = $date;
+    }
+    return $open;
+}
+
+/**
+ * Premier lundi (à partir de $from_date) dont la semaine contient au
+ * moins un jour scolaire ouvert — évite de proposer par défaut une
+ * semaine entièrement fermée (vacances, pont...).
+ */
+function psc_next_open_week($from_date) {
+    $monday = psc_week_start($from_date);
+    if (!$monday) return false;
+    for ($i = 0; $i < 26; $i++) {
+        if (!empty(psc_open_days($monday))) return $monday;
+        $monday = gmdate('Y-m-d', strtotime($monday . ' +7 days'));
+    }
+    return $monday; // garde-fou : calendrier scolaire mal configuré / jamais chargé
+}
+
 function psc_day_label($date_str) {
     $jours = array('Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche');
     $dow = (int) date('N', strtotime($date_str));

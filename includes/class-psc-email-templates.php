@@ -68,6 +68,13 @@ class Psc_Email_Templates {
                 'vars'    => array('{{site}}', '{{semaine}}'),
                 'note'    => 'Le détail des repas jour par jour est ajouté automatiquement.',
             ),
+            'supplier_order' => array(
+                'label'   => 'Commande fournisseur (cantine)',
+                'subject' => '[{{site}}] Commande cantine — semaine du {{semaine}} ({{total}} repas)',
+                'body'    => "Merci de bien vouloir prévoir {{total}} repas pour la semaine du {{semaine}}, selon le détail par classe ci-dessous.",
+                'vars'    => array('{{site}}', '{{semaine}}', '{{total}}'),
+                'note'    => 'Le tableau du nombre de repas par classe et par jour est ajouté automatiquement.',
+            ),
             'invoice' => array(
                 'label'   => 'Envoi de facture',
                 'subject' => 'Facture périscolaire — {{mois}}',

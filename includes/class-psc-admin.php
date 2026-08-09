@@ -27,7 +27,11 @@ class Psc_Admin {
         add_action('admin_post_psc_save_menu', array(__CLASS__, 'handle_save_menu'));
         add_action('admin_post_psc_send_menu', array(__CLASS__, 'handle_send_menu'));
         add_action('admin_post_psc_delete_menu', array(__CLASS__, 'handle_delete_menu'));
+        add_action('admin_post_psc_send_supplier_order', array(__CLASS__, 'handle_send_supplier_order'));
+        add_action('admin_post_psc_cancel_class_meals', array(__CLASS__, 'handle_cancel_class_meals'));
+        add_action('admin_post_psc_dismiss_cancel_class_meals', array(__CLASS__, 'handle_dismiss_cancel_class_meals'));
         add_action('admin_post_psc_import_school_calendar', array(__CLASS__, 'handle_import_school_calendar'));
+        add_action('admin_post_psc_upload_school_calendar', array(__CLASS__, 'handle_upload_school_calendar'));
         add_action('admin_post_psc_close_school_day', array(__CLASS__, 'handle_close_school_day'));
         add_action('admin_post_psc_open_school_day', array(__CLASS__, 'handle_open_school_day'));
         add_action('admin_post_psc_cancel_school_day_close', array(__CLASS__, 'handle_cancel_school_day_close'));
@@ -66,23 +70,153 @@ class Psc_Admin {
         }
     }
 
+    /**
+     * Regroupement du menu (5 blocs, du plus consulté au moins consulté) :
+     * Tableau de bord, Suivi & Inscriptions, Familles, Cantine,
+     * Facturation, Configuration. Le slug du menu de premier niveau est
+     * 'psc_dashboard' (avant : 'psc_inscriptions', qui reste une page
+     * valide — seule sa place dans l'arborescence change, aucun lien
+     * existant vers admin.php?page=psc_inscriptions n'est cassé). Les
+     * séparateurs visuels entre blocs sont en CSS (assets/css/admin.css),
+     * WordPress ne proposant pas de séparateur natif dans un sous-menu de
+     * plugin.
+     */
     public static function menu() {
         $cap = psc_manage_cap();
-        add_menu_page('Périscolaire', 'Périscolaire', $cap, 'psc_inscriptions', array(__CLASS__, 'page_inscriptions'), 'dashicons-groups', 58);
-        add_submenu_page('psc_inscriptions', 'Inscriptions', 'Inscriptions', $cap, 'psc_inscriptions', array(__CLASS__, 'page_inscriptions'));
-        add_submenu_page('psc_inscriptions', 'Trimestres', 'Trimestres', $cap, 'psc_trimestres', array(__CLASS__, 'page_trimestres'));
+        add_menu_page('Périscolaire', 'Périscolaire', $cap, 'psc_dashboard', array(__CLASS__, 'page_dashboard'), 'dashicons-groups', 58);
+        add_submenu_page('psc_dashboard', 'Tableau de bord', 'Tableau de bord', $cap, 'psc_dashboard', array(__CLASS__, 'page_dashboard'));
+
+        // Suivi & Inscriptions
+        add_submenu_page('psc_dashboard', 'Inscriptions', 'Inscriptions', $cap, 'psc_inscriptions', array(__CLASS__, 'page_inscriptions'));
         $pending = Psc_Requests::pending_count();
         $req_label = $pending
             ? sprintf('Demandes <span class="awaiting-mod"><span class="pending-count">%d</span></span>', $pending)
             : 'Demandes';
-        add_submenu_page('psc_inscriptions', "Demandes d'inscription", $req_label, $cap, 'psc_requests', array(__CLASS__, 'page_requests'));
-        add_submenu_page('psc_inscriptions', 'Familles', 'Familles', $cap, 'psc_parents', array(__CLASS__, 'page_parents'));
-        add_submenu_page('psc_inscriptions', 'Enfants', 'Enfants', $cap, 'psc_children', array(__CLASS__, 'page_children'));
-        add_submenu_page('psc_inscriptions', 'Factures', 'Factures', $cap, 'psc_factures', array(__CLASS__, 'page_factures'));
-        add_submenu_page('psc_inscriptions', 'Menus cantine', 'Menus cantine', $cap, 'psc_menus', array(__CLASS__, 'page_menus'));
-        add_submenu_page('psc_inscriptions', 'Calendrier scolaire', 'Calendrier scolaire', $cap, 'psc_school_calendar', array(__CLASS__, 'page_school_calendar'));
-        add_submenu_page('psc_inscriptions', 'Modèles e-mails', 'Modèles e-mails', $cap, 'psc_email_templates', array(__CLASS__, 'page_email_templates'));
-        add_submenu_page('psc_inscriptions', 'Réglages', 'Réglages', $cap, 'psc_settings', array(__CLASS__, 'page_settings'));
+        add_submenu_page('psc_dashboard', "Demandes d'inscription", $req_label, $cap, 'psc_requests', array(__CLASS__, 'page_requests'));
+        add_submenu_page('psc_dashboard', 'Trimestres', 'Trimestres', $cap, 'psc_trimestres', array(__CLASS__, 'page_trimestres'));
+        add_submenu_page('psc_dashboard', 'Calendrier scolaire', 'Calendrier scolaire', $cap, 'psc_school_calendar', array(__CLASS__, 'page_school_calendar'));
+
+        // Familles
+        add_submenu_page('psc_dashboard', 'Familles', 'Familles', $cap, 'psc_parents', array(__CLASS__, 'page_parents'));
+        add_submenu_page('psc_dashboard', 'Enfants', 'Enfants', $cap, 'psc_children', array(__CLASS__, 'page_children'));
+
+        // Cantine
+        add_submenu_page('psc_dashboard', 'Menus cantine', 'Menus cantine', $cap, 'psc_menus', array(__CLASS__, 'page_menus'));
+        add_submenu_page('psc_dashboard', 'Commande fournisseur', 'Commande fournisseur', $cap, 'psc_supplier_orders', array(__CLASS__, 'page_supplier_orders'));
+
+        // Facturation
+        add_submenu_page('psc_dashboard', 'Factures', 'Factures', $cap, 'psc_factures', array(__CLASS__, 'page_factures'));
+
+        // Configuration
+        add_submenu_page('psc_dashboard', 'Modèles e-mails', 'Modèles e-mails', $cap, 'psc_email_templates', array(__CLASS__, 'page_email_templates'));
+        add_submenu_page('psc_dashboard', 'Réglages', 'Réglages', $cap, 'psc_settings', array(__CLASS__, 'page_settings'));
+    }
+
+    /* ---------------- Tableau de bord ---------------- */
+
+    /**
+     * Indicateurs globaux, sans notion d'urgence — la liste "à faire"
+     * (dashboard_todos) porte les actions concrètes.
+     */
+    protected static function dashboard_stats() {
+        global $wpdb;
+        $trimestre = $wpdb->get_row(
+            'SELECT * FROM ' . psc_table('trimestres') . ' WHERE active = 1 ORDER BY id DESC LIMIT 1'
+        );
+        return array(
+            'trimestre'        => $trimestre,
+            'familles_actives' => (int) $wpdb->get_var('SELECT COUNT(*) FROM ' . psc_table('parents') . ' WHERE active = 1'),
+            'enfants_actifs'   => (int) $wpdb->get_var('SELECT COUNT(*) FROM ' . psc_table('children') . ' WHERE active = 1'),
+        );
+    }
+
+    /**
+     * Actions concrètes à faire dans les jours/semaines à venir, dérivées
+     * de données déjà existantes (aucune nouvelle table) : demandes en
+     * attente, menu et commande fournisseur de la semaine prochaine pas
+     * encore envoyés, trimestre actif proche de sa fin ou absent. Chaque
+     * entrée : array('label'=>, 'done'=>bool, 'url'=>).
+     */
+    protected static function dashboard_todos() {
+        global $wpdb;
+        $todos = array();
+
+        $pending = Psc_Requests::pending_count();
+        $todos[] = array(
+            'label' => $pending > 0
+                ? sprintf('%d demande(s) d\'inscription en attente de traitement', $pending)
+                : 'Aucune demande d\'inscription en attente',
+            'done'  => $pending === 0,
+            'url'   => admin_url('admin.php?page=psc_requests'),
+        );
+
+        // Semaine prochaine, ramenée à la prochaine semaine ayant au moins un
+        // jour d'école ouvert : inutile de rappeler à l'admin de saisir un
+        // menu ou une commande fournisseur pour une semaine de vacances.
+        $next_week = psc_next_open_week(gmdate('Y-m-d', strtotime('+7 days')));
+        $next_week_label = date_i18n('d/m', strtotime($next_week));
+
+        $menu = Psc_Menus::get_by_week($next_week);
+        $menu_has_content = false;
+        if ($menu) {
+            foreach (Psc_Menus::JOURS as $jour) {
+                if (trim((string) $menu->$jour) !== '') { $menu_has_content = true; break; }
+            }
+        }
+        $menu_sent = $menu && $menu->sent_at;
+        $todos[] = array(
+            'label' => sprintf(
+                'Menu de cantine — semaine du %s : %s',
+                $next_week_label,
+                $menu_sent ? 'envoyé' : ($menu_has_content ? 'saisi, pas encore envoyé' : 'pas encore saisi')
+            ),
+            'done' => (bool) $menu_sent,
+            'url'  => admin_url('admin.php?page=psc_menus'),
+        );
+
+        $order_sent = $wpdb->get_var($wpdb->prepare(
+            'SELECT id FROM ' . psc_table('supplier_orders') . ' WHERE semaine_debut = %s', $next_week
+        ));
+        $todos[] = array(
+            'label' => sprintf(
+                'Commande fournisseur — semaine du %s : %s',
+                $next_week_label,
+                $order_sent ? 'envoyée' : 'pas encore envoyée'
+            ),
+            'done' => (bool) $order_sent,
+            'url'  => admin_url('admin.php?page=psc_supplier_orders&semaine_debut=' . $next_week),
+        );
+
+        $trimestre = $wpdb->get_row(
+            'SELECT * FROM ' . psc_table('trimestres') . ' WHERE active = 1 ORDER BY id DESC LIMIT 1'
+        );
+        if (!$trimestre) {
+            $todos[] = array(
+                'label' => 'Aucun trimestre actif — créez-en un pour ouvrir les inscriptions',
+                'done'  => false,
+                'url'   => admin_url('admin.php?page=psc_trimestres'),
+            );
+        } else {
+            $days_left = (int) floor((strtotime($trimestre->date_fin) - strtotime(current_time('Y-m-d'))) / DAY_IN_SECONDS);
+            if ($days_left <= 14) {
+                $todos[] = array(
+                    'label' => $days_left >= 0
+                        ? sprintf('Le trimestre actif se termine dans %d jour(s) — pensez à préparer le suivant', $days_left)
+                        : 'Le trimestre actif est terminé — pensez à en activer un nouveau',
+                    'done' => false,
+                    'url'  => admin_url('admin.php?page=psc_trimestres'),
+                );
+            }
+        }
+
+        return $todos;
+    }
+
+    public static function page_dashboard() {
+        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        $stats = self::dashboard_stats();
+        $todos = self::dashboard_todos();
+        include PSC_PATH . 'templates/admin-dashboard.php';
     }
 
     /* ---------------- Trimestres ---------------- */
@@ -242,6 +376,12 @@ class Psc_Admin {
 
         $mairie_mail = isset($_POST['mairie_email']) ? sanitize_email(wp_unslash($_POST['mairie_email'])) : '';
         update_option('psc_mairie_email', is_email($mairie_mail) ? $mairie_mail : '');
+
+        $supplier_mail = isset($_POST['supplier_email']) ? sanitize_email(wp_unslash($_POST['supplier_email'])) : '';
+        update_option('psc_supplier_email', is_email($supplier_mail) ? $supplier_mail : '');
+
+        $ics_url = isset($_POST['school_calendar_ics_url']) ? esc_url_raw(wp_unslash($_POST['school_calendar_ics_url'])) : '';
+        update_option('psc_school_calendar_ics_url', $ics_url);
 
         // Billing / invoice settings
         $billing_fields = array(
@@ -725,7 +865,7 @@ class Psc_Admin {
         if (is_wp_error($result)) {
             self::redirect('psc_menus', 'invalid');
         }
-        self::redirect_to_menu($result, 'saved');
+        self::redirect_to_menu(psc_week_start($semaine), 'saved');
     }
 
     public static function handle_send_menu() {
@@ -736,7 +876,7 @@ class Psc_Admin {
         if (!$menu) self::redirect('psc_menus', 'invalid');
 
         $count = Psc_Menus::send($menu);
-        self::redirect_to_menu($id, $count > 0 ? 'sent' : 'sent_zero');
+        self::redirect_to_menu($menu->semaine_debut, $count > 0 ? 'sent' : 'sent_zero');
     }
 
     public static function handle_delete_menu() {
@@ -746,9 +886,9 @@ class Psc_Admin {
         self::redirect('psc_menus', 'deleted');
     }
 
-    private static function redirect_to_menu($id, $msg) {
+    private static function redirect_to_menu($semaine, $msg) {
         wp_safe_redirect(add_query_arg(
-            array('page' => 'psc_menus', 'edit' => $id, 'psc_msg' => $msg),
+            array('page' => 'psc_menus', 'semaine_debut' => $semaine, 'psc_msg' => $msg),
             admin_url('admin.php')
         ));
         exit;
@@ -757,18 +897,126 @@ class Psc_Admin {
     public static function page_menus() {
         if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
 
-        $edit_id = psc_get_int('edit');
-        $editing = $edit_id ? Psc_Menus::get($edit_id) : null;
+        // Une semaine = un menu (Psc_Menus::save() les fusionne déjà par
+        // semaine) : le formulaire est ancré sur la semaine, pas sur un id.
+        // Par défaut, la prochaine semaine ayant au moins un jour d'école
+        // ouvert — ce formulaire sert à préparer le menu à venir, pas à
+        // consulter l'historique (la liste ci-dessous s'en charge).
+        $requested   = isset($_GET['semaine_debut']) ? psc_valid_date(wp_unslash($_GET['semaine_debut'])) : false;
+        $target_week = $requested
+            ? psc_week_start($requested)
+            : Psc_Menus::next_open_week(gmdate('Y-m-d', strtotime('+7 days')));
 
-        // Par défaut, semaine prochaine : ce formulaire sert à préparer le
-        // menu à venir, pas à consulter l'historique (la liste ci-dessous
-        // s'en charge).
-        $default_week = $editing ? $editing->semaine_debut : psc_week_start(gmdate('Y-m-d', strtotime('+7 days')));
+        $open_days = Psc_Menus::open_days($target_week);
+        $editing   = Psc_Menus::get_by_week($target_week);
 
         $recent  = Psc_Menus::recent(12);
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
 
         include PSC_PATH . 'templates/admin-menus.php';
+    }
+
+    /* ---------------- Commande fournisseur ---------------- */
+
+    public static function handle_send_supplier_order() {
+        self::guard('psc_send_supplier_order');
+
+        $semaine = psc_post('semaine_debut');
+        $result  = Psc_Supplier_Orders::send($semaine);
+
+        if (is_wp_error($result)) {
+            $known = array('psc_invalid_week', 'psc_no_supplier_email', 'psc_mail_failed');
+            $msg   = in_array($result->get_error_code(), $known, true) ? $result->get_error_code() : 'error';
+            wp_safe_redirect(add_query_arg(
+                array('page' => 'psc_supplier_orders', 'semaine_debut' => $semaine, 'psc_msg' => $msg),
+                admin_url('admin.php')
+            ));
+            exit;
+        }
+
+        wp_safe_redirect(add_query_arg(
+            array('page' => 'psc_supplier_orders', 'semaine_debut' => $semaine, 'psc_msg' => 'sent'),
+            admin_url('admin.php')
+        ));
+        exit;
+    }
+
+    protected static function pending_cantine_key() {
+        return 'psc_pending_cantine_' . get_current_user_id();
+    }
+
+    /**
+     * Annulation de la cantine pour une classe entière un jour donné
+     * (sortie scolaire...). Même logique avertissement -> confirmation
+     * que Psc_Admin::handle_close_school_day() : rien n'est supprimé au
+     * premier passage si des inscriptions existent, l'admin doit
+     * confirmer explicitement après avoir vu qui est concerné.
+     */
+    public static function handle_cancel_class_meals() {
+        self::guard('psc_cancel_class_meals');
+
+        $date    = psc_valid_date(psc_post('date'));
+        $classe  = psc_post('classe');
+        $reason  = isset($_POST['reason']) ? sanitize_textarea_field(wp_unslash($_POST['reason'])) : '';
+        $confirm = psc_post_int('confirm');
+
+        if (!$date) {
+            self::redirect('psc_supplier_orders', 'cantine_invalid');
+        }
+        if ($reason === '') {
+            self::redirect('psc_supplier_orders', 'cantine_reason_required');
+        }
+
+        $affected = Psc_Supplier_Orders::cantine_registrations_for_class_day($date, $classe);
+        if (empty($affected)) {
+            self::redirect('psc_supplier_orders', 'cantine_none');
+        }
+
+        if (!$confirm) {
+            set_transient(
+                self::pending_cantine_key(),
+                array('date' => $date, 'classe' => $classe, 'reason' => $reason),
+                10 * MINUTE_IN_SECONDS
+            );
+            self::redirect('psc_supplier_orders', 'cantine_confirm_needed');
+        }
+
+        delete_transient(self::pending_cantine_key());
+        $result = Psc_Supplier_Orders::cancel_class_meals($date, $classe, $reason);
+        if (is_wp_error($result)) {
+            self::redirect('psc_supplier_orders', 'cantine_invalid');
+        }
+
+        wp_safe_redirect(add_query_arg(
+            array('page' => 'psc_supplier_orders', 'psc_msg' => 'cantine_cancelled', 'n' => (int) $result),
+            admin_url('admin.php')
+        ));
+        exit;
+    }
+
+    public static function handle_dismiss_cancel_class_meals() {
+        self::guard('psc_dismiss_cancel_class_meals');
+        delete_transient(self::pending_cantine_key());
+        self::redirect('psc_supplier_orders', 'cantine_dismissed');
+    }
+
+    public static function page_supplier_orders() {
+        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+
+        $requested     = isset($_GET['semaine_debut']) ? sanitize_text_field(wp_unslash($_GET['semaine_debut'])) : '';
+        $semaine_debut = psc_week_start($requested) ?: psc_next_open_week(gmdate('Y-m-d', strtotime('+7 days')));
+
+        $preview = Psc_Supplier_Orders::compute_counts($semaine_debut);
+        $recent  = Psc_Supplier_Orders::recent(20);
+        $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
+        $cantine_n = psc_get_int('n');
+
+        $pending_cantine = get_transient(self::pending_cantine_key());
+        $pending_cantine_affected = $pending_cantine
+            ? Psc_Supplier_Orders::cantine_registrations_for_class_day($pending_cantine['date'], $pending_cantine['classe'])
+            : array();
+
+        include PSC_PATH . 'templates/admin-supplier-orders.php';
     }
 
     /* ---------------- Calendrier scolaire ---------------- */
@@ -786,6 +1034,39 @@ class Psc_Admin {
         }
         wp_safe_redirect(add_query_arg(
             array('page' => 'psc_school_calendar', 'psc_msg' => 'imported', 'n' => (int) $result),
+            admin_url('admin.php')
+        ));
+        exit;
+    }
+
+    /**
+     * Import manuel d'un fichier .ics fourni par l'admin — palliatif quand
+     * le serveur n'a pas d'accès sortant vers le flux du ministère.
+     */
+    public static function handle_upload_school_calendar() {
+        self::guard('psc_upload_school_calendar');
+
+        if (empty($_FILES['ics_file']) || !isset($_FILES['ics_file']['error']) || $_FILES['ics_file']['error'] !== UPLOAD_ERR_OK) {
+            self::redirect('psc_school_calendar', 'upload_failed');
+        }
+
+        $file     = $_FILES['ics_file'];
+        $filetype = wp_check_filetype($file['name'], array('ics' => 'text/calendar'));
+        if ($filetype['ext'] !== 'ics') {
+            self::redirect('psc_school_calendar', 'upload_invalid_type');
+        }
+        if ($file['size'] > 2 * MB_IN_BYTES) {
+            self::redirect('psc_school_calendar', 'upload_too_large');
+        }
+
+        $body = file_get_contents($file['tmp_name']);
+        $result = Psc_School_Calendar::import_from_upload($body);
+        if (is_wp_error($result)) {
+            self::redirect('psc_school_calendar', 'upload_failed');
+        }
+
+        wp_safe_redirect(add_query_arg(
+            array('page' => 'psc_school_calendar', 'psc_msg' => 'uploaded', 'n' => (int) $result),
             admin_url('admin.php')
         ));
         exit;

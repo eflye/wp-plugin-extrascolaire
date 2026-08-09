@@ -55,6 +55,35 @@
 </td>
 </tr>
 </table>
+
+<h2>Fournisseur de repas</h2>
+<table class="form-table">
+<tr>
+<th><label for="psc-supplier-mail">Adresse du fournisseur</label></th>
+<td>
+  <input id="psc-supplier-mail" type="email" name="supplier_email" class="regular-text"
+         value="<?php echo esc_attr(get_option('psc_supplier_email', '')); ?>"
+         placeholder="cuisine@prestataire.example">
+  <p class="description">Destinataire de la commande hebdomadaire (Périscolaire &gt; Commande fournisseur).</p>
+</td>
+</tr>
+</table>
+
+<h2>Calendrier scolaire</h2>
+<table class="form-table">
+<tr>
+<th><label for="psc-ics-url">URL du calendrier officiel</label></th>
+<td>
+  <input id="psc-ics-url" type="url" name="school_calendar_ics_url" class="regular-text"
+         value="<?php echo esc_attr(get_option('psc_school_calendar_ics_url', '')); ?>"
+         placeholder="<?php echo esc_attr(Psc_School_Calendar::ICS_URL); ?>">
+  <p class="description">
+      Laisser vide pour utiliser l'URL par défaut du ministère. Utilisée par le bouton
+      « Charger le calendrier officiel » (Périscolaire &gt; Calendrier scolaire).
+  </p>
+</td>
+</tr>
+</table>
 <?php
 $logo_left_id  = (int) get_option('psc_billing_logo_left_id', 0);
 $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
