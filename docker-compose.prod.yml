@@ -1,0 +1,82 @@
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:-wordpress}
+      MYSQL_USER: ${DB_USER:-wordpress}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Tous les e-mails du plugin (liens de connexion, factures, menus,
+  # commande fournisseur...) atterrissent ici plutôt que d'être réellement
+  # envoyés — pratique pour un test bêta : rien ne part chez de vrais
+  # destinataires par erreur. Accès web protégé via Caddy (voir Caddyfile),
+  # car le domaine est public.
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    volumes:
+      - mailpit_data:/data
+    environment:
+      MP_DATABASE: /data/mailpit.db
+
+  wordpress:
+    image: wordpress:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_NAME: ${DB_NAME:-wordpress}
+      WORDPRESS_DB_USER: ${DB_USER:-wordpress}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
+      WORDPRESS_DEBUG: "0"
+      # Redirige tous les e-mails vers Mailpit (mu-plugins/mailpit-smtp.php,
+      # déjà utilisé en dev local).
+      MAILPIT_ENABLED: "true"
+      # Derrière Caddy (TLS terminé côté proxy) : sans ça, WordPress croit
+      # être servi en HTTP et peut boucler en redirection ou générer des
+      # liens http:// dans les e-mails.
+      WORDPRESS_CONFIG_EXTRA: |
+        if (!empty($$_SERVER['HTTP_X_FORWARDED_PROTO']) && $$_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+            $$_SERVER['HTTPS'] = 'on';
+        }
+    volumes:
+      - .:/var/www/html/wp-content/plugins/periscolaire-registration
+      - ./mu-plugins:/var/www/html/wp-content/mu-plugins
+      - wp_data:/var/www/html
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - wordpress
+      - mailpit
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+      MAIL_DOMAIN: ${MAIL_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+      MAILPIT_BASIC_AUTH_USER: ${MAILPIT_BASIC_AUTH_USER}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  db_data:
+  wp_data:
+  mailpit_data:
+  caddy_data:
+  caddy_config:
