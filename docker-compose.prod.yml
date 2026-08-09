@@ -18,11 +18,13 @@ services:
   # Tous les e-mails du plugin (liens de connexion, factures, menus,
   # commande fournisseur...) atterrissent ici plutôt que d'être réellement
   # envoyés — pratique pour un test bêta : rien ne part chez de vrais
-  # destinataires par erreur. Accès web protégé via Caddy (voir Caddyfile),
-  # car le domaine est public.
+  # destinataires par erreur. Reverse proxy géré en dehors de ce fichier
+  # (Nginx Proxy Manager) — pointer un Proxy Host vers ce serveur, port 8086.
   mailpit:
     image: axllent/mailpit:latest
     restart: unless-stopped
+    ports:
+      - "8086:8025"
     volumes:
       - mailpit_data:/data
     environment:
@@ -34,6 +36,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    ports:
+      - "8085:80"
     environment:
       WORDPRESS_DB_HOST: db:3306
       WORDPRESS_DB_NAME: ${DB_NAME:-wordpress}
@@ -43,9 +47,10 @@ services:
       # Redirige tous les e-mails vers Mailpit (mu-plugins/mailpit-smtp.php,
       # déjà utilisé en dev local).
       MAILPIT_ENABLED: "true"
-      # Derrière Caddy (TLS terminé côté proxy) : sans ça, WordPress croit
-      # être servi en HTTP et peut boucler en redirection ou générer des
-      # liens http:// dans les e-mails.
+      # Derrière un reverse proxy avec TLS terminé côté proxy (Nginx Proxy
+      # Manager) : sans ça, WordPress croit être servi en HTTP et peut
+      # boucler en redirection ou générer des liens http:// dans les
+      # e-mails. Nginx Proxy Manager transmet X-Forwarded-Proto par défaut.
       WORDPRESS_CONFIG_EXTRA: |
         if (!empty($$_SERVER['HTTP_X_FORWARDED_PROTO']) && $$_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
             $$_SERVER['HTTPS'] = 'on';
@@ -55,28 +60,7 @@ services:
       - ./mu-plugins:/var/www/html/wp-content/mu-plugins
       - wp_data:/var/www/html
 
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    depends_on:
-      - wordpress
-      - mailpit
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      DOMAIN: ${DOMAIN}
-      MAIL_DOMAIN: ${MAIL_DOMAIN}
-      ACME_EMAIL: ${ACME_EMAIL}
-      MAILPIT_BASIC_AUTH_USER: ${MAILPIT_BASIC_AUTH_USER}
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-
 volumes:
   db_data:
   wp_data:
   mailpit_data:
-  caddy_data:
-  caddy_config:
