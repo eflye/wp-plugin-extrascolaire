@@ -1,5 +1,13 @@
 .psc-wrap {
     max-width: 900px;
+    box-sizing: border-box;
+}
+/* Contient le débordement horizontal éventuel d'un tableau (calendrier,
+   enfants, factures) sur petit écran, sans jamais faire défiler la page
+   entière. */
+.psc-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 .psc-period {
     font-size: 1.05em;
@@ -227,6 +235,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
     gap: 12px;
     margin-bottom: 1.2em;
 }
@@ -352,9 +361,11 @@
     color: #2271b1;
     font-weight: 600;
 }
-.psc-month-block .psc-calendar {
+.psc-month-block .psc-table-scroll {
     margin: 0 18px 16px;
-    width: calc(100% - 36px);
+}
+.psc-month-block .psc-calendar {
+    width: 100%;
 }
 .psc-badge {
     display: inline-block;
@@ -579,4 +590,41 @@ span.psc-diet-options { flex-direction: row; gap: 12px; }
 }
 @media (max-width: 600px) {
     .psc-child-row { flex-direction: column; }
+
+    /* Barre de compte : email + déconnexion sur deux lignes plutôt que
+       serrés côte à côte. */
+    .psc-account { flex-direction: column; align-items: flex-start; }
+
+    /* Tableaux (calendrier, enfants, factures) : moins de marge perdue en
+       padding, pour limiter le recours au défilement horizontal contenu
+       par .psc-table-scroll. */
+    .psc-calendar th,
+    .psc-calendar td {
+        padding: 5px 4px;
+        font-size: 0.92em;
+    }
+    .psc-calendar th small { font-size: 0.85em; }
+    .psc-daylabel { white-space: normal; }
+
+    .psc-children-table th,
+    .psc-children-table td,
+    .psc-invoices-table th,
+    .psc-invoices-table td {
+        padding: 6px 8px;
+    }
+    /* Sur les colonnes étroites d'un petit écran, laisser les préférences
+       alimentaires passer à la ligne plutôt que forcer la largeur de la
+       colonne (et donc le défilement) juste pour deux libellés courts. */
+    td.psc-diet-options { white-space: normal; }
+
+    /* En-tête d'un mois repliable : moins d'espace entre les éléments,
+       et on autorise le retour à la ligne si le libellé du mois est long. */
+    .psc-month-block > summary {
+        gap: 8px;
+        padding: 12px 14px;
+        flex-wrap: wrap;
+    }
+    .psc-month-block .psc-table-scroll { margin: 0 14px 14px; }
+
+    .psc-card { padding: 18px 16px; }
 }

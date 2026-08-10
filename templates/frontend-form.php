@@ -121,6 +121,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
           </span>
         </summary>
 
+        <div class="psc-table-scroll">
         <table class="psc-calendar" data-testid="calendar-table-<?php echo esc_attr($child_index); ?>-<?php echo esc_attr($month_key); ?>">
           <caption class="screen-reader-text">
             Calendrier périscolaire de <?php echo esc_html($child->prenom); ?> pour <?php echo esc_html($month_label); ?>
@@ -174,6 +175,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
           <?php endforeach; ?>
           </tbody>
         </table>
+        </div>
       </details>
     <?php endforeach; ?>
 
@@ -196,6 +198,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
   <summary><strong>Mes enfants</strong></summary>
 
   <?php if (!empty($all_children)): ?>
+  <div class="psc-table-scroll">
   <table class="psc-children-table">
     <thead>
       <tr>
@@ -240,6 +243,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     <?php endforeach; ?>
     </tbody>
   </table>
+  </div>
   <?php endif; ?>
 
   <details class="psc-add-child-block">
@@ -275,6 +279,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
   <?php if (empty($invoices)): ?>
   <p class="psc-help">Aucune facture n'a encore été émise pour votre famille.</p>
   <?php else: ?>
+  <div class="psc-table-scroll">
   <table class="psc-invoices-table">
     <thead>
       <tr><th>Mois</th><th>Montant</th><th>Statut</th><th></th></tr>
@@ -303,6 +308,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     <?php endforeach; ?>
     </tbody>
   </table>
+  </div>
   <?php endif; ?>
 </details>
 
