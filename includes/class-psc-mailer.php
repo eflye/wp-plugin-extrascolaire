@@ -47,12 +47,12 @@ class Psc_Mailer {
     /**
      * Envoi HTML avec repli texte brut dans les en-têtes.
      */
-    protected static function send($to, $subject, $html) {
+    protected static function send($to, $subject, $html, $attachments = array()) {
         $headers = array(
             'Content-Type: text/html; charset=UTF-8',
             'From: ' . self::site_name() . ' <' . get_option('admin_email') . '>',
         );
-        return wp_mail($to, $subject, $html, $headers);
+        return wp_mail($to, $subject, $html, $headers, $attachments);
     }
 
     /* ------------------------------------------------------------------ */
@@ -597,7 +597,7 @@ class Psc_Mailer {
     /* Demandes d'inscription                                               */
     /* ------------------------------------------------------------------ */
 
-    public static function send_request_verification($email, $url) {
+    public static function send_request_verification($email, $url, $attachments = array()) {
         $site    = self::site_name();
         $subject = Psc_Email_Templates::subject('request_verify', array('site' => $site));
         $intro   = Psc_Email_Templates::body_html('request_verify', array('site' => $site));
@@ -609,11 +609,15 @@ class Psc_Mailer {
                 '<strong>⏱ Ce lien est valable 3 jours.</strong><br>'
                 . 'Votre demande sera ensuite examinée par la mairie, qui vous contactera par e-mail.'
             )
+            . ($attachments ? self::info_box(
+                '<strong>📎 Mandat de prélèvement SEPA joint.</strong><br>'
+                . 'Merci de l\'imprimer, de le signer, puis de l\'adresser à votre banque.'
+            ) : '')
             . self::p(
                 'Si vous n\'êtes pas à l\'origine de cette demande, ignorez ce message : aucune donnée ne sera transmise.'
             );
 
-        return self::send($email, $subject, self::layout($body, $subject));
+        return self::send($email, $subject, self::layout($body, $subject), $attachments);
     }
 
     public static function notify_mairie_new_request($req, $children) {

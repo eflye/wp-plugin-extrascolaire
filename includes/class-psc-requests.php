@@ -277,11 +277,31 @@ class Psc_Requests {
             $request_id = (int) $wpdb->insert_id;
         }
 
+        // Prélèvement : le mandat SEPA est généré tout de suite (la RUM ne
+        // dépend que de l'id de la demande, déjà connu) et joint à l'e-mail
+        // de confirmation — jamais persisté sur le serveur, il contient un
+        // IBAN en clair. Un échec de génération ne doit jamais bloquer
+        // l'inscription : l'e-mail part alors simplement sans pièce jointe.
+        $mandate_attachments = array();
+        if ($payment_mode === 'prelevement') {
+            $tmp = Psc_Sepa_Mandate::build_temp_pdf(psc_sepa_mandate_ref($request_id), array(
+                'titulaire'   => $sepa_titulaire,
+                'adresse'     => $sepa_adresse,
+                'code_postal' => $sepa_code_postal,
+                'ville'       => $sepa_ville,
+                'iban'        => $sepa_iban,
+                'bic'         => $sepa_bic,
+            ));
+            if ($tmp) $mandate_attachments[] = $tmp;
+        }
+
         $url = add_query_arg(
             array('psc_req' => $request_id, 'psc_vtoken' => $token),
             Psc_Mailer::form_page_url()
         );
-        Psc_Mailer::send_request_verification($email, $url);
+        Psc_Mailer::send_request_verification($email, $url, $mandate_attachments);
+
+        foreach ($mandate_attachments as $f) { @unlink($f); }
 
         wp_safe_redirect(add_query_arg('psc_msg', 'request_sent', $back));
         exit;
@@ -385,9 +405,7 @@ class Psc_Requests {
             'sepa_reglement_accepted_at' => $req->sepa_reglement_accepted_at ?? null,
         );
         if (($req->payment_mode ?? 'autre') === 'prelevement') {
-            // Référence unique de mandat (RUM) : dérivée de l'id de la
-            // demande, stable et unique sans écriture supplémentaire.
-            $parent_extra['sepa_mandate_ref'] = 'RUM' . str_pad($req->id, 8, '0', STR_PAD_LEFT);
+            $parent_extra['sepa_mandate_ref'] = psc_sepa_mandate_ref($req->id);
         }
 
         // Création de la famille (ou récupération si elle existe déjà).

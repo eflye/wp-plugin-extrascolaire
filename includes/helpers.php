@@ -339,6 +339,17 @@ function psc_mask_iban($iban) {
     return substr($iban, 0, 4) . ' •••• •••• ' . substr($iban, -4);
 }
 
+/**
+ * Référence unique de mandat (RUM), dérivée de l'id de la demande —
+ * stable et unique sans écriture supplémentaire. Utilisée à la fois
+ * pour le PDF envoyé à la soumission (Psc_Requests::handle_submit) et
+ * pour le compte famille créé à l'approbation (Psc_Requests::handle_approve),
+ * afin qu'un même formulaire ait toujours la même RUM.
+ */
+function psc_sepa_mandate_ref($request_id) {
+    return 'RUM' . str_pad((int) $request_id, 8, '0', STR_PAD_LEFT);
+}
+
 /* ------------------------------------------------------------------
  * Délai de modification (verrouillage à l'approche de la date)
  * ------------------------------------------------------------------ */
