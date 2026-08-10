@@ -7,6 +7,18 @@ class Psc_Frontend {
         add_shortcode('periscolaire_form', array(__CLASS__, 'shortcode'));
         add_action('wp_enqueue_scripts', array(__CLASS__, 'assets'));
 
+        // Une fois connectée, la famille n'a plus besoin du texte de
+        // présentation rédigé autour du shortcode dans l'éditeur (utile
+        // uniquement avant connexion, pour donner envie/expliquer) : le
+        // portail occupe alors toute la page, dès le haut.
+        add_filter('the_content', array(__CLASS__, 'hide_page_chrome_when_connected'), 20);
+
+        // Le titre de la page (H1 "wp-block-post-title") vient du modèle
+        // de page, pas de post_content : le filtre the_content ci-dessus
+        // ne peut pas l'atteindre. On ajoute une classe sur <body> pour le
+        // masquer en CSS uniquement quand le portail est affiché.
+        add_filter('body_class', array(__CLASS__, 'add_portal_body_class'));
+
         // Les parents ne sont PAS des utilisateurs WordPress : les actions
         // AJAX doivent donc être exposées en "nopriv". L'autorisation est
         // vérifiée dans chaque handler via la session du plugin.
@@ -25,6 +37,37 @@ class Psc_Frontend {
         add_action('admin_post_psc_parent_download_invoice', array(__CLASS__, 'handle_parent_download_invoice'));
     }
 
+    /**
+     * Remplace tout le contenu de la page par le seul rendu du shortcode
+     * quand une famille est connectée — le texte de présentation autour
+     * (rédigé dans l'éditeur) n'a de sens qu'avant connexion. On ignore
+     * volontairement $content : on ré-exécute le shortcode nous-mêmes
+     * plutôt que d'essayer d'en extraire le rendu déjà mélangé au reste
+     * de la page, ce qui évite toute dépendance à l'ordre des filtres
+     * `the_content`.
+     */
+    public static function hide_page_chrome_when_connected($content) {
+        if (!self::portal_takes_over_page()) return $content;
+        return self::shortcode(array());
+    }
+
+    /** Ajoute une classe CSS sur <body> pour masquer le titre de page (venu
+     *  du modèle, hors de portée de the_content) quand le portail s'affiche. */
+    public static function add_portal_body_class($classes) {
+        if (self::portal_takes_over_page()) {
+            $classes[] = 'psc-portal-active';
+        }
+        return $classes;
+    }
+
+    /** Vrai si la page courante affiche le portail famille connecté (donc
+     *  doit céder toute la page — titre et texte d'intro compris). */
+    protected static function portal_takes_over_page() {
+        if (!is_singular() || !Psc_Parents::current()) return false;
+        $post = get_post();
+        return $post && has_shortcode($post->post_content, 'periscolaire_form');
+    }
+
     public static function assets() {
         if (!is_singular()) return;
         $post = get_post();
@@ -36,6 +79,18 @@ class Psc_Frontend {
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce'    => wp_create_nonce('psc_front'),
         ));
+
+        // Design v2 : commun au portail connecté et à la vue invité —
+        // psc-frontend reste le socle partagé par les deux (bascule de
+        // connexion, cases à cocher du calendrier, popins, sauvegarde de
+        // défilement).
+        wp_enqueue_style('psc-portal', PSC_URL . 'assets/css/portal.css', array('psc-frontend'), PSC_VERSION);
+
+        if (Psc_Parents::current()) {
+            wp_enqueue_script('psc-portal', PSC_URL . 'assets/js/portal.js', array(), PSC_VERSION, true);
+        } else {
+            wp_enqueue_script('psc-guest', PSC_URL . 'assets/js/guest.js', array(), PSC_VERSION, true);
+        }
     }
 
     protected static function active_trimestre() {
@@ -332,47 +387,251 @@ class Psc_Frontend {
         Psc_Invoices::download($invoice_id);
     }
 
-    /* ---------------- Menu de cantine (accès libre) ---------------- */
+    /* ---------------- Espace famille v2 ("Family Portal") ---------------- */
+
+    protected static function portal_tab_defs() {
+        return array(
+            'dashboard' => array(
+                'label' => 'Tableau de bord',
+                'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9h13v-9"/><path d="M10 19v-6h4v6"/></svg>',
+            ),
+            'cantine' => array(
+                'label' => 'Cantine & Garderie',
+                'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="5" width="17" height="15" rx="1"/><path d="M3.5 9.5h17"/><path d="M8 3v3M16 3v3"/></svg>',
+            ),
+            'menu' => array(
+                'label' => 'Menu de la semaine',
+                'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3v8a2 2 0 0 0 4 0V3M6 6h4"/><path d="M14 3c-1.2 1.3-1.2 6 0 8M14 3v18M17 3v6a2 2 0 0 0 2 2v10"/></svg>',
+            ),
+            'enfants' => array(
+                'label' => 'Mes enfants',
+                'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="7" r="3.2"/><path d="M5 20c0-3.5 3.2-6 7-6s7 2.5 7 6"/></svg>',
+            ),
+            'factures' => array(
+                'label' => 'Mes factures',
+                'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2Z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>',
+            ),
+        );
+    }
 
     /**
-     * Navigation "type calendrier" par semaine : ?psc_semaine=<n'importe
-     * quelle date de la semaine visée>, toujours ramenée au lundi. Par
-     * défaut, la semaine contenant aujourd'hui. Aucune limite de
-     * navigation avant/après : une semaine sans menu saisi affiche
-     * simplement l'état vide, comme n'importe quel calendrier.
+     * Onglet actif : ?psc_tab= si connu, sinon le tableau de bord. Un
+     * message lié à la gestion des enfants (retour d'un POST classique,
+     * cf. handle_parent_*) ramène toujours sur l'onglet "Mes enfants",
+     * quel que soit l'onglet d'où le formulaire a été soumis.
      */
-    protected static function render_menu_widget() {
+    protected static function resolve_active_tab($psc_msg) {
+        $known = array_keys(self::portal_tab_defs());
+        $requested = isset($_GET['psc_tab']) ? sanitize_key(wp_unslash($_GET['psc_tab'])) : '';
+        $tab = in_array($requested, $known, true) ? $requested : 'dashboard';
+
+        if (in_array($psc_msg, array('child_updated', 'child_added', 'child_invalid', 'child_limit'), true)) {
+            $tab = 'enfants';
+        }
+        return $tab;
+    }
+
+    protected static function portal_tabs_data() {
+        $base = remove_query_arg(array('psc_tab', 'psc_semaine', 'psc_msg'));
+        $tabs = array();
+        foreach (self::portal_tab_defs() as $key => $def) {
+            $tabs[$key] = array(
+                'label' => $def['label'],
+                'icon'  => $def['icon'],
+                'url'   => add_query_arg('psc_tab', $key, $base),
+            );
+        }
+        return $tabs;
+    }
+
+    /**
+     * Jours du menu (parmi lundi/mardi/jeudi/vendredi) pour la semaine
+     * donnée, uniquement s'il s'agit d'une semaine d'école avec du
+     * contenu — sinon tableau vide (état "non renseigné" uniformisé côté
+     * portail, cf. handoff : pas de distinction visuelle entre "vacances"
+     * et "pas encore saisi").
+     */
+    protected static function menu_days_for_week($monday) {
+        foreach (Psc_Menus::JOUR_OFFSETS as $offset) {
+            $day_date = gmdate('Y-m-d', strtotime($monday . " +{$offset} days"));
+            if (psc_is_school_day($day_date)) {
+                $menu = Psc_Menus::get_by_week($monday);
+                if (!$menu) return array();
+
+                $days_out = array();
+                foreach (Psc_Menus::jour_labels() as $key => $label) {
+                    $d_offset = Psc_Menus::JOUR_OFFSETS[$key];
+                    $d_date = gmdate('Y-m-d', strtotime($monday . " +{$d_offset} days"));
+                    if (!psc_is_school_day($d_date)) continue;
+                    $content = trim((string) $menu->$key);
+                    if ($content === '') continue;
+                    $days_out[] = array('day' => $label, 'dish' => $content);
+                }
+                return $days_out;
+            }
+        }
+        return array(); // aucun jour d'école cette semaine-là
+    }
+
+    /**
+     * Libellé "Semaine du 8 au 12 juin 2026" (jours d'école réels,
+     * lundi à vendredi) — distinct du format du widget public (une seule
+     * date), copie exacte de la formulation du handoff.
+     */
+    protected static function week_range_label($monday) {
+        $friday = gmdate('Y-m-d', strtotime($monday . ' +4 days'));
+        $start_day = date_i18n('j', strtotime($monday));
+        $end_day   = date_i18n('j', strtotime($friday));
+        $end_month = date_i18n('F', strtotime($friday));
+        $end_year  = date_i18n('Y', strtotime($friday));
+
+        if (date('Y-m', strtotime($monday)) === date('Y-m', strtotime($friday))) {
+            return sprintf('Semaine du %s au %s %s %s', $start_day, $end_day, $end_month, $end_year);
+        }
+        $start_month = date_i18n('F', strtotime($monday));
+        $start_year  = date_i18n('Y', strtotime($monday));
+        if ($start_year !== $end_year) {
+            return sprintf('Semaine du %s %s %s au %s %s %s', $start_day, $start_month, $start_year, $end_day, $end_month, $end_year);
+        }
+        return sprintf('Semaine du %s %s au %s %s %s', $start_day, $start_month, $end_day, $end_month, $end_year);
+    }
+
+    /**
+     * Données de navigation du menu de cantine par semaine — partagées
+     * entre l'onglet "Menu de la semaine" du portail connecté ($extra_args
+     * = psc_tab=menu, pour revenir sur le bon onglet après un rechargement
+     * complet déclenché par ←/→) et le widget public de la vue invité
+     * (aucun argument supplémentaire).
+     */
+    protected static function menu_nav_data($extra_args = array()) {
         $requested = isset($_GET['psc_semaine']) ? sanitize_text_field(wp_unslash($_GET['psc_semaine'])) : '';
         $menu_week = $requested ? psc_week_start($requested) : false;
         if (!$menu_week) {
             $menu_week = psc_week_start(current_time('Y-m-d'));
         }
 
-        $no_school_week = true;
-        foreach (Psc_Menus::JOUR_OFFSETS as $offset) {
-            $day_date = gmdate('Y-m-d', strtotime($menu_week . " +{$offset} days"));
-            if (psc_is_school_day($day_date)) { $no_school_week = false; break; }
-        }
-
-        $menu = Psc_Menus::get_by_week($menu_week);
-        $has_content = false;
-        if ($menu && !$no_school_week) {
-            foreach (Psc_Menus::JOUR_OFFSETS as $jour => $offset) {
-                $day_date = gmdate('Y-m-d', strtotime($menu_week . " +{$offset} days"));
-                if (!psc_is_school_day($day_date)) continue;
-                if (trim((string) $menu->$jour) !== '') { $has_content = true; break; }
-            }
-        }
+        $days = self::menu_days_for_week($menu_week);
 
         $prev_week = gmdate('Y-m-d', strtotime($menu_week . ' -7 days'));
         $next_week = gmdate('Y-m-d', strtotime($menu_week . ' +7 days'));
-        // psc_msg est un message transitoire (ex: "Vous êtes déconnecté") : il
-        // ne doit pas survivre à la navigation dans le calendrier du menu.
-        $prev_url  = add_query_arg('psc_semaine', $prev_week, remove_query_arg('psc_msg'));
-        $next_url  = add_query_arg('psc_semaine', $next_week, remove_query_arg('psc_msg'));
-        $is_current_week = ($menu_week === psc_week_start(current_time('Y-m-d')));
+        $base = remove_query_arg(array('psc_semaine', 'psc_msg'));
 
-        include PSC_PATH . 'templates/frontend-menu.php';
+        return array(
+            'week_label'      => self::week_range_label($menu_week),
+            'is_current_week' => ($menu_week === psc_week_start(current_time('Y-m-d'))),
+            'has_content'     => !empty($days),
+            'days'            => $days,
+            'prev_url'        => add_query_arg(array_merge($extra_args, array('psc_semaine' => $prev_week)), $base),
+            'next_url'        => add_query_arg(array_merge($extra_args, array('psc_semaine' => $next_week)), $base),
+            'reset_url'       => $extra_args ? add_query_arg($extra_args, $base) : $base,
+        );
+    }
+
+    protected static function portal_menu_data() {
+        return self::menu_nav_data(array('psc_tab' => 'menu'));
+    }
+
+    protected static function guest_menu_data() {
+        return self::menu_nav_data();
+    }
+
+    /**
+     * Statistiques du tableau de bord : cumul période (tous enfants
+     * actifs confondus), prochaine facture non envoyée, menu de la
+     * semaine réelle en cours, résumé par enfant.
+     */
+    protected static function dashboard_data($parent, $children, $days_by_month, $reg_map, $services, $invoices) {
+        $days_count = 0;
+        $amount = 0.0;
+        $children_summaries = array();
+
+        foreach ($children as $child) {
+            $child_days = 0;
+            $child_amount = 0.0;
+            foreach ($days_by_month as $days) {
+                foreach ($days as $d) {
+                    $has_reg = false;
+                    foreach (psc_allowed_services() as $s) {
+                        if (isset($reg_map[$child->id . '|' . $d->jour_date . '|' . $s])) {
+                            $has_reg = true;
+                            $child_amount += (float) $services[$s]['price'];
+                        }
+                    }
+                    if ($has_reg) $child_days++;
+                }
+            }
+            $days_count += $child_days;
+            $amount += $child_amount;
+
+            $diet_bits = array();
+            if ((int) $child->sans_porc) $diet_bits[] = 'Sans porc';
+            if ((int) $child->vegan) $diet_bits[] = 'Sans viande';
+            $meta = $child->classe ? $child->classe : '';
+            if ($diet_bits) $meta .= ($meta !== '' ? ' · ' : '') . implode(', ', $diet_bits);
+            if ($meta === '') $meta = '—';
+
+            $children_summaries[] = array(
+                'name'    => trim($child->prenom . ' ' . $child->nom),
+                'meta'    => $meta,
+                'summary' => sprintf(
+                    '%d jour%s déclaré%s · %s €',
+                    $child_days, $child_days > 1 ? 's' : '', $child_days > 1 ? 's' : '',
+                    number_format_i18n($child_amount, 2)
+                ),
+            );
+        }
+
+        $next_invoice = null;
+        $pending = array_values(array_filter($invoices, function ($i) { return empty($i->sent_at); }));
+        if ($pending) {
+            usort($pending, function ($a, $b) { return strcmp($a->mois, $b->mois); });
+            $next_invoice = array(
+                'mois_label'   => Psc_Invoices::month_label($pending[0]->mois),
+                'status_label' => 'En attente',
+            );
+        }
+
+        $current_week = psc_week_start(current_time('Y-m-d'));
+
+        return array(
+            'title'        => $parent->nom !== '' ? 'Famille ' . $parent->nom : 'Bienvenue',
+            'days_label'   => $days_count . ($days_count > 1 ? ' jours' : ' jour'),
+            'amount_label' => number_format_i18n($amount, 2),
+            'next_invoice' => $next_invoice,
+            'menu'         => self::menu_days_for_week($current_week),
+            'children'     => $children_summaries,
+        );
+    }
+
+    /* ---------------- Vue invité v2 ("Vue visiteur") ---------------- */
+
+    /**
+     * Un message d'erreur retourné après une soumission de demande ratée
+     * (validation serveur inchangée, cf. Psc_Requests::handle_submit) doit
+     * rouvrir le stepper sur l'étape concernée — sinon l'erreur affichée
+     * ne correspond à aucun champ visible. Le rechargement complet de la
+     * page (redirection) efface aussi tout ce que le parent avait saisi,
+     * y compris le mode de paiement choisi : pour une erreur liée au
+     * prélèvement, on rouvre donc le panneau SEPA plutôt que de retomber
+     * sur "Chèque ou espèces" (qui masquerait le champ à corriger).
+     */
+    protected static function wizard_error_context($psc_msg) {
+        $map = array(
+            'need_child'               => array('step' => 1, 'sepa' => false),
+            'sepa_reglement_required'  => array('step' => 2, 'sepa' => true),
+            'sepa_missing'             => array('step' => 2, 'sepa' => true),
+            'bad_iban'                 => array('step' => 2, 'sepa' => true),
+            'bad_bic'                  => array('step' => 2, 'sepa' => true),
+            'reglement_required'       => array('step' => 3, 'sepa' => false),
+        );
+        if (isset($map[$psc_msg])) {
+            return array(
+                'step'         => $map[$psc_msg]['step'],
+                'payment_mode' => $map[$psc_msg]['sepa'] ? 'prelevement' : 'autre',
+                'has_error'    => true,
+            );
+        }
+        return array('step' => 0, 'payment_mode' => 'autre', 'has_error' => false);
     }
 
     /* ---------------- Affichage ---------------- */
@@ -383,12 +642,10 @@ class Psc_Frontend {
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         $parent = Psc_Parents::current();
 
-        // Menu de cantine : en accès libre, avant la connexion — affiché
-        // que la famille soit identifiée ou non.
-        self::render_menu_widget();
-
         if (!$parent) {
-            include PSC_PATH . 'templates/frontend-login.php';
+            $psc_guest_menu = self::guest_menu_data();
+            $psc_wizard = self::wizard_error_context($psc_msg);
+            include PSC_PATH . 'templates/frontend-guest.php';
             return ob_get_clean();
         }
 
@@ -413,7 +670,13 @@ class Psc_Frontend {
 
         $services = psc_services();
         $invoices = Psc_Invoices::get_for_parent($parent->id);
-        include PSC_PATH . 'templates/frontend-form.php';
+
+        $active_tab       = self::resolve_active_tab($psc_msg);
+        $psc_portal_tabs  = self::portal_tabs_data();
+        $psc_portal_menu  = self::portal_menu_data();
+        $psc_portal_dashboard = self::dashboard_data($parent, $children, $days_by_month, $reg_map, $services, $invoices);
+
+        include PSC_PATH . 'templates/frontend-portal.php';
         return ob_get_clean();
     }
 }

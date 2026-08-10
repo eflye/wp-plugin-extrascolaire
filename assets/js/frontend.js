@@ -81,6 +81,26 @@
         }
     }
 
+    // Total période par enfant (espace famille v2) : somme sur tous les
+    // mois de ce bloc enfant, pas seulement le mois affecté par le clic.
+    // Absent des anciennes pages (pas de [data-child-total]) : no-op.
+    function recomputeChildTotal(childBlock) {
+        var totalEl = childBlock.querySelector('[data-child-total]');
+        if (!totalEl) return;
+
+        var daysWithReg = {};
+        var total = 0;
+        childBlock.querySelectorAll('.psc-check').forEach(function (cb) {
+            if (!cb.checked) return;
+            daysWithReg[cb.dataset.date] = true;
+            total += parseFloat(cb.dataset.price) || 0;
+        });
+
+        var count = Object.keys(daysWithReg).length;
+        totalEl.textContent = count + ' jour' + (count > 1 ? 's' : '') + ' · ' +
+            total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+    }
+
     function applyForfaitUI(forf, isChecked) {
         var row = forf.closest('tr');
         if (!row) return;
@@ -101,6 +121,7 @@
         var isForf = cb.dataset.service === 'FORF';
         var willBeChecked = cb.checked;
         var monthBlock = cb.closest('.psc-month-block');
+        var childBlock = cb.closest('.psc-portal-child-block');
 
         // Pour FORF : appliquer le changement d'UI immédiatement, sans attendre l'AJAX.
         // On collecte d'abord les cases cochées à décocher côté serveur.
@@ -118,6 +139,7 @@
         }
 
         if (monthBlock) recomputeMonthSummary(monthBlock);
+        if (childBlock) recomputeChildTotal(childBlock);
 
         post({
             action: 'psc_toggle',
@@ -150,6 +172,7 @@
             cb.checked = !willBeChecked;
             if (isForf) applyForfaitUI(cb, !willBeChecked);
             if (monthBlock) recomputeMonthSummary(monthBlock);
+            if (childBlock) recomputeChildTotal(childBlock);
 
             var code = res && res.data && res.data.code;
 
@@ -166,6 +189,7 @@
             cb.checked = !willBeChecked;
             if (isForf) applyForfaitUI(cb, !willBeChecked);
             if (monthBlock) recomputeMonthSummary(monthBlock);
+            if (childBlock) recomputeChildTotal(childBlock);
             cellNotice(cb, MESSAGES.network);
         });
     }

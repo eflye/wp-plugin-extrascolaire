@@ -1,0 +1,1139 @@
+/* ===================================================================
+   Espace famille v2 — "Family Portal" (design handoff Montgeroult)
+   Scopé sous .psc-portal : ne touche jamais aux pages non redessinées
+   (connexion, demande d'inscription) qui gardent frontend.css.
+   Classes fonctionnelles réutilisées telles quelles depuis frontend.css/
+   frontend.js (comportement inchangé, cf. handoff "ne pas changer la
+   logique serveur") : .psc-check, .psc-month-block, .psc-toast,
+   .psc-notice, .psc-error, .psc-row-locked, #psc-confirm(-feedback).
+   =================================================================== */
+
+/* ---- Polices auto-hébergées (jamais de requête vers Google Fonts —
+   cohérent avec la position RGPD du projet : aucune donnée envoyée à un
+   tiers). Fichiers variables, un seul par famille. ---- */
+@font-face {
+    font-family: 'Fraunces';
+    font-style: normal;
+    font-weight: 500 800;
+    font-display: swap;
+    src: url('../fonts/fraunces-variable.woff2') format('woff2-variations'),
+         url('../fonts/fraunces-variable.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Work Sans';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('../fonts/worksans-variable.woff2') format('woff2-variations'),
+         url('../fonts/worksans-variable.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Cormorant Garamond';
+    font-style: italic;
+    font-weight: 500 600;
+    font-display: swap;
+    src: url('../fonts/cormorant-italic-variable.woff2') format('woff2-variations'),
+         url('../fonts/cormorant-italic-variable.woff2') format('woff2');
+}
+
+/* Le titre de page (H1 "wp-block-post-title") vient du modèle de page,
+   pas du contenu éditable (donc hors de portée d'un filtre the_content) —
+   masqué en CSS uniquement quand le portail famille est affiché
+   (body.psc-portal-active, ajoutée par Psc_Frontend::add_portal_body_class). */
+body.psc-portal-active .wp-block-post-title {
+    display: none;
+}
+/* Retire le padding vertical du gabarit de page (hérité du thème,
+   `has-global-padding`) autour du titre masqué ci-dessus, pour que le
+   portail démarre juste sous l'en-tête du site, sans espace mort.
+   !important nécessaire : ce padding est posé en style inline par le
+   bloc Group du thème (spécificité qu'aucun sélecteur ne peut dépasser). */
+body.psc-portal-active main > .wp-block-group.has-global-padding {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+.psc-portal, .psc-guest {
+    --psc-forest: #2D4A3E;
+    --psc-moss: #4A6B52;
+    --psc-gold: #E2A72B;
+    --psc-ink: #1A1A1A;
+    --psc-cream: #FBF7EC;
+    --psc-paper: #F4EDD8;
+    --psc-stone: #8A837A;
+    --psc-rule: rgba(45, 74, 62, 0.22);
+    --psc-rule-light: rgba(45, 74, 62, 0.15);
+    --psc-rule-lighter: rgba(45, 74, 62, 0.1);
+
+    background: var(--psc-cream);
+    font-family: 'Work Sans', sans-serif;
+    color: var(--psc-ink);
+    box-sizing: border-box;
+}
+.psc-portal {
+    display: flex;
+    align-items: flex-start;
+    min-height: 100vh;
+}
+.psc-portal *, .psc-guest *,
+.psc-portal *::before, .psc-guest *::before,
+.psc-portal *::after, .psc-guest *::after {
+    box-sizing: border-box;
+}
+.psc-portal button, .psc-guest button {
+    font-family: 'Work Sans', sans-serif;
+}
+
+/* ---- Sidebar ---- */
+.psc-portal-sidebar {
+    width: 264px;
+    flex-shrink: 0;
+    background: var(--psc-forest);
+    color: var(--psc-cream);
+    display: flex;
+    flex-direction: column;
+    padding: 28px 20px;
+    position: sticky;
+    top: 0;
+    min-height: 100vh;
+}
+.psc-portal-section-label {
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: rgba(251, 247, 236, 0.45);
+    font-weight: 600;
+    padding: 4px 8px 24px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(251, 247, 236, 0.15);
+}
+.psc-portal-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.psc-portal-nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    background: none;
+    border: none;
+    color: rgba(251, 247, 236, 0.75);
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    text-decoration: none;
+}
+.psc-portal-nav-btn svg { flex-shrink: 0; }
+.psc-portal-nav-btn:hover { color: var(--psc-cream); }
+.psc-portal-nav-btn.is-active {
+    background: rgba(226, 167, 43, 0.14);
+    color: var(--psc-gold);
+    font-weight: 600;
+}
+.psc-portal-account {
+    margin-top: auto;
+    padding: 16px 8px 4px;
+    border-top: 1px solid rgba(251, 247, 236, 0.15);
+}
+.psc-portal-account-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(251, 247, 236, 0.4);
+    margin-bottom: 4px;
+}
+.psc-portal-account-email {
+    font-family: 'Fraunces', serif;
+    font-size: 13px;
+    color: var(--psc-cream);
+    margin-bottom: 10px;
+    word-break: break-word;
+}
+.psc-portal-account form { margin: 0; }
+.psc-portal-account-logout {
+    background: none;
+    border: none;
+    color: rgba(251, 247, 236, 0.6);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+}
+
+/* ---- Main ---- */
+.psc-portal-main {
+    flex: 1;
+    padding: 44px 56px 64px;
+    max-width: 1120px;
+    min-width: 0;
+}
+.psc-portal-section { display: none; }
+.psc-portal-section.is-active { display: block; }
+
+/* ---- Typographie partagée ---- */
+.psc-portal-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--psc-moss);
+    font-weight: 600;
+    margin: 0 0 8px;
+}
+.psc-portal-h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 34px;
+    color: var(--psc-forest);
+    margin: 0 0 28px;
+    letter-spacing: -0.01em;
+}
+.psc-portal-h1--dashboard { font-size: 38px; margin-bottom: 6px; }
+.psc-portal-subtitle {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 19px;
+    color: var(--psc-ink);
+    margin: 0 0 34px;
+}
+.psc-portal-section-heading {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    border-bottom: 1px solid var(--psc-rule);
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+}
+.psc-portal-numeral {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 600;
+    color: var(--psc-gold);
+    font-size: 14px;
+}
+.psc-portal-heading-label {
+    font-size: 12px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--psc-forest);
+    font-weight: 600;
+}
+
+/* ---- Boutons "tampon" ---- */
+.psc-portal-btn-gold {
+    background: var(--psc-gold);
+    color: var(--psc-ink);
+    border: none;
+    padding: 11px 22px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 0 var(--psc-ink);
+}
+.psc-portal-btn-gold:hover { background: #d19a1f; }
+.psc-portal-btn-gold:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+.psc-portal-btn-ink {
+    background: var(--psc-ink);
+    color: var(--psc-cream);
+    border: none;
+    padding: 9px 14px;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    cursor: pointer;
+}
+.psc-portal-btn-outline-ink {
+    background: none;
+    color: var(--psc-ink);
+    border: 1px solid var(--psc-ink);
+    padding: 8px 14px;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    cursor: pointer;
+}
+.psc-portal-btn-outline-forest {
+    background: none;
+    border: 1px solid var(--psc-forest);
+    color: var(--psc-forest);
+    padding: 6px 14px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+}
+
+/* ---- Tableau de bord ---- */
+.psc-portal-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 36px;
+}
+.psc-portal-card {
+    background: #fff;
+    border: 1px solid var(--psc-rule-light);
+    padding: 22px 24px;
+}
+.psc-portal-card-label {
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--psc-stone);
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+.psc-portal-card-value {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 26px;
+    color: var(--psc-forest);
+}
+.psc-portal-card-sub {
+    font-size: 13px;
+    color: var(--psc-moss);
+    margin-top: 4px;
+}
+.psc-portal-card--gold {
+    background: var(--psc-gold);
+    padding: 22px 24px;
+    box-shadow: 0 2px 0 var(--psc-ink);
+    border: none;
+}
+.psc-portal-card--gold .psc-portal-card-label { color: var(--psc-ink); font-weight: 700; }
+.psc-portal-card--gold .psc-portal-btn-ink,
+.psc-portal-card--gold .psc-portal-btn-outline-ink { width: 100%; margin-bottom: 8px; }
+.psc-portal-card--gold .psc-portal-btn-outline-ink { margin-bottom: 0; }
+
+.psc-portal-dash-menu {
+    background: var(--psc-paper);
+    padding: 18px 22px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 36px;
+}
+.psc-portal-dash-menu-day {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--psc-moss);
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+.psc-portal-dash-menu-dish {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--psc-ink);
+}
+.psc-portal-dash-menu-empty {
+    grid-column: 1 / -1;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 15px;
+    color: var(--psc-stone);
+}
+
+.psc-portal-dash-children {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.psc-portal-dash-child-card {
+    background: #fff;
+    border: 1px solid var(--psc-rule-light);
+    padding: 16px 20px;
+    min-width: 220px;
+}
+.psc-portal-dash-child-name {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--psc-ink);
+}
+.psc-portal-dash-child-meta {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--psc-moss);
+    margin-top: 2px;
+}
+.psc-portal-dash-child-summary {
+    font-size: 12px;
+    color: var(--psc-stone);
+    margin-top: 8px;
+}
+
+/* ---- Cantine & Garderie ---- */
+.psc-portal-intro {
+    font-size: 14px;
+    color: var(--psc-ink);
+    line-height: 1.6;
+    max-width: 640px;
+    margin: 0 0 8px;
+}
+.psc-portal-intro-sub {
+    font-size: 13px;
+    color: var(--psc-moss);
+    margin: 0 0 28px;
+}
+.psc-portal-child-block { margin-bottom: 36px; }
+.psc-portal-child-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--psc-rule);
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+}
+.psc-portal-child-header h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 19px;
+    color: var(--psc-ink);
+    margin: 0;
+}
+.psc-portal-child-classe {
+    font-size: 12px;
+    color: var(--psc-stone);
+    font-weight: 400;
+    font-family: 'Work Sans', sans-serif;
+}
+.psc-portal-child-total {
+    font-size: 12.5px;
+    color: var(--psc-forest);
+    font-weight: 600;
+    white-space: nowrap;
+}
+.psc-portal-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.psc-portal-calendar {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 13px;
+}
+.psc-portal-calendar th,
+.psc-portal-calendar td { padding: 8px 10px; }
+.psc-portal-calendar thead th {
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--psc-moss);
+    border-bottom: 1px solid var(--psc-rule);
+    font-weight: 600;
+}
+.psc-portal-calendar thead th:first-child { text-align: left; letter-spacing: 0.18em; }
+.psc-portal-calendar thead th small {
+    display: block;
+    font-weight: 400;
+    color: var(--psc-stone);
+    text-transform: none;
+    letter-spacing: 0;
+    margin-top: 2px;
+}
+.psc-portal-calendar tbody th.psc-daylabel {
+    text-align: left;
+    font-weight: 500;
+    color: var(--psc-ink);
+    border-bottom: 1px solid var(--psc-rule-lighter);
+    white-space: nowrap;
+}
+.psc-portal-calendar tbody td {
+    text-align: center;
+    padding: 6px;
+    border-bottom: 1px solid var(--psc-rule-lighter);
+}
+.psc-portal-calendar .psc-lock { font-size: 0.85em; margin-left: 4px; }
+.psc-portal-calendar .psc-error {
+    display: block;
+    font-size: 0.72em;
+    color: #b32d2e;
+    margin-top: 4px;
+    line-height: 1.3;
+}
+
+/* Case à cocher stylée en "tampon" 34x30 — même <input type="checkbox">
+   que le calendrier existant, même comportement JS (assets/js/frontend.js
+   inchangé), seul l'habillage visuel change. */
+.psc-portal-calendar .psc-check {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 34px;
+    height: 30px;
+    margin: 0;
+    border: 1px solid rgba(45, 74, 62, 0.3);
+    background: #fff;
+    color: var(--psc-stone);
+    cursor: pointer;
+    position: relative;
+    vertical-align: middle;
+}
+.psc-portal-calendar .psc-check:checked { background: var(--psc-forest); border-color: var(--psc-forest); }
+.psc-portal-calendar .psc-check:checked::after {
+    content: '\2713';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--psc-cream);
+    font-size: 13px;
+    font-weight: 700;
+}
+.psc-portal-calendar .psc-check:disabled { background: var(--psc-paper); opacity: 0.55; cursor: not-allowed; }
+.psc-portal-calendar .psc-check:disabled:checked { background: var(--psc-forest); opacity: 0.55; }
+.psc-portal-calendar td.psc-ok { box-shadow: inset 0 0 0 2px var(--psc-gold); transition: box-shadow 0.6s ease; }
+
+.psc-portal-confirm {
+    background: var(--psc-paper);
+    border-left: 3px solid var(--psc-gold);
+    padding: 16px 22px;
+    margin-top: 8px;
+}
+.psc-portal-confirm-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--psc-ink);
+    margin: 0 0 4px;
+}
+.psc-portal-confirm-text {
+    font-size: 12.5px;
+    color: var(--psc-moss);
+    margin: 0 0 12px;
+    line-height: 1.5;
+}
+.psc-portal .psc-confirm-feedback { margin: 12px 0 0; font-size: 0.92em; min-height: 1.2em; }
+.psc-portal .psc-ok-text { color: var(--psc-forest); }
+.psc-portal .psc-err-text { color: #b32d2e; }
+
+/* ---- Menu de la semaine ---- */
+.psc-portal-menu-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: #fff;
+    border: 1px solid var(--psc-rule-light);
+    padding: 14px 20px;
+}
+.psc-portal-menu-nav-btn {
+    background: none;
+    border: 1px solid var(--psc-forest);
+    color: var(--psc-forest);
+    width: 34px;
+    height: 34px;
+    font-size: 16px;
+    cursor: pointer;
+    flex-shrink: 0;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.psc-portal-menu-nav-btn:hover { background: var(--psc-paper); }
+.psc-portal-menu-week { text-align: center; flex: 1; min-width: 160px; }
+.psc-portal-menu-week-label {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 17px;
+    color: var(--psc-forest);
+    margin: 0;
+}
+.psc-portal-menu-today-link {
+    background: none;
+    border: none;
+    color: var(--psc-gold);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-decoration: underline;
+    cursor: pointer;
+    margin-top: 2px;
+    display: inline-block;
+}
+.psc-portal-menu-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border: 1px solid var(--psc-rule-light);
+    border-top: none;
+}
+.psc-portal-menu-table th {
+    text-align: left;
+    padding: 16px 20px;
+    width: 130px;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--psc-moss);
+    font-weight: 700;
+    vertical-align: top;
+    border-bottom: 1px solid var(--psc-rule-lighter);
+}
+.psc-portal-menu-table td {
+    padding: 16px 20px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--psc-ink);
+    border-bottom: 1px solid var(--psc-rule-lighter);
+}
+.psc-portal-menu-empty {
+    background: #fff;
+    border: 1px solid var(--psc-rule-light);
+    border-top: none;
+    padding: 40px;
+    text-align: center;
+    color: var(--psc-stone);
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 17px;
+    margin: 0;
+}
+
+/* ---- Tableaux génériques (Mes enfants / Mes factures) ---- */
+.psc-portal-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border: 1px solid var(--psc-rule-light);
+    margin-bottom: 32px;
+}
+.psc-portal-table th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--psc-moss);
+    border-bottom: 1px solid var(--psc-rule);
+    font-weight: 600;
+}
+.psc-portal-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--psc-rule-lighter);
+    vertical-align: middle;
+}
+.psc-portal-table tbody tr:last-child td { border-bottom: none; }
+.psc-portal-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    background: var(--psc-paper);
+    color: var(--psc-forest);
+}
+.psc-portal-pill--pending { background: rgba(226, 167, 43, 0.18); color: #8A6A1E; }
+.psc-portal-pill--muted { background: none; color: var(--psc-stone); padding-left: 0; }
+
+/* ---- Mes enfants : formulaire d'ajout / édition inline ---- */
+.psc-portal-panel {
+    background: var(--psc-paper);
+    padding: 24px 26px;
+    max-width: 640px;
+}
+.psc-portal-panel-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 17px;
+    color: var(--psc-ink);
+    margin: 0 0 14px;
+}
+.psc-portal-field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 16px;
+    margin-bottom: 14px;
+}
+.psc-portal-field-label {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--psc-moss);
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+.psc-portal-field-underline {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid var(--psc-forest);
+    background: transparent;
+    padding: 6px 2px;
+    font-size: 14px;
+    font-family: 'Work Sans', sans-serif;
+    color: var(--psc-ink);
+    border-radius: 0;
+}
+.psc-portal-field-underline:focus { outline: none; border-bottom-color: var(--psc-gold); }
+.psc-portal-diet-checks {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.psc-portal-diet-checks label {
+    font-size: 12.5px;
+    color: var(--psc-ink);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: normal;
+}
+.psc-portal-child-row-form td { padding: 10px 16px; }
+.psc-portal-child-row-form select.psc-portal-field-underline { padding: 4px 2px; }
+.psc-portal-toggle { display: inline-flex; align-items: center; cursor: pointer; }
+.psc-portal-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.psc-portal-toggle-track {
+    display: inline-block;
+    width: 34px; height: 18px;
+    background: var(--psc-rule-light);
+    position: relative;
+    transition: background 0.2s;
+}
+.psc-portal-toggle-track::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 14px; height: 14px;
+    background: #fff;
+    transition: left 0.2s;
+}
+.psc-portal-toggle input:checked + .psc-portal-toggle-track { background: var(--psc-forest); }
+.psc-portal-toggle input:checked + .psc-portal-toggle-track::after { left: 18px; }
+.psc-portal-row-save { white-space: nowrap; }
+.psc-portal-btn-sm {
+    background: var(--psc-forest);
+    color: #fff;
+    border: none;
+    padding: 5px 14px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 600;
+    cursor: pointer;
+}
+.psc-portal-btn-sm:hover { background: #23392f; }
+
+/* ---- Notices / toast : mêmes classes que frontend.css (comportement JS
+   partagé), recolorées pour s'accorder à la palette du portail. ---- */
+.psc-portal .psc-notice-ok { background: var(--psc-paper); border-left: 4px solid var(--psc-forest); color: var(--psc-forest); }
+.psc-portal .psc-notice-err { background: rgba(179, 45, 46, 0.08); border-left: 4px solid #b32d2e; }
+.psc-portal .psc-toast-close:hover { background: rgba(0, 0, 0, 0.08); }
+
+/* ---- Responsive : la sidebar bascule en barre horizontale sous 900px
+   (non spécifié dans la maquette desktop-first — comportement raisonnable
+   par défaut, cf. handoff "Open Items"). ---- */
+@media (max-width: 900px) {
+    .psc-portal { flex-direction: column; }
+    .psc-portal-sidebar {
+        width: 100%;
+        min-height: 0;
+        position: static;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        padding: 14px 16px;
+        gap: 12px 20px;
+    }
+    .psc-portal-section-label { display: none; }
+    .psc-portal-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 4px;
+        order: 3;
+        width: 100%;
+    }
+    .psc-portal-nav-btn { width: auto; padding: 6px 10px; }
+    .psc-portal-account {
+        margin-top: 0;
+        margin-left: auto;
+        padding: 0;
+        border-top: none;
+        text-align: right;
+    }
+    .psc-portal-account-email { margin-bottom: 2px; }
+    .psc-portal-main { padding: 28px 20px 40px; max-width: 100%; }
+    .psc-portal-cards { grid-template-columns: 1fr; }
+    .psc-portal-dash-menu { grid-template-columns: repeat(2, 1fr); }
+    .psc-portal-dash-children { flex-direction: column; }
+    .psc-portal-field-grid { grid-template-columns: 1fr; }
+    .psc-portal-h1, .psc-portal-h1--dashboard { font-size: 28px; }
+
+    /* Calendrier : moins de marge perdue en padding, pour limiter le
+       recours au défilement horizontal contenu par .psc-portal-table-scroll. */
+    .psc-portal-calendar th,
+    .psc-portal-calendar td { padding: 5px 4px; font-size: 0.92em; }
+    .psc-portal-calendar thead th small { font-size: 0.85em; }
+    .psc-portal-calendar tbody th.psc-daylabel { white-space: normal; }
+
+    .psc-portal-table th,
+    .psc-portal-table td { padding: 8px 10px; }
+
+    /* En-tête d'un mois repliable / d'un enfant : autorise le retour à la
+       ligne plutôt que de couper le texte (ex : "Aucun jour déclaré"). */
+    .psc-month-block > summary { gap: 8px; padding: 12px 14px; flex-wrap: wrap; }
+    .psc-month-summary { white-space: normal; }
+    .psc-portal-child-header { flex-wrap: wrap; }
+    .psc-portal-diet-checks { flex-wrap: wrap; }
+}
+
+/* ===================================================================
+   Vue invité v2 ("Vue visiteur") — menu public + connexion + demande
+   d'inscription en 4 étapes. Scopé sous .psc-guest, partage les tokens
+   --psc-* avec .psc-portal (déclarés ensemble plus haut).
+   Classes fonctionnelles réutilisées telles quelles (comportement JS
+   inchangé, cf. assets/js/frontend.js) : .psc-toast, .psc-notice,
+   .psc-error, .psc-login-form, .psc-request-form.
+   =================================================================== */
+
+.psc-guest-inner {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 56px 32px 90px;
+}
+
+/* ---- Widget menu public ---- */
+.psc-guest-menu-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: #fff;
+    border: 1px solid var(--psc-rule-light);
+    padding: 14px 20px;
+}
+.psc-guest-menu-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--psc-moss);
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+.psc-guest-menu-week {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--psc-forest);
+}
+.psc-guest-menu-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border: 1px solid var(--psc-rule-light);
+    border-top: none;
+    margin-bottom: 44px;
+}
+.psc-guest-menu-table th {
+    text-align: left;
+    padding: 12px 20px;
+    width: 120px;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--psc-moss);
+    font-weight: 700;
+    vertical-align: top;
+    border-bottom: 1px solid var(--psc-rule-lighter);
+}
+.psc-guest-menu-table td {
+    padding: 12px 20px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--psc-ink);
+    border-bottom: 1px solid var(--psc-rule-lighter);
+}
+.psc-guest-menu-empty {
+    background: #fff;
+    border: 1px solid var(--psc-rule-light);
+    border-top: none;
+    padding: 28px;
+    text-align: center;
+    color: var(--psc-stone);
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 15px;
+    margin: 0 0 44px;
+}
+.psc-guest-menu-today-link {
+    background: none;
+    border: none;
+    color: var(--psc-gold);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-decoration: underline;
+    cursor: pointer;
+    margin-top: 2px;
+    display: inline-block;
+}
+
+/* ---- Cartes communes (connexion, demande) ---- */
+.psc-guest-card {
+    background: #fff;
+    border: 1px solid var(--psc-rule-light);
+    padding: 36px 40px;
+}
+.psc-guest-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--psc-gold);
+    font-weight: 700;
+    margin: 0 0 10px;
+}
+.psc-guest-h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 27px;
+    color: var(--psc-forest);
+    margin: 0 0 8px;
+}
+.psc-guest-intro {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 17px;
+    color: var(--psc-ink);
+    margin: 0 0 18px;
+}
+.psc-guest-hint {
+    font-size: 12px;
+    color: var(--psc-stone);
+    margin: 14px 0 0;
+}
+
+/* ---- Carte connexion ---- */
+.psc-guest-login-row {
+    display: flex;
+    gap: 14px;
+    align-items: flex-end;
+    max-width: 520px;
+    flex-wrap: wrap;
+}
+.psc-guest-login-row .psc-portal-field-underline { padding: 8px 2px; font-size: 15px; }
+
+/* ---- Séparateur "Nouvelle famille" ---- */
+.psc-guest-divider {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 36px 0 28px;
+}
+.psc-guest-divider-rule { flex: 1; height: 1px; background: var(--psc-rule); }
+.psc-guest-divider-label {
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--psc-stone);
+    font-weight: 600;
+}
+
+/* ---- Stepper ---- */
+.psc-wizard-stepper {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 32px;
+}
+.psc-wizard-step-wrap {
+    flex: 1;
+    min-width: 0; /* sans quoi les items flex refusent de rétrécir sous la
+                     largeur de leur contenu (défaut min-width:auto), et le
+                     libellé déborde sur l'étape suivante en écran étroit. */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+.psc-wizard-step-wrap:last-child { flex: none; }
+.psc-wizard-step-track {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+.psc-wizard-circle {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1px solid rgba(45, 74, 62, 0.35);
+    background: transparent;
+    color: var(--psc-stone);
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: 'Fraunces', serif;
+    padding: 0;
+}
+.psc-wizard-circle.is-current { border: none; background: var(--psc-gold); color: var(--psc-ink); }
+.psc-wizard-circle.is-done { border: none; background: var(--psc-forest); color: var(--psc-cream); }
+.psc-wizard-line {
+    flex: 1;
+    height: 1px;
+    background: var(--psc-rule-light);
+}
+.psc-wizard-line.is-done { background: var(--psc-forest); }
+.psc-wizard-step-label {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--psc-stone);
+    font-weight: 500;
+    margin-top: 6px;
+    overflow-wrap: break-word;
+    max-width: 100%;
+}
+.psc-wizard-step-label.is-current { color: var(--psc-forest); font-weight: 600; }
+
+/* ---- Contenu des étapes ---- */
+.psc-wizard-step { display: block; }
+.psc-wizard[data-js-ready] .psc-wizard-step:not(.is-active) { display: none; }
+
+.psc-wizard-help { font-size: 13px; color: var(--psc-moss); margin: 0 0 16px; }
+.psc-wizard-field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 20px;
+    margin-bottom: 8px;
+}
+.psc-wizard-child-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 140px auto auto auto;
+    gap: 14px;
+    align-items: end;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--psc-rule-lighter);
+}
+.psc-wizard-diet-check {
+    font-size: 12px;
+    color: var(--psc-ink);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+}
+.psc-wizard-remove-btn {
+    background: none;
+    border: none;
+    color: var(--psc-stone);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-decoration: underline;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.psc-wizard-add-btn {
+    background: none;
+    border: 1px dashed var(--psc-forest);
+    color: var(--psc-forest);
+    padding: 9px 16px;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+}
+.psc-wizard-add-btn:disabled { opacity: 0.4; cursor: default; }
+
+.psc-wizard-payment-cards { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+.psc-wizard-payment-card {
+    flex: 1;
+    min-width: 220px;
+    text-align: left;
+    padding: 16px 18px;
+    cursor: pointer;
+    background: #fff;
+    border: 1px solid rgba(45, 74, 62, 0.2);
+    color: var(--psc-ink);
+}
+.psc-wizard-payment-card.is-active { background: rgba(226, 167, 43, 0.12); border-color: var(--psc-gold); }
+.psc-wizard-payment-card-title { font-family: 'Fraunces', serif; font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+.psc-wizard-payment-card-sub { font-size: 12px; color: var(--psc-moss); }
+
+.psc-wizard-sepa-panel { background: var(--psc-paper); padding: 22px 24px; margin-bottom: 8px; }
+.psc-wizard-sepa-creditor { padding: 8px 2px; font-size: 14px; color: var(--psc-ink); }
+.psc-wizard-check-line {
+    font-size: 12.5px;
+    color: var(--psc-ink);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    line-height: 1.5;
+}
+.psc-wizard-check-line input { margin-top: 2px; }
+.psc-wizard-same-address { font-size: 12px; color: var(--psc-moss); display: flex; align-items: center; gap: 6px; margin: -8px 0 16px; }
+
+.psc-wizard-reglement-box {
+    border: 1px solid rgba(45, 74, 62, 0.2);
+    padding: 18px 20px;
+    max-height: 220px;
+    overflow-y: auto;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--psc-ink);
+    margin-bottom: 16px;
+}
+.psc-wizard-reglement-box p { margin: 0 0 10px; }
+.psc-wizard-reglement-box p:last-child { margin-bottom: 0; }
+.psc-wizard-reglement-box h4 { margin: 0.8em 0 0.3em; font-size: 1em; }
+.psc-wizard-reglement-box h4:first-child { margin-top: 0; }
+
+.psc-wizard-nav {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--psc-rule-light);
+}
+/* .psc-portal-btn-* fixent `display` inconditionnellement, ce qui masque
+   l'effet de l'attribut [hidden] (spécificité égale, mais la règle de
+   classe vient après la feuille UA) : on le réaffirme ici explicitement. */
+.psc-wizard-nav [hidden] { display: none !important; }
+.psc-wizard-rgpd {
+    font-size: 12px;
+    color: var(--psc-stone);
+    line-height: 1.5;
+    margin: 20px 0 0;
+}
+
+/* Champ piège anti-robot : masqué visuellement sans display:none. */
+.psc-guest .psc-hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+/* Notices / toast : mêmes classes que frontend.css, recolorées. */
+.psc-guest .psc-notice-ok { background: var(--psc-paper); border-left: 4px solid var(--psc-forest); color: var(--psc-forest); }
+.psc-guest .psc-notice-err { background: rgba(179, 45, 46, 0.08); border-left: 4px solid #b32d2e; }
+.psc-guest .psc-toast-close:hover { background: rgba(0, 0, 0, 0.08); }
+.psc-guest .psc-error { display: block; font-size: 0.75em; color: #b32d2e; margin-top: 4px; line-height: 1.3; }
+
+@media (max-width: 900px) {
+    .psc-guest-inner { padding: 32px 20px 60px; }
+    .psc-guest-card { padding: 24px 22px; }
+    .psc-guest-h1 { font-size: 22px; }
+    .psc-wizard-field-grid { grid-template-columns: 1fr; }
+    .psc-wizard-child-row { grid-template-columns: 1fr; }
+    .psc-wizard-payment-cards { flex-direction: column; }
+    .psc-guest-login-row { flex-direction: column; align-items: stretch; }
+}
+
+/* En dessous de ~560px, 4 libellés complets ("Coordonnées", "Règlement"…)
+   ne tiennent plus côte à côte sans se chevaucher : on ne garde que celui
+   de l'étape active, les cercles + lignes de progression suffisant à
+   montrer où on en est. */
+@media (max-width: 560px) {
+    .psc-wizard-step-label:not(.is-current) { display: none; }
+}

@@ -8,7 +8,15 @@ comme condition d'attente (`wait_for`) de l'étape qui le déclenche.
 Source du comportement : `includes/class-psc-parents.php`,
 `includes/class-psc-frontend.php`, `includes/class-psc-mailer.php`,
 `includes/helpers.php`, `templates/frontend-login.php`,
-`templates/frontend-form.php`, `assets/js/frontend.js`.
+`templates/frontend-portal.php`, `templates/portal-cantine.php`,
+`assets/js/frontend.js`, `assets/js/portal.js`.
+
+> **v2 (Family Portal)** : depuis la refonte en portail à onglets (sidebar
+> Tableau de bord / Cantine & Garderie / Menu de la semaine / Mes enfants /
+> Mes factures), la connexion atterrit sur le Tableau de bord — le
+> calendrier n'est plus visible par défaut, il faut d'abord ouvrir l'onglet
+> "Cantine & Garderie" (nouvelle étape 05b ci-dessous). Les testid du
+> calendrier lui-même (`month-toggle-…`, `check-…`, etc.) sont inchangés.
 
 ## Vidéo
 
@@ -152,7 +160,7 @@ session:
 - **action** : navigate — URL de la page contenant `[periscolaire_form]`, sans cookie `psc_session`
 - **testid** : `login-card`
 - **wait_for** : `[data-testid="login-card"]` visible
-- **expect** : titre "Déclarer les jours de présence" affiché ; `[data-testid="login-email-input"]` vide
+- **expect** : titre "Se connecter à l'espace famille" affiché ; `[data-testid="login-email-input"]` vide
 - **narration** : "Aucun compte à créer : le parent saisit son e-mail" *(scène partagée avec 02)*
 - **duration** : 5 s
 - **focus** : `login-form`
@@ -208,6 +216,22 @@ session:
 - **narration** : "Il arrive directement sur le planning de ses enfants"
 - **duration** : 5 s
 - **focus** : `account-bar`
+
+### 05b-ouverture-onglet-cantine
+*(nouvelle étape v2 — sans équivalent avant la refonte en portail à
+onglets : la connexion atterrit sur le Tableau de bord, pas sur le
+calendrier)*
+- **action** : click
+- **testid** : `portal-nav-cantine`
+- **wait_for** : `[data-testid="portal-section-cantine"]` visible
+  *(bascule cliente, `assets/js/portal.js` — aucun appel serveur, aucun
+  rechargement de page)*
+- **expect** : `[data-testid="portal-nav-cantine"]` porte la classe
+  `is-active` ; `[data-testid="portal-section-dashboard"]` n'est plus
+  visible
+- **narration** : "Le calendrier se trouve dans l'onglet Cantine & Garderie"
+- **duration** : 3 s
+- **focus** : `portal-nav-cantine`
 
 ### 06-ouverture-du-mois
 - **action** : click

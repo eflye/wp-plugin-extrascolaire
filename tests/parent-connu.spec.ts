@@ -162,7 +162,7 @@ test('parent déjà connu — de la connexion au récapitulatif', async ({ page,
     async () => {
       await page.goto(APP_PAGE);
       await expect(page.getByTestId('login-card')).toBeVisible();
-      await expect(page.getByTestId('login-card').locator('h2')).toHaveText('Déclarer les jours de présence');
+      await expect(page.getByTestId('login-card').locator('h2')).toHaveText("Se connecter à l'espace famille");
       await expect(page.getByTestId('login-email-input')).toHaveValue('');
 
       await page.getByTestId('login-email-input').fill(seed.parent_email);
@@ -223,6 +223,23 @@ test('parent déjà connu — de la connexion au récapitulatif', async ({ page,
       await expect(page.getByTestId('account-email')).toHaveText(seed.parent_email);
       const cookies = await context.cookies();
       expect(cookies.some((c) => c.name === 'psc_session')).toBe(true);
+    }
+  );
+
+  /* ---------------- 05b-ouverture-onglet-cantine (v2 portail) ---------------- */
+  // Depuis la refonte en portail à onglets, la connexion atterrit sur le
+  // Tableau de bord — le calendrier n'est plus visible par défaut, il faut
+  // d'abord ouvrir l'onglet "Cantine & Garderie" (bascule cliente, aucun
+  // rechargement de page — cf. assets/js/portal.js).
+  await playScene(
+    '05b-ouverture-onglet-cantine',
+    3_000,
+    'portal-nav-cantine',
+    "Le calendrier se trouve dans l'onglet Cantine & Garderie",
+    async () => {
+      await page.getByTestId('portal-nav-cantine').click();
+      await expect(page.getByTestId('portal-section-cantine')).toBeVisible();
+      await expect(page.getByTestId('portal-nav-cantine')).toHaveClass(/is-active/);
     }
   );
 
