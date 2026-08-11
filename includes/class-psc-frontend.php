@@ -445,32 +445,42 @@ class Psc_Frontend {
     }
 
     /**
-     * Jours du menu (parmi lundi/mardi/jeudi/vendredi) pour la semaine
-     * donnée, uniquement s'il s'agit d'une semaine d'école avec du
-     * contenu — sinon tableau vide (état "non renseigné" uniformisé côté
-     * portail, cf. handoff : pas de distinction visuelle entre "vacances"
-     * et "pas encore saisi").
+     * Vrai si la semaine (lundi donné) contient au moins un jour d'école
+     * réel — distingue "vacances scolaires" de "semaine d'école dont le
+     * menu n'a pas encore été saisi", deux états à ne pas confondre dans
+     * l'affichage (une famille ne doit pas croire qu'un menu manque alors
+     * que l'école est simplement fermée).
      */
-    protected static function menu_days_for_week($monday) {
+    protected static function week_has_school_day($monday) {
         foreach (Psc_Menus::JOUR_OFFSETS as $offset) {
             $day_date = gmdate('Y-m-d', strtotime($monday . " +{$offset} days"));
-            if (psc_is_school_day($day_date)) {
-                $menu = Psc_Menus::get_by_week($monday);
-                if (!$menu) return array();
-
-                $days_out = array();
-                foreach (Psc_Menus::jour_labels() as $key => $label) {
-                    $d_offset = Psc_Menus::JOUR_OFFSETS[$key];
-                    $d_date = gmdate('Y-m-d', strtotime($monday . " +{$d_offset} days"));
-                    if (!psc_is_school_day($d_date)) continue;
-                    $content = trim((string) $menu->$key);
-                    if ($content === '') continue;
-                    $days_out[] = array('day' => $label, 'dish' => $content);
-                }
-                return $days_out;
-            }
+            if (psc_is_school_day($day_date)) return true;
         }
-        return array(); // aucun jour d'école cette semaine-là
+        return false;
+    }
+
+    /**
+     * Jours du menu (parmi lundi/mardi/jeudi/vendredi) pour la semaine
+     * donnée. Tableau vide si l'école est fermée toute la semaine, ou si
+     * la semaine est scolaire mais que le menu n'a pas encore été saisi
+     * (cf. week_has_school_day() pour distinguer les deux côté affichage).
+     */
+    protected static function menu_days_for_week($monday) {
+        if (!self::week_has_school_day($monday)) return array();
+
+        $menu = Psc_Menus::get_by_week($monday);
+        if (!$menu) return array();
+
+        $days_out = array();
+        foreach (Psc_Menus::jour_labels() as $key => $label) {
+            $d_offset = Psc_Menus::JOUR_OFFSETS[$key];
+            $d_date = gmdate('Y-m-d', strtotime($monday . " +{$d_offset} days"));
+            if (!psc_is_school_day($d_date)) continue;
+            $content = trim((string) $menu->$key);
+            if ($content === '') continue;
+            $days_out[] = array('day' => $label, 'dish' => $content);
+        }
+        return $days_out;
     }
 
     /**
@@ -520,6 +530,7 @@ class Psc_Frontend {
             'week_label'      => self::week_range_label($menu_week),
             'is_current_week' => ($menu_week === psc_week_start(current_time('Y-m-d'))),
             'has_content'     => !empty($days),
+            'no_school_week'  => !self::week_has_school_day($menu_week),
             'days'            => $days,
             'prev_url'        => add_query_arg(array_merge($extra_args, array('psc_semaine' => $prev_week)), $base),
             'next_url'        => add_query_arg(array_merge($extra_args, array('psc_semaine' => $next_week)), $base),
@@ -594,12 +605,13 @@ class Psc_Frontend {
         $current_week = psc_week_start(current_time('Y-m-d'));
 
         return array(
-            'title'        => $parent->nom !== '' ? 'Famille ' . $parent->nom : 'Bienvenue',
-            'days_label'   => $days_count . ($days_count > 1 ? ' jours' : ' jour'),
-            'amount_label' => number_format_i18n($amount, 2),
-            'next_invoice' => $next_invoice,
-            'menu'         => self::menu_days_for_week($current_week),
-            'children'     => $children_summaries,
+            'title'          => $parent->nom !== '' ? 'Famille ' . $parent->nom : 'Bienvenue',
+            'days_label'     => $days_count . ($days_count > 1 ? ' jours' : ' jour'),
+            'amount_label'   => number_format_i18n($amount, 2),
+            'next_invoice'   => $next_invoice,
+            'menu'           => self::menu_days_for_week($current_week),
+            'menu_no_school' => !self::week_has_school_day($current_week),
+            'children'       => $children_summaries,
         );
     }
 

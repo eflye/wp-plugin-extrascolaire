@@ -22,6 +22,8 @@
   </tr>
   <?php endforeach; ?>
 </table>
+<?php elseif ($psc_guest_menu['no_school_week']): ?>
+<p class="psc-guest-menu-empty" data-testid="menu-no-school">Pas d'école cette semaine (vacances scolaires) : pas de périscolaire ni de cantine.</p>
 <?php else: ?>
-<p class="psc-guest-menu-empty" data-testid="menu-no-school">Menu non encore renseigné pour cette semaine.</p>
+<p class="psc-guest-menu-empty" data-testid="menu-not-filled">Menu non encore renseigné pour cette semaine.</p>
 <?php endif; ?>

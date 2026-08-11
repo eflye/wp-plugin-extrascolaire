@@ -38,6 +38,8 @@
       <div class="psc-portal-dash-menu-dish"><?php echo esc_html($m['dish']); ?></div>
     </div>
     <?php endforeach; ?>
+  <?php elseif (!empty($psc_portal_dashboard['menu_no_school'])): ?>
+    <p class="psc-portal-dash-menu-empty">Pas d'école cette semaine (vacances scolaires) : pas de périscolaire ni de cantine.</p>
   <?php else: ?>
     <p class="psc-portal-dash-menu-empty">Menu non encore renseigné pour cette semaine.</p>
   <?php endif; ?>
