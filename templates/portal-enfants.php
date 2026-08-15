@@ -5,49 +5,86 @@
 <?php if (!empty($all_children)): ?>
 <div class="psc-portal-table-scroll">
 <table class="psc-portal-table" data-testid="portal-children-table">
+  <colgroup>
+    <col style="width:13%"><col style="width:22%"><col style="width:10%"><col style="width:12%">
+    <col style="width:15%"><col style="width:10%"><col style="width:18%">
+  </colgroup>
   <thead>
     <tr>
       <th>Prénom</th><th>Nom</th><th>Classe</th><th>Naissance</th><th>Régime</th><th>Actif</th><th></th>
     </tr>
   </thead>
   <tbody>
+  <?php $psc_classe_labels = psc_classe_options(); ?>
   <?php foreach ($all_children as $c): ?>
     <tr data-testid="portal-child-row-<?php echo esc_attr($c->id); ?>">
-      <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="psc-child-update-form psc-portal-child-row-form">
-        <?php wp_nonce_field('psc_parent_update_child'); ?>
-        <input type="hidden" name="action" value="psc_parent_update_child">
-        <input type="hidden" name="child_id" value="<?php echo esc_attr($c->id); ?>">
-        <td style="font-weight:500;"><?php echo esc_html($c->prenom); ?></td>
-        <td><?php echo esc_html($c->nom); ?></td>
-        <td>
-          <select name="classe" class="psc-portal-field-underline" aria-label="Classe de <?php echo esc_attr($c->prenom); ?>">
-            <?php foreach (psc_classe_options() as $v => $l): ?>
-            <option value="<?php echo esc_attr($v); ?>" <?php selected($c->classe, $v); ?>><?php echo esc_html($l); ?></option>
-            <?php endforeach; ?>
-          </select>
-        </td>
-        <td>
-          <input type="date" name="naissance" class="psc-portal-field-underline" aria-label="Date de naissance de <?php echo esc_attr($c->prenom); ?>" value="<?php echo esc_attr($c->date_naissance); ?>">
-        </td>
-        <td>
-          <div class="psc-portal-diet-checks">
-            <label><input type="checkbox" name="sans_porc" value="1" <?php checked((int) $c->sans_porc, 1); ?>> Sans porc</label>
-            <label><input type="checkbox" name="vegan" value="1" <?php checked((int) $c->vegan, 1); ?>> Sans viande</label>
-          </div>
-        </td>
-        <td>
-          <label class="psc-portal-toggle" aria-label="Activer ou désactiver <?php echo esc_attr($c->prenom); ?>">
-            <input type="checkbox" name="active" value="1" <?php checked((int) $c->active, 1); ?>>
-            <span class="psc-portal-toggle-track"></span>
-          </label>
-        </td>
-        <td class="psc-portal-row-save"><button type="submit" class="psc-portal-btn-sm">Enregistrer</button></td>
-      </form>
+      <td style="font-weight:500;"><?php echo esc_html($c->prenom); ?></td>
+      <td><?php echo esc_html($c->nom); ?></td>
+      <td><?php echo esc_html($psc_classe_labels[$c->classe] ?? $c->classe); ?></td>
+      <td><?php echo $c->date_naissance ? esc_html(date_i18n('d/m/Y', strtotime($c->date_naissance))) : '—'; ?></td>
+      <td>
+        <?php
+          $psc_diet = array();
+          if ((int) $c->sans_porc === 1) $psc_diet[] = 'Sans porc';
+          if ((int) $c->vegan === 1) $psc_diet[] = 'Sans viande';
+        ?>
+        <?php if ($psc_diet): ?>
+          <span class="psc-badge"><?php echo esc_html(implode(', ', $psc_diet)); ?></span>
+        <?php else: ?>
+          <span class="psc-portal-muted">—</span>
+        <?php endif; ?>
+      </td>
+      <td>
+        <?php if ((int) $c->active === 1): ?>
+          <span class="psc-badge-ok">Actif</span>
+        <?php else: ?>
+          <span class="psc-badge-warn">Inactif</span>
+        <?php endif; ?>
+      </td>
+      <td class="psc-portal-row-save">
+        <button type="button" class="psc-portal-btn-sm" data-child-edit-trigger data-child-id="<?php echo esc_attr($c->id); ?>" aria-label="Corriger le prénom, le nom ou la date de naissance de <?php echo esc_attr($c->prenom); ?>">Modifier</button>
+      </td>
     </tr>
   <?php endforeach; ?>
   </tbody>
 </table>
 </div>
+
+<div id="psc-child-edit-modal" class="psc-portal-modal-overlay" hidden data-testid="child-edit-modal">
+  <div class="psc-portal-modal">
+    <h3 class="psc-portal-modal-title">Corriger les informations</h3>
+    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" data-testid="child-edit-form">
+      <?php wp_nonce_field('psc_parent_update_child_identity'); ?>
+      <input type="hidden" name="action" value="psc_parent_update_child_identity">
+      <input type="hidden" name="child_id" id="psc-child-edit-id" value="">
+
+      <label class="psc-portal-field-label" for="psc-child-edit-prenom">Prénom</label>
+      <input type="text" id="psc-child-edit-prenom" name="prenom" maxlength="190" required class="psc-portal-field-underline">
+
+      <label class="psc-portal-field-label" for="psc-child-edit-nom" style="margin-top:16px;">Nom</label>
+      <input type="text" id="psc-child-edit-nom" name="nom" maxlength="190" required class="psc-portal-field-underline">
+
+      <label class="psc-portal-field-label" for="psc-child-edit-naissance" style="margin-top:16px;">Date de naissance</label>
+      <input type="date" id="psc-child-edit-naissance" name="naissance" class="psc-portal-field-underline">
+
+      <div class="psc-portal-modal-actions">
+        <button type="button" class="psc-portal-btn-outline-ink" data-child-edit-close>Annuler</button>
+        <button type="submit" class="psc-portal-btn-gold" data-testid="child-edit-submit">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script type="application/json" id="psc-child-edit-data"><?php
+  $psc_child_edit_data = array();
+  foreach ($all_children as $c) {
+      $psc_child_edit_data[$c->id] = array(
+          'prenom'    => $c->prenom,
+          'nom'       => $c->nom,
+          'naissance' => $c->date_naissance,
+      );
+  }
+  echo wp_json_encode($psc_child_edit_data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+?></script>
 <?php endif; ?>
 
 <?php
@@ -55,16 +92,20 @@ $psc_active_children = array_filter($all_children, function ($c) { return (int) 
 $psc_rentree_debut = psc_rentree_year();
 ?>
 <?php if (!empty($psc_active_children)): ?>
-<div class="psc-portal-panel">
+<div class="psc-portal-panel psc-portal-panel--wide">
   <div class="psc-portal-panel-title">Assurance scolaire <?php echo esc_html($psc_rentree_debut . '–' . ($psc_rentree_debut + 1)); ?></div>
   <p class="psc-portal-intro">Un justificatif à jour est nécessaire pour pouvoir déclarer des jours de cantine ou de garderie pour chaque enfant.</p>
   <div class="psc-portal-table-scroll">
   <table class="psc-portal-table" data-testid="portal-assurance-table">
-    <thead><tr><th>Enfant</th><th>Statut</th><th></th></tr></thead>
+    <colgroup>
+      <col style="width:13%"><col style="width:22%"><col style="width:47%"><col style="width:18%">
+    </colgroup>
+    <thead><tr><th>Prénom</th><th>Nom</th><th>Statut</th><th></th></tr></thead>
     <tbody>
     <?php foreach ($psc_active_children as $c): $psc_a = $psc_assurance_map[$c->id] ?? null; ?>
       <tr data-testid="assurance-row-<?php echo esc_attr($c->id); ?>">
-        <td style="font-weight:500;"><?php echo esc_html($c->prenom . ' ' . $c->nom); ?></td>
+        <td style="font-weight:500;"><?php echo esc_html($c->prenom); ?></td>
+        <td><?php echo esc_html($c->nom); ?></td>
         <td>
           <?php if ($psc_a): ?>
             <span class="psc-badge-ok" data-testid="assurance-status-<?php echo esc_attr($c->id); ?>">Fournie</span>
@@ -75,13 +116,7 @@ $psc_rentree_debut = psc_rentree_year();
           <?php endif; ?>
         </td>
         <td>
-          <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data" class="psc-assurance-upload-form">
-            <?php wp_nonce_field('psc_parent_upload_assurance'); ?>
-            <input type="hidden" name="action" value="psc_parent_upload_assurance">
-            <input type="hidden" name="child_id" value="<?php echo esc_attr($c->id); ?>">
-            <input type="file" name="assurance_file" accept=".pdf,.jpg,.jpeg,.png" required aria-label="Justificatif d'assurance scolaire de <?php echo esc_attr($c->prenom); ?>">
-            <button type="submit" class="psc-portal-btn-sm"><?php echo $psc_a ? 'Remplacer' : 'Uploader'; ?></button>
-          </form>
+          <button type="button" class="psc-portal-btn-sm" data-assurance-upload-trigger data-child-id="<?php echo esc_attr($c->id); ?>" aria-label="<?php echo esc_attr($psc_a ? 'Remplacer le justificatif d\'assurance de ' . $c->prenom : 'Ajouter le justificatif d\'assurance de ' . $c->prenom); ?>"><?php echo $psc_a ? 'Remplacer' : 'Uploader'; ?></button>
         </td>
       </tr>
     <?php endforeach; ?>
@@ -89,9 +124,41 @@ $psc_rentree_debut = psc_rentree_year();
   </table>
   </div>
 </div>
+
+<div id="psc-assurance-upload-modal" class="psc-portal-modal-overlay" hidden data-testid="assurance-upload-modal">
+  <div class="psc-portal-modal">
+    <h3 class="psc-portal-modal-title" id="psc-assurance-upload-title">Justificatif d'assurance scolaire</h3>
+    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data" data-testid="assurance-upload-form">
+      <?php wp_nonce_field('psc_parent_upload_assurance'); ?>
+      <input type="hidden" name="action" value="psc_parent_upload_assurance">
+      <input type="hidden" name="child_id" id="psc-assurance-upload-child-id" value="">
+
+      <div class="psc-portal-file-field">
+        <label for="psc-assurance-upload-file" class="psc-portal-file-field-btn">Choisir un fichier</label>
+        <input type="file" id="psc-assurance-upload-file" name="assurance_file" accept=".pdf,.jpg,.jpeg,.png" required class="psc-portal-file-field-input" data-testid="assurance-upload-file">
+        <span class="psc-portal-file-field-name" data-psc-file-name></span>
+      </div>
+
+      <div class="psc-portal-modal-actions">
+        <button type="button" class="psc-portal-btn-outline-ink" data-assurance-upload-close>Annuler</button>
+        <button type="submit" class="psc-portal-btn-gold" data-testid="assurance-upload-submit">Envoyer</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script type="application/json" id="psc-assurance-upload-data"><?php
+  $psc_assurance_upload_data = array();
+  foreach ($psc_active_children as $c) {
+      $psc_a = $psc_assurance_map[$c->id] ?? null;
+      $psc_assurance_upload_data[$c->id] = array(
+          'label' => $c->prenom . ($psc_a ? ' — remplacer le justificatif' : ' — ajouter le justificatif'),
+      );
+  }
+  echo wp_json_encode($psc_assurance_upload_data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+?></script>
 <?php endif; ?>
 
-<div class="psc-portal-panel">
+<div class="psc-portal-panel psc-portal-panel--wide">
   <div class="psc-portal-panel-title">Ajouter un enfant</div>
   <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data" class="psc-add-child-form">
     <?php wp_nonce_field('psc_parent_add_child'); ?>

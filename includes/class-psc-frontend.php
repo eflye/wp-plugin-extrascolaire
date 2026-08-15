@@ -30,6 +30,8 @@ class Psc_Frontend {
         // Gestion des enfants par le parent (formulaires POST classiques).
         add_action('admin_post_nopriv_psc_parent_update_child', array(__CLASS__, 'handle_parent_update_child'));
         add_action('admin_post_psc_parent_update_child', array(__CLASS__, 'handle_parent_update_child'));
+        add_action('admin_post_nopriv_psc_parent_update_child_identity', array(__CLASS__, 'handle_parent_update_child_identity'));
+        add_action('admin_post_psc_parent_update_child_identity', array(__CLASS__, 'handle_parent_update_child_identity'));
         add_action('admin_post_nopriv_psc_parent_add_child', array(__CLASS__, 'handle_parent_add_child'));
         add_action('admin_post_psc_parent_add_child', array(__CLASS__, 'handle_parent_add_child'));
 
@@ -665,6 +667,47 @@ class Psc_Frontend {
             ),
             array('id' => $child_id),
             array('%s', '%s', '%d', '%d', '%d', '%d'),
+            array('%d')
+        );
+        self::parent_form_redirect('child_updated');
+    }
+
+    /**
+     * Correction par le parent d'une faute de frappe sur l'état civil
+     * (prénom / nom / date de naissance) d'un enfant déjà onboardé.
+     * Volontairement séparé de handle_parent_update_child() : ce dernier
+     * ne connaît pas prenom/nom et remet classe/actif/régime à leurs
+     * valeurs par défaut si absents du POST, ce qui écraserait ces champs.
+     */
+    public static function handle_parent_update_child_identity() {
+        check_admin_referer('psc_parent_update_child_identity');
+
+        $parent = Psc_Parents::current();
+        if (!$parent) self::parent_form_redirect('auth');
+
+        $child_id  = psc_post_int('child_id');
+        $prenom    = psc_post('prenom');
+        $nom       = psc_post('nom');
+        $naissance = psc_valid_date(psc_post('naissance'));
+
+        if ($prenom === '' || $nom === '') self::parent_form_redirect('child_invalid');
+
+        global $wpdb;
+        $t_child = psc_table('children');
+        $owned = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $t_child WHERE id = %d AND parent_id = %d", $child_id, $parent->id
+        ));
+        if (!$owned) self::parent_form_redirect('invalid');
+
+        $wpdb->update(
+            $t_child,
+            array(
+                'prenom'         => mb_substr($prenom, 0, 190),
+                'nom'            => mb_substr($nom, 0, 190),
+                'date_naissance' => $naissance ?: null,
+            ),
+            array('id' => $child_id),
+            array('%s', '%s', '%s'),
             array('%d')
         );
         self::parent_form_redirect('child_updated');

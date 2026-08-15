@@ -52,6 +52,18 @@ body.psc-portal-active main > .wp-block-group.has-global-padding {
     padding-top: 0 !important;
     padding-bottom: 0 !important;
 }
+/* Le thème plafonne <main> à sa "content width" (ex : 1120px, centrée par
+   des marges automatiques) : hérité par .psc-portal (qui compte dessus
+   pour occuper toute la largeur de l'écran, sidebar + colonne à
+   1120px). Sans ce reset, sidebar + colonne se retrouvent compressées
+   dans cette largeur de contenu au lieu de celle de l'écran. */
+body.psc-portal-active main.site-main {
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
 
 .psc-portal, .psc-guest {
     --psc-forest: #2D4A3E;
@@ -408,6 +420,47 @@ body.psc-portal-active main > .wp-block-group.has-global-padding {
     gap: 12px;
     margin-top: 24px;
 }
+/* Champ fichier custom : le <input type="file"> natif ("Choisir un
+   fichier" + "Aucun fichier choisi") est masqué visuellement (mais reste
+   cliquable/accessible via le <label for>) et remplacé par un bouton
+   assorti au reste du portail ; le nom du fichier ne s'affiche qu'une
+   fois un fichier réellement choisi (cf. .psc-portal-file-field-name,
+   rempli par assets/js/portal.js). */
+.psc-portal-file-field {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.psc-portal-file-field-btn {
+    display: inline-block;
+    background: none;
+    color: var(--psc-ink);
+    border: 1px solid var(--psc-ink);
+    padding: 8px 14px;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    cursor: pointer;
+}
+.psc-portal-file-field-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+.psc-portal-file-field:focus-within .psc-portal-file-field-btn {
+    outline: 2px solid var(--psc-gold);
+}
+.psc-portal-file-field-name {
+    font-size: 13px;
+    color: var(--psc-ink);
+}
 
 /* ---- Cantine & Garderie ---- */
 .psc-portal-intro {
@@ -679,6 +732,15 @@ body.psc-portal-active main > .wp-block-group.has-global-padding {
     background: var(--psc-paper);
     padding: 24px 26px;
     max-width: 640px;
+    margin-bottom: 24px;
+}
+.psc-portal-panel:last-child { margin-bottom: 0; }
+/* "Assurance scolaire" : contrairement à "Ajouter un enfant" (formulaire
+   à 2 colonnes, volontairement étroit), ce panneau contient un tableau
+   avec des noms d'enfant — le plafond à 640px écrase le nom sur
+   plusieurs lignes alors que la colonne principale a de la place. */
+.psc-portal-panel--wide {
+    max-width: none;
 }
 .psc-portal-panel-title {
     font-family: 'Fraunces', serif;
@@ -728,27 +790,7 @@ body.psc-portal-active main > .wp-block-group.has-global-padding {
     gap: 6px;
     font-weight: normal;
 }
-.psc-portal-child-row-form td { padding: 10px 16px; }
-.psc-portal-child-row-form select.psc-portal-field-underline { padding: 4px 2px; }
-.psc-portal-toggle { display: inline-flex; align-items: center; cursor: pointer; }
-.psc-portal-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
-.psc-portal-toggle-track {
-    display: inline-block;
-    width: 34px; height: 18px;
-    background: var(--psc-rule-light);
-    position: relative;
-    transition: background 0.2s;
-}
-.psc-portal-toggle-track::after {
-    content: '';
-    position: absolute;
-    top: 2px; left: 2px;
-    width: 14px; height: 14px;
-    background: #fff;
-    transition: left 0.2s;
-}
-.psc-portal-toggle input:checked + .psc-portal-toggle-track { background: var(--psc-forest); }
-.psc-portal-toggle input:checked + .psc-portal-toggle-track::after { left: 18px; }
+.psc-portal-muted { color: var(--psc-stone); }
 .psc-portal-row-save { white-space: nowrap; }
 .psc-portal-btn-sm {
     background: var(--psc-forest);
