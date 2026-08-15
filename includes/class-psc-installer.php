@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '2.15.0';
+    const DB_VERSION = '2.16.0';
 
     public static function activate() {
         self::create_tables();
@@ -293,6 +293,7 @@ CREATE TABLE $t_req (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             email VARCHAR(191) NOT NULL,
             nom VARCHAR(191) NULL,
+            prenom VARCHAR(191) NULL,
             telephone VARCHAR(40) NULL,
             adresse VARCHAR(255) NULL,
             code_postal VARCHAR(10) NULL,

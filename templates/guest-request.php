@@ -46,24 +46,28 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
           <input id="psc-req-email" class="psc-portal-field-underline" type="email" name="req_email" autocomplete="email" required>
         </div>
         <div>
-          <label class="psc-portal-field-label" for="psc-req-nom">Nom de famille</label>
-          <input id="psc-req-nom" class="psc-portal-field-underline" type="text" name="req_nom" maxlength="190" autocomplete="family-name">
+          <label class="psc-portal-field-label" for="psc-req-prenom">Prénom <span class="psc-req">*</span></label>
+          <input id="psc-req-prenom" class="psc-portal-field-underline" type="text" name="req_prenom" maxlength="190" autocomplete="given-name" required>
         </div>
         <div>
-          <label class="psc-portal-field-label" for="psc-req-tel">Téléphone</label>
-          <input id="psc-req-tel" class="psc-portal-field-underline" type="tel" name="req_telephone" maxlength="40" autocomplete="tel">
+          <label class="psc-portal-field-label" for="psc-req-nom">Nom <span class="psc-req">*</span></label>
+          <input id="psc-req-nom" class="psc-portal-field-underline" type="text" name="req_nom" maxlength="190" autocomplete="family-name" required>
         </div>
         <div>
-          <label class="psc-portal-field-label" for="psc-req-adresse">Adresse postale</label>
-          <input id="psc-req-adresse" class="psc-portal-field-underline" type="text" name="req_adresse" maxlength="255" autocomplete="street-address">
+          <label class="psc-portal-field-label" for="psc-req-tel">Téléphone <span class="psc-req">*</span></label>
+          <input id="psc-req-tel" class="psc-portal-field-underline" type="tel" name="req_telephone" maxlength="40" autocomplete="tel" required>
         </div>
         <div>
-          <label class="psc-portal-field-label" for="psc-req-cp">Code postal</label>
-          <input id="psc-req-cp" class="psc-portal-field-underline" type="text" name="req_code_postal" maxlength="10" autocomplete="postal-code">
+          <label class="psc-portal-field-label" for="psc-req-adresse">Adresse postale <span class="psc-req">*</span></label>
+          <input id="psc-req-adresse" class="psc-portal-field-underline" type="text" name="req_adresse" maxlength="255" autocomplete="street-address" required>
         </div>
         <div>
-          <label class="psc-portal-field-label" for="psc-req-ville">Ville</label>
-          <input id="psc-req-ville" class="psc-portal-field-underline" type="text" name="req_ville" maxlength="100" autocomplete="address-level2">
+          <label class="psc-portal-field-label" for="psc-req-cp">Code postal <span class="psc-req">*</span></label>
+          <input id="psc-req-cp" class="psc-portal-field-underline" type="text" name="req_code_postal" maxlength="10" autocomplete="postal-code" required>
+        </div>
+        <div>
+          <label class="psc-portal-field-label" for="psc-req-ville">Ville <span class="psc-req">*</span></label>
+          <input id="psc-req-ville" class="psc-portal-field-underline" type="text" name="req_ville" maxlength="100" autocomplete="address-level2" required>
         </div>
       </div>
     </div>
@@ -83,7 +87,7 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
           </div>
           <div>
             <label class="psc-portal-field-label screen-reader-text" for="psc-cc-0">Classe de l'enfant 1</label>
-            <select id="psc-cc-0" class="psc-portal-field-underline" name="child_classe_0">
+            <select id="psc-cc-0" class="psc-portal-field-underline" name="child_classe_0" required>
               <?php foreach (psc_classe_options() as $v => $l): ?>
               <option value="<?php echo esc_attr($v); ?>"><?php echo esc_html($l); ?></option>
               <?php endforeach; ?>
@@ -91,7 +95,7 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
           </div>
           <div>
             <label class="psc-portal-field-label screen-reader-text" for="psc-cb-0">Date de naissance de l'enfant 1</label>
-            <input id="psc-cb-0" class="psc-portal-field-underline" type="date" name="child_naissance_0">
+            <input id="psc-cb-0" class="psc-portal-field-underline" type="date" name="child_naissance_0" required>
           </div>
           <div>
             <label class="psc-portal-field-label" for="psc-ca-0">Justificatif d'assurance scolaire</label>

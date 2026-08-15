@@ -42,7 +42,7 @@
         'assurance_uploaded'      => array('ok',  'Justificatif d\'assurance scolaire enregistré.'),
         'assurance_invalid'       => array('err', 'Enfant introuvable. Rechargez la page.'),
         'assurance_upload_failed' => array('err', 'L\'envoi du fichier a échoué. Merci de réessayer.'),
-        'assurance_too_large'     => array('err', 'Le fichier dépasse la taille maximale autorisée (5 Mo).'),
+        'assurance_too_large'     => array('err', 'Le fichier dépasse la taille maximale autorisée (1 Mo).'),
         'assurance_invalid_type'  => array('err', 'Format de fichier non accepté (PDF, JPG ou PNG uniquement).'),
         'assurance_required'      => array('err', 'Le justificatif d\'assurance scolaire est obligatoire pour ajouter un enfant.'),
 

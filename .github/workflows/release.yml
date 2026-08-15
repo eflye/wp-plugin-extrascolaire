@@ -1,0 +1,52 @@
+name: Release plugin ZIP
+
+# Se déclenche uniquement quand tu pousses un tag de version, ex: v3.0.33
+# (git tag v3.0.33 && git push origin v3.0.33). Aucun impact sur les push
+# normaux ou les PR (cf. .github/workflows/lint.yml pour ça).
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write # nécessaire pour créer la Release et y attacher le zip
+
+jobs:
+  build:
+    name: Build & publie la release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Vérifie que le tag correspond à PSC_VERSION
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PLUGIN_VERSION=$(grep -oP "define\('PSC_VERSION',\s*'\K[0-9.]+" periscolaire-registration.php)
+          echo "Tag : $TAG_VERSION — PSC_VERSION : $PLUGIN_VERSION"
+          if [ "$TAG_VERSION" != "$PLUGIN_VERSION" ]; then
+            echo "::error::Le tag ${GITHUB_REF_NAME} (version $TAG_VERSION) ne correspond pas à PSC_VERSION ($PLUGIN_VERSION) dans periscolaire-registration.php."
+            echo "::error::Bump PSC_VERSION dans periscolaire-registration.php, commit sur main, PUIS crée le tag v$PLUGIN_VERSION."
+            exit 1
+          fi
+
+      - name: Prépare le dossier du plugin (fichiers de prod uniquement)
+        run: |
+          mkdir -p build/periscolaire-registration
+          cp periscolaire-registration.php index.php uninstall.php LICENSE readme.txt build/periscolaire-registration/
+          cp -R includes build/periscolaire-registration/
+          cp -R templates build/periscolaire-registration/
+          cp -R assets build/periscolaire-registration/
+          find build -name ".DS_Store" -delete
+
+      - name: Crée l'archive ZIP
+        run: |
+          cd build
+          zip -rq -X "../periscolaire-registration-${GITHUB_REF_NAME}.zip" periscolaire-registration
+
+      - name: Publie la Release GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          files: periscolaire-registration-${{ github.ref_name }}.zip
+          generate_release_notes: true

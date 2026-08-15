@@ -680,9 +680,11 @@ class Psc_Mailer {
         $subject = Psc_Email_Templates::subject('notify_mairie', array('site' => $site));
         $intro   = Psc_Email_Templates::body_html('notify_mairie', array('site' => $site));
 
+        $req_family_name = trim(($req->prenom ?? '') . ' ' . ($req->nom ?? ''));
+
         $contact = '<strong>E-mail :</strong> ' . esc_html($req->email) . '<br>';
-        if ($req->nom)       $contact .= '<strong>Famille :</strong> ' . esc_html($req->nom) . '<br>';
-        if ($req->telephone) $contact .= '<strong>Téléphone :</strong> ' . esc_html($req->telephone) . '<br>';
+        if ($req_family_name !== '') $contact .= '<strong>Famille :</strong> ' . esc_html($req_family_name) . '<br>';
+        if ($req->telephone)         $contact .= '<strong>Téléphone :</strong> ' . esc_html($req->telephone) . '<br>';
 
         $children_list = '<ul style="margin:8px 0;padding-left:20px;">';
         foreach ($children as $c) {

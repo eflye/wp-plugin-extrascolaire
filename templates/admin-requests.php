@@ -34,7 +34,8 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     $req_children = Psc_Requests::children_of($req); ?>
 
   <div class="psc-box psc-request">
-    <h3><?php echo $req->nom ? esc_html($req->nom) : esc_html($req->email); ?></h3>
+    <?php $req_family_name = trim(($req->prenom ?? '') . ' ' . ($req->nom ?? '')); ?>
+    <h3><?php echo $req_family_name !== '' ? esc_html($req_family_name) : esc_html($req->email); ?></h3>
 
     <table class="widefat psc-request-meta">
       <tr><th>E-mail</th><td><?php echo esc_html($req->email); ?></td></tr>
@@ -160,7 +161,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <?php else: foreach ($handled as $h): ?>
 <tr>
 <td><?php echo esc_html($h->email); ?></td>
-<td><?php echo $h->nom ? esc_html($h->nom) : '—'; ?></td>
+<td><?php $h_family_name = trim(($h->prenom ?? '') . ' ' . ($h->nom ?? '')); ?><?php echo $h_family_name !== '' ? esc_html($h_family_name) : '—'; ?></td>
 <td><?php echo $h->status === 'approved'
         ? '<span class="psc-active">Validée</span>'
         : '<em>Refusée</em>'; ?></td>

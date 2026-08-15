@@ -210,6 +210,7 @@ class Psc_Requests {
         ));
 
         $nom       = psc_post('req_nom');
+        $prenom    = psc_post('req_prenom');
         $telephone = psc_post('req_telephone');
         $adresse     = psc_post('req_adresse');
         $code_postal = psc_post('req_code_postal');
@@ -217,21 +218,35 @@ class Psc_Requests {
         $message   = isset($_POST['req_message'])
             ? sanitize_textarea_field(wp_unslash($_POST['req_message'])) : '';
 
-        // Enfants déclarés. Le justificatif d'assurance scolaire est
-        // obligatoire pour chaque enfant réellement nommé : contrairement à
-        // un prénom/nom vide (ligne inutilisée, simplement ignorée), un
-        // enfant explicitement nommé sans justificatif valide fait échouer
-        // TOUTE la soumission — le disparaître silencieusement de la
-        // demande serait trompeur pour le parent qui a rempli sa ligne.
+        // Coordonnées (étape 1) : le "required" HTML5 empêche déjà de
+        // passer à l'étape suivante côté client, mais reste contournable
+        // (POST direct) — on revalide donc côté serveur.
+        if ($nom === '' || $prenom === '' || $telephone === '' || $adresse === '' || $code_postal === '' || $ville === '') {
+            wp_safe_redirect(add_query_arg('psc_msg', 'coordonnees_incomplete', $back));
+            exit;
+        }
+
+        // Enfants déclarés. Tous les champs (prénom, nom, classe, naissance,
+        // justificatif d'assurance) sont obligatoires pour chaque enfant
+        // réellement nommé : contrairement à une ligne entièrement vide
+        // (ligne inutilisée, simplement ignorée — cf. le "+ Ajouter un
+        // enfant" qui laisse des lignes en trop), un enfant explicitement
+        // nommé mais incomplet fait échouer TOUTE la soumission — le
+        // disparaître silencieusement de la demande serait trompeur pour le
+        // parent qui a rempli sa ligne.
         $children = array();
         $assurance_uploads = array(); // index dans $children => $_FILES entry validé
         for ($i = 0; $i < self::MAX_CHILDREN; $i++) {
             $cn = psc_post('child_nom_' . $i);
             $cp = psc_post('child_prenom_' . $i);
             $cc = psc_post('child_classe_' . $i);
-            $cb = psc_valid_date(psc_post('child_naissance_' . $i));
-            if ($cn === '' && $cp === '') continue;
-            if ($cn === '' || $cp === '') continue;
+            $cb_raw = psc_post('child_naissance_' . $i);
+            $cb = psc_valid_date($cb_raw);
+            if ($cn === '' && $cp === '' && $cc === '' && $cb_raw === '') continue;
+            if ($cn === '' || $cp === '' || $cc === '' || !$cb) {
+                wp_safe_redirect(add_query_arg('psc_msg', 'child_incomplete', $back));
+                exit;
+            }
 
             $file = isset($_FILES['child_assurance_' . $i]) ? $_FILES['child_assurance_' . $i] : null;
             $file_check = Psc_Frontend::validate_assurance_file($file);
@@ -305,6 +320,7 @@ class Psc_Requests {
         $data = array(
             'email'                      => $email,
             'nom'                        => mb_substr($nom, 0, 190),
+            'prenom'                     => mb_substr($prenom, 0, 190),
             'telephone'                  => mb_substr($telephone, 0, 40),
             'adresse'                    => mb_substr($adresse, 0, 255),
             'code_postal'                => mb_substr($code_postal, 0, 10),
@@ -504,7 +520,7 @@ class Psc_Requests {
             $parent_id = (int) $parent->id;
             Psc_Parents::update($parent_id, $parent_extra);
         } else {
-            $parent_id = Psc_Parents::create($req->email, $req->nom, $parent_extra);
+            $parent_id = Psc_Parents::create($req->email, $req->nom, array_merge($parent_extra, array('prenom' => $req->prenom ?? '')));
             if (is_wp_error($parent_id)) {
                 Psc_Admin::redirect_public('psc_requests', 'invalid');
             }

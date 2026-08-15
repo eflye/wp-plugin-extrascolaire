@@ -20,6 +20,14 @@
         var tab = link.dataset.portalTab || link.dataset.portalTabLink;
         if (!tab) return;
 
+        // Une case de "Cantine & Garderie" a réellement changé côté serveur
+        // depuis le chargement de la page : les autres onglets déjà rendus
+        // (ex : Tableau de bord, "X jours déclarés") sont maintenant
+        // obsolètes. On laisse le lien naviguer normalement (rechargement
+        // complet, données fraîches partout) plutôt que de juste basculer
+        // l'affichage côté client — cf. assets/js/frontend.js:onToggle().
+        if (window.PSC_DATA_STALE) return;
+
         e.preventDefault();
         activateTab(tab);
 

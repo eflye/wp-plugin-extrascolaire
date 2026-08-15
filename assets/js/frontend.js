@@ -155,6 +155,13 @@
                 cell.classList.add('psc-ok');
                 setTimeout(function () { cell.classList.remove('psc-ok'); }, 700);
 
+                // D'autres onglets déjà rendus au chargement (ex : Tableau
+                // de bord, "X jours déclarés") deviennent obsolètes dès
+                // qu'une case change réellement côté serveur — cf.
+                // portal.js, qui force un rechargement complet au prochain
+                // changement d'onglet plutôt qu'une bascule client instantanée.
+                window.PSC_DATA_STALE = true;
+
                 if (isForf && willBeChecked) {
                     siblingsToUncheck.forEach(function (sib) {
                         post({

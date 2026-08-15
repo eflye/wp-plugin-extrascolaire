@@ -376,6 +376,7 @@ class Psc_Parents {
         $data = array(
             'email'                      => $email,
             'nom'                        => mb_substr(sanitize_text_field($nom), 0, 190),
+            'prenom'                     => mb_substr(sanitize_text_field($extra['prenom'] ?? ''), 0, 190),
             'adresse'                    => mb_substr(sanitize_text_field($extra['adresse'] ?? ''), 0, 255),
             'code_postal'                => mb_substr(sanitize_text_field($extra['code_postal'] ?? ''), 0, 10),
             'ville'                      => mb_substr(sanitize_text_field($extra['ville'] ?? ''), 0, 100),

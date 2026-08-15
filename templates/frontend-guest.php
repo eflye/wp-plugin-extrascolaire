@@ -15,9 +15,11 @@
         'verified'      => array('ok', 'Merci, votre adresse est confirmée. Votre demande a été transmise à la mairie, qui vous répondra par e-mail.'),
         'bad_verify'    => array('err', 'Ce lien de confirmation n\'est pas valide.'),
         'expired_verify'=> array('err', 'Ce lien de confirmation a expiré. Vous pouvez déposer une nouvelle demande.'),
+        'coordonnees_incomplete'  => array('err', 'Merci de renseigner tous les champs (prénom, nom, téléphone, adresse, code postal, ville).'),
         'need_child'    => array('err', 'Merci d\'indiquer au moins un enfant (nom et prénom).'),
+        'child_incomplete' => array('err', 'Merci de renseigner tous les champs de chaque enfant (prénom, nom, classe, date de naissance).'),
         'assurance_required'      => array('err', 'Merci de joindre le justificatif d\'assurance scolaire de chaque enfant déclaré.'),
-        'assurance_too_large'     => array('err', 'Un des justificatifs d\'assurance dépasse la taille maximale autorisée (5 Mo).'),
+        'assurance_too_large'     => array('err', 'Un des justificatifs d\'assurance dépasse la taille maximale autorisée (1 Mo).'),
         'assurance_invalid_type'  => array('err', 'Format de justificatif non accepté (PDF, JPG ou PNG uniquement).'),
         'reglement_required'      => array('err', 'Merci de prendre connaissance du règlement intérieur et de cocher la case d\'approbation.'),
         'sepa_reglement_required' => array('err', 'Merci de prendre connaissance du règlement concernant le prélèvement et de cocher la case d\'approbation.'),
@@ -34,7 +36,8 @@
     // cf. Psc_Frontend::wizard_error_context().
     $psc_toast_messages = array('link_sent', 'logged_out', 'bad_token', 'expired_token', 'request_sent');
     $psc_wizard_messages = array(
-        'need_child', 'assurance_required', 'assurance_too_large', 'assurance_invalid_type',
+        'coordonnees_incomplete',
+        'need_child', 'child_incomplete', 'assurance_required', 'assurance_too_large', 'assurance_invalid_type',
         'reglement_required', 'sepa_reglement_required',
         'sepa_missing', 'bad_iban', 'bad_bic',
     );

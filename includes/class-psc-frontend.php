@@ -302,7 +302,7 @@ class Psc_Frontend {
         if (empty($file) || !isset($file['error']) || $file['error'] !== UPLOAD_ERR_OK) {
             return 'required';
         }
-        if ($file['size'] > 5 * MB_IN_BYTES) {
+        if ($file['size'] > MB_IN_BYTES) {
             return 'too_large';
         }
         $filetype = wp_check_filetype($file['name'], array(
@@ -1178,7 +1178,9 @@ class Psc_Frontend {
      */
     protected static function wizard_error_context($psc_msg) {
         $map = array(
+            'coordonnees_incomplete'   => array('step' => 0, 'sepa' => false),
             'need_child'               => array('step' => 1, 'sepa' => false),
+            'child_incomplete'         => array('step' => 1, 'sepa' => false),
             'assurance_required'       => array('step' => 1, 'sepa' => false),
             'assurance_too_large'      => array('step' => 1, 'sepa' => false),
             'assurance_invalid_type'   => array('step' => 1, 'sepa' => false),
