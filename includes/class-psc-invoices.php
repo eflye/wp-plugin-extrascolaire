@@ -26,6 +26,13 @@ class Psc_Invoices {
             return new WP_Error('invalid_month', 'Format de mois invalide.');
         }
 
+        // Un mois en cours peut encore recevoir des inscriptions/annulations
+        // jusqu'à son dernier jour : générer la facture avant qu'il soit
+        // terminé risquerait de la rendre incomplète ou incorrecte.
+        if ($mois >= current_time('Y-m')) {
+            return new WP_Error('month_not_finished', 'Ce mois n\'est pas encore terminé : les factures ne peuvent pas encore être générées.');
+        }
+
         $t_reg   = psc_table('registrations');
         $t_child = psc_table('children');
         $t_par   = psc_table('parents');

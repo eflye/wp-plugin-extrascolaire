@@ -36,8 +36,7 @@
         'child_invalid'     => array('err', 'Merci de renseigner le prénom et le nom.'),
         'child_limit'       => array('err', 'Nombre maximum d\'enfants atteint.'),
         'absence_cancelled' => array('ok',  'Absence signalée : la mairie a été prévenue, ces prestations ne seront pas facturées.'),
-        'absence_locked'    => array('err', 'Ce jour n\'est plus modifiable en ligne (délai dépassé). Contactez la mairie.'),
-        'absence_invalid'   => array('err', 'Impossible de signaler cette absence (jour déjà annulé ou invalide). Rechargez la page.'),
+        'absence_invalid'   => array('err', 'Impossible d\'annuler ces prestations (délai dépassé, déjà annulées ou sélection invalide). Rechargez la page.'),
 
         'assurance_uploaded'      => array('ok',  'Justificatif d\'assurance scolaire enregistré.'),
         'assurance_invalid'       => array('err', 'Enfant introuvable. Rechargez la page.'),

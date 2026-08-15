@@ -23,7 +23,7 @@
     <div class="psc-portal-card-label">Accès rapide</div>
     <a href="<?php echo esc_url($psc_portal_tabs['cantine']['url']); ?>" class="psc-portal-btn-ink" data-portal-tab-link="cantine" style="display:block;text-align:center;text-decoration:none;">Déclarer un jour</a>
     <a href="<?php echo esc_url($psc_portal_tabs['enfants']['url']); ?>" class="psc-portal-btn-outline-ink" data-portal-tab-link="enfants" style="display:block;text-align:center;text-decoration:none;">Ajouter un enfant</a>
-    <button type="button" id="psc-absence-trigger" class="psc-portal-btn-outline-ink" data-testid="absence-trigger" style="width:100%;">Annulation / signalement d'absence</button>
+    <button type="button" id="psc-absence-trigger" class="psc-portal-btn-outline-ink" data-testid="absence-trigger" style="width:100%;">Annulation prestations</button>
   </div>
 </div>
 
@@ -37,7 +37,7 @@
         <button type="button" class="psc-portal-btn-outline-ink" data-absence-close>Fermer</button>
       </div>
     <?php else: ?>
-      <p class="psc-portal-dash-menu-empty" style="margin:0 0 16px;">Toutes les prestations déjà cochées du jour choisi seront annulées pour cet enfant. Seuls les jours encore modifiables apparaissent ci-dessous.</p>
+      <p class="psc-portal-dash-menu-empty" style="margin:0 0 16px;">Cochez les prestations à annuler pour cet enfant. Un forfait journée est listé comme 3 prestations (garderie matin, cantine, garderie soir) : en cocher une seule annule le forfait en entier. Seules les prestations encore modifiables apparaissent ci-dessous.</p>
       <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" data-testid="absence-form">
         <?php wp_nonce_field('psc_cancel_absence'); ?>
         <input type="hidden" name="action" value="psc_cancel_absence">
@@ -49,12 +49,13 @@
           <?php endforeach; ?>
         </select>
 
-        <label class="psc-portal-field-label" for="psc-absence-date" style="margin-top:16px;">Jour</label>
-        <select id="psc-absence-date" name="date" class="psc-portal-field-underline" data-testid="absence-date-select"></select>
+        <label class="psc-portal-field-label" style="margin-top:16px;">Prestations</label>
+        <div id="psc-absence-items" class="psc-absence-items" data-testid="absence-items"></div>
+        <p class="psc-portal-dash-menu-empty" id="psc-absence-items-error" hidden style="color:#b32d2e;margin:6px 0 0;">Cochez au moins une prestation à annuler.</p>
 
         <div class="psc-portal-modal-actions">
           <button type="button" class="psc-portal-btn-outline-ink" data-absence-close>Annuler</button>
-          <button type="submit" class="psc-portal-btn-gold" data-testid="absence-submit">Confirmer l'absence</button>
+          <button type="submit" class="psc-portal-btn-gold" data-testid="absence-submit">Confirmer l'annulation</button>
         </div>
       </form>
       <script type="application/json" id="psc-absence-data"><?php echo wp_json_encode($psc_portal_absence_days, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>

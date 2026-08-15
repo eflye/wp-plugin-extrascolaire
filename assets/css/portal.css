@@ -414,6 +414,24 @@ body.psc-portal-active main.site-main {
     margin: 0 0 16px;
 }
 .psc-portal-modal select.psc-portal-field-underline { width: 100%; }
+.psc-absence-items {
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid var(--psc-rule-light);
+    margin-top: 4px;
+}
+.psc-absence-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+    color: var(--psc-ink);
+    border-bottom: 1px solid var(--psc-rule-lighter);
+    cursor: pointer;
+}
+.psc-absence-item:last-child { border-bottom: none; }
+.psc-absence-item input { flex-shrink: 0; }
 .psc-portal-modal-actions {
     display: flex;
     justify-content: flex-end;

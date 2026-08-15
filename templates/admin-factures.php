@@ -7,6 +7,7 @@ $msgs = array(
     'generated'   => array('updated', 'Factures générées avec succès.'),
     'gen_zero'    => array('notice-warning', 'Aucune inscription trouvée pour ce mois.'),
     'gen_error'   => array('error', 'Erreur lors de la génération.'),
+    'month_not_finished' => array('error', 'Ce mois n\'est pas encore terminé : impossible de générer les factures.'),
     'sent'        => array('updated', 'Facture envoyée par e-mail.'),
     'sent_all'    => array('updated', 'Toutes les factures ont été envoyées.'),
     'mail_failed' => array('error', 'L\'envoi du mail a échoué. Vérifiez la configuration e-mail.'),
@@ -38,7 +39,7 @@ if ($psc_msg && isset($msgs[$psc_msg])):
         </label>
     </form>
 
-    <?php if ($selected_mois): ?>
+    <?php if ($selected_mois && $selected_mois < current_time('Y-m')): ?>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline;">
         <input type="hidden" name="action" value="psc_generate_invoices">
         <input type="hidden" name="mois" value="<?php echo esc_attr($selected_mois); ?>">
@@ -47,6 +48,8 @@ if ($psc_msg && isset($msgs[$psc_msg])):
             &#8635; Générer / Regénérer les factures de <?php echo esc_html(Psc_Invoices::month_label($selected_mois)); ?>
         </button>
     </form>
+    <?php elseif ($selected_mois): ?>
+    <em>Ce mois n'est pas encore terminé : les factures ne peuvent être générées qu'une fois le mois écoulé.</em>
     <?php endif; ?>
 </div>
 
@@ -128,7 +131,7 @@ if ($psc_msg && isset($msgs[$psc_msg])):
 </tfoot>
 </table>
 
-<?php elseif ($selected_mois): ?>
+<?php elseif ($selected_mois && $selected_mois < current_time('Y-m')): ?>
 <p>Aucune facture générée pour <?php echo esc_html(Psc_Invoices::month_label($selected_mois)); ?>.
 Cliquez sur « Générer » pour créer les factures à partir des inscriptions.</p>
 <?php endif; ?>

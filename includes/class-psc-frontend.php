@@ -801,12 +801,21 @@ class Psc_Frontend {
     }
 
     /**
-     * Signalement d'absence en un clic depuis le tableau de bord : annule
-     * toutes les prestations déjà cochées d'un enfant pour un jour donné
-     * (l'enfant n'est pas là du tout ce jour-là, pas une annulation
-     * prestation par prestation). Même ordre de vérification que
-     * ajax_toggle() : appartenance de l'enfant, trimestre actif, jour
-     * ouvert, délai de préavis (psc_lock_hours) non dépassé.
+     * "Annulation prestations" depuis le tableau de bord : annule, pour un
+     * enfant donné, une sélection de prestations individuelles (pas
+     * forcément toute une journée). $_POST['items'] est un tableau de
+     * chaînes "YYYY-MM-DD|SERVICE" (une par case cochée) — cf.
+     * absence_candidates() pour la construction de la liste proposée et
+     * assets/js/portal.js pour le remplissage du formulaire. Un forfait
+     * (FORF) est indivisible : les 3 lignes GM/CANT/GS qui le représentent
+     * dans l'UI portent toutes service=FORF, donc cocher n'importe laquelle
+     * (ou plusieurs) revient à annuler le même unique forfait — dédoublonné
+     * ci-dessous par date+service avant toute suppression. Même ordre de
+     * vérification que ajax_toggle() par prestation : appartenance de
+     * l'enfant, trimestre actif, jour ouvert, délai de préavis
+     * (psc_lock_hours) non dépassé — une prestation qui ne passe plus ces
+     * contrôles (entre le chargement de la popin et la soumission) est
+     * silencieusement ignorée plutôt que de faire échouer tout le lot.
      */
     public static function handle_cancel_absence() {
         check_admin_referer('psc_cancel_absence');
@@ -815,9 +824,19 @@ class Psc_Frontend {
         if (!$parent) self::parent_form_redirect('auth');
 
         global $wpdb;
-        $child_id = psc_post_int('child_id');
-        $date     = psc_valid_date(psc_post('date'));
-        if (!$child_id || !$date) self::parent_form_redirect('absence_invalid');
+        $child_id  = psc_post_int('child_id');
+        $raw_items = isset($_POST['items']) && is_array($_POST['items']) ? wp_unslash($_POST['items']) : array();
+
+        $pairs = array();
+        foreach ($raw_items as $raw) {
+            $parts = explode('|', (string) $raw, 2);
+            if (count($parts) !== 2) continue;
+            $date    = psc_valid_date($parts[0]);
+            $service = $parts[1];
+            if (!$date || !in_array($service, psc_allowed_services(), true)) continue;
+            $pairs[$date . '|' . $service] = array('date' => $date, 'service' => $service);
+        }
+        if (!$child_id || !$pairs) self::parent_form_redirect('absence_invalid');
 
         $t_child = psc_table('children');
         $owned = $wpdb->get_var($wpdb->prepare(
@@ -829,24 +848,38 @@ class Psc_Frontend {
         if (!$trimestre) self::parent_form_redirect('absence_invalid');
 
         $t_days = psc_table('calendar_days');
-        $day = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $t_days WHERE trimestre_id = %d AND jour_date = %s AND is_open = 1",
-            $trimestre->id, $date
-        ));
-        if (!$day) self::parent_form_redirect('absence_invalid');
+        $t_reg  = psc_table('registrations');
 
-        if (psc_is_locked($date)) self::parent_form_redirect('absence_locked');
+        $cancelled_by_date = array(); // date => [services annulés]
+        foreach ($pairs as $pair) {
+            $date    = $pair['date'];
+            $service = $pair['service'];
 
-        $t_reg = psc_table('registrations');
-        $items = $wpdb->get_results($wpdb->prepare(
-            "SELECT service FROM $t_reg WHERE child_id = %d AND jour_date = %s", $child_id, $date
-        ));
-        if (!$items) self::parent_form_redirect('absence_invalid'); // déjà annulé entre-temps
+            $day = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM $t_days WHERE trimestre_id = %d AND jour_date = %s AND is_open = 1",
+                $trimestre->id, $date
+            ));
+            if (!$day || psc_is_locked($date)) continue;
 
-        $wpdb->delete($t_reg, array('child_id' => $child_id, 'jour_date' => $date), array('%d', '%s'));
+            $exists = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM $t_reg WHERE child_id = %d AND jour_date = %s AND service = %s",
+                $child_id, $date, $service
+            ));
+            if (!$exists) continue; // déjà annulé entre-temps
+
+            $wpdb->delete($t_reg,
+                array('child_id' => $child_id, 'jour_date' => $date, 'service' => $service),
+                array('%d', '%s', '%s')
+            );
+            $cancelled_by_date[$date][] = $service;
+        }
+
+        if (!$cancelled_by_date) self::parent_form_redirect('absence_invalid');
 
         $child = $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_child WHERE id = %d", $child_id));
-        Psc_Mailer::notify_absence_cancelled($parent, $child, $date, wp_list_pluck($items, 'service'));
+        foreach ($cancelled_by_date as $date => $services) {
+            Psc_Mailer::notify_absence_cancelled($parent, $child, $date, $services);
+        }
 
         self::parent_form_redirect('absence_cancelled');
     }
@@ -1126,38 +1159,48 @@ class Psc_Frontend {
     }
 
     /**
-     * Jours à venir, non verrouillés, où au moins une prestation est déjà
-     * cochée pour chaque enfant — sert à peupler la popin "Annulation /
-     * signalement d'absence" du tableau de bord. Un enfant sans jour
-     * annulable n'apparaît pas dans le résultat.
+     * Prestations à venir, non verrouillées, déjà cochées pour chaque
+     * enfant — sert à peupler la popin "Annulation prestations" du tableau
+     * de bord. Un forfait journée (FORF) couvre GM+CANT+GS pour un prix
+     * unique et indivisible : il est listé comme 3 prestations séparées
+     * pour la lisibilité, mais les 3 pointent vers la même inscription —
+     * en cocher une seule annule le forfait en entier (cf.
+     * handle_cancel_absence(), qui dédoublonne par date+service).
+     * Un enfant sans prestation annulable n'apparaît pas dans le résultat.
      */
     protected static function absence_candidates($children) {
         global $wpdb;
         $t_reg  = psc_table('registrations');
         $t_days = psc_table('calendar_days');
         $today  = current_time('Y-m-d');
+        $svc_labels = psc_services();
 
         $out = array();
         foreach ($children as $child) {
             $rows = $wpdb->get_results($wpdb->prepare(
-                "SELECT DISTINCT r.jour_date FROM $t_reg r
+                "SELECT r.jour_date, r.service FROM $t_reg r
                  INNER JOIN $t_days d ON d.jour_date = r.jour_date AND d.is_open = 1
                  WHERE r.child_id = %d AND r.jour_date >= %s
                  ORDER BY r.jour_date ASC",
                 $child->id, $today
             ));
-            $days = array();
+            $items = array();
             foreach ($rows as $row) {
                 if (psc_is_locked($row->jour_date)) continue;
-                $days[] = array(
-                    'date'  => $row->jour_date,
-                    'label' => psc_day_label($row->jour_date) . ' ' . date_i18n('d/m/Y', strtotime($row->jour_date)),
-                );
+                $day_label = psc_day_label($row->jour_date) . ' ' . date_i18n('d/m/Y', strtotime($row->jour_date));
+                $sub_services = $row->service === 'FORF' ? array('GM', 'CANT', 'GS') : array($row->service);
+                foreach ($sub_services as $sub) {
+                    $items[] = array(
+                        'date'    => $row->jour_date,
+                        'service' => $row->service, // valeur réellement annulée (FORF si forfait)
+                        'label'   => $day_label . ' — ' . ($svc_labels[$sub]['label'] ?? $sub),
+                    );
+                }
             }
-            if ($days) {
+            if ($items) {
                 $out[$child->id] = array(
-                    'name' => trim($child->prenom . ' ' . $child->nom),
-                    'days' => $days,
+                    'name'  => trim($child->prenom . ' ' . $child->nom),
+                    'items' => $items,
                 );
             }
         }

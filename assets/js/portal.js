@@ -36,7 +36,7 @@
         }
     }
 
-    /* ---------- Popin "Annulation / signalement d'absence" ---------- */
+    /* ---------- Popin "Annulation prestations" ---------- */
 
     function initAbsenceModal() {
         var trigger = document.getElementById('psc-absence-trigger');
@@ -58,11 +58,13 @@
             if (e.key === 'Escape' && !overlay.hidden) close();
         });
 
-        // Liste des jours annulables dépend de l'enfant choisi.
+        // Liste des prestations annulables dépend de l'enfant choisi.
         var childSelect = document.getElementById('psc-absence-child');
-        var dateSelect  = document.getElementById('psc-absence-date');
+        var itemsList   = document.getElementById('psc-absence-items');
+        var itemsError  = document.getElementById('psc-absence-items-error');
+        var form        = overlay.querySelector('[data-testid="absence-form"]');
         var dataEl      = document.getElementById('psc-absence-data');
-        if (!childSelect || !dateSelect || !dataEl) return;
+        if (!childSelect || !itemsList || !dataEl) return;
 
         var data;
         try {
@@ -71,19 +73,33 @@
             return;
         }
 
-        function fillDates() {
-            var days = (data[childSelect.value] && data[childSelect.value].days) || [];
-            dateSelect.innerHTML = '';
-            days.forEach(function (d) {
-                var opt = document.createElement('option');
-                opt.value = d.date;
-                opt.textContent = d.label;
-                dateSelect.appendChild(opt);
+        function fillItems() {
+            var items = (data[childSelect.value] && data[childSelect.value].items) || [];
+            itemsList.innerHTML = '';
+            items.forEach(function (it) {
+                var label = document.createElement('label');
+                label.className = 'psc-absence-item';
+                var cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.name = 'items[]';
+                cb.value = it.date + '|' + it.service;
+                label.appendChild(cb);
+                label.appendChild(document.createTextNode(it.label));
+                itemsList.appendChild(label);
             });
+            if (itemsError) itemsError.hidden = true;
         }
 
-        childSelect.addEventListener('change', fillDates);
-        fillDates();
+        childSelect.addEventListener('change', fillItems);
+        fillItems();
+
+        if (form && itemsError) {
+            form.addEventListener('submit', function (e) {
+                var checked = itemsList.querySelectorAll('input[type="checkbox"]:checked');
+                itemsError.hidden = checked.length > 0;
+                if (!checked.length) e.preventDefault();
+            });
+        }
     }
 
     /* ---------- Popin "Corriger les informations" (Mes enfants) ---------- */

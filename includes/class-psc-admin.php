@@ -785,7 +785,8 @@ class Psc_Admin {
 
         $count = Psc_Invoices::generate_month($mois);
         if (is_wp_error($count)) {
-            self::redirect('psc_factures', 'gen_error');
+            $code = $count->get_error_code();
+            self::redirect('psc_factures', $code === 'month_not_finished' ? 'month_not_finished' : 'gen_error');
         }
 
         wp_safe_redirect(add_query_arg(
