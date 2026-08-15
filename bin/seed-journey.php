@@ -70,6 +70,7 @@ WP_CLI::add_command('seed-journey', function ($args, $assoc_args) {
         $date_fin   = $fmt((clone $today)->modify('+45 days'));
 
         $config = array(
+            'school_year_label' => 'Année de test',
             'trimestre_label' => 'Trimestre de test',
             'date_debut'      => $date_debut,
             'date_fin'        => $date_fin,
@@ -98,6 +99,7 @@ WP_CLI::add_command('seed-journey', function ($args, $assoc_args) {
         $date_fin   = $fmt((clone $today)->modify('+60 days'));
 
         $config = array(
+            'school_year_label' => "Année {$y}-" . ($y + 1),
             'trimestre_label' => $label,
             'date_debut'      => $date_debut,
             'date_fin'        => $date_fin,
@@ -118,6 +120,8 @@ WP_CLI::add_command('seed-journey', function ($args, $assoc_args) {
     global $wpdb;
     $t_parent = psc_table('parents');
     $t_child  = psc_table('children');
+    $t_years  = psc_table('school_years');
+    $t_cy     = psc_table('child_school_years');
     $t_trim   = psc_table('trimestres');
     $t_days   = psc_table('calendar_days');
     $t_reg    = psc_table('registrations');
@@ -153,6 +157,7 @@ WP_CLI::add_command('seed-journey', function ($args, $assoc_args) {
         if ($child_ids) {
             $placeholders = implode(',', array_fill(0, count($child_ids), '%d'));
             $wpdb->query($wpdb->prepare("DELETE FROM $t_reg WHERE child_id IN ($placeholders)", $child_ids));
+            $wpdb->query($wpdb->prepare("DELETE FROM $t_cy WHERE child_id IN ($placeholders)", $child_ids));
         }
         $wpdb->delete($t_child, array('parent_id' => $old_parent_id), array('%d'));
         $wpdb->delete($t_inv, array('parent_id' => $old_parent_id), array('%d'));
@@ -171,20 +176,38 @@ WP_CLI::add_command('seed-journey', function ($args, $assoc_args) {
         $wpdb->delete($t_trim, array('id' => $trim_id), array('%d'));
     }
 
+    $old_year_ids = $wpdb->get_col($wpdb->prepare(
+        "SELECT id FROM $t_years WHERE label = %s", $config['school_year_label']
+    ));
+    foreach ($old_year_ids as $year_id) {
+        $wpdb->delete($t_cy, array('school_year_id' => $year_id), array('%d'));
+        $wpdb->delete($t_years, array('id' => $year_id), array('%d'));
+    }
+
     /* ---------------------------------------------------------------- */
     /* Recréation                                                        */
     /* ---------------------------------------------------------------- */
+
+    // Une seule année scolaire active à la fois, même principe que pour le
+    // trimestre : Psc_School_Years::activate() archive l'ancienne active
+    // avant d'activer celle du seed.
+    $school_year_id = Psc_School_Years::create($config['school_year_label'], $config['date_debut'], $config['date_fin']);
+    if (is_wp_error($school_year_id)) {
+        WP_CLI::error('Création de l\'année scolaire : ' . $school_year_id->get_error_message());
+    }
+    Psc_School_Years::activate($school_year_id);
 
     // Un seul trimestre actif à la fois pour que Psc_Frontend::active_trimestre()
     // pointe sans ambiguïté vers celui du seed.
     $wpdb->query("UPDATE $t_trim SET active = 0");
 
     $wpdb->insert($t_trim, array(
-        'label'      => $config['trimestre_label'],
-        'date_debut' => $config['date_debut'],
-        'date_fin'   => $config['date_fin'],
-        'active'     => 1,
-    ), array('%s', '%s', '%s', '%d'));
+        'label'          => $config['trimestre_label'],
+        'school_year_id' => $school_year_id,
+        'date_debut'     => $config['date_debut'],
+        'date_fin'       => $config['date_fin'],
+        'active'         => 1,
+    ), array('%s', '%d', '%s', '%s', '%d'));
     $trimestre_id = (int) $wpdb->insert_id;
 
     Psc_Installer::generate_calendar_days($trimestre_id, $config['date_debut'], $config['date_fin']);
@@ -200,11 +223,13 @@ WP_CLI::add_command('seed-journey', function ($args, $assoc_args) {
             'parent_id'  => $parent_id,
             'nom'        => $c['nom'],
             'prenom'     => $c['prenom'],
-            'classe'     => $c['classe'],
-            'active'     => 1,
+            'statut'     => 'actif',
             'created_at' => current_time('mysql'),
-        ), array('%d', '%s', '%s', '%s', '%d', '%s'));
-        $children_ids[] = (int) $wpdb->insert_id;
+        ), array('%d', '%s', '%s', '%s', '%s'));
+        $child_id = (int) $wpdb->insert_id;
+        $children_ids[] = $child_id;
+
+        Psc_School_Years::enroll($child_id, $school_year_id, $c['classe'], 'inscrit', current_time('mysql'));
     }
 
     // children_of() trie par prénom : l'index "-0"/"-1" des testid suit cet

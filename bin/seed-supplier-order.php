@@ -52,6 +52,7 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     }
 
     $config = array(
+        'school_year_label' => 'Année E2E — commande fournisseur',
         'trimestre_label' => 'Trimestre E2E — commande fournisseur',
         'parent_email'    => 'fournisseur.e2e@example.test',
         'parent_nom'      => 'E2E',
@@ -64,6 +65,8 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     global $wpdb;
     $t_parent = psc_table('parents');
     $t_child  = psc_table('children');
+    $t_years  = psc_table('school_years');
+    $t_cy     = psc_table('child_school_years');
     $t_trim   = psc_table('trimestres');
     $t_reg    = psc_table('registrations');
     $t_sup    = psc_table('supplier_orders');
@@ -96,6 +99,14 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
         $wpdb->delete($t_trim, array('id' => $trim_id), array('%d'));
     }
 
+    $old_year_ids = $wpdb->get_col($wpdb->prepare(
+        "SELECT id FROM $t_years WHERE label = %s", $config['school_year_label']
+    ));
+    foreach ($old_year_ids as $year_id) {
+        $wpdb->delete($t_cy, array('school_year_id' => $year_id), array('%d'));
+        $wpdb->delete($t_years, array('id' => $year_id), array('%d'));
+    }
+
     // Historique de commandes fournisseur générées par un run précédent de
     // ce même spec, pour la même semaine cible.
     $wpdb->delete($t_sup, array('semaine_debut' => $semaine_debut), array('%s'));
@@ -104,15 +115,28 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     /* Recréation                                                        */
     /* ---------------------------------------------------------------- */
 
-    // Trimestre non activé : ne doit jamais devenir le trimestre actif du
-    // site (Psc_Frontend l'ignorerait de toute façon, mais autant rester
-    // sans ambiguïté pour un lecteur humain du backoffice).
-    $wpdb->insert($t_trim, array(
-        'label'      => $config['trimestre_label'],
+    // Année scolaire et trimestre "figurants", ni l'une ni l'autre jamais
+    // activés : Psc_Supplier_Orders résout désormais l'année à partir de
+    // la semaine demandée (Psc_School_Years::for_date()), pas de l'année
+    // active du site — un couple année/trimestre non actifs mais dont les
+    // dates couvrent la semaine cible suffit, sans jamais toucher à ce qui
+    // est actif pour de vrai sur le site.
+    $wpdb->insert($t_years, array(
+        'label'      => $config['school_year_label'],
         'date_debut' => $jours['lundi'],
         'date_fin'   => $jours['vendredi'],
-        'active'     => 0,
-    ), array('%s', '%s', '%s', '%d'));
+        'statut'     => 'archivee',
+        'created_at' => current_time('mysql'),
+    ), array('%s', '%s', '%s', '%s', '%s'));
+    $school_year_id = (int) $wpdb->insert_id;
+
+    $wpdb->insert($t_trim, array(
+        'label'          => $config['trimestre_label'],
+        'school_year_id' => $school_year_id,
+        'date_debut'     => $jours['lundi'],
+        'date_fin'       => $jours['vendredi'],
+        'active'         => 0,
+    ), array('%s', '%d', '%s', '%s', '%d'));
     $trimestre_id = (int) $wpdb->insert_id;
 
     $parent_id = Psc_Parents::create($config['parent_email'], $config['parent_nom']);
@@ -126,11 +150,19 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
             'parent_id'  => $parent_id,
             'nom'        => $c['nom'],
             'prenom'     => $c['prenom'],
-            'classe'     => $c['classe'],
-            'active'     => 1,
+            'statut'     => 'actif',
             'created_at' => current_time('mysql'),
-        ), array('%d', '%s', '%s', '%s', '%d', '%s'));
-        $child_ids[] = (int) $wpdb->insert_id;
+        ), array('%d', '%s', '%s', '%s', '%s'));
+        $child_id = (int) $wpdb->insert_id;
+        $child_ids[] = $child_id;
+
+        $wpdb->insert($t_cy, array(
+            'child_id'       => $child_id,
+            'school_year_id' => $school_year_id,
+            'classe'         => $c['classe'],
+            'statut'         => 'inscrit',
+            'date_inscription' => current_time('mysql'),
+        ), array('%d', '%d', '%s', '%s', '%s'));
     }
     list($aline_id, $baptiste_id) = $child_ids;
 
