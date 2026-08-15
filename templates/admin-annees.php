@@ -23,11 +23,11 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <?php wp_nonce_field('psc_add_school_year'); ?>
 <input type="hidden" name="action" value="psc_add_school_year">
 <table class="form-table">
-<tr><th><label for="psc-y-label">Libellé</label></th><td><input id="psc-y-label" type="text" name="label" class="regular-text" placeholder="2026-2027" maxlength="20" required></td></tr>
-<tr><th><label for="psc-y-debut">Date de début</label></th><td><input id="psc-y-debut" type="date" name="date_debut" required></td></tr>
-<tr><th><label for="psc-y-fin">Date de fin</label></th><td><input id="psc-y-fin" type="date" name="date_fin" required></td></tr>
+<tr><th><label for="psc-y-label">Libellé</label></th><td><input id="psc-y-label" type="text" name="label" class="regular-text" placeholder="2026-2027" maxlength="20" required data-testid="year-label-input"></td></tr>
+<tr><th><label for="psc-y-debut">Date de début</label></th><td><input id="psc-y-debut" type="date" name="date_debut" required data-testid="year-debut-input"></td></tr>
+<tr><th><label for="psc-y-fin">Date de fin</label></th><td><input id="psc-y-fin" type="date" name="date_fin" required data-testid="year-fin-input"></td></tr>
 </table>
-<?php submit_button('Créer l\'année'); ?>
+<?php submit_button('Créer l\'année', 'primary', 'submit', true, array('data-testid' => 'year-create-submit')); ?>
 </form>
 </div>
 
@@ -39,11 +39,11 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <?php if (empty($years)): ?>
 <tr><td colspan="5">Aucune année scolaire créée pour le moment.</td></tr>
 <?php else: foreach ($years as $y): ?>
-<tr>
+<tr data-testid="year-row-<?php echo esc_attr($y->id); ?>">
 <td><?php echo esc_html($y->label); ?></td>
 <td><?php echo esc_html(date_i18n('d/m/Y', strtotime($y->date_debut))); ?></td>
 <td><?php echo esc_html(date_i18n('d/m/Y', strtotime($y->date_fin))); ?></td>
-<td>
+<td data-testid="year-statut-<?php echo esc_attr($y->id); ?>">
 <?php if ($y->statut === 'active'): ?><strong class="psc-active">Active (visible sur le site)</strong>
 <?php elseif ($y->statut === 'preparation'): ?>En préparation
 <?php else: ?>Archivée
@@ -55,7 +55,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <?php wp_nonce_field('psc_activate_school_year'); ?>
 <input type="hidden" name="action" value="psc_activate_school_year">
 <input type="hidden" name="id" value="<?php echo esc_attr($y->id); ?>">
-<button class="button">Activer</button>
+<button class="button" data-testid="year-activate-<?php echo esc_attr($y->id); ?>">Activer</button>
 </form>
 <?php endif; ?>
 <?php if ($y->statut !== 'archivee'): ?>
@@ -63,7 +63,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <?php wp_nonce_field('psc_archive_school_year'); ?>
 <input type="hidden" name="action" value="psc_archive_school_year">
 <input type="hidden" name="id" value="<?php echo esc_attr($y->id); ?>">
-<button class="button" onclick="return confirm('Archiver cette année ? Elle restera consultable en lecture seule.');">Archiver</button>
+<button class="button" onclick="return confirm('Archiver cette année ? Elle restera consultable en lecture seule.');" data-testid="year-archive-<?php echo esc_attr($y->id); ?>">Archiver</button>
 </form>
 <?php endif; ?>
 </td>
@@ -84,21 +84,21 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <input type="hidden" name="action" value="psc_stage_promotion">
 <table class="form-table">
 <tr><th><label for="psc-from-year">Depuis l'année</label></th><td>
-<select id="psc-from-year" name="from_year_id" required>
+<select id="psc-from-year" name="from_year_id" required data-testid="promotion-from-select">
 <?php foreach ($years as $y): ?>
 <option value="<?php echo esc_attr($y->id); ?>" <?php selected($y->statut, 'active'); ?>><?php echo esc_html($y->label); ?></option>
 <?php endforeach; ?>
 </select>
 </td></tr>
 <tr><th><label for="psc-to-year">Vers l'année</label></th><td>
-<select id="psc-to-year" name="to_year_id" required>
+<select id="psc-to-year" name="to_year_id" required data-testid="promotion-to-select">
 <?php foreach ($years as $y): ?>
 <option value="<?php echo esc_attr($y->id); ?>" <?php selected($y->statut, 'preparation'); ?>><?php echo esc_html($y->label); ?></option>
 <?php endforeach; ?>
 </select>
 </td></tr>
 </table>
-<?php submit_button('Préparer le passage d\'année'); ?>
+<?php submit_button('Préparer le passage d\'année', 'primary', 'submit', true, array('data-testid' => 'promotion-stage-submit')); ?>
 </form>
 <?php endif; ?>
 </div>

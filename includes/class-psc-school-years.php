@@ -201,12 +201,17 @@ class Psc_School_Years {
         $to_year      = self::get($to_year_id);
         $rentree_year = $to_year ? (int) date('Y', strtotime($to_year->date_debut)) : psc_rentree_year();
 
+        // INNER JOIN, volontairement : seuls les enfants réellement inscrits
+        // à $from_year_id entrent dans le plan. Un LEFT JOIN inclurait tout
+        // enfant actif du site sans lien avec l'année de départ choisie, au
+        // risque de le sortir par erreur (classe_actuelle vide -> déduction
+        // par date de naissance -> 'sortie' si elle échoue aussi).
         $t_child = psc_table('children');
         $t_cy    = psc_table('child_school_years');
         $children = $wpdb->get_results($wpdb->prepare(
             "SELECT c.*, cy.classe AS classe_actuelle
              FROM $t_child c
-             LEFT JOIN $t_cy cy ON cy.child_id = c.id AND cy.school_year_id = %d
+             INNER JOIN $t_cy cy ON cy.child_id = c.id AND cy.school_year_id = %d
              WHERE c.statut = 'actif'
              ORDER BY c.nom, c.prenom",
             $from_year_id
