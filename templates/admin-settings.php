@@ -232,6 +232,37 @@ $doc_rp_id = (int) get_option('psc_doc_reglement_prelevement_id', 0);
 </tr>
 </table>
 
+<h2>Passage d'année : progression des classes</h2>
+<p>Classe suivante proposée pour chaque classe lors d'un passage d'année (Périscolaire &gt; Années scolaires). Modifiable ligne par ligne au moment du passage d'année lui-même — cette table ne sert que de proposition par défaut. Utile si l'école a des classes à plusieurs niveaux.</p>
+<table class="form-table">
+<?php foreach (psc_classe_options() as $code => $label): if ($code === '') continue; ?>
+<tr>
+<th><label for="psc-prog-<?php echo esc_attr($code); ?>"><?php echo esc_html($label); ?></label></th>
+<td>
+<select id="psc-prog-<?php echo esc_attr($code); ?>" name="progression_<?php echo esc_attr($code); ?>">
+<?php foreach (psc_classe_options() as $next_code => $next_label): if ($next_code === '') continue; ?>
+<option value="<?php echo esc_attr($next_code); ?>" <?php selected($psc_classe_progression[$code] ?? '', $next_code); ?>><?php echo esc_html($next_label); ?></option>
+<?php endforeach; ?>
+<option value="sortie" <?php selected($psc_classe_progression[$code] ?? '', 'sortie'); ?>>Sortie (fin de cycle périscolaire)</option>
+</select>
+</td>
+</tr>
+<?php endforeach; ?>
+</table>
+
+<h2>Fenêtre de réinscription</h2>
+<p>Pendant cette période, un onglet « Réinscription » apparaît dans l'espace connecté des familles pour confirmer chaque enfant pour l'année scolaire en préparation. Laisser vide pour ne jamais afficher cet onglet.</p>
+<table class="form-table">
+<tr>
+<th><label for="psc-reins-debut">Ouverture</label></th>
+<td><input id="psc-reins-debut" type="date" name="reinscription_debut" value="<?php echo esc_attr(get_option('psc_reinscription_debut', '')); ?>"></td>
+</tr>
+<tr>
+<th><label for="psc-reins-fin">Fermeture</label></th>
+<td><input id="psc-reins-fin" type="date" name="reinscription_fin" value="<?php echo esc_attr(get_option('psc_reinscription_fin', '')); ?>"></td>
+</tr>
+</table>
+
 <?php submit_button('Enregistrer'); ?>
 </form>
 </div>

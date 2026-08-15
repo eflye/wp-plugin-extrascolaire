@@ -25,6 +25,18 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <input type="hidden" name="action" value="psc_add_trimestre">
 <table class="form-table">
 <tr><th><label for="psc-label">Libellé</label></th><td><input id="psc-label" type="text" name="label" class="regular-text" placeholder="3ème trimestre 2025/2026" maxlength="190" required></td></tr>
+<tr><th><label for="psc-annee">Année scolaire</label></th><td>
+<?php $psc_trim_years = Psc_School_Years::all(); ?>
+<?php if (empty($psc_trim_years)): ?>
+<em>Créez d'abord une <a href="<?php echo esc_url(admin_url('admin.php?page=psc_school_years')); ?>">année scolaire</a>.</em>
+<?php else: ?>
+<select id="psc-annee" name="school_year_id" required>
+<?php foreach ($psc_trim_years as $y): ?>
+<option value="<?php echo esc_attr($y->id); ?>" <?php selected($y->statut, 'active'); ?>><?php echo esc_html($y->label . ' (' . $y->statut . ')'); ?></option>
+<?php endforeach; ?>
+</select>
+<?php endif; ?>
+</td></tr>
 <tr><th><label for="psc-debut">Date de début</label></th><td><input id="psc-debut" type="date" name="date_debut" required></td></tr>
 <tr><th><label for="psc-fin">Date de fin</label></th><td><input id="psc-fin" type="date" name="date_fin" required></td></tr>
 </table>

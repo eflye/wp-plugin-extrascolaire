@@ -8,8 +8,16 @@ class Psc_Admin {
         add_action('admin_post_psc_add_trimestre', array(__CLASS__, 'handle_add_trimestre'));
         add_action('admin_post_psc_activate_trimestre', array(__CLASS__, 'handle_activate_trimestre'));
         add_action('admin_post_psc_close_range', array(__CLASS__, 'handle_close_range'));
+        add_action('admin_post_psc_add_school_year', array(__CLASS__, 'handle_add_school_year'));
+        add_action('admin_post_psc_activate_school_year', array(__CLASS__, 'handle_activate_school_year'));
+        add_action('admin_post_psc_archive_school_year', array(__CLASS__, 'handle_archive_school_year'));
+        add_action('admin_post_psc_stage_promotion', array(__CLASS__, 'handle_stage_promotion'));
+        add_action('admin_post_psc_confirm_promotion', array(__CLASS__, 'handle_confirm_promotion'));
+        add_action('admin_post_psc_cancel_promotion', array(__CLASS__, 'handle_cancel_promotion'));
         add_action('admin_post_psc_add_child', array(__CLASS__, 'handle_add_child'));
         add_action('admin_post_psc_delete_child', array(__CLASS__, 'handle_delete_child'));
+        add_action('admin_post_psc_mark_child_sorti', array(__CLASS__, 'handle_mark_child_sorti'));
+        add_action('admin_post_psc_mark_child_actif', array(__CLASS__, 'handle_mark_child_actif'));
         add_action('admin_post_psc_save_settings', array(__CLASS__, 'handle_save_settings'));
         add_action('admin_post_psc_export_csv', array(__CLASS__, 'handle_export_csv'));
         add_action('admin_post_psc_add_parent', array(__CLASS__, 'handle_add_parent'));
@@ -89,6 +97,12 @@ class Psc_Admin {
         add_submenu_page('psc_dashboard', 'Tableau de bord', 'Tableau de bord', $cap, 'psc_dashboard', array(__CLASS__, 'page_dashboard'));
 
         // Suivi & Inscriptions
+        add_submenu_page('psc_dashboard', 'Années scolaires', 'Années scolaires', $cap, 'psc_school_years', array(__CLASS__, 'page_school_years'));
+        // Écran intermédiaire du passage d'année (récapitulatif + confirmation) :
+        // pas un lien de menu à part entière, seulement atteint depuis
+        // "Années scolaires" — menu_title à null pour ne pas apparaître dans
+        // la barre latérale.
+        add_submenu_page('psc_dashboard', 'Passage d\'année', null, $cap, 'psc_passage_annee', array(__CLASS__, 'page_passage_annee'));
         add_submenu_page('psc_dashboard', 'Inscriptions', 'Inscriptions', $cap, 'psc_inscriptions', array(__CLASS__, 'page_inscriptions'));
         $pending = Psc_Requests::pending_count();
         $req_label = $pending
@@ -128,7 +142,7 @@ class Psc_Admin {
         return array(
             'trimestre'        => $trimestre,
             'familles_actives' => (int) $wpdb->get_var('SELECT COUNT(*) FROM ' . psc_table('parents') . ' WHERE active = 1'),
-            'enfants_actifs'   => (int) $wpdb->get_var('SELECT COUNT(*) FROM ' . psc_table('children') . ' WHERE active = 1'),
+            'enfants_actifs'   => (int) $wpdb->get_var("SELECT COUNT(*) FROM " . psc_table('children') . " WHERE statut = 'actif'"),
         );
     }
 
@@ -230,6 +244,7 @@ class Psc_Admin {
         $label = psc_post('label');
         $debut = psc_valid_date(psc_post('date_debut'));
         $fin   = psc_valid_date(psc_post('date_fin'));
+        $school_year_id = psc_post_int('school_year_id') ?: null;
 
         if ($label === '' || !$debut || !$fin) {
             self::redirect('psc_trimestres', 'invalid_dates');
@@ -244,11 +259,12 @@ class Psc_Admin {
         }
 
         $wpdb->insert(psc_table('trimestres'), array(
-            'label'      => mb_substr($label, 0, 190),
-            'date_debut' => $debut,
-            'date_fin'   => $fin,
-            'active'     => 0,
-        ), array('%s', '%s', '%s', '%d'));
+            'label'          => mb_substr($label, 0, 190),
+            'date_debut'     => $debut,
+            'date_fin'       => $fin,
+            'active'         => 0,
+            'school_year_id' => $school_year_id,
+        ), array('%s', '%s', '%s', '%d', '%d'));
 
         Psc_Installer::generate_calendar_days($wpdb->insert_id, $debut, $fin);
         self::redirect('psc_trimestres', 'created');
@@ -268,6 +284,100 @@ class Psc_Admin {
         $wpdb->query("UPDATE $t_trim SET active = 0");
         $wpdb->update($t_trim, array('active' => 1), array('id' => $id), array('%d'), array('%d'));
         self::redirect('psc_trimestres', 'activated');
+    }
+
+    /* ---------------- Années scolaires ---------------- */
+
+    public static function handle_add_school_year() {
+        self::guard('psc_add_school_year');
+        $result = Psc_School_Years::create(psc_post('label'), psc_post('date_debut'), psc_post('date_fin'));
+        if (is_wp_error($result)) self::redirect('psc_school_years', $result->get_error_code());
+        self::redirect('psc_school_years', 'created');
+    }
+
+    public static function handle_activate_school_year() {
+        self::guard('psc_activate_school_year');
+        if (!Psc_School_Years::activate(psc_post_int('id'))) self::redirect('psc_school_years', 'invalid');
+        self::redirect('psc_school_years', 'activated');
+    }
+
+    public static function handle_archive_school_year() {
+        self::guard('psc_archive_school_year');
+        if (!Psc_School_Years::archive(psc_post_int('id'))) self::redirect('psc_school_years', 'invalid');
+        self::redirect('psc_school_years', 'archived');
+    }
+
+    /**
+     * Étape 1 du passage d'année : calcule le plan de montée de classe et
+     * le met en attente (transient), sans rien écrire — l'admin voit un
+     * récapitulatif et peut corriger des lignes avant de confirmer. Même
+     * principe que la fermeture d'un jour de calendrier avec inscriptions
+     * existantes (handle_close_school_day()).
+     */
+    public static function handle_stage_promotion() {
+        self::guard('psc_stage_promotion');
+
+        $from_year_id = psc_post_int('from_year_id');
+        $to_year_id   = psc_post_int('to_year_id');
+        if (!$from_year_id || !$to_year_id || $from_year_id === $to_year_id) {
+            self::redirect('psc_school_years', 'invalid');
+        }
+
+        $plan = Psc_School_Years::build_promotion_plan($from_year_id, $to_year_id);
+        Psc_School_Years::stage_promotion($from_year_id, $to_year_id, $plan);
+
+        wp_safe_redirect(add_query_arg(
+            array('page' => 'psc_passage_annee'),
+            admin_url('admin.php')
+        ));
+        exit;
+    }
+
+    /**
+     * Étape 2 : écrit le plan (avec corrections éventuelles ligne par
+     * ligne, envoyées comme classe_{child_id}) une fois confirmé
+     * explicitement par l'admin.
+     */
+    public static function handle_confirm_promotion() {
+        self::guard('psc_confirm_promotion');
+
+        $staged = Psc_School_Years::staged_promotion();
+        if (!$staged) self::redirect('psc_school_years', 'invalid');
+
+        $overrides = array();
+        foreach ($staged['plan'] as $row) {
+            $key = 'classe_' . $row['child_id'];
+            if (isset($_POST[$key])) {
+                $overrides[$row['child_id']] = sanitize_text_field(wp_unslash($_POST[$key]));
+            }
+        }
+
+        Psc_School_Years::apply_promotion($staged['to_year_id'], $staged['plan'], $overrides);
+        Psc_School_Years::clear_staged_promotion();
+        self::redirect('psc_school_years', 'promoted');
+    }
+
+    public static function handle_cancel_promotion() {
+        self::guard('psc_cancel_promotion');
+        Psc_School_Years::clear_staged_promotion();
+        self::redirect('psc_school_years', 'promotion_cancelled');
+    }
+
+    public static function page_school_years() {
+        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        $years = Psc_School_Years::all();
+        $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
+        include PSC_PATH . 'templates/admin-annees.php';
+    }
+
+    public static function page_passage_annee() {
+        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        $staged = Psc_School_Years::staged_promotion();
+        $from_year = $staged ? Psc_School_Years::get($staged['from_year_id']) : null;
+        $to_year   = $staged ? Psc_School_Years::get($staged['to_year_id']) : null;
+        $plan      = $staged ? $staged['plan'] : array();
+        $classe_options = psc_classe_options();
+        include PSC_PATH . 'templates/admin-passage-annee.php';
     }
 
     public static function handle_close_range() {
@@ -324,15 +434,23 @@ class Psc_Admin {
             self::redirect('psc_children', 'nouser');
         }
 
+        $allowed = array_keys(psc_classe_options());
+        if (!in_array($classe, $allowed, true)) $classe = '';
+
         $wpdb->insert(psc_table('children'), array(
             'parent_id'      => $parent_id,
             'nom'            => mb_substr($nom, 0, 190),
             'prenom'         => mb_substr($prenom, 0, 190),
-            'classe'         => mb_substr($classe, 0, 100),
             'date_naissance' => $naissance ?: null,
-            'classe_annee'   => psc_rentree_year(),
+            'statut'         => 'actif',
             'created_at'     => current_time('mysql'),
-        ), array('%d', '%s', '%s', '%s', '%s', '%d', '%s'));
+        ), array('%d', '%s', '%s', '%s', '%s', '%s'));
+        $child_id = (int) $wpdb->insert_id;
+
+        $year_id = Psc_School_Years::active_id();
+        if ($year_id && $classe !== '') {
+            Psc_School_Years::enroll($child_id, $year_id, $classe, 'inscrit');
+        }
 
         self::redirect('psc_children', 'added');
     }
@@ -345,8 +463,21 @@ class Psc_Admin {
         if (!$id) self::redirect('psc_children', 'invalid');
 
         $wpdb->delete(psc_table('registrations'), array('child_id' => $id), array('%d'));
+        $wpdb->delete(psc_table('child_school_years'), array('child_id' => $id), array('%d'));
         $wpdb->delete(psc_table('children'), array('id' => $id), array('%d'));
         self::redirect('psc_children', 'deleted');
+    }
+
+    public static function handle_mark_child_sorti() {
+        self::guard('psc_mark_child_sorti');
+        if (!Psc_School_Years::mark_sorti(psc_post_int('id'))) self::redirect('psc_children', 'invalid');
+        self::redirect('psc_children', 'marked_sorti');
+    }
+
+    public static function handle_mark_child_actif() {
+        self::guard('psc_mark_child_actif');
+        if (!Psc_School_Years::mark_actif(psc_post_int('id'))) self::redirect('psc_children', 'invalid');
+        self::redirect('psc_children', 'marked_actif');
     }
 
     public static function page_children() {
@@ -354,18 +485,28 @@ class Psc_Admin {
         global $wpdb;
         $t_child = psc_table('children');
         $t_parent = psc_table('parents');
-        $t_assur = psc_table('child_assurances');
-        $psc_assurance_rentree = psc_rentree_year();
-        $children = $wpdb->get_results($wpdb->prepare(
+        $t_cy = psc_table('child_school_years');
+
+        $years = Psc_School_Years::all();
+        $selected_year_id = psc_get_int('school_year_id') ?: Psc_School_Years::active_id();
+        $show_sortis = !empty($_GET['show_sortis']);
+
+        $where = $show_sortis ? '' : "AND c.statut = 'actif'";
+        $children = $selected_year_id ? $wpdb->get_results($wpdb->prepare(
             "SELECT c.*, p.nom AS parent_nom, p.email AS parent_email,
-                    a.original_filename AS assurance_filename, a.uploaded_at AS assurance_uploaded_at
+                    cy.classe AS classe, cy.statut AS statut_annee,
+                    cy.assurance_original_filename AS assurance_filename,
+                    cy.assurance_uploaded_at AS assurance_uploaded_at
              FROM $t_child c
              LEFT JOIN $t_parent p ON p.id = c.parent_id
-             LEFT JOIN $t_assur a ON a.child_id = c.id AND a.rentree_year = %d
+             LEFT JOIN $t_cy cy ON cy.child_id = c.id AND cy.school_year_id = %d
+             WHERE 1=1 $where
              ORDER BY c.nom",
-            $psc_assurance_rentree
-        ));
+            $selected_year_id
+        )) : array();
+
         $parents = Psc_Parents::all();
+        $psc_classe_labels = psc_classe_options();
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         include PSC_PATH . 'templates/admin-children.php';
     }
@@ -421,12 +562,28 @@ class Psc_Admin {
         update_option('psc_doc_reglement_interieur_id',   absint(isset($_POST['doc_reglement_interieur_id'])   ? $_POST['doc_reglement_interieur_id']   : 0));
         update_option('psc_doc_reglement_prelevement_id', absint(isset($_POST['doc_reglement_prelevement_id']) ? $_POST['doc_reglement_prelevement_id'] : 0));
 
+        // Table de correspondance des classes (passage d'année) : un select
+        // par classe existante vers sa classe suivante, ou "sortie".
+        $progression = array();
+        foreach (array_keys(psc_classe_options()) as $code) {
+            if ($code === '') continue;
+            $next = isset($_POST['progression_' . $code]) ? sanitize_text_field(wp_unslash($_POST['progression_' . $code])) : 'sortie';
+            $progression[$code] = $next;
+        }
+        update_option('psc_classe_progression', $progression);
+
+        $reins_debut = psc_valid_date(psc_post('reinscription_debut'));
+        $reins_fin   = psc_valid_date(psc_post('reinscription_fin'));
+        update_option('psc_reinscription_debut', $reins_debut ?: '');
+        update_option('psc_reinscription_fin', $reins_fin ?: '');
+
         self::redirect('psc_settings', 'saved');
     }
 
     public static function page_settings() {
         if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         $services = psc_services();
+        $psc_classe_progression = psc_classe_progression();
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         include PSC_PATH . 'templates/admin-settings.php';
     }
@@ -461,8 +618,14 @@ class Psc_Admin {
 
         if ($selected_parent && $trimestre_id) {
             $t_child  = psc_table('children');
+            $t_cy     = psc_table('child_school_years');
+            $year_id  = $trimestre ? (int) $trimestre->school_year_id : Psc_School_Years::active_id();
             $children = $wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM $t_child WHERE parent_id = %d ORDER BY nom", $parent_id
+                "SELECT c.*, cy.classe AS classe
+                 FROM $t_child c
+                 LEFT JOIN $t_cy cy ON cy.child_id = c.id AND cy.school_year_id = %d
+                 WHERE c.parent_id = %d ORDER BY c.nom",
+                $year_id, $parent_id
             ));
 
             $t_days = psc_table('calendar_days');
@@ -609,14 +772,20 @@ class Psc_Admin {
             wp_die(esc_html__('Trimestre invalide.', 'periscolaire-registration'));
         }
 
+        $year_id = (int) $wpdb->get_var($wpdb->prepare(
+            'SELECT school_year_id FROM ' . psc_table('trimestres') . ' WHERE id = %d', $trimestre_id
+        ));
+
         $t_reg = psc_table('registrations');
         $t_child = psc_table('children');
+        $t_cy = psc_table('child_school_years');
         $data = $wpdb->get_results($wpdb->prepare(
-            "SELECT r.jour_date, r.service, c.nom, c.prenom, c.classe, p.email AS parent_email
+            "SELECT r.jour_date, r.service, c.nom, c.prenom, cy.classe, p.email AS parent_email
              FROM $t_reg r
              JOIN $t_child c ON c.id = r.child_id
+             LEFT JOIN $t_cy cy ON cy.child_id = c.id AND cy.school_year_id = %d
              LEFT JOIN " . psc_table('parents') . " p ON p.id = c.parent_id
-             WHERE r.trimestre_id = %d ORDER BY c.nom, r.jour_date", $trimestre_id
+             WHERE r.trimestre_id = %d ORDER BY c.nom, r.jour_date", $year_id, $trimestre_id
         ));
 
         $filename = 'inscriptions-periscolaire-' . $trimestre_id . '-' . gmdate('Ymd') . '.csv';
@@ -861,16 +1030,13 @@ class Psc_Admin {
         $child_id = psc_get_int('child_id');
         check_admin_referer('psc_download_assurance_' . $child_id);
 
-        global $wpdb;
-        $t_assur = psc_table('child_assurances');
-        $doc = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $t_assur WHERE child_id = %d AND rentree_year = %d", $child_id, psc_rentree_year()
-        ));
-        if (!$doc) {
+        $year_id = psc_get_int('school_year_id') ?: Psc_School_Years::active_id();
+        $doc = $year_id ? Psc_School_Years::enrollment($child_id, $year_id) : null;
+        if (!$doc || !$doc->assurance_file_path) {
             wp_die(esc_html__('Aucun document pour cette année.', 'periscolaire-registration'), '', array('response' => 404));
         }
 
-        Psc_Frontend::stream_assurance_file($doc->file_path, $doc->original_filename);
+        Psc_Frontend::stream_assurance_file($doc->assurance_file_path, $doc->assurance_original_filename);
     }
 
     /**
