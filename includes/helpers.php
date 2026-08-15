@@ -271,8 +271,8 @@ function psc_classe_options() {
 
 /**
  * Année de rentrée en cours (ex : 2026 du 1er septembre 2026 au 31 août
- * 2027). Sert de repère pour savoir si la classe d'un enfant a déjà été
- * basculée cette année scolaire (cf. Psc_Frontend::bump_classes()).
+ * 2027). Sert de repère pour dater les documents (assurance, dossiers)
+ * quand aucune année scolaire n'est explicitement fournie.
  */
 function psc_rentree_year($timestamp = null) {
     $ts = $timestamp ?: current_time('timestamp');
@@ -286,7 +286,7 @@ function psc_rentree_year($timestamp = null) {
  * $rentree_year (âge au 31 décembre de cette année civile — règle
  * officielle française). Sert uniquement à initialiser la classe d'un
  * enfant qui n'en a pas encore : jamais utilisée pour recorriger une
- * classe déjà définie (cf. Psc_Frontend::bump_classes()).
+ * classe déjà définie (cf. Psc_School_Years::build_promotion_plan()).
  */
 function psc_classe_for_birthdate($date_naissance, $rentree_year) {
     if (!$date_naissance) return '';
@@ -296,15 +296,46 @@ function psc_classe_for_birthdate($date_naissance, $rentree_year) {
 }
 
 /**
- * Classe suivante dans la progression PS→MS→GS→CP→CE1→CE2→CM1→CM2.
- * Renvoie null si $classe est déjà CM2 (fin du cycle géré par le
- * périscolaire) ou n'est pas une classe reconnue.
+ * Table de correspondance classe -> classe suivante (ou 'sortie'),
+ * éditable depuis Périscolaire > Réglages : une école à classes
+ * multi-niveaux peut avoir une progression différente du simple
+ * PS→MS→GS→CP→CE1→CE2→CM1→CM2. Valeur par défaut = cette progression
+ * standard, CM2 menant à la sortie.
+ */
+function psc_classe_progression_defaut() {
+    return array(
+        'PS'  => 'MS',
+        'MS'  => 'GS',
+        'GS'  => 'CP',
+        'CP'  => 'CE1',
+        'CE1' => 'CE2',
+        'CE2' => 'CM1',
+        'CM1' => 'CM2',
+        'CM2' => 'sortie',
+    );
+}
+
+function psc_classe_progression() {
+    $saved = get_option('psc_classe_progression', array());
+    $defaut = psc_classe_progression_defaut();
+    if (!is_array($saved) || empty($saved)) return $defaut;
+
+    $progression = array();
+    foreach (array_keys(psc_classe_options()) as $code) {
+        if ($code === '') continue;
+        $progression[$code] = isset($saved[$code]) ? $saved[$code] : ($defaut[$code] ?? 'sortie');
+    }
+    return $progression;
+}
+
+/**
+ * Classe suivante pour $classe selon la table de correspondance
+ * configurée (Réglages). Renvoie 'sortie' en fin de cycle, ou null si
+ * $classe n'est pas une classe reconnue.
  */
 function psc_classe_superieure($classe) {
-    $order = array('PS', 'MS', 'GS', 'CP', 'CE1', 'CE2', 'CM1', 'CM2');
-    $i = array_search($classe, $order, true);
-    if ($i === false || $i === count($order) - 1) return null;
-    return $order[$i + 1];
+    $progression = psc_classe_progression();
+    return $progression[$classe] ?? null;
 }
 
 /**
