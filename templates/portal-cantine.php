@@ -114,7 +114,7 @@
                 $short = array('GM' => 'G.M.', 'CANT' => 'Cant.', 'GS' => 'G.S.', 'FORF' => 'Forf.');
                 foreach (psc_allowed_services() as $code): ?>
                   <th scope="col">
-                    <?php echo esc_html($short[$code]); ?>
+                    <abbr class="psc-portal-th-abbr" title="<?php echo esc_attr($services[$code]['label']); ?>"><?php echo esc_html($short[$code]); ?></abbr>
                     <small><?php echo esc_html(number_format_i18n($services[$code]['price'], 2)); ?> €</small>
                   </th>
                 <?php endforeach; ?>

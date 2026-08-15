@@ -11,6 +11,38 @@
 .psc-admin .psc-recap .psc-center {
     text-align: center;
 }
+/* Infobulle CSS plutôt que le title natif du navigateur (délai fixe
+   ~1s, non réglable en CSS) : content: attr(title) réutilise le même
+   attribut mais l'affiche quasi instantanément. */
+.psc-admin .psc-th-abbr {
+    position: relative;
+    text-decoration: underline dotted;
+    text-decoration-color: #c3c4c7;
+    text-underline-offset: 3px;
+    cursor: help;
+}
+.psc-admin .psc-th-abbr::after {
+    content: attr(title);
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(6px);
+    background: #1d2327;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 400;
+    white-space: nowrap;
+    padding: 4px 8px;
+    border-radius: 3px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.08s ease;
+    z-index: 10;
+}
+.psc-admin .psc-th-abbr:hover::after,
+.psc-admin .psc-th-abbr:focus-visible::after {
+    opacity: 1;
+}
 .psc-admin .psc-active {
     color: #2271b1;
 }

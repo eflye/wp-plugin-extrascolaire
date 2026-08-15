@@ -541,6 +541,45 @@ body.psc-portal-active main.site-main {
     font-weight: 600;
 }
 .psc-portal-calendar thead th:first-child { text-align: left; letter-spacing: 0.18em; }
+/* Infobulle CSS plutôt que le title natif du navigateur : ce dernier a un
+   délai d'apparition fixe (~1s) qu'aucune propriété CSS ne permet de
+   raccourcir. content: attr(title) réutilise le même attribut (une seule
+   source, toujours accessible aux lecteurs d'écran) mais l'affiche quasi
+   instantanément au survol/focus. Positionnée EN DESSOUS (pas au-dessus)
+   de la cellule : le calendrier défile dans .psc-portal-table-scroll
+   (overflow-x: auto), qui — par la règle CSS sur les axes perpendiculaires —
+   masquerait une infobulle qui déborderait vers le haut. */
+.psc-portal-th-abbr {
+    position: relative;
+    text-decoration: underline dotted;
+    text-decoration-color: var(--psc-rule);
+    text-underline-offset: 3px;
+    cursor: help;
+}
+.psc-portal-th-abbr::after {
+    content: attr(title);
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(6px);
+    background: var(--psc-ink);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: normal;
+    white-space: nowrap;
+    padding: 4px 8px;
+    border-radius: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.08s ease;
+    z-index: 10;
+}
+.psc-portal-th-abbr:hover::after,
+.psc-portal-th-abbr:focus-visible::after {
+    opacity: 1;
+}
 .psc-portal-calendar thead th small {
     display: block;
     font-weight: 400;

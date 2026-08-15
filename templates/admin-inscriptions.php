@@ -70,7 +70,7 @@
 <tr>
 <th>Jour</th>
 <?php foreach (psc_allowed_services() as $code): ?>
-<th class="psc-center"><?php echo esc_html($short[$code]); ?><br><small><?php echo esc_html(number_format_i18n($services[$code]['price'], 2)); ?> €</small></th>
+<th class="psc-center"><abbr class="psc-th-abbr" title="<?php echo esc_attr($services[$code]['label']); ?>"><?php echo esc_html($short[$code]); ?></abbr><br><small><?php echo esc_html(number_format_i18n($services[$code]['price'], 2)); ?> €</small></th>
 <?php endforeach; ?>
 </tr>
 </thead>
