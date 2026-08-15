@@ -86,7 +86,11 @@ Tableau **en lecture seule** — Prénom, Nom, Classe, Naissance, Régime (badge
 
 En dessous, le panneau **Assurance scolaire [année scolaire en cours]** liste chaque enfant actif avec son statut (badge « Fournie » avec date + lien de consultation, ou « Manquante ») et un bouton *Remplacer*/*Ajouter* ouvrant une popin d'envoi de fichier (PDF, JPG ou PNG, 1 Mo maximum).
 
-Enfin, le panneau **Ajouter un enfant** permet de rattacher un nouvel enfant à la famille (prénom, nom, classe, date de naissance, régime, justificatif d'assurance obligatoire dès la création), dans la limite d'un nombre maximum configurable (10 par défaut).
+Enfin, le panneau **Ajouter un enfant** permet de rattacher un nouvel enfant à la famille (prénom, nom, classe, date de naissance, régime, justificatif d'assurance obligatoire dès la création), dans la limite d'un nombre maximum configurable (10 par défaut). Un enfant marqué **sorti** par la mairie n'apparaît plus dans le calendrier ni dans le planning, mais reste visible ici et garde tout son historique d'inscriptions passées.
+
+#### Réinscription (onglet visible seulement pendant la campagne)
+
+Onglet affiché uniquement pendant la fenêtre de réinscription ouverte par la mairie (voir [Années scolaires](#années-scolaires)) — invisible le reste de l'année. Pour chaque enfant actif : classe actuelle et classe proposée pour l'année suivante (déduite de la table de correspondance des classes), une case à cocher pour confirmer ou retirer l'enfant, un nouveau justificatif d'assurance à déposer pour chaque enfant confirmé, et une acceptation du règlement intérieur valable pour toute la famille. Un enfant décoché n'est pas sorti pour autant : il n'est simplement pas réinscrit pour l'année suivante, et reste modifiable jusqu'à la fermeture de la fenêtre.
 
 #### Mes factures
 
@@ -108,7 +112,7 @@ Un widget affiché sur la page publique, **sans connexion requise**, présente l
 
 ## Côté mairie (backoffice)
 
-Menu **Périscolaire** dans l'administration WordPress, avec onze sections :
+Menu **Périscolaire** dans l'administration WordPress, avec treize sections :
 
 ### Tableau de bord
 
@@ -122,9 +126,19 @@ Vue de correction : sélection d'une famille et d'une période, grille identique
 
 File de modération des nouvelles familles (voir [Première inscription](#1-première-inscription)). Pour chaque demande en attente : coordonnées déclarées (prénom, nom, etc.), statut d'acceptation du règlement intérieur, mode de paiement choisi et — si prélèvement — titulaire, adresse, **IBAN partiellement masqué** (`FR14 •••• •••• 2606`), BIC et statut d'acceptation du règlement de prélèvement. Les nom/prénom/classe des enfants sont modifiables avant validation (informations déclaratives, à vérifier). Refus possible avec motif optionnel, notifiable ou non au demandeur.
 
+### Années scolaires
+
+Une année scolaire chapeaute les trimestres et porte, pour chaque enfant, sa classe et son statut d'inscription **de cette année-là** (table `wp_psc_child_school_years`) : la classe n'est plus une valeur unique sur la fiche enfant, elle s'historise année par année. Une seule année peut être **active** à la fois (même principe que les trimestres) ; une année **en préparation** existe le temps de monter le passage d'année ou une campagne de réinscription ; une année **archivée** reste consultable en lecture seule, jamais supprimée.
+
+**Passage d'année** : depuis l'année active, prépare l'année suivante en proposant pour chaque enfant actif sa classe montée d'un niveau, d'après une **table de correspondance configurable dans Réglages** (utile pour une école à classes multi-niveaux, où la progression n'est pas un simple PS→MS→...→CM2). Un écran de récapitulatif liste chaque enfant avec sa classe actuelle et la classe proposée, modifiable ligne par ligne avant confirmation ; les enfants en fin de cycle sont proposés « Sortie » et basculent au statut sorti. Rien n'est écrit en base tant que la mairie n'a pas explicitement confirmé le récapitulatif.
+
+Un enfant peut aussi être marqué **sorti** individuellement à tout moment (déménagement en cours d'année, par exemple), depuis [Enfants](#enfants) — pas seulement via le passage d'année automatique de fin de cycle.
+
+**Réinscription** : pendant la fenêtre configurée dans Réglages, les familles connectées voient un onglet « Réinscription » dédié pour confirmer chaque enfant, déposer un nouveau justificatif d'assurance et réaccepter le règlement intérieur pour l'année suivante (voir [Réinscription](#réinscription-onglet-visible-seulement-pendant-la-campagne)). Aucune relance automatique : la mairie déclenche manuellement, si besoin, un e-mail de rappel aux familles n'ayant pas encore réinscrit leurs enfants.
+
 ### Trimestres
 
-Création d'un trimestre (libellé + dates) : le calendrier se génère automatiquement, jour par jour, avec fermeture par défaut des week-ends, des mercredis, des jours fériés et des vacances scolaires (zone C, voir [Calendrier scolaire](#calendrier-scolaire)). Un seul trimestre peut être actif à la fois : c'est celui visible par les familles. Un formulaire permet aussi de fermer manuellement une plage de dates (fermeture exceptionnelle non couverte par le calendrier scolaire officiel).
+Création d'un trimestre (libellé, dates, année scolaire de rattachement) : le calendrier se génère automatiquement, jour par jour, avec fermeture par défaut des week-ends, des mercredis, des jours fériés et des vacances scolaires (zone C, voir [Calendrier scolaire](#calendrier-scolaire)). Un seul trimestre peut être actif à la fois : c'est celui visible par les familles. Un formulaire permet aussi de fermer manuellement une plage de dates (fermeture exceptionnelle non couverte par le calendrier scolaire officiel).
 
 ### Calendrier scolaire
 
@@ -141,9 +155,9 @@ Liste de toutes les familles, avec mode de paiement et IBAN masqué en un coup d
 
 ### Enfants
 
-Liste de tous les enfants avec leur famille de rattachement, leur régime cantine (sans porc / sans viande) et le statut de leur justificatif d'assurance scolaire pour l'année en cours. Rattachement d'un nouvel enfant à une famille existante (la mairie tient cette liste — les familles ne peuvent pas créer un enfant sans rattachement).
+Liste de tous les enfants avec leur famille de rattachement, leur régime cantine (sans porc / sans viande), leur classe **pour l'année scolaire sélectionnée** (sélecteur d'année, année active par défaut) et le statut de leur justificatif d'assurance scolaire. Les enfants sortis sont masqués par défaut ; une case « Afficher les enfants sortis » les révèle. Rattachement d'un nouvel enfant à une famille existante (la mairie tient cette liste — les familles ne peuvent pas créer un enfant sans rattachement), et action **Marquer sorti**/**Marquer actif** par ligne.
 
-Chaque année, à la rentrée scolaire, une tâche planifiée fait automatiquement progresser d'une classe chaque enfant actif (PS → MS → ... → CM2), désactive les enfants qui terminaient le CM2 (fin du cycle périscolaire) et déduit la classe d'un enfant sans classe connue à partir de sa date de naissance — aucune action manuelle nécessaire de la part de la mairie.
+La progression de classe d'une année sur l'autre se fait via le [passage d'année](#années-scolaires), toujours déclenché manuellement par la mairie — aucune tâche planifiée, aucune bascule automatique en arrière-plan.
 
 ### Menus cantine
 
@@ -169,6 +183,8 @@ Personnalisation du sujet et du corps de chaque e-mail transactionnel (lien de c
 - **Adresse e-mail** de la mairie pour les notifications.
 - **Documents PDF** : dépôt du règlement intérieur et du règlement de prélèvement, consultables par les familles dans l'onglet « Documents ».
 - **Informations de facturation** : intitulé, adresse, téléphone, fax, e-mail, commune, logos gauche/droit (utilisés dans le PDF de facture), texte de pied de page, **identifiant créancier SEPA (ICS)** affiché aux familles sur le mandat de prélèvement.
+- **Table de correspondance des classes** : un sélecteur par classe vers sa classe suivante (ou « Sortie »), utilisée par le [passage d'année](#années-scolaires) — non figée sur PS→MS→...→CM2, adaptable à une école à classes multi-niveaux.
+- **Fenêtre de réinscription** : dates d'ouverture/fermeture de la campagne annuelle, qui contrôlent la visibilité de l'onglet « Réinscription » côté famille.
 
 ---
 
@@ -339,7 +355,7 @@ periscolaire-registration/
 ├── templates/
 │   ├── email/layout.php            # Layout HTML commun pour les e-mails
 │   ├── admin-*.php                 # Vues backoffice (dont admin-dashboard.php)
-│   ├── portal-*.php                # Vues du portail famille connecté (les 7 onglets)
+│   ├── portal-*.php                # Vues du portail famille connecté (7 onglets + Réinscription, conditionnel)
 │   └── frontend-*.php, guest-*.php # Vues page publique / visiteur non connecté
 └── assets/
     ├── css/                        # Styles admin et frontend/portail
@@ -350,11 +366,12 @@ periscolaire-registration/
 
 | Table | Description |
 |---|---|
-| `wp_psc_trimestres` | Périodes (trimestres) avec dates de début/fin |
+| `wp_psc_school_years` | Années scolaires (label, dates, statut préparation/active/archivée) |
+| `wp_psc_trimestres` | Périodes (trimestres) avec dates de début/fin, rattachées à une année scolaire |
 | `wp_psc_calendar_days` | Jours du calendrier (ouvert/fermé + motif) par trimestre |
 | `wp_psc_parents` | Comptes familles (état civil, mode de paiement, IBAN/BIC, référence de mandat SEPA) |
-| `wp_psc_children` | Enfants rattachés à une famille (dont classe, régime cantine) |
-| `wp_psc_child_assurances` | Justificatifs d'assurance scolaire par enfant et par année de rentrée |
+| `wp_psc_children` | Enfants rattachés à une famille (état civil, régime cantine, statut actif/sorti) |
+| `wp_psc_child_school_years` | Inscription d'un enfant pour une année scolaire donnée : classe, statut, acceptation du règlement, justificatif d'assurance |
 | `wp_psc_registrations` | Inscriptions jour × enfant × prestation |
 | `wp_psc_requests` | Demandes d'inscription (règlement, mode de paiement, mandat SEPA déclarés) |
 | `wp_psc_invoices` | Factures mensuelles générées (métadonnées + chemin PDF) |
@@ -372,7 +389,7 @@ Liste non exhaustive de ce qui mérite un retour avant mise en production :
 - **Acceptation par case à cocher, pas signature électronique qualifiée** : à valider que ce niveau suffit pour la mairie (le SIDISCM demandait historiquement une signature papier).
 - **Aucun export bancaire SEPA (fichier `pain.008`)** : les mandats sont stockés et consultables dans le backoffice, mais la mairie doit encore les saisir manuellement dans son outil bancaire pour lancer les prélèvements.
 - **Pas de paiement en ligne** : les tarifs affichés restent indicatifs, la facturation réelle (chèque/espèces/prélèvement bancaire) est gérée hors plugin.
-- **WP-Cron** (purge RGPD des demandes, bascule annuelle de classe) dépend des visites du site — prévoir un cron système sur un site peu fréquenté.
+- **WP-Cron** (purge RGPD des demandes) dépend des visites du site — prévoir un cron système sur un site peu fréquenté.
 - **Envoi d'e-mails** : le plugin utilise `wp_mail()`. Sans configuration SMTP, les messages partent souvent en indésirables ou pas du tout — à tester en conditions réelles avant ouverture aux familles, le lien de connexion en dépend entièrement.
 
 ---
