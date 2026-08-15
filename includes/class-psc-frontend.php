@@ -28,8 +28,6 @@ class Psc_Frontend {
         add_action('wp_ajax_psc_confirm', array(__CLASS__, 'ajax_confirm'));
 
         // Gestion des enfants par le parent (formulaires POST classiques).
-        add_action('admin_post_nopriv_psc_parent_update_child', array(__CLASS__, 'handle_parent_update_child'));
-        add_action('admin_post_psc_parent_update_child', array(__CLASS__, 'handle_parent_update_child'));
         add_action('admin_post_nopriv_psc_parent_update_child_identity', array(__CLASS__, 'handle_parent_update_child_identity'));
         add_action('admin_post_psc_parent_update_child_identity', array(__CLASS__, 'handle_parent_update_child_identity'));
         add_action('admin_post_nopriv_psc_parent_add_child', array(__CLASS__, 'handle_parent_add_child'));
@@ -49,69 +47,8 @@ class Psc_Frontend {
         add_action('admin_post_nopriv_psc_parent_download_assurance', array(__CLASS__, 'handle_parent_download_assurance'));
         add_action('admin_post_psc_parent_download_assurance', array(__CLASS__, 'handle_parent_download_assurance'));
 
-        add_action('psc_bump_classes', array(__CLASS__, 'bump_classes'));
-        // En plus du register_activation_hook (periscolaire-registration.php) :
-        // s'auto-installe aussi sur les sites où le plugin était déjà actif au
-        // moment de cette mise à jour, sans nécessiter une désactivation puis
-        // réactivation. wp_next_scheduled() en garde rend l'appel gratuit une
-        // fois la tâche programmée.
-        add_action('init', array(__CLASS__, 'schedule_classe_bump'));
-    }
-
-    /* ---------------- Bascule annuelle de classe (rentrée) ---------------- */
-
-    public static function schedule_classe_bump() {
-        if (!wp_next_scheduled('psc_bump_classes')) {
-            wp_schedule_event(time() + HOUR_IN_SECONDS, 'daily', 'psc_bump_classes');
-        }
-    }
-
-    public static function unschedule_classe_bump() {
-        $ts = wp_next_scheduled('psc_bump_classes');
-        if ($ts) wp_unschedule_event($ts, 'psc_bump_classes');
-    }
-
-    /**
-     * Fait avancer d'un cran la classe de chaque enfant actif dont la
-     * date de naissance est connue et dont la classe n'a pas encore été
-     * basculée pour l'année de rentrée en cours (classe_annee en retard).
-     * Un enfant en CM2 est désactivé plutôt que basculé : il n'y a pas de
-     * classe gérée par le périscolaire au-delà. Volontairement une
-     * incrémentation depuis la classe actuelle, pas un recalcul depuis la
-     * date de naissance — une correction manuelle (redoublement) doit
-     * rester la référence pour les rentrées suivantes.
-     */
-    public static function bump_classes() {
-        $rentree_year = psc_rentree_year();
-
-        global $wpdb;
-        $t_child = psc_table('children');
-        $children = $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM $t_child WHERE active = 1 AND date_naissance IS NOT NULL AND (classe_annee IS NULL OR classe_annee < %d)",
-            $rentree_year
-        ));
-
-        foreach ($children as $child) {
-            if ($child->classe === 'CM2') {
-                $wpdb->update($t_child,
-                    array('active' => 0, 'classe_annee' => $rentree_year),
-                    array('id' => $child->id), array('%d', '%d'), array('%d')
-                );
-                continue;
-            }
-
-            $next = psc_classe_superieure($child->classe);
-            if ($next === null) {
-                if ($child->classe !== '') continue; // classe non reconnue (texte libre admin) : on ne touche pas
-                $next = psc_classe_for_birthdate($child->date_naissance, $rentree_year);
-                if ($next === '') continue; // âge hors plage gérée (< 3 ou > 10 ans)
-            }
-
-            $wpdb->update($t_child,
-                array('classe' => $next, 'classe_annee' => $rentree_year),
-                array('id' => $child->id), array('%s', '%d'), array('%d')
-            );
-        }
+        add_action('admin_post_nopriv_psc_parent_reinscription', array(__CLASS__, 'handle_parent_reinscription'));
+        add_action('admin_post_psc_parent_reinscription', array(__CLASS__, 'handle_parent_reinscription'));
     }
 
     /**
@@ -179,7 +116,7 @@ class Psc_Frontend {
     protected static function children_of($parent_id, $active_only = false) {
         global $wpdb;
         $t_child = psc_table('children');
-        $where   = $active_only ? 'AND active = 1' : '';
+        $where   = $active_only ? "AND statut = 'actif'" : '';
         return $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM $t_child WHERE parent_id = %d $where ORDER BY prenom", $parent_id
         ));
@@ -214,38 +151,48 @@ class Psc_Frontend {
     /* ---------------- Assurance scolaire (espace famille) ---------------- */
 
     /**
-     * Un enfant a-t-il fourni son assurance scolaire pour l'année de
-     * rentrée en cours ? Un document fourni l'an dernier ne compte plus
-     * après le 1er septembre (cf. psc_rentree_year()) : pas de tâche cron
+     * Un enfant a-t-il fourni son assurance scolaire pour l'année scolaire
+     * active ? Un document fourni l'an dernier ne compte plus une fois
+     * l'année suivante activée par la mairie : pas de tâche cron
      * nécessaire, la vérification se fait à la volée à chaque tentative de
      * déclaration d'un jour (cf. ajax_toggle()).
      */
     protected static function has_valid_assurance($child_id) {
         global $wpdb;
-        $t_assur = psc_table('child_assurances');
+        $year_id = Psc_School_Years::active_id();
+        if (!$year_id) return false;
+        $t_cy = psc_table('child_school_years');
         return (bool) $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $t_assur WHERE child_id = %d AND rentree_year = %d",
-            $child_id, psc_rentree_year()
+            "SELECT id FROM $t_cy WHERE child_id = %d AND school_year_id = %d AND assurance_file_path IS NOT NULL",
+            $child_id, $year_id
         ));
     }
 
     /**
-     * Statut d'assurance scolaire (année en cours) pour une liste d'enfants,
+     * Statut d'assurance scolaire (année active) pour une liste d'enfants,
      * en une seule requête groupée — même principe que reg_map() ci-dessus.
-     * Clé : child_id.
+     * Clé : child_id. Renvoie des objets avec les mêmes propriétés que
+     * l'ancienne table child_assurances (file_path, original_filename,
+     * uploaded_at), pour ne pas changer les templates qui les lisent.
      */
     protected static function assurance_map($children) {
         global $wpdb;
         if (empty($children)) return array();
+        $year_id = Psc_School_Years::active_id();
+        if (!$year_id) return array();
 
         $ids = array_map('intval', wp_list_pluck($children, 'id'));
         $placeholders = implode(',', array_fill(0, count($ids), '%d'));
-        $t_assur = psc_table('child_assurances');
-        $params = array_merge(array(psc_rentree_year()), $ids);
+        $t_cy = psc_table('child_school_years');
+        $params = array_merge(array($year_id), $ids);
 
         $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT child_id, file_path, original_filename, uploaded_at FROM $t_assur
-             WHERE rentree_year = %d AND child_id IN ($placeholders)",
+            "SELECT child_id,
+                    assurance_file_path AS file_path,
+                    assurance_original_filename AS original_filename,
+                    assurance_uploaded_at AS uploaded_at
+             FROM $t_cy
+             WHERE school_year_id = %d AND child_id IN ($placeholders) AND assurance_file_path IS NOT NULL",
             $params
         ));
 
@@ -318,17 +265,24 @@ class Psc_Frontend {
 
     /**
      * Enregistre le justificatif d'assurance scolaire d'un enfant déjà
-     * existant en base, pour l'année de rentrée en cours. Auto-validé :
-     * aucune étape de vérification manuelle par la mairie pour l'instant
-     * (cf. Psc_Admin qui expose seulement une consultation en lecture
-     * seule). $file doit être un upload de LA REQUÊTE EN COURS
-     * (move_uploaded_file() échoue sinon) — cf. promote_pending_assurance()
-     * pour le cas d'un fichier déplacé lors d'une requête précédente.
+     * existant en base, pour l'année scolaire donnée (l'année active par
+     * défaut ; la réinscription passe explicitement l'année en
+     * préparation, pas encore active). Auto-validé : aucune étape de
+     * vérification manuelle par la mairie pour l'instant (cf. Psc_Admin
+     * qui expose seulement une consultation en lecture seule). $file doit
+     * être un upload de LA REQUÊTE EN COURS (move_uploaded_file() échoue
+     * sinon) — cf. promote_pending_assurance() pour le cas d'un fichier
+     * déplacé lors d'une requête précédente.
      * Retourne true, ou un code : 'required'|'too_large'|'invalid_type'|'failed'.
      */
-    public static function store_assurance_upload($child_id, $file) {
+    public static function store_assurance_upload($child_id, $file, $school_year_id = null) {
         $check = self::validate_assurance_file($file);
         if ($check !== true) return $check;
+
+        $year_id = $school_year_id ? absint($school_year_id) : Psc_School_Years::active_id();
+        $year = $year_id ? Psc_School_Years::get($year_id) : null;
+        if (!$year) return 'failed';
+        $rentree_year = (int) date('Y', strtotime($year->date_debut));
 
         $filetype = wp_check_filetype($file['name'], array(
             'pdf'      => 'application/pdf',
@@ -336,7 +290,6 @@ class Psc_Frontend {
             'png'      => 'image/png',
         ));
 
-        $rentree_year = psc_rentree_year();
         $rel_dir = 'periscolaire/assurances/' . $rentree_year;
         $upload_dir = wp_upload_dir();
         $dir = trailingslashit($upload_dir['basedir']) . $rel_dir;
@@ -360,7 +313,7 @@ class Psc_Frontend {
             return 'failed';
         }
 
-        self::upsert_assurance_row($child_id, $rentree_year, $rel_path, $file['name']);
+        self::upsert_assurance_row($child_id, $rel_path, $file['name'], $year_id);
         return true;
     }
 
@@ -387,19 +340,42 @@ class Psc_Frontend {
 
         if (!rename($abs_source_path, $target)) return false;
 
-        self::upsert_assurance_row($child_id, $rentree_year, $rel_path, $original_filename ?: basename($abs_source_path));
+        self::upsert_assurance_row($child_id, $rel_path, $original_filename ?: basename($abs_source_path));
         return true;
     }
 
-    protected static function upsert_assurance_row($child_id, $rentree_year, $rel_path, $original_filename) {
+    /**
+     * N'écrit QUE les colonnes assurance_* de la ligne enfant x année
+     * active — ne touche jamais classe/statut/règlement, déjà posés par
+     * ailleurs (approbation de demande, passage d'année) ou à venir (Mes
+     * enfants ne gère que l'assurance, jamais la classe).
+     */
+    protected static function upsert_assurance_row($child_id, $rel_path, $original_filename, $school_year_id = null) {
         global $wpdb;
-        $t_assur = psc_table('child_assurances');
-        $wpdb->query($wpdb->prepare(
-            "INSERT INTO $t_assur (child_id, rentree_year, file_path, original_filename, uploaded_at)
-             VALUES (%d, %d, %s, %s, %s)
-             ON DUPLICATE KEY UPDATE file_path = VALUES(file_path), original_filename = VALUES(original_filename), uploaded_at = VALUES(uploaded_at)",
-            $child_id, $rentree_year, $rel_path, sanitize_file_name($original_filename), current_time('mysql')
+        $year_id = $school_year_id ? absint($school_year_id) : Psc_School_Years::active_id();
+        if (!$year_id) return false;
+
+        $t_cy = psc_table('child_school_years');
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $t_cy WHERE child_id = %d AND school_year_id = %d", $child_id, $year_id
         ));
+
+        $data = array(
+            'assurance_file_path'         => $rel_path,
+            'assurance_original_filename' => sanitize_file_name($original_filename),
+            'assurance_uploaded_at'       => current_time('mysql'),
+        );
+
+        if ($existing) {
+            $wpdb->update($t_cy, $data, array('id' => $existing), array('%s', '%s', '%s'), array('%d'));
+        } else {
+            $data['child_id'] = $child_id;
+            $data['school_year_id'] = $year_id;
+            $data['statut'] = 'inscrit';
+            $data['date_inscription'] = current_time('mysql');
+            $wpdb->insert($t_cy, $data, array('%s', '%s', '%s', '%d', '%d', '%s', '%s'));
+        }
+        return true;
     }
 
     /**
@@ -454,15 +430,13 @@ class Psc_Frontend {
             wp_die(esc_html__('Enfant introuvable.', 'periscolaire-registration'), '', array('response' => 404));
         }
 
-        $t_assur = psc_table('child_assurances');
-        $doc = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $t_assur WHERE child_id = %d AND rentree_year = %d", $child_id, psc_rentree_year()
-        ));
-        if (!$doc) {
+        $year_id = Psc_School_Years::active_id();
+        $doc = $year_id ? Psc_School_Years::enrollment($child_id, $year_id) : null;
+        if (!$doc || !$doc->assurance_file_path) {
             wp_die(esc_html__('Aucun document pour cette année.', 'periscolaire-registration'), '', array('response' => 404));
         }
 
-        self::stream_assurance_file($doc->file_path, $doc->original_filename);
+        self::stream_assurance_file($doc->assurance_file_path, $doc->assurance_original_filename);
     }
 
     /* ---------------- AJAX : cocher / décocher ---------------- */
@@ -632,52 +606,13 @@ class Psc_Frontend {
         exit;
     }
 
-    public static function handle_parent_update_child() {
-        check_admin_referer('psc_parent_update_child');
-
-        $parent = Psc_Parents::current();
-        if (!$parent) self::parent_form_redirect('auth');
-
-        $child_id  = psc_post_int('child_id');
-        $classe    = psc_post('classe');
-        $naissance = psc_valid_date(psc_post('naissance'));
-        $active    = isset($_POST['active']) ? 1 : 0;
-        $sans_porc = isset($_POST['sans_porc']) ? 1 : 0;
-        $vegan     = isset($_POST['vegan']) ? 1 : 0;
-
-        $allowed = array_keys(psc_classe_options());
-        if (!in_array($classe, $allowed, true)) $classe = '';
-
-        global $wpdb;
-        $t_child = psc_table('children');
-        $owned = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $t_child WHERE id = %d AND parent_id = %d", $child_id, $parent->id
-        ));
-        if (!$owned) self::parent_form_redirect('invalid');
-
-        $wpdb->update(
-            $t_child,
-            array(
-                'classe'         => $classe,
-                'date_naissance' => $naissance ?: null,
-                'classe_annee'   => psc_rentree_year(),
-                'active'         => $active,
-                'sans_porc'      => $sans_porc,
-                'vegan'          => $vegan,
-            ),
-            array('id' => $child_id),
-            array('%s', '%s', '%d', '%d', '%d', '%d'),
-            array('%d')
-        );
-        self::parent_form_redirect('child_updated');
-    }
-
     /**
      * Correction par le parent d'une faute de frappe sur l'état civil
-     * (prénom / nom / date de naissance) d'un enfant déjà onboardé.
-     * Volontairement séparé de handle_parent_update_child() : ce dernier
-     * ne connaît pas prenom/nom et remet classe/actif/régime à leurs
-     * valeurs par défaut si absents du POST, ce qui écraserait ces champs.
+     * (prénom / nom / date de naissance) d'un enfant déjà onboardé. La
+     * classe (désormais par année scolaire, cf. wp_psc_child_school_years)
+     * et le statut actif/sorti ne sont plus modifiables par la famille :
+     * la classe se pose à l'inscription / au passage d'année, le statut
+     * relève de la mairie.
      */
     public static function handle_parent_update_child_identity() {
         check_admin_referer('psc_parent_update_child_identity');
@@ -742,6 +677,9 @@ class Psc_Frontend {
         $allowed = array_keys(psc_classe_options());
         if (!in_array($classe, $allowed, true)) $classe = '';
 
+        $year_id = Psc_School_Years::active_id();
+        if (!$year_id) self::parent_form_redirect('invalid');
+
         global $wpdb;
         $t_child = psc_table('children');
         $count = (int) $wpdb->get_var($wpdb->prepare(
@@ -753,16 +691,16 @@ class Psc_Frontend {
             'parent_id'      => $parent->id,
             'nom'            => mb_substr($nom, 0, 190),
             'prenom'         => mb_substr($prenom, 0, 190),
-            'classe'         => mb_substr($classe, 0, 100),
             'date_naissance' => $naissance ?: null,
-            'classe_annee'   => psc_rentree_year(),
             'sans_porc'      => $sans_porc,
             'vegan'          => $vegan,
-            'active'         => 1,
+            'statut'         => 'actif',
             'created_at'     => current_time('mysql'),
-        ), array('%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s'));
+        ), array('%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s'));
+        $child_id = (int) $wpdb->insert_id;
 
-        self::store_assurance_upload((int) $wpdb->insert_id, $_FILES['new_assurance_file']);
+        Psc_School_Years::enroll($child_id, $year_id, $classe, 'inscrit', current_time('mysql'));
+        self::store_assurance_upload($child_id, $_FILES['new_assurance_file']);
 
         self::parent_form_redirect('child_added');
     }
@@ -884,6 +822,67 @@ class Psc_Frontend {
         self::parent_form_redirect('absence_cancelled');
     }
 
+    /* ---------------- Réinscription annuelle (espace famille) ---------------- */
+
+    /** Année scolaire "en préparation" la plus récente — cible de la réinscription. */
+    protected static function reinscription_target_year() {
+        global $wpdb;
+        return $wpdb->get_row(
+            "SELECT * FROM " . psc_table('school_years') . " WHERE statut = 'preparation' ORDER BY id DESC LIMIT 1"
+        );
+    }
+
+    /**
+     * Réinscription d'une famille pour l'année en préparation : par
+     * enfant actif, confirmation ou retrait, avec règlement intérieur
+     * (accepté une fois pour la famille) et nouveau justificatif
+     * d'assurance obligatoires pour chaque enfant confirmé. Un enfant
+     * décoché n'est pas sorti pour autant — cf. absence de ligne
+     * child_school_years pour l'année cible, lu comme "non_reinscrit" par
+     * le backoffice (Psc_Admin) une fois la fenêtre refermée.
+     */
+    public static function handle_parent_reinscription() {
+        check_admin_referer('psc_parent_reinscription');
+
+        $parent = Psc_Parents::current();
+        if (!$parent) self::parent_form_redirect('auth');
+
+        if (!self::reinscription_window_open()) self::parent_form_redirect('reinscription_invalid');
+
+        $target_year = self::reinscription_target_year();
+        if (!$target_year) self::parent_form_redirect('reinscription_invalid');
+
+        if (empty($_POST['reglement_accepted'])) self::parent_form_redirect('reinscription_required');
+
+        $children = self::children_of($parent->id, true);
+        if (!$children) self::parent_form_redirect('reinscription_invalid');
+
+        $reglement_accepted_at = current_time('mysql');
+        $confirmed_count = 0;
+
+        foreach ($children as $child) {
+            if (empty($_POST['confirm_' . $child->id])) continue; // enfant retiré pour la nouvelle année
+
+            $classe_actuelle = Psc_School_Years::classe_for($child->id); // année en cours (active)
+            $classe_proposee = $classe_actuelle !== '' ? psc_classe_superieure($classe_actuelle) : null;
+            if (!$classe_proposee || $classe_proposee === 'sortie') continue; // fin de cycle : rien à réinscrire
+
+            $file = isset($_FILES['assurance_' . $child->id]) ? $_FILES['assurance_' . $child->id] : null;
+            $file_check = self::validate_assurance_file($file);
+            if ($file_check !== true) {
+                self::parent_form_redirect('reinscription_required');
+            }
+
+            Psc_School_Years::enroll($child->id, $target_year->id, $classe_proposee, 'inscrit', $reglement_accepted_at);
+            self::store_assurance_upload($child->id, $file, $target_year->id);
+            $confirmed_count++;
+        }
+
+        if (!$confirmed_count) self::parent_form_redirect('reinscription_required');
+
+        self::parent_form_redirect('reinscription_confirmee');
+    }
+
     /* ---------------- Factures (espace famille) ---------------- */
 
     /**
@@ -913,7 +912,7 @@ class Psc_Frontend {
     /* ---------------- Espace famille v2 ("Family Portal") ---------------- */
 
     protected static function portal_tab_defs() {
-        return array(
+        $tabs = array(
             'dashboard' => array(
                 'label' => 'Tableau de bord',
                 'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9h13v-9"/><path d="M10 19v-6h4v6"/></svg>',
@@ -943,6 +942,25 @@ class Psc_Frontend {
                 'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>',
             ),
         );
+        // Onglet supplémentaire, visible seulement pendant la fenêtre de
+        // réinscription ouverte par la mairie (Réglages) — pas une gestion
+        // courante comme les autres onglets, une action annuelle ponctuelle.
+        if (self::reinscription_window_open()) {
+            $tabs['reinscription'] = array(
+                'label' => 'Réinscription',
+                'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12a8 8 0 1 1 2.34 5.66"/><path d="M4 21v-5h5"/></svg>',
+            );
+        }
+        return $tabs;
+    }
+
+    /** Fenêtre de réinscription (Réglages) : ouverte aujourd'hui ? */
+    public static function reinscription_window_open() {
+        $debut = get_option('psc_reinscription_debut', '');
+        $fin   = get_option('psc_reinscription_fin', '');
+        if (!$debut || !$fin) return false;
+        $today = current_time('Y-m-d');
+        return $today >= $debut && $today <= $fin;
     }
 
     /**
@@ -970,6 +988,11 @@ class Psc_Frontend {
             'bad_email_token', 'expired_email_token',
         ), true)) {
             $tab = 'profil';
+        }
+        if (in_array($psc_msg, array(
+            'reinscription_confirmee', 'reinscription_invalid', 'reinscription_required',
+        ), true)) {
+            $tab = 'reinscription';
         }
         return $tab;
     }
@@ -1120,7 +1143,7 @@ class Psc_Frontend {
             $diet_bits = array();
             if ((int) $child->sans_porc) $diet_bits[] = 'Sans porc';
             if ((int) $child->vegan) $diet_bits[] = 'Sans viande';
-            $meta = $child->classe ? $child->classe : '';
+            $meta = Psc_School_Years::classe_for($child->id);
             if ($diet_bits) $meta .= ($meta !== '' ? ' · ' : '') . implode(', ', $diet_bits);
             if ($meta === '') $meta = '—';
 
@@ -1286,6 +1309,23 @@ class Psc_Frontend {
         $psc_portal_dashboard = self::dashboard_data($parent, $children, $days_by_month, $reg_map, $services, $invoices);
         $psc_portal_absence_days = self::absence_candidates($children);
         $psc_assurance_map = self::assurance_map($all_children);
+
+        $psc_portal_reinscription = null;
+        if (isset($psc_portal_tabs['reinscription'])) {
+            $psc_portal_reinscription = array(
+                'target_year' => self::reinscription_target_year(),
+                'children'    => array_map(function ($child) {
+                    $classe_actuelle = Psc_School_Years::classe_for($child->id);
+                    $classe_proposee = $classe_actuelle !== '' ? psc_classe_superieure($classe_actuelle) : null;
+                    return array(
+                        'id'              => $child->id,
+                        'name'            => trim($child->prenom . ' ' . $child->nom),
+                        'classe_actuelle' => $classe_actuelle,
+                        'classe_proposee' => $classe_proposee, // null|code classe|'sortie'
+                    );
+                }, $children),
+            );
+        }
 
         include PSC_PATH . 'templates/frontend-portal.php';
         return ob_get_clean();

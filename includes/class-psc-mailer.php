@@ -305,8 +305,9 @@ class Psc_Mailer {
         $html        = '';
 
         foreach ($children as $child) {
+            $child_classe = Psc_School_Years::classe_for($child->id);
             $child_label = strtoupper($child->prenom . ' ' . $child->nom)
-                . ($child->classe ? ' <span style="color:#666;font-weight:normal;font-size:13px;">(' . esc_html($child->classe) . ')</span>' : '');
+                . ($child_classe ? ' <span style="color:#666;font-weight:normal;font-size:13px;">(' . esc_html($child_classe) . ')</span>' : '');
 
             $html .= '<div style="margin:24px 0;">';
             $html .= '<h3 style="font-size:15px;color:#23478B;margin:0 0 10px;padding:8px 12px;'

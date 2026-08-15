@@ -31,15 +31,20 @@ class Psc_Supplier_Orders {
      * Une classe non renseignée ('') est ajoutée en dernier, si des
      * enfants actifs sont dans ce cas.
      */
-    protected static function known_classes() {
+    protected static function known_classes($year_id) {
         global $wpdb;
+        if (!$year_id) return array();
+
         $t_child = psc_table('children');
         $t_par   = psc_table('parents');
-        $existing = $wpdb->get_col(
-            "SELECT DISTINCT c.classe FROM $t_child c
+        $t_cy    = psc_table('child_school_years');
+        $existing = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT cy.classe FROM $t_child c
              JOIN $t_par p ON p.id = c.parent_id
-             WHERE c.active = 1 AND p.active = 1"
-        );
+             JOIN $t_cy cy ON cy.child_id = c.id AND cy.school_year_id = %d
+             WHERE c.statut = 'actif' AND p.active = 1",
+            $year_id
+        ));
         $existing = array_map('strval', $existing);
 
         $ordered = array();
@@ -71,9 +76,15 @@ class Psc_Supplier_Orders {
         $t_reg   = psc_table('registrations');
         $t_child = psc_table('children');
         $t_par   = psc_table('parents');
+        $t_cy    = psc_table('child_school_years');
+        // Résolue depuis la semaine demandée (pas l'année active du site) :
+        // la commande fournisseur peut porter sur une semaine passée ou à
+        // venir, potentiellement hors de l'année scolaire en cours.
+        $year = Psc_School_Years::for_date($semaine);
+        $year_id = $year ? (int) $year->id : 0;
 
         $classes_labels = psc_classe_options();
-        $classes = self::known_classes();
+        $classes = self::known_classes($year_id);
 
         // Seuls les jours d'école réellement ouverts (vacances, jours fériés
         // et fermetures ponctuelles exclus) : pas de colonne à commander
@@ -85,16 +96,17 @@ class Psc_Supplier_Orders {
         foreach ($classes as $c) $counts[$c] = array_fill_keys($jours, 0);
 
         foreach ($jours_dates as $jour => $date) {
-            $rows = $wpdb->get_results($wpdb->prepare(
-                "SELECT c.classe, COUNT(*) AS n
+            $rows = $year_id ? $wpdb->get_results($wpdb->prepare(
+                "SELECT cy.classe, COUNT(*) AS n
                  FROM $t_reg r
                  JOIN $t_child c ON c.id = r.child_id
                  JOIN $t_par p ON p.id = c.parent_id
+                 JOIN $t_cy cy ON cy.child_id = c.id AND cy.school_year_id = %d
                  WHERE r.jour_date = %s AND r.service = 'CANT'
-                   AND c.active = 1 AND p.active = 1
-                 GROUP BY c.classe",
-                $date
-            ));
+                   AND c.statut = 'actif' AND p.active = 1
+                 GROUP BY cy.classe",
+                $year_id, $date
+            )) : array();
             foreach ($rows as $row) {
                 $classe = (string) $row->classe;
                 if (!isset($counts[$classe])) {
@@ -196,11 +208,15 @@ class Psc_Supplier_Orders {
     public static function cantine_registrations_for_class_day($date, $classe) {
         $date = psc_valid_date($date);
         if (!$date) return array();
+        $year = Psc_School_Years::for_date($date);
+        $year_id = $year ? (int) $year->id : 0;
+        if (!$year_id) return array();
 
         global $wpdb;
         $t_reg   = psc_table('registrations');
         $t_child = psc_table('children');
         $t_par   = psc_table('parents');
+        $t_cy    = psc_table('child_school_years');
 
         return $wpdb->get_results($wpdb->prepare(
             "SELECT r.id AS reg_id, c.id AS child_id, c.nom AS child_nom, c.prenom AS child_prenom,
@@ -208,10 +224,11 @@ class Psc_Supplier_Orders {
              FROM $t_reg r
              JOIN $t_child c ON c.id = r.child_id
              JOIN $t_par p ON p.id = c.parent_id
-             WHERE r.jour_date = %s AND r.service = 'CANT' AND c.classe = %s
-               AND c.active = 1 AND p.active = 1
+             JOIN $t_cy cy ON cy.child_id = c.id AND cy.school_year_id = %d
+             WHERE r.jour_date = %s AND r.service = 'CANT' AND cy.classe = %s
+               AND c.statut = 'actif' AND p.active = 1
              ORDER BY p.email, c.nom",
-            $date, $classe
+            $year_id, $date, $classe
         ));
     }
 

@@ -526,25 +526,30 @@ class Psc_Requests {
             }
         }
 
+        $active_year_id = Psc_School_Years::active_id();
+
         foreach ($children as $c) {
             $wpdb->insert(psc_table('children'), array(
                 'parent_id'      => $parent_id,
                 'nom'            => $c['nom'],
                 'prenom'         => $c['prenom'],
-                'classe'         => $c['classe'],
                 'date_naissance' => !empty($c['date_naissance']) ? $c['date_naissance'] : null,
-                'classe_annee'   => psc_rentree_year(),
                 'sans_porc'      => !empty($c['sans_porc']) ? 1 : 0,
                 'vegan'          => !empty($c['vegan']) ? 1 : 0,
+                'statut'         => 'actif',
                 'created_at'     => current_time('mysql'),
-            ), array('%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s'));
+            ), array('%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s'));
+            $child_id = (int) $wpdb->insert_id;
+
+            if ($active_year_id) {
+                Psc_School_Years::enroll($child_id, $active_year_id, $c['classe'], 'inscrit', $req->reglement_accepted_at ?? current_time('mysql'));
+            }
 
             // Rattache le justificatif déposé en zone d'attente au nouvel
             // enfant. Pas de blocage dur si le fichier est introuvable
             // (cas limite) : la mairie doit toujours pouvoir valider une
             // demande, l'enfant reste rattrapable via « Mes enfants ».
             if (!empty($c['assurance_rel_path'])) {
-                $child_id = (int) $wpdb->insert_id;
                 $abs = trailingslashit(wp_upload_dir()['basedir']) . $c['assurance_rel_path'];
                 if (file_exists($abs)) {
                     Psc_Frontend::promote_pending_assurance($child_id, $abs, $c['assurance_original_filename'] ?? '');
