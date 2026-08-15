@@ -1,6 +1,6 @@
 # Périscolaire — Inscriptions
 
-Plugin WordPress pour la gestion complète des services périscolaires municipaux : garderie matin, cantine, garderie soir, forfait journée, menus de cantine, calendrier scolaire et facturation.
+Plugin WordPress pour la gestion complète des services périscolaires municipaux : garderie matin, cantine, garderie soir, forfait journée, menus de cantine, commande fournisseur, calendrier scolaire et facturation.
 
 Remplace les fichiers papier/Excel remplis à la main par un site accessible aux familles, avec un backoffice centralisé pour la mairie.
 
@@ -26,7 +26,7 @@ Remplace les fichiers papier/Excel remplis à la main par un site accessible aux
 
 ## Vue d'ensemble
 
-Une famille dépose une demande d'inscription en ligne (avec acceptation du règlement intérieur et, si elle règle par prélèvement, un mandat SEPA). Une fois validée par la mairie, elle se connecte sans mot de passe (lien reçu par e-mail) pour déclarer, jour par jour, les prestations souhaitées pour chacun de ses enfants. La mairie pilote tout depuis un menu **Périscolaire** dédié dans l'administration WordPress : calendrier scolaire, trimestres, demandes, familles, enfants, factures, menus de cantine, modèles d'e-mails, réglages.
+Une famille dépose une demande d'inscription en ligne (avec acceptation du règlement intérieur, justificatif d'assurance scolaire par enfant et, si elle règle par prélèvement, un mandat SEPA). Une fois validée par la mairie, elle se connecte sans mot de passe (lien reçu par e-mail) pour accéder à **« Mon Espace Famille »** : déclarer jour par jour les prestations souhaitées pour chacun de ses enfants, suivre ses factures, gérer ses enfants et son profil. La mairie pilote tout depuis un menu **Périscolaire** dédié dans l'administration WordPress : tableau de bord, calendrier scolaire, trimestres, demandes, familles, enfants, factures, menus de cantine, commande fournisseur, modèles d'e-mails, réglages.
 
 Aucun compte WordPress n'est nécessaire côté famille. Aucun paiement en ligne n'est intégré : le mode de paiement (chèque/espèces ou prélèvement SEPA) est déclaré à l'inscription, mais les prélèvements réels restent traités par la mairie via sa banque.
 
@@ -36,14 +36,15 @@ Aucun compte WordPress n'est nécessaire côté famille. Aucun paiement en ligne
 
 ### 1. Première inscription
 
-Formulaire public (« Première inscription ? ») en une seule page, en trois temps annoncés au parent :
+Formulaire public (« Première inscription ? »), présenté comme un parcours en 4 étapes annoncées au parent (« Coordonnées », « Enfants », « Paiement », « Règlement ») — impossible de passer à l'étape suivante tant que l'étape en cours n'est pas complète (validation native du navigateur **et** revalidation côté serveur, pour parer un envoi direct qui contournerait le formulaire) :
 
-1. **Coordonnées et enfants** — e-mail, nom, téléphone, adresse, un ou plusieurs enfants (prénom, nom, classe). Jusqu'à 5 enfants par demande.
-2. **Règlement intérieur** — texte intégral affiché dans le formulaire (horaires, engagement trimestriel, facturation, discipline, responsabilité...), avec une case à cocher obligatoire d'approbation. *Acceptation = case cochée, horodatée en base — ce n'est pas une signature électronique qualifiée.*
-3. **Mode de paiement** — chèque/espèces (par défaut) ou prélèvement automatique SEPA. En sélectionnant le prélèvement, un bloc supplémentaire apparaît :
+1. **Coordonnées** — e-mail, prénom, nom, téléphone, adresse, code postal, ville : tous obligatoires.
+2. **Enfants** — jusqu'à **5 enfants par demande** (prénom, nom, classe, date de naissance, régime alimentaire — sans porc et/ou sans viande — tous obligatoires pour chaque ligne renseignée), avec pour chacun un **justificatif d'assurance scolaire obligatoire** (PDF, JPG ou PNG, 1 Mo maximum).
+3. **Paiement** — chèque/espèces (par défaut) ou prélèvement automatique SEPA. En sélectionnant le prélèvement, un bloc supplémentaire apparaît :
    - Créancier affiché automatiquement (nom de la commune + identifiant créancier SEPA, définis dans les réglages) ;
    - Mandat : titulaire du compte, adresse (recopiable en un clic depuis l'adresse familiale), IBAN, BIC ;
    - Règlement concernant le prélèvement (texte intégral) + case à cocher d'approbation obligatoire.
+4. **Règlement intérieur** — texte intégral affiché dans le formulaire (horaires, engagement trimestriel, facturation, discipline, responsabilité...), avec une case à cocher obligatoire d'approbation. *Acceptation = case cochée, horodatée en base — ce n'est pas une signature électronique qualifiée.*
 
 L'IBAN est validé par clé de contrôle (norme ISO 7064 mod-97, comme un vrai IBAN) et le BIC par son format ; toute valeur invalide est rejetée **côté serveur**, indépendamment de la validation du navigateur.
 
@@ -51,25 +52,55 @@ Un champ piège invisible (honeypot) et une double limitation de fréquence (par
 
 ### 2. Confirmation d'adresse puis modération
 
-Le parent reçoit un e-mail de confirmation (lien valable 3 jours). Tant qu'il n'a pas cliqué, la demande **n'apparaît pas** dans le backoffice — ceci empêche un robot de remplir la file de modération avec des adresses inventées. Une fois confirmée, la mairie est notifiée et examine la demande (voir [Demandes d'inscription](#demandes-dinscription)). À la validation, la famille et ses enfants sont créés automatiquement, y compris le mode de paiement et — si applicable — les informations du mandat SEPA (avec une référence de mandat générée automatiquement) ; le parent reçoit aussitôt son lien d'accès.
+Le parent reçoit un e-mail de confirmation (lien valable 3 jours). Tant qu'il n'a pas cliqué, la demande **n'apparaît pas** dans le backoffice — ceci empêche un robot de remplir la file de modération avec des adresses inventées. Une fois confirmée, la mairie est notifiée et examine la demande (voir [Demandes d'inscription](#demandes-dinscription)). À la validation, la famille et ses enfants sont créés automatiquement, y compris le mode de paiement et — si applicable — les informations du mandat SEPA (avec une référence de mandat générée automatiquement) ; un **PDF du mandat de prélèvement SEPA** est alors généré et joint à l'e-mail envoyé au parent (document éphémère, jamais stocké sur le serveur puisqu'il contient un IBAN en clair — supprimé aussitôt après l'envoi) ; le parent reçoit aussitôt son lien d'accès.
 
 ### 3. Connexion sans mot de passe
 
 Une fois enregistrée par la mairie, la famille saisit son e-mail sur la page publique et reçoit un lien de connexion à usage unique (valable 30 minutes). Aucun mot de passe à créer ni à retenir. La session ouverte dure 12 heures (cookie signé, non modifiable côté client).
 
-### 4. Planning interactif
+### 4. Mon Espace Famille
 
-Calendrier présenté mois par mois, un bloc par enfant. Chaque case cochée (Garderie Matin / Cantine / Garderie Soir / Forfait journée) est enregistrée **immédiatement** — pas de bouton « Envoyer » à chercher, pas de fichier à renvoyer par e-mail. Les jours fermés (week-ends, mercredis, vacances scolaires, jours fériés) n'apparaissent pas dans la grille.
+Une fois connectée, la famille arrive sur un portail à onglets (barre latérale) :
 
-Un verrou de modification (48 h par défaut, réglable) grise les cases trop proches de la date concernée — contrôlé aussi côté serveur, pas seulement par l'affichage grisé.
+#### Tableau de bord
+
+Vue d'ensemble : jours et montant déclarés pour la période en cours, prochaine facture (montant/statut), menu de cantine de la semaine, résumé « Mes enfants ». Trois raccourcis : *Déclarer un jour*, *Ajouter un enfant*, et **Annulation prestations**.
+
+**Annulation prestations** — popin accessible depuis le tableau de bord pour annuler rapidement une ou plusieurs prestations déjà déclarées, **sans naviguer jusqu'au calendrier**. La liste proposée est par **prestation** et non par jour : un forfait journée est affiché comme 3 lignes (Garderie matin / Cantine / Garderie soir) pour la lisibilité, mais reste indivisible — cocher n'importe laquelle des trois annule le forfait entier. Plusieurs prestations, sur plusieurs jours, peuvent être cochées et annulées en une seule confirmation ; la mairie reçoit un e-mail récapitulatif par jour concerné. Seules les prestations encore modifiables (délai de préavis non dépassé) sont proposées.
+
+#### Cantine & Garderie
+
+Calendrier présenté mois par mois (accordéon), un bloc par enfant. Chaque case cochée (Garderie Matin / Cantine / Garderie Soir / Forfait journée — l'en-tête de chaque colonne porte une infobulle rappelant le nom complet de la prestation) est enregistrée **immédiatement** en AJAX — pas de bouton « Envoyer » à chercher, pas de fichier à renvoyer par e-mail. Les jours fermés (week-ends, mercredis, vacances scolaires, jours fériés) n'apparaissent pas dans la grille. Le total (jours + montant) se recalcule en direct par enfant et par mois.
+
+Un verrou de modification (48 h par défaut, réglable) grise les cases trop proches de la date concernée — contrôlé aussi côté serveur, pas seulement par l'affichage grisé. L'absence de justificatif d'assurance à jour bloque l'**ajout** d'un nouveau jour pour l'enfant concerné (une case déjà cochée reste décochable : pas de blocage rétroactif).
 
 Un bouton « Valider et recevoir mon planning » envoie à la demande un récapitulatif complet par e-mail (jours, prestations, totaux par service, montant indicatif — la facturation définitive reste de la responsabilité de la mairie).
 
-### 5. Gestion des enfants (libre-service)
+#### Menu de la semaine
 
-Depuis son espace, une famille peut ajouter un enfant (dans la limite d'un nombre maximum configurable) et déclarer, pour chacun, des préférences alimentaires cantine — **sans porc** et/ou **sans viande** — visibles par la mairie dans la liste des enfants (pour transmission au prestataire de restauration).
+Même contenu que le widget public (voir [Menu de cantine — accès libre](#menu-de-cantine--accès-libre)), mais dans le portail connecté, avec la même navigation semaine précédente/suivante.
 
-### 6. Menu de cantine — accès libre
+#### Mes enfants
+
+Tableau **en lecture seule** — Prénom, Nom, Classe, Naissance, Régime (badge, ou « — » si aucun), Actif (badge) — avec un bouton **Modifier** par ligne ouvrant une popin pour corriger une faute de frappe sur le prénom, le nom ou la date de naissance d'un enfant déjà onboardé.
+
+En dessous, le panneau **Assurance scolaire [année scolaire en cours]** liste chaque enfant actif avec son statut (badge « Fournie » avec date + lien de consultation, ou « Manquante ») et un bouton *Remplacer*/*Ajouter* ouvrant une popin d'envoi de fichier (PDF, JPG ou PNG, 1 Mo maximum).
+
+Enfin, le panneau **Ajouter un enfant** permet de rattacher un nouvel enfant à la famille (prénom, nom, classe, date de naissance, régime, justificatif d'assurance obligatoire dès la création), dans la limite d'un nombre maximum configurable (10 par défaut).
+
+#### Mes factures
+
+Liste des factures mensuelles de la famille (mois, montant, statut envoyée/en attente, téléchargement du PDF).
+
+#### Mon profil
+
+État civil (prénom, nom), coordonnées (téléphone mobile/fixe, e-mail) et adresse du foyer. Un changement d'adresse e-mail nécessite une **confirmation par lien envoyé sur la nouvelle adresse** avant de prendre effet (annulable tant qu'il est en attente) ; l'ancienne adresse reste active jusque-là. La fiche de chaque enfant se modifie depuis « Mes enfants », pas ici.
+
+#### Documents
+
+Téléchargement du règlement intérieur et du règlement concernant le prélèvement automatique, au format PDF (mis en ligne par la mairie depuis Réglages) — message explicite si un document n'a pas encore été déposé.
+
+### 5. Menu de cantine — accès libre
 
 Un widget affiché sur la page publique, **sans connexion requise**, présente le menu de la semaine (lundi/mardi/jeudi/vendredi — pas de menu le mercredi, pas de cantine ce jour-là). Navigation semaine précédente/suivante façon calendrier, avec retour rapide à la semaine en cours. Pendant les vacances scolaires ou tout autre jour sans école, le widget affiche « Pas d'école cette semaine » à la place du menu.
 
@@ -77,35 +108,23 @@ Un widget affiché sur la page publique, **sans connexion requise**, présente l
 
 ## Côté mairie (backoffice)
 
-Menu **Périscolaire** dans l'administration WordPress, avec neuf sections :
+Menu **Périscolaire** dans l'administration WordPress, avec onze sections :
+
+### Tableau de bord
+
+Page d'accueil du backoffice : nombre de familles actives, d'enfants actifs, trimestre actif (et sa date de fin), et une liste **« À faire »** signalant en un coup d'œil les demandes d'inscription en attente, le statut du menu de cantine de la semaine prochaine (saisi / envoyé / pas encore saisi) et celui de la commande fournisseur correspondante — chaque ligne renvoie directement vers l'écran concerné.
 
 ### Inscriptions
 
 Vue de correction : sélection d'une famille et d'une période, grille identique à celle vue par le parent, modifiable directement par la mairie (utile pour une inscription reçue par téléphone ou papier). Chaque enregistrement envoie une notification à la famille. Export CSV du récapitulatif par trimestre (protégé contre l'injection de formules Excel).
 
+### Demandes d'inscription
+
+File de modération des nouvelles familles (voir [Première inscription](#1-première-inscription)). Pour chaque demande en attente : coordonnées déclarées (prénom, nom, etc.), statut d'acceptation du règlement intérieur, mode de paiement choisi et — si prélèvement — titulaire, adresse, **IBAN partiellement masqué** (`FR14 •••• •••• 2606`), BIC et statut d'acceptation du règlement de prélèvement. Les nom/prénom/classe des enfants sont modifiables avant validation (informations déclaratives, à vérifier). Refus possible avec motif optionnel, notifiable ou non au demandeur.
+
 ### Trimestres
 
 Création d'un trimestre (libellé + dates) : le calendrier se génère automatiquement, jour par jour, avec fermeture par défaut des week-ends, des mercredis, des jours fériés et des vacances scolaires (zone C, voir [Calendrier scolaire](#calendrier-scolaire)). Un seul trimestre peut être actif à la fois : c'est celui visible par les familles. Un formulaire permet aussi de fermer manuellement une plage de dates (fermeture exceptionnelle non couverte par le calendrier scolaire officiel).
-
-### Demandes d'inscription
-
-File de modération des nouvelles familles (voir [Première inscription](#1-première-inscription)). Pour chaque demande en attente : coordonnées déclarées, statut d'acceptation du règlement intérieur, mode de paiement choisi et — si prélèvement — titulaire, adresse, **IBAN partiellement masqué** (`FR14 •••• •••• 2606`), BIC et statut d'acceptation du règlement de prélèvement. Les nom/prénom/classe des enfants sont modifiables avant validation (informations déclaratives, à vérifier). Refus possible avec motif optionnel, notifiable ou non au demandeur.
-
-### Familles
-
-Liste de toutes les familles, avec mode de paiement et IBAN masqué en un coup d'œil. Édition complète par famille : coordonnées, mode de paiement, informations SEPA (IBAN/BIC revalidés à l'enregistrement), référence de mandat. Envoi ou renvoi du lien de connexion, activation/désactivation d'accès (une famille désactivée perd l'accès immédiatement, même en session ouverte).
-
-### Enfants
-
-Liste de tous les enfants avec leur famille de rattachement et leur régime cantine (sans porc / sans viande). Rattachement d'un nouvel enfant à une famille existante (la mairie tient cette liste — les familles ne peuvent pas créer un enfant sans rattachement).
-
-### Factures
-
-Facturation **mensuelle**. Sélection d'un mois ayant des inscriptions, génération en un clic d'un PDF par famille (tarif par prestation, détail par enfant, total). Envoi individuel ou en masse par e-mail, avec pièce jointe PDF. Les PDF sont stockés hors de portée d'accès direct par URL.
-
-### Menus cantine
-
-Saisie du menu semaine par semaine (lundi/mardi/jeudi/vendredi, pas de mercredi). Chaque semaine reste un brouillon tant qu'elle n'a pas été explicitement envoyée — **aucun envoi automatique, aucune tâche planifiée** : c'est toujours un clic volontaire de la mairie (« Envoyer aux familles ») qui déclenche l'e-mail, adressé à toutes les familles actives ayant au moins un enfant actif. Le même menu alimente aussi le widget public (voir [Menu de cantine](#6-menu-de-cantine--accès-libre)).
 
 ### Calendrier scolaire
 
@@ -115,6 +134,28 @@ Le périscolaire suit le calendrier scolaire officiel de la **zone C** (Créteil
 - **Liste lisible** : les jours fermés sont regroupés par période contiguë (ex. « 17/10/2026 → 01/11/2026 — Vacances de la Toussaint — 16 jours — Import officiel »).
 - **Correction manuelle exceptionnelle** : un jour peut être fermé (formation des enseignants, fermeture ponctuelle...) ou rouvert à la main. Une correction manuelle n'est **jamais** écrasée par un rechargement ultérieur du calendrier officiel.
 - **Fermer un jour où des familles ont déjà déclaré des présences déclenche un écran d'avertissement** (nombre d'inscriptions et de familles concernées, détail par enfant/prestation) avant toute action. Une fois confirmé : les inscriptions concernées sont supprimées (elles ne seront jamais facturées) et chaque famille concernée reçoit un e-mail listant précisément ce qui a été retiré.
+
+### Familles
+
+Liste de toutes les familles, avec mode de paiement et IBAN masqué en un coup d'œil. Édition complète par famille : coordonnées, mode de paiement, informations SEPA (IBAN/BIC revalidés à l'enregistrement), référence de mandat. Envoi ou renvoi du lien de connexion, activation/désactivation d'accès (une famille désactivée perd l'accès immédiatement, même en session ouverte).
+
+### Enfants
+
+Liste de tous les enfants avec leur famille de rattachement, leur régime cantine (sans porc / sans viande) et le statut de leur justificatif d'assurance scolaire pour l'année en cours. Rattachement d'un nouvel enfant à une famille existante (la mairie tient cette liste — les familles ne peuvent pas créer un enfant sans rattachement).
+
+Chaque année, à la rentrée scolaire, une tâche planifiée fait automatiquement progresser d'une classe chaque enfant actif (PS → MS → ... → CM2), désactive les enfants qui terminaient le CM2 (fin du cycle périscolaire) et déduit la classe d'un enfant sans classe connue à partir de sa date de naissance — aucune action manuelle nécessaire de la part de la mairie.
+
+### Menus cantine
+
+Saisie du menu semaine par semaine (lundi/mardi/jeudi/vendredi, pas de mercredi). Chaque semaine reste un brouillon tant qu'elle n'a pas été explicitement envoyée — **aucun envoi automatique, aucune tâche planifiée** : c'est toujours un clic volontaire de la mairie (« Envoyer aux familles ») qui déclenche l'e-mail, adressé à toutes les familles actives ayant au moins un enfant actif. Le même menu alimente aussi le widget public et l'onglet « Menu de la semaine » du portail famille.
+
+### Commande fournisseur
+
+Comptage hebdomadaire du nombre de repas de cantine à prévoir, **par classe**, calculé à partir des inscriptions réellement déclarées (lundi/mardi/jeudi/vendredi). Comme pour les menus, l'envoi au prestataire de restauration par e-mail est **toujours un clic volontaire** de la mairie, jamais automatique. Chaque envoi archive un instantané figé (comptage et e-mail effectivement envoyés à ce moment-là) : l'historique reste exact même si des inscriptions changent après coup.
+
+### Factures
+
+Facturation **mensuelle**. Sélection d'un mois ayant des inscriptions, génération en un clic d'un PDF par famille (tarif par prestation, détail par enfant, total). **Un mois en cours (non terminé) ne peut pas être facturé** — le bouton de génération n'apparaît que pour un mois déjà écoulé, pour éviter une facture incomplète si des inscriptions changent encore. Envoi individuel ou en masse par e-mail, avec pièce jointe PDF. Les PDF sont stockés hors de portée d'accès direct par URL.
 
 ### Modèles e-mails
 
@@ -126,6 +167,7 @@ Personnalisation du sujet et du corps de chaque e-mail transactionnel (lien de c
 - **Délai de modification** avant chaque jour concerné (0 à 720 h).
 - **Notification mairie** — copie de chaque validation de planning parent.
 - **Adresse e-mail** de la mairie pour les notifications.
+- **Documents PDF** : dépôt du règlement intérieur et du règlement de prélèvement, consultables par les familles dans l'onglet « Documents ».
 - **Informations de facturation** : intitulé, adresse, téléphone, fax, e-mail, commune, logos gauche/droit (utilisés dans le PDF de facture), texte de pied de page, **identifiant créancier SEPA (ICS)** affiché aux familles sur le mandat de prélèvement.
 
 ---
@@ -136,8 +178,10 @@ Personnalisation du sujet et du corps de chaque e-mail transactionnel (lien de c
 - Le calendrier suit les vacances scolaires de la **zone C**, jours fériés compris.
 - Un seul trimestre est actif à la fois ; les trimestres précédents restent consultables.
 - Une inscription à une prestation, pour un trimestre, est **ferme et définitive** une fois le délai de modification dépassé.
-- La facturation est **mensuelle**, calculée à partir des inscriptions réellement déclarées (jour × enfant × prestation).
+- La facturation est **mensuelle**, calculée à partir des inscriptions réellement déclarées (jour × enfant × prestation), et ne peut être générée qu'une fois le mois écoulé.
 - Aucun remboursement automatique en cas d'absence, hors cas prévus par le règlement intérieur (fermeture, sortie scolaire, hospitalisation, maladie de plus de 3 jours justifiée).
+- Un justificatif d'assurance scolaire à jour est requis pour ajouter un nouveau jour de cantine/garderie ; il se renouvelle chaque année scolaire.
+- Un forfait journée (GM + Cantine + GS) est une prestation indivisible : impossible d'en annuler une partie seulement.
 
 ---
 
@@ -154,6 +198,8 @@ Personnalisation du sujet et du corps de chaque e-mail transactionnel (lien de c
 - Sessions familles signées côté serveur (cookie `HttpOnly`, `SameSite=Lax`, `Secure` en HTTPS) — aucun mot de passe stocké.
 - **IBAN validé par clé de contrôle réelle** (mod-97, ISO 7064), BIC validé par format ; rejet côté serveur indépendant de la validation du navigateur.
 - IBAN affiché **masqué** dans les listes du backoffice (seuls le pays et les 4 derniers caractères apparaissent).
+- Le PDF du mandat de prélèvement SEPA (contient l'IBAN en clair) n'est **jamais stocké sur le serveur** : généré en fichier temporaire, joint à l'e-mail, puis supprimé immédiatement.
+- Justificatifs d'assurance scolaire limités à 1 Mo, formats PDF/JPG/PNG uniquement (vérifiés côté serveur, pas seulement par l'attribut `accept` du champ fichier), stockés hors de portée d'accès direct par URL.
 - Fermer un jour du calendrier scolaire avec des inscriptions existantes exige une **confirmation explicite** après avertissement — pas de suppression accidentelle en un clic.
 
 ---
@@ -175,7 +221,7 @@ Personnalisation du sujet et du corps de chaque e-mail transactionnel (lien de c
 3. Le menu **Périscolaire** apparaît dans l'administration.
 4. Aller dans **Périscolaire > Calendrier scolaire** et cliquer sur « Charger le calendrier officiel ».
 5. Créer un premier trimestre dans **Périscolaire > Trimestres**, puis l'activer.
-6. Renseigner les informations de facturation (dont l'identifiant créancier SEPA) dans **Périscolaire > Réglages**.
+6. Renseigner les informations de facturation (dont l'identifiant créancier SEPA) et déposer les documents PDF (règlement intérieur, règlement de prélèvement) dans **Périscolaire > Réglages**.
 7. Créer une page WordPress et y insérer le shortcode `[periscolaire_form]`.
 8. Partager l'URL de cette page aux familles.
 
@@ -193,9 +239,13 @@ add_filter('psc_manage_capability', fn() => 'gerer_periscolaire');
 
 ### Nombre maximum d'enfants par famille
 
+Ce plafond s'applique à l'ajout d'enfants **après** l'inscription initiale (depuis « Mes enfants » ou le backoffice) — il vaut **10** par défaut :
+
 ```php
 add_filter('psc_max_children_per_user', fn() => 5);
 ```
+
+La demande d'inscription initiale, elle, est limitée à 5 enfants par soumission, valeur fixe non filtrable (protection anti-abus sur un formulaire public).
 
 ### Calendrier des vacances scolaires
 
@@ -220,7 +270,7 @@ podman compose up -d
 
 Démarre :
 - WordPress sur **http://localhost:8080**
-- [Mailpit](https://mailpit.axllent.org/) (capture des e-mails) sur **http://localhost:8025**
+- [Mailpit](https://mailpit.axllent.org/) (capture des e-mails), si démarré avec le profil dédié — voir ci-dessous
 
 ### Installation automatique de WordPress
 
@@ -239,10 +289,18 @@ podman exec <nom-container-wordpress> bash -c "
 
 ### Capture des e-mails (Mailpit)
 
-Fichier `mu-plugins/mailpit-smtp.php` :
+En local, Mailpit est derrière un profil compose dédié — il ne démarre pas avec un simple `up -d` :
+
+```bash
+podman compose --profile mailpit up -d mailpit
+```
+
+Interface sur **http://localhost:8025**. Activé côté WordPress via `mu-plugins/mailpit-smtp.php`, qui redirige tous les `wp_mail()` vers Mailpit **uniquement si** la variable d'environnement `MAILPIT_ENABLED=true` est positionnée pour le conteneur WordPress (déjà le cas dans `docker-compose.yml` local) :
 
 ```php
 <?php
+if (getenv('MAILPIT_ENABLED') !== 'true') return;
+
 add_filter('wp_mail_from', fn() => 'wordpress@periscolaire.local');
 add_filter('wp_mail_from_name', fn() => 'WordPress Local');
 add_action('phpmailer_init', function ($phpmailer) {
@@ -252,6 +310,8 @@ add_action('phpmailer_init', function ($phpmailer) {
     $phpmailer->SMTPAuth = false;
 });
 ```
+
+Pour un déploiement de démonstration/production via `docker-compose.prod.yml` (voir [docs/self-hosting-docker.md](docs/self-hosting-docker.md)), Mailpit n'est pas derrière un profil et son port hôte est **8087** (pas 8025).
 
 ---
 
@@ -265,22 +325,25 @@ periscolaire-registration/
 │   ├── helpers.php                 # Fonctions utilitaires (dates, IBAN/BIC, sécurité...)
 │   ├── class-psc-installer.php     # Création / migration des tables
 │   ├── class-psc-admin.php         # Backoffice WordPress (toutes les routes admin_post_*)
-│   ├── class-psc-frontend.php      # Page publique (planning, menu, login)
+│   ├── class-psc-frontend.php      # Portail famille connecté + page publique (menu, login)
 │   ├── class-psc-mailer.php        # Tous les e-mails (HTML, layout commun)
 │   ├── class-psc-parents.php       # Authentification familles (sans mot de passe)
 │   ├── class-psc-requests.php      # Demandes d'inscription (modération)
 │   ├── class-psc-invoices.php      # Génération PDF et envoi factures
+│   ├── class-psc-sepa-mandate.php  # PDF du mandat de prélèvement SEPA (éphémère)
 │   ├── class-psc-menus.php         # Menus de cantine hebdomadaires
+│   ├── class-psc-supplier-orders.php  # Commande fournisseur hebdomadaire (repas par classe)
 │   ├── class-psc-school-calendar.php  # Calendrier scolaire zone C (import iCal + corrections manuelles)
 │   ├── class-psc-email-templates.php  # Modèles d'e-mails personnalisables
 │   └── fpdf/                       # Bibliothèque FPDF (génération PDF)
 ├── templates/
 │   ├── email/layout.php            # Layout HTML commun pour les e-mails
-│   ├── admin-*.php                 # Vues backoffice
-│   └── frontend-*.php              # Vues page publique
+│   ├── admin-*.php                 # Vues backoffice (dont admin-dashboard.php)
+│   ├── portal-*.php                # Vues du portail famille connecté (les 7 onglets)
+│   └── frontend-*.php, guest-*.php # Vues page publique / visiteur non connecté
 └── assets/
-    ├── css/                        # Styles admin et frontend
-    └── js/                         # Scripts frontend
+    ├── css/                        # Styles admin et frontend/portail
+    └── js/                         # Scripts frontend, portail, visiteur
 ```
 
 ### Tables en base de données
@@ -289,12 +352,14 @@ periscolaire-registration/
 |---|---|
 | `wp_psc_trimestres` | Périodes (trimestres) avec dates de début/fin |
 | `wp_psc_calendar_days` | Jours du calendrier (ouvert/fermé + motif) par trimestre |
-| `wp_psc_parents` | Comptes familles (mode de paiement, IBAN/BIC, référence de mandat SEPA) |
-| `wp_psc_children` | Enfants rattachés à une famille (dont régime cantine) |
+| `wp_psc_parents` | Comptes familles (état civil, mode de paiement, IBAN/BIC, référence de mandat SEPA) |
+| `wp_psc_children` | Enfants rattachés à une famille (dont classe, régime cantine) |
+| `wp_psc_child_assurances` | Justificatifs d'assurance scolaire par enfant et par année de rentrée |
 | `wp_psc_registrations` | Inscriptions jour × enfant × prestation |
 | `wp_psc_requests` | Demandes d'inscription (règlement, mode de paiement, mandat SEPA déclarés) |
 | `wp_psc_invoices` | Factures mensuelles générées (métadonnées + chemin PDF) |
 | `wp_psc_menus` | Menus de cantine hebdomadaires |
+| `wp_psc_supplier_orders` | Historique des commandes fournisseur envoyées (comptage figé par semaine) |
 | `wp_psc_school_calendar` | Jours fermés zone C (import officiel + corrections manuelles) |
 
 ---
@@ -307,7 +372,7 @@ Liste non exhaustive de ce qui mérite un retour avant mise en production :
 - **Acceptation par case à cocher, pas signature électronique qualifiée** : à valider que ce niveau suffit pour la mairie (le SIDISCM demandait historiquement une signature papier).
 - **Aucun export bancaire SEPA (fichier `pain.008`)** : les mandats sont stockés et consultables dans le backoffice, mais la mairie doit encore les saisir manuellement dans son outil bancaire pour lancer les prélèvements.
 - **Pas de paiement en ligne** : les tarifs affichés restent indicatifs, la facturation réelle (chèque/espèces/prélèvement bancaire) est gérée hors plugin.
-- **WP-Cron** (purge RGPD des demandes) dépend des visites du site — prévoir un cron système sur un site peu fréquenté.
+- **WP-Cron** (purge RGPD des demandes, bascule annuelle de classe) dépend des visites du site — prévoir un cron système sur un site peu fréquenté.
 - **Envoi d'e-mails** : le plugin utilise `wp_mail()`. Sans configuration SMTP, les messages partent souvent en indésirables ou pas du tout — à tester en conditions réelles avant ouverture aux familles, le lien de connexion en dépend entièrement.
 
 ---

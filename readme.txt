@@ -12,32 +12,47 @@ License: GPLv2 or later
 Remplace le fichier calendrier rempli à la main pour l'inscription aux services
 périscolaires (Garderie Matin, Cantine, Garderie Soir, Forfait journée).
 
-Les parents se connectent sur le site de la mairie, cochent les jours et
-prestations souhaités sur un calendrier en ligne. Chaque case cochée est
-enregistrée immédiatement (pas de bouton "Envoyer" à cliquer, pas de fichier
-à renvoyer par e-mail).
+Une famille non connue de la mairie dépose une demande d'inscription en ligne
+(règlement intérieur, justificatif d'assurance scolaire par enfant et, si
+elle règle par prélèvement, un mandat SEPA). Une fois la demande validée par
+la mairie, la famille se connecte sans mot de passe (lien reçu par e-mail) à
+son espace personnel : elle y coche jour par jour les prestations souhaitées
+pour chacun de ses enfants — chaque case cochée est enregistrée immédiatement,
+pas de bouton "Envoyer" à chercher, pas de fichier à renvoyer par e-mail —
+et y suit aussi ses factures, ses justificatifs d'assurance et son profil.
 
-La mairie centralise toutes les inscriptions dans un backoffice dédié
-(menu "Périscolaire" dans l'administration WordPress) : création des
-trimestres (le calendrier se génère automatiquement : week-ends et jours
-fériés fermés), gestion des périodes de vacances, liste des enfants,
-tableau récapitulatif filtrable par trimestre et par enfant avec totaux
-par prestation, et export CSV pour la comptabilité / la facturation.
+La mairie centralise tout dans un backoffice dédié (menu "Périscolaire" dans
+l'administration WordPress) : tableau de bord avec liste de tâches, calendrier
+scolaire (import automatique zone C), trimestres, modération des demandes,
+familles, enfants (avec bascule de classe automatique à la rentrée), menus de
+cantine, commande fournisseur hebdomadaire, facturation mensuelle en PDF, et
+export CSV pour la comptabilité.
+
+Aucun compte WordPress n'est nécessaire côté famille. Aucun paiement en ligne
+n'est intégré : le mode de paiement (chèque/espèces ou prélèvement SEPA) est
+déclaré à l'inscription, les prélèvements réels restent traités par la mairie
+via sa banque.
+
+Documentation complète des fonctionnalités : voir README.md à la racine du
+dépôt du plugin.
 
 == Installation ==
 
 1. Copier le dossier `periscolaire-registration` dans `wp-content/plugins/`.
 2. Activer le plugin depuis "Extensions" dans l'administration WordPress
    (les tables nécessaires sont créées automatiquement).
-3. Aller dans "Périscolaire > Trimestres" et créer le trimestre en cours
+3. Aller dans "Périscolaire > Calendrier scolaire" et cliquer sur "Charger
+   le calendrier officiel" (vacances scolaires zone C).
+4. Aller dans "Périscolaire > Trimestres" et créer le trimestre en cours
    (dates de début et de fin), puis cliquer sur "Activer".
-4. Si besoin, fermer les périodes de vacances scolaires depuis la même page.
-5. Ajuster les tarifs dans "Périscolaire > Réglages" si nécessaire.
+5. Ajuster les tarifs et déposer les documents PDF (règlement intérieur,
+   règlement de prélèvement) dans "Périscolaire > Réglages".
 6. Créer une page sur le site (ex. "Inscription périscolaire") et y insérer
    le shortcode : [periscolaire_form]
-7. Communiquer le lien de cette page aux parents. Ils doivent avoir un
-   compte WordPress (rôle "Abonné" suffit) pour se connecter et remplir
-   le calendrier.
+7. Communiquer le lien de cette page aux familles. Aucun compte WordPress
+   n'est nécessaire côté famille : la première demande se fait depuis cette
+   page publique, puis la connexion se fait par lien reçu par e-mail (voir
+   "Version 2.0.0" ci-dessous).
 
 == Notes importantes ==
 
@@ -54,13 +69,18 @@ par prestation, et export CSV pour la comptabilité / la facturation.
 - Chaque parent ne voit que ses propres enfants et ne peut modifier que
   leurs inscriptions (vérifié côté serveur, pas seulement côté affichage).
 
-== Évolutions possibles ==
+== Points ouverts / à valider ==
 
-- Notification par e-mail à la mairie ou au parent après modification.
-- Export PDF au format proche du fichier papier actuel.
-- Rôle / capacité dédiée pour un agent municipal non-administrateur.
-- Blocage automatique de la saisie après une date limite (ex. la veille
-  midi pour le lendemain).
+- Textes légaux (règlement intérieur, règlement de prélèvement) retranscrits
+  depuis les documents fournis par la mairie : à comparer mot pour mot avec
+  les originaux avant publication.
+- Acceptation par case à cocher, pas signature électronique qualifiée.
+- Aucun export bancaire SEPA (fichier pain.008) : les mandats sont stockés et
+  consultables dans le backoffice, mais la mairie doit encore les saisir
+  manuellement dans son outil bancaire pour lancer les prélèvements.
+- Pas de paiement en ligne : les tarifs affichés restent indicatifs.
+- WP-Cron (purge RGPD, bascule annuelle de classe) dépend des visites du
+  site : prévoir un cron système sur un site peu fréquenté.
 
 == Sécurité (version 1.1.0) ==
 
@@ -241,3 +261,42 @@ Conservation des données (RGPD) :
   fréquenté, prévoir un cron système si la ponctualité importe.
 - Le formulaire affiche une mention d'information sur le traitement des
   données ; adaptez-la au registre des traitements de la commune.
+
+== Évolutions depuis la 2.1.0 : portail famille, assurance scolaire, facturation, commande fournisseur ==
+
+Le formulaire de demande d'inscription est devenu un parcours en 4 étapes
+(Coordonnées, Enfants, Paiement, Règlement) : impossible de passer à l'étape
+suivante tant qu'elle n'est pas complète, avec revalidation côté serveur.
+Prénom et nom sont désormais des champs séparés. Un mandat de prélèvement
+SEPA au format PDF est généré et joint à l'e-mail de confirmation quand la
+famille choisit le prélèvement (jamais stocké sur le serveur, l'IBAN y
+figurant en clair).
+
+Chaque enfant déclaré doit désormais avoir un justificatif d'assurance
+scolaire (PDF/JPG/PNG, 1 Mo maximum), dès la demande d'inscription et à
+chaque rentrée ensuite. Un justificatif manquant bloque l'ajout d'un
+nouveau jour de cantine/garderie pour l'enfant concerné (jamais de blocage
+rétroactif sur un jour déjà déclaré).
+
+Une fois connectée, la famille accède à "Mon Espace Famille", un portail à
+onglets : Tableau de bord (résumé de la période en cours, prochaine facture,
+raccourci "Annulation prestations" pour annuler rapidement une ou plusieurs
+prestations déjà cochées sans repasser par le calendrier), Cantine &
+Garderie (le calendrier, désormais avec infobulles sur les abréviations de
+prestation), Menu de la semaine, Mes enfants (fiche en lecture seule +
+correction du prénom/nom/naissance, suivi et dépôt du justificatif
+d'assurance), Mes factures (téléchargement PDF) et Mon profil (état civil,
+coordonnées, changement d'e-mail avec confirmation par lien) ainsi que
+Documents (règlement intérieur et règlement de prélèvement en PDF).
+
+Côté mairie : un Tableau de bord (nouvelle page d'accueil du backoffice)
+affiche les statistiques clés et une liste "À faire" (demandes en attente,
+statut du menu et de la commande fournisseur de la semaine prochaine). Une
+nouvelle page "Commande fournisseur" calcule chaque semaine le nombre de
+repas par classe à partir des inscriptions réelles et envoie ce décompte au
+prestataire de restauration sur action manuelle (jamais automatique),
+archivant un instantané figé de chaque envoi. La génération des factures
+mensuelles est désormais bloquée pour un mois en cours (non terminé), pour
+éviter une facture incomplète. Chaque année à la rentrée, une tâche
+planifiée fait automatiquement progresser la classe des enfants actifs et
+désactive ceux qui terminaient le CM2, sans action manuelle de la mairie.
