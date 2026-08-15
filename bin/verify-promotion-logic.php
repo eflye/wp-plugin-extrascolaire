@@ -35,7 +35,11 @@ WP_CLI::add_command('verify-promotion-logic', function ($args, $assoc_args) {
     $t_years  = psc_table('school_years');
     $t_cy     = psc_table('child_school_years');
 
-    $label_prefix  = 'Vérif. promotion — ';
+    // wp_psc_school_years.label est VARCHAR(20) : Psc_School_Years::create()
+    // tronque silencieusement au-delà (mb_substr(...,0,20)), donc le préfixe
+    // + suffixe le plus long ('N+1') doit tenir dans cette limite pour que
+    // les deux années de test restent distinguables par leur libellé.
+    $label_prefix  = 'Vérif. promo — ';
     $parent_email  = 'verif.promotion@example.test';
 
     $failures = array();

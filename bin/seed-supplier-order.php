@@ -52,7 +52,10 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     }
 
     $config = array(
-        'school_year_label' => 'Année E2E — commande fournisseur',
+        // wp_psc_school_years.label est VARCHAR(20) : contrairement au
+        // trimestre (VARCHAR(191)), un libellé trop long fait échouer
+        // silencieusement l'INSERT sous le sql_mode strict de MySQL 8.
+        'school_year_label' => 'Année E2E — cmd',
         'trimestre_label' => 'Trimestre E2E — commande fournisseur',
         'parent_email'    => 'fournisseur.e2e@example.test',
         'parent_nom'      => 'E2E',
@@ -121,13 +124,16 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     // active du site — un couple année/trimestre non actifs mais dont les
     // dates couvrent la semaine cible suffit, sans jamais toucher à ce qui
     // est actif pour de vrai sur le site.
-    $wpdb->insert($t_years, array(
+    $years_inserted = $wpdb->insert($t_years, array(
         'label'      => $config['school_year_label'],
         'date_debut' => $jours['lundi'],
         'date_fin'   => $jours['vendredi'],
         'statut'     => 'archivee',
         'created_at' => current_time('mysql'),
     ), array('%s', '%s', '%s', '%s', '%s'));
+    if (!$years_inserted) {
+        WP_CLI::error('Création de l\'année scolaire figurante : ' . $wpdb->last_error);
+    }
     $school_year_id = (int) $wpdb->insert_id;
 
     $wpdb->insert($t_trim, array(

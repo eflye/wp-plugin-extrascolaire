@@ -90,11 +90,19 @@
 
 <?php
 $psc_active_children = array_filter($all_children, function ($c) { return $c->statut === 'actif'; });
-$psc_rentree_debut = psc_rentree_year();
+$psc_active_year = Psc_School_Years::active();
+if ($psc_active_year) {
+    $psc_assurance_year_label = $psc_active_year->label;
+} else {
+    // Aucune année scolaire active (installation neuve) : repli sur l'année
+    // de rentrée déduite de la date du jour.
+    $psc_rentree_debut = psc_rentree_year();
+    $psc_assurance_year_label = $psc_rentree_debut . '–' . ($psc_rentree_debut + 1);
+}
 ?>
 <?php if (!empty($psc_active_children)): ?>
 <div class="psc-portal-panel psc-portal-panel--wide">
-  <div class="psc-portal-panel-title">Assurance scolaire <?php echo esc_html($psc_rentree_debut . '–' . ($psc_rentree_debut + 1)); ?></div>
+  <div class="psc-portal-panel-title">Assurance scolaire <?php echo esc_html($psc_assurance_year_label); ?></div>
   <p class="psc-portal-intro">Un justificatif à jour est nécessaire pour pouvoir déclarer des jours de cantine ou de garderie pour chaque enfant.</p>
   <div class="psc-portal-table-scroll">
   <table class="psc-portal-table" data-testid="portal-assurance-table">
