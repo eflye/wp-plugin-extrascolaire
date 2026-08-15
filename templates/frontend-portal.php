@@ -53,6 +53,10 @@
         'email_change_cancelled'       => array('ok',  'Changement d\'adresse e-mail annulé.'),
         'bad_email_token'              => array('err', 'Ce lien de confirmation n\'est pas valide.'),
         'expired_email_token'          => array('err', 'Ce lien de confirmation a expiré. Refaites une demande depuis votre profil.'),
+
+        'reinscription_confirmee' => array('ok',  'Réinscription enregistrée. Merci !'),
+        'reinscription_invalid'   => array('err', 'La fenêtre de réinscription est fermée ou votre sélection est invalide.'),
+        'reinscription_required'  => array('err', 'Merci de confirmer le règlement intérieur et de fournir un justificatif d\'assurance pour chaque enfant réinscrit.'),
     );
     // Confirmations : popin auto-masquée (cf. assets/js/frontend.js).
     // Erreurs à corriger : bandeau classique, le temps de lire et d'agir.
@@ -98,5 +102,11 @@
     <section class="psc-portal-section<?php echo $active_tab === 'documents' ? ' is-active' : ''; ?>" data-portal-section="documents" data-testid="portal-section-documents">
       <?php include PSC_PATH . 'templates/portal-documents.php'; ?>
     </section>
+
+    <?php if (isset($psc_portal_tabs['reinscription'])): ?>
+    <section class="psc-portal-section<?php echo $active_tab === 'reinscription' ? ' is-active' : ''; ?>" data-portal-section="reinscription" data-testid="portal-section-reinscription">
+      <?php include PSC_PATH . 'templates/portal-reinscription.php'; ?>
+    </section>
+    <?php endif; ?>
   </main>
 </div>

@@ -20,7 +20,8 @@
     <tr data-testid="portal-child-row-<?php echo esc_attr($c->id); ?>">
       <td style="font-weight:500;"><?php echo esc_html($c->prenom); ?></td>
       <td><?php echo esc_html($c->nom); ?></td>
-      <td><?php echo esc_html($psc_classe_labels[$c->classe] ?? $c->classe); ?></td>
+      <?php $psc_c_classe = Psc_School_Years::classe_for($c->id); ?>
+      <td><?php echo esc_html($psc_c_classe ? ($psc_classe_labels[$psc_c_classe] ?? $psc_c_classe) : '—'); ?></td>
       <td><?php echo $c->date_naissance ? esc_html(date_i18n('d/m/Y', strtotime($c->date_naissance))) : '—'; ?></td>
       <td>
         <?php
@@ -35,7 +36,7 @@
         <?php endif; ?>
       </td>
       <td>
-        <?php if ((int) $c->active === 1): ?>
+        <?php if ($c->statut === 'actif'): ?>
           <span class="psc-badge-ok">Actif</span>
         <?php else: ?>
           <span class="psc-badge-warn">Inactif</span>
@@ -88,7 +89,7 @@
 <?php endif; ?>
 
 <?php
-$psc_active_children = array_filter($all_children, function ($c) { return (int) $c->active === 1; });
+$psc_active_children = array_filter($all_children, function ($c) { return $c->statut === 'actif'; });
 $psc_rentree_debut = psc_rentree_year();
 ?>
 <?php if (!empty($psc_active_children)): ?>

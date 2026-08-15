@@ -46,7 +46,8 @@
       <div class="psc-portal-child-header">
         <h2 data-testid="child-name-<?php echo esc_attr($child_index); ?>">
           <?php echo esc_html($child->prenom . ' ' . $child->nom); ?>
-          <?php if ($child->classe): ?><span class="psc-portal-child-classe">(<?php echo esc_html($child->classe); ?>)</span><?php endif; ?>
+          <?php $psc_child_classe = Psc_School_Years::classe_for($child->id); ?>
+          <?php if ($psc_child_classe): ?><span class="psc-portal-child-classe">(<?php echo esc_html($psc_child_classe); ?>)</span><?php endif; ?>
         </h2>
         <span class="psc-portal-child-total" data-child-total data-testid="child-total-<?php echo esc_attr($child_index); ?>">
           <?php echo esc_html($child_days_count); ?> jour<?php echo $child_days_count > 1 ? 's' : ''; ?>

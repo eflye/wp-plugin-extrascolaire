@@ -806,6 +806,21 @@ body.psc-portal-active main.site-main {
     color: var(--psc-ink);
     margin: 0 0 14px;
 }
+.psc-portal-reins-child {
+    border: none;
+    border-bottom: 1px solid var(--psc-rule-lighter);
+    padding: 0 0 18px;
+    margin: 0 0 18px;
+}
+.psc-portal-reins-child:last-of-type { border-bottom: none; margin-bottom: 8px; }
+.psc-portal-reins-child legend {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--psc-ink);
+    padding: 0;
+    margin-bottom: 8px;
+}
 .psc-portal-field-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
