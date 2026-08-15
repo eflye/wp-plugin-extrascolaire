@@ -36,6 +36,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <tr><th><label for="psc-nom">Nom de l'enfant</label></th><td><input id="psc-nom" type="text" name="nom" maxlength="190" required></td></tr>
 <tr><th><label for="psc-prenom">Prénom de l'enfant</label></th><td><input id="psc-prenom" type="text" name="prenom" maxlength="190" required></td></tr>
 <tr><th><label for="psc-classe">Classe</label></th><td><input id="psc-classe" type="text" name="classe" maxlength="100" placeholder="CP, CE1..."></td></tr>
+<tr><th><label for="psc-naissance">Date de naissance</label></th><td><input id="psc-naissance" type="date" name="naissance"></td></tr>
 </table>
 <?php submit_button('Ajouter'); ?>
 </form>
@@ -44,15 +45,16 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <div class="psc-box">
 <h2>Liste des enfants</h2>
 <table class="widefat striped">
-<thead><tr><th>Nom</th><th>Prénom</th><th>Classe</th><th>Régime cantine</th><th>Famille</th><th>Action</th></tr></thead>
+<thead><tr><th>Nom</th><th>Prénom</th><th>Classe</th><th>Naissance</th><th>Régime cantine</th><th>Famille</th><th>Assurance <?php echo esc_html($psc_assurance_rentree); ?></th><th>Action</th></tr></thead>
 <tbody>
 <?php if (empty($children)): ?>
-<tr><td colspan="6">Aucun enfant enregistré.</td></tr>
+<tr><td colspan="8">Aucun enfant enregistré.</td></tr>
 <?php else: foreach ($children as $c): ?>
 <tr>
 <td><?php echo esc_html($c->nom); ?></td>
 <td><?php echo esc_html($c->prenom); ?></td>
 <td><?php echo esc_html($c->classe); ?></td>
+<td><?php echo $c->date_naissance ? esc_html(date_i18n('d/m/Y', strtotime($c->date_naissance))) : '—'; ?></td>
 <td>
 <?php
 $diet = array();
@@ -62,6 +64,15 @@ echo $diet ? esc_html(implode(' · ', $diet)) : '—';
 ?>
 </td>
 <td><?php echo $c->parent_email ? esc_html($c->parent_nom ?: $c->parent_email) : '<em>famille supprimée</em>'; ?></td>
+<td>
+<?php if ($c->assurance_uploaded_at): ?>
+<a href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=psc_download_assurance&child_id=' . $c->id), 'psc_download_assurance_' . $c->id)); ?>" target="_blank" rel="noopener">
+Fournie le <?php echo esc_html(date_i18n('d/m/Y', strtotime($c->assurance_uploaded_at))); ?>
+</a>
+<?php else: ?>
+<em>Manquante</em>
+<?php endif; ?>
+</td>
 <td>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline" onsubmit="return confirm('Supprimer cet enfant et toutes ses inscriptions ? Cette action est irréversible.');">
 <?php wp_nonce_field('psc_delete_child'); ?>

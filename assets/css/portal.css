@@ -373,6 +373,42 @@ body.psc-portal-active main > .wp-block-group.has-global-padding {
     margin-top: 8px;
 }
 
+/* ---- Popin "Annulation / signalement d'absence" ---- */
+.psc-portal-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 26, 26, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 1000;
+}
+/* `display: flex` ci-dessus l'emporte sinon sur la règle UA [hidden]
+   (même défaut que .psc-wizard-nav [hidden], cf. plus haut). */
+.psc-portal-modal-overlay[hidden] { display: none; }
+.psc-portal-modal {
+    background: var(--psc-cream);
+    border: 1px solid var(--psc-rule);
+    padding: 28px 26px;
+    width: 100%;
+    max-width: 420px;
+}
+.psc-portal-modal-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 19px;
+    color: var(--psc-forest);
+    margin: 0 0 16px;
+}
+.psc-portal-modal select.psc-portal-field-underline { width: 100%; }
+.psc-portal-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+}
+
 /* ---- Cantine & Garderie ---- */
 .psc-portal-intro {
     font-size: 14px;
@@ -1008,7 +1044,11 @@ body.psc-portal-active main > .wp-block-group.has-global-padding {
 }
 .psc-wizard-child-row {
     display: grid;
-    grid-template-columns: 1fr 1fr 140px auto auto auto;
+    /* auto-fit plutôt que des colonnes fixes : 7 champs ne tiennent plus
+       sur une seule ligne dans la largeur de la carte depuis l'ajout de
+       la date de naissance — se replie proprement sur 2 lignes au lieu
+       d'écraser prénom/nom à quelques pixels. */
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 14px;
     align-items: end;
     margin-bottom: 16px;
@@ -1022,6 +1062,16 @@ body.psc-portal-active main > .wp-block-group.has-global-padding {
     align-items: center;
     gap: 5px;
     white-space: nowrap;
+}
+.psc-wizard-child-row input[type="file"] {
+    /* Un input file garde sa largeur intrinsèque (bouton + nom de fichier)
+       même avec width:100% tant que min-width:auto le laisse déborder de sa
+       piste de grille (minmax(130px, 1fr) : le minimum n'est pas "auto",
+       donc la piste ne s'élargit pas pour l'accueillir — même défaut que
+       .psc-wizard-child-row avant le fix de la colonne "naissance"). */
+    width: 100%;
+    min-width: 0;
+    font-size: 12px;
 }
 .psc-wizard-remove-btn {
     background: none;

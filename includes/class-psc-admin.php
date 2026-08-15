@@ -35,6 +35,8 @@ class Psc_Admin {
         add_action('admin_post_psc_close_school_day', array(__CLASS__, 'handle_close_school_day'));
         add_action('admin_post_psc_open_school_day', array(__CLASS__, 'handle_open_school_day'));
         add_action('admin_post_psc_cancel_school_day_close', array(__CLASS__, 'handle_cancel_school_day_close'));
+        add_action('admin_post_psc_download_assurance', array(__CLASS__, 'handle_download_assurance'));
+        add_action('admin_post_psc_download_pending_assurance', array(__CLASS__, 'handle_download_pending_assurance'));
         add_action('admin_enqueue_scripts', array(__CLASS__, 'assets'));
     }
 
@@ -309,9 +311,10 @@ class Psc_Admin {
         global $wpdb;
 
         $parent_id = psc_post_int('parent_id');
-        $nom    = psc_post('nom');
-        $prenom = psc_post('prenom');
-        $classe = psc_post('classe');
+        $nom       = psc_post('nom');
+        $prenom    = psc_post('prenom');
+        $classe    = psc_post('classe');
+        $naissance = psc_valid_date(psc_post('naissance'));
 
         if (!$parent_id || $nom === '' || $prenom === '') {
             self::redirect('psc_children', 'invalid');
@@ -322,12 +325,14 @@ class Psc_Admin {
         }
 
         $wpdb->insert(psc_table('children'), array(
-            'parent_id'  => $parent_id,
-            'nom'        => mb_substr($nom, 0, 190),
-            'prenom'     => mb_substr($prenom, 0, 190),
-            'classe'     => mb_substr($classe, 0, 100),
-            'created_at' => current_time('mysql'),
-        ), array('%d', '%s', '%s', '%s', '%s'));
+            'parent_id'      => $parent_id,
+            'nom'            => mb_substr($nom, 0, 190),
+            'prenom'         => mb_substr($prenom, 0, 190),
+            'classe'         => mb_substr($classe, 0, 100),
+            'date_naissance' => $naissance ?: null,
+            'classe_annee'   => psc_rentree_year(),
+            'created_at'     => current_time('mysql'),
+        ), array('%d', '%s', '%s', '%s', '%s', '%d', '%s'));
 
         self::redirect('psc_children', 'added');
     }
@@ -349,7 +354,17 @@ class Psc_Admin {
         global $wpdb;
         $t_child = psc_table('children');
         $t_parent = psc_table('parents');
-        $children = $wpdb->get_results("SELECT c.*, p.nom AS parent_nom, p.email AS parent_email FROM $t_child c LEFT JOIN $t_parent p ON p.id = c.parent_id ORDER BY c.nom");
+        $t_assur = psc_table('child_assurances');
+        $psc_assurance_rentree = psc_rentree_year();
+        $children = $wpdb->get_results($wpdb->prepare(
+            "SELECT c.*, p.nom AS parent_nom, p.email AS parent_email,
+                    a.original_filename AS assurance_filename, a.uploaded_at AS assurance_uploaded_at
+             FROM $t_child c
+             LEFT JOIN $t_parent p ON p.id = c.parent_id
+             LEFT JOIN $t_assur a ON a.child_id = c.id AND a.rentree_year = %d
+             ORDER BY c.nom",
+            $psc_assurance_rentree
+        ));
         $parents = Psc_Parents::all();
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         include PSC_PATH . 'templates/admin-children.php';
@@ -402,6 +417,9 @@ class Psc_Admin {
         }
         update_option('psc_billing_logo_left_id',  absint(isset($_POST['logo_left_id'])  ? $_POST['logo_left_id']  : 0));
         update_option('psc_billing_logo_right_id', absint(isset($_POST['logo_right_id']) ? $_POST['logo_right_id'] : 0));
+
+        update_option('psc_doc_reglement_interieur_id',   absint(isset($_POST['doc_reglement_interieur_id'])   ? $_POST['doc_reglement_interieur_id']   : 0));
+        update_option('psc_doc_reglement_prelevement_id', absint(isset($_POST['doc_reglement_prelevement_id']) ? $_POST['doc_reglement_prelevement_id'] : 0));
 
         self::redirect('psc_settings', 'saved');
     }
@@ -828,6 +846,57 @@ class Psc_Admin {
         $invoice_id = psc_get_int('invoice_id');
         check_admin_referer('psc_download_invoice_' . $invoice_id);
         Psc_Invoices::download($invoice_id);
+    }
+
+    /**
+     * Consultation par la mairie d'un justificatif d'assurance scolaire.
+     * Lecture seule : aucune validation/rejet n'existe pour l'instant
+     * (auto-validation à l'upload, cf. Psc_Frontend::handle_parent_upload_assurance()).
+     */
+    public static function handle_download_assurance() {
+        if (!psc_user_can_manage()) {
+            wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        }
+        $child_id = psc_get_int('child_id');
+        check_admin_referer('psc_download_assurance_' . $child_id);
+
+        global $wpdb;
+        $t_assur = psc_table('child_assurances');
+        $doc = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $t_assur WHERE child_id = %d AND rentree_year = %d", $child_id, psc_rentree_year()
+        ));
+        if (!$doc) {
+            wp_die(esc_html__('Aucun document pour cette année.', 'periscolaire-registration'), '', array('response' => 404));
+        }
+
+        Psc_Frontend::stream_assurance_file($doc->file_path, $doc->original_filename);
+    }
+
+    /**
+     * Consultation par la mairie d'un justificatif déposé avec une demande
+     * d'inscription pas encore approuvée (zone d'attente, aucun child_id
+     * n'existe encore). Le chemin n'est jamais pris depuis la requête
+     * cliente : toujours re-dérivé de children_json par index, comme dans
+     * Psc_Requests::handle_approve().
+     */
+    public static function handle_download_pending_assurance() {
+        if (!psc_user_can_manage()) {
+            wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        }
+        $request_id = psc_get_int('request_id');
+        $index      = psc_get_int('index');
+        check_admin_referer('psc_download_pending_assurance_' . $request_id . '_' . $index);
+
+        $req = Psc_Requests::get($request_id);
+        if (!$req) {
+            wp_die(esc_html__('Demande introuvable.', 'periscolaire-registration'), '', array('response' => 404));
+        }
+        $children = Psc_Requests::children_of($req);
+        if (empty($children[$index]['assurance_rel_path'])) {
+            wp_die(esc_html__('Aucun justificatif pour cet enfant.', 'periscolaire-registration'), '', array('response' => 404));
+        }
+
+        Psc_Frontend::stream_assurance_file($children[$index]['assurance_rel_path'], $children[$index]['assurance_original_filename']);
     }
 
     public static function page_factures() {

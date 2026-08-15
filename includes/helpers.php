@@ -270,6 +270,44 @@ function psc_classe_options() {
 }
 
 /**
+ * Année de rentrée en cours (ex : 2026 du 1er septembre 2026 au 31 août
+ * 2027). Sert de repère pour savoir si la classe d'un enfant a déjà été
+ * basculée cette année scolaire (cf. Psc_Frontend::bump_classes()).
+ */
+function psc_rentree_year($timestamp = null) {
+    $ts = $timestamp ?: current_time('timestamp');
+    $month = (int) date('n', $ts);
+    $year  = (int) date('Y', $ts);
+    return $month >= 9 ? $year : $year - 1;
+}
+
+/**
+ * Classe attendue pour un enfant né le $date_naissance, à la rentrée
+ * $rentree_year (âge au 31 décembre de cette année civile — règle
+ * officielle française). Sert uniquement à initialiser la classe d'un
+ * enfant qui n'en a pas encore : jamais utilisée pour recorriger une
+ * classe déjà définie (cf. Psc_Frontend::bump_classes()).
+ */
+function psc_classe_for_birthdate($date_naissance, $rentree_year) {
+    if (!$date_naissance) return '';
+    $age = $rentree_year - (int) date('Y', strtotime($date_naissance));
+    $map = array(3 => 'PS', 4 => 'MS', 5 => 'GS', 6 => 'CP', 7 => 'CE1', 8 => 'CE2', 9 => 'CM1', 10 => 'CM2');
+    return $map[$age] ?? '';
+}
+
+/**
+ * Classe suivante dans la progression PS→MS→GS→CP→CE1→CE2→CM1→CM2.
+ * Renvoie null si $classe est déjà CM2 (fin du cycle géré par le
+ * périscolaire) ou n'est pas une classe reconnue.
+ */
+function psc_classe_superieure($classe) {
+    $order = array('PS', 'MS', 'GS', 'CP', 'CE1', 'CE2', 'CM1', 'CM2');
+    $i = array_search($classe, $order, true);
+    if ($i === false || $i === count($order) - 1) return null;
+    return $order[$i + 1];
+}
+
+/**
  * Neutralise l'injection de formules CSV (Excel / LibreOffice).
  *
  * Une valeur commençant par = + - @ (ou tabulation / retour chariot) est

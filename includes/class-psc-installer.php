@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '2.12.0';
+    const DB_VERSION = '2.15.0';
 
     public static function activate() {
         self::create_tables();
@@ -205,6 +205,7 @@ class Psc_Installer {
         $t_menu  = psc_table('menus');
         $t_sch   = psc_table('school_calendar');
         $t_sup   = psc_table('supplier_orders');
+        $t_assur = psc_table('child_assurances');
 
         $sql = "CREATE TABLE $t_trim (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -220,9 +221,15 @@ CREATE TABLE $t_parent (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             email VARCHAR(191) NOT NULL,
             nom VARCHAR(191) NULL,
+            prenom VARCHAR(191) NULL,
+            telephone_mobile VARCHAR(40) NULL,
+            telephone_fixe VARCHAR(40) NULL,
             adresse VARCHAR(255) NULL,
             code_postal VARCHAR(10) NULL,
             ville VARCHAR(100) NULL,
+            pending_email VARCHAR(191) NULL,
+            pending_email_token_hash VARCHAR(64) NULL,
+            pending_email_token_expires DATETIME NULL,
             token_hash VARCHAR(64) NULL,
             token_expires DATETIME NULL,
             last_login DATETIME NULL,
@@ -249,6 +256,8 @@ CREATE TABLE $t_child (
             nom VARCHAR(191) NOT NULL,
             prenom VARCHAR(191) NOT NULL,
             classe VARCHAR(100) NULL,
+            date_naissance DATE NULL,
+            classe_annee INT NULL,
             sans_porc TINYINT(1) NOT NULL DEFAULT 0,
             vegan TINYINT(1) NOT NULL DEFAULT 0,
             active TINYINT(1) NOT NULL DEFAULT 1,
@@ -362,6 +371,18 @@ CREATE TABLE $t_sup (
             sent_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
             KEY semaine (semaine_debut)
+        ) $charset_collate;
+
+CREATE TABLE $t_assur (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            child_id BIGINT UNSIGNED NOT NULL,
+            rentree_year INT NOT NULL,
+            file_path VARCHAR(255) NOT NULL,
+            original_filename VARCHAR(191) NOT NULL,
+            uploaded_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY child_year (child_id, rentree_year),
+            KEY child_id (child_id)
         ) $charset_collate;";
 
         dbDelta($sql);

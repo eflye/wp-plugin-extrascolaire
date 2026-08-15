@@ -13,7 +13,7 @@
 // Empêche l'exécution directe du fichier via son URL.
 if (!defined('ABSPATH')) exit;
 
-define('PSC_VERSION', '3.0.15');
+define('PSC_VERSION', '3.0.23');
 define('PSC_PATH', plugin_dir_path(__FILE__));
 define('PSC_URL', plugin_dir_url(__FILE__));
 define('PSC_FILE', __FILE__);
@@ -35,10 +35,12 @@ require_once PSC_PATH . 'includes/class-psc-frontend.php';
 register_activation_hook(__FILE__, function () {
     Psc_Installer::activate();
     Psc_Requests::schedule_cleanup();
+    Psc_Frontend::schedule_classe_bump();
 });
 
 register_deactivation_hook(__FILE__, function () {
     Psc_Requests::unschedule_cleanup();
+    Psc_Frontend::unschedule_classe_bump();
 });
 
 add_action('plugins_loaded', function () {

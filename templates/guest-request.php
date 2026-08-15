@@ -28,7 +28,7 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
     <?php endforeach; ?>
   </div>
 
-  <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="psc-request-form" data-testid="request-form">
+  <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data" class="psc-request-form" data-testid="request-form">
     <?php wp_nonce_field('psc_submit_request'); ?>
     <input type="hidden" name="action" value="psc_submit_request">
 
@@ -88,6 +88,14 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
               <option value="<?php echo esc_attr($v); ?>"><?php echo esc_html($l); ?></option>
               <?php endforeach; ?>
             </select>
+          </div>
+          <div>
+            <label class="psc-portal-field-label screen-reader-text" for="psc-cb-0">Date de naissance de l'enfant 1</label>
+            <input id="psc-cb-0" class="psc-portal-field-underline" type="date" name="child_naissance_0">
+          </div>
+          <div>
+            <label class="psc-portal-field-label" for="psc-ca-0">Justificatif d'assurance scolaire</label>
+            <input id="psc-ca-0" type="file" name="child_assurance_0" accept=".pdf,.jpg,.jpeg,.png" required>
           </div>
           <label class="psc-wizard-diet-check"><input type="checkbox" name="child_sans_porc_0" value="1"> Sans porc</label>
           <label class="psc-wizard-diet-check"><input type="checkbox" name="child_vegan_0" value="1"> Sans viande</label>

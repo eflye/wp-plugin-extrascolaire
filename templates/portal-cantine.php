@@ -25,6 +25,7 @@
   </p>
 
   <?php $child_index = 0; foreach ($children as $child):
+    $assurance_missing = empty($psc_assurance_map[$child->id]);
     $child_days_count = 0;
     $child_total = 0.0;
     foreach ($days_by_month as $days) {
@@ -52,6 +53,13 @@
           · <?php echo esc_html(number_format_i18n($child_total, 2)); ?> €
         </span>
       </div>
+
+      <?php if ($assurance_missing): ?>
+      <p class="psc-notice psc-notice-err" data-testid="assurance-missing-<?php echo esc_attr($child_index); ?>">
+        Assurance scolaire manquante pour <?php echo esc_html($child->prenom); ?> : les cases sont désactivées tant
+        que le justificatif n'est pas fourni. Ajoutez-le depuis « Mes enfants ».
+      </p>
+      <?php endif; ?>
 
       <?php foreach ($days_by_month as $month_label => $days): ?>
         <?php
@@ -117,7 +125,7 @@
                 $date = $d->jour_date;
                 $locked = psc_is_locked($date);
             ?>
-              <tr class="<?php echo $locked ? 'psc-row-locked' : ''; ?>" data-testid="day-row-<?php echo esc_attr($child_index); ?>-<?php echo esc_attr($date); ?>">
+              <tr class="<?php echo ($locked || $assurance_missing) ? 'psc-row-locked' : ''; ?>" data-testid="day-row-<?php echo esc_attr($child_index); ?>-<?php echo esc_attr($date); ?>">
                 <th scope="row" class="psc-daylabel">
                   <?php echo esc_html(psc_day_label($date) . ' ' . date_i18n('d/m', strtotime($date))); ?>
                   <?php if ($locked): ?>
@@ -127,6 +135,10 @@
                 <?php foreach (psc_allowed_services() as $s):
                     $checked = isset($reg_map[$child->id . '|' . $date . '|' . $s]);
                     $cell_testid = $child_index . '-' . $date . '-' . $s;
+                    // L'assurance manquante bloque uniquement l'AJOUT d'un
+                    // jour : une case déjà cochée reste décochable (pas de
+                    // blocage rétroactif, cf. ajax_toggle()).
+                    $cell_disabled = $locked || ($assurance_missing && !$checked);
                 ?>
                   <td data-testid="cell-<?php echo esc_attr($cell_testid); ?>">
                     <input type="checkbox" class="psc-check"
@@ -134,6 +146,7 @@
                                $services[$s]['label'] . ' — ' . psc_day_label($date) . ' '
                                . date_i18n('d/m', strtotime($date)) . ' — ' . $child->prenom
                                . ($locked ? ' (non modifiable)' : '')
+                               . ($assurance_missing && !$checked ? ' (assurance scolaire manquante)' : '')
                            ); ?>"
                            data-child="<?php echo esc_attr($child->id); ?>"
                            data-date="<?php echo esc_attr($date); ?>"
@@ -141,7 +154,7 @@
                            data-price="<?php echo esc_attr($services[$s]['price']); ?>"
                            data-testid="check-<?php echo esc_attr($cell_testid); ?>"
                            <?php checked($checked); ?>
-                           <?php disabled($locked); ?>>
+                           <?php disabled($cell_disabled); ?>>
                   </td>
                 <?php endforeach; ?>
               </tr>

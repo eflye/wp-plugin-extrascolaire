@@ -16,6 +16,9 @@
         'bad_verify'    => array('err', 'Ce lien de confirmation n\'est pas valide.'),
         'expired_verify'=> array('err', 'Ce lien de confirmation a expiré. Vous pouvez déposer une nouvelle demande.'),
         'need_child'    => array('err', 'Merci d\'indiquer au moins un enfant (nom et prénom).'),
+        'assurance_required'      => array('err', 'Merci de joindre le justificatif d\'assurance scolaire de chaque enfant déclaré.'),
+        'assurance_too_large'     => array('err', 'Un des justificatifs d\'assurance dépasse la taille maximale autorisée (5 Mo).'),
+        'assurance_invalid_type'  => array('err', 'Format de justificatif non accepté (PDF, JPG ou PNG uniquement).'),
         'reglement_required'      => array('err', 'Merci de prendre connaissance du règlement intérieur et de cocher la case d\'approbation.'),
         'sepa_reglement_required' => array('err', 'Merci de prendre connaissance du règlement concernant le prélèvement et de cocher la case d\'approbation.'),
         'sepa_missing'            => array('err', 'Merci de renseigner le titulaire du compte à débiter.'),
@@ -31,7 +34,8 @@
     // cf. Psc_Frontend::wizard_error_context().
     $psc_toast_messages = array('link_sent', 'logged_out', 'bad_token', 'expired_token', 'request_sent');
     $psc_wizard_messages = array(
-        'need_child', 'reglement_required', 'sepa_reglement_required',
+        'need_child', 'assurance_required', 'assurance_too_large', 'assurance_invalid_type',
+        'reglement_required', 'sepa_reglement_required',
         'sepa_missing', 'bad_iban', 'bad_bic',
     );
     if (!empty($psc_msg) && isset($psc_notices[$psc_msg]) && !in_array($psc_msg, $psc_wizard_messages, true)):

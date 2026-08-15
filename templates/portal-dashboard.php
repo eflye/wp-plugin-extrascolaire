@@ -23,6 +23,42 @@
     <div class="psc-portal-card-label">Accès rapide</div>
     <a href="<?php echo esc_url($psc_portal_tabs['cantine']['url']); ?>" class="psc-portal-btn-ink" data-portal-tab-link="cantine" style="display:block;text-align:center;text-decoration:none;">Déclarer un jour</a>
     <a href="<?php echo esc_url($psc_portal_tabs['enfants']['url']); ?>" class="psc-portal-btn-outline-ink" data-portal-tab-link="enfants" style="display:block;text-align:center;text-decoration:none;">Ajouter un enfant</a>
+    <button type="button" id="psc-absence-trigger" class="psc-portal-btn-outline-ink" data-testid="absence-trigger" style="width:100%;">Annulation / signalement d'absence</button>
+  </div>
+</div>
+
+<div id="psc-absence-modal" class="psc-portal-modal-overlay" hidden data-testid="absence-modal">
+  <div class="psc-portal-modal">
+    <h3 class="psc-portal-modal-title">Signaler une absence</h3>
+
+    <?php if (empty($psc_portal_absence_days)): ?>
+      <p class="psc-portal-dash-menu-empty">Aucune prestation à venir à annuler pour le moment.</p>
+      <div class="psc-portal-modal-actions">
+        <button type="button" class="psc-portal-btn-outline-ink" data-absence-close>Fermer</button>
+      </div>
+    <?php else: ?>
+      <p class="psc-portal-dash-menu-empty" style="margin:0 0 16px;">Toutes les prestations déjà cochées du jour choisi seront annulées pour cet enfant. Seuls les jours encore modifiables apparaissent ci-dessous.</p>
+      <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" data-testid="absence-form">
+        <?php wp_nonce_field('psc_cancel_absence'); ?>
+        <input type="hidden" name="action" value="psc_cancel_absence">
+
+        <label class="psc-portal-field-label" for="psc-absence-child">Enfant</label>
+        <select id="psc-absence-child" name="child_id" class="psc-portal-field-underline" data-testid="absence-child-select">
+          <?php foreach ($psc_portal_absence_days as $child_id => $child_data): ?>
+          <option value="<?php echo esc_attr($child_id); ?>"><?php echo esc_html($child_data['name']); ?></option>
+          <?php endforeach; ?>
+        </select>
+
+        <label class="psc-portal-field-label" for="psc-absence-date" style="margin-top:16px;">Jour</label>
+        <select id="psc-absence-date" name="date" class="psc-portal-field-underline" data-testid="absence-date-select"></select>
+
+        <div class="psc-portal-modal-actions">
+          <button type="button" class="psc-portal-btn-outline-ink" data-absence-close>Annuler</button>
+          <button type="submit" class="psc-portal-btn-gold" data-testid="absence-submit">Confirmer l'absence</button>
+        </div>
+      </form>
+      <script type="application/json" id="psc-absence-data"><?php echo wp_json_encode($psc_portal_absence_days, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+    <?php endif; ?>
   </div>
 </div>
 

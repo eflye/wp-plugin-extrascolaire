@@ -46,12 +46,48 @@ class Psc_Requests {
     }
 
     /**
+     * Zone d'attente pour les justificatifs d'assurance scolaire uploadés
+     * avec le wizard public : aucun child_id n'existe encore à ce stade
+     * (la demande doit d'abord être vérifiée par e-mail PUIS approuvée par
+     * la mairie). Les fichiers y restent jusqu'à ce que handle_approve()
+     * les rattache à un vrai enfant (Psc_Frontend::promote_pending_assurance())
+     * ou que la demande soit purgée sans jamais avoir été approuvée.
+     */
+    protected static function pending_assurance_dir($request_id) {
+        $upload_dir = wp_upload_dir();
+        return trailingslashit($upload_dir['basedir']) . 'periscolaire/assurances/pending/' . (int) $request_id;
+    }
+
+    protected static function delete_pending_assurance_files($request_id) {
+        $dir = self::pending_assurance_dir($request_id);
+        if (!is_dir($dir)) return;
+        foreach (glob(trailingslashit($dir) . '*') as $file) {
+            @unlink($file); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        }
+        @rmdir($dir); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+    }
+
+    /**
      * Supprime les demandes non vérifiées de plus de 7 jours et les
-     * demandes traitées de plus de 90 jours.
+     * demandes traitées de plus de 90 jours — et, avec elles, tout
+     * justificatif d'assurance resté en zone d'attente (jamais promu si la
+     * demande n'a jamais été approuvée).
      */
     public static function cleanup() {
         global $wpdb;
         $t = psc_table('requests');
+
+        $unverified_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM $t WHERE status = 'unverified' AND created_at < %s",
+            gmdate('Y-m-d H:i:s', time() - 7 * DAY_IN_SECONDS)
+        ));
+        $stale_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM $t WHERE status IN ('approved','rejected') AND decided_at < %s",
+            gmdate('Y-m-d H:i:s', time() - 90 * DAY_IN_SECONDS)
+        ));
+        foreach (array_merge($unverified_ids, $stale_ids) as $id) {
+            self::delete_pending_assurance_files($id);
+        }
 
         $wpdb->query($wpdb->prepare(
             "DELETE FROM $t WHERE status = 'unverified' AND created_at < %s",
@@ -107,16 +143,20 @@ class Psc_Requests {
         $out = array();
         foreach ($data as $c) {
             if (!is_array($c)) continue;
-            $nom    = isset($c['nom']) ? sanitize_text_field($c['nom']) : '';
-            $prenom = isset($c['prenom']) ? sanitize_text_field($c['prenom']) : '';
-            $classe = isset($c['classe']) ? sanitize_text_field($c['classe']) : '';
+            $nom       = isset($c['nom']) ? sanitize_text_field($c['nom']) : '';
+            $prenom    = isset($c['prenom']) ? sanitize_text_field($c['prenom']) : '';
+            $classe    = isset($c['classe']) ? sanitize_text_field($c['classe']) : '';
+            $naissance = isset($c['date_naissance']) ? psc_valid_date($c['date_naissance']) : false;
             if ($nom === '' || $prenom === '') continue;
             $out[] = array(
-                'nom'       => $nom,
-                'prenom'    => $prenom,
-                'classe'    => $classe,
-                'sans_porc' => !empty($c['sans_porc']) ? 1 : 0,
-                'vegan'     => !empty($c['vegan']) ? 1 : 0,
+                'nom'                          => $nom,
+                'prenom'                       => $prenom,
+                'classe'                       => $classe,
+                'date_naissance'               => $naissance ?: '',
+                'sans_porc'                    => !empty($c['sans_porc']) ? 1 : 0,
+                'vegan'                        => !empty($c['vegan']) ? 1 : 0,
+                'assurance_rel_path'           => isset($c['assurance_rel_path']) ? sanitize_text_field($c['assurance_rel_path']) : '',
+                'assurance_original_filename'  => isset($c['assurance_original_filename']) ? sanitize_text_field($c['assurance_original_filename']) : '',
             );
             if (count($out) >= self::MAX_CHILDREN) break;
         }
@@ -177,21 +217,39 @@ class Psc_Requests {
         $message   = isset($_POST['req_message'])
             ? sanitize_textarea_field(wp_unslash($_POST['req_message'])) : '';
 
-        // Enfants déclarés
+        // Enfants déclarés. Le justificatif d'assurance scolaire est
+        // obligatoire pour chaque enfant réellement nommé : contrairement à
+        // un prénom/nom vide (ligne inutilisée, simplement ignorée), un
+        // enfant explicitement nommé sans justificatif valide fait échouer
+        // TOUTE la soumission — le disparaître silencieusement de la
+        // demande serait trompeur pour le parent qui a rempli sa ligne.
         $children = array();
+        $assurance_uploads = array(); // index dans $children => $_FILES entry validé
         for ($i = 0; $i < self::MAX_CHILDREN; $i++) {
             $cn = psc_post('child_nom_' . $i);
             $cp = psc_post('child_prenom_' . $i);
             $cc = psc_post('child_classe_' . $i);
+            $cb = psc_valid_date(psc_post('child_naissance_' . $i));
             if ($cn === '' && $cp === '') continue;
             if ($cn === '' || $cp === '') continue;
+
+            $file = isset($_FILES['child_assurance_' . $i]) ? $_FILES['child_assurance_' . $i] : null;
+            $file_check = Psc_Frontend::validate_assurance_file($file);
+            if ($file_check !== true) {
+                $codes = array('too_large' => 'assurance_too_large', 'invalid_type' => 'assurance_invalid_type');
+                wp_safe_redirect(add_query_arg('psc_msg', isset($codes[$file_check]) ? $codes[$file_check] : 'assurance_required', $back));
+                exit;
+            }
+
             $children[] = array(
-                'nom'       => mb_substr($cn, 0, 190),
-                'prenom'    => mb_substr($cp, 0, 190),
-                'classe'    => mb_substr($cc, 0, 100),
-                'sans_porc' => isset($_POST['child_sans_porc_' . $i]) ? 1 : 0,
-                'vegan'     => isset($_POST['child_vegan_' . $i]) ? 1 : 0,
+                'nom'            => mb_substr($cn, 0, 190),
+                'prenom'         => mb_substr($cp, 0, 190),
+                'classe'         => mb_substr($cc, 0, 100),
+                'date_naissance' => $cb ?: '',
+                'sans_porc'      => isset($_POST['child_sans_porc_' . $i]) ? 1 : 0,
+                'vegan'          => isset($_POST['child_vegan_' . $i]) ? 1 : 0,
             );
+            $assurance_uploads[count($children) - 1] = $file;
         }
 
         if (empty($children)) {
@@ -276,6 +334,29 @@ class Psc_Requests {
             $wpdb->insert($t, $data);
             $request_id = (int) $wpdb->insert_id;
         }
+
+        // Les chemins des justificatifs dépendent de $request_id, connu
+        // seulement maintenant : on les déplace en zone d'attente puis on
+        // recomplète children_json. En cas de resoumission (branche
+        // $existing ci-dessus), on purge d'abord l'éventuelle zone
+        // d'attente précédente pour éviter des fichiers orphelins si le
+        // nombre d'enfants a changé entre les deux soumissions.
+        self::delete_pending_assurance_files($request_id);
+        $pending_dir = self::pending_assurance_dir($request_id);
+        wp_mkdir_p($pending_dir);
+        foreach ($assurance_uploads as $children_index => $file) {
+            $filetype = wp_check_filetype($file['name'], array(
+                'pdf'      => 'application/pdf',
+                'jpg|jpeg' => 'image/jpeg',
+                'png'      => 'image/png',
+            ));
+            $target = trailingslashit($pending_dir) . 'child-' . $children_index . '.' . $filetype['ext'];
+            if (move_uploaded_file($file['tmp_name'], $target)) {
+                $children[$children_index]['assurance_rel_path'] = 'periscolaire/assurances/pending/' . $request_id . '/child-' . $children_index . '.' . $filetype['ext'];
+                $children[$children_index]['assurance_original_filename'] = sanitize_file_name($file['name']);
+            }
+        }
+        $wpdb->update($t, array('children_json' => wp_json_encode($children)), array('id' => $request_id));
 
         // Prélèvement : le mandat SEPA est généré tout de suite (la RUM ne
         // dépend que de l'id de la demande, déjà connu) et joint à l'e-mail
@@ -367,22 +448,31 @@ class Psc_Requests {
         }
 
         // La mairie peut avoir corrigé les noms/classes avant validation.
+        // Le justificatif d'assurance, lui, n'est jamais éditable depuis ce
+        // formulaire : toujours re-dérivé de children_json par index
+        // d'origine, jamais d'un champ POST (évite qu'un chemin de fichier
+        // arbitraire puisse être soumis).
+        $req_children = self::children_of($req);
         $children = array();
         for ($i = 0; $i < self::MAX_CHILDREN; $i++) {
             $cn = psc_post('child_nom_' . $i);
             $cp = psc_post('child_prenom_' . $i);
             $cc = psc_post('child_classe_' . $i);
+            $cb = psc_valid_date(psc_post('child_naissance_' . $i));
             if ($cn === '' || $cp === '') continue;
             $children[] = array(
-                'nom'       => mb_substr($cn, 0, 190),
-                'prenom'    => mb_substr($cp, 0, 190),
-                'classe'    => mb_substr($cc, 0, 100),
-                'sans_porc' => isset($_POST['child_sans_porc_' . $i]) ? 1 : 0,
-                'vegan'     => isset($_POST['child_vegan_' . $i]) ? 1 : 0,
+                'nom'                          => mb_substr($cn, 0, 190),
+                'prenom'                       => mb_substr($cp, 0, 190),
+                'classe'                       => mb_substr($cc, 0, 100),
+                'date_naissance'               => $cb ?: '',
+                'sans_porc'                    => isset($_POST['child_sans_porc_' . $i]) ? 1 : 0,
+                'vegan'                        => isset($_POST['child_vegan_' . $i]) ? 1 : 0,
+                'assurance_rel_path'           => $req_children[$i]['assurance_rel_path'] ?? '',
+                'assurance_original_filename'  => $req_children[$i]['assurance_original_filename'] ?? '',
             );
         }
         if (empty($children)) {
-            $children = self::children_of($req);
+            $children = $req_children;
         }
         if (empty($children)) {
             Psc_Admin::redirect_public('psc_requests', 'need_child');
@@ -422,15 +512,31 @@ class Psc_Requests {
 
         foreach ($children as $c) {
             $wpdb->insert(psc_table('children'), array(
-                'parent_id'  => $parent_id,
-                'nom'        => $c['nom'],
-                'prenom'     => $c['prenom'],
-                'classe'     => $c['classe'],
-                'sans_porc'  => !empty($c['sans_porc']) ? 1 : 0,
-                'vegan'      => !empty($c['vegan']) ? 1 : 0,
-                'created_at' => current_time('mysql'),
-            ), array('%d', '%s', '%s', '%s', '%d', '%d', '%s'));
+                'parent_id'      => $parent_id,
+                'nom'            => $c['nom'],
+                'prenom'         => $c['prenom'],
+                'classe'         => $c['classe'],
+                'date_naissance' => !empty($c['date_naissance']) ? $c['date_naissance'] : null,
+                'classe_annee'   => psc_rentree_year(),
+                'sans_porc'      => !empty($c['sans_porc']) ? 1 : 0,
+                'vegan'          => !empty($c['vegan']) ? 1 : 0,
+                'created_at'     => current_time('mysql'),
+            ), array('%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s'));
+
+            // Rattache le justificatif déposé en zone d'attente au nouvel
+            // enfant. Pas de blocage dur si le fichier est introuvable
+            // (cas limite) : la mairie doit toujours pouvoir valider une
+            // demande, l'enfant reste rattrapable via « Mes enfants ».
+            if (!empty($c['assurance_rel_path'])) {
+                $child_id = (int) $wpdb->insert_id;
+                $abs = trailingslashit(wp_upload_dir()['basedir']) . $c['assurance_rel_path'];
+                if (file_exists($abs)) {
+                    Psc_Frontend::promote_pending_assurance($child_id, $abs, $c['assurance_original_filename'] ?? '');
+                }
+            }
         }
+
+        self::delete_pending_assurance_files($req->id);
 
         $wpdb->update(
             psc_table('requests'),
@@ -489,6 +595,7 @@ class Psc_Requests {
         global $wpdb;
         $id = psc_post_int('id');
         if ($id) {
+            self::delete_pending_assurance_files($id);
             $wpdb->delete(psc_table('requests'), array('id' => $id), array('%d'));
         }
         Psc_Admin::redirect_public('psc_requests', 'deleted');

@@ -87,7 +87,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 
       <h4>Enfant(s) déclaré(s) — corrigez si nécessaire</h4>
       <table class="widefat striped">
-        <thead><tr><th>Prénom</th><th>Nom</th><th>Classe</th><th>Régime cantine</th></tr></thead>
+        <thead><tr><th>Prénom</th><th>Nom</th><th>Classe</th><th>Naissance</th><th>Régime cantine</th><th>Assurance</th></tr></thead>
         <tbody>
         <?php for ($i = 0; $i < Psc_Requests::MAX_CHILDREN; $i++):
             $c = isset($req_children[$i]) ? $req_children[$i] : null;
@@ -100,9 +100,19 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
                        value="<?php echo $c ? esc_attr($c['nom']) : ''; ?>"></td>
             <td><input type="text" name="child_classe_<?php echo (int) $i; ?>" maxlength="100"
                        value="<?php echo $c ? esc_attr($c['classe']) : ''; ?>"></td>
+            <td><input type="date" name="child_naissance_<?php echo (int) $i; ?>"
+                       value="<?php echo ($c && !empty($c['date_naissance'])) ? esc_attr($c['date_naissance']) : ''; ?>"></td>
             <td class="psc-diet-options">
               <label><input type="checkbox" name="child_sans_porc_<?php echo (int) $i; ?>" value="1" <?php checked($c && !empty($c['sans_porc'])); ?>> Sans porc</label>
               <label><input type="checkbox" name="child_vegan_<?php echo (int) $i; ?>" value="1" <?php checked($c && !empty($c['vegan'])); ?>> Sans viande</label>
+            </td>
+            <td>
+              <?php if ($c && !empty($c['assurance_rel_path'])): ?>
+                <span style="color:#46b450">✔ Fournie</span> —
+                <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=psc_download_pending_assurance&request_id=' . $req->id . '&index=' . $i), 'psc_download_pending_assurance_' . $req->id . '_' . $i)); ?>" target="_blank" rel="noopener">Voir le fichier</a>
+              <?php elseif ($c): ?>
+                <span style="color:#b32d2e">—</span>
+              <?php endif; ?>
             </td>
           </tr>
         <?php endfor; ?>

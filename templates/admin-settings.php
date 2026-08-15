@@ -22,7 +22,7 @@
 </table>
 
 <h2>Délai de modification</h2>
-<p>Au-delà de ce délai avant le jour concerné, les familles ne peuvent plus modifier leur planning en ligne. La mairie, elle, reste toujours en mesure de corriger depuis ce backoffice.</p>
+<p>Au-delà de ce délai avant le jour concerné, les familles ne peuvent plus modifier leur planning en ligne, y compris via le bouton "Annulation / signalement d'absence" du tableau de bord. La mairie, elle, reste toujours en mesure de corriger depuis ce backoffice.</p>
 <table class="form-table">
 <tr>
 <th><label for="psc-lock">Préavis minimum</label></th>
@@ -189,6 +189,49 @@ $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
 </tr>
 </table>
 
+<?php
+$doc_ri_id = (int) get_option('psc_doc_reglement_interieur_id', 0);
+$doc_rp_id = (int) get_option('psc_doc_reglement_prelevement_id', 0);
+?>
+<h2>Documents</h2>
+<p>Mis à disposition des familles au format PDF dans leur espace connecté (onglet « Documents »), en complément du texte affiché lors de l'inscription.</p>
+<table class="form-table">
+<tr>
+<th>Règlement intérieur</th>
+<td>
+    <div id="psc-doc-ri-preview" style="margin-bottom:6px;">
+        <?php if ($doc_ri_id): $url = wp_get_attachment_url($doc_ri_id); ?>
+        <?php if ($url): ?><a href="<?php echo esc_url($url); ?>" target="_blank" rel="noopener"><?php echo esc_html(basename($url)); ?></a><?php endif; ?>
+        <?php endif; ?>
+    </div>
+    <input type="hidden" name="doc_reglement_interieur_id" id="psc-doc-ri-id" value="<?php echo esc_attr($doc_ri_id ?: ''); ?>">
+    <button type="button" class="button psc-media-select-doc" data-target="psc-doc-ri-id" data-preview="psc-doc-ri-preview">
+        <?php echo $doc_ri_id ? 'Changer' : 'Choisir un fichier PDF'; ?>
+    </button>
+    <?php if ($doc_ri_id): ?>
+    <button type="button" class="button psc-media-remove" data-target="psc-doc-ri-id" data-preview="psc-doc-ri-preview">Supprimer</button>
+    <?php endif; ?>
+</td>
+</tr>
+<tr>
+<th>Règlement prélèvement automatique</th>
+<td>
+    <div id="psc-doc-rp-preview" style="margin-bottom:6px;">
+        <?php if ($doc_rp_id): $url = wp_get_attachment_url($doc_rp_id); ?>
+        <?php if ($url): ?><a href="<?php echo esc_url($url); ?>" target="_blank" rel="noopener"><?php echo esc_html(basename($url)); ?></a><?php endif; ?>
+        <?php endif; ?>
+    </div>
+    <input type="hidden" name="doc_reglement_prelevement_id" id="psc-doc-rp-id" value="<?php echo esc_attr($doc_rp_id ?: ''); ?>">
+    <button type="button" class="button psc-media-select-doc" data-target="psc-doc-rp-id" data-preview="psc-doc-rp-preview">
+        <?php echo $doc_rp_id ? 'Changer' : 'Choisir un fichier PDF'; ?>
+    </button>
+    <?php if ($doc_rp_id): ?>
+    <button type="button" class="button psc-media-remove" data-target="psc-doc-rp-id" data-preview="psc-doc-rp-preview">Supprimer</button>
+    <?php endif; ?>
+</td>
+</tr>
+</table>
+
 <?php submit_button('Enregistrer'); ?>
 </form>
 </div>
@@ -205,6 +248,20 @@ $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
                 document.getElementById(targetId).value = att.id;
                 document.getElementById(previewId).innerHTML =
                     '<img src="' + att.url + '" style="max-height:60px;max-width:120px;">';
+            });
+            frame.open();
+        });
+    });
+    document.querySelectorAll('.psc-media-select-doc').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var targetId  = this.dataset.target;
+            var previewId = this.dataset.preview;
+            var frame = wp.media({ title: 'Choisir un document PDF', multiple: false, library: { type: 'application/pdf' } });
+            frame.on('select', function() {
+                var att = frame.state().get('selection').first().toJSON();
+                document.getElementById(targetId).value = att.id;
+                document.getElementById(previewId).innerHTML =
+                    '<a href="' + att.url + '" target="_blank" rel="noopener">' + att.filename + '</a>';
             });
             frame.open();
         });

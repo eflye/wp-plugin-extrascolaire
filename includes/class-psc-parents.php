@@ -18,10 +18,13 @@ class Psc_Parents {
 
     public static function init() {
         add_action('init', array(__CLASS__, 'maybe_consume_token'), 5);
+        add_action('init', array(__CLASS__, 'maybe_consume_email_change'), 5);
         add_action('admin_post_nopriv_psc_request_link', array(__CLASS__, 'handle_request_link'));
         add_action('admin_post_psc_request_link', array(__CLASS__, 'handle_request_link'));
         add_action('admin_post_nopriv_psc_logout', array(__CLASS__, 'handle_logout'));
         add_action('admin_post_psc_logout', array(__CLASS__, 'handle_logout'));
+        add_action('admin_post_nopriv_psc_cancel_email_change', array(__CLASS__, 'handle_cancel_email_change'));
+        add_action('admin_post_psc_cancel_email_change', array(__CLASS__, 'handle_cancel_email_change'));
     }
 
     /* ---------------- Accès aux données ---------------- */
@@ -161,6 +164,128 @@ class Psc_Parents {
         exit;
     }
 
+    /* ---------------- Changement d'adresse e-mail ---------------- */
+
+    /**
+     * L'e-mail sert d'identifiant de connexion (lien magique) : un
+     * changement ne doit jamais être appliqué immédiatement, au risque de
+     * verrouiller le compte sur une faute de frappe. La nouvelle adresse
+     * est stockée en attente ("pending_email") et un lien de confirmation
+     * lui est envoyé — l'ancienne adresse reste pleinement fonctionnelle
+     * tant qu'il n'a pas été cliqué.
+     */
+    public static function request_email_change($parent_id, $new_email) {
+        global $wpdb;
+        $new_email = strtolower(sanitize_email($new_email));
+        if (!is_email($new_email)) {
+            return new WP_Error('psc_bad_email', 'Adresse e-mail invalide.');
+        }
+        if (self::get_by_email($new_email)) {
+            return new WP_Error('psc_email_taken', 'Cette adresse est déjà utilisée par une autre famille.');
+        }
+
+        $token = bin2hex(random_bytes(32));
+        $wpdb->update(
+            psc_table('parents'),
+            array(
+                'pending_email'               => $new_email,
+                'pending_email_token_hash'    => psc_hash_token($token),
+                'pending_email_token_expires' => gmdate('Y-m-d H:i:s', time() + 3 * DAY_IN_SECONDS),
+            ),
+            array('id' => $parent_id),
+            array('%s', '%s', '%s'),
+            array('%d')
+        );
+
+        $parent = self::get_by_id($parent_id);
+        $url = add_query_arg(
+            array('psc_pid' => $parent_id, 'psc_email_token' => $token),
+            Psc_Mailer::form_page_url()
+        );
+
+        Psc_Mailer::send_email_change_confirmation($parent, $new_email, $url);
+        return true;
+    }
+
+    /**
+     * Si l'URL contient un jeton de changement d'e-mail valide, bascule
+     * l'adresse de connexion. Jeton et logique séparés de
+     * maybe_consume_token() (lien de connexion) : les deux ne doivent
+     * jamais interférer l'un avec l'autre.
+     */
+    public static function maybe_consume_email_change() {
+        if (empty($_GET['psc_email_token']) || empty($_GET['psc_pid'])) {
+            return;
+        }
+
+        global $wpdb;
+
+        $parent   = self::get_by_id(absint($_GET['psc_pid']));
+        $token    = sanitize_text_field(wp_unslash($_GET['psc_email_token']));
+        $redirect = remove_query_arg(array('psc_email_token', 'psc_pid'));
+
+        if (!$parent || empty($parent->pending_email_token_hash) || empty($parent->pending_email_token_expires)) {
+            wp_safe_redirect(add_query_arg('psc_msg', 'bad_email_token', $redirect));
+            exit;
+        }
+        if (strtotime($parent->pending_email_token_expires . ' UTC') < time()) {
+            wp_safe_redirect(add_query_arg('psc_msg', 'expired_email_token', $redirect));
+            exit;
+        }
+        if (!hash_equals($parent->pending_email_token_hash, psc_hash_token($token))) {
+            wp_safe_redirect(add_query_arg('psc_msg', 'bad_email_token', $redirect));
+            exit;
+        }
+
+        // Ré-vérifie l'unicité au moment de la bascule : une autre famille
+        // a pu prendre l'adresse entre la demande et le clic sur le lien.
+        if (self::get_by_email($parent->pending_email)) {
+            wp_safe_redirect(add_query_arg('psc_msg', 'email_taken', $redirect));
+            exit;
+        }
+
+        $wpdb->update(
+            psc_table('parents'),
+            array(
+                'email'                       => $parent->pending_email,
+                'pending_email'               => null,
+                'pending_email_token_hash'    => null,
+                'pending_email_token_expires' => null,
+            ),
+            array('id' => $parent->id),
+            array('%s', '%s', '%s', '%s'),
+            array('%d')
+        );
+
+        wp_safe_redirect(add_query_arg('psc_msg', 'email_changed', $redirect));
+        exit;
+    }
+
+    public static function handle_cancel_email_change() {
+        check_admin_referer('psc_cancel_email_change');
+
+        $parent = self::current();
+        if (!$parent) {
+            wp_safe_redirect(Psc_Mailer::form_page_url());
+            exit;
+        }
+
+        global $wpdb;
+        $wpdb->update(
+            psc_table('parents'),
+            array('pending_email' => null, 'pending_email_token_hash' => null, 'pending_email_token_expires' => null),
+            array('id' => $parent->id),
+            array('%s', '%s', '%s'),
+            array('%d')
+        );
+
+        wp_safe_redirect(add_query_arg(
+            'psc_msg', 'email_change_cancelled',
+            add_query_arg('psc_tab', 'profil', Psc_Mailer::form_page_url())
+        ));
+        exit;
+    }
+
     /* ---------------- Session ---------------- */
 
     protected static function open_session($parent_id) {
@@ -280,6 +405,9 @@ class Psc_Parents {
 
         $allowed = array(
             'nom'              => 190,
+            'prenom'           => 190,
+            'telephone_mobile' => 40,
+            'telephone_fixe'   => 40,
             'adresse'          => 255,
             'code_postal'      => 10,
             'ville'            => 100,

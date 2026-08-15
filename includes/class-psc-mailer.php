@@ -117,6 +117,30 @@ class Psc_Mailer {
         return self::send($parent->email, $subject, self::layout($body, $subject));
     }
 
+    /**
+     * Confirmation envoyée à la NOUVELLE adresse lors d'une demande de
+     * changement d'e-mail depuis "Mon profil" (cf. Psc_Parents::request_email_change) —
+     * l'ancienne adresse reste active tant que ce lien n'a pas été cliqué.
+     */
+    public static function send_email_change_confirmation($parent, $new_email, $url) {
+        $site    = self::site_name();
+        $subject = sprintf('[%s] Confirmez votre nouvelle adresse e-mail', $site);
+
+        $body = self::h2('Confirmez votre nouvelle adresse e-mail')
+            . self::p(sprintf(
+                'Vous avez demandé à utiliser %s comme nouvelle adresse de connexion à votre espace famille.',
+                $new_email
+            ))
+            . self::btn($url, 'Confirmer cette adresse')
+            . self::info_box(
+                '<strong>⏱ Ce lien est valable 3 jours.</strong><br>'
+                . 'Si vous n\'êtes pas à l\'origine de cette demande, ignorez ce message : votre adresse actuelle '
+                . 'reste inchangée et pleinement fonctionnelle.'
+            );
+
+        return self::send($new_email, $subject, self::layout($body, $subject));
+    }
+
     /* ------------------------------------------------------------------ */
     /* Récapitulatif planning                                               */
     /* ------------------------------------------------------------------ */
@@ -591,6 +615,37 @@ class Psc_Mailer {
             . self::btn(self::form_page_url(), 'Consulter mon planning');
 
         return self::send($fam['email'], $subject, self::layout($body, $subject));
+    }
+
+    /**
+     * Prévient la mairie qu'une famille a signalé une absence depuis son
+     * espace (bouton "Annulation / signalement d'absence" du tableau de
+     * bord) — $services : tableau des codes de prestation retirés (GM,
+     * CANT, GS, FORF).
+     */
+    public static function notify_absence_cancelled($parent, $child, $date, $services) {
+        $site     = self::site_name();
+        $date_lbl = psc_day_label($date) . ' ' . date_i18n('d/m/Y', strtotime($date));
+        $child_name = trim($child->prenom . ' ' . $child->nom);
+        $subject  = sprintf('[%s] Absence signalée : %s le %s', $site, $child_name, $date_lbl);
+
+        $svc_labels = psc_services();
+        $svc_list = implode(', ', array_map(
+            function ($s) use ($svc_labels) { return isset($svc_labels[$s]) ? $svc_labels[$s]['label'] : $s; },
+            $services
+        ));
+
+        $body = self::h2('Absence signalée par une famille')
+            . self::info_box(
+                '<strong>Famille :</strong> ' . esc_html($parent->nom ?: $parent->email) . ' (' . esc_html($parent->email) . ')<br>'
+                . '<strong>Enfant :</strong> ' . esc_html($child_name) . '<br>'
+                . '<strong>Jour :</strong> ' . esc_html($date_lbl) . '<br>'
+                . '<strong>Prestations annulées :</strong> ' . esc_html($svc_list)
+            )
+            . self::warning_box('Ces prestations ne seront <strong>pas facturées</strong>.')
+            . self::btn(admin_url('admin.php?page=psc_children'), 'Voir les enfants');
+
+        return self::send(psc_mairie_email(), $subject, self::layout($body, $subject));
     }
 
     /* ------------------------------------------------------------------ */

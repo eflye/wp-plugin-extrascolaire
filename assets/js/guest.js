@@ -182,6 +182,10 @@
                 '<input id="psc-cn-' + idx + '" class="psc-portal-field-underline" type="text" name="child_nom_' + idx + '" placeholder="Nom" maxlength="190"></div>' +
                 '<div><label class="psc-portal-field-label screen-reader-text" for="psc-cc-' + idx + '">Classe de l’enfant ' + n + '</label>' +
                 '<select id="psc-cc-' + idx + '" class="psc-portal-field-underline" name="child_classe_' + idx + '">' + classeOptionsHTML + '</select></div>' +
+                '<div><label class="psc-portal-field-label screen-reader-text" for="psc-cb-' + idx + '">Date de naissance de l’enfant ' + n + '</label>' +
+                '<input id="psc-cb-' + idx + '" class="psc-portal-field-underline" type="date" name="child_naissance_' + idx + '"></div>' +
+                '<div><label class="psc-portal-field-label" for="psc-ca-' + idx + '">Justificatif d’assurance scolaire</label>' +
+                '<input id="psc-ca-' + idx + '" type="file" name="child_assurance_' + idx + '" accept=".pdf,.jpg,.jpeg,.png" required></div>' +
                 '<label class="psc-wizard-diet-check"><input type="checkbox" name="child_sans_porc_' + idx + '" value="1"> Sans porc</label>' +
                 '<label class="psc-wizard-diet-check"><input type="checkbox" name="child_vegan_' + idx + '" value="1"> Sans viande</label>' +
                 '<button type="button" class="psc-wizard-remove-btn" aria-label="Supprimer cet enfant">Retirer</button>';

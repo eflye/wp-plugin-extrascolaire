@@ -30,15 +30,34 @@
   <main class="psc-portal-main">
     <?php
     $psc_notices = array(
-        'welcome'       => array('ok',  'Vous êtes connecté.'),
-        'child_updated' => array('ok',  'Informations de l\'enfant mises à jour.'),
-        'child_added'   => array('ok',  'Enfant ajouté à votre compte.'),
-        'child_invalid' => array('err', 'Merci de renseigner le prénom et le nom.'),
-        'child_limit'   => array('err', 'Nombre maximum d\'enfants atteint.'),
+        'welcome'           => array('ok',  'Vous êtes connecté.'),
+        'child_updated'     => array('ok',  'Informations de l\'enfant mises à jour.'),
+        'child_added'       => array('ok',  'Enfant ajouté à votre compte.'),
+        'child_invalid'     => array('err', 'Merci de renseigner le prénom et le nom.'),
+        'child_limit'       => array('err', 'Nombre maximum d\'enfants atteint.'),
+        'absence_cancelled' => array('ok',  'Absence signalée : la mairie a été prévenue, ces prestations ne seront pas facturées.'),
+        'absence_locked'    => array('err', 'Ce jour n\'est plus modifiable en ligne (délai dépassé). Contactez la mairie.'),
+        'absence_invalid'   => array('err', 'Impossible de signaler cette absence (jour déjà annulé ou invalide). Rechargez la page.'),
+
+        'assurance_uploaded'      => array('ok',  'Justificatif d\'assurance scolaire enregistré.'),
+        'assurance_invalid'       => array('err', 'Enfant introuvable. Rechargez la page.'),
+        'assurance_upload_failed' => array('err', 'L\'envoi du fichier a échoué. Merci de réessayer.'),
+        'assurance_too_large'     => array('err', 'Le fichier dépasse la taille maximale autorisée (5 Mo).'),
+        'assurance_invalid_type'  => array('err', 'Format de fichier non accepté (PDF, JPG ou PNG uniquement).'),
+        'assurance_required'      => array('err', 'Le justificatif d\'assurance scolaire est obligatoire pour ajouter un enfant.'),
+
+        'profil_updated'               => array('ok',  'Vos informations ont été mises à jour.'),
+        'profil_updated_email_pending' => array('ok',  'Informations mises à jour. Un e-mail de confirmation a été envoyé à votre nouvelle adresse : cliquez sur le lien qu\'il contient pour l\'activer.'),
+        'profil_error'                 => array('err', 'Certaines informations n\'ont pas pu être enregistrées. Vérifiez votre saisie.'),
+        'email_taken'                  => array('err', 'Cette adresse e-mail est déjà utilisée par une autre famille.'),
+        'email_changed'                => array('ok',  'Votre nouvelle adresse e-mail est confirmée : utilisez-la désormais pour vous connecter.'),
+        'email_change_cancelled'       => array('ok',  'Changement d\'adresse e-mail annulé.'),
+        'bad_email_token'              => array('err', 'Ce lien de confirmation n\'est pas valide.'),
+        'expired_email_token'          => array('err', 'Ce lien de confirmation a expiré. Refaites une demande depuis votre profil.'),
     );
     // Confirmations : popin auto-masquée (cf. assets/js/frontend.js).
     // Erreurs à corriger : bandeau classique, le temps de lire et d'agir.
-    $psc_toast_messages = array('welcome', 'child_updated', 'child_added');
+    $psc_toast_messages = array('welcome', 'child_updated', 'child_added', 'absence_cancelled', 'profil_updated', 'assurance_uploaded');
     if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
         list($type, $text) = $psc_notices[$psc_msg];
         $is_toast = in_array($psc_msg, $psc_toast_messages, true);
@@ -71,6 +90,14 @@
 
     <section class="psc-portal-section<?php echo $active_tab === 'factures' ? ' is-active' : ''; ?>" data-portal-section="factures" data-testid="portal-section-factures">
       <?php include PSC_PATH . 'templates/portal-factures.php'; ?>
+    </section>
+
+    <section class="psc-portal-section<?php echo $active_tab === 'profil' ? ' is-active' : ''; ?>" data-portal-section="profil" data-testid="portal-section-profil">
+      <?php include PSC_PATH . 'templates/portal-profil.php'; ?>
+    </section>
+
+    <section class="psc-portal-section<?php echo $active_tab === 'documents' ? ' is-active' : ''; ?>" data-portal-section="documents" data-testid="portal-section-documents">
+      <?php include PSC_PATH . 'templates/portal-documents.php'; ?>
     </section>
   </main>
 </div>
