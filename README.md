@@ -208,6 +208,8 @@ Facturation **mensuelle**. Sélection d'un mois ayant des inscriptions, généra
 
 Personnalisation du sujet et du corps de chaque e-mail transactionnel (lien de connexion, récapitulatif, facture, menu, demandes...), avec variables (`{{site}}`, `{{nom}}`, `{{trimestre}}`...) et réinitialisation possible au texte par défaut.
 
+Les treize types d'e-mails envoyés par le plugin (lien de connexion, compte activé, changement d'adresse, récapitulatif de planning + notification mairie, correction admin, menu hebdomadaire, commande fournisseur, jour fermé, cantine annulée, absence signalée, demande d'inscription + notification + rejet, facture) partagent tous le même gabarit HTML (`templates/email/layout.php`) et les mêmes blocs réutilisables (bouton, encadré, tableau — `Psc_Mailer`) : bandeau vert forêt `#2D4A3E` avec « Mairie de Montgeroult » en doré, titre en police serif, corps en sans-serif, bouton doré, encadrés beiges à coins droits, pied de page gris — cohérent avec l'identité visuelle du site. Mise en page 100 % tables HTML et styles en ligne (aucune feuille de style externe, aucune police web chargée), pour un rendu fiable sur les clients de messagerie qui ignorent `<style>` ou les polices personnalisées (Outlook desktop en tête) — Fraunces/Work Sans y basculent automatiquement sur leurs équivalents serif/sans-serif standards.
+
 ### Réglages
 
 - **Tarifs** par prestation (Garderie Matin, Cantine, Garderie Soir, Forfait journée).
