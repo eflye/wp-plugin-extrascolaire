@@ -13,6 +13,7 @@
         'logged_out'    => array('ok', 'Vous êtes déconnecté.'),
         'request_sent'  => array('ok', 'Votre demande a bien été prise en compte. Un e-mail de confirmation vient de vous être envoyé : cliquez sur le lien qu\'il contient pour la transmettre à la mairie.'),
         'verified'      => array('ok', 'Merci, votre adresse est confirmée. Votre demande a été transmise à la mairie, qui vous répondra par e-mail.'),
+        'verified_auto' => array('ok', 'Merci, votre adresse est confirmée. Votre espace famille est prêt : vous allez recevoir votre lien d\'accès par e-mail.'),
         'bad_verify'    => array('err', 'Ce lien de confirmation n\'est pas valide.'),
         'expired_verify'=> array('err', 'Ce lien de confirmation a expiré. Vous pouvez déposer une nouvelle demande.'),
         'coordonnees_incomplete'  => array('err', 'Merci de renseigner tous les champs (prénom, nom, téléphone, adresse, code postal, ville).'),

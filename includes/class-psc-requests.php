@@ -503,6 +503,24 @@ class Psc_Requests {
             array('%d')
         );
 
+        // Validation automatique (Réglages) : la famille accède directement
+        // à son espace, sans relecture par la mairie — mêmes écritures que
+        // handle_approve(), déclenchées ici au lieu d'un clic mairie. Un
+        // échec (aucun enfant valide, essentiellement) retombe simplement
+        // sur le parcours normal : la demande reste "pending" pour la
+        // mairie, rien n'est perdu.
+        if (psc_auto_approve_requests_enabled()) {
+            $req = self::get($req->id);
+            $children = self::children_of($req);
+            if (!empty($children)) {
+                $result = self::approve_request($req, $children);
+                if (!is_wp_error($result)) {
+                    wp_safe_redirect(add_query_arg('psc_msg', 'verified_auto', $redirect));
+                    exit;
+                }
+            }
+        }
+
         Psc_Mailer::notify_mairie_new_request($req, self::children_of($req));
 
         wp_safe_redirect(add_query_arg('psc_msg', 'verified', $redirect));
@@ -517,7 +535,6 @@ class Psc_Requests {
         }
         check_admin_referer('psc_approve_request');
 
-        global $wpdb;
         $req = self::get(psc_post_int('id'));
         if (!$req || $req->status !== 'pending') {
             Psc_Admin::redirect_public('psc_requests', 'invalid');
@@ -558,6 +575,30 @@ class Psc_Requests {
             Psc_Admin::redirect_public('psc_requests', 'need_child');
         }
 
+        $result = self::approve_request($req, $children);
+        if (is_wp_error($result)) {
+            Psc_Admin::redirect_public('psc_requests', 'invalid');
+        }
+
+        Psc_Admin::redirect_public('psc_requests', 'approved');
+    }
+
+    /**
+     * Cœur de l'approbation d'une demande : crée ou retrouve la famille,
+     * crée les enfants, les inscrit dans l'année active, matérialise les
+     * personnes autorisées déclarées, rattache le justificatif d'assurance
+     * en attente, clôt la demande, envoie le lien d'accès. Partagé par
+     * handle_approve() (validation manuelle par la mairie) et
+     * maybe_verify() (validation automatique, cf. Réglages > Demandes
+     * d'inscription) — aucun des deux appelants ne doit dupliquer cette
+     * logique. $children est déjà résolu par l'appelant (édité par la
+     * mairie ou tel quel depuis children_of($req)) : cette méthode ne lit
+     * jamais $_POST elle-même. Renvoie l'id du parent créé/retrouvé, ou
+     * WP_Error.
+     */
+    protected static function approve_request($req, $children) {
+        global $wpdb;
+
         // Règlement, mode de paiement et mandat SEPA déclarés dans la
         // demande : reportés tels quels sur le compte famille créé.
         $parent_extra = array(
@@ -586,7 +627,7 @@ class Psc_Requests {
         } else {
             $parent_id = Psc_Parents::create($req->email, $req->nom, array_merge($parent_extra, array('prenom' => $req->prenom ?? '')));
             if (is_wp_error($parent_id)) {
-                Psc_Admin::redirect_public('psc_requests', 'invalid');
+                return $parent_id;
             }
         }
 
@@ -611,8 +652,9 @@ class Psc_Requests {
 
             // Personnes autorisées déclarées à l'onboarding : l'auteur réel
             // de l'information est la famille (source='parent'), même si
-            // c'est le clic "Valider" de la mairie qui déclenche l'écriture
-            // — aucune session parent n'existe à ce moment-là.
+            // c'est ce code (déclenché par un clic mairie ou par la
+            // validation automatique) qui effectue l'écriture — aucune
+            // session parent n'existe à ce moment-là.
             if (!empty($c['personnes_autorisees']) && is_array($c['personnes_autorisees'])) {
                 foreach ($c['personnes_autorisees'] as $p) {
                     Psc_Pickup_Persons::add($child_id, $p, 'parent', $parent_id);
@@ -621,8 +663,8 @@ class Psc_Requests {
 
             // Rattache le justificatif déposé en zone d'attente au nouvel
             // enfant. Pas de blocage dur si le fichier est introuvable
-            // (cas limite) : la mairie doit toujours pouvoir valider une
-            // demande, l'enfant reste rattrapable via « Mes enfants ».
+            // (cas limite) : la demande doit toujours pouvoir être
+            // approuvée, l'enfant reste rattrapable via « Mes enfants ».
             if (!empty($c['assurance_rel_path'])) {
                 $abs = trailingslashit(wp_upload_dir()['basedir']) . $c['assurance_rel_path'];
                 if (file_exists($abs)) {
@@ -641,10 +683,10 @@ class Psc_Requests {
             array('%d')
         );
 
-        // Le parent reçoit directement son lien d'accès (contexte approbation).
+        // Le parent reçoit directement son lien d'accès.
         Psc_Parents::send_login_link($req->email, 'approved');
 
-        Psc_Admin::redirect_public('psc_requests', 'approved');
+        return $parent_id;
     }
 
     public static function handle_reject() {

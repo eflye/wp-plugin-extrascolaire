@@ -128,6 +128,8 @@ Vue de correction : sélection d'une famille et d'une période, grille identique
 
 File de modération des nouvelles familles (voir [Première inscription](#1-première-inscription)). Pour chaque demande en attente : coordonnées déclarées (prénom, nom, etc.), statut d'acceptation du règlement intérieur, mode de paiement choisi et — si prélèvement — titulaire, adresse, **IBAN partiellement masqué** (`FR14 •••• •••• 2606`), BIC et statut d'acceptation du règlement de prélèvement. Les nom/prénom/classe des enfants sont modifiables avant validation (informations déclaratives, à vérifier). Refus possible avec motif optionnel, notifiable ou non au demandeur.
 
+**Validation automatique** (Réglages > Demandes d'inscription, désactivée par défaut) : si activée, une famille accède directement à son espace dès qu'elle confirme son adresse e-mail — la demande n'apparaît alors jamais dans cette file, aucune information saisie n'est relue par la mairie avant l'ouverture de l'accès (justificatif d'assurance compris). En cas d'échec (aucun enfant valide déclaré), la demande retombe automatiquement dans le circuit normal de modération.
+
 ### Années scolaires
 
 Une année scolaire chapeaute les trimestres et porte, pour chaque enfant, sa classe et son statut d'inscription **de cette année-là** (table `wp_psc_child_school_years`) : la classe n'est plus une valeur unique sur la fiche enfant, elle s'historise année par année. Une seule année peut être **active** à la fois (même principe que les trimestres) ; une année **en préparation** existe le temps de monter le passage d'année ou une campagne de réinscription ; une année **archivée** reste consultable en lecture seule, jamais supprimée.
@@ -189,6 +191,7 @@ Personnalisation du sujet et du corps de chaque e-mail transactionnel (lien de c
 - **Informations de facturation** : intitulé, adresse, téléphone, fax, e-mail, commune, logos gauche/droit (utilisés dans le PDF de facture), texte de pied de page, **identifiant créancier SEPA (ICS)** affiché aux familles sur le mandat de prélèvement.
 - **Table de correspondance des classes** : un sélecteur par classe vers sa classe suivante (ou « Sortie »), utilisée par le [passage d'année](#années-scolaires) — non figée sur PS→MS→...→CM2, adaptable à une école à classes multi-niveaux.
 - **Fenêtre de réinscription** : dates d'ouverture/fermeture de la campagne annuelle, qui contrôlent la visibilité de l'onglet « Réinscription » côté famille.
+- **Validation automatique des demandes d'inscription** (désactivée par défaut) : voir [Demandes d'inscription](#demandes-dinscription).
 
 ---
 

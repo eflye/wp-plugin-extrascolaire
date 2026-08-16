@@ -563,6 +563,7 @@ class Psc_Admin {
         update_option('psc_lock_hours', max(0, min(720, $hours)));
 
         update_option('psc_notify_mairie', isset($_POST['notify_mairie']) ? 1 : 0);
+        update_option('psc_auto_approve_requests', isset($_POST['auto_approve_requests']) ? 1 : 0);
 
         $mairie_mail = isset($_POST['mairie_email']) ? sanitize_email(wp_unslash($_POST['mairie_email'])) : '';
         update_option('psc_mairie_email', is_email($mairie_mail) ? $mairie_mail : '');

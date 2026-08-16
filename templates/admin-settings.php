@@ -56,6 +56,26 @@
 </tr>
 </table>
 
+<h2>Demandes d'inscription</h2>
+<table class="form-table">
+<tr>
+<th>Validation automatique</th>
+<td>
+  <label>
+    <input type="checkbox" name="auto_approve_requests" value="1" <?php checked(psc_auto_approve_requests_enabled()); ?>>
+    Donner accès à l'espace famille dès la confirmation d'adresse e-mail, sans relecture par la mairie
+  </label>
+  <p class="description">
+    Désactivé par défaut : chaque demande reste soumise à la modération de la mairie
+    (Périscolaire &gt; Demandes) avant de créer la famille et ses enfants. Si activé, la
+    famille est créée et reçoit son lien d'accès dès qu'elle confirme son adresse — les
+    informations qu'elle a saisies (dont le justificatif d'assurance) ne sont alors jamais
+    relues avant l'ouverture de l'accès.
+  </p>
+</td>
+</tr>
+</table>
+
 <h2>Fournisseur de repas</h2>
 <table class="form-table">
 <tr>

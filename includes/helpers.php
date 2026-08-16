@@ -508,6 +508,16 @@ function psc_notify_mairie_enabled() {
     return (bool) get_option('psc_notify_mairie', 0);
 }
 
+/**
+ * Auto-validation des demandes d'inscription : dès que la famille
+ * confirme son adresse e-mail, elle accède directement à son espace,
+ * sans relecture de la mairie. Désactivé par défaut — la modération
+ * manuelle (Périscolaire > Demandes) reste le comportement standard.
+ */
+function psc_auto_approve_requests_enabled() {
+    return (bool) apply_filters('psc_auto_approve_requests', get_option('psc_auto_approve_requests', 0));
+}
+
 function psc_mairie_email() {
     $mail = get_option('psc_mairie_email', '');
     if (!$mail || !is_email($mail)) {
