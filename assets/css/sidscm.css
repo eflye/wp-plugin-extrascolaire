@@ -78,16 +78,21 @@ body.psc-sidscm-active main.site-main .entry-content {
 
 /* Masthead identique à celui de la page famille (guest) : voir
    page-espace-familles.php / .familles-* dans le thème du site — repris
-   ici à l'identique (sceau, typographie, filet) puisque cet écran plein
-   page masque le chrome du thème et n'a donc pas accès à ce masthead. */
+   ici à l'identique (typographie, filet, largeur/marges du conteneur —
+   alignées sur .site-header-inner/.site-main du thème pour que les deux
+   pages s'alignent verticalement) puisque cet écran plein page masque le
+   chrome du thème et n'a donc pas accès à ce masthead. Pas de sceau ni
+   de titre "Montgeroult" ici : ils sont déjà affichés par l'en-tête du
+   thème au-dessus (non masqué par cet écran), les dupliquer ferait
+   doublon. */
 .psc-sidscm-lock-screen {
     min-height: 100vh;
     background: var(--psc-cream);
-    padding: 40px 28px 60px;
+    padding: 48px 32px 80px;
     box-sizing: border-box;
 }
 .psc-sidscm-lock-inner {
-    max-width: 920px;
+    max-width: 1120px;
     margin: 0 auto;
 }
 .psc-sidscm-lock-masthead {
@@ -98,25 +103,12 @@ body.psc-sidscm-active main.site-main .entry-content {
     flex-wrap: wrap;
     margin-bottom: 14px;
 }
-.psc-sidscm-lock-brand {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-}
 .psc-sidscm-lock-brand-eyebrow {
     font-size: 11px;
     letter-spacing: 0.28em;
     text-transform: uppercase;
     color: var(--psc-moss);
     font-weight: 600;
-}
-.psc-sidscm-lock-brand-title {
-    font-family: 'Fraunces', serif;
-    font-weight: 700;
-    font-size: 22px;
-    color: var(--psc-forest);
-    line-height: 1;
-    margin-top: 2px;
 }
 .psc-sidscm-lock-nav {
     display: flex;
@@ -387,4 +379,5 @@ body.psc-sidscm-active main.site-main .entry-content {
     .psc-sidscm-days,
     .psc-sidscm-services { padding-left: 16px; padding-right: 16px; }
     .psc-sidscm-content { padding-left: 16px; padding-right: 16px; }
+    .psc-sidscm-lock-screen { padding-left: 20px; padding-right: 20px; }
 }

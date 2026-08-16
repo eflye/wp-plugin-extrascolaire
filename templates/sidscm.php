@@ -5,17 +5,7 @@
     <div class="psc-sidscm-lock-inner">
 
       <div class="psc-sidscm-lock-masthead">
-        <div class="psc-sidscm-lock-brand">
-          <svg width="30" height="34" viewBox="0 0 40 46" fill="none" aria-hidden="true">
-            <path d="M20 2 L36 8 L36 24 C36 34 28 40 20 44 C12 40 4 34 4 24 L4 8 Z" fill="#E2A72B" stroke="#1A1A1A" stroke-width="1"/>
-            <ellipse cx="15" cy="19" rx="5.5" ry="3.2" fill="#1A1A1A"/>
-            <ellipse cx="25" cy="26" rx="5.5" ry="3.2" fill="#1A1A1A"/>
-          </svg>
-          <div>
-            <div class="psc-sidscm-lock-brand-eyebrow">Service périscolaire</div>
-            <div class="psc-sidscm-lock-brand-title">Montgeroult</div>
-          </div>
-        </div>
+        <div class="psc-sidscm-lock-brand-eyebrow">Service périscolaire</div>
         <div class="psc-sidscm-lock-nav">
           <a href="<?php echo esc_url(Psc_Mailer::form_page_url()); ?>" class="psc-sidscm-lock-nav-link" data-testid="sidscm-nav-familles">Espace familles</a>
           <div class="psc-sidscm-lock-nav-active" data-testid="sidscm-nav-intervenants">Espace intervenants</div>
