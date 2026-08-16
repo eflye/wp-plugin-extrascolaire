@@ -372,6 +372,19 @@ Démarre :
 - WordPress sur **http://localhost:8080**
 - [Mailpit](https://mailpit.axllent.org/) (capture des e-mails), si démarré avec le profil dédié — voir ci-dessous
 
+### Thème du site (`theme/Archive`)
+
+Le thème WordPress du site (nom affiché « Montgeroult Familles », dossier `Archive` — conserver ce
+nom de dossier : WordPress l'utilise comme identifiant du thème actif en base, le renommer
+désactiverait le thème) est monté depuis `theme/Archive/` dans les deux `docker-compose*.yml`,
+exactement comme `mu-plugins/`. Il porte la page famille (`page-espace-familles.php` — masthead
+« Espace familles » / « Espace intervenants », voir [Listes intervenantes SIDSCM](#listes-intervenantes-sidscm))
+et l'en-tête général du site.
+
+Pour qu'une page WordPress affiche ce masthead, sélectionner le modèle **« Espace Familles »**
+dans ses Attributs de page (Modèle) — réglage propre à chaque installation (dev/prod), non
+versionné : à refaire manuellement sur chaque environnement où la page famille est créée.
+
 ### Installation automatique de WordPress
 
 ```bash

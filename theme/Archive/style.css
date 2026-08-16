@@ -1,0 +1,104 @@
+/*
+Theme Name: Montgeroult Familles
+Theme URI: https://montgeroult.fr
+Author: Mairie de Montgeroult
+Author URI: https://montgeroult.fr
+Description: Thème institutionnel du site de la commune de Montgeroult, avec un habillage dédié au portail familles (inscriptions périscolaires, cantine, garderie). Restyle automatiquement le plugin "Périscolaire - Inscriptions" (classes .psc-*) avec la même charte : forêt / or, Fraunces + Work Sans. Compatible WordPress 5.8+.
+Version: 1.0.0
+Requires PHP: 7.4
+License: GNU General Public License v2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: montgeroult
+*/
+
+:root{
+  --forest:#2D4A3E;
+  --moss:#4A6B52;
+  --gold:#E2A72B;
+  --ink:#1A1A1A;
+  --cream:#FBF7EC;
+  --paper:#F4EDD8;
+  --stone:#8A837A;
+  --rule:rgba(45,74,62,0.22);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: 'Work Sans', -apple-system, sans-serif;
+  line-height: 1.6;
+  font-size: 16px;
+}
+h1, h2, h3, h4 {
+  font-family: 'Fraunces', Georgia, serif;
+  color: var(--forest);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.5em;
+}
+p { margin: 0 0 1em; }
+a { color: var(--forest); text-decoration: underline; text-underline-offset: 2px; }
+a:hover { color: var(--gold); }
+img { max-width: 100%; height: auto; }
+button, input, select, textarea { font-family: 'Work Sans', sans-serif; }
+
+.screen-reader-text {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px); white-space: nowrap;
+}
+
+/* ---- Header ---- */
+.site-header { background: var(--forest); }
+.site-header-inner {
+  max-width: 1120px; margin: 0 auto; padding: 18px 32px;
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+}
+.site-branding { display: flex; align-items: center; gap: 14px; }
+.site-tagline {
+  font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase;
+  color: var(--gold); font-weight: 600; margin-bottom: 2px;
+}
+.site-title {
+  font-family: 'Fraunces', serif; font-weight: 700; font-size: 20px;
+  color: var(--cream); text-decoration: none; line-height: 1;
+}
+.site-title:hover { color: var(--gold); }
+.primary-nav ul { list-style: none; display: flex; gap: 28px; margin: 0; padding: 0; flex-wrap: wrap; }
+.primary-nav a {
+  color: rgba(251,247,236,0.85); text-decoration: none;
+  font-size: 13px; letter-spacing: 0.03em; font-weight: 500;
+}
+.primary-nav a:hover { color: var(--gold); }
+
+/* ---- Main ---- */
+.site-main { max-width: 1120px; margin: 0 auto; padding: 48px 32px 80px; }
+.page-title { font-size: 32px; margin-bottom: 0.6em; }
+.entry-content { font-size: 15px; }
+
+/* ---- Espace Familles masthead (page-espace-familles.php) ---- */
+.familles-masthead { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 18px; flex-wrap: wrap; }
+.familles-brand { font-size: 10px; letter-spacing: 0.26em; text-transform: uppercase; color: var(--moss); font-weight: 600; }
+.familles-nav { display: flex; flex-direction: column; align-items: flex-end; }
+.familles-nav a + a { margin-top: 4px; }
+.familles-eyebrow { font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--moss); font-weight: 600; text-decoration: none; }
+.familles-eyebrow:hover { text-decoration: underline; }
+.familles-hairline { display: flex; align-items: center; gap: 12px; margin: 0 0 36px; }
+.familles-hairline .line { flex: 1; height: 1px; background: var(--rule); }
+.familles-hairline .dot { width: 6px; height: 6px; background: var(--gold); transform: rotate(45deg); flex: none; }
+
+/* ---- Footer ---- */
+.site-footer { background: var(--forest); color: rgba(251,247,236,0.7); margin-top: 64px; }
+.site-footer-inner {
+  max-width: 1120px; margin: 0 auto; padding: 28px 32px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 12px; letter-spacing: 0.04em; flex-wrap: wrap; gap: 8px;
+}
+.site-footer a { color: var(--gold); text-decoration: none; }
+.site-footer a:hover { text-decoration: underline; }
+
+@media (max-width: 640px) {
+  .site-header-inner, .site-main, .site-footer-inner { padding-left: 20px; padding-right: 20px; }
+  .primary-nav ul { gap: 16px; }
+}

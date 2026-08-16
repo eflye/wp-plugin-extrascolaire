@@ -34,6 +34,7 @@ services:
     volumes:
       - .:/var/www/html/wp-content/plugins/periscolaire-registration
       - ./mu-plugins:/var/www/html/wp-content/mu-plugins
+      - ./theme/Archive:/var/www/html/wp-content/themes/Archive
       - wp_data:/var/www/html
 
 volumes:
