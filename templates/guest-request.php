@@ -75,6 +75,12 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
     <div class="psc-wizard-step" data-wizard-step="1" data-testid="wizard-step-1">
       <p class="psc-wizard-help">Renseignez au moins un enfant (nom, prénom). Vous pouvez préciser un régime alimentaire particulier.</p>
 
+      <datalist id="psc-pickup-lien-suggestions">
+        <?php foreach (psc_pickup_lien_suggestions() as $psc_lien): ?>
+        <option value="<?php echo esc_attr($psc_lien); ?>">
+        <?php endforeach; ?>
+      </datalist>
+
       <div id="psc-children-list">
         <div class="psc-wizard-child-row" data-index="0">
           <div>
@@ -103,6 +109,13 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
           </div>
           <label class="psc-wizard-diet-check"><input type="checkbox" name="child_sans_porc_0" value="1"> Sans porc</label>
           <label class="psc-wizard-diet-check"><input type="checkbox" name="child_vegan_0" value="1"> Sans viande</label>
+
+          <div class="psc-wizard-pickup-block">
+            <p class="psc-wizard-pickup-title">Personnes autorisées à récupérer cet enfant (facultatif)</p>
+            <div class="psc-wizard-pickup-list" data-pickup-list></div>
+            <button type="button" class="psc-wizard-add-pickup-btn" data-testid="add-pickup-person-0">+ Ajouter une personne autorisée</button>
+          </div>
+
           <button type="button" class="psc-wizard-remove-btn" aria-label="Supprimer cet enfant" hidden>Retirer</button>
         </div>
       </div>

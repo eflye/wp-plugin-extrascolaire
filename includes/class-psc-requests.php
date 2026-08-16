@@ -157,8 +157,40 @@ class Psc_Requests {
                 'vegan'                        => !empty($c['vegan']) ? 1 : 0,
                 'assurance_rel_path'           => isset($c['assurance_rel_path']) ? sanitize_text_field($c['assurance_rel_path']) : '',
                 'assurance_original_filename'  => isset($c['assurance_original_filename']) ? sanitize_text_field($c['assurance_original_filename']) : '',
+                'personnes_autorisees'         => self::pickup_persons_of($c),
             );
             if (count($out) >= self::MAX_CHILDREN) break;
+        }
+        return $out;
+    }
+
+    /**
+     * Décode et revalide le sous-tableau personnes_autorisees d'un enfant
+     * (issu de children_json, donc d'une saisie publique) — même
+     * principe que children_of() : jamais fait confiance au contenu
+     * stocké. Une ligne sans nom/prénom/téléphone est silencieusement
+     * ignorée (la liste est facultative), contrairement à un enfant
+     * incomplet qui fait échouer toute la soumission (cf. handle_submit()).
+     */
+    protected static function pickup_persons_of($child) {
+        if (empty($child['personnes_autorisees']) || !is_array($child['personnes_autorisees'])) {
+            return array();
+        }
+        $out = array();
+        foreach ($child['personnes_autorisees'] as $p) {
+            if (!is_array($p)) continue;
+            $nom       = isset($p['nom']) ? sanitize_text_field($p['nom']) : '';
+            $prenom    = isset($p['prenom']) ? sanitize_text_field($p['prenom']) : '';
+            $telephone = isset($p['telephone']) ? sanitize_text_field($p['telephone']) : '';
+            if ($nom === '' || $prenom === '' || $telephone === '') continue;
+            $out[] = array(
+                'nom'            => $nom,
+                'prenom'         => $prenom,
+                'telephone'      => $telephone,
+                'lien'           => isset($p['lien']) ? sanitize_text_field($p['lien']) : '',
+                'piece_identite' => !empty($p['piece_identite']) ? 1 : 0,
+            );
+            if (count($out) >= psc_max_pickup_persons_per_child()) break;
         }
         return $out;
     }
@@ -256,13 +288,41 @@ class Psc_Requests {
                 exit;
             }
 
+            // Personnes autorisées à récupérer cet enfant : facultatif (une
+            // ligne totalement vide est ignorée), mais une ligne où au
+            // moins un champ est renseigné doit être complète — même
+            // logique que pour un enfant explicitement nommé mais
+            // incomplet ci-dessus : la faire disparaître silencieusement
+            // serait trompeur pour le parent.
+            $pickup_persons = array();
+            $max_pickup = psc_max_pickup_persons_per_child();
+            for ($j = 0; $j < $max_pickup; $j++) {
+                $pp_prenom = psc_post("child_pickup_prenom_{$i}_{$j}");
+                $pp_nom    = psc_post("child_pickup_nom_{$i}_{$j}");
+                $pp_tel    = psc_post("child_pickup_telephone_{$i}_{$j}");
+                $pp_lien   = psc_post("child_pickup_lien_{$i}_{$j}");
+                if ($pp_prenom === '' && $pp_nom === '' && $pp_tel === '' && $pp_lien === '') continue;
+                if ($pp_prenom === '' || $pp_nom === '' || $pp_tel === '') {
+                    wp_safe_redirect(add_query_arg('psc_msg', 'pickup_person_incomplete', $back));
+                    exit;
+                }
+                $pickup_persons[] = array(
+                    'prenom'         => mb_substr($pp_prenom, 0, 191),
+                    'nom'            => mb_substr($pp_nom, 0, 191),
+                    'telephone'      => mb_substr($pp_tel, 0, 40),
+                    'lien'           => mb_substr($pp_lien, 0, 100),
+                    'piece_identite' => isset($_POST["child_pickup_piece_identite_{$i}_{$j}"]) ? 1 : 0,
+                );
+            }
+
             $children[] = array(
-                'nom'            => mb_substr($cn, 0, 190),
-                'prenom'         => mb_substr($cp, 0, 190),
-                'classe'         => mb_substr($cc, 0, 100),
-                'date_naissance' => $cb ?: '',
-                'sans_porc'      => isset($_POST['child_sans_porc_' . $i]) ? 1 : 0,
-                'vegan'          => isset($_POST['child_vegan_' . $i]) ? 1 : 0,
+                'nom'                  => mb_substr($cn, 0, 190),
+                'prenom'               => mb_substr($cp, 0, 190),
+                'classe'               => mb_substr($cc, 0, 100),
+                'date_naissance'       => $cb ?: '',
+                'sans_porc'            => isset($_POST['child_sans_porc_' . $i]) ? 1 : 0,
+                'vegan'                => isset($_POST['child_vegan_' . $i]) ? 1 : 0,
+                'personnes_autorisees' => $pickup_persons,
             );
             $assurance_uploads[count($children) - 1] = $file;
         }
@@ -485,6 +545,10 @@ class Psc_Requests {
                 'vegan'                        => isset($_POST['child_vegan_' . $i]) ? 1 : 0,
                 'assurance_rel_path'           => $req_children[$i]['assurance_rel_path'] ?? '',
                 'assurance_original_filename'  => $req_children[$i]['assurance_original_filename'] ?? '',
+                // Comme le justificatif d'assurance : jamais re-lu depuis un
+                // champ POST (ce formulaire n'en propose pas l'édition),
+                // toujours re-dérivé de la demande d'origine par index.
+                'personnes_autorisees'         => $req_children[$i]['personnes_autorisees'] ?? array(),
             );
         }
         if (empty($children)) {
@@ -543,6 +607,16 @@ class Psc_Requests {
 
             if ($active_year_id) {
                 Psc_School_Years::enroll($child_id, $active_year_id, $c['classe'], 'inscrit', $req->reglement_accepted_at ?? current_time('mysql'));
+            }
+
+            // Personnes autorisées déclarées à l'onboarding : l'auteur réel
+            // de l'information est la famille (source='parent'), même si
+            // c'est le clic "Valider" de la mairie qui déclenche l'écriture
+            // — aucune session parent n'existe à ce moment-là.
+            if (!empty($c['personnes_autorisees']) && is_array($c['personnes_autorisees'])) {
+                foreach ($c['personnes_autorisees'] as $p) {
+                    Psc_Pickup_Persons::add($child_id, $p, 'parent', $parent_id);
+                }
             }
 
             // Rattache le justificatif déposé en zone d'attente au nouvel

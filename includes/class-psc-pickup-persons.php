@@ -76,11 +76,16 @@ class Psc_Pickup_Persons {
     /* ---------------- Écriture (liste courante + historique) ---------------- */
 
     /**
-     * Ajoute une personne autorisée. $source = 'parent' (portail famille,
-     * ou approbation d'une demande dont l'auteur réel est la famille) ou
-     * 'mairie'. Renvoie l'id créé, ou WP_Error.
+     * Ajoute une personne autorisée. $source = 'parent' (portail famille)
+     * ou 'mairie'. $actor_parent_id permet d'attribuer l'action à une
+     * famille précise sans session live — cas de l'approbation d'une
+     * demande (Psc_Requests::handle_approve()) : c'est la mairie qui
+     * clique "Valider", mais l'information vient bien de la famille, dont
+     * on connaît déjà l'identité à cet instant. Sans cet override,
+     * resolve_actor() retombe sur Psc_Parents::current() (session live du
+     * portail). Renvoie l'id créé, ou WP_Error.
      */
-    public static function add($child_id, $fields, $source) {
+    public static function add($child_id, $fields, $source, $actor_parent_id = null) {
         global $wpdb;
         $child_id = absint($child_id);
         if (!$child_id) return new WP_Error('psc_invalid', 'Enfant invalide.');
@@ -109,16 +114,16 @@ class Psc_Pickup_Persons {
         $person_id = (int) $wpdb->insert_id;
         if (!$person_id) return new WP_Error('psc_failed', "Échec de l'enregistrement.");
 
-        self::log($child_id, $person_id, 'ajout', $clean, $source);
+        self::log($child_id, $person_id, 'ajout', $clean, $source, $actor_parent_id);
         return $person_id;
     }
 
     /**
      * Modifie en place une personne active existante. Ne s'applique
      * jamais à une personne déjà retirée (pas de "réactivation" par ce
-     * chemin — cf. hors périmètre du plan).
+     * chemin — cf. hors périmètre du plan). $actor_parent_id : cf. add().
      */
-    public static function update($person_id, $fields, $source) {
+    public static function update($person_id, $fields, $source, $actor_parent_id = null) {
         global $wpdb;
         $person = self::get($person_id);
         if (!$person || $person->statut !== 'active') {
@@ -138,7 +143,7 @@ class Psc_Pickup_Persons {
             array('%d')
         );
 
-        self::log((int) $person->child_id, (int) $person->id, 'modification', $clean, $source);
+        self::log((int) $person->child_id, (int) $person->id, 'modification', $clean, $source, $actor_parent_id);
         return true;
     }
 
@@ -146,16 +151,17 @@ class Psc_Pickup_Persons {
      * Retrait = soft-delete. La ligne pickup_persons n'est jamais
      * supprimée physiquement, seulement basculée en statut 'retiree' —
      * elle reste la cible (pickup_person_id) de toutes ses entrées
-     * d'historique passées et de celle générée ici.
+     * d'historique passées et de celle générée ici. $actor_parent_id :
+     * cf. add().
      */
-    public static function remove($person_id, $source) {
+    public static function remove($person_id, $source, $actor_parent_id = null) {
         global $wpdb;
         $person = self::get($person_id);
         if (!$person || $person->statut !== 'active') {
             return new WP_Error('psc_invalid', 'Personne introuvable ou déjà retirée.');
         }
 
-        $actor = self::resolve_actor($source);
+        $actor = self::resolve_actor($source, $actor_parent_id);
         $now = current_time('mysql');
         $wpdb->update(
             psc_table('pickup_persons'),
@@ -177,22 +183,23 @@ class Psc_Pickup_Persons {
             'telephone'      => $person->telephone,
             'piece_identite' => (int) $person->piece_identite,
         );
-        self::log((int) $person->child_id, (int) $person->id, 'retrait', $snapshot, $source);
+        self::log((int) $person->child_id, (int) $person->id, 'retrait', $snapshot, $source, $actor_parent_id, $actor);
         return true;
     }
 
     /* ---------------- Historique (append-only — aucune autre méthode d'écriture) ---------------- */
 
     /**
-     * Résout l'acteur courant selon la source : le parent connecté
-     * (portail famille), ou l'utilisateur WordPress connecté (mairie).
-     * Le libellé est figé dans l'historique au moment de l'action — un
-     * changement de nom/e-mail ultérieur du compte ne réécrit jamais une
-     * entrée passée.
+     * Résout l'acteur d'une action : le parent connecté (portail famille),
+     * ou — si $parent_id_override est fourni (cas de l'approbation d'une
+     * demande, sans session live) — ce parent précis, ou à défaut
+     * l'utilisateur WordPress connecté (mairie). Le libellé est figé dans
+     * l'historique au moment de l'action : un changement de nom/e-mail
+     * ultérieur du compte ne réécrit jamais une entrée passée.
      */
-    protected static function resolve_actor($source) {
+    protected static function resolve_actor($source, $parent_id_override = null) {
         if ($source === 'parent') {
-            $parent = Psc_Parents::current();
+            $parent = $parent_id_override ? Psc_Parents::get_by_id($parent_id_override) : Psc_Parents::current();
             return array(
                 'parent_id'  => $parent ? (int) $parent->id : null,
                 'wp_user_id' => null,
@@ -214,11 +221,15 @@ class Psc_Pickup_Persons {
      * Seul point d'écriture sur wp_psc_pickup_history — volontairement
      * protected et jamais appelé en dehors de add()/update()/remove()
      * ci-dessus : impossible de modifier la liste courante sans que cette
-     * méthode s'exécute dans la foulée.
+     * méthode s'exécute dans la foulée. $actor déjà résolu est accepté en
+     * option (remove() en a déjà besoin pour retiree_par) pour éviter de
+     * résoudre l'acteur deux fois.
      */
-    protected static function log($child_id, $person_id, $action, $snapshot_fields, $source) {
+    protected static function log($child_id, $person_id, $action, $snapshot_fields, $source, $parent_id_override = null, $actor = null) {
         global $wpdb;
-        $actor = self::resolve_actor($source);
+        if ($actor === null) {
+            $actor = self::resolve_actor($source, $parent_id_override);
+        }
 
         $wpdb->insert(psc_table('pickup_history'), array(
             'child_id'          => $child_id,
