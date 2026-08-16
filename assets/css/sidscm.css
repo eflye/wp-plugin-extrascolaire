@@ -76,21 +76,91 @@ body.psc-sidscm-active main.site-main .entry-content {
 
 /* ---- Écran verrouillé ---- */
 
+/* Masthead identique à celui de la page famille (guest) : voir
+   page-espace-familles.php / .familles-* dans le thème du site — repris
+   ici à l'identique (sceau, typographie, filet) puisque cet écran plein
+   page masque le chrome du thème et n'a donc pas accès à ce masthead. */
 .psc-sidscm-lock-screen {
     min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--psc-forest);
-    padding: 20px;
+    background: var(--psc-cream);
+    padding: 40px 28px 60px;
     box-sizing: border-box;
 }
+.psc-sidscm-lock-inner {
+    max-width: 920px;
+    margin: 0 auto;
+}
+.psc-sidscm-lock-masthead {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+.psc-sidscm-lock-brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.psc-sidscm-lock-brand-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--psc-moss);
+    font-weight: 600;
+}
+.psc-sidscm-lock-brand-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--psc-forest);
+    line-height: 1;
+    margin-top: 2px;
+}
+.psc-sidscm-lock-nav {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+.psc-sidscm-lock-nav-link,
+.psc-sidscm-lock-nav-active {
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+.psc-sidscm-lock-nav-link {
+    color: var(--psc-moss);
+    text-decoration: none;
+}
+.psc-sidscm-lock-nav-link:hover { text-decoration: underline; }
+.psc-sidscm-lock-nav-active {
+    color: var(--psc-forest);
+    font-weight: 700;
+}
+
+.psc-sidscm-lock-hairline {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 14px 0 36px;
+}
+.psc-sidscm-lock-hairline .line { flex: 1; height: 1px; background: var(--psc-rule); }
+.psc-sidscm-lock-hairline .dot { width: 6px; height: 6px; background: var(--psc-gold); transform: rotate(45deg); flex: none; }
+
+.psc-sidscm-lock-card-wrap {
+    display: flex;
+    justify-content: center;
+}
 .psc-sidscm-lock-card {
-    background: var(--psc-cream);
+    background: #fff;
+    border: 1px solid rgba(45, 74, 62, 0.12);
+    box-shadow: 0 4px 16px rgba(45, 74, 62, 0.08);
     padding: 40px 36px;
     max-width: 380px;
     width: 100%;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
     box-sizing: border-box;
 }
 .psc-sidscm-eyebrow {
