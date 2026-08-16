@@ -182,6 +182,8 @@ Le périscolaire suit le calendrier scolaire officiel de la **zone C** (Créteil
 
 Liste de toutes les familles, avec mode de paiement et IBAN masqué en un coup d'œil. Édition complète par famille : coordonnées, mode de paiement, informations SEPA (IBAN/BIC revalidés à l'enregistrement), référence de mandat. Envoi ou renvoi du lien de connexion, activation/désactivation d'accès (une famille désactivée perd l'accès immédiatement, même en session ouverte).
 
+**Suppression définitive** : à la différence de la désactivation (réversible, l'accès seul est coupé), le bouton *Supprimer* efface complètement la famille — enfants, inscriptions, pointage SIDSCM, personnes autorisées à récupérer (liste courante et historique), justificatifs d'assurance et factures, y compris les fichiers PDF correspondants sur le serveur. Confirmation explicite obligatoire avant toute suppression ; les demandes d'inscription historiques (`wp_psc_requests`) ne sont pas concernées, elles ne sont pas rattachées au compte famille.
+
 ### Enfants
 
 Liste de tous les enfants avec leur famille de rattachement, leur régime cantine (sans porc / sans viande), leur classe **pour l'année scolaire sélectionnée** (sélecteur d'année, année active par défaut) et le statut de leur justificatif d'assurance scolaire. Les enfants sortis sont masqués par défaut ; une case « Afficher les enfants sortis » les révèle. Rattachement d'un nouvel enfant à une famille existante (la mairie tient cette liste — les familles ne peuvent pas créer un enfant sans rattachement), et action **Marquer sorti**/**Marquer actif** par ligne.

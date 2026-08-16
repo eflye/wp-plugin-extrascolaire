@@ -14,6 +14,7 @@ $psc_notices = array(
     'updated'     => array('success', 'Informations de la famille mises à jour.'),
     'bad_iban'    => array('error', 'IBAN invalide.'),
     'bad_bic'     => array('error', 'BIC invalide.'),
+    'family_deleted' => array('success', 'Famille supprimée définitivement, avec ses enfants, inscriptions, justificatifs et factures.'),
 );
 if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     list($type, $text) = $psc_notices[$psc_msg]; ?>
@@ -132,6 +133,13 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     <input type="hidden" name="action" value="psc_toggle_parent">
     <input type="hidden" name="id" value="<?php echo esc_attr($p->id); ?>">
     <button class="button"><?php echo $p->active ? 'Désactiver' : 'Réactiver'; ?></button>
+  </form>
+  <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline"
+        onsubmit="return confirm('Supprimer définitivement cette famille : ses enfants, leurs inscriptions, justificatifs d\'assurance, personnes autorisées et factures ? Cette action est irréversible.');">
+    <?php wp_nonce_field('psc_delete_family'); ?>
+    <input type="hidden" name="action" value="psc_delete_family">
+    <input type="hidden" name="id" value="<?php echo esc_attr($p->id); ?>">
+    <button class="button button-link-delete">Supprimer</button>
   </form>
 </td>
 </tr>

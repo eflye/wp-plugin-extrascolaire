@@ -24,6 +24,7 @@ class Psc_Admin {
         add_action('admin_post_psc_toggle_parent', array(__CLASS__, 'handle_toggle_parent'));
         add_action('admin_post_psc_send_link', array(__CLASS__, 'handle_send_link'));
         add_action('admin_post_psc_edit_parent', array(__CLASS__, 'handle_edit_parent'));
+        add_action('admin_post_psc_delete_family', array(__CLASS__, 'handle_delete_family'));
         add_action('admin_post_psc_save_email_templates', array(__CLASS__, 'handle_save_email_templates'));
         add_action('admin_post_psc_reset_email_template', array(__CLASS__, 'handle_reset_email_template'));
         add_action('admin_post_psc_reset_email_templates', array(__CLASS__, 'handle_reset_email_templates'));
@@ -460,20 +461,86 @@ class Psc_Admin {
 
     public static function handle_delete_child() {
         self::guard('psc_delete_child');
-        global $wpdb;
-
         $id = psc_post_int('id');
         if (!$id) self::redirect('psc_children', 'invalid');
+        self::purge_child($id);
+        self::redirect('psc_children', 'deleted');
+    }
 
-        $wpdb->delete(psc_table('registrations'), array('child_id' => $id), array('%d'));
-        $wpdb->delete(psc_table('child_school_years'), array('child_id' => $id), array('%d'));
+    /**
+     * Purge complète d'un enfant : justificatifs d'assurance sur disque,
+     * puis toutes les lignes le concernant (inscriptions, pointage SIDSCM,
+     * historique des personnes autorisées). Utilisé à la fois par la
+     * suppression d'un enfant seul et par la suppression complète d'une
+     * famille (cf. handle_delete_family) — un seul endroit qui sait purger
+     * un enfant, pour ne jamais oublier une table dans l'un des deux chemins.
+     */
+    protected static function purge_child($child_id) {
+        global $wpdb;
+        $t_cy = psc_table('child_school_years');
+
+        $upload_dir = wp_upload_dir();
+        $paths = $wpdb->get_col($wpdb->prepare(
+            "SELECT assurance_file_path FROM $t_cy WHERE child_id = %d AND assurance_file_path IS NOT NULL",
+            $child_id
+        ));
+        foreach ($paths as $rel_path) {
+            $abs = trailingslashit($upload_dir['basedir']) . $rel_path;
+            if (file_exists($abs)) {
+                @unlink($abs); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+            }
+        }
+
+        $wpdb->delete(psc_table('attendance'), array('child_id' => $child_id), array('%d'));
+        $wpdb->delete(psc_table('registrations'), array('child_id' => $child_id), array('%d'));
+        $wpdb->delete(psc_table('child_school_years'), array('child_id' => $child_id), array('%d'));
         // RGPD : les coordonnées de tiers (personnes autorisées) suivent la
         // même durée de conservation que la fiche enfant, historique compris
         // — cf. README.
-        $wpdb->delete(psc_table('pickup_history'), array('child_id' => $id), array('%d'));
-        $wpdb->delete(psc_table('pickup_persons'), array('child_id' => $id), array('%d'));
-        $wpdb->delete(psc_table('children'), array('id' => $id), array('%d'));
-        self::redirect('psc_children', 'deleted');
+        $wpdb->delete(psc_table('pickup_history'), array('child_id' => $child_id), array('%d'));
+        $wpdb->delete(psc_table('pickup_persons'), array('child_id' => $child_id), array('%d'));
+        $wpdb->delete(psc_table('children'), array('id' => $child_id), array('%d'));
+    }
+
+    /**
+     * Suppression complète d'une famille : purge chacun de ses enfants
+     * (cf. purge_child), ses factures (PDF sur disque compris), puis la
+     * fiche famille elle-même. Les demandes d'inscription historiques
+     * (wp_psc_requests) ne référencent pas parent_id — elles documentent
+     * la candidature d'origine, pas le compte, et ne sont donc pas purgées
+     * ici.
+     */
+    public static function handle_delete_family() {
+        self::guard('psc_delete_family');
+        global $wpdb;
+
+        $id = psc_post_int('id');
+        $t_parent = psc_table('parents');
+        $exists = $id ? $wpdb->get_var($wpdb->prepare("SELECT id FROM $t_parent WHERE id = %d", $id)) : null;
+        if (!$exists) self::redirect('psc_parents', 'invalid');
+
+        $t_child = psc_table('children');
+        $child_ids = $wpdb->get_col($wpdb->prepare("SELECT id FROM $t_child WHERE parent_id = %d", $id));
+        foreach ($child_ids as $child_id) {
+            self::purge_child($child_id);
+        }
+
+        $t_inv = psc_table('invoices');
+        $upload_dir = wp_upload_dir();
+        $pdf_paths = $wpdb->get_col($wpdb->prepare(
+            "SELECT pdf_path FROM $t_inv WHERE parent_id = %d AND pdf_path IS NOT NULL", $id
+        ));
+        foreach ($pdf_paths as $rel_path) {
+            $abs = trailingslashit($upload_dir['basedir']) . $rel_path;
+            if (file_exists($abs)) {
+                @unlink($abs); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+            }
+        }
+        $wpdb->delete($t_inv, array('parent_id' => $id), array('%d'));
+
+        $wpdb->delete($t_parent, array('id' => $id), array('%d'));
+
+        self::redirect('psc_parents', 'family_deleted');
     }
 
     public static function handle_mark_child_sorti() {
