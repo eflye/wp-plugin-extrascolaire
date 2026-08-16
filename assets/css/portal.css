@@ -517,6 +517,15 @@ body.psc-portal-active main.site-main {
     font-weight: 400;
     font-family: 'Work Sans', sans-serif;
 }
+.psc-portal-pickup-child-block { margin-bottom: 24px; }
+.psc-portal-pickup-child-block:last-of-type { margin-bottom: 12px; }
+.psc-portal-pickup-child-name {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--psc-ink);
+    margin: 0 0 10px;
+}
 .psc-portal-child-total {
     font-size: 12.5px;
     color: var(--psc-forest);

@@ -167,6 +167,117 @@ if ($psc_active_year) {
 ?></script>
 <?php endif; ?>
 
+<?php if (!empty($psc_active_children)): ?>
+<div class="psc-portal-panel psc-portal-panel--wide">
+  <div class="psc-portal-panel-title">Personnes autorisées à récupérer les enfants</div>
+  <p class="psc-portal-intro">Ces personnes peuvent venir chercher vos enfants en fin de garderie. Toute modification de cette liste est conservée dans un historique consultable par la mairie.</p>
+
+  <?php foreach ($psc_active_children as $c): $psc_pickups = $psc_pickup_map[$c->id] ?? array(); ?>
+  <div class="psc-portal-pickup-child-block" data-testid="pickup-child-block-<?php echo esc_attr($c->id); ?>">
+    <h3 class="psc-portal-pickup-child-name"><?php echo esc_html($c->prenom . ' ' . $c->nom); ?></h3>
+
+    <?php if (empty($psc_pickups)): ?>
+      <p class="psc-portal-muted" data-testid="pickup-empty-<?php echo esc_attr($c->id); ?>">Aucune personne autorisée déclarée.</p>
+    <?php else: ?>
+      <div class="psc-portal-table-scroll">
+      <table class="psc-portal-table" data-testid="pickup-table-<?php echo esc_attr($c->id); ?>">
+        <colgroup>
+          <col style="width:16%"><col style="width:16%"><col style="width:18%"><col style="width:18%"><col style="width:14%"><col style="width:18%">
+        </colgroup>
+        <thead><tr><th>Prénom</th><th>Nom</th><th>Téléphone</th><th>Lien</th><th>Pièce d'identité</th><th></th></tr></thead>
+        <tbody>
+        <?php foreach ($psc_pickups as $p): ?>
+          <tr data-testid="pickup-row-<?php echo esc_attr($p->id); ?>">
+            <td style="font-weight:500;"><?php echo esc_html($p->prenom); ?></td>
+            <td><?php echo esc_html($p->nom); ?></td>
+            <td><?php echo esc_html($p->telephone); ?></td>
+            <td><?php echo esc_html($p->lien !== '' ? $p->lien : '—'); ?></td>
+            <td>
+              <?php if ((int) $p->piece_identite === 1): ?>
+                <span class="psc-badge-ok">Oui</span>
+              <?php else: ?>
+                <span class="psc-portal-muted">—</span>
+              <?php endif; ?>
+            </td>
+            <td class="psc-portal-row-save">
+              <button type="button" class="psc-portal-btn-sm" data-pickup-edit-trigger data-pickup-id="<?php echo esc_attr($p->id); ?>" aria-label="Modifier les coordonnées de <?php echo esc_attr($p->prenom . ' ' . $p->nom); ?>">Modifier</button>
+              <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
+                <?php wp_nonce_field('psc_parent_remove_pickup_person'); ?>
+                <input type="hidden" name="action" value="psc_parent_remove_pickup_person">
+                <input type="hidden" name="pickup_id" value="<?php echo esc_attr($p->id); ?>">
+                <button type="submit" class="psc-portal-btn-sm" onclick="return confirm('Retirer <?php echo esc_js($p->prenom . ' ' . $p->nom); ?> de la liste des personnes autorisées à récupérer <?php echo esc_js($c->prenom); ?> ?');">Retirer</button>
+              </form>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table>
+      </div>
+    <?php endif; ?>
+
+    <button type="button" class="psc-portal-btn-sm" data-pickup-add-trigger data-child-id="<?php echo esc_attr($c->id); ?>" aria-label="Ajouter une personne autorisée à récupérer <?php echo esc_attr($c->prenom); ?>">+ Ajouter une personne</button>
+  </div>
+  <?php endforeach; ?>
+</div>
+
+<div id="psc-pickup-modal" class="psc-portal-modal-overlay" hidden data-testid="pickup-modal">
+  <div class="psc-portal-modal">
+    <h3 class="psc-portal-modal-title" id="psc-pickup-modal-title">Personne autorisée</h3>
+    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" data-testid="pickup-form">
+      <?php wp_nonce_field('psc_parent_pickup_person'); ?>
+      <input type="hidden" name="action" id="psc-pickup-form-action" value="psc_parent_add_pickup_person">
+      <input type="hidden" name="child_id" id="psc-pickup-child-id" value="">
+      <input type="hidden" name="pickup_id" id="psc-pickup-id" value="">
+
+      <label class="psc-portal-field-label" for="psc-pickup-prenom">Prénom</label>
+      <input type="text" id="psc-pickup-prenom" name="prenom" maxlength="191" required class="psc-portal-field-underline">
+
+      <label class="psc-portal-field-label" for="psc-pickup-nom" style="margin-top:16px;">Nom</label>
+      <input type="text" id="psc-pickup-nom" name="nom" maxlength="191" required class="psc-portal-field-underline">
+
+      <label class="psc-portal-field-label" for="psc-pickup-telephone" style="margin-top:16px;">Téléphone</label>
+      <input type="tel" id="psc-pickup-telephone" name="telephone" maxlength="40" required class="psc-portal-field-underline">
+
+      <label class="psc-portal-field-label" for="psc-pickup-lien" style="margin-top:16px;">Lien avec l'enfant</label>
+      <input type="text" id="psc-pickup-lien" name="lien" maxlength="100" list="psc-pickup-lien-suggestions-portal" class="psc-portal-field-underline">
+      <datalist id="psc-pickup-lien-suggestions-portal">
+        <?php foreach (psc_pickup_lien_suggestions() as $psc_lien): ?>
+        <option value="<?php echo esc_attr($psc_lien); ?>">
+        <?php endforeach; ?>
+      </datalist>
+
+      <label class="psc-wizard-check-line" style="margin-top:16px;">
+        <input type="checkbox" id="psc-pickup-piece-identite" name="piece_identite" value="1"> Présentera une pièce d'identité
+      </label>
+
+      <div class="psc-portal-modal-actions">
+        <button type="button" class="psc-portal-btn-outline-ink" data-pickup-modal-close>Annuler</button>
+        <button type="submit" class="psc-portal-btn-gold" data-testid="pickup-submit">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script type="application/json" id="psc-pickup-data"><?php
+  $psc_pickup_js_data = array('children' => array(), 'persons' => array());
+  foreach ($psc_active_children as $c) {
+      $psc_pickup_js_data['children'][$c->id] = array('name' => $c->prenom);
+  }
+  foreach ($psc_pickup_map as $psc_pm_child_id => $psc_pm_persons) {
+      foreach ($psc_pm_persons as $p) {
+          $psc_pickup_js_data['persons'][$p->id] = array(
+              'child_id'       => (int) $p->child_id,
+              'prenom'         => $p->prenom,
+              'nom'            => $p->nom,
+              'telephone'      => $p->telephone,
+              'lien'           => $p->lien,
+              'piece_identite' => (int) $p->piece_identite,
+          );
+      }
+  }
+  echo wp_json_encode($psc_pickup_js_data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+?></script>
+<?php endif; ?>
+
 <div class="psc-portal-panel psc-portal-panel--wide">
   <div class="psc-portal-panel-title">Ajouter un enfant</div>
   <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data" class="psc-add-child-form">

@@ -197,6 +197,79 @@
         });
     }
 
+    /* ---------- Popin "Personne autorisée à récupérer" (Mes enfants) ---------- */
+
+    function initPickupPersonModal() {
+        var overlay = document.getElementById('psc-pickup-modal');
+        var dataEl  = document.getElementById('psc-pickup-data');
+        if (!overlay || !dataEl) return;
+
+        var data;
+        try {
+            data = JSON.parse(dataEl.textContent);
+        } catch (err) {
+            return;
+        }
+
+        var title       = document.getElementById('psc-pickup-modal-title');
+        var actionField = document.getElementById('psc-pickup-form-action');
+        var childField  = document.getElementById('psc-pickup-child-id');
+        var idField     = document.getElementById('psc-pickup-id');
+        var prenomField = document.getElementById('psc-pickup-prenom');
+        var nomField    = document.getElementById('psc-pickup-nom');
+        var telField    = document.getElementById('psc-pickup-telephone');
+        var lienField   = document.getElementById('psc-pickup-lien');
+        var pieceField  = document.getElementById('psc-pickup-piece-identite');
+
+        function openAdd(childId) {
+            var c = (data.children || {})[childId];
+            if (!c) return;
+            title.textContent = 'Ajouter — ' + c.name;
+            actionField.value = 'psc_parent_add_pickup_person';
+            childField.value = childId;
+            idField.value = '';
+            prenomField.value = '';
+            nomField.value = '';
+            telField.value = '';
+            lienField.value = '';
+            pieceField.checked = false;
+            overlay.hidden = false;
+        }
+
+        function openEdit(pickupId) {
+            var p = (data.persons || {})[pickupId];
+            if (!p) return;
+            title.textContent = 'Modifier — ' + p.prenom + ' ' + p.nom;
+            actionField.value = 'psc_parent_update_pickup_person';
+            childField.value = p.child_id;
+            idField.value = pickupId;
+            prenomField.value = p.prenom || '';
+            nomField.value = p.nom || '';
+            telField.value = p.telephone || '';
+            lienField.value = p.lien || '';
+            pieceField.checked = !!p.piece_identite;
+            overlay.hidden = false;
+        }
+
+        function close() { overlay.hidden = true; }
+
+        document.querySelectorAll('[data-pickup-add-trigger]').forEach(function (btn) {
+            btn.addEventListener('click', function () { openAdd(btn.dataset.childId); });
+        });
+        document.querySelectorAll('[data-pickup-edit-trigger]').forEach(function (btn) {
+            btn.addEventListener('click', function () { openEdit(btn.dataset.pickupId); });
+        });
+        overlay.querySelectorAll('[data-pickup-modal-close]').forEach(function (btn) {
+            btn.addEventListener('click', close);
+        });
+        overlay.addEventListener('click', function (e) {
+            if (e.target === overlay) close();
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !overlay.hidden) close();
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('[data-portal-tab], [data-portal-tab-link]').forEach(function (link) {
             link.addEventListener('click', onTabLinkClick);
@@ -204,5 +277,6 @@
         initAbsenceModal();
         initChildEditModal();
         initAssuranceUploadModal();
+        initPickupPersonModal();
     });
 })();

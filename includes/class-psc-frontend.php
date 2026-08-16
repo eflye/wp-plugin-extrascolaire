@@ -49,6 +49,13 @@ class Psc_Frontend {
 
         add_action('admin_post_nopriv_psc_parent_reinscription', array(__CLASS__, 'handle_parent_reinscription'));
         add_action('admin_post_psc_parent_reinscription', array(__CLASS__, 'handle_parent_reinscription'));
+
+        add_action('admin_post_nopriv_psc_parent_add_pickup_person', array(__CLASS__, 'handle_parent_add_pickup_person'));
+        add_action('admin_post_psc_parent_add_pickup_person', array(__CLASS__, 'handle_parent_add_pickup_person'));
+        add_action('admin_post_nopriv_psc_parent_update_pickup_person', array(__CLASS__, 'handle_parent_update_pickup_person'));
+        add_action('admin_post_psc_parent_update_pickup_person', array(__CLASS__, 'handle_parent_update_pickup_person'));
+        add_action('admin_post_nopriv_psc_parent_remove_pickup_person', array(__CLASS__, 'handle_parent_remove_pickup_person'));
+        add_action('admin_post_psc_parent_remove_pickup_person', array(__CLASS__, 'handle_parent_remove_pickup_person'));
     }
 
     /**
@@ -883,6 +890,95 @@ class Psc_Frontend {
         self::parent_form_redirect('reinscription_confirmee');
     }
 
+    /* ---------------- Personnes autorisées à récupérer (espace famille) ---------------- */
+
+    /** Vrai si l'enfant de $person appartient bien à $parent_id. */
+    protected static function pickup_person_owned_by($person, $parent_id) {
+        global $wpdb;
+        $t_child = psc_table('children');
+        return (bool) $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $t_child WHERE id = %d AND parent_id = %d", (int) $person->child_id, $parent_id
+        ));
+    }
+
+    protected static function pickup_fields_from_post() {
+        return array(
+            'prenom'         => psc_post('prenom'),
+            'nom'            => psc_post('nom'),
+            'telephone'      => psc_post('telephone'),
+            'lien'           => psc_post('lien'),
+            'piece_identite' => isset($_POST['piece_identite']) ? 1 : 0,
+        );
+    }
+
+    /**
+     * Ajout d'une personne autorisée à récupérer un enfant depuis "Mes
+     * enfants". Le nonce prouve l'intention, mais c'est la vérification
+     * d'appartenance ci-dessous qui empêche une famille connectée
+     * d'ajouter une entrée sur un enfant qui n'est pas le sien.
+     */
+    public static function handle_parent_add_pickup_person() {
+        check_admin_referer('psc_parent_pickup_person');
+
+        $parent = Psc_Parents::current();
+        if (!$parent) self::parent_form_redirect('auth');
+
+        global $wpdb;
+        $child_id = psc_post_int('child_id');
+        $t_child  = psc_table('children');
+        $owned = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $t_child WHERE id = %d AND parent_id = %d", $child_id, $parent->id
+        ));
+        if (!$owned) self::parent_form_redirect('pickup_invalid');
+
+        $result = Psc_Pickup_Persons::add($child_id, self::pickup_fields_from_post(), 'parent');
+        if (is_wp_error($result)) self::parent_form_redirect('pickup_invalid');
+
+        self::parent_form_redirect('pickup_added');
+    }
+
+    /**
+     * Modification d'une personne autorisée existante. Un pickup_id
+     * n'appartient à un parent qu'à travers l'enfant qu'il concerne —
+     * c'est cet enfant, pas seulement la ligne, qui est revérifié.
+     */
+    public static function handle_parent_update_pickup_person() {
+        check_admin_referer('psc_parent_pickup_person');
+
+        $parent = Psc_Parents::current();
+        if (!$parent) self::parent_form_redirect('auth');
+
+        $pickup_id = psc_post_int('pickup_id');
+        $person = Psc_Pickup_Persons::get($pickup_id);
+        if (!$person || !self::pickup_person_owned_by($person, $parent->id)) {
+            self::parent_form_redirect('pickup_invalid');
+        }
+
+        $result = Psc_Pickup_Persons::update($pickup_id, self::pickup_fields_from_post(), 'parent');
+        if (is_wp_error($result)) self::parent_form_redirect('pickup_invalid');
+
+        self::parent_form_redirect('pickup_updated');
+    }
+
+    /** Retrait (soft-delete) d'une personne autorisée. */
+    public static function handle_parent_remove_pickup_person() {
+        check_admin_referer('psc_parent_remove_pickup_person');
+
+        $parent = Psc_Parents::current();
+        if (!$parent) self::parent_form_redirect('auth');
+
+        $pickup_id = psc_post_int('pickup_id');
+        $person = Psc_Pickup_Persons::get($pickup_id);
+        if (!$person || !self::pickup_person_owned_by($person, $parent->id)) {
+            self::parent_form_redirect('pickup_invalid');
+        }
+
+        $result = Psc_Pickup_Persons::remove($pickup_id, 'parent');
+        if (is_wp_error($result)) self::parent_form_redirect('pickup_invalid');
+
+        self::parent_form_redirect('pickup_removed');
+    }
+
     /* ---------------- Factures (espace famille) ---------------- */
 
     /**
@@ -979,6 +1075,7 @@ class Psc_Frontend {
             'child_updated', 'child_added', 'child_invalid', 'child_limit',
             'assurance_uploaded', 'assurance_invalid', 'assurance_upload_failed',
             'assurance_too_large', 'assurance_invalid_type', 'assurance_required',
+            'pickup_added', 'pickup_updated', 'pickup_removed', 'pickup_invalid',
         ), true)) {
             $tab = 'enfants';
         }
@@ -1309,6 +1406,14 @@ class Psc_Frontend {
         $psc_portal_dashboard = self::dashboard_data($parent, $children, $days_by_month, $reg_map, $services, $invoices);
         $psc_portal_absence_days = self::absence_candidates($children);
         $psc_assurance_map = self::assurance_map($all_children);
+
+        // Uniquement les enfants actifs : un enfant sorti disparaît du
+        // planning (cf. $children plus haut), la liste des personnes
+        // autorisées le suit pour la même raison.
+        $psc_pickup_map = array();
+        foreach ($children as $child) {
+            $psc_pickup_map[$child->id] = Psc_Pickup_Persons::for_child($child->id);
+        }
 
         $psc_portal_reinscription = null;
         if (isset($psc_portal_tabs['reinscription'])) {

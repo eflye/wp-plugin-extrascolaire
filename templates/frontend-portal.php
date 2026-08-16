@@ -57,6 +57,11 @@
         'reinscription_confirmee' => array('ok',  'Réinscription enregistrée. Merci !'),
         'reinscription_invalid'   => array('err', 'La fenêtre de réinscription est fermée ou votre sélection est invalide.'),
         'reinscription_required'  => array('err', 'Merci de confirmer le règlement intérieur et de fournir un justificatif d\'assurance pour chaque enfant réinscrit.'),
+
+        'pickup_added'   => array('ok',  'Personne autorisée ajoutée.'),
+        'pickup_updated' => array('ok',  'Personne autorisée modifiée.'),
+        'pickup_removed' => array('ok',  'Personne retirée de la liste des personnes autorisées.'),
+        'pickup_invalid' => array('err', 'Nom, prénom et téléphone sont obligatoires, et l\'enfant doit être le vôtre.'),
     );
     // Confirmations : popin auto-masquée (cf. assets/js/frontend.js).
     // Erreurs à corriger : bandeau classique, le temps de lire et d'agir.
