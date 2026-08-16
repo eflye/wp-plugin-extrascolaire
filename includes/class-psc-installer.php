@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '3.0.0';
+    const DB_VERSION = '3.1.0';
 
     public static function activate() {
         self::create_tables();
@@ -333,8 +333,10 @@ class Psc_Installer {
         $t_menu  = psc_table('menus');
         $t_sch   = psc_table('school_calendar');
         $t_sup   = psc_table('supplier_orders');
-        $t_years = psc_table('school_years');
-        $t_cy    = psc_table('child_school_years');
+        $t_years  = psc_table('school_years');
+        $t_cy     = psc_table('child_school_years');
+        $t_pickup = psc_table('pickup_persons');
+        $t_pkhist = psc_table('pickup_history');
 
         $sql = "CREATE TABLE $t_years (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -529,6 +531,40 @@ CREATE TABLE $t_sup (
             sent_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
             KEY semaine (semaine_debut)
+        ) $charset_collate;
+
+CREATE TABLE $t_pickup (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            child_id BIGINT UNSIGNED NOT NULL,
+            nom VARCHAR(191) NOT NULL,
+            prenom VARCHAR(191) NOT NULL,
+            lien VARCHAR(100) NULL,
+            telephone VARCHAR(40) NOT NULL,
+            piece_identite TINYINT(1) NOT NULL DEFAULT 0,
+            statut VARCHAR(20) NOT NULL DEFAULT 'active',
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            retiree_le DATETIME NULL,
+            retiree_par VARCHAR(191) NULL,
+            PRIMARY KEY  (id),
+            KEY child_id (child_id),
+            KEY statut (statut)
+        ) $charset_collate;
+
+CREATE TABLE $t_pkhist (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            child_id BIGINT UNSIGNED NOT NULL,
+            pickup_person_id BIGINT UNSIGNED NOT NULL,
+            action VARCHAR(20) NOT NULL,
+            person_snapshot TEXT NOT NULL,
+            source VARCHAR(20) NOT NULL,
+            acteur_parent_id BIGINT UNSIGNED NULL,
+            acteur_wp_user_id BIGINT UNSIGNED NULL,
+            acteur_label VARCHAR(191) NOT NULL,
+            created_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            KEY child_id (child_id),
+            KEY pickup_person_id (pickup_person_id)
         ) $charset_collate;";
 
         dbDelta($sql);

@@ -98,6 +98,30 @@ function psc_max_children_per_user() {
 }
 
 /**
+ * Nombre maximum de personnes autorisées à récupérer un même enfant
+ * (liste courante, actives). Même esprit que psc_max_children_per_user().
+ */
+function psc_max_pickup_persons_per_child() {
+    return apply_filters('psc_max_pickup_persons_per_child', 8);
+}
+
+/**
+ * Suggestions de lien avec l'enfant pour la liste déroulante (<datalist>)
+ * du champ "lien" — champ libre malgré tout : psc_pickup_lien_options()
+ * n'est qu'une aide à la saisie, jamais une validation côté serveur.
+ */
+function psc_pickup_lien_suggestions() {
+    return array(
+        'Grand-parent',
+        'Oncle / Tante',
+        'Voisin(e)',
+        'Nounou / Assistant(e) maternel(le)',
+        'Ami(e) de la famille',
+        'Autre',
+    );
+}
+
+/**
  * Date de Pâques (algorithme de Gauss/Meeus), sans dépendance à l'extension calendar.
  */
 function psc_easter_date($year) {
