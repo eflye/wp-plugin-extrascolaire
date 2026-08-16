@@ -26,7 +26,7 @@
       <div class="psc-sidscm-lock-card-wrap">
         <div class="psc-sidscm-lock-card">
           <div class="psc-sidscm-eyebrow">SIDSCM · Montgeroult</div>
-          <h1 class="psc-sidscm-lock-title">Accès intervenantes</h1>
+          <h1 class="psc-sidscm-lock-title">Accès intervenants</h1>
           <p class="psc-sidscm-lock-intro">Saisissez le code communiqué par la mairie pour consulter les listes des enfants attendus.</p>
           <form id="psc-sidscm-code-form" data-testid="sidscm-code-form">
             <label class="screen-reader-text" for="psc-sidscm-code-input">Code d'accès</label>

@@ -567,6 +567,7 @@ class Psc_Admin {
 
         $sidscm_code = isset($_POST['sidscm_access_code']) ? sanitize_text_field(wp_unslash($_POST['sidscm_access_code'])) : '';
         update_option('psc_sidscm_access_code', mb_substr(trim($sidscm_code), 0, 40));
+        update_option('psc_sidscm_page_id', psc_post_int('sidscm_page_id', 0));
 
         $mairie_mail = isset($_POST['mairie_email']) ? sanitize_email(wp_unslash($_POST['mairie_email'])) : '';
         update_option('psc_mairie_email', is_email($mairie_mail) ? $mairie_mail : '');

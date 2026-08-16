@@ -291,6 +291,25 @@ $doc_rp_id = (int) get_option('psc_doc_reglement_prelevement_id', 0);
 </p>
 <table class="form-table">
 <tr>
+<th><label for="psc-sidscm-page">Page "Accès intervenants"</label></th>
+<td>
+  <?php
+  wp_dropdown_pages(array(
+      'name'              => 'sidscm_page_id',
+      'id'                => 'psc-sidscm-page',
+      'selected'          => (int) get_option('psc_sidscm_page_id', 0),
+      'show_option_none'  => 'Détection automatique (page contenant [periscolaire_sidscm])',
+      'option_none_value' => 0,
+  ));
+  ?>
+  <p class="description">
+    Page WordPress contenant le shortcode <code>[periscolaire_sidscm]</code>, vers laquelle pointe
+    le lien "Espace intervenants" affiché sur la page famille. Laissez sur détection automatique
+    si une seule page utilise ce shortcode.
+  </p>
+</td>
+</tr>
+<tr>
 <th><label for="psc-sidscm-code">Code d'accès intervenantes SIDSCM</label></th>
 <td>
   <input id="psc-sidscm-code" type="text" name="sidscm_access_code" class="regular-text" maxlength="40"
