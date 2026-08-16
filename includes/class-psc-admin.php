@@ -565,6 +565,9 @@ class Psc_Admin {
         update_option('psc_notify_mairie', isset($_POST['notify_mairie']) ? 1 : 0);
         update_option('psc_auto_approve_requests', isset($_POST['auto_approve_requests']) ? 1 : 0);
 
+        $sidscm_code = isset($_POST['sidscm_access_code']) ? sanitize_text_field(wp_unslash($_POST['sidscm_access_code'])) : '';
+        update_option('psc_sidscm_access_code', mb_substr(trim($sidscm_code), 0, 40));
+
         $mairie_mail = isset($_POST['mairie_email']) ? sanitize_email(wp_unslash($_POST['mairie_email'])) : '';
         update_option('psc_mairie_email', is_email($mairie_mail) ? $mairie_mail : '');
 

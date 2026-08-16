@@ -1,0 +1,306 @@
+(function () {
+    'use strict';
+
+    var STORAGE_KEY = 'psc_sidscm_code';
+    var SERVICE_ORDER = ['GM', 'CANT', 'GS'];
+
+    var state = {
+        code: '',
+        viewMode: 'day',
+        activeDay: null,
+        activeService: 'GM',
+        days: {},      // jour => date (Y-m-d), ordre lundi/mardi/jeudi/vendredi
+        services: {},  // code => { label, price }
+        children: [],  // { id, prenom, nom, classe, diet, GM: [jours], CANT: [jours], GS: [jours] }
+        attendance: {}, // "childId|date|service" => 0|1
+    };
+
+    var els = {};
+
+    function escapeHtml(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+
+    function capitalize(s) {
+        return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+    }
+
+    function shortDay(jour) {
+        return capitalize(jour).slice(0, 3);
+    }
+
+    function svcLabel(code) {
+        var s = state.services[code];
+        return s && s.label ? s.label : code;
+    }
+
+    /* ---------------- AJAX ---------------- */
+
+    function ajax(action, params) {
+        var body = new URLSearchParams();
+        body.set('action', action);
+        body.set('nonce', PSC_SIDSCM.nonce);
+        Object.keys(params || {}).forEach(function (k) {
+            body.set(k, params[k]);
+        });
+        return fetch(PSC_SIDSCM.ajax_url, { method: 'POST', credentials: 'same-origin', body: body })
+            .then(function (res) { return res.json(); })
+            .then(function (json) {
+                if (!json || !json.success) {
+                    var err = new Error('psc_sidscm_ajax_failed');
+                    err.data = json;
+                    throw err;
+                }
+                return json.data;
+            });
+    }
+
+    /* ---------------- Déverrouillage ---------------- */
+
+    function showApp() {
+        els.lock.hidden = true;
+        els.app.hidden = false;
+    }
+
+    function showLock() {
+        els.app.hidden = true;
+        els.lock.hidden = false;
+    }
+
+    function unlock(code, silent) {
+        return ajax('psc_sidscm_unlock', { code: code }).then(function () {
+            state.code = code;
+            localStorage.setItem(STORAGE_KEY, code);
+            els.codeError.hidden = true;
+            return fetchData().then(showApp);
+        }).catch(function () {
+            localStorage.removeItem(STORAGE_KEY);
+            if (!silent) {
+                els.codeError.hidden = false;
+            }
+        });
+    }
+
+    function lock() {
+        localStorage.removeItem(STORAGE_KEY);
+        state.code = '';
+        els.codeInput.value = '';
+        showLock();
+    }
+
+    /* ---------------- Données ---------------- */
+
+    function fetchData() {
+        return ajax('psc_sidscm_data', { code: state.code }).then(function (data) {
+            state.days = data.days || {};
+            state.services = data.services || {};
+            state.children = data.children || [];
+            state.attendance = data.attendance || {};
+
+            var dayKeys = Object.keys(state.days);
+            if (dayKeys.indexOf(state.activeDay) === -1) {
+                state.activeDay = dayKeys[0] || null;
+            }
+            renderAll();
+        });
+    }
+
+    function toggleAttendance(childId, date, service, present) {
+        // Optimiste : l'affichage a déjà changé (case cochée/décochée), on
+        // persiste ensuite sans bloquer l'interface — un échec réseau ne
+        // doit jamais empêcher l'intervenant de continuer son pointage.
+        ajax('psc_sidscm_toggle', {
+            child_id: childId,
+            jour_date: date,
+            service: service,
+            present: present ? '1' : '0',
+        }).catch(function () { /* pointage local conservé malgré l'échec réseau */ });
+    }
+
+    /* ---------------- Rendu ---------------- */
+
+    function countExpected(svc) {
+        var day = state.activeDay;
+        return state.children.filter(function (c) {
+            return (c[svc] || []).indexOf(day) !== -1;
+        }).length;
+    }
+
+    function sortChildren(list) {
+        return list.slice().sort(function (a, b) {
+            return (a.classe || '').localeCompare(b.classe || '') || a.nom.localeCompare(b.nom);
+        });
+    }
+
+    function renderDays() {
+        var dayKeys = Object.keys(state.days);
+        els.days.innerHTML = dayKeys.map(function (d) {
+            var active = d === state.activeDay;
+            return '<button type="button" class="psc-sidscm-day-btn' + (active ? ' is-active' : '') +
+                '" data-day="' + d + '" data-testid="sidscm-day-' + d + '">' + escapeHtml(capitalize(d)) + '</button>';
+        }).join('');
+        els.days.querySelectorAll('button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                state.activeDay = btn.dataset.day;
+                renderAll();
+            });
+        });
+    }
+
+    function renderServices() {
+        els.services.innerHTML = SERVICE_ORDER.map(function (code) {
+            var active = code === state.activeService;
+            return '<button type="button" class="psc-sidscm-svc-btn' + (active ? ' is-active' : '') +
+                '" data-svc="' + code + '" data-testid="sidscm-svc-' + code + '">' +
+                escapeHtml(svcLabel(code)) +
+                ' <span class="psc-sidscm-svc-count">' + countExpected(code) + '</span></button>';
+        }).join('');
+        els.services.querySelectorAll('button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                state.activeService = btn.dataset.svc;
+                renderAll();
+            });
+        });
+    }
+
+    function renderModeButtons() {
+        els.modeDay.classList.toggle('is-active', state.viewMode === 'day');
+        els.modeWeek.classList.toggle('is-active', state.viewMode === 'week');
+    }
+
+    function renderDayView() {
+        var svc = state.activeService;
+        var day = state.activeDay;
+        var date = state.days[day];
+
+        var rows = sortChildren(state.children.filter(function (c) {
+            return (c[svc] || []).indexOf(day) !== -1;
+        }));
+
+        var presentCount = 0;
+        var rowsHtml = rows.map(function (c) {
+            var key = c.id + '|' + date + '|' + svc;
+            var present = Object.prototype.hasOwnProperty.call(state.attendance, key) ? !!state.attendance[key] : true;
+            if (present) presentCount++;
+            var dietHtml = (svc === 'CANT' && c.diet)
+                ? '<span class="psc-sidscm-row-diet">' + escapeHtml(c.diet) + '</span>'
+                : '';
+            return '<div class="psc-sidscm-row" data-testid="sidscm-row-' + c.id + '">' +
+                '<label class="psc-sidscm-row-label">' +
+                '<input type="checkbox" class="psc-sidscm-row-check" data-child-id="' + c.id + '"' +
+                (present ? ' checked' : '') + ' data-testid="sidscm-check-' + c.id + '">' +
+                '<span class="psc-sidscm-row-name">' + escapeHtml(c.prenom) + ' ' + escapeHtml(c.nom) + '</span>' +
+                '<span class="psc-sidscm-row-classe">' + escapeHtml(c.classe || '') + '</span>' +
+                '</label>' + dietHtml +
+                '</div>';
+        }).join('');
+
+        var emptyHtml = rows.length === 0
+            ? '<div class="psc-sidscm-empty" data-testid="sidscm-empty">Aucun enfant attendu ce jour pour ce service.</div>'
+            : '';
+
+        els.content.innerHTML =
+            '<div class="psc-sidscm-panel" data-testid="sidscm-day-panel">' +
+            '<div class="psc-sidscm-panel-head">' +
+            '<div class="psc-sidscm-panel-title">' + escapeHtml(svcLabel(svc)) + ' — ' + escapeHtml(capitalize(day)) + '</div>' +
+            '<div class="psc-sidscm-panel-count" data-testid="sidscm-present-count">' + presentCount + ' / ' + rows.length + ' présents</div>' +
+            '</div>' + rowsHtml + emptyHtml +
+            '</div>';
+
+        els.content.querySelectorAll('.psc-sidscm-row-check').forEach(function (cb) {
+            cb.addEventListener('change', function () {
+                var childId = cb.dataset.childId;
+                var key = childId + '|' + date + '|' + svc;
+                state.attendance[key] = cb.checked ? 1 : 0;
+                toggleAttendance(childId, date, svc, cb.checked);
+                renderDayView(); // recalcule le compteur "X / Y présents"
+            });
+        });
+    }
+
+    function renderWeekView() {
+        var svc = state.activeService;
+        var dayKeys = Object.keys(state.days);
+
+        var rows = sortChildren(state.children.filter(function (c) {
+            return dayKeys.some(function (d) { return (c[svc] || []).indexOf(d) !== -1; });
+        }));
+
+        var headHtml = dayKeys.map(function (d) {
+            return '<th>' + escapeHtml(shortDay(d)) + '</th>';
+        }).join('');
+
+        var rowsHtml = rows.map(function (c) {
+            var marksHtml = dayKeys.map(function (d) {
+                var expected = (c[svc] || []).indexOf(d) !== -1;
+                return '<td><span class="psc-sidscm-mark' + (expected ? '' : ' is-absent') + '">' +
+                    (expected ? '●' : '—') + '</span></td>';
+            }).join('');
+            return '<tr><td class="psc-sidscm-table-child-cell">' + escapeHtml(c.prenom) + ' ' + escapeHtml(c.nom) +
+                ' <span class="psc-sidscm-table-child-classe">(' + escapeHtml(c.classe || '') + ')</span></td>' +
+                marksHtml + '</tr>';
+        }).join('');
+
+        els.content.innerHTML =
+            '<div class="psc-sidscm-panel" data-testid="sidscm-week-panel">' +
+            '<div class="psc-sidscm-panel-head"><div class="psc-sidscm-panel-title">' + escapeHtml(svcLabel(svc)) + ' — semaine</div></div>' +
+            '<div class="psc-sidscm-table-scroll"><table class="psc-sidscm-table">' +
+            '<thead><tr><th class="psc-sidscm-table-child-head">Enfant</th>' + headHtml + '</tr></thead>' +
+            '<tbody>' + rowsHtml + '</tbody></table></div>' +
+            '</div>';
+    }
+
+    function renderAll() {
+        renderDays();
+        renderServices();
+        renderModeButtons();
+        if (state.viewMode === 'day') {
+            renderDayView();
+        } else {
+            renderWeekView();
+        }
+    }
+
+    /* ---------------- Initialisation ---------------- */
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var root = document.getElementById('psc-sidscm-root');
+        if (!root || typeof PSC_SIDSCM === 'undefined') return;
+
+        els.lock = document.getElementById('psc-sidscm-lock');
+        els.app = document.getElementById('psc-sidscm-app');
+        els.codeForm = document.getElementById('psc-sidscm-code-form');
+        els.codeInput = document.getElementById('psc-sidscm-code-input');
+        els.codeError = document.getElementById('psc-sidscm-code-error');
+        els.modeDay = document.getElementById('psc-sidscm-mode-day');
+        els.modeWeek = document.getElementById('psc-sidscm-mode-week');
+        els.lockBtn = document.getElementById('psc-sidscm-lock-btn');
+        els.days = document.getElementById('psc-sidscm-days');
+        els.services = document.getElementById('psc-sidscm-services');
+        els.content = document.getElementById('psc-sidscm-content');
+
+        els.codeForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var code = els.codeInput.value.trim();
+            if (!code) return;
+            unlock(code, false);
+        });
+
+        els.modeDay.addEventListener('click', function () {
+            state.viewMode = 'day';
+            renderAll();
+        });
+        els.modeWeek.addEventListener('click', function () {
+            state.viewMode = 'week';
+            renderAll();
+        });
+        els.lockBtn.addEventListener('click', lock);
+
+        var stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+            unlock(stored, true);
+        }
+    });
+})();

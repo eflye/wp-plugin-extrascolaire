@@ -13,6 +13,7 @@ Remplace les fichiers papier/Excel remplis à la main par un site accessible aux
 - [Vue d'ensemble](#vue-densemble)
 - [Côté familles](#côté-familles)
 - [Côté mairie](#côté-mairie-backoffice)
+- [Listes intervenantes SIDSCM](#listes-intervenantes-sidscm)
 - [Règles métier](#règles-métier)
 - [Sécurité](#sécurité)
 - [Conformité RGPD](#conformité-rgpd)
@@ -192,6 +193,43 @@ Personnalisation du sujet et du corps de chaque e-mail transactionnel (lien de c
 - **Table de correspondance des classes** : un sélecteur par classe vers sa classe suivante (ou « Sortie »), utilisée par le [passage d'année](#années-scolaires) — non figée sur PS→MS→...→CM2, adaptable à une école à classes multi-niveaux.
 - **Fenêtre de réinscription** : dates d'ouverture/fermeture de la campagne annuelle, qui contrôlent la visibilité de l'onglet « Réinscription » côté famille.
 - **Validation automatique des demandes d'inscription** (désactivée par défaut) : voir [Demandes d'inscription](#demandes-dinscription).
+- **Code d'accès intervenantes SIDSCM** : voir [Listes intervenantes SIDSCM](#listes-intervenantes-sidscm).
+
+---
+
+## Listes intervenantes SIDSCM
+
+Page publique dédiée pour les intervenants sur le terrain (garderie/cantine) — aucun compte
+WordPress à créer. Activée en insérant le shortcode `[periscolaire_sidscm]` sur une page
+WordPress (même principe que `[periscolaire_form]`) ; la page prend tout l'écran, sans
+l'en-tête/titre habituel du thème, pensée comme un outil de consultation rapide plutôt qu'une
+page de contenu.
+
+**Accès** : protégé par un code unique configuré dans Réglages (« Code d'accès intervenantes
+SIDSCM », vide par défaut = accès désactivé pour tout le monde). Volontairement léger — pas de
+compte individuel, pas de session WordPress — mais le code est **revérifié côté serveur à
+chaque appel** (liste des enfants, pointage) : rien n'est envoyé au navigateur tant qu'il n'a
+pas été validé, contrairement à une simple bascule d'affichage côté client. Le code saisi une
+fois est retenu par le navigateur (stockage local) pour ne pas le ressaisir à chaque visite ; le
+bouton « Verrouiller » l'oublie immédiatement.
+
+**Contenu** : par service (Garderie Matin, Cantine, Garderie Soir) et par jour, la liste des
+enfants réellement inscrits (mêmes inscriptions que « Cantine & Garderie » côté famille, aucune
+saisie de planning propre à cet écran) — classe, badge allergie/régime **uniquement sur
+l'onglet Cantine**, et une case à cocher de présence réelle (26×26 px minimum, pensée pour un
+usage tactile). Un enfant est **présent par défaut** tant qu'il n'a pas été explicitement
+décoché : l'intervenant ne pointe que les absences plutôt que de cocher toute la liste. Le
+pointage est persisté (table `wp_psc_attendance`, horodatée) pour constituer un historique de
+présence réel, distinct des inscriptions déclarées.
+
+Deux vues, comme dans « Cantine & Garderie » : **Jour** (liste pointable, compteur « X / Y
+présents » mis à jour en direct) et **Semaine** (tableau enfants × jours, lecture seule, point
+plein si l'enfant est attendu ce jour-là pour le service actif). Seuls les **jours réellement en
+service** apparaissent (lundi/mardi/jeudi/vendredi hors vacances, jours fériés et fermetures
+ponctuelles) — jamais le mercredi, jamais un jour fermé, cohérent avec le reste du plugin.
+Toujours la semaine réellement en cours ; pas de navigation vers une autre semaine sur cet écran
+(outil du jour même, pas un historique à parcourir — l'historique de pointage existe en base
+pour un usage ultérieur, mais rien ne l'affiche encore ici).
 
 ---
 
@@ -359,11 +397,15 @@ periscolaire-registration/
 │   ├── class-psc-supplier-orders.php  # Commande fournisseur hebdomadaire (repas par classe)
 │   ├── class-psc-school-calendar.php  # Calendrier scolaire zone C (import iCal + corrections manuelles)
 │   ├── class-psc-email-templates.php  # Modèles d'e-mails personnalisables
+│   ├── class-psc-school-years.php  # Années scolaires, passage d'année
+│   ├── class-psc-pickup-persons.php   # Personnes autorisées à récupérer un enfant
+│   ├── class-psc-sidscm.php        # Écran intervenantes SIDSCM (shortcode + AJAX)
 │   └── fpdf/                       # Bibliothèque FPDF (génération PDF)
 ├── templates/
 │   ├── email/layout.php            # Layout HTML commun pour les e-mails
 │   ├── admin-*.php                 # Vues backoffice (dont admin-dashboard.php)
 │   ├── portal-*.php                # Vues du portail famille connecté (7 onglets + Réinscription, conditionnel)
+│   ├── sidscm.php                  # Écran intervenantes SIDSCM (plein écran, code d'accès)
 │   └── frontend-*.php, guest-*.php # Vues page publique / visiteur non connecté
 └── assets/
     ├── css/                        # Styles admin et frontend/portail
@@ -388,6 +430,7 @@ periscolaire-registration/
 | `wp_psc_menus` | Menus de cantine hebdomadaires |
 | `wp_psc_supplier_orders` | Historique des commandes fournisseur envoyées (comptage figé par semaine) |
 | `wp_psc_school_calendar` | Jours fermés zone C (import officiel + corrections manuelles) |
+| `wp_psc_attendance` | Pointage réel de présence par l'écran [Listes intervenantes SIDSCM](#listes-intervenantes-sidscm) (enfant × jour × service, horodaté) |
 
 ---
 

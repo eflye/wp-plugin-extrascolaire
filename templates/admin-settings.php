@@ -283,6 +283,28 @@ $doc_rp_id = (int) get_option('psc_doc_reglement_prelevement_id', 0);
 </tr>
 </table>
 
+<h2>Listes intervenantes SIDSCM</h2>
+<p>
+  Page publique dédiée pour les intervenants sur le terrain (garderie/cantine), protégée par un
+  simple code d'accès — pas de compte à créer. Insérez le shortcode <code>[periscolaire_sidscm]</code>
+  sur une page WordPress dédiée pour l'activer.
+</p>
+<table class="form-table">
+<tr>
+<th><label for="psc-sidscm-code">Code d'accès intervenantes SIDSCM</label></th>
+<td>
+  <input id="psc-sidscm-code" type="text" name="sidscm_access_code" class="regular-text" maxlength="40"
+         value="<?php echo esc_attr(get_option('psc_sidscm_access_code', '')); ?>"
+         placeholder="ex : SIDSCM2026" autocomplete="off">
+  <p class="description">
+    Laisser vide désactive complètement l'accès à cette page (personne ne peut la déverrouiller).
+    La comparaison ignore la casse. Ce code n'est pas un mot de passe individuel : communiquez-le
+    directement aux intervenants concernés.
+  </p>
+</td>
+</tr>
+</table>
+
 <?php submit_button('Enregistrer'); ?>
 </form>
 </div>

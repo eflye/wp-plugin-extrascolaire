@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '3.1.0';
+    const DB_VERSION = '3.2.0';
 
     public static function activate() {
         self::create_tables();
@@ -337,6 +337,7 @@ class Psc_Installer {
         $t_cy     = psc_table('child_school_years');
         $t_pickup = psc_table('pickup_persons');
         $t_pkhist = psc_table('pickup_history');
+        $t_att    = psc_table('attendance');
 
         $sql = "CREATE TABLE $t_years (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -565,6 +566,18 @@ CREATE TABLE $t_pkhist (
             PRIMARY KEY  (id),
             KEY child_id (child_id),
             KEY pickup_person_id (pickup_person_id)
+        ) $charset_collate;
+
+CREATE TABLE $t_att (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            child_id BIGINT UNSIGNED NOT NULL,
+            jour_date DATE NOT NULL,
+            service VARCHAR(10) NOT NULL,
+            present TINYINT(1) NOT NULL DEFAULT 1,
+            pointed_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY child_date_service (child_id, jour_date, service),
+            KEY jour_date (jour_date)
         ) $charset_collate;";
 
         dbDelta($sql);

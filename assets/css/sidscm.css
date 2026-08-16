@@ -1,0 +1,298 @@
+/* ===================================================================
+   SIDSCM · Listes intervenantes — page publique dédiée (code d'accès),
+   densité "outil de travail" : texte et cases à cocher plus grands que
+   côté famille, peu de fioritures, optimisé pour une lecture rapide sur
+   le terrain (y compris tablette). Polices auto-hébergées réutilisées
+   depuis portal.css (dépendance déclarée à l'enqueue), jamais de
+   requête vers Google Fonts.
+   =================================================================== */
+
+/* Écran plein page ("outil de terrain") : masque le titre/gabarit de
+   page hérité du thème, même mécanique que body.psc-portal-active dans
+   portal.css (Psc_Sidscm::add_body_class). Deux sélecteurs de titre
+   possibles selon le modèle réellement utilisé par la page WordPress où
+   le shortcode est inséré : ".wp-block-post-title" pour un modèle de
+   page par blocs (gabarit FSE), ".page-title" pour le rendu classique
+   (page.php) constaté quand la page n'a aucun modèle de bloc assigné. */
+body.psc-sidscm-active .wp-block-post-title,
+body.psc-sidscm-active .page-title {
+    display: none;
+}
+body.psc-sidscm-active main > .wp-block-group.has-global-padding {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+body.psc-sidscm-active main.site-main {
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+/* Rendu classique (page.php) : pas de wrapper .wp-block-group, mais
+   .entry-content/article peuvent porter leur propre marge/padding de
+   thème — neutralisés pour un vrai plein écran. */
+body.psc-sidscm-active main.site-main article,
+body.psc-sidscm-active main.site-main .entry-content {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.psc-sidscm {
+    --psc-forest: #2D4A3E;
+    --psc-moss: #4A6B52;
+    --psc-gold: #E2A72B;
+    --psc-ink: #1A1A1A;
+    --psc-cream: #FBF7EC;
+    --psc-paper: #F4EDD8;
+    --psc-stone: #8A837A;
+    --psc-line-light: #D8D0C0;
+    --psc-error: #8B3A3A;
+    --psc-rule: rgba(45, 74, 62, 0.22);
+    --psc-rule-light: rgba(45, 74, 62, 0.15);
+    --psc-rule-lighter: rgba(45, 74, 62, 0.1);
+
+    font-family: 'Work Sans', sans-serif;
+    color: var(--psc-ink);
+    background: var(--psc-cream);
+}
+
+/* .psc-sidscm-lock-screen et .psc-sidscm-app posent toutes deux un
+   display explicite (flex / block) plus bas dans ce fichier : sans ce
+   override, cette règle de classe l'emporte sur le display:none par
+   défaut de l'attribut natif [hidden] (même spécificité, la feuille du
+   plugin passe après la feuille UA) — l'élément resterait visible
+   malgré [hidden]. */
+.psc-sidscm-lock-screen[hidden],
+.psc-sidscm-app[hidden] {
+    display: none !important;
+}
+
+.psc-sidscm input:focus,
+.psc-sidscm button:focus {
+    outline: 2px solid var(--psc-gold);
+    outline-offset: 1px;
+}
+
+/* ---- Écran verrouillé ---- */
+
+.psc-sidscm-lock-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--psc-forest);
+    padding: 20px;
+    box-sizing: border-box;
+}
+.psc-sidscm-lock-card {
+    background: var(--psc-cream);
+    padding: 40px 36px;
+    max-width: 380px;
+    width: 100%;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    box-sizing: border-box;
+}
+.psc-sidscm-eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--psc-moss);
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+.psc-sidscm-eyebrow--dark { color: var(--psc-gold); margin-bottom: 4px; }
+.psc-sidscm-lock-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 24px;
+    color: var(--psc-forest);
+    margin: 0 0 14px;
+}
+.psc-sidscm-lock-intro {
+    font-size: 13.5px;
+    color: var(--psc-moss);
+    line-height: 1.5;
+    margin: 0 0 20px;
+}
+.psc-sidscm-code-input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--psc-forest);
+    background: #fff;
+    padding: 12px 14px;
+    font-size: 15px;
+    font-family: 'Work Sans', sans-serif;
+    margin-bottom: 12px;
+}
+.psc-sidscm-code-error { font-size: 12.5px; color: var(--psc-error); margin: 0 0 12px; }
+.psc-sidscm-code-submit {
+    background: var(--psc-gold);
+    color: var(--psc-ink);
+    border: none;
+    padding: 12px 20px;
+    font-size: 12.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 0 var(--psc-ink);
+    width: 100%;
+}
+
+/* ---- Écran principal ---- */
+
+.psc-sidscm-app { min-height: 100vh; }
+
+.psc-sidscm-header {
+    background: var(--psc-forest);
+    color: var(--psc-cream);
+    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+.psc-sidscm-title { font-family: 'Fraunces', serif; font-weight: 700; font-size: 22px; }
+.psc-sidscm-header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.psc-sidscm-mode-btn,
+.psc-sidscm-lock-btn {
+    border: none;
+    padding: 9px 16px;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    cursor: pointer;
+    background: rgba(251, 247, 236, 0.12);
+    color: var(--psc-cream);
+}
+.psc-sidscm-mode-btn.is-active { background: var(--psc-gold); color: var(--psc-ink); }
+.psc-sidscm-lock-btn {
+    background: none;
+    border: 1px solid rgba(251, 247, 236, 0.4);
+}
+
+.psc-sidscm-days {
+    background: var(--psc-paper);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--psc-rule-light);
+}
+.psc-sidscm-day-btn {
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--psc-forest);
+    padding: 8px 16px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.psc-sidscm-day-btn.is-active {
+    border-color: var(--psc-forest);
+    background: var(--psc-forest);
+    color: var(--psc-cream);
+}
+
+.psc-sidscm-services { padding: 22px 28px 0; display: flex; gap: 8px; flex-wrap: wrap; }
+.psc-sidscm-svc-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    color: var(--psc-ink);
+    border: 1px solid rgba(45, 74, 62, 0.25);
+    padding: 10px 18px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.psc-sidscm-svc-btn.is-active { background: var(--psc-forest); color: var(--psc-cream); border-color: var(--psc-forest); }
+.psc-sidscm-svc-count {
+    background: var(--psc-paper);
+    color: var(--psc-ink);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+}
+.psc-sidscm-svc-btn.is-active .psc-sidscm-svc-count { background: var(--psc-gold); }
+
+.psc-sidscm-content { padding: 18px 28px 48px; }
+
+.psc-sidscm-panel { background: #fff; border: 1px solid rgba(45, 74, 62, 0.18); }
+.psc-sidscm-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--psc-rule-light);
+    background: var(--psc-cream);
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.psc-sidscm-panel-title { font-family: 'Fraunces', serif; font-weight: 700; font-size: 16px; color: var(--psc-forest); }
+.psc-sidscm-panel-count { font-size: 13px; font-weight: 600; color: var(--psc-forest); }
+
+.psc-sidscm-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--psc-rule-lighter);
+}
+.psc-sidscm-row-label { display: flex; align-items: center; gap: 12px; flex: 1; cursor: pointer; }
+.psc-sidscm-row-check { width: 26px; height: 26px; min-width: 26px; accent-color: var(--psc-forest); cursor: pointer; flex-shrink: 0; }
+.psc-sidscm-row-name { font-size: 16px; font-weight: 600; }
+.psc-sidscm-row-classe { font-size: 12.5px; color: var(--psc-stone); font-weight: 500; }
+.psc-sidscm-row-diet {
+    background: var(--psc-gold);
+    color: var(--psc-ink);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 5px 12px;
+    white-space: nowrap;
+}
+
+.psc-sidscm-empty {
+    padding: 32px 20px;
+    text-align: center;
+    color: var(--psc-stone);
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 16px;
+}
+
+.psc-sidscm-table-scroll { overflow-x: auto; }
+.psc-sidscm-table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 640px; }
+.psc-sidscm-table th {
+    text-align: center;
+    padding: 10px 8px;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--psc-moss);
+    border-bottom: 1px solid var(--psc-rule);
+}
+.psc-sidscm-table th.psc-sidscm-table-child-head { text-align: left; padding: 10px 16px; }
+.psc-sidscm-table td { text-align: center; padding: 12px 8px; border-bottom: 1px solid var(--psc-rule-lighter); }
+.psc-sidscm-table td.psc-sidscm-table-child-cell {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.psc-sidscm-table-child-classe { color: var(--psc-stone); font-weight: 400; font-size: 12px; }
+.psc-sidscm-mark { font-size: 15px; font-weight: 700; color: var(--psc-forest); }
+.psc-sidscm-mark.is-absent { font-size: 13px; color: var(--psc-line-light); }
+
+@media (max-width: 640px) {
+    .psc-sidscm-header,
+    .psc-sidscm-days,
+    .psc-sidscm-services { padding-left: 16px; padding-right: 16px; }
+    .psc-sidscm-content { padding-left: 16px; padding-right: 16px; }
+}
