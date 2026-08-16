@@ -8,8 +8,32 @@ Remplace les fichiers papier/Excel remplis à la main par un site accessible aux
 
 ---
 
+## En un coup d'œil
+
+*Pour qui découvre le plugin : ce qu'il fait, en une vingtaine de lignes. Le détail de chaque point suit plus bas dans le document.*
+
+**Côté familles**
+- Inscription en ligne en 4 étapes (coordonnées, enfants, paiement, règlement intérieur), avec justificatif d'assurance scolaire par enfant et déclaration des personnes autorisées à venir le récupérer.
+- Connexion **sans mot de passe** : un lien reçu par e-mail suffit.
+- **Mon Espace Famille** : calendrier de présence par enfant et par jour (mis à jour immédiatement), annulation rapide de prestations déjà déclarées, suivi des factures, menu de la semaine, gestion du profil et des enfants, réinscription annuelle encadrée par une fenêtre dédiée.
+- Menu de cantine consultable publiquement, sans connexion.
+
+**Côté mairie**
+- Backoffice complet (menu **Périscolaire**) : tableau de bord, demandes d'inscription, familles, enfants, factures, menus, commande fournisseur, modèles d'e-mails, réglages.
+- Modération des demandes manuelle par défaut, avec une option de **validation automatique**.
+- **Années scolaires** avec passage d'année assisté (classe suivante proposée automatiquement, modifiable avant confirmation) et campagne de réinscription.
+- **Calendrier scolaire zone C** importé automatiquement (vacances, jours fériés), avec corrections manuelles ponctuelles.
+- **Facturation mensuelle** : PDF généré en un clic à partir des inscriptions réellement déclarées.
+- Historique inviolable des personnes autorisées à récupérer un enfant (ajouts/modifications/retraits tracés, jamais supprimés).
+
+**Sur le terrain**
+- Écran **Listes intervenantes SIDSCM** : qui est attendu aujourd'hui par service (garderie matin, cantine, garderie soir), pointage réel de présence et heure de départ — accès par simple code, sans compte WordPress.
+
+---
+
 ## Sommaire
 
+- [En un coup d'œil](#en-un-coup-dœil)
 - [Vue d'ensemble](#vue-densemble)
 - [Côté familles](#côté-familles)
 - [Côté mairie](#côté-mairie-backoffice)
@@ -193,7 +217,7 @@ Personnalisation du sujet et du corps de chaque e-mail transactionnel (lien de c
 - **Table de correspondance des classes** : un sélecteur par classe vers sa classe suivante (ou « Sortie »), utilisée par le [passage d'année](#années-scolaires) — non figée sur PS→MS→...→CM2, adaptable à une école à classes multi-niveaux.
 - **Fenêtre de réinscription** : dates d'ouverture/fermeture de la campagne annuelle, qui contrôlent la visibilité de l'onglet « Réinscription » côté famille.
 - **Validation automatique des demandes d'inscription** (désactivée par défaut) : voir [Demandes d'inscription](#demandes-dinscription).
-- **Code d'accès intervenantes SIDSCM** : voir [Listes intervenantes SIDSCM](#listes-intervenantes-sidscm).
+- **Page « Accès intervenants » et code d'accès SIDSCM** : voir [Listes intervenantes SIDSCM](#listes-intervenantes-sidscm).
 
 ---
 
@@ -203,7 +227,9 @@ Page publique dédiée pour les intervenants sur le terrain (garderie/cantine) �
 WordPress à créer. Activée en insérant le shortcode `[periscolaire_sidscm]` sur une page
 WordPress (même principe que `[periscolaire_form]`) ; la page prend tout l'écran, sans
 l'en-tête/titre habituel du thème, pensée comme un outil de consultation rapide plutôt qu'une
-page de contenu.
+page de contenu. La page à utiliser est configurable dans Réglages (**Page « Accès
+intervenants »**) — à défaut, la première page publiée contenant le shortcode est détectée
+automatiquement.
 
 **Accès** : protégé par un code unique configuré dans Réglages (« Code d'accès intervenantes
 SIDSCM », vide par défaut = accès désactivé pour tout le monde). Volontairement léger — pas de
