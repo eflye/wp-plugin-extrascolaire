@@ -19,7 +19,7 @@
     <tr>
       <td style="background-color:#2D4A3E;padding:22px 32px;">
         <p style="margin:0;color:#E2A72B;font-family:Helvetica,Arial,sans-serif;font-size:11px;font-weight:bold;letter-spacing:0.28em;text-transform:uppercase;">
-          Mairie de Montgeroult
+          Syndicat Intercommunal d'Intérêt Scolaire de Montgeroult – Courcelles
         </p>
       </td>
     </tr>
