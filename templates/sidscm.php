@@ -5,7 +5,7 @@
     <div class="psc-sidscm-lock-inner">
 
       <div class="psc-sidscm-lock-masthead">
-        <div class="psc-sidscm-lock-brand-eyebrow">Service périscolaire · Montgeroult</div>
+        <div class="psc-sidscm-lock-brand-eyebrow">Service périscolaire</div>
         <div class="psc-sidscm-lock-nav">
           <a href="<?php echo esc_url(Psc_Mailer::form_page_url()); ?>" class="psc-sidscm-lock-nav-link" data-testid="sidscm-nav-familles">Espace familles</a>
           <div class="psc-sidscm-lock-nav-active" data-testid="sidscm-nav-intervenants">Espace intervenants</div>

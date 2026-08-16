@@ -88,12 +88,12 @@ body.psc-sidscm-active main.site-main .entry-content {
 .psc-sidscm-lock-screen {
     min-height: 100vh;
     background: var(--psc-cream);
-    padding: 48px 32px 80px;
-    box-sizing: border-box;
 }
 .psc-sidscm-lock-inner {
     max-width: 1120px;
     margin: 0 auto;
+    padding: 48px 32px 80px;
+    box-sizing: border-box;
 }
 .psc-sidscm-lock-masthead {
     display: flex;
@@ -379,5 +379,5 @@ body.psc-sidscm-active main.site-main .entry-content {
     .psc-sidscm-days,
     .psc-sidscm-services { padding-left: 16px; padding-right: 16px; }
     .psc-sidscm-content { padding-left: 16px; padding-right: 16px; }
-    .psc-sidscm-lock-screen { padding-left: 20px; padding-right: 20px; }
+    .psc-sidscm-lock-inner { padding-left: 20px; padding-right: 20px; }
 }
