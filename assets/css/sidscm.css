@@ -101,11 +101,11 @@ body.psc-sidscm-active main.site-main .entry-content {
     justify-content: space-between;
     gap: 24px;
     flex-wrap: wrap;
-    margin-bottom: 14px;
+    margin-bottom: 18px;
 }
 .psc-sidscm-lock-brand-eyebrow {
-    font-size: 11px;
-    letter-spacing: 0.28em;
+    font-size: 10px;
+    letter-spacing: 0.26em;
     text-transform: uppercase;
     color: var(--psc-moss);
     font-weight: 600;
@@ -114,7 +114,6 @@ body.psc-sidscm-active main.site-main .entry-content {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 4px;
 }
 .psc-sidscm-lock-nav-link,
 .psc-sidscm-lock-nav-active {
@@ -131,13 +130,14 @@ body.psc-sidscm-active main.site-main .entry-content {
 .psc-sidscm-lock-nav-active {
     color: var(--psc-forest);
     font-weight: 700;
+    margin-top: 4px;
 }
 
 .psc-sidscm-lock-hairline {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin: 14px 0 36px;
+    margin: 0 0 36px;
 }
 .psc-sidscm-lock-hairline .line { flex: 1; height: 1px; background: var(--psc-rule); }
 .psc-sidscm-lock-hairline .dot { width: 6px; height: 6px; background: var(--psc-gold); transform: rotate(45deg); flex: none; }
