@@ -26,8 +26,7 @@ body.psc-sidscm-active main.site-main {
     max-width: none !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+    padding: 0 !important;
 }
 /* Rendu classique (page.php) : pas de wrapper .wp-block-group, mais
    .entry-content/article peuvent porter leur propre marge/padding de
