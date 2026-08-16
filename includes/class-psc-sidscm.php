@@ -17,7 +17,9 @@ if (!defined('ABSPATH')) exit;
  * planning ici. Le pointage de présence est persisté dans une table
  * dédiée (wp_psc_attendance), horodaté, un enfant "présent" par défaut
  * tant qu'il n'a jamais été pointé explicitement (l'intervenant ne
- * décoche que les absents plutôt que de cocher tout le monde).
+ * décoche que les absents plutôt que de cocher tout le monde). Sur
+ * l'onglet Garderie soir uniquement, la même ligne porte aussi l'heure
+ * de départ réelle saisie par l'intervenant (departure_time).
  */
 class Psc_Sidscm {
 
@@ -41,6 +43,8 @@ class Psc_Sidscm {
         add_action('wp_ajax_psc_sidscm_data', array(__CLASS__, 'ajax_data'));
         add_action('wp_ajax_nopriv_psc_sidscm_toggle', array(__CLASS__, 'ajax_toggle'));
         add_action('wp_ajax_psc_sidscm_toggle', array(__CLASS__, 'ajax_toggle'));
+        add_action('wp_ajax_nopriv_psc_sidscm_departure', array(__CLASS__, 'ajax_set_departure'));
+        add_action('wp_ajax_psc_sidscm_departure', array(__CLASS__, 'ajax_set_departure'));
     }
 
     protected static function page_has_shortcode() {
@@ -138,6 +142,7 @@ class Psc_Sidscm {
             'services'   => psc_services(),
             'children'   => array(),
             'attendance' => new stdClass(), // objet vide côté JSON si aucune ligne
+            'departures' => new stdClass(),
         );
 
         if (empty($open_days)) {
@@ -168,13 +173,20 @@ class Psc_Sidscm {
 
         $t_att = psc_table('attendance');
         $att_rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT child_id, jour_date, service, present FROM $t_att
+            "SELECT child_id, jour_date, service, present, departure_time FROM $t_att
              WHERE child_id IN ($ph_child) AND jour_date IN ($ph_date)",
             array_merge($child_ids, $dates)
         ));
         $attendance = array();
+        $departures = array();
         foreach ($att_rows as $a) {
-            $attendance[$a->child_id . '|' . $a->jour_date . '|' . $a->service] = (int) $a->present;
+            $key = $a->child_id . '|' . $a->jour_date . '|' . $a->service;
+            $attendance[$key] = (int) $a->present;
+            if ($a->departure_time) {
+                // Colonne TIME MySQL -> "HH:MM" pour <input type="time">
+                // (l'attribut value n'accepte pas les secondes en trop).
+                $departures[$key] = substr($a->departure_time, 0, 5);
+            }
         }
 
         // Un forfait (FORF) couvre GM+CANT+GS d'un même coup : une ligne
@@ -221,6 +233,7 @@ class Psc_Sidscm {
 
         $out['children'] = $out_children;
         $out['attendance'] = $attendance ?: new stdClass();
+        $out['departures'] = $departures ?: new stdClass();
 
         wp_send_json_success($out);
     }
@@ -266,6 +279,66 @@ class Psc_Sidscm {
                 'present'    => $present,
                 'pointed_at' => $now,
             ), array('%d', '%s', '%s', '%d', '%s'));
+        }
+
+        wp_send_json_success();
+    }
+
+    /* ---------------- Heure de départ (Garderie soir) ---------------- */
+
+    /**
+     * Heure de départ réelle, saisie par l'intervenant sur l'onglet
+     * Garderie soir uniquement — même mécanisme de persistance que le
+     * pointage de présence (même ligne wp_psc_attendance, enfant × jour
+     * × service='GS'), mais une colonne dédiée : ne touche jamais
+     * `present`, pour ne jamais écraser un pointage déjà saisi.
+     */
+    public static function ajax_set_departure() {
+        check_ajax_referer('psc_sidscm_front', 'nonce');
+        if (!self::code_valid(psc_post('code'))) {
+            wp_send_json_error(array('code' => 'auth'), 403);
+        }
+
+        $child_id = psc_post_int('child_id');
+        $date     = psc_valid_date(psc_post('jour_date'));
+        $time     = psc_post('departure_time');
+
+        if (!$child_id || !$date) {
+            wp_send_json_error(array('code' => 'invalid'), 400);
+        }
+        if ($time !== '' && !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time)) {
+            wp_send_json_error(array('code' => 'invalid'), 400);
+        }
+
+        global $wpdb;
+        $t_att = psc_table('attendance');
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $t_att WHERE child_id = %d AND jour_date = %s AND service = 'GS'",
+            $child_id, $date
+        ));
+
+        $now = current_time('mysql');
+        $departure_time = $time !== '' ? $time . ':00' : null;
+
+        if ($existing) {
+            $wpdb->update(
+                $t_att,
+                array('departure_time' => $departure_time, 'pointed_at' => $now),
+                array('id' => $existing),
+                array('%s', '%s'),
+                array('%d')
+            );
+        } else {
+            // Aucune ligne encore : la présence garde sa valeur par
+            // défaut (colonne `present` DEFAULT 1), seule l'heure de
+            // départ est réellement renseignée par cette action.
+            $wpdb->insert($t_att, array(
+                'child_id'       => $child_id,
+                'jour_date'      => $date,
+                'service'        => 'GS',
+                'departure_time' => $departure_time,
+                'pointed_at'     => $now,
+            ), array('%d', '%s', '%s', '%s', '%s'));
         }
 
         wp_send_json_success();

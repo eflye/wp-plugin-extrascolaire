@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '3.2.0';
+    const DB_VERSION = '3.3.0';
 
     public static function activate() {
         self::create_tables();
@@ -574,6 +574,7 @@ CREATE TABLE $t_att (
             jour_date DATE NOT NULL,
             service VARCHAR(10) NOT NULL,
             present TINYINT(1) NOT NULL DEFAULT 1,
+            departure_time TIME NULL,
             pointed_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY child_date_service (child_id, jour_date, service),

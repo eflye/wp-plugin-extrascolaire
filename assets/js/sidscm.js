@@ -13,6 +13,7 @@
         services: {},  // code => { label, price }
         children: [],  // { id, prenom, nom, classe, diet, GM: [jours], CANT: [jours], GS: [jours] }
         attendance: {}, // "childId|date|service" => 0|1
+        departures: {}, // "childId|date|GS" => "HH:MM"
     };
 
     var els = {};
@@ -31,6 +32,14 @@
         return capitalize(jour).slice(0, 3);
     }
 
+    /** "2026-08-17" -> "17/08" — la date vient toujours de state.days
+     *  (résolue côté serveur depuis le vrai calendrier), jamais calculée
+     *  ici à partir d'une date codée en dur. */
+    function formatDDMM(dateStr) {
+        var parts = (dateStr || '').split('-');
+        return parts.length === 3 ? parts[2] + '/' + parts[1] : '';
+    }
+
     function svcLabel(code) {
         var s = state.services[code];
         return s && s.label ? s.label : code;
@@ -42,6 +51,11 @@
         var body = new URLSearchParams();
         body.set('action', action);
         body.set('nonce', PSC_SIDSCM.nonce);
+        // Le code d'accès est revalidé côté serveur à chaque appel (voir
+        // Psc_Sidscm::code_valid) : toujours envoyé depuis l'état courant,
+        // sauf si l'appelant fournit le sien explicitement (unlock, avant
+        // que state.code ne soit renseigné).
+        body.set('code', state.code);
         Object.keys(params || {}).forEach(function (k) {
             body.set(k, params[k]);
         });
@@ -93,11 +107,12 @@
     /* ---------------- Données ---------------- */
 
     function fetchData() {
-        return ajax('psc_sidscm_data', { code: state.code }).then(function (data) {
+        return ajax('psc_sidscm_data').then(function (data) {
             state.days = data.days || {};
             state.services = data.services || {};
             state.children = data.children || [];
             state.attendance = data.attendance || {};
+            state.departures = data.departures || {};
 
             var dayKeys = Object.keys(state.days);
             if (dayKeys.indexOf(state.activeDay) === -1) {
@@ -119,6 +134,14 @@
         }).catch(function () { /* pointage local conservé malgré l'échec réseau */ });
     }
 
+    function setDeparture(childId, date, time) {
+        ajax('psc_sidscm_departure', {
+            child_id: childId,
+            jour_date: date,
+            departure_time: time,
+        }).catch(function () { /* valeur locale conservée malgré l'échec réseau */ });
+    }
+
     /* ---------------- Rendu ---------------- */
 
     function countExpected(svc) {
@@ -138,8 +161,9 @@
         var dayKeys = Object.keys(state.days);
         els.days.innerHTML = dayKeys.map(function (d) {
             var active = d === state.activeDay;
+            var label = capitalize(d) + ' ' + formatDDMM(state.days[d]);
             return '<button type="button" class="psc-sidscm-day-btn' + (active ? ' is-active' : '') +
-                '" data-day="' + d + '" data-testid="sidscm-day-' + d + '">' + escapeHtml(capitalize(d)) + '</button>';
+                '" data-day="' + d + '" data-testid="sidscm-day-' + d + '">' + escapeHtml(label) + '</button>';
         }).join('');
         els.days.querySelectorAll('button').forEach(function (btn) {
             btn.addEventListener('click', function () {
@@ -187,13 +211,20 @@
             var dietHtml = (svc === 'CANT' && c.diet)
                 ? '<span class="psc-sidscm-row-diet">' + escapeHtml(c.diet) + '</span>'
                 : '';
+            var departureHtml = '';
+            if (svc === 'GS') {
+                var departureVal = state.departures[key] || '';
+                departureHtml = '<label class="psc-sidscm-row-departure">Départ' +
+                    '<input type="time" class="psc-sidscm-row-departure-input" data-child-id="' + c.id + '"' +
+                    ' value="' + escapeHtml(departureVal) + '" data-testid="sidscm-departure-' + c.id + '"></label>';
+            }
             return '<div class="psc-sidscm-row" data-testid="sidscm-row-' + c.id + '">' +
                 '<label class="psc-sidscm-row-label">' +
                 '<input type="checkbox" class="psc-sidscm-row-check" data-child-id="' + c.id + '"' +
                 (present ? ' checked' : '') + ' data-testid="sidscm-check-' + c.id + '">' +
                 '<span class="psc-sidscm-row-name">' + escapeHtml(c.prenom) + ' ' + escapeHtml(c.nom) + '</span>' +
                 '<span class="psc-sidscm-row-classe">' + escapeHtml(c.classe || '') + '</span>' +
-                '</label>' + dietHtml +
+                '</label>' + dietHtml + departureHtml +
                 '</div>';
         }).join('');
 
@@ -216,6 +247,17 @@
                 state.attendance[key] = cb.checked ? 1 : 0;
                 toggleAttendance(childId, date, svc, cb.checked);
                 renderDayView(); // recalcule le compteur "X / Y présents"
+            });
+        });
+
+        // Départ (Garderie soir uniquement) : pas de recalcul de compteur,
+        // pas besoin de re-rendre toute la vue à chaque frappe/changement.
+        els.content.querySelectorAll('.psc-sidscm-row-departure-input').forEach(function (input) {
+            input.addEventListener('change', function () {
+                var childId = input.dataset.childId;
+                var key = childId + '|' + date + '|' + svc;
+                state.departures[key] = input.value;
+                setDeparture(childId, date, input.value);
             });
         });
     }

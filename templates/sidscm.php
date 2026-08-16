@@ -20,6 +20,7 @@
       <div>
         <div class="psc-sidscm-eyebrow psc-sidscm-eyebrow--dark">SIDSCM · Montgeroult</div>
         <div class="psc-sidscm-title">Listes des enfants attendus</div>
+        <div class="psc-sidscm-today" data-testid="sidscm-today"><?php echo esc_html(date_i18n('l j F Y', current_time('timestamp'))); ?></div>
       </div>
       <div class="psc-sidscm-header-actions">
         <button type="button" class="psc-sidscm-mode-btn" id="psc-sidscm-mode-day" data-testid="sidscm-mode-day">Jour</button>

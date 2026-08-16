@@ -226,10 +226,18 @@ Deux vues, comme dans « Cantine & Garderie » : **Jour** (liste pointable, comp
 présents » mis à jour en direct) et **Semaine** (tableau enfants × jours, lecture seule, point
 plein si l'enfant est attendu ce jour-là pour le service actif). Seuls les **jours réellement en
 service** apparaissent (lundi/mardi/jeudi/vendredi hors vacances, jours fériés et fermetures
-ponctuelles) — jamais le mercredi, jamais un jour fermé, cohérent avec le reste du plugin.
-Toujours la semaine réellement en cours ; pas de navigation vers une autre semaine sur cet écran
-(outil du jour même, pas un historique à parcourir — l'historique de pointage existe en base
-pour un usage ultérieur, mais rien ne l'affiche encore ici).
+ponctuelles) — jamais le mercredi, jamais un jour fermé, cohérent avec le reste du plugin. Chaque
+bouton de jour affiche sa date (ex. « Lundi 17/08 »), calculée dynamiquement à partir du lundi de
+la semaine en cours. Toujours la semaine réellement en cours ; pas de navigation vers une autre
+semaine sur cet écran (outil du jour même, pas un historique à parcourir — l'historique de
+pointage existe en base pour un usage ultérieur, mais rien ne l'affiche encore ici). L'en-tête
+rappelle également la date du jour en toutes lettres.
+
+**Heure de départ (Garderie soir)** : sur l'onglet Garderie soir, en vue Jour uniquement, un champ
+« Départ » permet de saisir l'heure de départ réelle de chaque enfant. Persistée sur la même ligne
+`wp_psc_attendance` (enfant × jour × service) que le pointage de présence, mais sur une colonne
+dédiée (`departure_time`) qui ne touche jamais `present` — les deux pointages (présence, départ)
+peuvent être saisis indépendamment sans s'écraser l'un l'autre.
 
 ---
 

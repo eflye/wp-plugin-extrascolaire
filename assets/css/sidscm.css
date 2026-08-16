@@ -155,6 +155,12 @@ body.psc-sidscm-active main.site-main .entry-content {
     gap: 14px;
 }
 .psc-sidscm-title { font-family: 'Fraunces', serif; font-weight: 700; font-size: 22px; }
+.psc-sidscm-today {
+    font-size: 12.5px;
+    color: rgba(251, 247, 236, 0.75);
+    margin-top: 4px;
+    text-transform: capitalize;
+}
 .psc-sidscm-header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 .psc-sidscm-mode-btn,
@@ -256,6 +262,22 @@ body.psc-sidscm-active main.site-main .entry-content {
     letter-spacing: 0.04em;
     padding: 5px 12px;
     white-space: nowrap;
+}
+.psc-sidscm-row-departure {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--psc-moss);
+    font-weight: 600;
+    white-space: nowrap;
+}
+.psc-sidscm-row-departure-input {
+    border: 1px solid var(--psc-forest);
+    background: #fff;
+    padding: 6px 8px;
+    font-size: 14px;
+    font-family: 'Work Sans', sans-serif;
 }
 
 .psc-sidscm-empty {
