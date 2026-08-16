@@ -97,6 +97,7 @@ Fournie le <?php echo esc_html(date_i18n('d/m/Y', strtotime($c->assurance_upload
 <?php endif; ?>
 </td>
 <td style="white-space:nowrap">
+<a class="button" href="<?php echo esc_url(admin_url('admin.php?page=psc_pickup_persons&child_id=' . $c->id)); ?>">Personnes autorisées</a>
 <?php if ($c->statut === 'actif'): ?>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
 <?php wp_nonce_field('psc_mark_child_sorti'); ?>

@@ -115,6 +115,9 @@ class Psc_Admin {
         // Familles
         add_submenu_page('psc_dashboard', 'Familles', 'Familles', $cap, 'psc_parents', array(__CLASS__, 'page_parents'));
         add_submenu_page('psc_dashboard', 'Enfants', 'Enfants', $cap, 'psc_children', array(__CLASS__, 'page_children'));
+        // Fiche "Personnes autorisées" d'un enfant — accessible uniquement
+        // depuis la ligne de l'enfant dans Enfants, jamais dans le menu.
+        add_submenu_page('psc_dashboard', 'Personnes autorisées', null, $cap, 'psc_pickup_persons', array(__CLASS__, 'page_pickup_persons'));
 
         // Cantine
         add_submenu_page('psc_dashboard', 'Menus cantine', 'Menus cantine', $cap, 'psc_menus', array(__CLASS__, 'page_menus'));
@@ -464,6 +467,11 @@ class Psc_Admin {
 
         $wpdb->delete(psc_table('registrations'), array('child_id' => $id), array('%d'));
         $wpdb->delete(psc_table('child_school_years'), array('child_id' => $id), array('%d'));
+        // RGPD : les coordonnées de tiers (personnes autorisées) suivent la
+        // même durée de conservation que la fiche enfant, historique compris
+        // — cf. README.
+        $wpdb->delete(psc_table('pickup_history'), array('child_id' => $id), array('%d'));
+        $wpdb->delete(psc_table('pickup_persons'), array('child_id' => $id), array('%d'));
         $wpdb->delete(psc_table('children'), array('id' => $id), array('%d'));
         self::redirect('psc_children', 'deleted');
     }
@@ -509,6 +517,32 @@ class Psc_Admin {
         $psc_classe_labels = psc_classe_options();
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         include PSC_PATH . 'templates/admin-children.php';
+    }
+
+    /**
+     * Fiche "Personnes autorisées" d'un enfant — consultation seule côté
+     * mairie (liste courante + historique complet). Aucune écriture :
+     * seule la famille édite cette liste, cf. Psc_Frontend.
+     */
+    public static function page_pickup_persons() {
+        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        global $wpdb;
+
+        $child_id = psc_get_int('child_id');
+        $child = $child_id ? $wpdb->get_row($wpdb->prepare(
+            'SELECT c.*, p.nom AS parent_nom, p.email AS parent_email
+             FROM ' . psc_table('children') . ' c
+             LEFT JOIN ' . psc_table('parents') . ' p ON p.id = c.parent_id
+             WHERE c.id = %d', $child_id
+        )) : null;
+
+        if (!$child) {
+            wp_die(esc_html__('Enfant introuvable.', 'periscolaire-registration'), '', array('response' => 404));
+        }
+
+        $pickup_persons = Psc_Pickup_Persons::for_child($child_id);
+        $pickup_history = Psc_Pickup_Persons::history_for_child($child_id);
+        include PSC_PATH . 'templates/admin-pickup-persons.php';
     }
 
     /* ---------------- Réglages ---------------- */
