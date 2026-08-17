@@ -304,7 +304,7 @@ panneau déjà déplié.
 
 ## Sécurité
 
-- Contrôle d'accès systématique : chaque action d'administration vérifie **à la fois** la capacité de l'utilisateur (`manage_options` par défaut) et un nonce WordPress (protection CSRF) — l'un ne remplace pas l'autre.
+- Contrôle d'accès systématique : chaque action d'administration vérifie **à la fois** la capacité de l'utilisateur (`psc_manage_periscolaire`, accordée par défaut aux administrateurs et aux éditeurs — voir [Capacité d'accès personnalisée](#capacité-daccès-personnalisée)) et un nonce WordPress (protection CSRF) — l'un ne remplace pas l'autre.
 - Cloisonnement des données : un parent ne peut agir que sur ses propres enfants, contrôlé côté serveur à chaque requête.
 - Requêtes SQL préparées (`$wpdb->prepare()`) systématiquement, y compris avec un nombre variable de paramètres.
 - Échappement systématique des sorties (`esc_html`/`esc_attr`/`esc_url`).
@@ -349,11 +349,21 @@ panneau déjà déplié.
 
 ### Capacité d'accès personnalisée
 
-Par défaut, seuls les administrateurs WordPress (`manage_options`) accèdent au backoffice. Pour donner accès à un rôle dédié :
+Le backoffice (menu Périscolaire, réglages, validation des demandes...) est protégé par une capacité WordPress dédiée (`psc_manage_periscolaire`), et non `manage_options` — un membre de la mairie n'a donc pas besoin d'être Administrateur complet du site (thèmes, extensions, réglages WordPress) pour gérer le périscolaire. Cette capacité est accordée automatiquement, à l'activation et à chaque mise à jour du plugin, aux rôles **Administrateur** et **Éditeur** (`Psc_Installer::sync_roles()`) : il suffit d'attribuer le rôle Éditeur au membre de la mairie concerné, sans configuration supplémentaire. Les mises à jour du plugin lui-même restent réservées à l'Administrateur, comme pour toute extension WordPress.
+
+Pour changer les rôles qui reçoivent la capacité par défaut (par exemple, ne pas l'accorder aux éditeurs, ou l'ajouter à un rôle personnalisé) :
+
+```php
+add_filter('psc_manage_default_roles', fn() => array('administrator', 'gestionnaire_periscolaire'));
+```
+
+Pour utiliser une capacité entièrement différente (cas avancé, gestion manuelle des rôles) :
 
 ```php
 add_filter('psc_manage_capability', fn() => 'gerer_periscolaire');
 ```
+
+Dans ce dernier cas, retourner un tableau vide via `psc_manage_default_roles` désactive l'attribution automatique, pour gérer soi-même qui possède cette capacité.
 
 ### Nombre maximum d'enfants par famille
 

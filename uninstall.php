@@ -17,6 +17,16 @@
 
 if (!defined('WP_UNINSTALL_PLUGIN')) exit;
 
+// Retire la capacité accordée par Psc_Installer::sync_roles() (pas de
+// donnée personnelle, aucun risque à le faire systématiquement — même
+// sans PSC_REMOVE_DATA_ON_UNINSTALL — pour ne pas laisser une capacité
+// orpheline sur les rôles une fois le plugin supprimé).
+foreach (array('administrator', 'editor') as $role_name) {
+    $role = get_role($role_name);
+    if ($role) $role->remove_cap('psc_manage_periscolaire');
+}
+delete_option('psc_roles_version');
+
 if (!defined('PSC_REMOVE_DATA_ON_UNINSTALL') || !PSC_REMOVE_DATA_ON_UNINSTALL) {
     return;
 }

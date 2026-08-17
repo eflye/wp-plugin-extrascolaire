@@ -4,10 +4,33 @@ if (!defined('ABSPATH')) exit;
 class Psc_Installer {
 
     const DB_VERSION = '3.4.0';
+    const ROLES_VERSION = '1.0.0';
 
     public static function activate() {
         self::create_tables();
         update_option('psc_db_version', self::DB_VERSION);
+        self::sync_roles();
+        update_option('psc_roles_version', self::ROLES_VERSION);
+    }
+
+    /**
+     * Accorde psc_manage_cap() aux rôles listés par psc_manage_default_roles()
+     * (administrateur + éditeur par défaut). Un administrateur WordPress n'a
+     * PAS automatiquement les capacités personnalisées d'une extension :
+     * sans cet ajout explicite, personne — pas même les administrateurs
+     * déjà en place — n'aurait accès au backoffice périscolaire, puisque
+     * la capacité vérifiée n'est plus manage_options. N'enlève jamais une
+     * capacité (idempotent, purement additif ; cf. uninstall.php pour le
+     * retrait à la désinstallation complète).
+     */
+    protected static function sync_roles() {
+        $cap = psc_manage_cap();
+        foreach (psc_manage_default_roles() as $role_name) {
+            $role = get_role($role_name);
+            if ($role && !$role->has_cap($cap)) {
+                $role->add_cap($cap);
+            }
+        }
     }
 
     /**
@@ -16,6 +39,12 @@ class Psc_Installer {
      * de fichiers (cas fréquent : le hook d'activation n'est pas rejoué).
      */
     public static function maybe_upgrade() {
+        $roles_current = get_option('psc_roles_version');
+        if ($roles_current !== self::ROLES_VERSION) {
+            self::sync_roles();
+            update_option('psc_roles_version', self::ROLES_VERSION);
+        }
+
         $current = get_option('psc_db_version');
         if ($current !== self::DB_VERSION) {
             // dbDelta() est additif (ajoute tables/colonnes manquantes,

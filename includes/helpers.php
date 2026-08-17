@@ -2,12 +2,26 @@
 if (!defined('ABSPATH')) exit;
 
 /**
- * Capacité requise pour accéder au backoffice périscolaire.
- * Filtrable : permet de donner l'accès à un rôle dédié sans passer par
- * un compte Administrateur complet.
+ * Capacité requise pour accéder au backoffice périscolaire. Capacité
+ * dédiée (pas manage_options) : elle est accordée par défaut aux
+ * administrateurs ET aux éditeurs (cf. Psc_Installer::sync_roles()),
+ * pour qu'un membre de la mairie puisse gérer le périscolaire sans avoir
+ * les droits d'administration complète du site (thèmes, extensions,
+ * réglages WordPress). Filtrable pour pointer vers une capacité
+ * entièrement personnalisée si besoin.
  */
 function psc_manage_cap() {
-    return apply_filters('psc_manage_capability', 'manage_options');
+    return apply_filters('psc_manage_capability', 'psc_manage_periscolaire');
+}
+
+/**
+ * Rôles WordPress auxquels psc_manage_cap() est accordée par défaut à
+ * l'activation/mise à jour du plugin. Filtrable : retourner un tableau
+ * vide désactive l'attribution automatique (utile si la capacité a été
+ * personnalisée via psc_manage_capability et gérée à la main).
+ */
+function psc_manage_default_roles() {
+    return apply_filters('psc_manage_default_roles', array('administrator', 'editor'));
 }
 
 function psc_user_can_manage() {
