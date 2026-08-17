@@ -27,6 +27,8 @@
         'sepa_missing'            => array('err', 'Merci de renseigner le titulaire du compte à débiter.'),
         'bad_iban'                => array('err', 'L\'IBAN saisi n\'est pas valide. Vérifiez sa saisie.'),
         'bad_bic'                 => array('err', 'Le BIC saisi n\'est pas valide. Vérifiez sa saisie.'),
+        'second_parent_bad_email' => array('err', 'L\'adresse e-mail du second parent n\'est pas valide.'),
+        'second_parent_bad_phone' => array('err', 'Le numéro de téléphone du second parent n\'est pas valide.'),
     );
     // Confirmations : popin auto-masquée (cf. assets/js/frontend.js).
     // Erreurs de connexion : bandeau classique en haut de page.
@@ -41,6 +43,7 @@
         'need_child', 'child_incomplete', 'assurance_required', 'assurance_too_large', 'assurance_invalid_type',
         'reglement_required', 'sepa_reglement_required',
         'sepa_missing', 'bad_iban', 'bad_bic',
+        'second_parent_bad_email', 'second_parent_bad_phone',
     );
     if (!empty($psc_msg) && isset($psc_notices[$psc_msg]) && !in_array($psc_msg, $psc_wizard_messages, true)):
         list($type, $text) = $psc_notices[$psc_msg];

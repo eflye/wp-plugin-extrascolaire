@@ -62,6 +62,15 @@
         'pickup_updated' => array('ok',  'Personne autorisée modifiée.'),
         'pickup_removed' => array('ok',  'Personne retirée de la liste des personnes autorisées.'),
         'pickup_invalid' => array('err', 'Nom, prénom et téléphone sont obligatoires, et l\'enfant doit être le vôtre.'),
+
+        'second_parent_updated'   => array('ok',  'Second parent enregistré.'),
+        'second_parent_removed'   => array('ok',  'Second parent retiré.'),
+        'second_parent_bad_email' => array('err', 'L\'adresse e-mail du second parent n\'est pas valide.'),
+        'second_parent_bad_phone' => array('err', 'Le numéro de téléphone du second parent n\'est pas valide.'),
+
+        'household_pickup_added'   => array('ok',  'Personne autorisée ajoutée.'),
+        'household_pickup_removed' => array('ok',  'Personne retirée de la liste des personnes autorisées.'),
+        'household_pickup_invalid' => array('err', 'Nom, prénom et téléphone sont obligatoires.'),
     );
     // Confirmations : popin auto-masquée (cf. assets/js/frontend.js).
     // Erreurs à corriger : bandeau classique, le temps de lire et d'agir.

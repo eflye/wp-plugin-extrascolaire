@@ -259,15 +259,28 @@ class Psc_Sidscm {
             }
             if (!$has_any) continue; // rien à afficher pour cet enfant cette semaine
 
+            // Toujours recalculées à la volée (parents + éventuel second
+            // parent + tiers ajoutés côté famille) : jamais une copie
+            // figée à l'inscription, cf. Psc_Pickup_Persons::authorized_for_child().
+            $authorized = array_map(function ($p) {
+                return array(
+                    'role'      => $p['role'],
+                    'prenom'    => $p['prenom'],
+                    'nom'       => $p['nom'],
+                    'telephone' => $p['telephone'],
+                );
+            }, Psc_Pickup_Persons::authorized_for_child($c->id));
+
             $out_children[] = array(
-                'id'     => (int) $c->id,
-                'prenom' => $c->prenom,
-                'nom'    => $c->nom,
-                'classe' => $classe,
-                'diet'   => $diet_bits ? implode(', ', $diet_bits) : null,
-                'GM'     => $per_service['GM'],
-                'CANT'   => $per_service['CANT'],
-                'GS'     => $per_service['GS'],
+                'id'         => (int) $c->id,
+                'prenom'     => $c->prenom,
+                'nom'        => $c->nom,
+                'classe'     => $classe,
+                'diet'       => $diet_bits ? implode(', ', $diet_bits) : null,
+                'GM'         => $per_service['GM'],
+                'CANT'       => $per_service['CANT'],
+                'GS'         => $per_service['GS'],
+                'authorized' => $authorized,
             );
         }
 

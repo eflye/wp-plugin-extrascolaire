@@ -341,6 +341,53 @@ body.psc-sidscm-active main.site-main .entry-content {
     font-family: 'Work Sans', sans-serif;
 }
 
+.psc-sidscm-auth-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid var(--psc-forest);
+    background: transparent;
+    color: var(--psc-forest);
+    font-family: 'Work Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.psc-sidscm-auth-toggle:hover { background: var(--psc-paper); }
+.psc-sidscm-auth-toggle.is-expanded { background: var(--psc-forest); color: var(--psc-cream); }
+.psc-sidscm-auth-toggle-icon { font-weight: 700; }
+.psc-sidscm-auth-toggle--week { margin-left: 10px; padding: 4px 10px; }
+
+.psc-sidscm-auth-panel {
+    background: var(--psc-cream);
+    border-bottom: 1px solid var(--psc-rule-lighter);
+    padding: 12px 20px 16px 56px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.psc-sidscm-auth-person {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13.5px;
+}
+.psc-sidscm-auth-badge {
+    background: var(--psc-paper);
+    color: var(--psc-forest);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 4px 10px;
+    white-space: nowrap;
+}
+.psc-sidscm-auth-name { font-weight: 600; }
+.psc-sidscm-auth-tel { color: var(--psc-moss); }
+.psc-sidscm-auth-empty { color: var(--psc-stone); font-style: italic; font-size: 13px; }
+
 .psc-sidscm-empty {
     padding: 32px 20px;
     text-align: center;

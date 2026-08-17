@@ -258,6 +258,34 @@ class Psc_Requests {
             exit;
         }
 
+        // Second parent (facultatif) : chaque champ reste indépendamment
+        // optionnel — contrairement aux personnes autorisées ci-dessous,
+        // aucune règle de "tout ou rien" n'est exigée. Seul un format
+        // invalide (e-mail/téléphone), s'il est renseigné, fait échouer la
+        // soumission plutôt que d'enregistrer une donnée invalide.
+        $second_parent_prenom = psc_post('second_parent_prenom');
+        $second_parent_nom    = psc_post('second_parent_nom');
+
+        $second_parent_email = '';
+        $second_parent_email_raw = psc_post('second_parent_email');
+        if ($second_parent_email_raw !== '') {
+            if (!is_email($second_parent_email_raw)) {
+                wp_safe_redirect(add_query_arg('psc_msg', 'second_parent_bad_email', $back));
+                exit;
+            }
+            $second_parent_email = strtolower(sanitize_email($second_parent_email_raw));
+        }
+
+        $second_parent_telephone = '';
+        $second_parent_tel_raw = psc_post('second_parent_telephone');
+        if ($second_parent_tel_raw !== '') {
+            $second_parent_telephone = psc_valid_phone($second_parent_tel_raw);
+            if (!$second_parent_telephone) {
+                wp_safe_redirect(add_query_arg('psc_msg', 'second_parent_bad_phone', $back));
+                exit;
+            }
+        }
+
         // Enfants déclarés. Tous les champs (prénom, nom, classe, naissance,
         // justificatif d'assurance) sont obligatoires pour chaque enfant
         // réellement nommé : contrairement à une ligne entièrement vide
@@ -400,6 +428,10 @@ class Psc_Requests {
             'sepa_adresse'               => mb_substr($sepa_adresse, 0, 255) ?: null,
             'sepa_code_postal'           => mb_substr($sepa_code_postal, 0, 10) ?: null,
             'sepa_ville'                 => mb_substr($sepa_ville, 0, 100) ?: null,
+            'second_parent_prenom'       => mb_substr($second_parent_prenom, 0, 190) ?: null,
+            'second_parent_nom'          => mb_substr($second_parent_nom, 0, 190) ?: null,
+            'second_parent_email'        => $second_parent_email ?: null,
+            'second_parent_telephone'    => $second_parent_telephone ?: null,
             'created_at'                 => current_time('mysql'),
         );
 
@@ -614,6 +646,10 @@ class Psc_Requests {
             'sepa_ville'                 => $req->sepa_ville ?? null,
             'reglement_accepted_at'      => $req->reglement_accepted_at ?? null,
             'sepa_reglement_accepted_at' => $req->sepa_reglement_accepted_at ?? null,
+            'second_parent_prenom'       => $req->second_parent_prenom ?? null,
+            'second_parent_nom'          => $req->second_parent_nom ?? null,
+            'second_parent_email'        => $req->second_parent_email ?? null,
+            'second_parent_telephone'    => $req->second_parent_telephone ?? null,
         );
         if (($req->payment_mode ?? 'autre') === 'prelevement') {
             $parent_extra['sepa_mandate_ref'] = psc_sepa_mandate_ref($req->id);

@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '3.3.0';
+    const DB_VERSION = '3.4.0';
 
     public static function activate() {
         self::create_tables();
@@ -389,6 +389,10 @@ CREATE TABLE $t_parent (
             sepa_mandate_ref VARCHAR(35) NULL,
             reglement_accepted_at DATETIME NULL,
             sepa_reglement_accepted_at DATETIME NULL,
+            second_parent_prenom VARCHAR(191) NULL,
+            second_parent_nom VARCHAR(191) NULL,
+            second_parent_email VARCHAR(191) NULL,
+            second_parent_telephone VARCHAR(40) NULL,
             created_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY email (email),
@@ -474,6 +478,10 @@ CREATE TABLE $t_req (
             sepa_adresse VARCHAR(255) NULL,
             sepa_code_postal VARCHAR(10) NULL,
             sepa_ville VARCHAR(100) NULL,
+            second_parent_prenom VARCHAR(191) NULL,
+            second_parent_nom VARCHAR(191) NULL,
+            second_parent_email VARCHAR(191) NULL,
+            second_parent_telephone VARCHAR(40) NULL,
             created_at DATETIME NOT NULL,
             decided_at DATETIME NULL,
             PRIMARY KEY  (id),

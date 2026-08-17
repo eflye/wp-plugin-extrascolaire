@@ -63,7 +63,7 @@ Aucun compte WordPress n'est nécessaire côté famille. Aucun paiement en ligne
 
 Formulaire public (« Première inscription ? »), présenté comme un parcours en 4 étapes annoncées au parent (« Coordonnées », « Enfants », « Paiement », « Règlement ») — impossible de passer à l'étape suivante tant que l'étape en cours n'est pas complète (validation native du navigateur **et** revalidation côté serveur, pour parer un envoi direct qui contournerait le formulaire) :
 
-1. **Coordonnées** — e-mail, prénom, nom, téléphone, adresse, code postal, ville : tous obligatoires.
+1. **Coordonnées** — e-mail, prénom, nom, téléphone, adresse, code postal, ville : tous obligatoires. Un bouton *Ajouter un second parent* révèle un bloc facultatif (prénom, nom, e-mail, téléphone) : aucun champ n'y est requis, mais un e-mail ou un téléphone renseigné doit être valide (même contrôle que pour le premier parent) sous peine de rejeter la soumission. Le second parent, s'il est renseigné, devient un contact du même foyer et rejoint automatiquement la liste des personnes autorisées à récupérer les enfants (voir « Mon profil » ci-dessous).
 2. **Enfants** — jusqu'à **5 enfants par demande** (prénom, nom, classe, date de naissance, régime alimentaire — sans porc et/ou sans viande — tous obligatoires pour chaque ligne renseignée), avec pour chacun un **justificatif d'assurance scolaire obligatoire** (PDF, JPG ou PNG, 1 Mo maximum) et, facultativement, une ou plusieurs **personnes autorisées à le récupérer** (prénom, nom, téléphone, lien avec l'enfant, indicateur pièce d'identité) — saisies dès cette étape mais modifiables ensuite à tout moment depuis « Mes enfants ».
 3. **Paiement** — chèque/espèces (par défaut) ou prélèvement automatique SEPA. En sélectionnant le prélèvement, un bloc supplémentaire apparaît :
    - Créancier affiché automatiquement (nom de la commune + identifiant créancier SEPA, définis dans les réglages) ;
@@ -128,6 +128,10 @@ Liste des factures mensuelles de la famille (mois, montant, statut envoyée/en a
 #### Mon profil
 
 État civil (prénom, nom), coordonnées (téléphone mobile/fixe, e-mail) et adresse du foyer. Un changement d'adresse e-mail nécessite une **confirmation par lien envoyé sur la nouvelle adresse** avant de prendre effet (annulable tant qu'il est en attente) ; l'ancienne adresse reste active jusque-là. La fiche de chaque enfant se modifie depuis « Mes enfants », pas ici.
+
+Panneau **Second parent (facultatif)** : bouton *Ajouter un second parent* si absent, sinon formulaire prénom/nom/e-mail/téléphone pré-rempli avec *Enregistrer* et *Retirer* — mêmes règles qu'à l'inscription (aucun champ requis, format e-mail/téléphone contrôlé s'il est renseigné). Ajouter ou retirer le second parent l'ajoute ou le retire immédiatement de la liste des personnes autorisées ci-dessous.
+
+Panneau **Personnes autorisées à récupérer les enfants** (vue par foyer, pas par enfant) : les deux parents y figurent toujours, avec l'étiquette « Parent », non retirables depuis cette liste — cette entrée n'est jamais une ligne stockée, elle est recalculée à chaque affichage depuis la fiche foyer. Les autres personnes (bouton *Ajouter une personne autorisée* : prénom, nom, lien de parenté, téléphone) sont ajoutées d'un coup à tous les enfants actifs du foyer, et retirables ligne par ligne — un retrait ici retire la personne de tous les enfants auxquels elle était rattachée. Cette liste dédoublonnée complète, sans le remplacer, le panneau par enfant de « Mes enfants ».
 
 #### Documents
 
@@ -270,6 +274,17 @@ rappelle également la date du jour en toutes lettres.
 `wp_psc_attendance` (enfant × jour × service) que le pointage de présence, mais sur une colonne
 dédiée (`departure_time`) qui ne touche jamais `present` — les deux pointages (présence, départ)
 peuvent être saisis indépendamment sans s'écraser l'un l'autre.
+
+**Personnes autorisées** : en vue Jour, chaque ligne enfant porte un bouton compact *Autorisés*
+(replié par défaut, pour ne pas surcharger une liste qui peut compter beaucoup d'enfants) qui
+déplie sous la ligne un panneau **en lecture seule** — nom, lien (Parent/Grand-parent/Personne de
+confiance...), téléphone de chaque personne autorisée à venir chercher cet enfant. Plusieurs
+lignes peuvent être dépliées en même temps, chaque bouton ne repliant que la sienne. La liste est
+toujours recalculée à l'affichage (parents, second parent éventuel, tiers ajoutés depuis « Mon
+profil » ou « Mes enfants » côté famille) — jamais une copie figée à l'inscription. Aucune
+modification n'est possible depuis cet écran : la gestion reste entièrement côté famille. En vue
+Semaine, le même bouton renvoie vers la vue Jour du premier jour où l'enfant est attendu, avec son
+panneau déjà déplié.
 
 ---
 

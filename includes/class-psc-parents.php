@@ -391,6 +391,13 @@ class Psc_Parents {
             'sepa_mandate_ref'           => $extra['sepa_mandate_ref'] ?? null,
             'reglement_accepted_at'      => $extra['reglement_accepted_at'] ?? null,
             'sepa_reglement_accepted_at' => $extra['sepa_reglement_accepted_at'] ?? null,
+            // Second parent facultatif : jamais revalidé ici, l'appelant
+            // (ex. Psc_Requests::approve_request()) est responsable du
+            // format — mêmes conventions que sepa_iban/sepa_bic ci-dessus.
+            'second_parent_prenom'       => mb_substr(sanitize_text_field($extra['second_parent_prenom'] ?? ''), 0, 190) ?: null,
+            'second_parent_nom'          => mb_substr(sanitize_text_field($extra['second_parent_nom'] ?? ''), 0, 190) ?: null,
+            'second_parent_email'        => $extra['second_parent_email'] ?? null,
+            'second_parent_telephone'    => $extra['second_parent_telephone'] ?? null,
             'created_at'                 => current_time('mysql'),
         );
 
@@ -405,17 +412,19 @@ class Psc_Parents {
         if (!$parent_id) return false;
 
         $allowed = array(
-            'nom'              => 190,
-            'prenom'           => 190,
-            'telephone_mobile' => 40,
-            'telephone_fixe'   => 40,
-            'adresse'          => 255,
-            'code_postal'      => 10,
-            'ville'            => 100,
-            'sepa_titulaire'   => 190,
-            'sepa_adresse'     => 255,
-            'sepa_code_postal' => 10,
-            'sepa_ville'       => 100,
+            'nom'                   => 190,
+            'prenom'                => 190,
+            'telephone_mobile'      => 40,
+            'telephone_fixe'        => 40,
+            'adresse'               => 255,
+            'code_postal'           => 10,
+            'ville'                 => 100,
+            'sepa_titulaire'        => 190,
+            'sepa_adresse'          => 255,
+            'sepa_code_postal'      => 10,
+            'sepa_ville'            => 100,
+            'second_parent_prenom'  => 190,
+            'second_parent_nom'     => 190,
         );
         $set     = array();
         $formats = array();
@@ -442,6 +451,25 @@ class Psc_Parents {
             $bic = !empty($data['sepa_bic']) ? psc_valid_bic($data['sepa_bic']) : null;
             if (!empty($data['sepa_bic']) && !$bic) return new WP_Error('psc_bad_bic', 'BIC invalide.');
             $set['sepa_bic'] = $bic;
+            $formats[] = '%s';
+        }
+        // Second parent : chaque champ reste facultatif, mais un format
+        // invalide (s'il est renseigné) est rejeté plutôt qu'enregistré tel quel.
+        if (array_key_exists('second_parent_email', $data)) {
+            $raw_email = trim((string) $data['second_parent_email']);
+            if ($raw_email !== '' && !is_email($raw_email)) {
+                return new WP_Error('psc_bad_second_parent_email', 'E-mail du second parent invalide.');
+            }
+            $set['second_parent_email'] = $raw_email !== '' ? sanitize_email($raw_email) : null;
+            $formats[] = '%s';
+        }
+        if (array_key_exists('second_parent_telephone', $data)) {
+            $raw_phone = trim((string) $data['second_parent_telephone']);
+            $phone     = $raw_phone !== '' ? psc_valid_phone($raw_phone) : null;
+            if ($raw_phone !== '' && !$phone) {
+                return new WP_Error('psc_bad_second_parent_phone', 'Téléphone du second parent invalide.');
+            }
+            $set['second_parent_telephone'] = $phone;
             $formats[] = '%s';
         }
 

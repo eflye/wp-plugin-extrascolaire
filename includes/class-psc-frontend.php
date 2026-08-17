@@ -60,6 +60,15 @@ class Psc_Frontend {
         add_action('admin_post_psc_parent_update_pickup_person', array(__CLASS__, 'handle_parent_update_pickup_person'));
         add_action('admin_post_nopriv_psc_parent_remove_pickup_person', array(__CLASS__, 'handle_parent_remove_pickup_person'));
         add_action('admin_post_psc_parent_remove_pickup_person', array(__CLASS__, 'handle_parent_remove_pickup_person'));
+
+        add_action('admin_post_nopriv_psc_parent_update_second_parent', array(__CLASS__, 'handle_parent_update_second_parent'));
+        add_action('admin_post_psc_parent_update_second_parent', array(__CLASS__, 'handle_parent_update_second_parent'));
+        add_action('admin_post_nopriv_psc_parent_remove_second_parent', array(__CLASS__, 'handle_parent_remove_second_parent'));
+        add_action('admin_post_psc_parent_remove_second_parent', array(__CLASS__, 'handle_parent_remove_second_parent'));
+        add_action('admin_post_nopriv_psc_parent_add_household_pickup_person', array(__CLASS__, 'handle_parent_add_household_pickup_person'));
+        add_action('admin_post_psc_parent_add_household_pickup_person', array(__CLASS__, 'handle_parent_add_household_pickup_person'));
+        add_action('admin_post_nopriv_psc_parent_remove_household_pickup_person', array(__CLASS__, 'handle_parent_remove_household_pickup_person'));
+        add_action('admin_post_psc_parent_remove_household_pickup_person', array(__CLASS__, 'handle_parent_remove_household_pickup_person'));
     }
 
     /**
@@ -1097,6 +1106,108 @@ class Psc_Frontend {
         self::parent_form_redirect('pickup_removed');
     }
 
+    /**
+     * Enregistre/modifie le second parent (facultatif) depuis "Mon
+     * profil". Chaque champ reste indépendamment optionnel — même
+     * logique de validation que Psc_Requests::handle_submit() côté
+     * inscription (Psc_Parents::update() revalide email/téléphone).
+     */
+    public static function handle_parent_update_second_parent() {
+        check_admin_referer('psc_parent_update_second_parent');
+
+        $parent = Psc_Parents::current();
+        if (!$parent) self::parent_form_redirect('auth');
+
+        $result = Psc_Parents::update($parent->id, array(
+            'second_parent_prenom'    => psc_post('second_parent_prenom'),
+            'second_parent_nom'       => psc_post('second_parent_nom'),
+            'second_parent_email'     => psc_post('second_parent_email'),
+            'second_parent_telephone' => psc_post('second_parent_telephone'),
+        ));
+        if (is_wp_error($result)) {
+            self::parent_form_redirect(
+                $result->get_error_code() === 'psc_bad_second_parent_email' ? 'second_parent_bad_email' : 'second_parent_bad_phone'
+            );
+        }
+
+        self::parent_form_redirect('second_parent_updated');
+    }
+
+    /**
+     * Retire le second parent : vide les 4 champs. Il disparaît alors de
+     * la liste des personnes autorisées (synthétisée à la lecture depuis
+     * wp_psc_parents, jamais une ligne wp_psc_pickup_persons à supprimer).
+     */
+    public static function handle_parent_remove_second_parent() {
+        check_admin_referer('psc_parent_remove_second_parent');
+
+        $parent = Psc_Parents::current();
+        if (!$parent) self::parent_form_redirect('auth');
+
+        Psc_Parents::update($parent->id, array(
+            'second_parent_prenom'    => '',
+            'second_parent_nom'       => '',
+            'second_parent_email'     => '',
+            'second_parent_telephone' => '',
+        ));
+
+        self::parent_form_redirect('second_parent_removed');
+    }
+
+    /**
+     * Ajoute un tiers autorisé depuis "Mon profil" : contrairement à "Mes
+     * enfants" (par enfant), l'ajout s'applique à tous les enfants actifs
+     * du foyer d'un coup — c'est la vue foyer, sans enfant précis en
+     * contexte, qui l'exige. Un échec sur un enfant (ex. plafond atteint)
+     * n'empêche pas l'ajout pour les autres.
+     */
+    public static function handle_parent_add_household_pickup_person() {
+        check_admin_referer('psc_parent_add_household_pickup_person');
+
+        $parent = Psc_Parents::current();
+        if (!$parent) self::parent_form_redirect('auth');
+
+        $fields = self::pickup_fields_from_post();
+        if ($fields['prenom'] === '' || $fields['nom'] === '' || $fields['telephone'] === '') {
+            self::parent_form_redirect('household_pickup_invalid');
+        }
+
+        $children = self::children_of($parent->id, true);
+        if (empty($children)) self::parent_form_redirect('household_pickup_invalid');
+
+        $any_ok = false;
+        foreach ($children as $child) {
+            $result = Psc_Pickup_Persons::add($child->id, $fields, 'parent');
+            if (!is_wp_error($result)) $any_ok = true;
+        }
+
+        self::parent_form_redirect($any_ok ? 'household_pickup_added' : 'household_pickup_invalid');
+    }
+
+    /**
+     * Retire un tiers depuis "Mon profil" : reçoit la liste des
+     * pickup_person_id regroupés par la vue foyer dédupliquée (un même
+     * tiers peut avoir une ligne par enfant) et les retire tous d'un coup.
+     */
+    public static function handle_parent_remove_household_pickup_person() {
+        check_admin_referer('psc_parent_remove_household_pickup_person');
+
+        $parent = Psc_Parents::current();
+        if (!$parent) self::parent_form_redirect('auth');
+
+        $raw_ids = isset($_POST['pickup_ids']) ? sanitize_text_field(wp_unslash($_POST['pickup_ids'])) : '';
+        $ids = array_filter(array_map('absint', explode(',', $raw_ids)));
+        if (empty($ids)) self::parent_form_redirect('household_pickup_invalid');
+
+        foreach ($ids as $pickup_id) {
+            $person = Psc_Pickup_Persons::get($pickup_id);
+            if (!$person || !self::pickup_person_owned_by($person, $parent->id)) continue;
+            Psc_Pickup_Persons::remove($pickup_id, 'parent');
+        }
+
+        self::parent_form_redirect('household_pickup_removed');
+    }
+
     /* ---------------- Factures (espace famille) ---------------- */
 
     /**
@@ -1201,6 +1312,9 @@ class Psc_Frontend {
             'profil_updated', 'profil_updated_email_pending', 'profil_error',
             'email_taken', 'email_changed', 'email_change_cancelled',
             'bad_email_token', 'expired_email_token',
+            'second_parent_updated', 'second_parent_removed',
+            'second_parent_bad_email', 'second_parent_bad_phone',
+            'household_pickup_added', 'household_pickup_removed', 'household_pickup_invalid',
         ), true)) {
             $tab = 'profil';
         }
@@ -1491,6 +1605,8 @@ class Psc_Frontend {
     protected static function wizard_error_context($psc_msg) {
         $map = array(
             'coordonnees_incomplete'   => array('step' => 0, 'sepa' => false),
+            'second_parent_bad_email' => array('step' => 0, 'sepa' => false),
+            'second_parent_bad_phone' => array('step' => 0, 'sepa' => false),
             'need_child'               => array('step' => 1, 'sepa' => false),
             'child_incomplete'         => array('step' => 1, 'sepa' => false),
             'assurance_required'       => array('step' => 1, 'sepa' => false),
@@ -1562,6 +1678,39 @@ class Psc_Frontend {
         $psc_pickup_map = array();
         foreach ($children as $child) {
             $psc_pickup_map[$child->id] = Psc_Pickup_Persons::for_child($child->id);
+        }
+
+        // "Mon profil" : vue foyer dédupliquée (les deux parents toujours
+        // présents, même sans enfant actif ; un tiers ajouté depuis "Mes
+        // enfants" pour plusieurs enfants n'apparaît qu'une fois, avec
+        // tous les pickup_person_id concernés regroupés dans 'ids' — un
+        // retrait depuis cette vue les retire de tous ces enfants d'un coup).
+        $psc_household_authorized = Psc_Pickup_Persons::parent_entries($parent);
+        foreach ($psc_household_authorized as &$psc_hh_entry) {
+            $psc_hh_entry['ids'] = array();
+        }
+        unset($psc_hh_entry);
+        $psc_household_seen = array();
+        foreach ($psc_household_authorized as $psc_hh_i => $psc_hh_entry) {
+            $psc_household_seen[mb_strtolower($psc_hh_entry['prenom'] . '|' . $psc_hh_entry['nom'] . '|' . $psc_hh_entry['telephone'])] = $psc_hh_i;
+        }
+        foreach ($children as $child) {
+            foreach (Psc_Pickup_Persons::for_child($child->id) as $p) {
+                $key = mb_strtolower($p->prenom . '|' . $p->nom . '|' . $p->telephone);
+                if (isset($psc_household_seen[$key])) {
+                    $psc_household_authorized[$psc_household_seen[$key]]['ids'][] = (int) $p->id;
+                    continue;
+                }
+                $psc_household_authorized[] = array(
+                    'role'      => $p->lien !== '' ? $p->lien : 'Autre',
+                    'prenom'    => $p->prenom,
+                    'nom'       => $p->nom,
+                    'telephone' => $p->telephone,
+                    'removable' => true,
+                    'ids'       => array((int) $p->id),
+                );
+                $psc_household_seen[$key] = count($psc_household_authorized) - 1;
+            }
         }
 
         $psc_portal_reinscription = null;

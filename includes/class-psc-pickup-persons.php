@@ -30,6 +30,79 @@ class Psc_Pickup_Persons {
         ));
     }
 
+    /**
+     * Synthétise les entrées "Parent" (le titulaire du compte, et le
+     * second parent s'il est renseigné) d'une ligne wp_psc_parents — jamais
+     * des lignes wp_psc_pickup_persons. Partagé par authorized_for_child()
+     * (par enfant, ex. SIDSCM) et Psc_Frontend::shortcode() (vue foyer,
+     * "Mon profil", qui a déjà $parent en main et n'a pas besoin de
+     * repasser par un enfant particulier — un foyer sans enfant actif doit
+     * quand même voir ses deux parents).
+     */
+    public static function parent_entries($parent) {
+        $list = array(array(
+            'role'      => 'Parent',
+            'prenom'    => (string) $parent->prenom,
+            'nom'       => (string) $parent->nom,
+            'telephone' => (string) ($parent->telephone_mobile ?: $parent->telephone_fixe),
+            'removable' => false,
+            'id'        => null,
+        ));
+        if ((string) $parent->second_parent_prenom !== '' || (string) $parent->second_parent_nom !== '') {
+            $list[] = array(
+                'role'      => 'Parent',
+                'prenom'    => (string) $parent->second_parent_prenom,
+                'nom'       => (string) $parent->second_parent_nom,
+                'telephone' => (string) $parent->second_parent_telephone,
+                'removable' => false,
+                'id'        => null,
+            );
+        }
+        return $list;
+    }
+
+    /**
+     * Liste complète des personnes autorisées à récupérer un enfant :
+     * le(s) parent(s) du foyer (synthétisés depuis wp_psc_parents — jamais
+     * des lignes wp_psc_pickup_persons, jamais supprimables depuis cette
+     * liste, jamais dans l'historique) suivis des tiers réellement
+     * enregistrés via add()/update()/remove(). Source unique pour "Mon
+     * profil" (vue foyer) et l'écran SIDSCM (vue par enfant) — toujours
+     * lue à la demande, jamais une copie figée à l'inscription.
+     */
+    public static function authorized_for_child($child_id) {
+        global $wpdb;
+        $child_id = absint($child_id);
+        if (!$child_id) return array();
+
+        $list = array();
+
+        $parent_id = $wpdb->get_var($wpdb->prepare(
+            'SELECT parent_id FROM ' . psc_table('children') . ' WHERE id = %d', $child_id
+        ));
+        if ($parent_id) {
+            $parent = $wpdb->get_row($wpdb->prepare(
+                'SELECT * FROM ' . psc_table('parents') . ' WHERE id = %d', $parent_id
+            ));
+            if ($parent) {
+                $list = array_merge($list, self::parent_entries($parent));
+            }
+        }
+
+        foreach (self::for_child($child_id) as $p) {
+            $list[] = array(
+                'role'      => $p->lien !== '' ? $p->lien : 'Autre',
+                'prenom'    => $p->prenom,
+                'nom'       => $p->nom,
+                'telephone' => $p->telephone,
+                'removable' => true,
+                'id'        => (int) $p->id,
+            );
+        }
+
+        return $list;
+    }
+
     public static function get($id) {
         global $wpdb;
         $id = absint($id);

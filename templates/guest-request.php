@@ -70,6 +70,32 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
           <input id="psc-req-ville" class="psc-portal-field-underline" type="text" name="req_ville" maxlength="100" autocomplete="address-level2" required>
         </div>
       </div>
+
+      <div class="psc-wizard-pickup-block">
+        <button type="button" id="psc-add-second-parent" class="psc-wizard-add-pickup-btn" data-testid="add-second-parent-button">+ Ajouter un second parent</button>
+        <div id="psc-second-parent-block" hidden data-testid="second-parent-block">
+          <p class="psc-wizard-pickup-title">Second parent (facultatif)</p>
+          <div class="psc-wizard-field-grid">
+            <div>
+              <label class="psc-portal-field-label" for="psc-sp-prenom">Prénom</label>
+              <input id="psc-sp-prenom" class="psc-portal-field-underline" type="text" name="second_parent_prenom" maxlength="190" autocomplete="given-name">
+            </div>
+            <div>
+              <label class="psc-portal-field-label" for="psc-sp-nom">Nom</label>
+              <input id="psc-sp-nom" class="psc-portal-field-underline" type="text" name="second_parent_nom" maxlength="190" autocomplete="family-name">
+            </div>
+            <div>
+              <label class="psc-portal-field-label" for="psc-sp-email">E-mail</label>
+              <input id="psc-sp-email" class="psc-portal-field-underline" type="email" name="second_parent_email" autocomplete="email">
+            </div>
+            <div>
+              <label class="psc-portal-field-label" for="psc-sp-tel">Téléphone</label>
+              <input id="psc-sp-tel" class="psc-portal-field-underline" type="tel" name="second_parent_telephone" maxlength="40" autocomplete="tel">
+            </div>
+          </div>
+          <button type="button" id="psc-remove-second-parent" class="psc-wizard-remove-pickup-btn" data-testid="remove-second-parent-button">Retirer</button>
+        </div>
+      </div>
     </div>
 
     <div class="psc-wizard-step" data-wizard-step="1" data-testid="wizard-step-1">

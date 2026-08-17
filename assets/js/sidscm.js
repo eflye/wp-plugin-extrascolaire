@@ -14,6 +14,7 @@
         children: [],  // { id, prenom, nom, classe, diet, GM: [jours], CANT: [jours], GS: [jours] }
         attendance: {}, // "childId|date|service" => 0|1
         departures: {}, // "childId|date|GS" => "HH:MM"
+        authExpanded: {}, // childId => bool, replié par défaut, survit aux re-rendus (checkbox, départ...)
     };
 
     var els = {};
@@ -194,6 +195,25 @@
         els.modeWeek.classList.toggle('is-active', state.viewMode === 'week');
     }
 
+    /**
+     * Lecture seule : aucune action de gestion sur cet écran, uniquement
+     * la consultation de la liste à jour (parents + éventuel second parent
+     * + tiers ajoutés côté famille) — la gestion reste dans "Mon profil".
+     */
+    function renderAuthPanel(c) {
+        var persons = c.authorized || [];
+        var personsHtml = persons.length
+            ? persons.map(function (p) {
+                return '<div class="psc-sidscm-auth-person">' +
+                    '<span class="psc-sidscm-auth-badge">' + escapeHtml(p.role) + '</span>' +
+                    '<span class="psc-sidscm-auth-name">' + escapeHtml(p.prenom) + ' ' + escapeHtml(p.nom) + '</span>' +
+                    '<span class="psc-sidscm-auth-tel">' + escapeHtml(p.telephone || '—') + '</span>' +
+                    '</div>';
+            }).join('')
+            : '<div class="psc-sidscm-auth-empty">Aucune personne autorisée renseignée.</div>';
+        return '<div class="psc-sidscm-auth-panel" data-testid="sidscm-auth-panel-' + c.id + '">' + personsHtml + '</div>';
+    }
+
     function renderDayView() {
         var svc = state.activeService;
         var day = state.activeDay;
@@ -218,14 +238,18 @@
                     '<input type="time" class="psc-sidscm-row-departure-input" data-child-id="' + c.id + '"' +
                     ' value="' + escapeHtml(departureVal) + '" data-testid="sidscm-departure-' + c.id + '"></label>';
             }
+            var expanded = !!state.authExpanded[c.id];
+            var authToggleHtml = '<button type="button" class="psc-sidscm-auth-toggle' + (expanded ? ' is-expanded' : '') +
+                '" data-child-id="' + c.id + '" data-testid="sidscm-auth-toggle-' + c.id + '" aria-expanded="' + (expanded ? 'true' : 'false') + '">' +
+                '<span class="psc-sidscm-auth-toggle-icon">' + (expanded ? '−' : '+') + '</span> Autorisés</button>';
             return '<div class="psc-sidscm-row" data-testid="sidscm-row-' + c.id + '">' +
                 '<label class="psc-sidscm-row-label">' +
                 '<input type="checkbox" class="psc-sidscm-row-check" data-child-id="' + c.id + '"' +
                 (present ? ' checked' : '') + ' data-testid="sidscm-check-' + c.id + '">' +
                 '<span class="psc-sidscm-row-name">' + escapeHtml(c.prenom) + ' ' + escapeHtml(c.nom) + '</span>' +
                 '<span class="psc-sidscm-row-classe">' + escapeHtml(c.classe || '') + '</span>' +
-                '</label>' + dietHtml + departureHtml +
-                '</div>';
+                '</label>' + dietHtml + departureHtml + authToggleHtml +
+                '</div>' + (expanded ? renderAuthPanel(c) : '');
         }).join('');
 
         var emptyHtml = rows.length === 0
@@ -260,6 +284,16 @@
                 setDeparture(childId, date, input.value);
             });
         });
+
+        // Plusieurs lignes peuvent être dépliées en même temps (comparer
+        // avant un départ groupé) : chaque bouton ne replie que sa ligne.
+        els.content.querySelectorAll('.psc-sidscm-auth-toggle').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var childId = btn.dataset.childId;
+                state.authExpanded[childId] = !state.authExpanded[childId];
+                renderDayView();
+            });
+        });
     }
 
     function renderWeekView() {
@@ -281,7 +315,9 @@
                     (expected ? '●' : '—') + '</span></td>';
             }).join('');
             return '<tr><td class="psc-sidscm-table-child-cell">' + escapeHtml(c.prenom) + ' ' + escapeHtml(c.nom) +
-                ' <span class="psc-sidscm-table-child-classe">(' + escapeHtml(c.classe || '') + ')</span></td>' +
+                ' <span class="psc-sidscm-table-child-classe">(' + escapeHtml(c.classe || '') + ')</span>' +
+                '<button type="button" class="psc-sidscm-auth-toggle psc-sidscm-auth-toggle--week" data-child-id="' + c.id + '"' +
+                ' data-testid="sidscm-auth-week-' + c.id + '"><span class="psc-sidscm-auth-toggle-icon">+</span> Autorisés</button></td>' +
                 marksHtml + '</tr>';
         }).join('');
 
@@ -292,6 +328,21 @@
             '<thead><tr><th class="psc-sidscm-table-child-head">Enfant</th>' + headHtml + '</tr></thead>' +
             '<tbody>' + rowsHtml + '</tbody></table></div>' +
             '</div>';
+
+        // Pas de panneau dépliable dans le tableau semaine (une ligne par
+        // enfant, pas de place) : on renvoie vers la vue Jour du premier
+        // jour où l'enfant est attendu, avec son panneau déjà déplié.
+        els.content.querySelectorAll('.psc-sidscm-auth-toggle--week').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var childId = btn.dataset.childId;
+                var child = state.children.filter(function (c) { return String(c.id) === String(childId); })[0];
+                var targetDay = child ? dayKeys.filter(function (d) { return (child[svc] || []).indexOf(d) !== -1; })[0] : null;
+                state.authExpanded[childId] = true;
+                state.viewMode = 'day';
+                if (targetDay) state.activeDay = targetDay;
+                renderAll();
+            });
+        });
     }
 
     function renderAll() {

@@ -271,10 +271,36 @@
         });
     }
 
+    /* ---------- Second parent (facultatif, étape "Coordonnées") ---------- */
+
+    function initSecondParent() {
+        var addBtn    = document.getElementById('psc-add-second-parent');
+        var block     = document.getElementById('psc-second-parent-block');
+        var removeBtn = document.getElementById('psc-remove-second-parent');
+        if (!addBtn || !block || !removeBtn) return;
+
+        var fields = block.querySelectorAll('input');
+
+        addBtn.addEventListener('click', function () {
+            addBtn.hidden = true;
+            block.hidden = false;
+            var first = block.querySelector('input');
+            if (first) first.focus();
+        });
+
+        removeBtn.addEventListener('click', function () {
+            fields.forEach(function (f) { f.value = ''; });
+            block.hidden = true;
+            addBtn.hidden = false;
+            addBtn.focus();
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         initWizard();
         initPaymentCards();
         initChildren();
         initPickupPersons();
+        initSecondParent();
     });
 })();

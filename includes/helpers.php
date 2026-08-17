@@ -421,6 +421,21 @@ function psc_valid_bic($bic) {
 }
 
 /**
+ * Valide un numéro de téléphone : format volontairement large (aucun
+ * numéro de téléphone existant dans le plugin — mobile, fixe — n'est
+ * autrement validé), pour ne pas rejeter un numéro fixe étranger ou une
+ * saisie avec indicatif. Accepte chiffres, espaces, points, tirets et
+ * parenthèses ; exige 6 à 15 chiffres significatifs, + initial optionnel.
+ * Renvoie le numéro normalisé (espaces/ponctuation retirés) ou false.
+ * N'est jamais appelée sur une valeur vide : le champ reste facultatif,
+ * c'est à l'appelant de ne valider que si une valeur a été saisie.
+ */
+function psc_valid_phone($phone) {
+    $digits = preg_replace('/[\s.\-()]/', '', (string) $phone);
+    return preg_match('/^\+?\d{6,15}$/', $digits) ? $digits : false;
+}
+
+/**
  * IBAN partiellement masqué pour l'affichage admin (garde le pays et les
  * 4 derniers caractères) : réduit l'exposition d'une donnée bancaire dans
  * une liste consultée régulièrement.

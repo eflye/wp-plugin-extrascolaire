@@ -341,6 +341,32 @@
         });
     }
 
+    /* ---------- Bloc "ajout" repliable (Mon profil : second parent, personne autorisée du foyer) ---------- */
+
+    function initToggleAddBlock(addBtnId, blockId, cancelSelector) {
+        var addBtn = document.getElementById(addBtnId);
+        var block  = document.getElementById(blockId);
+        if (!addBtn || !block) return;
+
+        addBtn.addEventListener('click', function () {
+            addBtn.hidden = true;
+            block.hidden = false;
+            var first = block.querySelector('input');
+            if (first) first.focus();
+        });
+
+        if (cancelSelector) {
+            var cancelBtn = block.querySelector(cancelSelector);
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function () {
+                    block.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"]').forEach(function (f) { f.value = ''; });
+                    block.hidden = true;
+                    addBtn.hidden = false;
+                });
+            }
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('[data-portal-tab], [data-portal-tab-link]').forEach(function (link) {
             link.addEventListener('click', onTabLinkClick);
@@ -350,5 +376,7 @@
         initAssuranceUploadModal();
         initPickupPersonModal();
         initMenuNav();
+        initToggleAddBlock('psc-add-second-parent', 'psc-second-parent-block');
+        initToggleAddBlock('psc-add-household-pickup', 'psc-household-pickup-form-block', '[data-household-pickup-cancel]');
     });
 })();
