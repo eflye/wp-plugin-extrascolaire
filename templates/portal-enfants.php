@@ -174,13 +174,10 @@ if ($psc_active_year) {
   <div class="psc-portal-panel-title">Personnes autorisées à récupérer les enfants</div>
   <p class="psc-portal-intro">Ces personnes peuvent venir chercher vos enfants en fin de garderie. Toute modification de cette liste est conservée dans un historique consultable par la mairie.</p>
 
-  <?php foreach ($psc_active_children as $c): $psc_pickups = $psc_pickup_map[$c->id] ?? array(); ?>
+  <?php foreach ($psc_active_children as $c): $psc_pickups = $psc_pickup_map[$c->id] ?? array(); $psc_parent_rows = Psc_Pickup_Persons::parent_entries($parent); ?>
   <div class="psc-portal-pickup-child-block" data-testid="pickup-child-block-<?php echo esc_attr($c->id); ?>">
     <h3 class="psc-portal-pickup-child-name"><?php echo esc_html($c->prenom . ' ' . $c->nom); ?></h3>
 
-    <?php if (empty($psc_pickups)): ?>
-      <p class="psc-portal-muted" data-testid="pickup-empty-<?php echo esc_attr($c->id); ?>">Aucune personne autorisée déclarée.</p>
-    <?php else: ?>
       <div class="psc-portal-table-scroll">
       <table class="psc-portal-table" data-testid="pickup-table-<?php echo esc_attr($c->id); ?>">
         <colgroup>
@@ -188,6 +185,16 @@ if ($psc_active_year) {
         </colgroup>
         <thead><tr><th>Prénom</th><th>Nom</th><th>Téléphone</th><th>Lien</th><th>Pièce d'identité</th><th></th></tr></thead>
         <tbody>
+        <?php foreach ($psc_parent_rows as $psc_pr_i => $pr): ?>
+          <tr data-testid="pickup-parent-row-<?php echo esc_attr($c->id); ?>-<?php echo esc_attr($psc_pr_i); ?>">
+            <td style="font-weight:500;" data-label="Prénom"><?php echo esc_html($pr['prenom']); ?></td>
+            <td data-label="Nom"><?php echo esc_html($pr['nom']); ?></td>
+            <td data-label="Téléphone"><?php echo esc_html($pr['telephone'] !== '' ? $pr['telephone'] : '—'); ?></td>
+            <td data-label="Lien"><span class="psc-portal-pill"><?php echo esc_html($pr['role']); ?></span></td>
+            <td data-label="Pièce d'identité"><span class="psc-portal-muted">—</span></td>
+            <td class="psc-portal-row-save"></td>
+          </tr>
+        <?php endforeach; ?>
         <?php foreach ($psc_pickups as $p): ?>
           <tr data-testid="pickup-row-<?php echo esc_attr($p->id); ?>">
             <td style="font-weight:500;" data-label="Prénom"><?php echo esc_html($p->prenom); ?></td>
@@ -215,7 +222,6 @@ if ($psc_active_year) {
         </tbody>
       </table>
       </div>
-    <?php endif; ?>
 
     <button type="button" class="psc-portal-btn-sm" data-pickup-add-trigger data-child-id="<?php echo esc_attr($c->id); ?>" aria-label="Ajouter une personne autorisée à récupérer <?php echo esc_attr($c->prenom); ?>">+ Ajouter une personne</button>
   </div>

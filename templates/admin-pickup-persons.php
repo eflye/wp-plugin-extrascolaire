@@ -10,12 +10,21 @@
 <div class="psc-box">
 <h2>Liste courante</h2>
 <p>Ces personnes peuvent venir chercher <?php echo esc_html($child->prenom); ?> en fin de garderie. Cette liste est gérée par la famille depuis son espace connecté — la mairie la consulte ici sans pouvoir la modifier.</p>
-<?php if (empty($pickup_persons)): ?>
+<?php if (empty($pickup_parent_rows) && empty($pickup_persons)): ?>
 <p><em>Aucune personne autorisée déclarée pour le moment.</em></p>
 <?php else: ?>
 <table class="widefat striped">
 <thead><tr><th>Prénom</th><th>Nom</th><th>Téléphone</th><th>Lien</th><th>Pièce d'identité</th></tr></thead>
 <tbody>
+<?php foreach ($pickup_parent_rows as $pr): ?>
+<tr>
+<td><?php echo esc_html($pr['prenom']); ?></td>
+<td><?php echo esc_html($pr['nom']); ?></td>
+<td><?php echo esc_html($pr['telephone'] !== '' ? $pr['telephone'] : '—'); ?></td>
+<td><?php echo esc_html($pr['role']); ?></td>
+<td>—</td>
+</tr>
+<?php endforeach; ?>
 <?php foreach ($pickup_persons as $p): ?>
 <tr>
 <td><?php echo esc_html($p->prenom); ?></td>

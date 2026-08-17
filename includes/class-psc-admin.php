@@ -609,6 +609,14 @@ class Psc_Admin {
 
         $pickup_persons = Psc_Pickup_Persons::for_child($child_id);
         $pickup_history = Psc_Pickup_Persons::history_for_child($child_id);
+        // Les parents (titulaire + éventuel second parent) figurent toujours
+        // dans la liste courante, au même titre que sur "Mes enfants" et
+        // l'écran SIDSCM — jamais des lignes wp_psc_pickup_persons, donc
+        // absents de l'historique, cohérent avec le reste du plugin.
+        $parent_row = $child->parent_id ? $wpdb->get_row($wpdb->prepare(
+            'SELECT * FROM ' . psc_table('parents') . ' WHERE id = %d', $child->parent_id
+        )) : null;
+        $pickup_parent_rows = $parent_row ? Psc_Pickup_Persons::parent_entries($parent_row) : array();
         include PSC_PATH . 'templates/admin-pickup-persons.php';
     }
 

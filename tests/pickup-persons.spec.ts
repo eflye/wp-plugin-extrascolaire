@@ -251,12 +251,17 @@ test('fiche vivante — ajout, modification, retrait, puis consultation mairie',
     .getByRole('button', { name: 'Retirer' })
     .click();
   await expect(page.getByTestId('notice-pickup_removed')).toBeVisible();
-  await expect(page.getByTestId(`pickup-empty-${data.living_child_id}`)).toBeVisible();
+  // Sophie a disparu, mais le(s) parent(s) du foyer restent toujours
+  // affichés (non supprimables depuis cette liste) — jamais de table vide.
+  await expect(table).not.toContainText('Sophie');
+  await expect(table).toContainText('PickupLiving');
+  await expect(table).toContainText('Parent');
 
   /* ---------------- Consultation mairie : liste courante + historique ---------------- */
   await loginAsAdmin(page);
   await page.goto(`${ADMIN_BASE}/admin.php?page=psc_pickup_persons&child_id=${data.living_child_id}`);
-  await expect(page.locator('body')).toContainText('Aucune personne autorisée déclarée');
+  await expect(page.locator('body')).not.toContainText('Aucune personne autorisée déclarée');
+  await expect(page.locator('body')).toContainText('PickupLiving');
 
   const bodyText = await page.locator('body').innerText();
   expect(bodyText).toContain('Ajout');
