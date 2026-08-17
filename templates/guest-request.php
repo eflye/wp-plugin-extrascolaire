@@ -137,7 +137,7 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
           <label class="psc-wizard-diet-check"><input type="checkbox" name="child_vegan_0" value="1"> Sans viande</label>
 
           <div class="psc-wizard-pickup-block">
-            <p class="psc-wizard-pickup-title">Personnes autorisées à récupérer cet enfant (facultatif)</p>
+            <p class="psc-wizard-pickup-title">Personnes autorisées à récupérer cet enfant en fin de garderie du soir (facultatif)</p>
             <div class="psc-wizard-pickup-list" data-pickup-list></div>
             <button type="button" class="psc-wizard-add-pickup-btn" data-testid="add-pickup-person-0">+ Ajouter une personne autorisée</button>
           </div>

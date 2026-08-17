@@ -1,6 +1,6 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="wrap psc-admin">
-<h1>Personnes autorisées — <?php echo esc_html($child->prenom . ' ' . $child->nom); ?></h1>
+<h1>Personnes autorisées (garderie du soir) — <?php echo esc_html($child->prenom . ' ' . $child->nom); ?></h1>
 <p>
   <a href="<?php echo esc_url(admin_url('admin.php?page=psc_children')); ?>">&larr; Retour à Enfants</a>
   — Famille : <?php echo esc_html($child->parent_nom ?: '—'); ?>
@@ -9,7 +9,7 @@
 
 <div class="psc-box">
 <h2>Liste courante</h2>
-<p>Ces personnes peuvent venir chercher <?php echo esc_html($child->prenom); ?> en fin de garderie. Cette liste est gérée par la famille depuis son espace connecté — la mairie la consulte ici sans pouvoir la modifier.</p>
+<p>Ces personnes peuvent venir chercher <?php echo esc_html($child->prenom); ?> au départ de la <strong>garderie du soir</strong> (cette liste ne concerne ni la cantine ni la garderie du matin). Elle est gérée par la famille depuis son espace connecté — la mairie la consulte ici sans pouvoir la modifier.</p>
 <?php if (empty($pickup_parent_rows) && empty($pickup_persons)): ?>
 <p><em>Aucune personne autorisée déclarée pour le moment.</em></p>
 <?php else: ?>

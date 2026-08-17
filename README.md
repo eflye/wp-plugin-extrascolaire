@@ -63,8 +63,8 @@ Aucun compte WordPress n'est nécessaire côté famille. Aucun paiement en ligne
 
 Formulaire public (« Première inscription ? »), présenté comme un parcours en 4 étapes annoncées au parent (« Coordonnées », « Enfants », « Paiement », « Règlement ») — impossible de passer à l'étape suivante tant que l'étape en cours n'est pas complète (validation native du navigateur **et** revalidation côté serveur, pour parer un envoi direct qui contournerait le formulaire) :
 
-1. **Coordonnées** — e-mail, prénom, nom, téléphone, adresse, code postal, ville : tous obligatoires. Un bouton *Ajouter un second parent* révèle un bloc facultatif (prénom, nom, e-mail, téléphone) : aucun champ n'y est requis, mais un e-mail ou un téléphone renseigné doit être valide (même contrôle que pour le premier parent) sous peine de rejeter la soumission. Le second parent, s'il est renseigné, devient un contact du même foyer et rejoint automatiquement la liste des personnes autorisées à récupérer les enfants (voir « Mon profil » ci-dessous).
-2. **Enfants** — jusqu'à **5 enfants par demande** (prénom, nom, classe, date de naissance, régime alimentaire — sans porc et/ou sans viande — tous obligatoires pour chaque ligne renseignée), avec pour chacun un **justificatif d'assurance scolaire obligatoire** (PDF, JPG ou PNG, 1 Mo maximum) et, facultativement, une ou plusieurs **personnes autorisées à le récupérer** (prénom, nom, téléphone, lien avec l'enfant, indicateur pièce d'identité) — saisies dès cette étape mais modifiables ensuite à tout moment depuis « Mes enfants ».
+1. **Coordonnées** — e-mail, prénom, nom, téléphone, adresse, code postal, ville : tous obligatoires. Un bouton *Ajouter un second parent* révèle un bloc facultatif (prénom, nom, e-mail, téléphone) : aucun champ n'y est requis, mais un e-mail ou un téléphone renseigné doit être valide (même contrôle que pour le premier parent) sous peine de rejeter la soumission. Le second parent, s'il est renseigné, devient un contact du même foyer et rejoint automatiquement la liste des personnes autorisées à récupérer les enfants — au départ de la garderie du soir uniquement (voir « Mon profil » ci-dessous).
+2. **Enfants** — jusqu'à **5 enfants par demande** (prénom, nom, classe, date de naissance, régime alimentaire — sans porc et/ou sans viande — tous obligatoires pour chaque ligne renseignée), avec pour chacun un **justificatif d'assurance scolaire obligatoire** (PDF, JPG ou PNG, 1 Mo maximum) et, facultativement, une ou plusieurs **personnes autorisées à le récupérer en fin de garderie du soir** (prénom, nom, téléphone, lien avec l'enfant, indicateur pièce d'identité — sans effet sur la cantine ni la garderie du matin) — saisies dès cette étape mais modifiables ensuite à tout moment depuis « Mes enfants ».
 3. **Paiement** — chèque/espèces (par défaut) ou prélèvement automatique SEPA. En sélectionnant le prélèvement, un bloc supplémentaire apparaît :
    - Créancier affiché automatiquement (nom de la commune + identifiant créancier SEPA, définis dans les réglages) ;
    - Mandat : titulaire du compte, adresse (recopiable en un clic depuis l'adresse familiale), IBAN, BIC ;
@@ -113,7 +113,7 @@ Tableau **en lecture seule** — Prénom, Nom, Classe, Naissance, Régime (badge
 
 En dessous, le panneau **Assurance scolaire [année scolaire en cours]** liste chaque enfant actif avec son statut (badge « Fournie » avec date + lien de consultation, ou « Manquante ») et un bouton *Remplacer*/*Ajouter* ouvrant une popin d'envoi de fichier (PDF, JPG ou PNG, 1 Mo maximum).
 
-Puis le panneau **Personnes autorisées à récupérer les enfants** : par enfant actif, la liste des personnes pouvant venir le chercher en fin de garderie (prénom, nom, téléphone, lien avec l'enfant — champ libre avec suggestions, indicateur « présentera une pièce d'identité »), avec **Modifier**/**Retirer** par ligne et un bouton *Ajouter une personne*. Le retrait est un retrait de la liste, pas une suppression : toute modification (ajout, modification, retrait) est conservée dans un historique consultable par la mairie, jamais par la famille elle-même. Un responsable ne voit et ne modifie que la liste de ses propres enfants.
+Puis le panneau **Personnes autorisées à récupérer les enfants — garderie du soir** : par enfant actif, la liste des personnes pouvant venir le chercher au départ de la garderie du soir (sans effet sur la cantine ni la garderie du matin) — prénom, nom, téléphone, lien avec l'enfant (champ libre avec suggestions), indicateur « présentera une pièce d'identité » — avec **Modifier**/**Retirer** par ligne et un bouton *Ajouter une personne*. Le retrait est un retrait de la liste, pas une suppression : toute modification (ajout, modification, retrait) est conservée dans un historique consultable par la mairie, jamais par la famille elle-même. Un responsable ne voit et ne modifie que la liste de ses propres enfants.
 
 Enfin, le panneau **Ajouter un enfant** permet de rattacher un nouvel enfant à la famille (prénom, nom, classe, date de naissance, régime, justificatif d'assurance obligatoire dès la création), dans la limite d'un nombre maximum configurable (10 par défaut). Un enfant marqué **sorti** par la mairie n'apparaît plus dans le calendrier ni dans le planning, mais reste visible ici et garde tout son historique d'inscriptions passées.
 
@@ -131,7 +131,7 @@ Liste des factures mensuelles de la famille (mois, montant, statut envoyée/en a
 
 Panneau **Second parent (facultatif)** : bouton *Ajouter un second parent* si absent, sinon formulaire prénom/nom/e-mail/téléphone pré-rempli avec *Enregistrer* et *Retirer* — mêmes règles qu'à l'inscription (aucun champ requis, format e-mail/téléphone contrôlé s'il est renseigné). Ajouter ou retirer le second parent l'ajoute ou le retire immédiatement de la liste des personnes autorisées ci-dessous.
 
-Panneau **Personnes autorisées à récupérer les enfants** (vue par foyer, pas par enfant) : les deux parents y figurent toujours, avec l'étiquette « Parent », non retirables depuis cette liste — cette entrée n'est jamais une ligne stockée, elle est recalculée à chaque affichage depuis la fiche foyer. Les autres personnes (bouton *Ajouter une personne autorisée* : prénom, nom, lien de parenté, téléphone) sont ajoutées d'un coup à tous les enfants actifs du foyer, et retirables ligne par ligne — un retrait ici retire la personne de tous les enfants auxquels elle était rattachée. Cette liste dédoublonnée complète, sans le remplacer, le panneau par enfant de « Mes enfants ».
+Panneau **Personnes autorisées à récupérer les enfants — garderie du soir** (vue par foyer, pas par enfant ; sans effet sur la cantine ni la garderie du matin) : les deux parents y figurent toujours, avec l'étiquette « Parent », non retirables depuis cette liste — cette entrée n'est jamais une ligne stockée, elle est recalculée à chaque affichage depuis la fiche foyer. Les autres personnes (bouton *Ajouter une personne autorisée* : prénom, nom, lien de parenté, téléphone) sont ajoutées d'un coup à tous les enfants actifs du foyer, et retirables ligne par ligne — un retrait ici retire la personne de tous les enfants auxquels elle était rattachée. Cette liste dédoublonnée complète, sans le remplacer, le panneau par enfant de « Mes enfants ».
 
 #### Documents
 
@@ -196,7 +196,7 @@ Liste de tous les enfants avec leur famille de rattachement, leur régime cantin
 
 La progression de classe d'une année sur l'autre se fait via le [passage d'année](#années-scolaires), toujours déclenché manuellement par la mairie — aucune tâche planifiée, aucune bascule automatique en arrière-plan.
 
-Chaque enfant a un bouton **Personnes autorisées**, vers une fiche dédiée (hors menu, non listée dans la navigation) affichant la liste courante des personnes pouvant venir le récupérer en fin de garderie (nom, téléphone, lien, pièce d'identité), et l'**historique complet** des ajouts/modifications/retraits (date, auteur, source famille/mairie). Cette fiche est en **lecture seule** côté mairie : c'est la famille qui gère la liste depuis « Mes enfants » ; la mairie la consulte, notamment pour l'animateur en fin de garderie.
+Chaque enfant a un bouton **Personnes autorisées**, vers une fiche dédiée (hors menu, non listée dans la navigation) affichant la liste courante des personnes pouvant venir le récupérer au départ de la garderie du soir (nom, téléphone, lien, pièce d'identité — sans effet sur la cantine ni la garderie du matin), et l'**historique complet** des ajouts/modifications/retraits (date, auteur, source famille/mairie). Cette fiche est en **lecture seule** côté mairie : c'est la famille qui gère la liste depuis « Mes enfants » ; la mairie la consulte, notamment pour l'animateur en fin de garderie.
 
 ### Menus cantine
 
@@ -276,8 +276,10 @@ rappelle également la date du jour en toutes lettres.
 dédiée (`departure_time`) qui ne touche jamais `present` — les deux pointages (présence, départ)
 peuvent être saisis indépendamment sans s'écraser l'un l'autre.
 
-**Personnes autorisées** : en vue Jour, chaque ligne enfant porte un bouton compact *Autorisés*
-(replié par défaut, pour ne pas surcharger une liste qui peut compter beaucoup d'enfants) qui
+**Personnes autorisées** (onglet Garderie soir uniquement — absent des onglets Garderie matin et
+Cantine, où cette information n'a pas lieu d'être) : en vue Jour, chaque ligne enfant porte un
+bouton compact *Autorisés* (replié par défaut, pour ne pas surcharger une liste qui peut compter
+beaucoup d'enfants) qui
 déplie sous la ligne un panneau **en lecture seule** — nom, lien (Parent/Grand-parent/Personne de
 confiance...), téléphone de chaque personne autorisée à venir chercher cet enfant. Plusieurs
 lignes peuvent être dépliées en même temps, chaque bouton ne repliant que la sienne. La liste est

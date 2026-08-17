@@ -58,7 +58,7 @@
         'reinscription_invalid'   => array('err', 'La fenêtre de réinscription est fermée ou votre sélection est invalide.'),
         'reinscription_required'  => array('err', 'Merci de confirmer le règlement intérieur et de fournir un justificatif d\'assurance pour chaque enfant réinscrit.'),
 
-        'pickup_added'   => array('ok',  'Personne autorisée ajoutée.'),
+        'pickup_added'   => array('ok',  'Personne autorisée ajoutée (départ de garderie du soir).'),
         'pickup_updated' => array('ok',  'Personne autorisée modifiée.'),
         'pickup_removed' => array('ok',  'Personne retirée de la liste des personnes autorisées.'),
         'pickup_invalid' => array('err', 'Nom, prénom et téléphone sont obligatoires, et l\'enfant doit être le vôtre.'),
@@ -68,7 +68,7 @@
         'second_parent_bad_email' => array('err', 'L\'adresse e-mail du second parent n\'est pas valide.'),
         'second_parent_bad_phone' => array('err', 'Le numéro de téléphone du second parent n\'est pas valide.'),
 
-        'household_pickup_added'   => array('ok',  'Personne autorisée ajoutée.'),
+        'household_pickup_added'   => array('ok',  'Personne autorisée ajoutée (départ de garderie du soir).'),
         'household_pickup_removed' => array('ok',  'Personne retirée de la liste des personnes autorisées.'),
         'household_pickup_invalid' => array('err', 'Nom, prénom et téléphone sont obligatoires.'),
     );

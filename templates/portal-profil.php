@@ -106,8 +106,8 @@
 </div>
 
 <div class="psc-portal-panel psc-portal-panel--wide">
-  <div class="psc-portal-panel-title">Personnes autorisées à récupérer les enfants</div>
-  <p class="psc-portal-intro">Les deux parents figurent toujours dans cette liste. Ajoutez ici les autres personnes pouvant venir chercher vos enfants en fin de garderie — l'ajout s'applique à tous vos enfants actifs.</p>
+  <div class="psc-portal-panel-title">Personnes autorisées à récupérer les enfants — garderie du soir</div>
+  <p class="psc-portal-intro">Cette liste ne concerne que le départ en fin de <strong>garderie du soir</strong> (elle n'a aucun effet sur la cantine ni la garderie du matin). Les deux parents y figurent toujours. Ajoutez ici les autres personnes pouvant venir chercher vos enfants ce soir-là — l'ajout s'applique à tous vos enfants actifs.</p>
 
   <?php if (!empty($psc_household_authorized)): ?>
   <div class="psc-portal-table-scroll">

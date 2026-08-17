@@ -171,8 +171,8 @@ if ($psc_active_year) {
 
 <?php if (!empty($psc_active_children)): ?>
 <div class="psc-portal-panel psc-portal-panel--wide">
-  <div class="psc-portal-panel-title">Personnes autorisées à récupérer les enfants</div>
-  <p class="psc-portal-intro">Ces personnes peuvent venir chercher vos enfants en fin de garderie. Toute modification de cette liste est conservée dans un historique consultable par la mairie.</p>
+  <div class="psc-portal-panel-title">Personnes autorisées à récupérer les enfants — garderie du soir</div>
+  <p class="psc-portal-intro">Ces personnes peuvent venir chercher vos enfants au départ de la <strong>garderie du soir</strong> — cette liste ne concerne ni la cantine ni la garderie du matin. Toute modification est conservée dans un historique consultable par la mairie.</p>
 
   <?php foreach ($psc_active_children as $c): $psc_pickups = $psc_pickup_map[$c->id] ?? array(); $psc_parent_rows = Psc_Pickup_Persons::parent_entries($parent); ?>
   <div class="psc-portal-pickup-child-block" data-testid="pickup-child-block-<?php echo esc_attr($c->id); ?>">

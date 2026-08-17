@@ -238,10 +238,16 @@
                     '<input type="time" class="psc-sidscm-row-departure-input" data-child-id="' + c.id + '"' +
                     ' value="' + escapeHtml(departureVal) + '" data-testid="sidscm-departure-' + c.id + '"></label>';
             }
-            var expanded = !!state.authExpanded[c.id];
-            var authToggleHtml = '<button type="button" class="psc-sidscm-auth-toggle' + (expanded ? ' is-expanded' : '') +
-                '" data-child-id="' + c.id + '" data-testid="sidscm-auth-toggle-' + c.id + '" aria-expanded="' + (expanded ? 'true' : 'false') + '">' +
-                '<span class="psc-sidscm-auth-toggle-icon">' + (expanded ? '−' : '+') + '</span> Autorisés</button>';
+            // Personnes autorisées : uniquement pertinent pour la Garderie
+            // soir (seul service avec un vrai départ à contrôler) — masqué
+            // sur Garderie matin et Cantine pour ne pas surcharger ces
+            // listes d'une information qui n'y sert à rien.
+            var expanded = svc === 'GS' && !!state.authExpanded[c.id];
+            var authToggleHtml = svc === 'GS'
+                ? '<button type="button" class="psc-sidscm-auth-toggle' + (expanded ? ' is-expanded' : '') +
+                    '" data-child-id="' + c.id + '" data-testid="sidscm-auth-toggle-' + c.id + '" aria-expanded="' + (expanded ? 'true' : 'false') + '">' +
+                    '<span class="psc-sidscm-auth-toggle-icon">' + (expanded ? '−' : '+') + '</span> Autorisés</button>'
+                : '';
             return '<div class="psc-sidscm-row" data-testid="sidscm-row-' + c.id + '">' +
                 '<label class="psc-sidscm-row-label">' +
                 '<input type="checkbox" class="psc-sidscm-row-check" data-child-id="' + c.id + '"' +
@@ -308,6 +314,15 @@
             return '<th>' + escapeHtml(shortDay(d)) + '</th>';
         }).join('');
 
+        // Personnes autorisées : uniquement pour la Garderie soir, cf.
+        // renderDayView() — masqué en semaine sur les autres services.
+        var authWeekBtn = function (c) {
+            return svc === 'GS'
+                ? '<button type="button" class="psc-sidscm-auth-toggle psc-sidscm-auth-toggle--week" data-child-id="' + c.id + '"' +
+                    ' data-testid="sidscm-auth-week-' + c.id + '"><span class="psc-sidscm-auth-toggle-icon">+</span> Autorisés</button>'
+                : '';
+        };
+
         var rowsHtml = rows.map(function (c) {
             var marksHtml = dayKeys.map(function (d) {
                 var expected = (c[svc] || []).indexOf(d) !== -1;
@@ -316,8 +331,7 @@
             }).join('');
             return '<tr><td class="psc-sidscm-table-child-cell">' + escapeHtml(c.prenom) + ' ' + escapeHtml(c.nom) +
                 ' <span class="psc-sidscm-table-child-classe">(' + escapeHtml(c.classe || '') + ')</span>' +
-                '<button type="button" class="psc-sidscm-auth-toggle psc-sidscm-auth-toggle--week" data-child-id="' + c.id + '"' +
-                ' data-testid="sidscm-auth-week-' + c.id + '"><span class="psc-sidscm-auth-toggle-icon">+</span> Autorisés</button></td>' +
+                authWeekBtn(c) + '</td>' +
                 marksHtml + '</tr>';
         }).join('');
 
