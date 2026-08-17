@@ -30,11 +30,14 @@ jobs:
             echo "::error::Bump PSC_VERSION dans periscolaire-registration.php, commit sur main, PUIS crée le tag v$PLUGIN_VERSION."
             exit 1
           fi
+          # Réutilisé par les étapes suivantes (nom du zip, sans le préfixe "v"
+          # du tag — même convention que les archives construites en local).
+          echo "PLUGIN_VERSION=$TAG_VERSION" >> "$GITHUB_ENV"
 
       - name: Prépare le dossier du plugin (fichiers de prod uniquement)
         run: |
           mkdir -p build/periscolaire-registration
-          cp periscolaire-registration.php index.php uninstall.php LICENSE readme.txt build/periscolaire-registration/
+          cp periscolaire-registration.php index.php uninstall.php LICENSE readme.txt README.md build/periscolaire-registration/
           cp -R includes build/periscolaire-registration/
           cp -R templates build/periscolaire-registration/
           cp -R assets build/periscolaire-registration/
@@ -43,10 +46,10 @@ jobs:
       - name: Crée l'archive ZIP
         run: |
           cd build
-          zip -rq -X "../periscolaire-registration-${GITHUB_REF_NAME}.zip" periscolaire-registration
+          zip -rq -X "../periscolaire-registration-${PLUGIN_VERSION}.zip" periscolaire-registration
 
       - name: Publie la Release GitHub
         uses: softprops/action-gh-release@v2
         with:
-          files: periscolaire-registration-${{ github.ref_name }}.zip
+          files: periscolaire-registration-${{ env.PLUGIN_VERSION }}.zip
           generate_release_notes: true
