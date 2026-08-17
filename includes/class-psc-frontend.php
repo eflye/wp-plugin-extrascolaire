@@ -26,6 +26,8 @@ class Psc_Frontend {
         add_action('wp_ajax_psc_toggle', array(__CLASS__, 'ajax_toggle'));
         add_action('wp_ajax_nopriv_psc_toggle_bulk', array(__CLASS__, 'ajax_toggle_bulk'));
         add_action('wp_ajax_psc_toggle_bulk', array(__CLASS__, 'ajax_toggle_bulk'));
+        add_action('wp_ajax_nopriv_psc_menu_week', array(__CLASS__, 'ajax_menu_week'));
+        add_action('wp_ajax_psc_menu_week', array(__CLASS__, 'ajax_menu_week'));
         add_action('wp_ajax_nopriv_psc_confirm', array(__CLASS__, 'ajax_confirm'));
         add_action('wp_ajax_psc_confirm', array(__CLASS__, 'ajax_confirm'));
 
@@ -1288,12 +1290,21 @@ class Psc_Frontend {
     /**
      * Données de navigation du menu de cantine par semaine — partagées
      * entre l'onglet "Menu de la semaine" du portail connecté ($extra_args
-     * = psc_tab=menu, pour revenir sur le bon onglet après un rechargement
-     * complet déclenché par ←/→) et le widget public de la vue invité
-     * (aucun argument supplémentaire).
+     * = psc_tab=menu) et le widget public de la vue invité (aucun argument
+     * supplémentaire). $week_override permet à l'appel AJAX (ajax_menu_week)
+     * de demander une semaine précise sans passer par $_GET — la requête
+     * initiale (page complète) continue de lire ?psc_semaine dans l'URL.
+     * $base_url_override : nécessaire pour ce même appel AJAX — sans lui,
+     * add_query_arg()/remove_query_arg() prendraient par défaut l'URL de la
+     * requête en cours (admin-ajax.php), et les liens ←/→ renvoyés
+     * pointeraient vers admin-ajax.php au lieu de la page famille.
      */
-    protected static function menu_nav_data($extra_args = array()) {
-        $requested = isset($_GET['psc_semaine']) ? sanitize_text_field(wp_unslash($_GET['psc_semaine'])) : '';
+    protected static function menu_nav_data($extra_args = array(), $week_override = null, $base_url_override = null) {
+        if ($week_override !== null) {
+            $requested = $week_override;
+        } else {
+            $requested = isset($_GET['psc_semaine']) ? sanitize_text_field(wp_unslash($_GET['psc_semaine'])) : '';
+        }
         $menu_week = $requested ? psc_week_start($requested) : false;
         if (!$menu_week) {
             $menu_week = psc_week_start(current_time('Y-m-d'));
@@ -1303,7 +1314,9 @@ class Psc_Frontend {
 
         $prev_week = gmdate('Y-m-d', strtotime($menu_week . ' -7 days'));
         $next_week = gmdate('Y-m-d', strtotime($menu_week . ' +7 days'));
-        $base = remove_query_arg(array('psc_semaine', 'psc_msg'));
+        $base = $base_url_override !== null
+            ? remove_query_arg(array('psc_semaine', 'psc_msg'), $base_url_override)
+            : remove_query_arg(array('psc_semaine', 'psc_msg'));
 
         return array(
             'week_label'      => self::week_range_label($menu_week),
@@ -1317,12 +1330,32 @@ class Psc_Frontend {
         );
     }
 
-    protected static function portal_menu_data() {
-        return self::menu_nav_data(array('psc_tab' => 'menu'));
+    protected static function portal_menu_data($week_override = null, $base_url_override = null) {
+        return self::menu_nav_data(array('psc_tab' => 'menu'), $week_override, $base_url_override);
     }
 
     protected static function guest_menu_data() {
         return self::menu_nav_data();
+    }
+
+    /**
+     * Navigation par semaine du menu (onglet "Menu de la semaine", portail
+     * connecté) sans rechargement de page : ne renvoie que le HTML du bloc
+     * (nav + tableau/message), identique à templates/portal-menu-block.php
+     * inclus lors du rendu complet de la page — même données, même charte,
+     * seul le mécanisme de chargement change.
+     */
+    public static function ajax_menu_week() {
+        check_ajax_referer('psc_front', 'nonce');
+
+        $semaine = psc_post('semaine');
+        $psc_portal_menu = self::portal_menu_data($semaine !== '' ? $semaine : false, Psc_Mailer::form_page_url());
+
+        ob_start();
+        include PSC_PATH . 'templates/portal-menu-block.php';
+        $html = ob_get_clean();
+
+        wp_send_json_success(array('html' => $html));
     }
 
     /**

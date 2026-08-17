@@ -704,6 +704,10 @@ body.psc-portal-active main.site-main {
 .psc-portal .psc-err-text { color: #b32d2e; }
 
 /* ---- Menu de la semaine ---- */
+/* Navigation ←/→ et "Revenir à cette semaine" en AJAX (assets/js/portal.js,
+   initMenuNav) : léger estompage du bloc pendant la requête, pas de
+   spinner plein écran. */
+#psc-menu-block.psc-menu-loading { opacity: 0.55; transition: opacity 0.15s ease; pointer-events: none; }
 .psc-portal-menu-nav {
     display: flex;
     align-items: center;

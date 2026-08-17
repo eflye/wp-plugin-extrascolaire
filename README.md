@@ -105,7 +105,7 @@ Un bouton « Valider et recevoir mon planning » envoie à la demande un récapi
 
 #### Menu de la semaine
 
-Même contenu que le widget public (voir [Menu de cantine — accès libre](#menu-de-cantine--accès-libre)), mais dans le portail connecté, avec la même navigation semaine précédente/suivante.
+Même contenu que le widget public (voir [Menu de cantine — accès libre](#menu-de-cantine--accès-libre)), mais dans le portail connecté, avec la même navigation semaine précédente/suivante. Dans le portail, la navigation ←/→ et « Revenir à cette semaine » se fait en AJAX (rechargement du seul bloc menu, sans rechargement de page ni perte de position de défilement) ; l'URL reste synchronisée (`?psc_semaine=...`) pour permettre de partager un lien vers une semaine précise.
 
 #### Mes enfants
 

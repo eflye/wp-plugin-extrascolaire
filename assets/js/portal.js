@@ -36,6 +36,77 @@
         }
     }
 
+    /* ---------- Menu de la semaine : navigation sans rechargement ---------- */
+
+    function menuNotice(container, message) {
+        var old = container.querySelector('.psc-error');
+        if (old) old.remove();
+
+        var p = document.createElement('p');
+        p.className = 'psc-error';
+        p.setAttribute('role', 'alert');
+        p.setAttribute('data-testid', 'portal-menu-error');
+        p.textContent = message;
+        container.after(p);
+        setTimeout(function () { p.remove(); }, 7000);
+    }
+
+    function initMenuNav() {
+        var block = document.getElementById('psc-menu-block');
+        if (!block || typeof PSC === 'undefined') return;
+
+        function bindLinks() {
+            block.querySelectorAll(
+                '[data-testid="portal-menu-nav-prev"], [data-testid="portal-menu-nav-next"], [data-testid="portal-menu-today-link"]'
+            ).forEach(function (link) {
+                link.addEventListener('click', onNavClick);
+            });
+        }
+
+        function onNavClick(e) {
+            e.preventDefault();
+            if (block.classList.contains('psc-menu-loading')) return; // requête déjà en cours
+
+            var href = e.currentTarget.getAttribute('href');
+            var semaine = '';
+            try {
+                semaine = new URL(href, window.location.href).searchParams.get('psc_semaine') || '';
+            } catch (err) { /* href invalide : on retente quand même avec semaine vide */ }
+
+            block.classList.add('psc-menu-loading');
+
+            var body = new URLSearchParams();
+            body.set('action', 'psc_menu_week');
+            body.set('nonce', PSC.nonce);
+            body.set('semaine', semaine);
+
+            fetch(PSC.ajax_url, {
+                method: 'POST',
+                body: body,
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            }).then(function (r) {
+                return r.json().catch(function () { return { success: false }; });
+            }).then(function (res) {
+                block.classList.remove('psc-menu-loading');
+                if (!res || !res.success || !res.data || typeof res.data.html !== 'string') {
+                    menuNotice(block, "Impossible de charger cette semaine. Merci de réessayer.");
+                    return;
+                }
+                block.innerHTML = res.data.html;
+                bindLinks();
+                if (window.history && window.history.pushState) {
+                    window.history.pushState({}, '', href);
+                }
+            }).catch(function () {
+                block.classList.remove('psc-menu-loading');
+                menuNotice(block, 'Erreur réseau. Vérifiez votre connexion et réessayez.');
+            });
+        }
+
+        bindLinks();
+    }
+
     /* ---------- Popin "Annulation prestations" ---------- */
 
     function initAbsenceModal() {
@@ -278,5 +349,6 @@
         initChildEditModal();
         initAssuranceUploadModal();
         initPickupPersonModal();
+        initMenuNav();
     });
 })();
