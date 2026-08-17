@@ -542,15 +542,18 @@ class Psc_Requests {
         // le lien de confirmation) : on ouvre donc sa session tout de suite
         // et on le redirige directement dans son espace connecté, plutôt
         // que de lui faire attendre un second e-mail avec un lien d'accès
-        // qu'il devrait encore aller chercher. Un échec (aucun enfant
-        // valide, essentiellement) retombe simplement sur le parcours
-        // normal : la demande reste "pending" pour la mairie, rien n'est
-        // perdu.
+        // qu'il devrait encore aller chercher. Le mail "compte activé" est
+        // donc inutile ici (send_login_email=false) : la session vient
+        // d'être ouverte via le lien qu'il vient de prouver, pas besoin
+        // d'un second lien d'accès dans sa boîte mail. Un échec (aucun
+        // enfant valide, essentiellement) retombe simplement sur le
+        // parcours normal : la demande reste "pending" pour la mairie,
+        // rien n'est perdu.
         if (psc_auto_approve_requests_enabled()) {
             $req = self::get($req->id);
             $children = self::children_of($req);
             if (!empty($children)) {
-                $result = self::approve_request($req, $children);
+                $result = self::approve_request($req, $children, false);
                 if (!is_wp_error($result)) {
                     Psc_Parents::open_session($result);
                     wp_safe_redirect(add_query_arg('psc_msg', 'welcome', $redirect));
@@ -633,8 +636,15 @@ class Psc_Requests {
      * mairie ou tel quel depuis children_of($req)) : cette méthode ne lit
      * jamais $_POST elle-même. Renvoie l'id du parent créé/retrouvé, ou
      * WP_Error.
+     *
+     * $send_login_email : à false quand l'appelant vient d'ouvrir la
+     * session du parent lui-même dans la même requête (validation
+     * automatique juste après confirmation d'adresse) — un e-mail "compte
+     * activé" serait alors garanti inutile, le parent étant déjà connecté.
+     * Toujours true pour une validation manuelle par la mairie : c'est
+     * alors la seule façon pour le parent de recevoir son accès.
      */
-    protected static function approve_request($req, $children) {
+    protected static function approve_request($req, $children, $send_login_email = true) {
         global $wpdb;
 
         // Règlement, mode de paiement et mandat SEPA déclarés dans la
@@ -725,8 +735,11 @@ class Psc_Requests {
             array('%d')
         );
 
-        // Le parent reçoit directement son lien d'accès.
-        Psc_Parents::send_login_link($req->email, 'approved');
+        // Le parent reçoit directement son lien d'accès — sauf s'il est
+        // déjà connecté (validation automatique, cf. maybe_verify()).
+        if ($send_login_email) {
+            Psc_Parents::send_login_link($req->email, 'approved');
+        }
 
         return $parent_id;
     }
