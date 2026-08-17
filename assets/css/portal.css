@@ -979,6 +979,65 @@ body.psc-portal-active main.site-main {
     .psc-portal-diet-checks { flex-wrap: wrap; }
 }
 
+/* ---- Mes enfants (< 640px) : tableaux "carte empilée" plutôt que scroll
+   horizontal caché — un <tr> devient un bloc, chaque <td> une ligne
+   libellé/valeur (libellé injecté depuis data-label, posé sur chaque
+   <td> dans portal-enfants.php). Scopé à data-portal-section="enfants" :
+   la table "Mes factures" (même classe .psc-portal-table, pas de
+   data-label) garde son comportement de scroll existant, inchangé. */
+@media (max-width: 640px) {
+    [data-portal-section="enfants"] .psc-portal-table-scroll { overflow-x: visible; }
+    [data-portal-section="enfants"] .psc-portal-table { border: none; margin-bottom: 20px; }
+    [data-portal-section="enfants"] .psc-portal-table thead { display: none; }
+    [data-portal-section="enfants"] .psc-portal-table tbody tr {
+        display: block;
+        background: #fff;
+        border: 1px solid var(--psc-rule-light);
+        padding: 4px 14px;
+        margin-bottom: 12px;
+    }
+    [data-portal-section="enfants"] .psc-portal-table tbody tr:last-child { margin-bottom: 0; }
+    [data-portal-section="enfants"] .psc-portal-table td {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--psc-rule-lighter);
+        text-align: right;
+    }
+    [data-portal-section="enfants"] .psc-portal-table tbody tr td:last-child { border-bottom: none; }
+    [data-portal-section="enfants"] .psc-portal-table td[data-label] { justify-content: space-between; }
+    [data-portal-section="enfants"] .psc-portal-table td[data-label]::before {
+        content: attr(data-label);
+        font-size: 10px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--psc-moss);
+        font-weight: 600;
+        text-align: left;
+        flex-shrink: 0;
+    }
+    /* Colonne actions (dernière, sans en-tête ni data-label) : boutons
+       alignés à droite, sans libellé fantôme. */
+    [data-portal-section="enfants"] .psc-portal-table td:not([data-label]) { justify-content: flex-end; flex-wrap: wrap; }
+
+    /* Contenu mixte (badge + texte + lien, ex. statut assurance) : un seul
+       bloc flex plutôt que chaque nœud de texte comme item flex séparé —
+       sans ça, le contenu se fragmente ligne par ligne de façon illisible
+       en rétrécissant pour tenir sans déborder. */
+    [data-portal-section="enfants"] .psc-portal-table td[data-label] .psc-portal-cell-value {
+        min-width: 0;
+        text-align: right;
+    }
+
+    /* Cible de touche confortable (44px) une fois les boutons empilés en
+       carte — la version desktop (.psc-portal-btn-sm de base) ne change pas. */
+    [data-portal-section="enfants"] .psc-portal-table .psc-portal-btn-sm {
+        min-height: 44px;
+        padding: 10px 16px;
+    }
+}
+
 /* ===================================================================
    Vue invité v2 ("Vue visiteur") — menu public + connexion + demande
    d'inscription en 4 étapes. Scopé sous .psc-guest, partage les tokens

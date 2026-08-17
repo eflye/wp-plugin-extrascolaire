@@ -109,7 +109,7 @@ Même contenu que le widget public (voir [Menu de cantine — accès libre](#men
 
 #### Mes enfants
 
-Tableau **en lecture seule** — Prénom, Nom, Classe, Naissance, Régime (badge, ou « — » si aucun), Actif (badge) — avec un bouton **Modifier** par ligne ouvrant une popin pour corriger une faute de frappe sur le prénom, le nom ou la date de naissance d'un enfant déjà onboardé.
+Tableau **en lecture seule** — Prénom, Nom, Classe, Naissance, Régime (badge, ou « — » si aucun), Actif (badge) — avec un bouton **Modifier** par ligne ouvrant une popin pour corriger une faute de frappe sur le prénom, le nom ou la date de naissance d'un enfant déjà onboardé. Sous 640px, ce tableau (comme celui de l'assurance scolaire ci-dessous et celui des personnes autorisées) passe en liste de cartes empilées — un libellé par ligne plutôt qu'un défilement horizontal.
 
 En dessous, le panneau **Assurance scolaire [année scolaire en cours]** liste chaque enfant actif avec son statut (badge « Fournie » avec date + lien de consultation, ou « Manquante ») et un bouton *Remplacer*/*Ajouter* ouvrant une popin d'envoi de fichier (PDF, JPG ou PNG, 1 Mo maximum).
 

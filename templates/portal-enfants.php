@@ -18,12 +18,12 @@
   <?php $psc_classe_labels = psc_classe_options(); ?>
   <?php foreach ($all_children as $c): ?>
     <tr data-testid="portal-child-row-<?php echo esc_attr($c->id); ?>">
-      <td style="font-weight:500;"><?php echo esc_html($c->prenom); ?></td>
-      <td><?php echo esc_html($c->nom); ?></td>
+      <td style="font-weight:500;" data-label="Prénom"><?php echo esc_html($c->prenom); ?></td>
+      <td data-label="Nom"><?php echo esc_html($c->nom); ?></td>
       <?php $psc_c_classe = Psc_School_Years::classe_for($c->id); ?>
-      <td><?php echo esc_html($psc_c_classe ? ($psc_classe_labels[$psc_c_classe] ?? $psc_c_classe) : '—'); ?></td>
-      <td><?php echo $c->date_naissance ? esc_html(date_i18n('d/m/Y', strtotime($c->date_naissance))) : '—'; ?></td>
-      <td>
+      <td data-label="Classe"><?php echo esc_html($psc_c_classe ? ($psc_classe_labels[$psc_c_classe] ?? $psc_c_classe) : '—'); ?></td>
+      <td data-label="Naissance"><?php echo $c->date_naissance ? esc_html(date_i18n('d/m/Y', strtotime($c->date_naissance))) : '—'; ?></td>
+      <td data-label="Régime">
         <?php
           $psc_diet = array();
           if ((int) $c->sans_porc === 1) $psc_diet[] = 'Sans porc';
@@ -35,7 +35,7 @@
           <span class="psc-portal-muted">—</span>
         <?php endif; ?>
       </td>
-      <td>
+      <td data-label="Actif">
         <?php if ($c->statut === 'actif'): ?>
           <span class="psc-badge-ok">Actif</span>
         <?php else: ?>
@@ -113,9 +113,10 @@ if ($psc_active_year) {
     <tbody>
     <?php foreach ($psc_active_children as $c): $psc_a = $psc_assurance_map[$c->id] ?? null; ?>
       <tr data-testid="assurance-row-<?php echo esc_attr($c->id); ?>">
-        <td style="font-weight:500;"><?php echo esc_html($c->prenom); ?></td>
-        <td><?php echo esc_html($c->nom); ?></td>
-        <td>
+        <td style="font-weight:500;" data-label="Prénom"><?php echo esc_html($c->prenom); ?></td>
+        <td data-label="Nom"><?php echo esc_html($c->nom); ?></td>
+        <td data-label="Statut">
+          <span class="psc-portal-cell-value">
           <?php if ($psc_a): ?>
             <span class="psc-badge-ok" data-testid="assurance-status-<?php echo esc_attr($c->id); ?>">Fournie</span>
             le <?php echo esc_html(date_i18n('d/m/Y', strtotime($psc_a->uploaded_at))); ?>
@@ -123,6 +124,7 @@ if ($psc_active_year) {
           <?php else: ?>
             <span class="psc-badge-warn" data-testid="assurance-status-<?php echo esc_attr($c->id); ?>">Manquante</span>
           <?php endif; ?>
+          </span>
         </td>
         <td>
           <button type="button" class="psc-portal-btn-sm" data-assurance-upload-trigger data-child-id="<?php echo esc_attr($c->id); ?>" aria-label="<?php echo esc_attr($psc_a ? 'Remplacer le justificatif d\'assurance de ' . $c->prenom : 'Ajouter le justificatif d\'assurance de ' . $c->prenom); ?>"><?php echo $psc_a ? 'Remplacer' : 'Uploader'; ?></button>
@@ -188,11 +190,11 @@ if ($psc_active_year) {
         <tbody>
         <?php foreach ($psc_pickups as $p): ?>
           <tr data-testid="pickup-row-<?php echo esc_attr($p->id); ?>">
-            <td style="font-weight:500;"><?php echo esc_html($p->prenom); ?></td>
-            <td><?php echo esc_html($p->nom); ?></td>
-            <td><?php echo esc_html($p->telephone); ?></td>
-            <td><?php echo esc_html($p->lien !== '' ? $p->lien : '—'); ?></td>
-            <td>
+            <td style="font-weight:500;" data-label="Prénom"><?php echo esc_html($p->prenom); ?></td>
+            <td data-label="Nom"><?php echo esc_html($p->nom); ?></td>
+            <td data-label="Téléphone"><?php echo esc_html($p->telephone); ?></td>
+            <td data-label="Lien"><?php echo esc_html($p->lien !== '' ? $p->lien : '—'); ?></td>
+            <td data-label="Pièce d'identité">
               <?php if ((int) $p->piece_identite === 1): ?>
                 <span class="psc-badge-ok">Oui</span>
               <?php else: ?>
