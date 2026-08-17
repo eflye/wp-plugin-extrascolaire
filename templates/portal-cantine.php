@@ -120,6 +120,32 @@
                   </th>
                 <?php endforeach; ?>
               </tr>
+              <tr class="psc-portal-tout-row" data-testid="tout-row-<?php echo esc_attr($child_index); ?>-<?php echo esc_attr($month_key); ?>">
+                <th scope="col"></th>
+                <?php foreach (psc_allowed_services() as $code):
+                    $tout_dates = array();
+                    $tout_checked_count = 0;
+                    foreach ($days as $d) {
+                        if (psc_is_locked($d->jour_date)) continue;
+                        $tout_dates[] = $d->jour_date;
+                        if (isset($reg_map[$child->id . '|' . $d->jour_date . '|' . $code])) $tout_checked_count++;
+                    }
+                    $tout_disabled    = empty($tout_dates);
+                    $tout_all_checked = !$tout_disabled && $tout_checked_count === count($tout_dates);
+                ?>
+                  <th scope="col">
+                    <button type="button"
+                            class="psc-tout-btn<?php echo $tout_all_checked ? ' psc-tout-btn-all' : ''; ?>"
+                            data-child="<?php echo esc_attr($child->id); ?>"
+                            data-service="<?php echo esc_attr($code); ?>"
+                            data-dates="<?php echo esc_attr(implode(',', $tout_dates)); ?>"
+                            data-testid="tout-<?php echo esc_attr($child_index); ?>-<?php echo esc_attr($month_key); ?>-<?php echo esc_attr($code); ?>"
+                            <?php disabled($tout_disabled); ?>>
+                      <?php echo $tout_all_checked ? 'Retirer' : 'Tout'; ?>
+                    </button>
+                  </th>
+                <?php endforeach; ?>
+              </tr>
             </thead>
             <tbody>
             <?php foreach ($days as $d):

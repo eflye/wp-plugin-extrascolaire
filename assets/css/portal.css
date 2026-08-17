@@ -618,6 +618,36 @@ body.psc-portal-active main.site-main {
     line-height: 1.3;
 }
 
+/* Ligne "Tout" (un bouton par colonne de service) sous les en-têtes du
+   tableau : coche/décoche en un clic tous les jours déclarables du mois
+   pour l'enfant concerné (assets/js/frontend.js, onToutClick). */
+.psc-portal-tout-row th { padding: 4px 6px 8px; border-bottom: 1px solid var(--psc-rule); }
+.psc-tout-btn {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--psc-forest);
+    background: transparent;
+    color: var(--psc-forest);
+    text-transform: uppercase;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 3px 4px;
+    cursor: pointer;
+}
+.psc-tout-btn:hover:not(:disabled) { background: var(--psc-paper); }
+.psc-tout-btn-all {
+    background: var(--psc-forest);
+    color: var(--psc-cream);
+}
+.psc-tout-btn-all:hover:not(:disabled) { background: var(--psc-moss); }
+.psc-tout-btn:disabled {
+    border-color: rgba(45, 74, 62, 0.25);
+    color: var(--psc-stone);
+    cursor: default;
+}
+
 /* Case à cocher stylée en "tampon" 34x30 — même <input type="checkbox">
    que le calendrier existant, même comportement JS (assets/js/frontend.js
    inchangé), seul l'habillage visuel change. */

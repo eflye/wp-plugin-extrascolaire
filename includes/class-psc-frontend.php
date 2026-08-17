@@ -24,6 +24,8 @@ class Psc_Frontend {
         // vérifiée dans chaque handler via la session du plugin.
         add_action('wp_ajax_nopriv_psc_toggle', array(__CLASS__, 'ajax_toggle'));
         add_action('wp_ajax_psc_toggle', array(__CLASS__, 'ajax_toggle'));
+        add_action('wp_ajax_nopriv_psc_toggle_bulk', array(__CLASS__, 'ajax_toggle_bulk'));
+        add_action('wp_ajax_psc_toggle_bulk', array(__CLASS__, 'ajax_toggle_bulk'));
         add_action('wp_ajax_nopriv_psc_confirm', array(__CLASS__, 'ajax_confirm'));
         add_action('wp_ajax_psc_confirm', array(__CLASS__, 'ajax_confirm'));
 
@@ -550,6 +552,120 @@ class Psc_Frontend {
         }
 
         wp_send_json_success();
+    }
+
+    /**
+     * Bouton "Tout" par colonne de service (Cantine & Garderie) : coche ou
+     * décoche en une fois tous les jours déclarables d'un mois pour un
+     * enfant/service donnés. Reçoit la liste exacte des dates depuis le
+     * client (celles rendues comme déclarables — non verrouillées — au
+     * chargement de la page), mais revalide chacune côté serveur (jour
+     * ouvert, non verrouillé) plutôt que de faire confiance à cette liste :
+     * son état a pu changer depuis le rendu de la page. Les dates rejetées
+     * sont ignorées silencieusement plutôt que d'échouer tout le lot — même
+     * principe de résilience que handle_cancel_absence(). Ne réutilise pas
+     * ajax_toggle() (même logique dupliquée par date) pour ne rien changer
+     * au comportement déjà en place du pointage case par case.
+     */
+    public static function ajax_toggle_bulk() {
+        check_ajax_referer('psc_front', 'nonce');
+
+        $parent = Psc_Parents::current();
+        if (!$parent) {
+            wp_send_json_error(array('code' => 'auth'), 403);
+        }
+
+        global $wpdb;
+
+        $child_id  = psc_post_int('child_id');
+        $service   = psc_post('service');
+        $checked   = psc_post('checked') === '1';
+        $raw_dates = isset($_POST['dates']) ? wp_unslash($_POST['dates']) : '';
+        $raw_dates = is_array($raw_dates) ? $raw_dates : explode(',', (string) $raw_dates);
+
+        if (!$child_id || !in_array($service, psc_allowed_services(), true)) {
+            wp_send_json_error(array('code' => 'invalid'), 400);
+        }
+
+        $dates = array();
+        foreach ($raw_dates as $raw) {
+            $d = psc_valid_date($raw);
+            if ($d) $dates[$d] = $d; // dédoublonnage
+        }
+        if (empty($dates)) {
+            wp_send_json_error(array('code' => 'invalid'), 400);
+        }
+
+        $t_child = psc_table('children');
+        $child = $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_child WHERE id = %d", $child_id));
+        if (!$child) {
+            wp_send_json_error(array('code' => 'notfound'), 404);
+        }
+        if ((int) $child->parent_id !== (int) $parent->id) {
+            wp_send_json_error(array('code' => 'forbidden'), 403);
+        }
+
+        if ($checked && !self::has_valid_assurance($child_id)) {
+            wp_send_json_error(array(
+                'code'    => 'assurance_missing',
+                'message' => 'L\'assurance scolaire de cet enfant n\'a pas été fournie pour l\'année en cours. Ajoutez-la depuis « Mes enfants » pour pouvoir déclarer des jours.',
+            ), 403);
+        }
+
+        $trimestre = self::active_trimestre();
+        if (!$trimestre) {
+            wp_send_json_error(array('code' => 'closed'), 403);
+        }
+
+        $t_days = psc_table('calendar_days');
+        $t_reg  = psc_table('registrations');
+        $applied = array();
+
+        foreach ($dates as $date) {
+            $day = $wpdb->get_row($wpdb->prepare(
+                "SELECT id FROM $t_days WHERE trimestre_id = %d AND jour_date = %s AND is_open = 1",
+                $trimestre->id, $date
+            ));
+            if (!$day) continue;
+
+            // Délai de prévenance revérifié par date : l'état a pu changer
+            // depuis le chargement de la page, on ignore silencieusement
+            // plutôt que d'échouer tout le lot.
+            if (psc_is_locked($date)) continue;
+
+            if ($checked) {
+                $wpdb->query($wpdb->prepare(
+                    "INSERT INTO $t_reg (child_id, trimestre_id, jour_date, service, updated_at)
+                     VALUES (%d, %d, %s, %s, %s)
+                     ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at)",
+                    $child_id, $trimestre->id, $date, $service, current_time('mysql')
+                ));
+                if ($service === 'FORF') {
+                    foreach (array('GM', 'CANT', 'GS') as $svc) {
+                        $wpdb->delete($t_reg,
+                            array('child_id' => $child_id, 'jour_date' => $date, 'service' => $svc),
+                            array('%d', '%s', '%s')
+                        );
+                    }
+                }
+                if (in_array($service, array('GM', 'CANT', 'GS'), true)) {
+                    $wpdb->delete($t_reg,
+                        array('child_id' => $child_id, 'jour_date' => $date, 'service' => 'FORF'),
+                        array('%d', '%s', '%s')
+                    );
+                }
+            } else {
+                $wpdb->delete(
+                    $t_reg,
+                    array('child_id' => $child_id, 'jour_date' => $date, 'service' => $service),
+                    array('%d', '%s', '%s')
+                );
+            }
+
+            $applied[] = $date;
+        }
+
+        wp_send_json_success(array('dates' => $applied));
     }
 
     /* ---------------- AJAX : valider et recevoir le récapitulatif ---------------- */

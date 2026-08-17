@@ -102,6 +102,159 @@
             total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
     }
 
+    /* ---------- Boutons "Tout" par colonne de service ---------- */
+
+    function btnNotice(btn, message) {
+        var cell = btn.closest('th');
+        if (!cell) return;
+        var old = cell.querySelector('.psc-error');
+        if (old) old.remove();
+
+        var span = document.createElement('span');
+        span.className = 'psc-error';
+        span.setAttribute('role', 'alert');
+        span.setAttribute('data-testid', 'tout-error');
+        span.textContent = message;
+        cell.appendChild(span);
+        setTimeout(function () { span.remove(); }, 7000);
+    }
+
+    // Jours déclarables (data-dates, calculés côté serveur au chargement)
+    // -> cases correspondantes réellement présentes dans le tableau.
+    function toutTargets(btn) {
+        var dates = (btn.dataset.dates || '').split(',').filter(Boolean);
+        var table = btn.closest('table');
+        var service = btn.dataset.service;
+        var map = {};
+        if (!table) return map;
+        dates.forEach(function (date) {
+            var cb = table.querySelector('.psc-check[data-date="' + date + '"][data-service="' + service + '"]');
+            if (cb) map[date] = cb;
+        });
+        return map;
+    }
+
+    // État "Tout" / "Retirer" recalculé depuis l'état réel des cases —
+    // jamais suivi séparément, pour ne jamais désynchroniser un clic
+    // individuel du bouton de sa colonne.
+    function recomputeToutButton(btn) {
+        var targets = toutTargets(btn);
+        var dates = Object.keys(targets);
+        if (!dates.length) return;
+        var allChecked = dates.every(function (d) { return targets[d].checked; });
+        btn.classList.toggle('psc-tout-btn-all', allChecked);
+        btn.textContent = allChecked ? 'Retirer' : 'Tout';
+    }
+
+    function recomputeToutButtonsIn(table) {
+        if (!table) return;
+        table.querySelectorAll('.psc-tout-btn').forEach(recomputeToutButton);
+    }
+
+    function onToutClick(btn) {
+        if (btn.disabled) return;
+
+        var targets = toutTargets(btn);
+        var dates = Object.keys(targets);
+        if (!dates.length) return;
+
+        var willCheck  = !btn.classList.contains('psc-tout-btn-all');
+        var table      = btn.closest('table');
+        var monthBlock = btn.closest('.psc-month-block');
+        var childBlock = btn.closest('.psc-portal-child-block');
+
+        btn.disabled = true;
+
+        // Application optimiste : les cases déjà désactivées (assurance
+        // manquante sur un jour encore non déclaré) ne sont pas touchées,
+        // le serveur les rejettera de toute façon.
+        var previousChecked = {};
+        dates.forEach(function (d) {
+            var cb = targets[d];
+            previousChecked[d] = cb.checked;
+            if (!cb.disabled) {
+                cb.checked = willCheck;
+                // Forfait <-> prestations individuelles mutuellement
+                // exclusifs : appliquer tout de suite (comme onToggle())
+                // pour ne pas surcompter le total le temps de la requête.
+                if (btn.dataset.service === 'FORF') applyForfaitUI(cb, willCheck);
+            }
+        });
+
+        if (monthBlock) recomputeMonthSummary(monthBlock);
+        if (childBlock) recomputeChildTotal(childBlock);
+        if (table) recomputeToutButtonsIn(table);
+
+        post({
+            action: 'psc_toggle_bulk',
+            child_id: btn.dataset.child,
+            service: btn.dataset.service,
+            checked: willCheck ? '1' : '0',
+            dates: dates.join(',')
+        }).then(function (res) {
+            if (res && res.success) {
+                var applied = (res.data && res.data.dates) || [];
+                var appliedSet = {};
+                applied.forEach(function (d) { appliedSet[d] = true; });
+
+                // Dates non réellement appliquées (verrou tombé entre le
+                // chargement de la page et le clic, etc.) : reviennent à
+                // leur état précédent plutôt que de mentir sur l'écran.
+                dates.forEach(function (d) {
+                    if (appliedSet[d]) return;
+                    targets[d].checked = previousChecked[d];
+                });
+                dates.forEach(function (d) {
+                    if (!appliedSet[d]) return;
+                    var cb = targets[d];
+                    // La case peut avoir été rendue désactivée par un
+                    // forfait déjà présent ce jour-là (page chargée avant
+                    // ce lot) : le serveur vient de trancher, on réaligne
+                    // l'affichage sur son verdict plutôt que de laisser une
+                    // case cochée/décochée obsolète.
+                    cb.disabled = false;
+                    cb.checked = willCheck;
+                    if (btn.dataset.service === 'FORF') {
+                        applyForfaitUI(cb, willCheck);
+                    } else if (willCheck) {
+                        // Une prestation individuelle exclut le forfait sur
+                        // ce jour (mutuellement exclusifs côté serveur) :
+                        // décocher le forfait de la ligne et réactiver les
+                        // autres cases qu'il avait désactivées.
+                        var row = cb.closest('tr');
+                        var forf = row && row.querySelector('.psc-check[data-service="FORF"]');
+                        if (forf && forf.checked) {
+                            forf.checked = false;
+                            applyForfaitUI(forf, false);
+                            cb.checked = true; // réactivé par applyForfaitUI(forf, false), re-cocher
+                        }
+                    }
+                    var cell = cb.closest('td');
+                    if (!cell) return;
+                    cell.classList.add('psc-ok');
+                    setTimeout(function () { cell.classList.remove('psc-ok'); }, 700);
+                });
+
+                window.PSC_DATA_STALE = true;
+            } else {
+                dates.forEach(function (d) { targets[d].checked = previousChecked[d]; });
+                btnNotice(btn, messageFor(res, 'generic'));
+            }
+
+            btn.disabled = false;
+            if (monthBlock) recomputeMonthSummary(monthBlock);
+            if (childBlock) recomputeChildTotal(childBlock);
+            if (table) recomputeToutButtonsIn(table);
+        }).catch(function () {
+            dates.forEach(function (d) { targets[d].checked = previousChecked[d]; });
+            btn.disabled = false;
+            if (monthBlock) recomputeMonthSummary(monthBlock);
+            if (childBlock) recomputeChildTotal(childBlock);
+            if (table) recomputeToutButtonsIn(table);
+            btnNotice(btn, MESSAGES.network);
+        });
+    }
+
     function applyForfaitUI(forf, isChecked) {
         var row = forf.closest('tr');
         if (!row) return;
@@ -123,6 +276,7 @@
         var willBeChecked = cb.checked;
         var monthBlock = cb.closest('.psc-month-block');
         var childBlock = cb.closest('.psc-portal-child-block');
+        var table = cb.closest('table');
 
         // Pour FORF : appliquer le changement d'UI immédiatement, sans attendre l'AJAX.
         // On collecte d'abord les cases cochées à décocher côté serveur.
@@ -141,6 +295,7 @@
 
         if (monthBlock) recomputeMonthSummary(monthBlock);
         if (childBlock) recomputeChildTotal(childBlock);
+        if (table) recomputeToutButtonsIn(table);
 
         post({
             action: 'psc_toggle',
@@ -181,6 +336,7 @@
             if (isForf) applyForfaitUI(cb, !willBeChecked);
             if (monthBlock) recomputeMonthSummary(monthBlock);
             if (childBlock) recomputeChildTotal(childBlock);
+            if (table) recomputeToutButtonsIn(table);
 
             var code = res && res.data && res.data.code;
 
@@ -199,6 +355,7 @@
             if (isForf) applyForfaitUI(cb, !willBeChecked);
             if (monthBlock) recomputeMonthSummary(monthBlock);
             if (childBlock) recomputeChildTotal(childBlock);
+            if (table) recomputeToutButtonsIn(table);
             cellNotice(cb, MESSAGES.network);
         });
     }
@@ -325,6 +482,10 @@
 
         document.querySelectorAll('.psc-check').forEach(function (cb) {
             cb.addEventListener('change', function () { onToggle(cb); });
+        });
+
+        document.querySelectorAll('.psc-tout-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () { onToutClick(btn); });
         });
 
         var btn = document.getElementById('psc-confirm');

@@ -99,6 +99,8 @@ Calendrier présenté mois par mois (accordéon), un bloc par enfant. Chaque cas
 
 Un verrou de modification (48 h par défaut, réglable) grise les cases trop proches de la date concernée — contrôlé aussi côté serveur, pas seulement par l'affichage grisé. L'absence de justificatif d'assurance à jour bloque l'**ajout** d'un nouveau jour pour l'enfant concerné (une case déjà cochée reste décochable : pas de blocage rétroactif).
 
+Un bouton **« Tout »** par colonne de service coche en un clic tous les jours encore déclarables du mois pour l'enfant concerné (les jours déjà verrouillés ne sont jamais touchés) ; si la colonne est déjà entièrement cochée, le bouton passe en « Retirer » pour tout décocher. Indépendant par enfant et par mois, même enregistrement automatique que les cases individuelles.
+
 Un bouton « Valider et recevoir mon planning » envoie à la demande un récapitulatif complet par e-mail (jours, prestations, totaux par service, montant indicatif — la facturation définitive reste de la responsabilité de la mairie).
 
 #### Menu de la semaine
