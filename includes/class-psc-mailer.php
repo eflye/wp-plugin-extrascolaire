@@ -132,6 +132,7 @@ class Psc_Mailer {
     public static function send_email_change_confirmation($parent, $new_email, $url) {
         $site    = self::site_name();
         $subject = sprintf('[%s] Confirmez votre nouvelle adresse e-mail', $site);
+        $days    = (int) round(psc_email_confirmation_ttl() / DAY_IN_SECONDS);
 
         $body = self::h2('Confirmez votre nouvelle adresse e-mail')
             . self::p(sprintf(
@@ -140,7 +141,7 @@ class Psc_Mailer {
             ))
             . self::btn($url, 'Confirmer cette adresse')
             . self::info_box(
-                '<strong>⏱ Ce lien est valable 3 jours.</strong><br>'
+                '<strong>⏱ Ce lien est valable ' . $days . ' jour' . ($days > 1 ? 's' : '') . '.</strong><br>'
                 . 'Si vous n\'êtes pas à l\'origine de cette demande, ignorez ce message : votre adresse actuelle '
                 . 'reste inchangée et pleinement fonctionnelle.'
             );
@@ -664,12 +665,13 @@ class Psc_Mailer {
         $site    = self::site_name();
         $subject = Psc_Email_Templates::subject('request_verify', array('site' => $site));
         $intro   = Psc_Email_Templates::body_html('request_verify', array('site' => $site));
+        $days    = (int) round(psc_email_confirmation_ttl() / DAY_IN_SECONDS);
 
         $body = self::h2('Confirmez votre demande d\'inscription')
             . '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 12px;">' . $intro . '</p>'
             . self::btn($url, 'Confirmer ma demande')
             . self::info_box(
-                '<strong>⏱ Ce lien est valable 3 jours.</strong><br>'
+                '<strong>⏱ Ce lien est valable ' . $days . ' jour' . ($days > 1 ? 's' : '') . '.</strong><br>'
                 . 'Votre demande sera ensuite examinée par la mairie, qui vous contactera par e-mail.'
             )
             . ($attachments ? self::info_box(

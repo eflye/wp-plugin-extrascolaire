@@ -190,7 +190,7 @@ class Psc_Parents {
             array(
                 'pending_email'               => $new_email,
                 'pending_email_token_hash'    => psc_hash_token($token),
-                'pending_email_token_expires' => gmdate('Y-m-d H:i:s', time() + 3 * DAY_IN_SECONDS),
+                'pending_email_token_expires' => gmdate('Y-m-d H:i:s', time() + psc_email_confirmation_ttl()),
             ),
             array('id' => $parent_id),
             array('%s', '%s', '%s'),
@@ -288,7 +288,12 @@ class Psc_Parents {
 
     /* ---------------- Session ---------------- */
 
-    protected static function open_session($parent_id) {
+    /**
+     * Public : appelée aussi par Psc_Requests::maybe_verify() pour ouvrir
+     * la session tout de suite après une validation automatique de
+     * demande, sans faire attendre un second e-mail au parent.
+     */
+    public static function open_session($parent_id) {
         $expires = time() + psc_session_ttl();
         $payload = $parent_id . '|' . $expires;
         $value = $payload . '|' . psc_sign($payload);

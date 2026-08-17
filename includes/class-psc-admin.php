@@ -640,6 +640,14 @@ class Psc_Admin {
         update_option('psc_notify_mairie', isset($_POST['notify_mairie']) ? 1 : 0);
         update_option('psc_auto_approve_requests', isset($_POST['auto_approve_requests']) ? 1 : 0);
 
+        // Durées de validité des liens envoyés par e-mail, bornées pour
+        // éviter une valeur absurde (lien de connexion : entre 5 min et
+        // 24h ; lien de confirmation : entre 1 et 30 jours).
+        $login_ttl_minutes = psc_post_int('login_link_ttl_minutes', 30);
+        update_option('psc_login_link_ttl_minutes', max(5, min(1440, $login_ttl_minutes)));
+        $email_ttl_days = psc_post_int('email_confirmation_ttl_days', 3);
+        update_option('psc_email_confirmation_ttl_days', max(1, min(30, $email_ttl_days)));
+
         $sidscm_code = isset($_POST['sidscm_access_code']) ? sanitize_text_field(wp_unslash($_POST['sidscm_access_code'])) : '';
         update_option('psc_sidscm_access_code', mb_substr(trim($sidscm_code), 0, 40));
         update_option('psc_sidscm_page_id', psc_post_int('sidscm_page_id', 0));

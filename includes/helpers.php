@@ -545,9 +545,24 @@ function psc_mairie_email() {
  * Authentification des parents (indépendante des comptes WordPress)
  * ------------------------------------------------------------------ */
 
-/** Durée de validité d'un lien de connexion envoyé par e-mail. */
+/** Durée de validité d'un lien de connexion envoyé par e-mail (réglable, Réglages > Demandes d'inscription). */
 function psc_login_link_ttl() {
-    return 30 * MINUTE_IN_SECONDS;
+    $minutes = (int) get_option('psc_login_link_ttl_minutes', 30);
+    if ($minutes < 1) $minutes = 30;
+    return (int) apply_filters('psc_login_link_ttl', $minutes * MINUTE_IN_SECONDS);
+}
+
+/**
+ * Durée de validité d'un lien de confirmation par e-mail (adresse d'une
+ * nouvelle demande, changement d'adresse e-mail depuis "Mon profil") —
+ * réglable, Réglages > Demandes d'inscription. Distincte de
+ * psc_login_link_ttl() : un lien de confirmation n'ouvre pas de session,
+ * il valide juste une adresse, donc une durée plus longue est acceptable.
+ */
+function psc_email_confirmation_ttl() {
+    $days = (int) get_option('psc_email_confirmation_ttl_days', 3);
+    if ($days < 1) $days = 3;
+    return (int) apply_filters('psc_email_confirmation_ttl', $days * DAY_IN_SECONDS);
 }
 
 /** Durée d'une session parent une fois le lien utilisé. */

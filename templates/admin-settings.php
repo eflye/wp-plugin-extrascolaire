@@ -68,9 +68,34 @@
   <p class="description">
     Désactivé par défaut : chaque demande reste soumise à la modération de la mairie
     (Périscolaire &gt; Demandes) avant de créer la famille et ses enfants. Si activé, la
-    famille est créée et reçoit son lien d'accès dès qu'elle confirme son adresse — les
-    informations qu'elle a saisies (dont le justificatif d'assurance) ne sont alors jamais
-    relues avant l'ouverture de l'accès.
+    famille est créée et le parent est connecté immédiatement à son espace dès qu'il confirme
+    son adresse (redirection directe, sans attendre un second e-mail) — les informations
+    saisies (dont le justificatif d'assurance) ne sont alors jamais relues avant l'ouverture
+    de l'accès.
+  </p>
+</td>
+</tr>
+<tr>
+<th><label for="psc-login-ttl">Lien de connexion</label></th>
+<td>
+  <input id="psc-login-ttl" type="number" name="login_link_ttl_minutes" min="5" max="1440" step="1"
+         value="<?php echo esc_attr((int) get_option('psc_login_link_ttl_minutes', 30)); ?>" class="small-text"> minutes
+  <p class="description">
+    Durée de validité du lien à usage unique envoyé pour se connecter à l'espace famille
+    (30 minutes par défaut). S'applique aussi au lien reçu par une famille dont la demande
+    vient d'être validée par la mairie.
+  </p>
+</td>
+</tr>
+<tr>
+<th><label for="psc-email-confirm-ttl">Lien de confirmation par e-mail</label></th>
+<td>
+  <input id="psc-email-confirm-ttl" type="number" name="email_confirmation_ttl_days" min="1" max="30" step="1"
+         value="<?php echo esc_attr((int) get_option('psc_email_confirmation_ttl_days', 3)); ?>" class="small-text"> jours
+  <p class="description">
+    Durée de validité des liens qui confirment une adresse e-mail — nouvelle demande
+    d'inscription ou changement d'adresse depuis "Mon profil" (3 jours par défaut). Ces liens
+    ne connectent pas directement à l'espace famille, ils valident seulement une adresse.
   </p>
 </td>
 </tr>

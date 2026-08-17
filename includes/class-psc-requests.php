@@ -416,7 +416,7 @@ class Psc_Requests {
             'children_json'              => wp_json_encode($children),
             'message'                    => mb_substr($message, 0, 1000),
             'verify_hash'                => psc_hash_token($token),
-            'verify_expires'             => gmdate('Y-m-d H:i:s', time() + 3 * DAY_IN_SECONDS),
+            'verify_expires'             => gmdate('Y-m-d H:i:s', time() + psc_email_confirmation_ttl()),
             'verified'                   => 0,
             'status'                     => 'unverified',
             'reglement_accepted_at'      => current_time('mysql'),
@@ -537,17 +537,23 @@ class Psc_Requests {
 
         // Validation automatique (Réglages) : la famille accède directement
         // à son espace, sans relecture par la mairie — mêmes écritures que
-        // handle_approve(), déclenchées ici au lieu d'un clic mairie. Un
-        // échec (aucun enfant valide, essentiellement) retombe simplement
-        // sur le parcours normal : la demande reste "pending" pour la
-        // mairie, rien n'est perdu.
+        // handle_approve(), déclenchées ici au lieu d'un clic mairie. On est
+        // déjà dans le navigateur du parent (c'est lui qui vient de cliquer
+        // le lien de confirmation) : on ouvre donc sa session tout de suite
+        // et on le redirige directement dans son espace connecté, plutôt
+        // que de lui faire attendre un second e-mail avec un lien d'accès
+        // qu'il devrait encore aller chercher. Un échec (aucun enfant
+        // valide, essentiellement) retombe simplement sur le parcours
+        // normal : la demande reste "pending" pour la mairie, rien n'est
+        // perdu.
         if (psc_auto_approve_requests_enabled()) {
             $req = self::get($req->id);
             $children = self::children_of($req);
             if (!empty($children)) {
                 $result = self::approve_request($req, $children);
                 if (!is_wp_error($result)) {
-                    wp_safe_redirect(add_query_arg('psc_msg', 'verified_auto', $redirect));
+                    Psc_Parents::open_session($result);
+                    wp_safe_redirect(add_query_arg('psc_msg', 'welcome', $redirect));
                     exit;
                 }
             }

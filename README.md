@@ -81,7 +81,7 @@ Le parent reçoit un e-mail de confirmation (lien valable 3 jours). Tant qu'il n
 
 ### 3. Connexion sans mot de passe
 
-Une fois enregistrée par la mairie, la famille saisit son e-mail sur la page publique et reçoit un lien de connexion à usage unique (valable 30 minutes). Aucun mot de passe à créer ni à retenir. La session ouverte dure 12 heures (cookie signé, non modifiable côté client).
+Une fois enregistrée par la mairie, la famille saisit son e-mail sur la page publique et reçoit un lien de connexion à usage unique (valable 30 minutes par défaut, réglable — voir [Réglages](#réglages)). Aucun mot de passe à créer ni à retenir. La session ouverte dure 12 heures (cookie signé, non modifiable côté client).
 
 ### 4. Mon Espace Famille
 
@@ -159,7 +159,7 @@ Vue de correction : sélection d'une famille et d'une période, grille identique
 
 File de modération des nouvelles familles (voir [Première inscription](#1-première-inscription)). Pour chaque demande en attente : coordonnées déclarées (prénom, nom, etc.), statut d'acceptation du règlement intérieur, mode de paiement choisi et — si prélèvement — titulaire, adresse, **IBAN partiellement masqué** (`FR14 •••• •••• 2606`), BIC et statut d'acceptation du règlement de prélèvement. Les nom/prénom/classe des enfants sont modifiables avant validation (informations déclaratives, à vérifier). Refus possible avec motif optionnel, notifiable ou non au demandeur.
 
-**Validation automatique** (Réglages > Demandes d'inscription, désactivée par défaut) : si activée, une famille accède directement à son espace dès qu'elle confirme son adresse e-mail — la demande n'apparaît alors jamais dans cette file, aucune information saisie n'est relue par la mairie avant l'ouverture de l'accès (justificatif d'assurance compris). En cas d'échec (aucun enfant valide déclaré), la demande retombe automatiquement dans le circuit normal de modération.
+**Validation automatique** (Réglages > Demandes d'inscription, désactivée par défaut) : si activée, dès que la famille clique le lien de confirmation reçu par e-mail, son compte est créé **et elle est connectée immédiatement** — redirigée directement dans son espace famille, sans avoir à attendre ni à aller chercher un second e-mail avec un lien d'accès. La demande n'apparaît alors jamais dans cette file, aucune information saisie n'est relue par la mairie avant l'ouverture de l'accès (justificatif d'assurance compris). En cas d'échec (aucun enfant valide déclaré), la demande retombe automatiquement dans le circuit normal de modération — la famille reçoit alors, une fois la demande validée manuellement par la mairie, un e-mail avec un lien de connexion à usage unique.
 
 ### Années scolaires
 
@@ -227,6 +227,7 @@ Les treize types d'e-mails envoyés par le plugin (lien de connexion, compte act
 - **Table de correspondance des classes** : un sélecteur par classe vers sa classe suivante (ou « Sortie »), utilisée par le [passage d'année](#années-scolaires) — non figée sur PS→MS→...→CM2, adaptable à une école à classes multi-niveaux.
 - **Fenêtre de réinscription** : dates d'ouverture/fermeture de la campagne annuelle, qui contrôlent la visibilité de l'onglet « Réinscription » côté famille.
 - **Validation automatique des demandes d'inscription** (désactivée par défaut) : voir [Demandes d'inscription](#demandes-dinscription).
+- **Durée de validité des liens envoyés par e-mail** : deux réglages distincts — le **lien de connexion** à usage unique (30 minutes par défaut, 5 min à 24 h), utilisé pour se connecter à l'espace famille et pour l'e-mail reçu à la validation manuelle d'une demande ; le **lien de confirmation par e-mail** (3 jours par défaut, 1 à 30 jours), utilisé pour confirmer une nouvelle demande d'inscription ou un changement d'adresse e-mail depuis « Mon profil ». Le second n'ouvre pas de session, il valide seulement une adresse — une durée plus longue y est donc sans risque.
 - **Page « Accès intervenants » et code d'accès SIDSCM** : voir [Listes intervenantes SIDSCM](#listes-intervenantes-sidscm).
 
 ---
