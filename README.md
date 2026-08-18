@@ -51,7 +51,7 @@ Remplace les fichiers papier/Excel remplis à la main par un site accessible aux
 
 ## Vue d'ensemble
 
-Une famille dépose une demande d'inscription en ligne (avec acceptation du règlement intérieur, justificatif d'assurance scolaire par enfant et, si elle règle par prélèvement, un mandat SEPA). Une fois validée par la mairie, elle se connecte sans mot de passe (lien reçu par e-mail) pour accéder à **« Mon Espace Famille »** : déclarer jour par jour les prestations souhaitées pour chacun de ses enfants, suivre ses factures, gérer ses enfants et son profil. La mairie pilote tout depuis un menu **Périscolaire** dédié dans l'administration WordPress : tableau de bord, calendrier scolaire, trimestres, demandes, familles, enfants, factures, menus de cantine, commande fournisseur, modèles d'e-mails, réglages.
+Une famille dépose une demande d'inscription en ligne (avec acceptation du règlement intérieur, justificatif d'assurance scolaire par enfant et, si elle règle par prélèvement, un mandat SEPA). Une fois validée par la mairie, elle se connecte sans mot de passe (lien reçu par e-mail) pour accéder à **« Mon Espace Famille »** : déclarer jour par jour les prestations souhaitées pour chacun de ses enfants, suivre ses factures, gérer ses enfants et son profil. La mairie pilote tout depuis un menu **Périscolaire** dédié dans l'administration WordPress : tableau de bord, années scolaires/trimestres/calendrier scolaire, demandes et présences déclarées, familles, enfants, menus de cantine, commande fournisseur, factures, modèles d'e-mails, réglages.
 
 Aucun compte WordPress n'est nécessaire côté famille. Aucun paiement en ligne n'est intégré : le mode de paiement (chèque/espèces ou prélèvement SEPA) est déclaré à l'inscription, mais les prélèvements réels restent traités par la mairie via sa banque.
 
@@ -157,16 +157,6 @@ Menu **Périscolaire** dans l'administration WordPress, avec treize sections :
 
 Page d'accueil du backoffice : nombre de familles actives, d'enfants actifs, trimestre actif (et sa date de fin), et une liste **« À faire »** signalant en un coup d'œil les demandes d'inscription en attente, le statut du menu de cantine de la semaine prochaine (saisi / envoyé / pas encore saisi) et celui de la commande fournisseur correspondante — chaque ligne renvoie directement vers l'écran concerné.
 
-### Inscriptions
-
-Vue de correction : sélection d'une famille et d'une période, grille identique à celle vue par le parent, modifiable directement par la mairie (utile pour une inscription reçue par téléphone ou papier). Chaque enregistrement envoie une notification à la famille. Export CSV du récapitulatif par trimestre (protégé contre l'injection de formules Excel).
-
-### Demandes d'inscription
-
-File de modération des nouvelles familles (voir [Première inscription](#1-première-inscription)). Pour chaque demande en attente : coordonnées déclarées (prénom, nom, etc.), statut d'acceptation du règlement intérieur, mode de paiement choisi et — si prélèvement — titulaire, adresse, **IBAN partiellement masqué** (`FR14 •••• •••• 2606`), BIC et statut d'acceptation du règlement de prélèvement. Les nom/prénom/classe des enfants sont modifiables avant validation (informations déclaratives, à vérifier). Refus possible avec motif optionnel, notifiable ou non au demandeur.
-
-**Validation automatique** (Réglages > Demandes d'inscription, désactivée par défaut) : si activée, dès que la famille clique le lien de confirmation reçu par e-mail, son compte est créé **et elle est connectée immédiatement** — redirigée directement dans son espace famille, sans avoir à attendre ni à aller chercher un second e-mail avec un lien d'accès. La demande n'apparaît alors jamais dans cette file, aucune information saisie n'est relue par la mairie avant l'ouverture de l'accès (justificatif d'assurance compris). En cas d'échec (aucun enfant valide déclaré), la demande retombe automatiquement dans le circuit normal de modération — la famille reçoit alors, une fois la demande validée manuellement par la mairie, un e-mail avec un lien de connexion à usage unique.
-
 ### Années scolaires
 
 Une année scolaire chapeaute les trimestres et porte, pour chaque enfant, sa classe et son statut d'inscription **de cette année-là** (table `wp_psc_child_school_years`) : la classe n'est plus une valeur unique sur la fiche enfant, elle s'historise année par année. Une seule année peut être **active** à la fois (même principe que les trimestres) ; une année **en préparation** existe le temps de monter le passage d'année ou une campagne de réinscription ; une année **archivée** reste consultable en lecture seule.
@@ -191,6 +181,16 @@ Le périscolaire suit le calendrier scolaire officiel de la **zone C** (Créteil
 - **Liste lisible** : les jours fermés sont regroupés par période contiguë (ex. « 17/10/2026 → 01/11/2026 — Vacances de la Toussaint — 16 jours — Import officiel »).
 - **Correction manuelle exceptionnelle** : un jour peut être fermé (formation des enseignants, fermeture ponctuelle...) ou rouvert à la main. Une correction manuelle n'est **jamais** écrasée par un rechargement ultérieur du calendrier officiel.
 - **Fermer un jour où des familles ont déjà déclaré des présences déclenche un écran d'avertissement** (nombre d'inscriptions et de familles concernées, détail par enfant/prestation) avant toute action. Une fois confirmé : les inscriptions concernées sont supprimées (elles ne seront jamais facturées) et chaque famille concernée reçoit un e-mail listant précisément ce qui a été retiré.
+
+### Demandes d'inscription
+
+File de modération des nouvelles familles (voir [Première inscription](#1-première-inscription)). Pour chaque demande en attente : coordonnées déclarées (prénom, nom, etc.), statut d'acceptation du règlement intérieur, mode de paiement choisi et — si prélèvement — titulaire, adresse, **IBAN partiellement masqué** (`FR14 •••• •••• 2606`), BIC et statut d'acceptation du règlement de prélèvement. Les nom/prénom/classe des enfants sont modifiables avant validation (informations déclaratives, à vérifier). Refus possible avec motif optionnel, notifiable ou non au demandeur.
+
+**Validation automatique** (Réglages > Demandes d'inscription, désactivée par défaut) : si activée, dès que la famille clique le lien de confirmation reçu par e-mail, son compte est créé **et elle est connectée immédiatement** — redirigée directement dans son espace famille, sans avoir à attendre ni à aller chercher un second e-mail avec un lien d'accès. La demande n'apparaît alors jamais dans cette file, aucune information saisie n'est relue par la mairie avant l'ouverture de l'accès (justificatif d'assurance compris). En cas d'échec (aucun enfant valide déclaré), la demande retombe automatiquement dans le circuit normal de modération — la famille reçoit alors, une fois la demande validée manuellement par la mairie, un e-mail avec un lien de connexion à usage unique.
+
+### Présences déclarées
+
+Vue de correction (anciennement « Inscriptions » dans le menu — renommée pour ne plus se confondre avec « Demandes d'inscription » juste au-dessus, deux écrans très différents) : sélection d'une famille et d'une période, grille identique à celle vue par le parent, modifiable directement par la mairie (utile pour une inscription reçue par téléphone ou papier). Chaque enregistrement envoie une notification à la famille. Export CSV du récapitulatif par trimestre (protégé contre l'injection de formules Excel).
 
 ### Familles
 

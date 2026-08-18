@@ -1,6 +1,6 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="wrap psc-admin">
-<h1>Inscriptions</h1>
+<h1>Présences déclarées</h1>
 
 <?php if (!empty($psc_msg) && $psc_msg === 'saved'): ?>
 <div class="notice notice-success is-dismissible"><p>Planning mis à jour. Un récapitulatif a été envoyé par e-mail à la famille.</p></div>

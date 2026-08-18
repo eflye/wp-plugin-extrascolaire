@@ -109,7 +109,8 @@
 .psc-dash-todo a { text-decoration: none; }
 .psc-dash-todo a:hover { text-decoration: underline; }
 
-/* ---- Regroupement visuel du sous-menu (5 blocs) ---- */
+/* ---- Regroupement visuel du sous-menu (6 blocs) ---- */
+#adminmenu .wp-submenu a[href*="page=psc_requests"],
 #adminmenu .wp-submenu a[href*="page=psc_parents"],
 #adminmenu .wp-submenu a[href*="page=psc_menus"],
 #adminmenu .wp-submenu a[href*="page=psc_factures"],
