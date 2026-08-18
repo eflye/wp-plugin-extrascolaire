@@ -101,7 +101,7 @@ class Psc_Mailer {
     /* Lien de connexion parent                                             */
     /* ------------------------------------------------------------------ */
 
-    public static function send_login_link($parent, $url, $context = 'login') {
+    public static function send_login_link($to_email, $url, $context = 'login') {
         $site    = self::site_name();
         $minutes = (int) (psc_login_link_ttl() / MINUTE_IN_SECONDS);
 
@@ -121,7 +121,7 @@ class Psc_Mailer {
             )
             . self::p('Si vous n\'êtes pas à l\'origine de cette demande, vous pouvez ignorer ce message en toute sécurité.');
 
-        return self::send($parent->email, $subject, self::layout($body, $subject));
+        return self::send($to_email, $subject, self::layout($body, $subject));
     }
 
     /**

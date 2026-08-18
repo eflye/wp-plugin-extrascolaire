@@ -125,11 +125,18 @@ WP_CLI::add_command('seed-school-year-promotion', function ($args, $assoc_args) 
         WP_CLI::error('Création de l\'année B : ' . $year_b_id->get_error_message());
     }
 
-    $promo_parent_id = Psc_Parents::create($config['promo_parent_email'], $config['promo_parent_nom']);
+    // onboarding_seen_at fixé à la création : ces specs ne testent pas la
+    // popin de découverte, qui bloquerait sinon les clics Playwright sur
+    // le reste du portail (cf. templates/frontend-portal.php).
+    $promo_parent_id = Psc_Parents::create($config['promo_parent_email'], $config['promo_parent_nom'], array(
+        'onboarding_seen_at' => current_time('mysql'),
+    ));
     if (is_wp_error($promo_parent_id)) {
         WP_CLI::error('Création du parent "promo" : ' . $promo_parent_id->get_error_message());
     }
-    $reins_parent_id = Psc_Parents::create($config['reins_parent_email'], $config['reins_parent_nom']);
+    $reins_parent_id = Psc_Parents::create($config['reins_parent_email'], $config['reins_parent_nom'], array(
+        'onboarding_seen_at' => current_time('mysql'),
+    ));
     if (is_wp_error($reins_parent_id)) {
         WP_CLI::error('Création du parent "reinscription" : ' . $reins_parent_id->get_error_message());
     }

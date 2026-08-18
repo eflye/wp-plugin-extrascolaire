@@ -212,7 +212,12 @@ WP_CLI::add_command('seed-journey', function ($args, $assoc_args) {
 
     Psc_Installer::generate_calendar_days($trimestre_id, $config['date_debut'], $config['date_fin']);
 
-    $parent_id = Psc_Parents::create($config['parent_email'], $config['parent_nom']);
+    // onboarding_seen_at fixé à la création : ces specs ne testent pas la
+    // popin de découverte, qui bloquerait sinon les clics Playwright sur
+    // le reste du portail (cf. templates/frontend-portal.php).
+    $parent_id = Psc_Parents::create($config['parent_email'], $config['parent_nom'], array(
+        'onboarding_seen_at' => current_time('mysql'),
+    ));
     if (is_wp_error($parent_id)) {
         WP_CLI::error('Création du parent : ' . $parent_id->get_error_message());
     }

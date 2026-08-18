@@ -75,7 +75,12 @@ WP_CLI::add_command('seed-pickup-persons', function ($args, $assoc_args) {
     /* Recréation — uniquement la moitié "living"                        */
     /* ---------------------------------------------------------------- */
 
-    $living_parent_id = Psc_Parents::create($config['living_parent_email'], $config['living_parent_nom']);
+    // onboarding_seen_at fixé à la création : cette spec ne teste pas la
+    // popin de découverte, qui bloquerait sinon les clics Playwright sur
+    // le reste du portail (cf. templates/frontend-portal.php).
+    $living_parent_id = Psc_Parents::create($config['living_parent_email'], $config['living_parent_nom'], array(
+        'onboarding_seen_at' => current_time('mysql'),
+    ));
     if (is_wp_error($living_parent_id)) {
         WP_CLI::error('Création du parent "living" : ' . $living_parent_id->get_error_message());
     }

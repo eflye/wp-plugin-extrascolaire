@@ -438,6 +438,39 @@ body.psc-portal-active main.site-main {
     gap: 12px;
     margin-top: 24px;
 }
+
+/* ---- Popin de découverte (première connexion) ---- */
+.psc-onboarding-modal { max-width: 480px; }
+.psc-onboarding-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+.psc-onboarding-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--psc-rule);
+}
+.psc-onboarding-dot.is-active { background: var(--psc-forest); }
+.psc-onboarding-step { display: none; min-height: 120px; }
+.psc-onboarding-step.is-active { display: block; }
+.psc-onboarding-text {
+    color: var(--psc-ink);
+    font-size: 14.5px;
+    line-height: 1.6;
+    margin: 0;
+}
+.psc-onboarding-actions { justify-content: space-between; align-items: center; }
+.psc-onboarding-actions #psc-onboarding-skip {
+    border: none;
+    background: none;
+    color: var(--psc-stone);
+    text-decoration: underline;
+    padding: 0;
+}
+.psc-onboarding-nav-right { display: flex; gap: 12px; }
 /* Champ fichier custom : le <input type="file"> natif ("Choisir un
    fichier" + "Aucun fichier choisi") est masqué visuellement (mais reste
    cliquable/accessible via le <label for>) et remplacé par un bouton

@@ -1,6 +1,58 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="psc-portal alignfull" data-testid="portal-root">
 
+  <?php if (empty($parent->onboarding_seen_at)): ?>
+  <div class="psc-portal-modal-overlay psc-onboarding-overlay" id="psc-onboarding-overlay" data-testid="onboarding-overlay">
+    <div class="psc-portal-modal psc-onboarding-modal">
+      <div class="psc-onboarding-dots" data-testid="onboarding-dots">
+        <span class="psc-onboarding-dot is-active"></span>
+        <span class="psc-onboarding-dot"></span>
+        <span class="psc-onboarding-dot"></span>
+        <span class="psc-onboarding-dot"></span>
+        <span class="psc-onboarding-dot"></span>
+      </div>
+
+      <div class="psc-onboarding-step is-active" data-step="1">
+        <p class="psc-portal-modal-title">Bienvenue dans votre espace famille</p>
+        <p class="psc-onboarding-text">Cet espace vous permet de gérer au quotidien la garderie, la cantine et les informations de vos enfants, sans avoir à contacter la mairie. Ce petit tour en 5 étapes vous montre l'essentiel.</p>
+      </div>
+
+      <div class="psc-onboarding-step" data-step="2">
+        <p class="psc-portal-modal-title">Cantine &amp; Garderie</p>
+        <p class="psc-onboarding-text">Cochez les jours de garderie matin, cantine et garderie soir directement dans le calendrier : chaque case est enregistrée immédiatement, sans bouton « Envoyer » à chercher. Vous pouvez aussi annuler rapidement une prestation depuis le tableau de bord si un jour ne convient plus.</p>
+      </div>
+
+      <div class="psc-onboarding-step" data-step="3">
+        <p class="psc-portal-modal-title">Mes enfants</p>
+        <p class="psc-onboarding-text">Ajoutez un enfant, déposez son justificatif d'assurance scolaire, et déclarez les personnes autorisées à venir le récupérer au départ de la <strong>garderie du soir</strong> — vous et l'autre parent y figurez toujours automatiquement.</p>
+      </div>
+
+      <div class="psc-onboarding-step" data-step="4">
+        <p class="psc-portal-modal-title">Mon profil</p>
+        <p class="psc-onboarding-text">Tenez vos coordonnées à jour, et ajoutez un second parent si besoin : une fois renseigné, il pourra se connecter à cet espace avec sa propre adresse e-mail et agir exactement comme vous — aucune action supplémentaire à faire de votre côté.</p>
+      </div>
+
+      <div class="psc-onboarding-step" data-step="5">
+        <p class="psc-portal-modal-title">Mes factures &amp; Documents</p>
+        <p class="psc-onboarding-text">Retrouvez vos factures mensuelles et leur statut de paiement, ainsi que le règlement intérieur et les autres documents mis à disposition par la mairie. Vous êtes prêt·e — bonne visite !</p>
+      </div>
+
+      <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="psc-onboarding-dismiss-form">
+        <?php wp_nonce_field('psc_parent_dismiss_onboarding'); ?>
+        <input type="hidden" name="action" value="psc_parent_dismiss_onboarding">
+      </form>
+
+      <div class="psc-portal-modal-actions psc-onboarding-actions">
+        <button type="button" class="psc-portal-btn-outline-ink" id="psc-onboarding-skip" data-testid="onboarding-skip">Passer</button>
+        <div class="psc-onboarding-nav-right">
+          <button type="button" class="psc-portal-btn-outline-ink" id="psc-onboarding-prev" data-testid="onboarding-prev" hidden>Précédent</button>
+          <button type="button" class="psc-portal-btn-gold" id="psc-onboarding-next" data-testid="onboarding-next">Suivant</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <?php endif; ?>
+
   <aside class="psc-portal-sidebar">
     <div class="psc-portal-section-label">Espace familles</div>
 
@@ -63,10 +115,11 @@
         'pickup_removed' => array('ok',  'Personne retirée de la liste des personnes autorisées.'),
         'pickup_invalid' => array('err', 'Nom, prénom et téléphone sont obligatoires, et l\'enfant doit être le vôtre.'),
 
-        'second_parent_updated'   => array('ok',  'Second parent enregistré.'),
-        'second_parent_removed'   => array('ok',  'Second parent retiré.'),
-        'second_parent_bad_email' => array('err', 'L\'adresse e-mail du second parent n\'est pas valide.'),
-        'second_parent_bad_phone' => array('err', 'Le numéro de téléphone du second parent n\'est pas valide.'),
+        'second_parent_updated'     => array('ok',  'Second parent enregistré.'),
+        'second_parent_removed'     => array('ok',  'Second parent retiré.'),
+        'second_parent_bad_email'   => array('err', 'L\'adresse e-mail du second parent n\'est pas valide.'),
+        'second_parent_bad_phone'   => array('err', 'Le numéro de téléphone du second parent n\'est pas valide.'),
+        'second_parent_email_taken' => array('err', 'Cette adresse e-mail est déjà utilisée par un autre foyer.'),
 
         'household_pickup_added'   => array('ok',  'Personne autorisée ajoutée (départ de garderie du soir).'),
         'household_pickup_removed' => array('ok',  'Personne retirée de la liste des personnes autorisées.'),

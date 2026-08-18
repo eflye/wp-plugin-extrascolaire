@@ -274,6 +274,13 @@ class Psc_Requests {
                 exit;
             }
             $second_parent_email = strtolower(sanitize_email($second_parent_email_raw));
+            // Le second parent se connectera avec cette adresse (cf.
+            // Psc_Parents::get_by_email()) : elle doit être libre, sinon
+            // pointerait vers deux foyers différents selon qui se connecte.
+            if (Psc_Parents::get_by_email($second_parent_email)) {
+                wp_safe_redirect(add_query_arg('psc_msg', 'second_parent_email_taken', $back));
+                exit;
+            }
         }
 
         $second_parent_telephone = '';

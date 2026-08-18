@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '3.4.0';
+    const DB_VERSION = '3.5.0';
     const ROLES_VERSION = '1.0.0';
 
     public static function activate() {
@@ -422,6 +422,7 @@ CREATE TABLE $t_parent (
             second_parent_nom VARCHAR(191) NULL,
             second_parent_email VARCHAR(191) NULL,
             second_parent_telephone VARCHAR(40) NULL,
+            onboarding_seen_at DATETIME NULL,
             created_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY email (email),

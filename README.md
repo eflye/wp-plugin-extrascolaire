@@ -14,8 +14,8 @@ Remplace les fichiers papier/Excel remplis à la main par un site accessible aux
 
 **Côté familles**
 - Inscription en ligne en 4 étapes (coordonnées, enfants, paiement, règlement intérieur), avec justificatif d'assurance scolaire par enfant et déclaration des personnes autorisées à venir le récupérer.
-- Connexion **sans mot de passe** : un lien reçu par e-mail suffit.
-- **Mon Espace Famille** : calendrier de présence par enfant et par jour (mis à jour immédiatement), annulation rapide de prestations déjà déclarées, suivi des factures, menu de la semaine, gestion du profil et des enfants, réinscription annuelle encadrée par une fenêtre dédiée.
+- Connexion **sans mot de passe** : un lien reçu par e-mail suffit — le second parent facultatif peut se connecter avec sa propre adresse et accède au même compte.
+- **Mon Espace Famille** : calendrier de présence par enfant et par jour (mis à jour immédiatement), annulation rapide de prestations déjà déclarées, suivi des factures, menu de la semaine, gestion du profil et des enfants, réinscription annuelle encadrée par une fenêtre dédiée, popin de découverte en 5 étapes à la première connexion.
 - Menu de cantine consultable publiquement, sans connexion.
 
 **Côté mairie**
@@ -87,6 +87,10 @@ Une fois enregistrée par la mairie, la famille saisit son e-mail sur la page pu
 
 Une fois connectée, la famille arrive sur un portail à onglets (barre latérale) :
 
+**Popin de découverte** — à la toute première connexion (pour l'un ou l'autre parent du foyer, cf. ci-dessus), une popin en 5 étapes présente l'essentiel de l'espace (déclarer un jour, gérer les enfants et les personnes autorisées, mettre à jour son profil, consulter factures et documents), avec navigation *Suivant*/*Précédent* et un bouton *Passer* pour la fermer immédiatement. Elle ne s'affiche qu'une seule fois : la fermer (à la fin ou via *Passer*) l'enregistre définitivement pour le foyer entier — un second parent qui se connecte après ne la revoit pas si le titulaire l'a déjà fermée.
+
+#### Tableau de bord
+
 #### Tableau de bord
 
 Vue d'ensemble : jours et montant déclarés pour la période en cours, prochaine facture (montant/statut), menu de cantine de la semaine, résumé « Mes enfants ». Trois raccourcis : *Déclarer un jour*, *Ajouter un enfant*, et **Annulation prestations**.
@@ -130,6 +134,8 @@ Liste des factures mensuelles de la famille (mois, montant, statut envoyée/en a
 État civil (prénom, nom), coordonnées (téléphone mobile/fixe, e-mail) et adresse du foyer. Un changement d'adresse e-mail nécessite une **confirmation par lien envoyé sur la nouvelle adresse** avant de prendre effet (annulable tant qu'il est en attente) ; l'ancienne adresse reste active jusque-là. La fiche de chaque enfant se modifie depuis « Mes enfants », pas ici.
 
 Panneau **Second parent (facultatif)** : bouton *Ajouter un second parent* si absent, sinon formulaire prénom/nom/e-mail/téléphone pré-rempli avec *Enregistrer* et *Retirer* — mêmes règles qu'à l'inscription (aucun champ requis, format e-mail/téléphone contrôlé s'il est renseigné). Ajouter ou retirer le second parent l'ajoute ou le retire immédiatement de la liste des personnes autorisées ci-dessous.
+
+Dès qu'une adresse e-mail est renseignée, le second parent peut se connecter à cet espace **avec sa propre adresse** (page d'accueil, « Se connecter à l'espace famille ») : il accède au même compte, aux mêmes enfants, et peut agir exactement comme le titulaire (déclarer un jour, ajouter un enfant, modifier le profil...) — ce n'est pas un second compte, seulement une seconde adresse qui ouvre la même session. Chaque parent reçoit son lien de connexion à sa propre adresse. Une adresse déjà utilisée par un autre foyer (comme titulaire ou comme second parent) est refusée, pour ne jamais faire pointer une même adresse vers deux comptes différents.
 
 Panneau **Personnes autorisées à récupérer les enfants — garderie du soir** (vue par foyer, pas par enfant ; sans effet sur la cantine ni la garderie du matin) : les deux parents y figurent toujours, avec l'étiquette « Parent », non retirables depuis cette liste — cette entrée n'est jamais une ligne stockée, elle est recalculée à chaque affichage depuis la fiche foyer. Les autres personnes (bouton *Ajouter une personne autorisée* : prénom, nom, lien de parenté, téléphone) sont ajoutées d'un coup à tous les enfants actifs du foyer, et retirables ligne par ligne — un retrait ici retire la personne de tous les enfants auxquels elle était rattachée. Cette liste dédoublonnée complète, sans le remplacer, le panneau par enfant de « Mes enfants ».
 

@@ -29,13 +29,24 @@ class Psc_Parents {
 
     /* ---------------- Accès aux données ---------------- */
 
+    /**
+     * Résout un e-mail vers son foyer — celui du titulaire (colonne
+     * `email`) ou celui du second parent facultatif (`second_parent_email`) :
+     * les deux donnent accès au même compte/session, cf. Psc_Parents::init()
+     * et send_login_link() plus bas. `email` porte une contrainte UNIQUE en
+     * base, mais pas `second_parent_email` — c'est pourquoi toute écriture
+     * sur l'un ou l'autre champ (create(), update(), validation de
+     * Psc_Requests::handle_submit()) doit revérifier ici qu'aucun autre
+     * foyer ne l'utilise déjà, sous peine d'ambiguïté entre deux comptes.
+     */
     public static function get_by_email($email) {
         global $wpdb;
         $email = sanitize_email($email);
         if (!is_email($email)) return null;
         $t = psc_table('parents');
+        $email = strtolower($email);
         return $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $t WHERE email = %s AND active = 1", strtolower($email)
+            "SELECT * FROM $t WHERE (email = %s OR second_parent_email = %s) AND active = 1", $email, $email
         ));
     }
 
@@ -65,6 +76,11 @@ class Psc_Parents {
         if (!$parent) {
             return true; // réponse volontairement identique
         }
+        // L'adresse qui reçoit le lien est celle réellement saisie — le
+        // titulaire ou le second parent, cf. get_by_email() : jamais
+        // $parent->email en dur, sinon un second parent qui demande son
+        // lien recevrait le mail... dans la boîte du titulaire.
+        $to_email = strtolower(sanitize_email($email));
 
         // Jeton aléatoire cryptographiquement sûr, stocké haché.
         $token = bin2hex(random_bytes(32));
@@ -84,7 +100,7 @@ class Psc_Parents {
             Psc_Mailer::form_page_url()
         );
 
-        return Psc_Mailer::send_login_link($parent, $url, $context);
+        return Psc_Mailer::send_login_link($to_email, $url, $context);
     }
 
     public static function handle_request_link() {
@@ -403,6 +419,12 @@ class Psc_Parents {
             'second_parent_nom'          => mb_substr(sanitize_text_field($extra['second_parent_nom'] ?? ''), 0, 190) ?: null,
             'second_parent_email'        => $extra['second_parent_email'] ?? null,
             'second_parent_telephone'    => $extra['second_parent_telephone'] ?? null,
+            // Laisser à null (défaut) déclenche la popin de découverte à la
+            // première connexion, cf. Psc_Frontend::handle_parent_dismiss_onboarding()
+            // et templates/frontend-portal.php. Un appelant peut passer une
+            // date explicite pour créer un foyer déjà "onboardé" (ex. seeds
+            // de test dont ce n'est pas l'objet).
+            'onboarding_seen_at'         => $extra['onboarding_seen_at'] ?? null,
             'created_at'                 => current_time('mysql'),
         );
 
@@ -465,7 +487,18 @@ class Psc_Parents {
             if ($raw_email !== '' && !is_email($raw_email)) {
                 return new WP_Error('psc_bad_second_parent_email', 'E-mail du second parent invalide.');
             }
-            $set['second_parent_email'] = $raw_email !== '' ? sanitize_email($raw_email) : null;
+            $normalized_email = $raw_email !== '' ? strtolower(sanitize_email($raw_email)) : '';
+            // Le second parent se connecte avec cette adresse (cf.
+            // get_by_email()) : elle doit rester unique tous foyers
+            // confondus, sinon une même adresse pointerait vers deux
+            // comptes différents selon qui se connecte le premier.
+            if ($normalized_email !== '') {
+                $existing = self::get_by_email($normalized_email);
+                if ($existing && (int) $existing->id !== $parent_id) {
+                    return new WP_Error('psc_second_parent_email_taken', 'Cette adresse e-mail est déjà utilisée par un autre foyer.');
+                }
+            }
+            $set['second_parent_email'] = $normalized_email !== '' ? $normalized_email : null;
             $formats[] = '%s';
         }
         if (array_key_exists('second_parent_telephone', $data)) {

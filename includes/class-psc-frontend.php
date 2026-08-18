@@ -69,6 +69,9 @@ class Psc_Frontend {
         add_action('admin_post_psc_parent_add_household_pickup_person', array(__CLASS__, 'handle_parent_add_household_pickup_person'));
         add_action('admin_post_nopriv_psc_parent_remove_household_pickup_person', array(__CLASS__, 'handle_parent_remove_household_pickup_person'));
         add_action('admin_post_psc_parent_remove_household_pickup_person', array(__CLASS__, 'handle_parent_remove_household_pickup_person'));
+
+        add_action('admin_post_nopriv_psc_parent_dismiss_onboarding', array(__CLASS__, 'handle_parent_dismiss_onboarding'));
+        add_action('admin_post_psc_parent_dismiss_onboarding', array(__CLASS__, 'handle_parent_dismiss_onboarding'));
     }
 
     /**
@@ -1125,9 +1128,12 @@ class Psc_Frontend {
             'second_parent_telephone' => psc_post('second_parent_telephone'),
         ));
         if (is_wp_error($result)) {
-            self::parent_form_redirect(
-                $result->get_error_code() === 'psc_bad_second_parent_email' ? 'second_parent_bad_email' : 'second_parent_bad_phone'
+            $codes = array(
+                'psc_bad_second_parent_email'    => 'second_parent_bad_email',
+                'psc_second_parent_email_taken'  => 'second_parent_email_taken',
+                'psc_bad_second_parent_phone'    => 'second_parent_bad_phone',
             );
+            self::parent_form_redirect($codes[$result->get_error_code()] ?? 'second_parent_bad_phone');
         }
 
         self::parent_form_redirect('second_parent_updated');
@@ -1206,6 +1212,36 @@ class Psc_Frontend {
         }
 
         self::parent_form_redirect('household_pickup_removed');
+    }
+
+    /**
+     * Popin de découverte affichée une seule fois, à la toute première
+     * connexion (cf. templates/frontend-portal.php et
+     * assets/js/portal.js:initOnboardingTour()) — plusieurs étapes
+     * naviguées côté client (aucun aller-retour serveur entre elles),
+     * un seul appel ici quand le parent la termine ou la passe. Le drapeau
+     * est sur le foyer (wp_psc_parents), pas par personne : si le second
+     * parent se connecte après le titulaire l'a déjà vue, elle ne
+     * réapparaît pas — cohérent avec le compte partagé du foyer.
+     */
+    public static function handle_parent_dismiss_onboarding() {
+        check_admin_referer('psc_parent_dismiss_onboarding');
+
+        $parent = Psc_Parents::current();
+        if (!$parent) self::parent_form_redirect('auth');
+
+        global $wpdb;
+        $wpdb->update(
+            psc_table('parents'),
+            array('onboarding_seen_at' => current_time('mysql')),
+            array('id' => $parent->id),
+            array('%s'),
+            array('%d')
+        );
+
+        // Code volontairement absent de $psc_notices (templates/frontend-portal.php) :
+        // aucun bandeau à afficher, la popin elle-même vient de se fermer.
+        self::parent_form_redirect('onboarding_dismissed');
     }
 
     /* ---------------- Factures (espace famille) ---------------- */
@@ -1313,7 +1349,7 @@ class Psc_Frontend {
             'email_taken', 'email_changed', 'email_change_cancelled',
             'bad_email_token', 'expired_email_token',
             'second_parent_updated', 'second_parent_removed',
-            'second_parent_bad_email', 'second_parent_bad_phone',
+            'second_parent_bad_email', 'second_parent_bad_phone', 'second_parent_email_taken',
             'household_pickup_added', 'household_pickup_removed', 'household_pickup_invalid',
         ), true)) {
             $tab = 'profil';
@@ -1605,8 +1641,9 @@ class Psc_Frontend {
     protected static function wizard_error_context($psc_msg) {
         $map = array(
             'coordonnees_incomplete'   => array('step' => 0, 'sepa' => false),
-            'second_parent_bad_email' => array('step' => 0, 'sepa' => false),
-            'second_parent_bad_phone' => array('step' => 0, 'sepa' => false),
+            'second_parent_bad_email'   => array('step' => 0, 'sepa' => false),
+            'second_parent_bad_phone'   => array('step' => 0, 'sepa' => false),
+            'second_parent_email_taken' => array('step' => 0, 'sepa' => false),
             'need_child'               => array('step' => 1, 'sepa' => false),
             'child_incomplete'         => array('step' => 1, 'sepa' => false),
             'assurance_required'       => array('step' => 1, 'sepa' => false),

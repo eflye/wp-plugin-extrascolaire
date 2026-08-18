@@ -367,6 +367,44 @@
         }
     }
 
+    /* ---------- Popin de découverte (première connexion) ---------- */
+
+    function initOnboardingTour() {
+        var overlay = document.getElementById('psc-onboarding-overlay');
+        if (!overlay) return;
+
+        var steps = Array.prototype.slice.call(overlay.querySelectorAll('.psc-onboarding-step'));
+        var dots  = Array.prototype.slice.call(overlay.querySelectorAll('.psc-onboarding-dot'));
+        var prevBtn = document.getElementById('psc-onboarding-prev');
+        var nextBtn = document.getElementById('psc-onboarding-next');
+        var skipBtn = document.getElementById('psc-onboarding-skip');
+        var dismissForm = document.getElementById('psc-onboarding-dismiss-form');
+        var current = 0;
+
+        function render() {
+            steps.forEach(function (step, i) { step.classList.toggle('is-active', i === current); });
+            dots.forEach(function (dot, i) { dot.classList.toggle('is-active', i === current); });
+            prevBtn.hidden = current === 0;
+            nextBtn.textContent = current === steps.length - 1 ? 'Terminer' : 'Suivant';
+        }
+
+        prevBtn.addEventListener('click', function () {
+            if (current > 0) { current--; render(); }
+        });
+        // Dernière étape : "Suivant" devient "Terminer" et soumet le
+        // formulaire de fermeture (persiste onboarding_seen_at côté
+        // serveur, cf. Psc_Frontend::handle_parent_dismiss_onboarding()) —
+        // même formulaire que "Passer", qui saute directement à la fin
+        // sans repasser par les étapes intermédiaires.
+        nextBtn.addEventListener('click', function () {
+            if (current < steps.length - 1) { current++; render(); }
+            else { dismissForm.submit(); }
+        });
+        skipBtn.addEventListener('click', function () { dismissForm.submit(); });
+
+        render();
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('[data-portal-tab], [data-portal-tab-link]').forEach(function (link) {
             link.addEventListener('click', onTabLinkClick);
@@ -378,5 +416,6 @@
         initMenuNav();
         initToggleAddBlock('psc-add-second-parent', 'psc-second-parent-block');
         initToggleAddBlock('psc-add-household-pickup', 'psc-household-pickup-form-block', '[data-household-pickup-cancel]');
+        initOnboardingTour();
     });
 })();

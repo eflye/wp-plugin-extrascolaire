@@ -145,7 +145,13 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     ), array('%s', '%d', '%s', '%s', '%d'));
     $trimestre_id = (int) $wpdb->insert_id;
 
-    $parent_id = Psc_Parents::create($config['parent_email'], $config['parent_nom']);
+    // onboarding_seen_at fixé à la création : cette spec ne teste pas la
+    // popin de découverte, qui bloquerait sinon les clics Playwright sur
+    // le reste du portail si jamais un test venait à s'y connecter (cf.
+    // templates/frontend-portal.php).
+    $parent_id = Psc_Parents::create($config['parent_email'], $config['parent_nom'], array(
+        'onboarding_seen_at' => current_time('mysql'),
+    ));
     if (is_wp_error($parent_id)) {
         WP_CLI::error('Création du parent : ' . $parent_id->get_error_message());
     }
