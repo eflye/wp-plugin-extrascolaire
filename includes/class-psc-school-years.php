@@ -84,6 +84,75 @@ class Psc_School_Years {
         return (int) $wpdb->insert_id;
     }
 
+    /** Corrige le libellé ou les dates d'une année existante — mêmes règles de validation que create(). */
+    public static function update($id, $label, $date_debut, $date_fin) {
+        global $wpdb;
+        $id = absint($id);
+        $t_years = psc_table('school_years');
+        $exists = $id ? $wpdb->get_var($wpdb->prepare("SELECT id FROM $t_years WHERE id = %d", $id)) : null;
+        if (!$exists) return new WP_Error('invalid', 'Année scolaire introuvable.');
+
+        $label = mb_substr(sanitize_text_field($label), 0, 20);
+        $date_debut = psc_valid_date($date_debut);
+        $date_fin   = psc_valid_date($date_fin);
+        if ($label === '' || !$date_debut || !$date_fin) {
+            return new WP_Error('invalid', 'Libellé ou dates invalides.');
+        }
+        if (strtotime($date_fin) < strtotime($date_debut)) {
+            return new WP_Error('order_dates', 'La date de fin doit être après la date de début.');
+        }
+
+        $wpdb->update($t_years, array(
+            'label'      => $label,
+            'date_debut' => $date_debut,
+            'date_fin'   => $date_fin,
+        ), array('id' => $id), array('%s', '%s', '%s'), array('%d'));
+
+        return true;
+    }
+
+    /**
+     * Supprime une année scolaire. Jamais l'année active (casserait
+     * active_id() partout ailleurs dans le plugin) : il faut d'abord en
+     * activer une autre. Les trimestres qui la référencent ne sont pas
+     * supprimés (ils portent inscriptions, présences, menus — bien plus
+     * qu'un simple regroupement par année) : seul leur rattachement
+     * (school_year_id, nullable) est détaché. Les lignes enfant × année
+     * (classe, statut, justificatif d'assurance de cette année-là) sont en
+     * revanche bien à cette année précise et sont purgées avec leur
+     * fichier, même principe que Psc_Admin::purge_child().
+     */
+    public static function delete($id) {
+        global $wpdb;
+        $id = absint($id);
+        $t_years = psc_table('school_years');
+        $year = $id ? $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_years WHERE id = %d", $id)) : null;
+        if (!$year) return new WP_Error('invalid', 'Année scolaire introuvable.');
+        if ($year->statut === 'active') {
+            return new WP_Error('active_year', 'Impossible de supprimer l\'année active : activez-en une autre au préalable.');
+        }
+
+        $t_cy = psc_table('child_school_years');
+        $upload_dir = wp_upload_dir();
+        $paths = $wpdb->get_col($wpdb->prepare(
+            "SELECT assurance_file_path FROM $t_cy WHERE school_year_id = %d AND assurance_file_path IS NOT NULL",
+            $id
+        ));
+        foreach ($paths as $rel_path) {
+            $abs = trailingslashit($upload_dir['basedir']) . $rel_path;
+            if (file_exists($abs)) {
+                @unlink($abs); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+            }
+        }
+        $wpdb->delete($t_cy, array('school_year_id' => $id), array('%d'));
+
+        $wpdb->update(psc_table('trimestres'), array('school_year_id' => null), array('school_year_id' => $id), array('%s'), array('%d'));
+
+        $wpdb->delete($t_years, array('id' => $id), array('%d'));
+
+        return true;
+    }
+
     /** Une seule année active à la fois — même principe que les trimestres. */
     public static function activate($id) {
         global $wpdb;

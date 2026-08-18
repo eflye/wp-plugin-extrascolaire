@@ -11,6 +11,8 @@ class Psc_Admin {
         add_action('admin_post_psc_add_school_year', array(__CLASS__, 'handle_add_school_year'));
         add_action('admin_post_psc_activate_school_year', array(__CLASS__, 'handle_activate_school_year'));
         add_action('admin_post_psc_archive_school_year', array(__CLASS__, 'handle_archive_school_year'));
+        add_action('admin_post_psc_update_school_year', array(__CLASS__, 'handle_update_school_year'));
+        add_action('admin_post_psc_delete_school_year', array(__CLASS__, 'handle_delete_school_year'));
         add_action('admin_post_psc_stage_promotion', array(__CLASS__, 'handle_stage_promotion'));
         add_action('admin_post_psc_confirm_promotion', array(__CLASS__, 'handle_confirm_promotion'));
         add_action('admin_post_psc_cancel_promotion', array(__CLASS__, 'handle_cancel_promotion'));
@@ -309,6 +311,20 @@ class Psc_Admin {
         self::guard('psc_archive_school_year');
         if (!Psc_School_Years::archive(psc_post_int('id'))) self::redirect('psc_school_years', 'invalid');
         self::redirect('psc_school_years', 'archived');
+    }
+
+    public static function handle_update_school_year() {
+        self::guard('psc_update_school_year');
+        $result = Psc_School_Years::update(psc_post_int('id'), psc_post('label'), psc_post('date_debut'), psc_post('date_fin'));
+        if (is_wp_error($result)) self::redirect('psc_school_years', $result->get_error_code());
+        self::redirect('psc_school_years', 'updated');
+    }
+
+    public static function handle_delete_school_year() {
+        self::guard('psc_delete_school_year');
+        $result = Psc_School_Years::delete(psc_post_int('id'));
+        if (is_wp_error($result)) self::redirect('psc_school_years', $result->get_error_code());
+        self::redirect('psc_school_years', 'year_deleted');
     }
 
     /**

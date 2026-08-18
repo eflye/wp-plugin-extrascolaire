@@ -5,12 +5,15 @@
 <?php
 $psc_notices = array(
     'created'             => array('success', 'Année scolaire créée.'),
+    'updated'             => array('success', 'Année scolaire modifiée.'),
+    'year_deleted'        => array('success', 'Année scolaire supprimée.'),
     'activated'           => array('success', 'Année activée : c\'est désormais celle visible par les familles.'),
     'archived'            => array('success', 'Année archivée.'),
     'promoted'            => array('success', 'Passage d\'année effectué.'),
     'promotion_cancelled' => array('success', 'Passage d\'année annulé.'),
     'invalid'             => array('error', 'Opération impossible : élément introuvable ou invalide.'),
     'order_dates'         => array('error', 'La date de fin doit être postérieure à la date de début.'),
+    'active_year'         => array('error', 'Impossible de supprimer l\'année active : activez-en une autre au préalable.'),
 );
 if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     list($type, $text) = $psc_notices[$psc_msg]; ?>
@@ -38,11 +41,20 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <tbody>
 <?php if (empty($years)): ?>
 <tr><td colspan="5">Aucune année scolaire créée pour le moment.</td></tr>
-<?php else: foreach ($years as $y): ?>
+<?php else: foreach ($years as $y): $edit_form_id = 'year-edit-form-' . $y->id; ?>
 <tr data-testid="year-row-<?php echo esc_attr($y->id); ?>">
-<td><?php echo esc_html($y->label); ?></td>
-<td><?php echo esc_html(date_i18n('d/m/Y', strtotime($y->date_debut))); ?></td>
-<td><?php echo esc_html(date_i18n('d/m/Y', strtotime($y->date_fin))); ?></td>
+<td>
+  <label class="screen-reader-text" for="psc-y-label-<?php echo esc_attr($y->id); ?>">Libellé</label>
+  <input id="psc-y-label-<?php echo esc_attr($y->id); ?>" type="text" form="<?php echo esc_attr($edit_form_id); ?>" name="label" value="<?php echo esc_attr($y->label); ?>" maxlength="20" required class="regular-text" data-testid="year-edit-label-<?php echo esc_attr($y->id); ?>">
+</td>
+<td>
+  <label class="screen-reader-text" for="psc-y-debut-<?php echo esc_attr($y->id); ?>">Date de début</label>
+  <input id="psc-y-debut-<?php echo esc_attr($y->id); ?>" type="date" form="<?php echo esc_attr($edit_form_id); ?>" name="date_debut" value="<?php echo esc_attr($y->date_debut); ?>" required data-testid="year-edit-debut-<?php echo esc_attr($y->id); ?>">
+</td>
+<td>
+  <label class="screen-reader-text" for="psc-y-fin-<?php echo esc_attr($y->id); ?>">Date de fin</label>
+  <input id="psc-y-fin-<?php echo esc_attr($y->id); ?>" type="date" form="<?php echo esc_attr($edit_form_id); ?>" name="date_fin" value="<?php echo esc_attr($y->date_fin); ?>" required data-testid="year-edit-fin-<?php echo esc_attr($y->id); ?>">
+</td>
 <td data-testid="year-statut-<?php echo esc_attr($y->id); ?>">
 <?php if ($y->statut === 'active'): ?><strong class="psc-active">Active (visible sur le site)</strong>
 <?php elseif ($y->statut === 'preparation'): ?>En préparation
@@ -50,6 +62,12 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <?php endif; ?>
 </td>
 <td style="white-space:nowrap">
+<form id="<?php echo esc_attr($edit_form_id); ?>" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
+<?php wp_nonce_field('psc_update_school_year'); ?>
+<input type="hidden" name="action" value="psc_update_school_year">
+<input type="hidden" name="id" value="<?php echo esc_attr($y->id); ?>">
+<button type="submit" class="button" data-testid="year-save-<?php echo esc_attr($y->id); ?>">Enregistrer</button>
+</form>
 <?php if ($y->statut !== 'active'): ?>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
 <?php wp_nonce_field('psc_activate_school_year'); ?>
@@ -64,6 +82,14 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <input type="hidden" name="action" value="psc_archive_school_year">
 <input type="hidden" name="id" value="<?php echo esc_attr($y->id); ?>">
 <button class="button" onclick="return confirm('Archiver cette année ? Elle restera consultable en lecture seule.');" data-testid="year-archive-<?php echo esc_attr($y->id); ?>">Archiver</button>
+</form>
+<?php endif; ?>
+<?php if ($y->statut !== 'active'): ?>
+<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
+<?php wp_nonce_field('psc_delete_school_year'); ?>
+<input type="hidden" name="action" value="psc_delete_school_year">
+<input type="hidden" name="id" value="<?php echo esc_attr($y->id); ?>">
+<button class="button" onclick="return confirm('Supprimer définitivement l\'année <?php echo esc_js($y->label); ?> ? Les inscriptions des enfants pour cette année (classe, justificatif d\'assurance) seront supprimées. Les trimestres qui lui sont rattachés seront conservés, seulement détachés de cette année.');" data-testid="year-delete-<?php echo esc_attr($y->id); ?>">Supprimer</button>
 </form>
 <?php endif; ?>
 </td>
