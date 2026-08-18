@@ -8,6 +8,8 @@ class Psc_Admin {
         add_action('admin_post_psc_add_trimestre', array(__CLASS__, 'handle_add_trimestre'));
         add_action('admin_post_psc_activate_trimestre', array(__CLASS__, 'handle_activate_trimestre'));
         add_action('admin_post_psc_close_range', array(__CLASS__, 'handle_close_range'));
+        add_action('admin_post_psc_update_trimestre', array(__CLASS__, 'handle_update_trimestre'));
+        add_action('admin_post_psc_delete_trimestre', array(__CLASS__, 'handle_delete_trimestre'));
         add_action('admin_post_psc_add_school_year', array(__CLASS__, 'handle_add_school_year'));
         add_action('admin_post_psc_activate_school_year', array(__CLASS__, 'handle_activate_school_year'));
         add_action('admin_post_psc_archive_school_year', array(__CLASS__, 'handle_archive_school_year'));
@@ -297,6 +299,84 @@ class Psc_Admin {
         $wpdb->query("UPDATE $t_trim SET active = 0");
         $wpdb->update($t_trim, array('active' => 1), array('id' => $id), array('%d'), array('%d'));
         self::redirect('psc_trimestres', 'activated');
+    }
+
+    /**
+     * Corrige le libellé, les dates ou l'année scolaire de rattachement
+     * d'un trimestre existant — mêmes règles de validation qu'à la
+     * création. Si les dates changent, le calendrier est régénéré sur la
+     * nouvelle période (Psc_Installer::generate_calendar_days(), idempotent
+     * via ON DUPLICATE KEY UPDATE) : les jours déjà couverts retrouvent
+     * leur statut ouvert/fermé recalculé automatiquement (week-end,
+     * mercredi, vacances, férié) — une fermeture ponctuelle ajoutée à la
+     * main sur un jour resté dans la période peut donc être réinitialisée,
+     * ce que l'écran signale avant enregistrement.
+     */
+    public static function handle_update_trimestre() {
+        self::guard('psc_update_trimestre');
+        global $wpdb;
+
+        $id = psc_post_int('id');
+        $t_trim = psc_table('trimestres');
+        $exists = $id ? $wpdb->get_var($wpdb->prepare("SELECT id FROM $t_trim WHERE id = %d", $id)) : null;
+        if (!$exists) self::redirect('psc_trimestres', 'invalid');
+
+        $label = psc_post('label');
+        $debut = psc_valid_date(psc_post('date_debut'));
+        $fin   = psc_valid_date(psc_post('date_fin'));
+        $school_year_id = psc_post_int('school_year_id') ?: null;
+
+        if ($label === '' || !$debut || !$fin) {
+            self::redirect('psc_trimestres', 'invalid_dates');
+        }
+        if (strtotime($fin) < strtotime($debut)) {
+            self::redirect('psc_trimestres', 'order_dates');
+        }
+        $span = (strtotime($fin) - strtotime($debut)) / DAY_IN_SECONDS;
+        if ($span > psc_max_trimestre_days()) {
+            self::redirect('psc_trimestres', 'too_long');
+        }
+
+        $wpdb->update($t_trim, array(
+            'label'          => mb_substr($label, 0, 190),
+            'date_debut'     => $debut,
+            'date_fin'       => $fin,
+            'school_year_id' => $school_year_id,
+        ), array('id' => $id), array('%s', '%s', '%s', '%d'), array('%d'));
+
+        Psc_Installer::generate_calendar_days($id, $debut, $fin);
+        self::redirect('psc_trimestres', 'updated');
+    }
+
+    /**
+     * Supprime un trimestre. Jamais le trimestre actif (même principe que
+     * l'année active) : il faut d'abord en activer un autre. Jamais un
+     * trimestre qui porte déjà des présences déclarées par une famille
+     * (wp_psc_registrations) — à la différence d'une année scolaire, un
+     * trimestre est l'unité opérationnelle réelle (c'est lui qui porte les
+     * inscriptions), sa suppression avec des données réelles serait bien
+     * plus destructrice qu'un simple regroupement. Un trimestre vide (créé
+     * par erreur, jamais activé, jamais utilisé) reste librement
+     * supprimable, calendrier généré compris.
+     */
+    public static function handle_delete_trimestre() {
+        self::guard('psc_delete_trimestre');
+        global $wpdb;
+
+        $id = psc_post_int('id');
+        $t_trim = psc_table('trimestres');
+        $trimestre = $id ? $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_trim WHERE id = %d", $id)) : null;
+        if (!$trimestre) self::redirect('psc_trimestres', 'invalid');
+        if ($trimestre->active) self::redirect('psc_trimestres', 'active_trimestre');
+
+        $has_registrations = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM " . psc_table('registrations') . " WHERE trimestre_id = %d", $id
+        ));
+        if ($has_registrations) self::redirect('psc_trimestres', 'has_registrations');
+
+        $wpdb->delete(psc_table('calendar_days'), array('trimestre_id' => $id), array('%d'));
+        $wpdb->delete($t_trim, array('id' => $id), array('%d'));
+        self::redirect('psc_trimestres', 'trimestre_deleted');
     }
 
     /* ---------------- Années scolaires ---------------- */

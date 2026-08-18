@@ -4,13 +4,17 @@
 
 <?php
 $psc_notices = array(
-    'created'       => array('success', 'Trimestre créé, le calendrier a été généré.'),
-    'activated'     => array('success', 'Trimestre activé : il est désormais visible par les familles.'),
-    'closed'        => array('success', 'Période fermée.'),
-    'invalid_dates' => array('error', 'Dates invalides. Merci de vérifier le format et de renseigner tous les champs.'),
-    'order_dates'   => array('error', 'La date de fin doit être postérieure à la date de début.'),
-    'too_long'      => array('error', 'La période est trop longue (maximum ' . psc_max_trimestre_days() . ' jours). Vérifiez les années saisies.'),
-    'invalid'       => array('error', 'Opération impossible : élément introuvable.'),
+    'created'            => array('success', 'Trimestre créé, le calendrier a été généré.'),
+    'updated'            => array('success', 'Trimestre modifié, le calendrier a été régénéré sur la nouvelle période.'),
+    'trimestre_deleted'  => array('success', 'Trimestre supprimé.'),
+    'activated'          => array('success', 'Trimestre activé : il est désormais visible par les familles.'),
+    'closed'             => array('success', 'Période fermée.'),
+    'invalid_dates'      => array('error', 'Dates invalides. Merci de vérifier le format et de renseigner tous les champs.'),
+    'order_dates'        => array('error', 'La date de fin doit être postérieure à la date de début.'),
+    'too_long'           => array('error', 'La période est trop longue (maximum ' . psc_max_trimestre_days() . ' jours). Vérifiez les années saisies.'),
+    'invalid'            => array('error', 'Opération impossible : élément introuvable.'),
+    'active_trimestre'   => array('error', 'Impossible de supprimer le trimestre actif : activez-en un autre au préalable.'),
+    'has_registrations'  => array('error', 'Impossible de supprimer ce trimestre : des familles ont déjà déclaré des présences dessus.'),
 );
 if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     list($type, $text) = $psc_notices[$psc_msg]; ?>
@@ -46,24 +50,58 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 
 <div class="psc-box">
 <h2>Trimestres existants</h2>
+<p>Modifier les dates régénère le calendrier du trimestre sur la nouvelle période : les jours fériés/vacances sont recalculés automatiquement, mais une fermeture ponctuelle que vous auriez ajoutée à la main sur un jour resté dans la période peut être réinitialisée.</p>
 <table class="widefat striped">
-<thead><tr><th>Libellé</th><th>Début</th><th>Fin</th><th>Statut</th><th>Action</th></tr></thead>
+<thead><tr><th>Libellé</th><th>Année scolaire</th><th>Début</th><th>Fin</th><th>Statut</th><th>Action</th></tr></thead>
 <tbody>
 <?php if (empty($trimestres)): ?>
-<tr><td colspan="5">Aucun trimestre créé pour le moment.</td></tr>
-<?php else: foreach ($trimestres as $t): ?>
+<tr><td colspan="6">Aucun trimestre créé pour le moment.</td></tr>
+<?php else: foreach ($trimestres as $t): $edit_form_id = 'trim-edit-form-' . $t->id; ?>
 <tr>
-<td><?php echo esc_html($t->label); ?></td>
-<td><?php echo esc_html(date_i18n('d/m/Y', strtotime($t->date_debut))); ?></td>
-<td><?php echo esc_html(date_i18n('d/m/Y', strtotime($t->date_fin))); ?></td>
-<td><?php echo $t->active ? '<strong class="psc-active">Actif (visible sur le site)</strong>' : '—'; ?></td>
 <td>
+  <label class="screen-reader-text" for="psc-t-label-<?php echo esc_attr($t->id); ?>">Libellé</label>
+  <input id="psc-t-label-<?php echo esc_attr($t->id); ?>" type="text" form="<?php echo esc_attr($edit_form_id); ?>" name="label" value="<?php echo esc_attr($t->label); ?>" maxlength="190" required class="regular-text">
+</td>
+<td>
+  <label class="screen-reader-text" for="psc-t-annee-<?php echo esc_attr($t->id); ?>">Année scolaire</label>
+  <?php if (empty($psc_trim_years)): ?>
+  —
+  <?php else: ?>
+  <select id="psc-t-annee-<?php echo esc_attr($t->id); ?>" form="<?php echo esc_attr($edit_form_id); ?>" name="school_year_id">
+  <?php foreach ($psc_trim_years as $y): ?>
+  <option value="<?php echo esc_attr($y->id); ?>" <?php selected((int) $t->school_year_id, (int) $y->id); ?>><?php echo esc_html($y->label); ?></option>
+  <?php endforeach; ?>
+  </select>
+  <?php endif; ?>
+</td>
+<td>
+  <label class="screen-reader-text" for="psc-t-debut-<?php echo esc_attr($t->id); ?>">Date de début</label>
+  <input id="psc-t-debut-<?php echo esc_attr($t->id); ?>" type="date" form="<?php echo esc_attr($edit_form_id); ?>" name="date_debut" value="<?php echo esc_attr($t->date_debut); ?>" required>
+</td>
+<td>
+  <label class="screen-reader-text" for="psc-t-fin-<?php echo esc_attr($t->id); ?>">Date de fin</label>
+  <input id="psc-t-fin-<?php echo esc_attr($t->id); ?>" type="date" form="<?php echo esc_attr($edit_form_id); ?>" name="date_fin" value="<?php echo esc_attr($t->date_fin); ?>" required>
+</td>
+<td><?php echo $t->active ? '<strong class="psc-active">Actif (visible sur le site)</strong>' : '—'; ?></td>
+<td style="white-space:nowrap">
+<form id="<?php echo esc_attr($edit_form_id); ?>" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
+<?php wp_nonce_field('psc_update_trimestre'); ?>
+<input type="hidden" name="action" value="psc_update_trimestre">
+<input type="hidden" name="id" value="<?php echo esc_attr($t->id); ?>">
+<button type="submit" class="button">Enregistrer</button>
+</form>
 <?php if (!$t->active): ?>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
 <?php wp_nonce_field('psc_activate_trimestre'); ?>
 <input type="hidden" name="action" value="psc_activate_trimestre">
 <input type="hidden" name="id" value="<?php echo esc_attr($t->id); ?>">
 <button class="button">Activer</button>
+</form>
+<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
+<?php wp_nonce_field('psc_delete_trimestre'); ?>
+<input type="hidden" name="action" value="psc_delete_trimestre">
+<input type="hidden" name="id" value="<?php echo esc_attr($t->id); ?>">
+<button class="button" onclick="return confirm('Supprimer définitivement le trimestre <?php echo esc_js($t->label); ?> ? Impossible si des familles ont déjà déclaré des présences dessus.');">Supprimer</button>
 </form>
 <?php endif; ?>
 </td>
