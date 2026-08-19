@@ -9,6 +9,7 @@
         closed: "Aucune période d'inscription n'est ouverte actuellement.",
         locked: 'Le délai de modification est dépassé pour ce jour. Contactez la mairie.',
         assurance_missing: 'L\'assurance scolaire de cet enfant n\'a pas été fournie pour l\'année en cours. Ajoutez-la depuis « Mes enfants ».',
+        service_closed: 'Cette prestation est fermée ce jour-là. Contactez la mairie.',
         service: 'Prestation inconnue.',
         invalid: 'Données invalides.',
         nochild: 'Aucun enfant rattaché à votre compte.',
@@ -343,7 +344,7 @@
             // Si le serveur signale un verrou ou une assurance manquante, la
             // case reste désactivée : la situation a pu changer pendant que
             // la page était ouverte (délai expiré, ou document retiré).
-            if (code === 'locked' || code === 'assurance_missing') {
+            if (code === 'locked' || code === 'assurance_missing' || code === 'service_closed') {
                 cb.closest('tr').classList.add('psc-row-locked');
             } else {
                 cb.disabled = false;

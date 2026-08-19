@@ -171,6 +171,32 @@ class Psc_Frontend {
         return $map;
     }
 
+    /**
+     * Construit la table des prestations fermées individuellement (calendrier
+     * scolaire v2) pour une liste de jours. Clé : date|service — même
+     * principe que reg_map(), mais sans dimension enfant (une fermeture de
+     * prestation s'applique à toute la structure, pas à un enfant en particulier).
+     */
+    protected static function service_closures_map($days) {
+        if (empty($days)) return array();
+        global $wpdb;
+
+        $dates = wp_list_pluck($days, 'jour_date');
+        $placeholders = implode(',', array_fill(0, count($dates), '%s'));
+        $t = psc_table('service_closures');
+
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT jour_date, service FROM $t WHERE jour_date IN ($placeholders)",
+            $dates
+        ));
+
+        $map = array();
+        foreach ($rows as $r) {
+            $map[$r->jour_date . '|' . $r->service] = 1;
+        }
+        return $map;
+    }
+
     /* ---------------- Assurance scolaire (espace famille) ---------------- */
 
     /**
@@ -533,6 +559,24 @@ class Psc_Frontend {
             ), 403);
         }
 
+        // Fermeture par prestation (calendrier scolaire v2) : vérifiée
+        // CÔTÉ SERVEUR, comme le délai de prévenance ci-dessus — griser la
+        // case dans le navigateur ne suffit pas. Un enfant déjà déclaré
+        // peut toujours être décoché (pas de blocage rétroactif), donc ce
+        // contrôle ne s'applique qu'à une nouvelle déclaration ($checked).
+        if ($checked) {
+            $closed_services = Psc_School_Calendar::closed_services_for_date($date);
+            $service_blocked = $service === 'FORF'
+                ? (bool) array_intersect($closed_services, array('GM', 'CANT', 'GS'))
+                : in_array($service, $closed_services, true);
+            if ($service_blocked) {
+                wp_send_json_error(array(
+                    'code'    => 'service_closed',
+                    'message' => 'Cette prestation est fermée ce jour-là. Contactez la mairie.',
+                ), 403);
+            }
+        }
+
         $t_reg = psc_table('registrations');
         if ($checked) {
             $wpdb->query($wpdb->prepare(
@@ -646,6 +690,16 @@ class Psc_Frontend {
             // depuis le chargement de la page, on ignore silencieusement
             // plutôt que d'échouer tout le lot.
             if (psc_is_locked($date)) continue;
+
+            // Fermeture par prestation (calendrier scolaire v2), même
+            // logique et même revérification par date que ci-dessus.
+            if ($checked) {
+                $closed_services = Psc_School_Calendar::closed_services_for_date($date);
+                $service_blocked = $service === 'FORF'
+                    ? (bool) array_intersect($closed_services, array('GM', 'CANT', 'GS'))
+                    : in_array($service, $closed_services, true);
+                if ($service_blocked) continue;
+            }
 
             if ($checked) {
                 $wpdb->query($wpdb->prepare(
@@ -1685,6 +1739,7 @@ class Psc_Frontend {
         $children     = self::children_of($parent->id, true);         // uniquement actifs → calendrier
         $days_by_month = array();
         $reg_map = array();
+        $service_closures_map = array();
 
         if ($trimestre) {
             global $wpdb;
@@ -1697,6 +1752,7 @@ class Psc_Frontend {
                 $days_by_month[date_i18n('F Y', strtotime($d->jour_date))][] = $d;
             }
             $reg_map = self::reg_map($trimestre->id, $children);
+            $service_closures_map = self::service_closures_map($days);
         }
 
         $services = psc_services();

@@ -127,6 +127,10 @@
                     $tout_checked_count = 0;
                     foreach ($days as $d) {
                         if (psc_is_locked($d->jour_date)) continue;
+                        $svc_closed = $code === 'FORF'
+                            ? (isset($service_closures_map[$d->jour_date . '|GM']) || isset($service_closures_map[$d->jour_date . '|CANT']) || isset($service_closures_map[$d->jour_date . '|GS']))
+                            : isset($service_closures_map[$d->jour_date . '|' . $code]);
+                        if ($svc_closed) continue;
                         $tout_dates[] = $d->jour_date;
                         if (isset($reg_map[$child->id . '|' . $d->jour_date . '|' . $code])) $tout_checked_count++;
                     }
@@ -162,10 +166,17 @@
                 <?php foreach (psc_allowed_services() as $s):
                     $checked = isset($reg_map[$child->id . '|' . $date . '|' . $s]);
                     $cell_testid = $child_index . '-' . $date . '-' . $s;
+                    // Une prestation fermée par la mairie (calendrier scolaire
+                    // v2) n'est plus proposée ce jour-là. Le forfait journée
+                    // implique les 3 prestations : il est bloqué dès qu'une
+                    // seule d'entre elles est fermée.
+                    $service_closed = $s === 'FORF'
+                        ? (isset($service_closures_map[$date . '|GM']) || isset($service_closures_map[$date . '|CANT']) || isset($service_closures_map[$date . '|GS']))
+                        : isset($service_closures_map[$date . '|' . $s]);
                     // L'assurance manquante bloque uniquement l'AJOUT d'un
                     // jour : une case déjà cochée reste décochable (pas de
                     // blocage rétroactif, cf. ajax_toggle()).
-                    $cell_disabled = $locked || ($assurance_missing && !$checked);
+                    $cell_disabled = $locked || $service_closed || ($assurance_missing && !$checked);
                 ?>
                   <td data-testid="cell-<?php echo esc_attr($cell_testid); ?>">
                     <input type="checkbox" class="psc-check"
@@ -173,6 +184,7 @@
                                $services[$s]['label'] . ' — ' . psc_day_label($date) . ' '
                                . date_i18n('d/m', strtotime($date)) . ' — ' . $child->prenom
                                . ($locked ? ' (non modifiable)' : '')
+                               . ($service_closed ? ' (prestation fermée)' : '')
                                . ($assurance_missing && !$checked ? ' (assurance scolaire manquante)' : '')
                            ); ?>"
                            data-child="<?php echo esc_attr($child->id); ?>"

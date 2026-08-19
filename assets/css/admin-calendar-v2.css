@@ -1,0 +1,174 @@
+.psc-admin .psc-cal2-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.psc-admin .psc-cal2-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.psc-admin .psc-cal2-nav h2 {
+    margin: 0 8px;
+    min-width: 180px;
+    text-align: center;
+}
+.psc-admin .psc-cal2-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 12px;
+    color: #646970;
+    margin-bottom: 12px;
+}
+.psc-admin .psc-cal2-legend-swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
+.psc-admin .psc-cal2-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    max-width: none;
+}
+.psc-admin .psc-cal2-weekday {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #646970;
+    text-align: center;
+    padding-bottom: 4px;
+}
+.psc-admin .psc-cal2-day {
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    padding: 6px;
+    min-height: 88px;
+    background: #fff;
+    cursor: default;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.psc-admin .psc-cal2-day[data-date] { cursor: pointer; }
+.psc-admin .psc-cal2-day[data-date]:hover { border-color: #2271b1; }
+.psc-admin .psc-cal2-day--out_of_term { background: #f6f7f7; color: #a7aaad; }
+.psc-admin .psc-cal2-day--closed_day { background: #fdf2f2; }
+.psc-admin .psc-cal2-day--open { background: #f4faf3; }
+
+.psc-admin .psc-cal2-daynum {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1d2327;
+}
+.psc-admin .psc-cal2-day--out_of_term .psc-cal2-daynum { color: #a7aaad; font-weight: 400; }
+
+.psc-admin .psc-cal2-badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: none;
+    text-align: left;
+    line-height: 1.4;
+}
+.psc-admin button.psc-cal2-badge { cursor: pointer; }
+.psc-admin .psc-cal2-badge--muted { background: transparent; color: #a7aaad; }
+.psc-admin .psc-cal2-badge--closed { background: #d63638; color: #fff; }
+.psc-admin .psc-cal2-badge--open { background: #2e7d32; color: #fff; }
+
+.psc-admin .psc-cal2-services {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 2px;
+}
+.psc-admin .psc-cal2-pill {
+    font-size: 10.5px;
+    padding: 2px 5px;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    text-align: left;
+    cursor: pointer;
+}
+.psc-admin .psc-cal2-pill--open {
+    background: #edf7ed;
+    border-color: #b8dfb8;
+    color: #1d2327;
+}
+.psc-admin .psc-cal2-pill--closed {
+    background: #fbeaea;
+    border-color: #f0b8b8;
+    color: #8a2020;
+    text-decoration: line-through;
+}
+
+/* Semaine : cellules plus grandes, une seule ligne */
+.psc-admin .psc-cal2-grid--week .psc-cal2-day { min-height: 160px; }
+
+/* Menu contextuel au clic sur un jour */
+.psc-cal2-menu {
+    background: #1d2327;
+    border-radius: 4px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .25);
+    padding: 4px;
+    min-width: 200px;
+    z-index: 100000;
+}
+.psc-cal2-menu-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+.psc-cal2-menu-item:hover,
+.psc-cal2-menu-item:focus {
+    background: #2c3338;
+}
+
+/* Modal de confirmation */
+.psc-cal2-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .4);
+    z-index: 99998;
+}
+.psc-cal2-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    border-radius: 4px;
+    padding: 20px 24px;
+    width: 420px;
+    max-width: calc(100vw - 40px);
+    z-index: 99999;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, .3);
+}
+.psc-cal2-modal h3 { margin-top: 0; }
+.psc-cal2-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+}
+.psc-cal2-modal-actions input[type="text"] {
+    display: block;
+    width: 100%;
+    margin-bottom: 4px;
+}

@@ -349,4 +349,169 @@ class Psc_School_Calendar {
             $is_open, $label, $date_str
         ));
     }
+
+    /* ------------------------------------------------------------------
+     * Fermeture manuelle d'une seule prestation (garderie matin, cantine,
+     * garderie soir) pour un jour donné, indépendamment de la fermeture du
+     * jour entier — utilisée par le calendrier scolaire v2.
+     * ------------------------------------------------------------------ */
+
+    /** Prestations fermables individuellement (FORF exclu : c'est un forfait dérivé des 3 autres, pas une prestation qu'on ferme elle-même). */
+    const CLOSABLE_SERVICES = array('GM', 'CANT', 'GS');
+
+    public static function is_service_closed($date_str, $service) {
+        global $wpdb;
+        $t = psc_table('service_closures');
+        return (bool) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $t WHERE jour_date = %s AND service = %s",
+            $date_str, $service
+        ));
+    }
+
+    /** Codes des prestations fermées ce jour-là (ex. ['GM']). */
+    public static function closed_services_for_date($date_str) {
+        global $wpdb;
+        $t = psc_table('service_closures');
+        return $wpdb->get_col($wpdb->prepare(
+            "SELECT service FROM $t WHERE jour_date = %s",
+            $date_str
+        ));
+    }
+
+    /**
+     * Familles concernées par la fermeture d'une seule prestation ce
+     * jour-là, séparées en deux groupes : les inscriptions directes de
+     * cette prestation (seront supprimées) et les inscriptions en Forfait
+     * journée (seront converties vers les prestations restantes par
+     * close_service()).
+     */
+    public static function affected_families_for_service($date_str, $service) {
+        return array(
+            'direct' => self::families_by_service($date_str, $service),
+            'forf'   => self::families_by_service($date_str, 'FORF'),
+        );
+    }
+
+    private static function families_by_service($date_str, $service) {
+        global $wpdb;
+        $t_reg   = psc_table('registrations');
+        $t_child = psc_table('children');
+        $t_par   = psc_table('parents');
+
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT r.id, r.child_id, r.trimestre_id, r.service, c.nom AS child_nom, c.prenom AS child_prenom, p.id AS parent_id, p.email, p.nom AS parent_nom
+             FROM $t_reg r
+             JOIN $t_child c ON c.id = r.child_id
+             JOIN $t_par p ON p.id = c.parent_id
+             WHERE r.jour_date = %s AND r.service = %s
+             ORDER BY p.email, c.nom",
+            $date_str, $service
+        ));
+
+        $by_family = array();
+        foreach ($rows as $r) {
+            if (!isset($by_family[$r->parent_id])) {
+                $by_family[$r->parent_id] = array(
+                    'email' => $r->email,
+                    'nom'   => $r->parent_nom,
+                    'items' => array(),
+                );
+            }
+            $by_family[$r->parent_id]['items'][] = $r;
+        }
+
+        return array(
+            'registrations' => count($rows),
+            'families'      => $by_family,
+        );
+    }
+
+    /**
+     * Ferme une seule prestation (GM/CANT/GS) pour un jour donné,
+     * indépendamment du reste de la journée : supprime les inscriptions
+     * directes de cette prestation (non facturées, familles notifiées) et
+     * convertit chaque inscription en Forfait journée vers les prestations
+     * restantes — le forfait n'est jamais facturé "moins un service"
+     * (class-psc-invoices.php facture registrations.service tel quel), donc
+     * le convertir en inscriptions individuelles au moment de la fermeture
+     * est la seule façon de refléter correctement la fermeture en facturation.
+     */
+    public static function close_service($date_str, $service, $label) {
+        $date_str = psc_valid_date($date_str);
+        if (!$date_str) return new WP_Error('invalid_date', 'Date invalide.');
+        if (!in_array($service, self::CLOSABLE_SERVICES, true)) {
+            return new WP_Error('invalid_service', 'Prestation invalide.');
+        }
+        $label = $label !== '' ? sanitize_text_field($label) : 'Fermeture exceptionnelle';
+
+        $affected = self::affected_families_for_service($date_str, $service);
+
+        global $wpdb;
+        $t_svc = psc_table('service_closures');
+        $now   = current_time('mysql');
+        $wpdb->query($wpdb->prepare(
+            "INSERT INTO $t_svc (jour_date, service, label, created_at, updated_at)
+             VALUES (%s, %s, %s, %s, %s)
+             ON DUPLICATE KEY UPDATE label = VALUES(label), updated_at = VALUES(updated_at)",
+            $date_str, $service, $label, $now, $now
+        ));
+
+        $services      = psc_services();
+        $service_label = isset($services[$service]) ? $services[$service]['label'] : $service;
+        $t_reg         = psc_table('registrations');
+
+        if (!empty($affected['direct']['families'])) {
+            foreach ($affected['direct']['families'] as $fam) {
+                Psc_Mailer::send_service_closed($fam, $date_str, $service_label, $label);
+            }
+            $wpdb->query($wpdb->prepare(
+                "DELETE FROM $t_reg WHERE jour_date = %s AND service = %s",
+                $date_str, $service
+            ));
+        }
+
+        if (!empty($affected['forf']['families'])) {
+            $closed_now = self::closed_services_for_date($date_str);
+            $remaining  = array_diff(self::CLOSABLE_SERVICES, array($service), $closed_now);
+
+            $remaining_labels = array();
+            foreach ($remaining as $code) {
+                $remaining_labels[] = isset($services[$code]) ? $services[$code]['label'] : $code;
+            }
+
+            foreach ($affected['forf']['families'] as $fam) {
+                foreach ($fam['items'] as $item) {
+                    $wpdb->query($wpdb->prepare(
+                        "DELETE FROM $t_reg WHERE id = %d",
+                        $item->id
+                    ));
+                    foreach ($remaining as $code) {
+                        $wpdb->query($wpdb->prepare(
+                            "INSERT INTO $t_reg (child_id, trimestre_id, jour_date, service, updated_at)
+                             VALUES (%d, %d, %s, %s, %s)",
+                            $item->child_id, $item->trimestre_id, $date_str, $code, $now
+                        ));
+                    }
+                }
+                Psc_Mailer::send_forfait_downgraded($fam, $date_str, $service_label, $remaining_labels);
+            }
+        }
+
+        return $affected;
+    }
+
+    /** Réouvre une prestation (annule sa fermeture ; ne restaure pas les inscriptions supprimées, même logique que open_day()). */
+    public static function open_service($date_str, $service) {
+        $date_str = psc_valid_date($date_str);
+        if (!$date_str) return new WP_Error('invalid_date', 'Date invalide.');
+
+        global $wpdb;
+        $t = psc_table('service_closures');
+        $wpdb->query($wpdb->prepare(
+            "DELETE FROM $t WHERE jour_date = %s AND service = %s",
+            $date_str, $service
+        ));
+
+        return true;
+    }
 }

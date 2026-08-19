@@ -1459,15 +1459,30 @@ class Psc_Admin {
         return 'psc_pending_close_' . get_current_user_id();
     }
 
+    /**
+     * Page vers laquelle rediriger après import/upload du calendrier
+     * officiel — psc_school_calendar par défaut, ou psc_school_calendar_v2
+     * si le formulaire d'origine (inclus aussi dans la page v2) l'a
+     * demandé via un champ caché 'return_page'. Whitelist stricte : jamais
+     * de redirection ouverte vers une page arbitraire.
+     */
+    protected static function import_return_page() {
+        $requested = psc_post('return_page');
+        return in_array($requested, array('psc_school_calendar', 'psc_school_calendar_v2'), true)
+            ? $requested
+            : 'psc_school_calendar';
+    }
+
     public static function handle_import_school_calendar() {
         self::guard('psc_import_school_calendar');
+        $return_page = self::import_return_page();
 
         $result = Psc_School_Calendar::import();
         if (is_wp_error($result)) {
-            self::redirect('psc_school_calendar', 'import_failed');
+            self::redirect($return_page, 'import_failed');
         }
         wp_safe_redirect(add_query_arg(
-            array('page' => 'psc_school_calendar', 'psc_msg' => 'imported', 'n' => (int) $result),
+            array('page' => $return_page, 'psc_msg' => 'imported', 'n' => (int) $result),
             admin_url('admin.php')
         ));
         exit;
@@ -1479,28 +1494,29 @@ class Psc_Admin {
      */
     public static function handle_upload_school_calendar() {
         self::guard('psc_upload_school_calendar');
+        $return_page = self::import_return_page();
 
         if (empty($_FILES['ics_file']) || !isset($_FILES['ics_file']['error']) || $_FILES['ics_file']['error'] !== UPLOAD_ERR_OK) {
-            self::redirect('psc_school_calendar', 'upload_failed');
+            self::redirect($return_page, 'upload_failed');
         }
 
         $file     = $_FILES['ics_file'];
         $filetype = wp_check_filetype($file['name'], array('ics' => 'text/calendar'));
         if ($filetype['ext'] !== 'ics') {
-            self::redirect('psc_school_calendar', 'upload_invalid_type');
+            self::redirect($return_page, 'upload_invalid_type');
         }
         if ($file['size'] > 2 * MB_IN_BYTES) {
-            self::redirect('psc_school_calendar', 'upload_too_large');
+            self::redirect($return_page, 'upload_too_large');
         }
 
         $body = file_get_contents($file['tmp_name']);
         $result = Psc_School_Calendar::import_from_upload($body);
         if (is_wp_error($result)) {
-            self::redirect('psc_school_calendar', 'upload_failed');
+            self::redirect($return_page, 'upload_failed');
         }
 
         wp_safe_redirect(add_query_arg(
-            array('page' => 'psc_school_calendar', 'psc_msg' => 'uploaded', 'n' => (int) $result),
+            array('page' => $return_page, 'psc_msg' => 'uploaded', 'n' => (int) $result),
             admin_url('admin.php')
         ));
         exit;

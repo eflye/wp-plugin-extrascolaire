@@ -627,6 +627,72 @@ class Psc_Mailer {
     }
 
     /**
+     * Prévient une famille qu'une seule prestation (garderie matin, cantine
+     * ou garderie soir — pas une classe entière) a été fermée pour un jour
+     * précis, à l'échelle de toute la structure (calendrier scolaire v2).
+     * $fam : array('email'=>, 'nom'=>, 'items'=> [objets avec child_nom, child_prenom]).
+     */
+    public static function send_service_closed($fam, $date_str, $service_label, $label) {
+        $site     = self::site_name();
+        $date_lbl = psc_day_label($date_str) . ' ' . date_i18n('d/m/Y', strtotime($date_str));
+        $subject  = sprintf('[%s] %s fermée le %s', $site, $service_label, $date_lbl);
+
+        $body = self::h2($service_label . ' fermée')
+            . self::p(sprintf(
+                'La mairie vient de fermer %s le %s (%s).',
+                $service_label, $date_lbl, $label
+            ));
+
+        $items_list = '<ul style="margin:8px 0;padding-left:20px;">';
+        foreach ($fam['items'] as $item) {
+            $items_list .= '<li style="color:#1A1A1A;font-size:14px;margin-bottom:4px;">'
+                . esc_html($item->child_prenom . ' ' . $item->child_nom) . '</li>';
+        }
+        $items_list .= '</ul>';
+
+        $body .= '<p style="color:#1A1A1A;font-size:14px;font-weight:bold;margin:16px 0 6px;">Enfant(s) concerné(s) :</p>'
+            . $items_list
+            . self::warning_box('Cette prestation ne sera <strong>pas facturée</strong>.')
+            . self::btn(self::form_page_url(), 'Consulter mon planning');
+
+        return self::send($fam['email'], $subject, self::layout($body, $subject));
+    }
+
+    /**
+     * Prévient une famille dont un enfant est en Forfait journée que ce
+     * forfait a été remplacé, pour un jour précis, par les prestations
+     * restantes suite à la fermeture d'une des 3 prestations (le forfait
+     * n'est jamais facturé "moins un service", cf. close_service() dans
+     * Psc_School_Calendar).
+     */
+    public static function send_forfait_downgraded($fam, $date_str, $closed_service_label, $remaining_service_labels) {
+        $site           = self::site_name();
+        $date_lbl       = psc_day_label($date_str) . ' ' . date_i18n('d/m/Y', strtotime($date_str));
+        $subject        = sprintf('[%s] Forfait journée modifié le %s', $site, $date_lbl);
+        $remaining_list = implode(' et ', $remaining_service_labels);
+
+        $body = self::h2('Forfait journée modifié')
+            . self::p(sprintf(
+                'La mairie a fermé %s le %s. Le forfait journée de votre/vos enfant(s) a été remplacé ce jour-là par : %s.',
+                $closed_service_label, $date_lbl, $remaining_list !== '' ? $remaining_list : 'aucune prestation restante'
+            ));
+
+        $items_list = '<ul style="margin:8px 0;padding-left:20px;">';
+        foreach ($fam['items'] as $item) {
+            $items_list .= '<li style="color:#1A1A1A;font-size:14px;margin-bottom:4px;">'
+                . esc_html($item->child_prenom . ' ' . $item->child_nom) . '</li>';
+        }
+        $items_list .= '</ul>';
+
+        $body .= '<p style="color:#1A1A1A;font-size:14px;font-weight:bold;margin:16px 0 6px;">Enfant(s) concerné(s) :</p>'
+            . $items_list
+            . self::info_box('Le tarif appliqué ce jour-là est ajusté en conséquence (' . esc_html($remaining_list !== '' ? $remaining_list : 'aucune prestation') . ' au lieu du forfait complet).')
+            . self::btn(self::form_page_url(), 'Consulter mon planning');
+
+        return self::send($fam['email'], $subject, self::layout($body, $subject));
+    }
+
+    /**
      * Prévient la mairie qu'une famille a signalé une absence depuis son
      * espace (bouton "Annulation / signalement d'absence" du tableau de
      * bord) — $services : tableau des codes de prestation retirés (GM,

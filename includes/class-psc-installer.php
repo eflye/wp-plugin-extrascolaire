@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '3.5.0';
+    const DB_VERSION = '3.6.0';
     const ROLES_VERSION = '1.0.0';
 
     public static function activate() {
@@ -367,6 +367,7 @@ class Psc_Installer {
         $t_pickup = psc_table('pickup_persons');
         $t_pkhist = psc_table('pickup_history');
         $t_att    = psc_table('attendance');
+        $t_svc    = psc_table('service_closures');
 
         $sql = "CREATE TABLE $t_years (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -617,6 +618,17 @@ CREATE TABLE $t_att (
             PRIMARY KEY  (id),
             UNIQUE KEY child_date_service (child_id, jour_date, service),
             KEY jour_date (jour_date)
+        ) $charset_collate;
+
+CREATE TABLE $t_svc (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            jour_date DATE NOT NULL,
+            service VARCHAR(10) NOT NULL,
+            label VARCHAR(191) NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY jour_date_service (jour_date, service)
         ) $charset_collate;";
 
         dbDelta($sql);
