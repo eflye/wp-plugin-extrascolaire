@@ -50,7 +50,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <div class="psc-box">
 <h2>Trimestres existants</h2>
 <p>Modifier les dates régénère le calendrier du trimestre sur la nouvelle période : les jours fériés/vacances sont recalculés automatiquement, mais une fermeture ponctuelle que vous auriez ajoutée à la main sur un jour resté dans la période peut être réinitialisée.
-Pour fermer les vacances scolaires ou toute autre période, rendez-vous sur <a href="<?php echo esc_url(admin_url('admin.php?page=psc_school_calendar')); ?>">Calendrier scolaire</a>.</p>
+Pour fermer les vacances scolaires ou toute autre période, rendez-vous sur <a href="<?php echo esc_url(admin_url('admin.php?page=psc_school_years')); ?>">Années scolaires</a>.</p>
 <table class="widefat striped">
 <thead><tr><th>Libellé</th><th>Année scolaire</th><th>Début</th><th>Fin</th><th>Statut</th><th>Action</th></tr></thead>
 <tbody>

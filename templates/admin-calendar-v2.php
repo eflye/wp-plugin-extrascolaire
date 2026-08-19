@@ -3,7 +3,7 @@
 <h1>Calendrier scolaire v2</h1>
 <p class="description">
     Vue visuelle du calendrier — pour fermer une <strong>plage de dates</strong> ou faire une correction texte, utilisez
-    <a href="<?php echo esc_url(admin_url('admin.php?page=psc_school_calendar')); ?>">Calendrier scolaire</a>.
+    <a href="<?php echo esc_url(admin_url('admin.php?page=psc_school_years')); ?>">Années scolaires</a>.
 </p>
 
 <?php

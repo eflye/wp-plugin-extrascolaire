@@ -113,7 +113,6 @@ class Psc_Admin {
         // la barre latérale.
         add_submenu_page('psc_dashboard', 'Passage d\'année', null, $cap, 'psc_passage_annee', array(__CLASS__, 'page_passage_annee'));
         add_submenu_page('psc_dashboard', 'Trimestres', 'Trimestres', $cap, 'psc_trimestres', array(__CLASS__, 'page_trimestres'));
-        add_submenu_page('psc_dashboard', 'Calendrier scolaire', 'Calendrier scolaire', $cap, 'psc_school_calendar', array(__CLASS__, 'page_school_calendar'));
 
         // Demandes & suivi
         $pending = Psc_Requests::pending_count();
@@ -491,6 +490,12 @@ class Psc_Admin {
             $c['exists'] = isset($existing_ranges[$c['date_debut'] . '|' . $c['date_fin']]);
         }
         unset($c);
+
+        $rows   = Psc_School_Calendar::all();
+        $groups = self::group_closed_days($rows);
+
+        $pending = get_transient(self::pending_close_key());
+        $pending_affected = $pending ? Psc_School_Calendar::affected_families_range($pending['date_debut'], $pending['date_fin']) : null;
 
         $imported_at = get_option('psc_school_calendar_imported_at', '');
         $imported_n  = psc_get_int('n');
@@ -1499,9 +1504,9 @@ class Psc_Admin {
      */
     protected static function import_return_page() {
         $requested = psc_post('return_page');
-        return in_array($requested, array('psc_school_calendar', 'psc_school_calendar_v2', 'psc_school_years'), true)
+        return in_array($requested, array('psc_school_years', 'psc_school_calendar_v2'), true)
             ? $requested
-            : 'psc_school_calendar';
+            : 'psc_school_years';
     }
 
     public static function handle_import_school_calendar() {
@@ -1571,29 +1576,29 @@ class Psc_Admin {
         $confirm    = psc_post_int('confirm');
 
         if (!$date_debut || !$date_fin || strtotime($date_fin) < strtotime($date_debut)) {
-            self::redirect('psc_school_calendar', 'invalid');
+            self::redirect('psc_school_years', 'invalid_date');
         }
         $span = (strtotime($date_fin) - strtotime($date_debut)) / DAY_IN_SECONDS;
         if ($span > psc_max_trimestre_days()) {
-            self::redirect('psc_school_calendar', 'invalid');
+            self::redirect('psc_school_years', 'invalid_date');
         }
 
         $affected = Psc_School_Calendar::affected_families_range($date_debut, $date_fin);
 
         if ($affected['registrations'] > 0 && !$confirm) {
             set_transient(self::pending_close_key(), array('date_debut' => $date_debut, 'date_fin' => $date_fin, 'label' => $label), 10 * MINUTE_IN_SECONDS);
-            self::redirect('psc_school_calendar', 'confirm_needed');
+            self::redirect('psc_school_years', 'confirm_needed');
         }
 
         delete_transient(self::pending_close_key());
         Psc_School_Calendar::close_range($date_debut, $date_fin, $label);
-        self::redirect('psc_school_calendar', 'closed');
+        self::redirect('psc_school_years', 'closed');
     }
 
     public static function handle_cancel_school_day_close() {
         self::guard('psc_cancel_school_day_close');
         delete_transient(self::pending_close_key());
-        self::redirect('psc_school_calendar', 'cancelled');
+        self::redirect('psc_school_years', 'cancelled');
     }
 
     public static function handle_open_school_day() {
@@ -1601,11 +1606,11 @@ class Psc_Admin {
 
         $date = psc_valid_date(psc_post('date'));
         if (!$date) {
-            self::redirect('psc_school_calendar', 'invalid');
+            self::redirect('psc_school_years', 'invalid_date');
         }
 
         Psc_School_Calendar::open_day($date);
-        self::redirect('psc_school_calendar', 'opened');
+        self::redirect('psc_school_years', 'opened');
     }
 
     /**
@@ -1634,22 +1639,6 @@ class Psc_Admin {
         if ($current) $groups[] = $current;
 
         return $groups;
-    }
-
-    public static function page_school_calendar() {
-        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
-
-        $rows   = Psc_School_Calendar::all();
-        $groups = self::group_closed_days($rows);
-
-        $pending = get_transient(self::pending_close_key());
-        $pending_affected = $pending ? Psc_School_Calendar::affected_families_range($pending['date_debut'], $pending['date_fin']) : null;
-
-        $imported_at = get_option('psc_school_calendar_imported_at', '');
-        $psc_msg     = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
-        $imported_n  = psc_get_int('n');
-
-        include PSC_PATH . 'templates/admin-school-calendar.php';
     }
 
     public static function page_requests() {
