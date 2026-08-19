@@ -172,6 +172,55 @@ class Psc_School_Calendar {
         return "{$m[1]}-{$m[2]}-{$m[3]}";
     }
 
+    /**
+     * Années scolaires candidates déduites du calendrier importé : le flux
+     * ICS du ministère ne contient aucune date explicite de rentrée/fin
+     * d'année (seulement des périodes de vacances), donc une année scolaire
+     * est ici définie comme l'intervalle entre deux étés consécutifs.
+     * Ne crée rien : sert uniquement à pré-remplir le formulaire "Créer une
+     * année scolaire" (l'admin garde la main sur la création elle-même).
+     */
+    public static function candidate_school_years() {
+        global $wpdb;
+        $t = psc_table('school_calendar');
+        $rows = $wpdb->get_results(
+            "SELECT jour_date, label FROM $t WHERE is_closed = 1 ORDER BY jour_date"
+        );
+
+        // Regroupe les jours consécutifs de même libellé en périodes
+        // (même principe que Psc_Admin::group_closed_days(), réimplémenté
+        // ici pour ne pas créer de dépendance entre les deux classes).
+        $periods = array();
+        $current = null;
+        foreach ($rows as $r) {
+            $is_next_day = $current && (strtotime($r->jour_date) - strtotime($current['end'])) === DAY_IN_SECONDS;
+            if ($current && $is_next_day && $r->label === $current['label']) {
+                $current['end'] = $r->jour_date;
+            } else {
+                if ($current) $periods[] = $current;
+                $current = array('start' => $r->jour_date, 'end' => $r->jour_date, 'label' => $r->label);
+            }
+        }
+        if ($current) $periods[] = $current;
+
+        $summers = array_values(array_filter($periods, function ($p) {
+            return strpos(remove_accents(mb_strtolower($p['label'])), 'ete') !== false;
+        }));
+
+        $candidates = array();
+        for ($i = 0; $i < count($summers) - 1; $i++) {
+            $date_debut = gmdate('Y-m-d', strtotime($summers[$i]['end'] . ' +1 day'));
+            $date_fin   = gmdate('Y-m-d', strtotime($summers[$i + 1]['start'] . ' -1 day'));
+            $candidates[] = array(
+                'label'      => gmdate('Y', strtotime($date_debut)) . '-' . gmdate('Y', strtotime($date_fin)),
+                'date_debut' => $date_debut,
+                'date_fin'   => $date_fin,
+            );
+        }
+
+        return $candidates;
+    }
+
     /* ------------------------------------------------------------------
      * Bascule manuelle d'un jour (formation des enseignants, correction…)
      * ------------------------------------------------------------------ */

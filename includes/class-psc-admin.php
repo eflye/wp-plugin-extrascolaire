@@ -481,7 +481,20 @@ class Psc_Admin {
     public static function page_school_years() {
         if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         $years = Psc_School_Years::all();
-        $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
+
+        $existing_ranges = array();
+        foreach ($years as $y) {
+            $existing_ranges[$y->date_debut . '|' . $y->date_fin] = true;
+        }
+        $candidates = Psc_School_Calendar::candidate_school_years();
+        foreach ($candidates as &$c) {
+            $c['exists'] = isset($existing_ranges[$c['date_debut'] . '|' . $c['date_fin']]);
+        }
+        unset($c);
+
+        $imported_at = get_option('psc_school_calendar_imported_at', '');
+        $imported_n  = psc_get_int('n');
+        $psc_msg     = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         include PSC_PATH . 'templates/admin-annees.php';
     }
 
@@ -1486,7 +1499,7 @@ class Psc_Admin {
      */
     protected static function import_return_page() {
         $requested = psc_post('return_page');
-        return in_array($requested, array('psc_school_calendar', 'psc_school_calendar_v2'), true)
+        return in_array($requested, array('psc_school_calendar', 'psc_school_calendar_v2', 'psc_school_years'), true)
             ? $requested
             : 'psc_school_calendar';
     }

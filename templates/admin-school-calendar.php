@@ -22,41 +22,7 @@ if ($psc_msg && isset($msgs[$psc_msg])):
 <div class="notice notice-<?php echo esc_attr($cls); ?> is-dismissible"><p><?php echo esc_html($txt); ?></p></div>
 <?php endif; ?>
 
-<div class="psc-box">
-<h2>Calendrier officiel (zone C)</h2>
-<p>
-    Source : calendrier scolaire du ministère de l'Éducation nationale
-    (<a href="https://www.education.gouv.fr/les-dates-des-vacances-scolaires-9079" target="_blank" rel="noopener noreferrer">education.gouv.fr/vacances</a>).
-    Le chargement ferme automatiquement le périscolaire, la cantine et le menu de cantine pendant les vacances de la zone C —
-    sans toucher aux corrections manuelles déjà faites ci-dessous.
-</p>
-<?php if ($imported_at): ?>
-<p><em>Dernier chargement : <?php echo esc_html(date_i18n('d/m/Y H:i', strtotime($imported_at))); ?></em></p>
-<?php endif; ?>
-<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-<?php wp_nonce_field('psc_import_school_calendar'); ?>
-<input type="hidden" name="action" value="psc_import_school_calendar">
-<?php submit_button($imported_at ? 'Recharger le calendrier officiel' : 'Charger le calendrier officiel', 'primary', 'submit', false); ?>
-</form>
-
-<p style="margin-top:20px;">
-    Le serveur n'a pas d'accès Internet sortant ? Téléchargez le fichier .ics depuis
-    <a href="https://www.education.gouv.fr/les-dates-des-vacances-scolaires-9079" target="_blank" rel="noopener noreferrer">education.gouv.fr</a>
-    sur votre ordinateur, puis chargez-le ici :
-</p>
-<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-<?php wp_nonce_field('psc_upload_school_calendar'); ?>
-<input type="hidden" name="action" value="psc_upload_school_calendar">
-<input type="file" name="ics_file" accept=".ics,text/calendar" required>
-<?php submit_button('Importer le fichier', 'secondary', 'submit', false); ?>
-</form>
-
-<p class="description" style="margin-top:12px;">
-    URL utilisée pour le chargement automatique ci-dessus :
-    <code><?php echo esc_html(Psc_School_Calendar::ics_url()); ?></code>
-    — modifiable dans <a href="<?php echo esc_url(admin_url('admin.php?page=psc_settings')); ?>">Réglages</a>.
-</p>
-</div>
+<?php $psc_import_return_page = 'psc_school_calendar'; include PSC_PATH . 'templates/partials/import-school-calendar.php'; ?>
 
 <?php if ($pending): ?>
 <div class="psc-box" style="border-left:4px solid #f5a623;">

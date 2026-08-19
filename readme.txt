@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 4.19.0
+Stable tag: 4.20.0
 License: GPLv2 or later
 
 == Description ==

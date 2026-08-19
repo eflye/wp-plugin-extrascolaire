@@ -21,35 +21,7 @@ if ($psc_msg && isset($notices[$psc_msg])):
 <div class="notice notice-<?php echo esc_attr($cls); ?> is-dismissible"><p><?php echo esc_html($txt); ?></p></div>
 <?php endif; ?>
 
-<div class="psc-box" style="max-width:none;">
-<h2>Recharger le calendrier officiel (zone C)</h2>
-<p>
-    Source : calendrier scolaire du ministère de l'Éducation nationale. Ne remplace <strong>jamais</strong> une
-    correction manuelle déjà faite (jour ou service fermé à la main) — seules les fermetures importées automatiquement
-    sont rafraîchies. Un trimestre déjà créé n'est pas régénéré par ce rechargement ; seul un trimestre créé après
-    bénéficiera des nouvelles dates.
-</p>
-<?php if ($imported_at): ?>
-<p><em>Dernier chargement : <?php echo esc_html(date_i18n('d/m/Y H:i', strtotime($imported_at))); ?></em></p>
-<?php endif; ?>
-<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline-block;margin-right:12px;"
-      onsubmit="return confirm('Recharger le calendrier officiel ? Les corrections manuelles ne seront pas écrasées, seules les fermetures importées automatiquement seront rafraîchies.');">
-<?php wp_nonce_field('psc_import_school_calendar'); ?>
-<input type="hidden" name="action" value="psc_import_school_calendar">
-<input type="hidden" name="return_page" value="psc_school_calendar_v2">
-<?php submit_button($imported_at ? 'Recharger le calendrier officiel' : 'Charger le calendrier officiel', 'primary', 'submit', false); ?>
-</form>
-
-<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data"
-      style="display:inline-flex;align-items:center;gap:8px;"
-      onsubmit="return confirm('Importer ce fichier ? Les corrections manuelles ne seront pas écrasées, seules les fermetures importées automatiquement seront rafraîchies.');">
-<?php wp_nonce_field('psc_upload_school_calendar'); ?>
-<input type="hidden" name="action" value="psc_upload_school_calendar">
-<input type="hidden" name="return_page" value="psc_school_calendar_v2">
-<input type="file" name="ics_file" accept=".ics,text/calendar" required>
-<?php submit_button('Importer le fichier', 'secondary', 'submit', false); ?>
-</form>
-</div>
+<?php $psc_import_return_page = 'psc_school_calendar_v2'; include PSC_PATH . 'templates/partials/import-school-calendar.php'; ?>
 
 <div class="psc-box" style="max-width:none;">
 

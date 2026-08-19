@@ -14,14 +14,48 @@ $psc_notices = array(
     'invalid'             => array('error', 'Opération impossible : élément introuvable ou invalide.'),
     'order_dates'         => array('error', 'La date de fin doit être postérieure à la date de début.'),
     'active_year'         => array('error', 'Impossible de supprimer l\'année active : activez-en une autre au préalable.'),
+    'imported'            => array('success', ((int) $imported_n) . ' jour(s) importé(s)/mis à jour depuis le calendrier officiel.'),
+    'import_failed'       => array('error', 'Le calendrier officiel n\'a pas pu être téléchargé. Réessayez plus tard, ou chargez le fichier manuellement ci-dessous.'),
+    'uploaded'            => array('success', ((int) $imported_n) . ' jour(s) importé(s)/mis à jour depuis le fichier envoyé.'),
+    'upload_failed'       => array('error', 'Le fichier n\'a pas pu être lu. Vérifiez qu\'il s\'agit bien d\'un export .ics valide.'),
+    'upload_invalid_type' => array('error', 'Le fichier doit être au format .ics.'),
+    'upload_too_large'    => array('error', 'Le fichier dépasse la taille maximale autorisée (2 Mo).'),
 );
 if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     list($type, $text) = $psc_notices[$psc_msg]; ?>
     <div class="notice notice-<?php echo esc_attr($type); ?> is-dismissible"><p><?php echo esc_html($text); ?></p></div>
 <?php endif; ?>
 
+<?php $psc_import_return_page = 'psc_school_years'; include PSC_PATH . 'templates/partials/import-school-calendar.php'; ?>
+
 <div class="psc-box">
 <h2>Créer une année scolaire</h2>
+<?php if (!empty($candidates)): ?>
+<p class="description">Années scolaires détectées dans le calendrier importé (intervalle entre deux étés) — cliquez pour préremplir le formulaire ci-dessous, rien n'est créé automatiquement :</p>
+<table class="widefat striped" style="margin-bottom:16px;max-width:600px;">
+<thead><tr><th>Libellé proposé</th><th>Début</th><th>Fin</th><th></th></tr></thead>
+<tbody>
+<?php foreach ($candidates as $i => $c): ?>
+<tr data-testid="year-candidate-<?php echo esc_attr($i); ?>">
+    <td><?php echo esc_html($c['label']); ?></td>
+    <td><?php echo esc_html(date_i18n('d/m/Y', strtotime($c['date_debut']))); ?></td>
+    <td><?php echo esc_html(date_i18n('d/m/Y', strtotime($c['date_fin']))); ?></td>
+    <td>
+    <?php if ($c['exists']): ?>
+        <em>Déjà créée</em>
+    <?php else: ?>
+        <button type="button" class="button psc-year-candidate-btn"
+                data-label="<?php echo esc_attr($c['label']); ?>"
+                data-debut="<?php echo esc_attr($c['date_debut']); ?>"
+                data-fin="<?php echo esc_attr($c['date_fin']); ?>"
+                data-testid="year-candidate-prefill-<?php echo esc_attr($i); ?>">Préremplir le formulaire</button>
+    <?php endif; ?>
+    </td>
+</tr>
+<?php endforeach; ?>
+</tbody>
+</table>
+<?php endif; ?>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
 <?php wp_nonce_field('psc_add_school_year'); ?>
 <input type="hidden" name="action" value="psc_add_school_year">
@@ -129,3 +163,17 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <?php endif; ?>
 </div>
 </div>
+
+<script>
+(function () {
+    document.querySelectorAll('.psc-year-candidate-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            document.getElementById('psc-y-label').value = btn.getAttribute('data-label');
+            document.getElementById('psc-y-debut').value = btn.getAttribute('data-debut');
+            document.getElementById('psc-y-fin').value = btn.getAttribute('data-fin');
+            document.getElementById('psc-y-label').scrollIntoView({ block: 'center' });
+            document.getElementById('psc-y-label').focus();
+        });
+    });
+})();
+</script>
