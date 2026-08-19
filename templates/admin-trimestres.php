@@ -8,7 +8,6 @@ $psc_notices = array(
     'updated'            => array('success', 'Trimestre modifié, le calendrier a été régénéré sur la nouvelle période.'),
     'trimestre_deleted'  => array('success', 'Trimestre supprimé.'),
     'activated'          => array('success', 'Trimestre activé : il est désormais visible par les familles.'),
-    'closed'             => array('success', 'Période fermée.'),
     'invalid_dates'      => array('error', 'Dates invalides. Merci de vérifier le format et de renseigner tous les champs.'),
     'order_dates'        => array('error', 'La date de fin doit être postérieure à la date de début.'),
     'too_long'           => array('error', 'La période est trop longue (maximum ' . psc_max_trimestre_days() . ' jours). Vérifiez les années saisies.'),
@@ -50,7 +49,8 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 
 <div class="psc-box">
 <h2>Trimestres existants</h2>
-<p>Modifier les dates régénère le calendrier du trimestre sur la nouvelle période : les jours fériés/vacances sont recalculés automatiquement, mais une fermeture ponctuelle que vous auriez ajoutée à la main sur un jour resté dans la période peut être réinitialisée.</p>
+<p>Modifier les dates régénère le calendrier du trimestre sur la nouvelle période : les jours fériés/vacances sont recalculés automatiquement, mais une fermeture ponctuelle que vous auriez ajoutée à la main sur un jour resté dans la période peut être réinitialisée.
+Pour fermer les vacances scolaires ou toute autre période, rendez-vous sur <a href="<?php echo esc_url(admin_url('admin.php?page=psc_school_calendar')); ?>">Calendrier scolaire</a>.</p>
 <table class="widefat striped">
 <thead><tr><th>Libellé</th><th>Année scolaire</th><th>Début</th><th>Fin</th><th>Statut</th><th>Action</th></tr></thead>
 <tbody>
@@ -109,31 +109,5 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <?php endforeach; endif; ?>
 </tbody>
 </table>
-</div>
-
-<div class="psc-box">
-<h2>Fermer une période (vacances scolaires, fermeture exceptionnelle...)</h2>
-<p>Les week-ends et jours fériés sont déjà fermés automatiquement à la création du trimestre. Utilisez ce formulaire pour les vacances scolaires ou toute fermeture ponctuelle.</p>
-<?php if (empty($trimestres)): ?>
-<p><em>Créez d'abord un trimestre.</em></p>
-<?php else: ?>
-<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-<?php wp_nonce_field('psc_close_range'); ?>
-<input type="hidden" name="action" value="psc_close_range">
-<table class="form-table">
-<tr><th><label for="psc-trim">Trimestre</label></th><td>
-<select id="psc-trim" name="trimestre_id">
-<?php foreach ($trimestres as $t): ?>
-<option value="<?php echo esc_attr($t->id); ?>"><?php echo esc_html($t->label); ?></option>
-<?php endforeach; ?>
-</select>
-</td></tr>
-<tr><th><label for="psc-cd">Du</label></th><td><input id="psc-cd" type="date" name="date_debut" required></td></tr>
-<tr><th><label for="psc-cf">Au</label></th><td><input id="psc-cf" type="date" name="date_fin" required></td></tr>
-<tr><th><label for="psc-cl">Libellé</label></th><td><input id="psc-cl" type="text" name="label" value="Vacances" maxlength="100"></td></tr>
-</table>
-<?php submit_button('Fermer cette période'); ?>
-</form>
-<?php endif; ?>
 </div>
 </div>

@@ -10,11 +10,11 @@ $msgs = array(
     'upload_failed'  => array('error', 'Le fichier n\'a pas pu être lu. Vérifiez qu\'il s\'agit bien d\'un export .ics valide.'),
     'upload_invalid_type' => array('error', 'Le fichier doit être au format .ics.'),
     'upload_too_large'    => array('error', 'Le fichier dépasse la taille maximale autorisée (2 Mo).'),
-    'closed'         => array('updated', 'Jour fermé.'),
+    'closed'         => array('updated', 'Jour(s) fermé(s).'),
     'opened'         => array('updated', 'Jour réouvert.'),
     'cancelled'      => array('notice-warning', 'Fermeture annulée.'),
-    'confirm_needed' => array('notice-warning', 'Confirmation nécessaire : des inscriptions existent déjà ce jour-là.'),
-    'invalid'        => array('error', 'Date invalide.'),
+    'confirm_needed' => array('notice-warning', 'Confirmation nécessaire : des inscriptions existent déjà sur cette période.'),
+    'invalid'        => array('error', 'Date(s) invalide(s).'),
 );
 if ($psc_msg && isset($msgs[$psc_msg])):
     list($cls, $txt) = $msgs[$psc_msg];
@@ -62,7 +62,12 @@ if ($psc_msg && isset($msgs[$psc_msg])):
 <div class="psc-box" style="border-left:4px solid #f5a623;">
 <h2>⚠ Confirmation nécessaire</h2>
 <p>
-    Fermer le <strong><?php echo esc_html(psc_day_label($pending['date']) . ' ' . date_i18n('d/m/Y', strtotime($pending['date']))); ?></strong>
+    <?php if ($pending['date_debut'] === $pending['date_fin']): ?>
+    Fermer le <strong><?php echo esc_html(psc_day_label($pending['date_debut']) . ' ' . date_i18n('d/m/Y', strtotime($pending['date_debut']))); ?></strong>
+    <?php else: ?>
+    Fermer la période du <strong><?php echo esc_html(date_i18n('d/m/Y', strtotime($pending['date_debut']))); ?></strong>
+    au <strong><?php echo esc_html(date_i18n('d/m/Y', strtotime($pending['date_fin']))); ?></strong>
+    <?php endif; ?>
     supprimera <strong><?php echo (int) $pending_affected['registrations']; ?> inscription(s)</strong> déjà déclarée(s)
     par <strong><?php echo count($pending_affected['families']); ?> famille(s)</strong>. Ces prestations ne seront pas facturées,
     et chaque famille concernée recevra un e-mail listant ce qui a été retiré.
@@ -77,9 +82,14 @@ if ($psc_msg && isset($msgs[$psc_msg])):
         <?php
         $bits = array();
         $services = psc_services();
+        $is_range = $pending['date_debut'] !== $pending['date_fin'];
         foreach ($fam['items'] as $item) {
             $svc_lbl = isset($services[$item->service]) ? $services[$item->service]['label'] : $item->service;
-            $bits[] = esc_html($item->child_prenom . ' ' . $item->child_nom . ' — ' . $svc_lbl);
+            $bit = esc_html($item->child_prenom . ' ' . $item->child_nom . ' — ' . $svc_lbl);
+            if ($is_range) {
+                $bit .= ' (' . esc_html(date_i18n('d/m/Y', strtotime($item->jour_date))) . ')';
+            }
+            $bits[] = $bit;
         }
         echo implode('<br>', $bits);
         ?>
@@ -91,7 +101,8 @@ if ($psc_msg && isset($msgs[$psc_msg])):
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline-block;margin-right:8px;">
 <?php wp_nonce_field('psc_close_school_day'); ?>
 <input type="hidden" name="action" value="psc_close_school_day">
-<input type="hidden" name="date" value="<?php echo esc_attr($pending['date']); ?>">
+<input type="hidden" name="date_debut" value="<?php echo esc_attr($pending['date_debut']); ?>">
+<input type="hidden" name="date_fin" value="<?php echo esc_attr($pending['date_fin']); ?>">
 <input type="hidden" name="label" value="<?php echo esc_attr($pending['label']); ?>">
 <input type="hidden" name="confirm" value="1">
 <button type="submit" class="button button-primary">Confirmer la fermeture</button>
@@ -106,19 +117,26 @@ if ($psc_msg && isset($msgs[$psc_msg])):
 
 <div class="psc-box">
 <h2>Corriger un jour manuellement</h2>
-<p>Formation des enseignants, fermeture exceptionnelle, ou correction d'un jour importé à tort — usage exceptionnel.</p>
+<p>Formation des enseignants, vacances scolaires, fermeture exceptionnelle, ou correction d'un jour importé à tort. Laissez « Au » vide pour ne fermer qu'un seul jour.</p>
 <div style="display:flex;gap:32px;flex-wrap:wrap;">
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
 <?php wp_nonce_field('psc_close_school_day'); ?>
 <input type="hidden" name="action" value="psc_close_school_day">
-<table class="form-table"><tr>
-<th><label for="psc-close-date">Fermer le</label></th>
-<td>
-    <input id="psc-close-date" type="date" name="date" required>
-    <input type="text" name="label" placeholder="Motif (ex: Formation des enseignants)" maxlength="100" style="margin-left:8px;width:280px;">
-</td>
-</tr></table>
-<?php submit_button('Fermer ce jour', 'secondary', 'submit', false); ?>
+<table class="form-table">
+<tr>
+<th><label for="psc-close-date-debut">Fermer du</label></th>
+<td><input id="psc-close-date-debut" type="date" name="date_debut" required></td>
+</tr>
+<tr>
+<th><label for="psc-close-date-fin">Au (optionnel)</label></th>
+<td><input id="psc-close-date-fin" type="date" name="date_fin"></td>
+</tr>
+<tr>
+<th><label for="psc-close-label">Motif</label></th>
+<td><input id="psc-close-label" type="text" name="label" placeholder="Ex : Formation des enseignants, Vacances de la Toussaint" maxlength="100" style="width:280px;"></td>
+</tr>
+</table>
+<?php submit_button('Fermer', 'secondary', 'submit', false); ?>
 </form>
 
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">

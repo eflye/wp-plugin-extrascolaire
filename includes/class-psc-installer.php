@@ -672,35 +672,4 @@ CREATE TABLE $t_att (
         }
         return true;
     }
-
-    /**
-     * Marque une plage de dates comme fermée (vacances, fermeture exceptionnelle).
-     */
-    public static function set_range_closed($trimestre_id, $date_debut, $date_fin, $label) {
-        global $wpdb;
-
-        $trimestre_id = absint($trimestre_id);
-        $date_debut = psc_valid_date($date_debut);
-        $date_fin = psc_valid_date($date_fin);
-        if (!$trimestre_id || !$date_debut || !$date_fin) return false;
-
-        $label = sanitize_text_field($label);
-        $t_days = psc_table('calendar_days');
-
-        $start = new DateTime($date_debut);
-        $end = new DateTime($date_fin);
-        $end->modify('+1 day');
-        $period = new DatePeriod($start, new DateInterval('P1D'), $end);
-
-        $count = 0;
-        foreach ($period as $d) {
-            if (++$count > psc_max_trimestre_days()) break;
-            $wpdb->query($wpdb->prepare(
-                "INSERT INTO $t_days (trimestre_id, jour_date, is_open, label) VALUES (%d, %s, 0, %s)
-                 ON DUPLICATE KEY UPDATE is_open = 0, label = VALUES(label)",
-                $trimestre_id, $d->format('Y-m-d'), $label
-            ));
-        }
-        return true;
-    }
 }

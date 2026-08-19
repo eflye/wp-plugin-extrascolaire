@@ -7,7 +7,6 @@ class Psc_Admin {
         add_action('admin_menu', array(__CLASS__, 'menu'));
         add_action('admin_post_psc_add_trimestre', array(__CLASS__, 'handle_add_trimestre'));
         add_action('admin_post_psc_activate_trimestre', array(__CLASS__, 'handle_activate_trimestre'));
-        add_action('admin_post_psc_close_range', array(__CLASS__, 'handle_close_range'));
         add_action('admin_post_psc_update_trimestre', array(__CLASS__, 'handle_update_trimestre'));
         add_action('admin_post_psc_delete_trimestre', array(__CLASS__, 'handle_delete_trimestre'));
         add_action('admin_post_psc_add_school_year', array(__CLASS__, 'handle_add_school_year'));
@@ -485,32 +484,6 @@ class Psc_Admin {
         $plan      = $staged ? $staged['plan'] : array();
         $classe_options = psc_classe_options();
         include PSC_PATH . 'templates/admin-passage-annee.php';
-    }
-
-    public static function handle_close_range() {
-        self::guard('psc_close_range');
-        global $wpdb;
-
-        $trimestre_id = psc_post_int('trimestre_id');
-        $debut = psc_valid_date(psc_post('date_debut'));
-        $fin   = psc_valid_date(psc_post('date_fin'));
-        $label = psc_post('label');
-        if ($label === '') $label = 'Vacances';
-
-        if (!$trimestre_id || !$debut || !$fin || strtotime($fin) < strtotime($debut)) {
-            self::redirect('psc_trimestres', 'invalid_dates');
-        }
-        $span = (strtotime($fin) - strtotime($debut)) / DAY_IN_SECONDS;
-        if ($span > psc_max_trimestre_days()) {
-            self::redirect('psc_trimestres', 'too_long');
-        }
-
-        $t_trim = psc_table('trimestres');
-        $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM $t_trim WHERE id = %d", $trimestre_id));
-        if (!$exists) self::redirect('psc_trimestres', 'invalid');
-
-        Psc_Installer::set_range_closed($trimestre_id, $debut, $fin, mb_substr($label, 0, 100));
-        self::redirect('psc_trimestres', 'closed');
     }
 
     public static function page_trimestres() {
@@ -1534,32 +1507,39 @@ class Psc_Admin {
     }
 
     /**
-     * Fermeture manuelle d'un jour. Si des inscriptions existent déjà ce
-     * jour-là, on n'exécute rien au premier passage : on stocke la
-     * demande et on redirige vers un écran d'avertissement. Ce n'est
-     * qu'après confirmation explicite (confirm=1) que la fermeture, la
-     * suppression des inscriptions et l'e-mail aux familles ont lieu.
+     * Fermeture manuelle d'un jour ou d'une plage de dates (formation des
+     * enseignants, vacances scolaires, fermeture exceptionnelle...). Si des
+     * inscriptions existent déjà sur la période, on n'exécute rien au
+     * premier passage : on stocke la demande et on redirige vers un écran
+     * d'avertissement. Ce n'est qu'après confirmation explicite (confirm=1)
+     * que la fermeture, la suppression des inscriptions et l'e-mail aux
+     * familles ont lieu.
      */
     public static function handle_close_school_day() {
         self::guard('psc_close_school_day');
 
-        $date  = psc_valid_date(psc_post('date'));
-        $label = psc_post('label');
-        $confirm = psc_post_int('confirm');
+        $date_debut = psc_valid_date(psc_post('date_debut'));
+        $date_fin   = psc_valid_date(psc_post('date_fin')) ?: $date_debut;
+        $label      = psc_post('label');
+        $confirm    = psc_post_int('confirm');
 
-        if (!$date) {
+        if (!$date_debut || !$date_fin || strtotime($date_fin) < strtotime($date_debut)) {
+            self::redirect('psc_school_calendar', 'invalid');
+        }
+        $span = (strtotime($date_fin) - strtotime($date_debut)) / DAY_IN_SECONDS;
+        if ($span > psc_max_trimestre_days()) {
             self::redirect('psc_school_calendar', 'invalid');
         }
 
-        $affected = Psc_School_Calendar::affected_families($date);
+        $affected = Psc_School_Calendar::affected_families_range($date_debut, $date_fin);
 
         if ($affected['registrations'] > 0 && !$confirm) {
-            set_transient(self::pending_close_key(), array('date' => $date, 'label' => $label), 10 * MINUTE_IN_SECONDS);
+            set_transient(self::pending_close_key(), array('date_debut' => $date_debut, 'date_fin' => $date_fin, 'label' => $label), 10 * MINUTE_IN_SECONDS);
             self::redirect('psc_school_calendar', 'confirm_needed');
         }
 
         delete_transient(self::pending_close_key());
-        Psc_School_Calendar::close_day($date, $label);
+        Psc_School_Calendar::close_range($date_debut, $date_fin, $label);
         self::redirect('psc_school_calendar', 'closed');
     }
 
@@ -1616,7 +1596,7 @@ class Psc_Admin {
         $groups = self::group_closed_days($rows);
 
         $pending = get_transient(self::pending_close_key());
-        $pending_affected = $pending ? Psc_School_Calendar::affected_families($pending['date']) : null;
+        $pending_affected = $pending ? Psc_School_Calendar::affected_families_range($pending['date_debut'], $pending['date_fin']) : null;
 
         $imported_at = get_option('psc_school_calendar_imported_at', '');
         $psc_msg     = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';

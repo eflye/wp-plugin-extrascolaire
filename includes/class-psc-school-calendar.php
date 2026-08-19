@@ -216,6 +216,45 @@ class Psc_School_Calendar {
     }
 
     /**
+     * Familles ayant une inscription déclarée sur une plage de dates —
+     * même usage que affected_families() mais pour une fermeture de
+     * plusieurs jours d'un coup (vacances, fermeture exceptionnelle...).
+     */
+    public static function affected_families_range($date_debut, $date_fin) {
+        global $wpdb;
+        $t_reg   = psc_table('registrations');
+        $t_child = psc_table('children');
+        $t_par   = psc_table('parents');
+
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT r.id, r.service, r.jour_date, c.nom AS child_nom, c.prenom AS child_prenom, p.id AS parent_id, p.email, p.nom AS parent_nom
+             FROM $t_reg r
+             JOIN $t_child c ON c.id = r.child_id
+             JOIN $t_par p ON p.id = c.parent_id
+             WHERE r.jour_date BETWEEN %s AND %s
+             ORDER BY p.email, r.jour_date, c.nom",
+            $date_debut, $date_fin
+        ));
+
+        $by_family = array();
+        foreach ($rows as $r) {
+            if (!isset($by_family[$r->parent_id])) {
+                $by_family[$r->parent_id] = array(
+                    'email' => $r->email,
+                    'nom'   => $r->parent_nom,
+                    'items' => array(),
+                );
+            }
+            $by_family[$r->parent_id]['items'][] = $r;
+        }
+
+        return array(
+            'registrations' => count($rows),
+            'families'      => $by_family,
+        );
+    }
+
+    /**
      * Ferme manuellement un jour : marque le jour dans le calendrier
      * scolaire ET dans tous les trimestres qui le couvrent, supprime les
      * inscriptions déjà déclarées ce jour-là (elles ne doivent pas être
@@ -249,6 +288,33 @@ class Psc_School_Calendar {
         }
 
         return $affected;
+    }
+
+    /**
+     * Ferme manuellement une plage de dates (vacances scolaires, fermeture
+     * exceptionnelle...), en appliquant close_day() jour par jour : chaque
+     * jour est marqué fermé dans le calendrier scolaire et dans tous les
+     * trimestres qui le couvrent, les inscriptions déjà déclarées sont
+     * supprimées et les familles concernées notifiées par e-mail.
+     */
+    public static function close_range($date_debut, $date_fin, $label) {
+        $date_debut = psc_valid_date($date_debut);
+        $date_fin   = psc_valid_date($date_fin);
+        if (!$date_debut || !$date_fin || strtotime($date_fin) < strtotime($date_debut)) {
+            return new WP_Error('invalid_date', 'Dates invalides.');
+        }
+
+        $start = new DateTime($date_debut);
+        $end   = new DateTime($date_fin);
+        $end->modify('+1 day');
+        $period = new DatePeriod($start, new DateInterval('P1D'), $end);
+
+        $count = 0;
+        foreach ($period as $d) {
+            if (++$count > psc_max_trimestre_days()) break;
+            self::close_day($d->format('Y-m-d'), $label);
+        }
+        return $count;
     }
 
     /** Réouvre un jour (annule une fermeture, import ou manuelle). */
