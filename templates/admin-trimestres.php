@@ -13,7 +13,7 @@ $psc_notices = array(
     'too_long'           => array('error', 'La période est trop longue (maximum ' . psc_max_trimestre_days() . ' jours). Vérifiez les années saisies.'),
     'invalid'            => array('error', 'Opération impossible : élément introuvable.'),
     'active_trimestre'   => array('error', 'Impossible de supprimer le trimestre actif : activez-en un autre au préalable.'),
-    'has_registrations'  => array('error', 'Impossible de supprimer ce trimestre : des familles ont déjà déclaré des présences dessus.'),
+    'confirm_mismatch'   => array('error', 'Le texte de confirmation ne correspond pas ("CONFIRMER" attendu). Le trimestre n\'a pas été supprimé.'),
 );
 if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     list($type, $text) = $psc_notices[$psc_msg]; ?>
@@ -97,11 +97,14 @@ Pour fermer les vacances scolaires ou toute autre période, rendez-vous sur <a h
 <input type="hidden" name="id" value="<?php echo esc_attr($t->id); ?>">
 <button class="button">Activer</button>
 </form>
-<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
+<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline" class="psc-delete-trimestre-form">
 <?php wp_nonce_field('psc_delete_trimestre'); ?>
 <input type="hidden" name="action" value="psc_delete_trimestre">
 <input type="hidden" name="id" value="<?php echo esc_attr($t->id); ?>">
-<button class="button" onclick="return confirm('Supprimer définitivement le trimestre <?php echo esc_js($t->label); ?> ? Impossible si des familles ont déjà déclaré des présences dessus.');">Supprimer</button>
+<input type="hidden" name="confirm_text" value="">
+<button type="button" class="button psc-delete-trimestre-btn"
+        data-label="<?php echo esc_attr($t->label); ?>"
+        data-count="<?php echo esc_attr($trimestre_reg_counts[$t->id] ?? 0); ?>">Supprimer</button>
 </form>
 <?php endif; ?>
 </td>
@@ -111,3 +114,87 @@ Pour fermer les vacances scolaires ou toute autre période, rendez-vous sur <a h
 </table>
 </div>
 </div>
+
+<style>
+.psc-del-trim-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .4);
+    z-index: 99998;
+}
+.psc-del-trim-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    border-radius: 4px;
+    padding: 20px 24px;
+    width: 460px;
+    max-width: calc(100vw - 40px);
+    z-index: 99999;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, .3);
+}
+.psc-del-trim-modal h3 { margin-top: 0; }
+.psc-del-trim-modal input[type="text"] { width: 100%; margin: 4px 0 0; }
+</style>
+
+<div id="psc-del-trim-backdrop" class="psc-del-trim-backdrop" hidden></div>
+<div id="psc-del-trim-modal" class="psc-del-trim-modal" hidden>
+    <h3>Supprimer <span id="psc-del-trim-label"></span> ?</h3>
+    <p id="psc-del-trim-consequence"></p>
+    <p>Cette action est <strong>irréversible</strong>.</p>
+    <p>Pour confirmer, tapez <strong>CONFIRMER</strong> ci-dessous :</p>
+    <input type="text" id="psc-del-trim-input" autocomplete="off">
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+        <button type="button" class="button" id="psc-del-trim-cancel">Annuler</button>
+        <button type="button" class="button button-primary" id="psc-del-trim-confirm" disabled style="background:#b32d2e;border-color:#b32d2e;">Supprimer définitivement</button>
+    </div>
+</div>
+
+<script>
+(function () {
+    var activeForm = null;
+    var backdrop = document.getElementById('psc-del-trim-backdrop');
+    var modal = document.getElementById('psc-del-trim-modal');
+    var labelEl = document.getElementById('psc-del-trim-label');
+    var consequenceEl = document.getElementById('psc-del-trim-consequence');
+    var input = document.getElementById('psc-del-trim-input');
+    var confirmBtn = document.getElementById('psc-del-trim-confirm');
+    var cancelBtn = document.getElementById('psc-del-trim-cancel');
+
+    document.querySelectorAll('.psc-delete-trimestre-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            activeForm = btn.closest('form');
+            var count = parseInt(btn.getAttribute('data-count'), 10) || 0;
+            labelEl.textContent = btn.getAttribute('data-label');
+            consequenceEl.textContent = count > 0
+                ? 'Ce trimestre, son calendrier, ET les ' + count + ' inscription(s) déjà déclarée(s) par les familles pour cette période seront supprimés définitivement.'
+                : 'Ce trimestre et son calendrier seront supprimés définitivement.';
+            input.value = '';
+            confirmBtn.disabled = true;
+            modal.hidden = false;
+            backdrop.hidden = false;
+            input.focus();
+        });
+    });
+
+    input.addEventListener('input', function () {
+        confirmBtn.disabled = input.value !== 'CONFIRMER';
+    });
+
+    function closeModal() {
+        modal.hidden = true;
+        backdrop.hidden = true;
+        activeForm = null;
+    }
+    cancelBtn.addEventListener('click', closeModal);
+    backdrop.addEventListener('click', closeModal);
+
+    confirmBtn.addEventListener('click', function () {
+        if (!activeForm || input.value !== 'CONFIRMER') return;
+        activeForm.querySelector('input[name="confirm_text"]').value = input.value;
+        activeForm.submit();
+    });
+})();
+</script>

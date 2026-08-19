@@ -358,6 +358,15 @@ class Psc_Admin {
      * par erreur, jamais activé, jamais utilisé) reste librement
      * supprimable, calendrier généré compris.
      */
+    /**
+     * Supprime un trimestre. Autorisé même si des familles ont déjà déclaré
+     * des présences dessus (contrairement au comportement précédent, qui
+     * bloquait purement et simplement la suppression) : la perte de ces
+     * inscriptions est explicitement couverte par la confirmation exigée
+     * ci-dessous, saisie par l'admin dans la popin (champ 'confirm_text',
+     * revalidé côté serveur — jamais de confiance dans la seule validation
+     * JS du bouton).
+     */
     public static function handle_delete_trimestre() {
         self::guard('psc_delete_trimestre');
         global $wpdb;
@@ -368,11 +377,11 @@ class Psc_Admin {
         if (!$trimestre) self::redirect('psc_trimestres', 'invalid');
         if ($trimestre->active) self::redirect('psc_trimestres', 'active_trimestre');
 
-        $has_registrations = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM " . psc_table('registrations') . " WHERE trimestre_id = %d", $id
-        ));
-        if ($has_registrations) self::redirect('psc_trimestres', 'has_registrations');
+        if (psc_post('confirm_text') !== 'CONFIRMER') {
+            self::redirect('psc_trimestres', 'confirm_mismatch');
+        }
 
+        $wpdb->delete(psc_table('registrations'), array('trimestre_id' => $id), array('%d'));
         $wpdb->delete(psc_table('calendar_days'), array('trimestre_id' => $id), array('%d'));
         $wpdb->delete($t_trim, array('id' => $id), array('%d'));
         self::redirect('psc_trimestres', 'trimestre_deleted');
@@ -490,6 +499,15 @@ class Psc_Admin {
         if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         global $wpdb;
         $trimestres = $wpdb->get_results('SELECT * FROM ' . psc_table('trimestres') . ' ORDER BY date_debut DESC');
+
+        $reg_count_rows = $wpdb->get_results(
+            'SELECT trimestre_id, COUNT(*) AS n FROM ' . psc_table('registrations') . ' GROUP BY trimestre_id'
+        );
+        $trimestre_reg_counts = array();
+        foreach ($reg_count_rows as $r) {
+            $trimestre_reg_counts[(int) $r->trimestre_id] = (int) $r->n;
+        }
+
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         include PSC_PATH . 'templates/admin-trimestres.php';
     }
