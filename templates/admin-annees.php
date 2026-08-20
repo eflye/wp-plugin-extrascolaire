@@ -31,7 +31,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     <div class="notice notice-<?php echo esc_attr($type); ?> is-dismissible"><p><?php echo esc_html($text); ?></p></div>
 <?php endif; ?>
 
-<?php $psc_import_return_page = 'psc_school_years'; include PSC_PATH . 'templates/partials/import-school-calendar.php'; ?>
+<?php include PSC_PATH . 'templates/partials/import-school-calendar.php'; ?>
 
 <?php if ($pending): ?>
 <div class="psc-box" style="border-left:4px solid #f5a623;">
@@ -231,11 +231,10 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 </div>
 </div>
 
+<?php if (!empty($groups)): ?>
 <div class="psc-box">
-<h2>Jours fermés (<?php echo count($rows); ?>)</h2>
-<?php if (empty($groups)): ?>
-<p>Aucun jour fermé enregistré. Chargez le calendrier officiel ci-dessus.</p>
-<?php else: ?>
+<h2>Jours fermés (<?php echo (int) array_sum(array_column($groups, 'count')); ?>)</h2>
+<p class="description">Résultat du dernier chargement du calendrier officiel ci-dessus.</p>
 <table class="widefat striped">
 <thead><tr><th>Période</th><th>Motif</th><th>Jours</th><th>Origine</th></tr></thead>
 <tbody>
@@ -255,8 +254,8 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <?php endforeach; ?>
 </tbody>
 </table>
-<?php endif; ?>
 </div>
+<?php endif; ?>
 
 <div class="psc-box">
 <h2>Passage à l'année suivante</h2>

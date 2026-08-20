@@ -1,12 +1,10 @@
 <?php if (!defined('ABSPATH')) exit;
 /**
- * Bloc "Calendrier officiel (zone C)" partagé entre les pages qui
- * proposent de charger/recharger le calendrier du ministère : Calendrier
- * scolaire, Calendrier scolaire v2, et Années scolaires (pour en déduire
- * des années scolaires candidates). Variables attendues, déjà disponibles
- * dans la portée de la page incluante :
+ * Bloc "Calendrier officiel (zone C)" — inclus depuis "Années scolaires"
+ * (seule page à proposer le chargement/rechargement du calendrier du
+ * ministère, dont on déduit aussi des années scolaires candidates).
+ * Variable attendue, déjà disponible dans la portée de la page incluante :
  * - $imported_at : date du dernier import (option 'psc_school_calendar_imported_at')
- * - $psc_import_return_page : slug de la page vers laquelle rediriger après import/upload
  */
 ?>
 <div class="psc-box" style="max-width:none;">
@@ -25,7 +23,6 @@
       onsubmit="return confirm('Recharger le calendrier officiel ? Les corrections manuelles ne seront pas écrasées, seules les fermetures importées automatiquement seront rafraîchies.');">
 <?php wp_nonce_field('psc_import_school_calendar'); ?>
 <input type="hidden" name="action" value="psc_import_school_calendar">
-<input type="hidden" name="return_page" value="<?php echo esc_attr($psc_import_return_page); ?>">
 <?php submit_button($imported_at ? 'Recharger le calendrier officiel' : 'Charger le calendrier officiel', 'primary', 'submit', false); ?>
 </form>
 
@@ -39,7 +36,6 @@
       onsubmit="return confirm('Importer ce fichier ? Les corrections manuelles ne seront pas écrasées, seules les fermetures importées automatiquement seront rafraîchies.');">
 <?php wp_nonce_field('psc_upload_school_calendar'); ?>
 <input type="hidden" name="action" value="psc_upload_school_calendar">
-<input type="hidden" name="return_page" value="<?php echo esc_attr($psc_import_return_page); ?>">
 <input type="file" name="ics_file" accept=".ics,text/calendar" required>
 <?php submit_button('Importer le fichier', 'secondary', 'submit', false); ?>
 </form>

@@ -2,26 +2,9 @@
 <div class="wrap psc-admin">
 <h1>Calendrier scolaire v2</h1>
 <p class="description">
-    Vue visuelle du calendrier — pour fermer une <strong>plage de dates</strong> ou faire une correction texte, utilisez
-    <a href="<?php echo esc_url(admin_url('admin.php?page=psc_school_years')); ?>">Années scolaires</a>.
+    Vue visuelle du calendrier — pour fermer une <strong>plage de dates</strong>, faire une correction texte, ou recharger le
+    calendrier officiel, utilisez <a href="<?php echo esc_url(admin_url('admin.php?page=psc_school_years')); ?>">Années scolaires</a>.
 </p>
-
-<?php
-$notices = array(
-    'imported'             => array('updated', ((int) psc_get_int('n')) . ' jour(s) importé(s)/mis à jour depuis le calendrier officiel.'),
-    'import_failed'        => array('error', 'Le calendrier officiel n\'a pas pu être téléchargé. Réessayez plus tard, ou chargez le fichier manuellement ci-dessous.'),
-    'uploaded'              => array('updated', ((int) psc_get_int('n')) . ' jour(s) importé(s)/mis à jour depuis le fichier envoyé.'),
-    'upload_failed'         => array('error', 'Le fichier n\'a pas pu être lu. Vérifiez qu\'il s\'agit bien d\'un export .ics valide.'),
-    'upload_invalid_type'   => array('error', 'Le fichier doit être au format .ics.'),
-    'upload_too_large'      => array('error', 'Le fichier dépasse la taille maximale autorisée (2 Mo).'),
-);
-if ($psc_msg && isset($notices[$psc_msg])):
-    list($cls, $txt) = $notices[$psc_msg];
-?>
-<div class="notice notice-<?php echo esc_attr($cls); ?> is-dismissible"><p><?php echo esc_html($txt); ?></p></div>
-<?php endif; ?>
-
-<?php $psc_import_return_page = 'psc_school_calendar_v2'; include PSC_PATH . 'templates/partials/import-school-calendar.php'; ?>
 
 <div class="psc-box" style="max-width:none;">
 

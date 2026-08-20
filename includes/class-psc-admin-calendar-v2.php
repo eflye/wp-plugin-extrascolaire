@@ -71,8 +71,6 @@ class Psc_Admin_Calendar_V2 {
 
         $days          = self::build_days($dates);
         $services_meta = psc_services();
-        $imported_at   = get_option('psc_school_calendar_imported_at', '');
-        $psc_msg       = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
 
         include PSC_PATH . 'templates/admin-calendar-v2.php';
     }

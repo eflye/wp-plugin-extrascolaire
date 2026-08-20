@@ -491,15 +491,22 @@ class Psc_Admin {
         }
         unset($c);
 
-        $rows   = Psc_School_Calendar::all();
-        $groups = self::group_closed_days($rows);
-
         $pending = get_transient(self::pending_close_key());
         $pending_affected = $pending ? Psc_School_Calendar::affected_families_range($pending['date_debut'], $pending['date_fin']) : null;
 
         $imported_at = get_option('psc_school_calendar_imported_at', '');
         $imported_n  = psc_get_int('n');
         $psc_msg     = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
+
+        // "Jours fermés" n'a de valeur qu'en sortie immédiate d'un import
+        // (log de ce qui vient d'être chargé) : afficher en permanence la
+        // liste complète (potentiellement des milliers de lignes) n'apporte
+        // rien au quotidien et coûte une requête à chaque chargement de page.
+        $groups = array();
+        if (in_array($psc_msg, array('imported', 'uploaded'), true)) {
+            $groups = self::group_closed_days(Psc_School_Calendar::all());
+        }
+
         include PSC_PATH . 'templates/admin-annees.php';
     }
 
@@ -1495,30 +1502,15 @@ class Psc_Admin {
         return 'psc_pending_close_' . get_current_user_id();
     }
 
-    /**
-     * Page vers laquelle rediriger après import/upload du calendrier
-     * officiel — psc_school_calendar par défaut, ou psc_school_calendar_v2
-     * si le formulaire d'origine (inclus aussi dans la page v2) l'a
-     * demandé via un champ caché 'return_page'. Whitelist stricte : jamais
-     * de redirection ouverte vers une page arbitraire.
-     */
-    protected static function import_return_page() {
-        $requested = psc_post('return_page');
-        return in_array($requested, array('psc_school_years', 'psc_school_calendar_v2'), true)
-            ? $requested
-            : 'psc_school_years';
-    }
-
     public static function handle_import_school_calendar() {
         self::guard('psc_import_school_calendar');
-        $return_page = self::import_return_page();
 
         $result = Psc_School_Calendar::import();
         if (is_wp_error($result)) {
-            self::redirect($return_page, 'import_failed');
+            self::redirect('psc_school_years', 'import_failed');
         }
         wp_safe_redirect(add_query_arg(
-            array('page' => $return_page, 'psc_msg' => 'imported', 'n' => (int) $result),
+            array('page' => 'psc_school_years', 'psc_msg' => 'imported', 'n' => (int) $result),
             admin_url('admin.php')
         ));
         exit;
@@ -1530,29 +1522,28 @@ class Psc_Admin {
      */
     public static function handle_upload_school_calendar() {
         self::guard('psc_upload_school_calendar');
-        $return_page = self::import_return_page();
 
         if (empty($_FILES['ics_file']) || !isset($_FILES['ics_file']['error']) || $_FILES['ics_file']['error'] !== UPLOAD_ERR_OK) {
-            self::redirect($return_page, 'upload_failed');
+            self::redirect('psc_school_years', 'upload_failed');
         }
 
         $file     = $_FILES['ics_file'];
         $filetype = wp_check_filetype($file['name'], array('ics' => 'text/calendar'));
         if ($filetype['ext'] !== 'ics') {
-            self::redirect($return_page, 'upload_invalid_type');
+            self::redirect('psc_school_years', 'upload_invalid_type');
         }
         if ($file['size'] > 2 * MB_IN_BYTES) {
-            self::redirect($return_page, 'upload_too_large');
+            self::redirect('psc_school_years', 'upload_too_large');
         }
 
         $body = file_get_contents($file['tmp_name']);
         $result = Psc_School_Calendar::import_from_upload($body);
         if (is_wp_error($result)) {
-            self::redirect($return_page, 'upload_failed');
+            self::redirect('psc_school_years', 'upload_failed');
         }
 
         wp_safe_redirect(add_query_arg(
-            array('page' => $return_page, 'psc_msg' => 'uploaded', 'n' => (int) $result),
+            array('page' => 'psc_school_years', 'psc_msg' => 'uploaded', 'n' => (int) $result),
             admin_url('admin.php')
         ));
         exit;
