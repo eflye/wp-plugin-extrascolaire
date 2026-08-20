@@ -85,34 +85,39 @@ class Psc_Admin {
     }
 
     /**
-     * Regroupement du menu (6 blocs, du plus structurel au plus
-     * opérationnel) : Tableau de bord, Calendrier (année/trimestres/jours),
-     * Demandes & suivi, Familles, Cantine, Facturation, Configuration. Le
-     * slug du menu de premier niveau est 'psc_dashboard' (avant :
-     * 'psc_inscriptions', qui reste une page valide — seule sa place dans
-     * l'arborescence change, aucun lien existant vers
-     * admin.php?page=psc_inscriptions n'est cassé). "Inscriptions" est
-     * renommé "Présences déclarées" dans le menu : le libellé prêtait à
-     * confusion avec "Demandes d'inscription" juste à côté, alors que ce
-     * sont deux écrans très différents (vue calendrier des présences déjà
-     * déclarées, vs file de modération des nouvelles familles). Les
-     * séparateurs visuels entre blocs sont en CSS (assets/css/admin.css),
-     * WordPress ne proposant pas de séparateur natif dans un sous-menu de
-     * plugin.
+     * Regroupement du menu (du plus quotidien au plus occasionnel) :
+     * Tableau de bord, Calendrier en cours + Trimestres, Cantine, Demandes
+     * & suivi, Familles, Facturation, Configuration, puis Années scolaires
+     * — reléguée juste avant Réglages car utilisée seulement ~1 fois par an
+     * (création/activation d'année, passage de classe), loin des écrans
+     * consultés au quotidien. Le slug du menu de premier niveau est
+     * 'psc_dashboard' (avant : 'psc_inscriptions', qui reste une page
+     * valide — seule sa place dans l'arborescence change, aucun lien
+     * existant vers admin.php?page=psc_inscriptions n'est cassé).
+     * "Inscriptions" est renommé "Présences déclarées" dans le menu : le
+     * libellé prêtait à confusion avec "Demandes d'inscription" juste à
+     * côté, alors que ce sont deux écrans très différents (vue calendrier
+     * des présences déjà déclarées, vs file de modération des nouvelles
+     * familles). Les séparateurs visuels entre blocs sont en CSS
+     * (assets/css/admin.css), WordPress ne proposant pas de séparateur
+     * natif dans un sous-menu de plugin.
      */
     public static function menu() {
         $cap = psc_manage_cap();
         add_menu_page('Périscolaire', 'Périscolaire', $cap, 'psc_dashboard', array(__CLASS__, 'page_dashboard'), 'dashicons-groups', 58);
         add_submenu_page('psc_dashboard', 'Tableau de bord', 'Tableau de bord', $cap, 'psc_dashboard', array(__CLASS__, 'page_dashboard'));
 
-        // Calendrier (année scolaire ⊃ trimestres ⊃ jours ouverts/fermés)
-        add_submenu_page('psc_dashboard', 'Années scolaires', 'Années scolaires', $cap, 'psc_school_years', array(__CLASS__, 'page_school_years'));
-        // Écran intermédiaire du passage d'année (récapitulatif + confirmation) :
-        // pas un lien de menu à part entière, seulement atteint depuis
-        // "Années scolaires" — menu_title à null pour ne pas apparaître dans
-        // la barre latérale.
-        add_submenu_page('psc_dashboard', 'Passage d\'année', null, $cap, 'psc_passage_annee', array(__CLASS__, 'page_passage_annee'));
+        // Calendrier scolaire en cours (Psc_Admin_Calendar_V2, classe
+        // isolée) : enregistré ici plutôt que dans sa propre classe pour
+        // contrôler sa position dans le sous-menu (juste sous le tableau
+        // de bord, c'est l'écran le plus consulté au quotidien).
+        add_submenu_page('psc_dashboard', 'Calendrier scolaire en cours', 'Calendrier scolaire en cours', $cap, 'psc_school_calendar_v2', array('Psc_Admin_Calendar_V2', 'page_calendar_v2'));
+
         add_submenu_page('psc_dashboard', 'Trimestres', 'Trimestres', $cap, 'psc_trimestres', array(__CLASS__, 'page_trimestres'));
+
+        // Cantine
+        add_submenu_page('psc_dashboard', 'Menus cantine', 'Menus cantine', $cap, 'psc_menus', array(__CLASS__, 'page_menus'));
+        add_submenu_page('psc_dashboard', 'Commande fournisseur', 'Commande fournisseur', $cap, 'psc_supplier_orders', array(__CLASS__, 'page_supplier_orders'));
 
         // Demandes & suivi
         $pending = Psc_Requests::pending_count();
@@ -129,15 +134,21 @@ class Psc_Admin {
         // depuis la ligne de l'enfant dans Enfants, jamais dans le menu.
         add_submenu_page('psc_dashboard', 'Personnes autorisées', null, $cap, 'psc_pickup_persons', array(__CLASS__, 'page_pickup_persons'));
 
-        // Cantine
-        add_submenu_page('psc_dashboard', 'Menus cantine', 'Menus cantine', $cap, 'psc_menus', array(__CLASS__, 'page_menus'));
-        add_submenu_page('psc_dashboard', 'Commande fournisseur', 'Commande fournisseur', $cap, 'psc_supplier_orders', array(__CLASS__, 'page_supplier_orders'));
-
         // Facturation
         add_submenu_page('psc_dashboard', 'Factures', 'Factures', $cap, 'psc_factures', array(__CLASS__, 'page_factures'));
 
         // Configuration
         add_submenu_page('psc_dashboard', 'Modèles e-mails', 'Modèles e-mails', $cap, 'psc_email_templates', array(__CLASS__, 'page_email_templates'));
+
+        // Années scolaires : usage occasionnel (~1 fois par an), reléguée
+        // en bas du menu plutôt qu'à côté des écrans du quotidien.
+        add_submenu_page('psc_dashboard', 'Années scolaires', 'Années scolaires', $cap, 'psc_school_years', array(__CLASS__, 'page_school_years'));
+        // Écran intermédiaire du passage d'année (récapitulatif + confirmation) :
+        // pas un lien de menu à part entière, seulement atteint depuis
+        // "Années scolaires" — menu_title à null pour ne pas apparaître dans
+        // la barre latérale.
+        add_submenu_page('psc_dashboard', 'Passage d\'année', null, $cap, 'psc_passage_annee', array(__CLASS__, 'page_passage_annee'));
+
         add_submenu_page('psc_dashboard', 'Réglages', 'Réglages', $cap, 'psc_settings', array(__CLASS__, 'page_settings'));
     }
 

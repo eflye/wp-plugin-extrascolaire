@@ -1,6 +1,6 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="wrap psc-admin">
-<h1>Calendrier scolaire v2</h1>
+<h1>Calendrier scolaire en cours</h1>
 <p class="description">
     Vue visuelle du calendrier — pour fermer une <strong>plage de dates</strong>, faire une correction texte, ou recharger le
     calendrier officiel, utilisez <a href="<?php echo esc_url(admin_url('admin.php?page=psc_school_years')); ?>">Années scolaires</a>.

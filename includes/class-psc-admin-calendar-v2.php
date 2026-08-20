@@ -2,19 +2,19 @@
 if (!defined('ABSPATH')) exit;
 
 /**
- * "Calendrier scolaire v2" — vue visuelle mois/semaine (façon Google
- * Calendar) du calendrier scolaire, avec le statut de chaque jour ET de
- * chacune des 3 prestations du jour (garderie matin, cantine, garderie
- * soir), fermables/réouvrables individuellement en plus de la fermeture
- * du jour entier déjà proposée par la page "Calendrier scolaire"
- * (psc_school_calendar, inchangée). Classe entièrement isolée (page,
- * assets, endpoints AJAX propres) pour ne prendre aucun risque de
- * régression sur la page existante ni sur Psc_Admin.
+ * "Calendrier scolaire en cours" (slug psc_school_calendar_v2, inchangé)
+ * — vue visuelle mois/semaine (façon Google Calendar) du calendrier
+ * scolaire, avec le statut de chaque jour ET de chacune des 3 prestations
+ * du jour (garderie matin, cantine, garderie soir), fermables/réouvrables
+ * individuellement en plus de la fermeture du jour entier déjà proposée
+ * par la page "Années scolaires". Classe volontairement isolée (page,
+ * assets, endpoints AJAX propres) pour limiter les risques de régression
+ * sur Psc_Admin — seul l'enregistrement du menu vit dans Psc_Admin::menu()
+ * pour pouvoir contrôler sa position dans le sous-menu Périscolaire.
  */
 class Psc_Admin_Calendar_V2 {
 
     public static function init() {
-        add_action('admin_menu', array(__CLASS__, 'menu'));
         add_action('admin_enqueue_scripts', array(__CLASS__, 'assets'));
 
         add_action('wp_ajax_psc_cal_v2_preview_close_day', array(__CLASS__, 'ajax_preview_close_day'));
@@ -23,17 +23,6 @@ class Psc_Admin_Calendar_V2 {
         add_action('wp_ajax_psc_cal_v2_preview_close_service', array(__CLASS__, 'ajax_preview_close_service'));
         add_action('wp_ajax_psc_cal_v2_close_service', array(__CLASS__, 'ajax_close_service'));
         add_action('wp_ajax_psc_cal_v2_open_service', array(__CLASS__, 'ajax_open_service'));
-    }
-
-    public static function menu() {
-        add_submenu_page(
-            'psc_dashboard',
-            'Calendrier scolaire v2',
-            'Calendrier scolaire v2',
-            psc_manage_cap(),
-            'psc_school_calendar_v2',
-            array(__CLASS__, 'page_calendar_v2')
-        );
     }
 
     public static function assets($hook) {

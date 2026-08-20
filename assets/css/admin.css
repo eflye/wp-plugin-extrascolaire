@@ -109,12 +109,14 @@
 .psc-dash-todo a { text-decoration: none; }
 .psc-dash-todo a:hover { text-decoration: underline; }
 
-/* ---- Regroupement visuel du sous-menu (6 blocs) ---- */
+/* ---- Regroupement visuel du sous-menu (8 blocs) ---- */
+#adminmenu .wp-submenu a[href*="page=psc_menus"],
 #adminmenu .wp-submenu a[href*="page=psc_requests"],
 #adminmenu .wp-submenu a[href*="page=psc_parents"],
-#adminmenu .wp-submenu a[href*="page=psc_menus"],
 #adminmenu .wp-submenu a[href*="page=psc_factures"],
-#adminmenu .wp-submenu a[href*="page=psc_email_templates"] {
+#adminmenu .wp-submenu a[href*="page=psc_email_templates"],
+#adminmenu .wp-submenu a[href*="page=psc_school_years"],
+#adminmenu .wp-submenu a[href*="page=psc_settings"] {
     border-top: 1px solid rgba(240, 246, 252, .15);
     margin-top: 6px;
     padding-top: 8px;
