@@ -130,11 +130,17 @@ class Psc_Admin_Calendar_V2 {
     }
 
     /**
-     * Catégorise un jour fermé pour l'affichage (recalcule plutôt que de
+     * Catégorise un jour intrinsèquement fermé (recalcule plutôt que de
      * parser le texte libre de calendar_days.label, qui peut être un motif
      * manuel quelconque) : week-end > mercredi > vacances/fermeture
      * manuelle > férié — même ordre de priorité que
-     * Psc_Installer::generate_calendar_days().
+     * Psc_Installer::generate_calendar_days(). Ne dépend d'aucun trimestre
+     * ni de calendar_days : calculée uniquement à partir de la date et de
+     * wp_psc_school_calendar, donc utilisable même pour un jour qui
+     * n'appartient encore à aucun trimestre créé (vacances/week-ends visibles
+     * dans la grille avant même l'ouverture du trimestre correspondant).
+     * Retourne null si aucune de ces raisons ne s'applique (jour d'école
+     * ordinaire potentiel).
      */
     private static function classify_closed_day($date) {
         if (psc_is_weekend($date)) {
@@ -156,7 +162,7 @@ class Psc_Admin_Calendar_V2 {
         if (psc_is_holiday($date)) {
             return array('category' => 'holiday', 'label' => 'Férié');
         }
-        return array('category' => 'manual', 'label' => 'Fermé');
+        return null;
     }
 
     /**
@@ -194,6 +200,21 @@ class Psc_Admin_Calendar_V2 {
         $days = array();
 
         foreach ($dates as $date) {
+            // Week-end, mercredi, vacances, jour férié ou fermeture manuelle
+            // déjà enregistrée : affiché comme tel même si aucun trimestre
+            // ne couvre encore cette date (l'admin voit les vacances/week-ends
+            // à venir sans attendre la création du trimestre correspondant).
+            $info = self::classify_closed_day($date);
+            if ($info !== null) {
+                $days[$date] = array(
+                    'date'     => $date,
+                    'status'   => 'closed_day',
+                    'category' => $info['category'],
+                    'label'    => $info['label'],
+                );
+                continue;
+            }
+
             $trimestre = self::trimestre_for_date($date);
             if (!$trimestre) {
                 $days[$date] = array('date' => $date, 'status' => 'out_of_term');
@@ -210,12 +231,15 @@ class Psc_Admin_Calendar_V2 {
             }
 
             if (!$cal->is_open) {
-                $info = self::classify_closed_day($date);
+                // Filet de sécurité : jour fermé dans calendar_days sans
+                // raison détectée par classify_closed_day() (ne devrait pas
+                // arriver en pratique, generate_calendar_days() suit les
+                // mêmes règles), on retombe sur le libellé stocké.
                 $days[$date] = array(
                     'date'         => $date,
                     'status'       => 'closed_day',
-                    'category'     => $info['category'],
-                    'label'        => $cal->label ?: $info['label'],
+                    'category'     => 'manual',
+                    'label'        => $cal->label ?: 'Fermé',
                     'trimestre_id' => $trimestre->id,
                 );
                 continue;
