@@ -207,10 +207,36 @@ class Psc_School_Calendar {
             return strpos(remove_accents(mb_strtolower($p['label'])), 'ete') !== false;
         }));
 
+        // Deux segments "vacances d'été" proches l'un de l'autre (quelques
+        // jours à quelques semaines d'écart) sont presque certainement UN
+        // SEUL été interrompu — par exemple des jours rouverts manuellement
+        // au milieu de l'été, ou un import partiel — et non deux étés
+        // d'années scolaires différentes (qui sont eux distants d'environ
+        // 11 mois). On les fusionne avant de calculer les candidats, sous
+        // peine de générer une fausse "année scolaire" de quelques jours.
+        $merged_summers = array();
+        foreach ($summers as $s) {
+            $n = count($merged_summers);
+            if ($n > 0 && (strtotime($s['start']) - strtotime($merged_summers[$n - 1]['end'])) <= 45 * DAY_IN_SECONDS) {
+                $merged_summers[$n - 1]['end'] = $s['end'];
+            } else {
+                $merged_summers[] = $s;
+            }
+        }
+        $summers = $merged_summers;
+
         $candidates = array();
         for ($i = 0; $i < count($summers) - 1; $i++) {
             $date_debut = gmdate('Y-m-d', strtotime($summers[$i]['end'] . ' +1 day'));
             $date_fin   = gmdate('Y-m-d', strtotime($summers[$i + 1]['start'] . ' -1 day'));
+
+            // Garde-fou : une vraie année scolaire dure plusieurs mois. Si
+            // l'écart calculé est bien plus court, ce n'est pas une année
+            // mais un résidu de données (à ne pas proposer à l'admin).
+            if ((strtotime($date_fin) - strtotime($date_debut)) < 150 * DAY_IN_SECONDS) {
+                continue;
+            }
+
             $candidates[] = array(
                 'label'      => gmdate('Y', strtotime($date_debut)) . '-' . gmdate('Y', strtotime($date_fin)),
                 'date_debut' => $date_debut,
