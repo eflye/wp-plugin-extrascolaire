@@ -849,7 +849,8 @@ CREATE TABLE $t_days (
             label VARCHAR(100) NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY trim_date (trimestre_id, jour_date),
-            KEY trim_open (trimestre_id, is_open)
+            KEY trim_open (trimestre_id, is_open),
+            KEY jour_date (jour_date)
         ) $charset_collate;
 
 CREATE TABLE $t_reg (

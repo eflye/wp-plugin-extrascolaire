@@ -106,14 +106,23 @@ class Psc_Admin_Calendar_V2 {
         return $dates;
     }
 
-    /** Trimestre couvrant $date, en priorisant le trimestre actif en cas de chevauchement. */
-    private static function trimestre_for_date($date) {
-        global $wpdb;
-        $t = psc_table('trimestres');
-        return $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $t WHERE date_debut <= %s AND date_fin >= %s ORDER BY active DESC, date_debut DESC LIMIT 1",
-            $date, $date
-        ));
+    /**
+     * Trimestre couvrant $date, en priorisant le trimestre actif en cas de
+     * chevauchement.
+     *
+     * Résolu en mémoire à partir des trimestres de la période, chargés en
+     * une fois par build_days() : la grille en interroge trente-cinq, et
+     * les poser un par un revenait à autant d'allers-retours pour une table
+     * qui compte quelques lignes. L'ordre de la liste porte la priorité
+     * (actif d'abord), comme le faisait le ORDER BY.
+     */
+    private static function trimestre_for_date($date, array $trimestres) {
+        foreach ($trimestres as $t) {
+            if ($t->date_debut <= $date && $t->date_fin >= $date) {
+                return $t;
+            }
+        }
+        return null;
     }
 
     /**
@@ -128,24 +137,28 @@ class Psc_Admin_Calendar_V2 {
      * dans la grille avant même l'ouverture du trimestre correspondant).
      * Retourne null si aucune de ces raisons ne s'applique (jour d'école
      * ordinaire potentiel).
+     *
+     * $school_calendar est la portion de wp_psc_school_calendar couvrant la
+     * grille, indexée par date. Elle remplace trois requêtes par jour —
+     * is_closed(), la lecture de `source`, puis label() — qui lisaient
+     * chacune la même ligne.
      */
-    private static function classify_closed_day($date) {
+    private static function classify_closed_day($date, array $school_calendar) {
         if (psc_is_weekend($date)) {
             return array('category' => 'weekend', 'label' => 'Week-end');
         }
         if (psc_is_wednesday($date)) {
             return array('category' => 'wednesday', 'label' => 'Mercredi');
         }
-        if (Psc_School_Calendar::is_closed($date)) {
-            global $wpdb;
-            $t = psc_table('school_calendar');
-            $source = $wpdb->get_var($wpdb->prepare("SELECT source FROM $t WHERE jour_date = %s", $date));
-            $label  = Psc_School_Calendar::label($date);
+
+        $row = isset($school_calendar[$date]) ? $school_calendar[$date] : null;
+        if ($row && $row->is_closed) {
             return array(
-                'category' => $source === 'manual' ? 'manual' : 'vacation',
-                'label'    => $label ?: ($source === 'manual' ? 'Fermeture manuelle' : 'Vacances'),
+                'category' => $row->source === 'manual' ? 'manual' : 'vacation',
+                'label'    => $row->label ?: ($row->source === 'manual' ? 'Fermeture manuelle' : 'Vacances'),
             );
         }
+
         if (psc_is_holiday($date)) {
             return array('category' => 'holiday', 'label' => 'Férié');
         }
@@ -183,7 +196,38 @@ class Psc_Admin_Calendar_V2 {
             $closures[$r->jour_date][$r->service] = $r->label;
         }
 
+        // Calendrier scolaire de la période (vacances, fermetures
+        // manuelles) : lu en une fois plutôt que trois fois par jour.
+        $t_cal = psc_table('school_calendar');
+        $cal_rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT jour_date, is_closed, source, label FROM $t_cal WHERE jour_date BETWEEN %s AND %s",
+            $start, $end
+        ));
+        $school_calendar = array();
+        foreach ($cal_rows as $r) {
+            $school_calendar[$r->jour_date] = $r;
+        }
+
+        // Trimestres chevauchant la grille. Le tri porte la priorité
+        // appliquée ensuite en mémoire : actif d'abord, puis le plus récent.
+        $t_trim = psc_table('trimestres');
+        $trimestres = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $t_trim WHERE date_debut <= %s AND date_fin >= %s
+             ORDER BY active DESC, date_debut DESC",
+            $end, $start
+        ));
+
+        // Jours de calendrier de la période, tous trimestres confondus.
         $t_days = psc_table('calendar_days');
+        $day_rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $t_days WHERE jour_date BETWEEN %s AND %s",
+            $start, $end
+        ));
+        $calendar_days = array();
+        foreach ($day_rows as $r) {
+            $calendar_days[$r->trimestre_id . '|' . $r->jour_date] = $r;
+        }
+
         $days = array();
 
         foreach ($dates as $date) {
@@ -191,7 +235,7 @@ class Psc_Admin_Calendar_V2 {
             // déjà enregistrée : affiché comme tel même si aucun trimestre
             // ne couvre encore cette date (l'admin voit les vacances/week-ends
             // à venir sans attendre la création du trimestre correspondant).
-            $info = self::classify_closed_day($date);
+            $info = self::classify_closed_day($date, $school_calendar);
             if ($info !== null) {
                 $days[$date] = array(
                     'date'     => $date,
@@ -202,16 +246,14 @@ class Psc_Admin_Calendar_V2 {
                 continue;
             }
 
-            $trimestre = self::trimestre_for_date($date);
+            $trimestre = self::trimestre_for_date($date, $trimestres);
             if (!$trimestre) {
                 $days[$date] = array('date' => $date, 'status' => 'out_of_term');
                 continue;
             }
 
-            $cal = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM $t_days WHERE trimestre_id = %d AND jour_date = %s",
-                $trimestre->id, $date
-            ));
+            $key = $trimestre->id . '|' . $date;
+            $cal = isset($calendar_days[$key]) ? $calendar_days[$key] : null;
             if (!$cal) {
                 $days[$date] = array('date' => $date, 'status' => 'out_of_term');
                 continue;
