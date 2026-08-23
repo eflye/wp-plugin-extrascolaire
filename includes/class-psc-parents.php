@@ -403,7 +403,7 @@ class Psc_Parents {
             'ville'                      => mb_substr(sanitize_text_field($extra['ville'] ?? ''), 0, 100),
             'active'                     => 1,
             'payment_mode'               => $payment_mode,
-            'sepa_iban'                  => $extra['sepa_iban'] ?? null,
+            'sepa_iban'                  => psc_encrypt($extra['sepa_iban'] ?? null),
             'sepa_bic'                   => $extra['sepa_bic'] ?? null,
             'sepa_titulaire'             => mb_substr(sanitize_text_field($extra['sepa_titulaire'] ?? ''), 0, 190) ?: null,
             'sepa_adresse'               => mb_substr(sanitize_text_field($extra['sepa_adresse'] ?? ''), 0, 255) ?: null,
@@ -471,7 +471,7 @@ class Psc_Parents {
         if (array_key_exists('sepa_iban', $data)) {
             $iban = !empty($data['sepa_iban']) ? psc_valid_iban($data['sepa_iban']) : null;
             if (!empty($data['sepa_iban']) && !$iban) return new WP_Error('psc_bad_iban', 'IBAN invalide.');
-            $set['sepa_iban'] = $iban;
+            $set['sepa_iban'] = psc_encrypt($iban);
             $formats[] = '%s';
         }
         if (array_key_exists('sepa_bic', $data)) {

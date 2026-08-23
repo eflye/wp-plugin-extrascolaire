@@ -428,7 +428,7 @@ class Psc_Requests {
             'reglement_accepted_at'      => current_time('mysql'),
             'payment_mode'               => $payment_mode,
             'sepa_reglement_accepted_at' => $sepa_reglement_accepted_at,
-            'sepa_iban'                  => $sepa_iban,
+            'sepa_iban'                  => psc_encrypt($sepa_iban),
             'sepa_bic'                   => $sepa_bic,
             'sepa_titulaire'             => mb_substr($sepa_titulaire, 0, 190) ?: null,
             'sepa_adresse'               => mb_substr($sepa_adresse, 0, 255) ?: null,
@@ -655,6 +655,9 @@ class Psc_Requests {
 
         // Règlement, mode de paiement et mandat SEPA déclarés dans la
         // demande : reportés tels quels sur le compte famille créé.
+        // L'IBAN est transmis sous sa forme déjà chiffrée : psc_encrypt()
+        // est idempotent (préfixe "psc1:"), Psc_Parents::create() ne le
+        // chiffrera donc pas une seconde fois.
         $parent_extra = array(
             'adresse'                    => $req->adresse ?? '',
             'code_postal'                => $req->code_postal ?? '',
@@ -733,11 +736,21 @@ class Psc_Requests {
 
         self::delete_pending_assurance_files($req->id);
 
+        // Les coordonnées bancaires viennent d'être reportées sur le compte
+        // famille : les conserver en double dans la demande ne sert plus à
+        // rien et doublerait inutilement la surface d'exposition de l'IBAN.
+        // La demande garde le mode de paiement et l'acceptation du règlement,
+        // qui documentent le consentement.
         $wpdb->update(
             psc_table('requests'),
-            array('status' => 'approved', 'decided_at' => current_time('mysql')),
+            array(
+                'status'     => 'approved',
+                'decided_at' => current_time('mysql'),
+                'sepa_iban'  => null,
+                'sepa_bic'   => null,
+            ),
             array('id' => $req->id),
-            array('%s', '%s'),
+            array('%s', '%s', '%s', '%s'),
             array('%d')
         );
 

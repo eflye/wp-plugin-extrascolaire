@@ -69,7 +69,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     value="<?php echo esc_attr($edit_parent->sepa_ville ?? ''); ?>"></td></tr>
 <tr><th><label for="psc-edit-sepa-iban">IBAN</label></th>
 <td><input id="psc-edit-sepa-iban" type="text" name="sepa_iban" class="large-text" maxlength="42"
-    value="<?php echo esc_attr($edit_parent->sepa_iban ?? ''); ?>" placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX"></td></tr>
+    value="<?php echo esc_attr(psc_read_iban($edit_parent)); ?>" placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX"></td></tr>
 <tr><th><label for="psc-edit-sepa-bic">BIC</label></th>
 <td><input id="psc-edit-sepa-bic" type="text" name="sepa_bic" class="regular-text" maxlength="11"
     value="<?php echo esc_attr($edit_parent->sepa_bic ?? ''); ?>" placeholder="XXXXFRPPXXX"></td></tr>
@@ -109,7 +109,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
 <td><?php echo esc_html(trim(($p->adresse ?? '') . ($p->code_postal ? ' — ' . $p->code_postal : '') . ($p->ville ? ' ' . $p->ville : ''))); ?></td>
 <td>
   <?php if (($p->payment_mode ?? 'autre') === 'prelevement'): ?>
-    Prélèvement<br><small><?php echo esc_html($p->sepa_iban ? psc_mask_iban($p->sepa_iban) : '—'); ?></small>
+    Prélèvement<br><small><?php echo esc_html($p->sepa_iban ? psc_mask_iban(psc_read_iban($p)) : '—'); ?></small>
   <?php else: ?>
     Chèque / espèces
   <?php endif; ?>

@@ -326,7 +326,8 @@ panneau déjà déplié.
 - Protection contre l'injection de formules CSV sur l'export.
 - Sessions familles signées côté serveur (cookie `HttpOnly`, `SameSite=Lax`, `Secure` en HTTPS) — aucun mot de passe stocké.
 - **IBAN validé par clé de contrôle réelle** (mod-97, ISO 7064), BIC validé par format ; rejet côté serveur indépendant de la validation du navigateur.
-- IBAN affiché **masqué** dans les listes du backoffice (seuls le pays et les 4 derniers caractères apparaissent).
+- IBAN affiché **masqué** dans les listes du backoffice (seuls le pays et les 4 derniers caractères apparaissent) ; il n'apparaît en clair que dans le formulaire de modification d'une famille, où la mairie en a besoin pour saisir le prélèvement dans son outil bancaire.
+- **IBAN chiffré au repos** (XSalsa20-Poly1305 via libsodium, repli AES-256-GCM) : une copie de la base — sauvegarde égarée, export SQL — ne livre aucune coordonnée bancaire exploitable. La clé vit dans `wp-config.php`, jamais en base. L'IBAN est également **effacé de la demande d'inscription dès son approbation**, puisqu'il a été reporté sur la fiche famille : il n'existe plus qu'à un seul endroit.
 - Le PDF du mandat de prélèvement SEPA (contient l'IBAN en clair) n'est **jamais stocké sur le serveur** : généré en fichier temporaire, joint à l'e-mail, puis supprimé immédiatement.
 - Justificatifs d'assurance scolaire limités à 1 Mo, formats PDF/JPG/PNG uniquement (vérifiés côté serveur, pas seulement par l'attribut `accept` du champ fichier).
 - **Documents stockés hors du dossier des médias.** Justificatifs d'assurance et factures PDF sont écrits sous `wp-content/psc-private/` — jamais sous `wp-content/uploads/`, qui est systématiquement servi en HTTP : leurs noms étant prévisibles (`child-12.pdf`, `facture-7.pdf`), ils y auraient été téléchargeables par simple énumération d'URL. Ils ne sont accessibles que par les routes de téléchargement du plugin, après contrôle de session et d'appartenance. Le dossier reçoit un `.htaccess` et un `web.config` bloquants ; **nginx ne lisant pas `.htaccess`**, l'extension vérifie depuis le navigateur de l'administrateur que le dossier est réellement injoignable et affiche sinon un avertissement avec la règle à poser :
@@ -365,6 +366,19 @@ panneau déjà déplié.
 ---
 
 ## Configuration
+
+### Clé de chiffrement des coordonnées bancaires
+
+Les IBAN sont chiffrés avant d'être écrits en base. La clé n'est **jamais** stockée en base : elle est lue depuis `wp-config.php`, ce qui est précisément ce qui rend une copie de la base inexploitable.
+
+Par défaut, elle est dérivée des sels WordPress — aucune configuration n'est nécessaire pour que le chiffrement fonctionne. Mais **régénérer les sels rend alors les IBAN enregistrés illisibles** (ils devront être ressaisis par la mairie). Pour s'en prémunir, déclarer une clé dédiée, avant la première saisie d'un IBAN si possible :
+
+```php
+// wp-config.php — à conserver précieusement et à sauvegarder hors de la base.
+define('PSC_ENCRYPTION_KEY', 'coller-ici-une-longue-chaine-aleatoire');
+```
+
+Si un IBAN devient indéchiffrable (clé perdue ou modifiée), le champ s'affiche vide dans la fiche famille : rien n'est perdu d'autre, la mairie ressaisit l'IBAN et l'enregistrement repart normalement.
 
 ### Capacité d'accès personnalisée
 

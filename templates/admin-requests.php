@@ -64,7 +64,7 @@ if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
             <ul style="margin:6px 0 0;padding-left:18px;">
               <li>Titulaire : <?php echo esc_html($req->sepa_titulaire ?: '—'); ?></li>
               <li>Adresse : <?php echo esc_html(trim(($req->sepa_adresse ?? '') . ' ' . ($req->sepa_code_postal ?? '') . ' ' . ($req->sepa_ville ?? '')) ?: '—'); ?></li>
-              <li>IBAN : <?php echo esc_html($req->sepa_iban ? psc_mask_iban($req->sepa_iban) : '—'); ?></li>
+              <li>IBAN : <?php echo esc_html($req->sepa_iban ? psc_mask_iban(psc_read_iban($req)) : '—'); ?></li>
               <li>BIC : <?php echo esc_html($req->sepa_bic ?: '—'); ?></li>
               <li>Règlement prélèvement :
                 <?php if (!empty($req->sepa_reglement_accepted_at)): ?>

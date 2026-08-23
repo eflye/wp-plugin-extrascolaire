@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '3.7.0';
+    const DB_VERSION = '3.8.0';
     const ROLES_VERSION = '1.0.0';
 
     public static function activate() {
@@ -74,6 +74,9 @@ class Psc_Installer {
             if ($current && version_compare($current, '3.7.0', '<')) {
                 self::migrate_3_7_0();
             }
+            if ($current && version_compare($current, '3.8.0', '<')) {
+                self::migrate_3_8_0();
+            }
             update_option('psc_db_version', self::DB_VERSION);
         }
 
@@ -129,6 +132,45 @@ class Psc_Installer {
                 );
             }
         }
+    }
+
+    /**
+     * Chiffre au repos les IBAN déjà enregistrés, et purge ceux des demandes
+     * déjà traitées.
+     *
+     * Un IBAN en clair en base est directement exploitable par quiconque
+     * obtient une copie de celle-ci (sauvegarde égarée, export SQL, lecture
+     * via une autre vulnérabilité). psc_encrypt() est idempotent : relancer
+     * la migration ne double jamais le chiffrement.
+     *
+     * Les demandes déjà approuvées ou rejetées n'ont plus besoin de l'IBAN
+     * — il a été reporté sur le compte famille à l'approbation.
+     */
+    private static function migrate_3_8_0() {
+        global $wpdb;
+        $t_parent = psc_table('parents');
+        $t_req    = psc_table('requests');
+
+        foreach (array($t_parent, $t_req) as $table) {
+            $rows = $wpdb->get_results(
+                "SELECT id, sepa_iban FROM $table WHERE sepa_iban IS NOT NULL AND sepa_iban <> ''"
+            );
+            foreach ($rows as $row) {
+                if (strpos((string) $row->sepa_iban, 'psc1:') === 0) continue; // déjà chiffré
+                $wpdb->update(
+                    $table,
+                    array('sepa_iban' => psc_encrypt($row->sepa_iban)),
+                    array('id' => $row->id),
+                    array('%s'),
+                    array('%d')
+                );
+            }
+        }
+
+        $wpdb->query(
+            "UPDATE $t_req SET sepa_iban = NULL, sepa_bic = NULL
+             WHERE status IN ('approved','rejected')"
+        );
     }
 
     /** Déplace récursivement le contenu de $src vers $dst, puis retire les dossiers vidés. */
@@ -489,7 +531,7 @@ CREATE TABLE $t_parent (
             last_login DATETIME NULL,
             active TINYINT(1) NOT NULL DEFAULT 1,
             payment_mode VARCHAR(20) NOT NULL DEFAULT 'autre',
-            sepa_iban VARCHAR(34) NULL,
+            sepa_iban VARCHAR(255) NULL,
             sepa_bic VARCHAR(11) NULL,
             sepa_titulaire VARCHAR(191) NULL,
             sepa_adresse VARCHAR(255) NULL,
@@ -582,7 +624,7 @@ CREATE TABLE $t_req (
             reglement_accepted_at DATETIME NULL,
             payment_mode VARCHAR(20) NOT NULL DEFAULT 'autre',
             sepa_reglement_accepted_at DATETIME NULL,
-            sepa_iban VARCHAR(34) NULL,
+            sepa_iban VARCHAR(255) NULL,
             sepa_bic VARCHAR(11) NULL,
             sepa_titulaire VARCHAR(191) NULL,
             sepa_adresse VARCHAR(255) NULL,
