@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 4.29.0
+Stable tag: 4.30.0
 License: GPLv2 or later
 
 == Description ==
@@ -116,15 +116,21 @@ Les mesures suivantes sont appliquées :
 == Suppression des données (RGPD) ==
 
 Ce plugin stocke des données concernant des mineurs (nom, prénom, classe,
-présences). Ces données doivent être conservées le temps nécessaire à la
-gestion du service et à la facturation, puis supprimées.
+présences, justificatifs d'assurance) et des coordonnées bancaires. Ces
+données doivent être conservées le temps nécessaire à la gestion du service
+et à la facturation, puis supprimées.
 
 Par défaut, supprimer le plugin ne détruit PAS les données, afin d'éviter
 une perte irréversible lors d'une manipulation involontaire. Pour que la
-suppression du plugin efface réellement les tables, ajouter dans
+suppression du plugin efface réellement les données, ajouter dans
 wp-config.php avant de supprimer le plugin :
 
     define('PSC_REMOVE_DATA_ON_UNINSTALL', true);
+
+L'effacement porte alors sur la totalité : toutes les tables du plugin,
+toutes ses options et transients, ainsi que les fichiers déposés par les
+familles (justificatifs d'assurance, factures PDF). Les tables et options
+de WordPress lui-même ne sont jamais touchées.
 
 Points à traiter côté mairie, hors plugin :
 - Mentionner ce traitement dans le registre des traitements de la commune.
