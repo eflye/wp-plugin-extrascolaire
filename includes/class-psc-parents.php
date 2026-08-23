@@ -311,7 +311,13 @@ class Psc_Parents {
      */
     public static function open_session($parent_id) {
         $expires = time() + psc_session_ttl();
-        $payload = $parent_id . '|' . $expires;
+        // Identifiant propre à cette session : c'est lui qui permet de la
+        // révoquer isolément à la déconnexion. Sans lui, il faudrait
+        // invalider toutes les sessions du foyer d'un coup — or le compte
+        // est partagé entre les deux parents, qui se retrouveraient
+        // déconnectés l'un l'autre.
+        $sid = bin2hex(random_bytes(9));
+        $payload = $parent_id . '|' . $expires . '|' . $sid;
         $value = $payload . '|' . psc_sign($payload);
 
         setcookie(
@@ -330,6 +336,14 @@ class Psc_Parents {
     }
 
     public static function close_session() {
+        // Avant d'effacer le cookie du navigateur, invalider la session
+        // côté serveur : supprimer le cookie ne fait qu'en retirer une
+        // copie, il resterait utilisable ailleurs jusqu'à son expiration.
+        $session = self::read_session_cookie();
+        if ($session) {
+            psc_revoke_session($session['sid'], $session['expires']);
+        }
+
         setcookie(
             psc_session_cookie_name(),
             '',
@@ -356,20 +370,52 @@ class Psc_Parents {
         if ($cache !== false) return $cache;
 
         $cache = null;
+        $session = self::read_session_cookie();
+        if (!$session) return null;
+        if (psc_session_is_revoked($session['sid'])) return null;
+
+        $cache = self::get_by_id($session['parent_id']);
+        return $cache;
+    }
+
+    /**
+     * Décode le cookie de session et en vérifie la signature et la date.
+     *
+     * Ne dit rien du parent : c'est current() qui va le chercher en base.
+     * Isolé ici parce que la déconnexion a besoin de l'identifiant de
+     * session sans avoir à charger le foyer.
+     *
+     * Les cookies émis avant l'introduction de cet identifiant n'ont que
+     * trois champs. Ils restent acceptés — leur signature est vérifiée de
+     * la même façon, ils ne sont donc pas forgeables — le temps qu'ils
+     * s'éteignent d'eux-mêmes : les refuser déconnecterait toutes les
+     * familles à la mise à jour, pour une fenêtre qui se referme seule en
+     * moins de douze heures. Ils ne sont simplement pas révocables.
+     *
+     * @return array{parent_id:string,expires:int,sid:string}|null
+     */
+    protected static function read_session_cookie() {
         $name = psc_session_cookie_name();
         if (empty($_COOKIE[$name])) return null;
 
-        $raw = sanitize_text_field(wp_unslash($_COOKIE[$name]));
+        $raw   = sanitize_text_field(wp_unslash($_COOKIE[$name]));
         $parts = explode('|', $raw);
-        if (count($parts) !== 3) return null;
 
-        list($pid, $expires, $sig) = $parts;
+        if (count($parts) === 4) {
+            list($pid, $expires, $sid, $sig) = $parts;
+            $payload = $pid . '|' . $expires . '|' . $sid;
+        } elseif (count($parts) === 3) {
+            list($pid, $expires, $sig) = $parts;
+            $payload = $pid . '|' . $expires;
+            $sid     = '';
+        } else {
+            return null;
+        }
 
-        if (!hash_equals(psc_sign($pid . '|' . $expires), $sig)) return null;
+        if (!hash_equals(psc_sign($payload), $sig)) return null;
         if ((int) $expires < time()) return null;
 
-        $cache = self::get_by_id($pid);
-        return $cache;
+        return array('parent_id' => $pid, 'expires' => (int) $expires, 'sid' => $sid);
     }
 
     public static function handle_logout() {

@@ -700,6 +700,37 @@ function psc_sign($payload) {
 }
 
 /**
+ * Clé de stockage d'une session révoquée.
+ *
+ * Un cookie signé se vérifie sans rien consulter, ce qui fait sa légèreté
+ * mais aussi sa faiblesse : supprimer le cookie du navigateur ne le rend
+ * pas invalide. Quiconque en détient une copie — profil de navigateur
+ * partagé, poste public, sauvegarde synchronisée — peut continuer à s'en
+ * servir jusqu'à son expiration, malgré la déconnexion.
+ *
+ * On tient donc une courte liste des sessions explicitement fermées. Elle
+ * ne grossit pas : chaque entrée expire d'elle-même en même temps que la
+ * session qu'elle invalide.
+ */
+function psc_session_revoked_key($sid) {
+    return 'psc_sess_rev_' . preg_replace('/[^a-f0-9]/', '', (string) $sid);
+}
+
+/** Marque une session comme révoquée jusqu'à sa date d'expiration. */
+function psc_revoke_session($sid, $expires) {
+    $remaining = (int) $expires - time();
+    if ($sid === '' || $remaining <= 0) {
+        return; // déjà expirée : la révoquer ne changerait rien
+    }
+    set_transient(psc_session_revoked_key($sid), 1, $remaining);
+}
+
+/** Vrai si la session a été fermée avant son expiration naturelle. */
+function psc_session_is_revoked($sid) {
+    return $sid !== '' && get_transient(psc_session_revoked_key($sid)) !== false;
+}
+
+/**
  * Hash d'un jeton de connexion avant stockage.
  * On ne stocke jamais le jeton en clair : une fuite de la base ne permet
  * donc pas de se connecter aux comptes parents.
