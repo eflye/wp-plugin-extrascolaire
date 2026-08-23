@@ -247,11 +247,11 @@ class Psc_Invoices {
         ));
 
         $body_html =
-            '<h2 style="color:#2D4A3E;font-family:Georgia,\'Times New Roman\',serif;font-weight:bold;font-size:17px;margin:0 0 16px;padding-bottom:8px;border-bottom:1px solid #E5DCC3;">'
+            '<h2 style="color:#24405C;font-family:Georgia,\'Times New Roman\',serif;font-weight:bold;font-size:17px;margin:0 0 16px;padding-bottom:8px;border-bottom:1px solid #E5DCC3;">'
             . 'Votre facture périscolaire — ' . esc_html($month_label) . '</h2>'
             . '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 20px;">' . $body_text . '</p>'
             . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0;">'
-            . '<tr><td style="background-color:#F4EDD8;border:1px solid #E5DCC3;border-left:4px solid #E2A72B;padding:16px 18px 16px 14px;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#1A1A1A;line-height:1.5;">'
+            . '<tr><td style="background-color:#F5E7DC;border:1px solid #E5DCC3;border-left:4px solid #E08A5F;padding:16px 18px 16px 14px;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#1A1A1A;line-height:1.5;">'
             . '<strong>Montant total :</strong> ' . number_format((float) $invoice->total, 2, ',', ' ') . ' €'
             . '</td></tr></table>';
 

@@ -66,16 +66,16 @@ body.psc-portal-active main.site-main {
 }
 
 .psc-portal, .psc-guest {
-    --psc-forest: #2D4A3E;
-    --psc-moss: #4A6B52;
-    --psc-gold: #E2A72B;
+    --psc-forest: #24405C;
+    --psc-moss: #4E6C8D;
+    --psc-gold: #E08A5F;
     --psc-ink: #1A1A1A;
-    --psc-cream: #FBF7EC;
-    --psc-paper: #F4EDD8;
-    --psc-stone: #8A837A;
-    --psc-rule: rgba(45, 74, 62, 0.22);
-    --psc-rule-light: rgba(45, 74, 62, 0.15);
-    --psc-rule-lighter: rgba(45, 74, 62, 0.1);
+    --psc-cream: #FAF6F1;
+    --psc-paper: #F5E7DC;
+    --psc-stone: #8B8279;
+    --psc-rule: rgba(36, 64, 92, 0.22);
+    --psc-rule-light: rgba(36, 64, 92, 0.15);
+    --psc-rule-lighter: rgba(36, 64, 92, 0.1);
 
     background: var(--psc-cream);
     font-family: 'Work Sans', sans-serif;
@@ -113,11 +113,11 @@ body.psc-portal-active main.site-main {
     font-size: 10px;
     letter-spacing: 0.28em;
     text-transform: uppercase;
-    color: rgba(251, 247, 236, 0.45);
+    color: rgba(250, 246, 241, 0.45);
     font-weight: 600;
     padding: 4px 8px 24px;
     margin-bottom: 20px;
-    border-bottom: 1px solid rgba(251, 247, 236, 0.15);
+    border-bottom: 1px solid rgba(250, 246, 241, 0.15);
 }
 .psc-portal-nav {
     display: flex;
@@ -131,7 +131,7 @@ body.psc-portal-active main.site-main {
     width: 100%;
     background: none;
     border: none;
-    color: rgba(251, 247, 236, 0.75);
+    color: rgba(250, 246, 241, 0.75);
     padding: 10px 12px;
     font-size: 13px;
     font-weight: 500;
@@ -142,20 +142,20 @@ body.psc-portal-active main.site-main {
 .psc-portal-nav-btn svg { flex-shrink: 0; }
 .psc-portal-nav-btn:hover { color: var(--psc-cream); }
 .psc-portal-nav-btn.is-active {
-    background: rgba(226, 167, 43, 0.14);
+    background: rgba(224, 138, 95, 0.14);
     color: var(--psc-gold);
     font-weight: 600;
 }
 .psc-portal-account {
     margin-top: auto;
     padding: 16px 8px 4px;
-    border-top: 1px solid rgba(251, 247, 236, 0.15);
+    border-top: 1px solid rgba(250, 246, 241, 0.15);
 }
 .psc-portal-account-label {
     font-size: 9px;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: rgba(251, 247, 236, 0.4);
+    color: rgba(250, 246, 241, 0.4);
     margin-bottom: 4px;
 }
 .psc-portal-account-email {
@@ -169,7 +169,7 @@ body.psc-portal-active main.site-main {
 .psc-portal-account-logout {
     background: none;
     border: none;
-    color: rgba(251, 247, 236, 0.6);
+    color: rgba(250, 246, 241, 0.6);
     font-size: 11px;
     letter-spacing: 0.08em;
     cursor: pointer;
@@ -676,7 +676,7 @@ body.psc-portal-active main.site-main {
 }
 .psc-tout-btn-all:hover:not(:disabled) { background: var(--psc-moss); }
 .psc-tout-btn:disabled {
-    border-color: rgba(45, 74, 62, 0.25);
+    border-color: rgba(36, 64, 92, 0.25);
     color: var(--psc-stone);
     cursor: default;
 }
@@ -690,7 +690,7 @@ body.psc-portal-active main.site-main {
     width: 34px;
     height: 30px;
     margin: 0;
-    border: 1px solid rgba(45, 74, 62, 0.3);
+    border: 1px solid rgba(36, 64, 92, 0.3);
     background: #fff;
     color: var(--psc-stone);
     cursor: pointer;
@@ -857,7 +857,7 @@ body.psc-portal-active main.site-main {
     background: var(--psc-paper);
     color: var(--psc-forest);
 }
-.psc-portal-pill--pending { background: rgba(226, 167, 43, 0.18); color: #8A6A1E; }
+.psc-portal-pill--pending { background: rgba(224, 138, 95, 0.18); color: #9C5230; }
 .psc-portal-pill--muted { background: none; color: var(--psc-stone); padding-left: 0; }
 
 /* ---- Mes enfants : formulaire d'ajout / édition inline ---- */
@@ -1252,7 +1252,7 @@ body.psc-portal-active main.site-main {
     height: 30px;
     border-radius: 50%;
     flex-shrink: 0;
-    border: 1px solid rgba(45, 74, 62, 0.35);
+    border: 1px solid rgba(36, 64, 92, 0.35);
     background: transparent;
     color: var(--psc-stone);
     font-weight: 700;
@@ -1386,10 +1386,10 @@ body.psc-portal-active main.site-main {
     padding: 16px 18px;
     cursor: pointer;
     background: #fff;
-    border: 1px solid rgba(45, 74, 62, 0.2);
+    border: 1px solid rgba(36, 64, 92, 0.2);
     color: var(--psc-ink);
 }
-.psc-wizard-payment-card.is-active { background: rgba(226, 167, 43, 0.12); border-color: var(--psc-gold); }
+.psc-wizard-payment-card.is-active { background: rgba(224, 138, 95, 0.12); border-color: var(--psc-gold); }
 .psc-wizard-payment-card-title { font-family: 'Fraunces', serif; font-weight: 700; font-size: 15px; margin-bottom: 4px; }
 .psc-wizard-payment-card-sub { font-size: 12px; color: var(--psc-moss); }
 
@@ -1407,7 +1407,7 @@ body.psc-portal-active main.site-main {
 .psc-wizard-same-address { font-size: 12px; color: var(--psc-moss); display: flex; align-items: center; gap: 6px; margin: -8px 0 16px; }
 
 .psc-wizard-reglement-box {
-    border: 1px solid rgba(45, 74, 62, 0.2);
+    border: 1px solid rgba(36, 64, 92, 0.2);
     padding: 18px 20px;
     max-height: 220px;
     overflow-y: auto;

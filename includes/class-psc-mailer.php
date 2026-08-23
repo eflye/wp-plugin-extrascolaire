@@ -61,7 +61,7 @@ class Psc_Mailer {
 
     protected static function btn($url, $label) {
         return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;">'
-            . '<tr><td style="background-color:#E2A72B;padding:14px 32px;">'
+            . '<tr><td style="background-color:#E08A5F;padding:14px 32px;">'
             . '<a href="' . esc_url($url) . '" '
             . 'style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:12px;font-weight:bold;'
             . 'letter-spacing:0.06em;text-transform:uppercase;text-decoration:none;display:inline-block;">'
@@ -71,7 +71,7 @@ class Psc_Mailer {
 
     protected static function info_box($html) {
         return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0;">'
-            . '<tr><td style="background-color:#F4EDD8;border:1px solid #E5DCC3;padding:16px 18px;'
+            . '<tr><td style="background-color:#F5E7DC;border:1px solid #E5DCC3;padding:16px 18px;'
             . 'font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#1A1A1A;line-height:1.5;">'
             . $html . '</td></tr></table>';
     }
@@ -82,13 +82,13 @@ class Psc_Mailer {
      */
     protected static function warning_box($html) {
         return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0;">'
-            . '<tr><td style="background-color:#F4EDD8;border:1px solid #E5DCC3;border-left:4px solid #E2A72B;'
+            . '<tr><td style="background-color:#F5E7DC;border:1px solid #E5DCC3;border-left:4px solid #E08A5F;'
             . 'padding:16px 18px 16px 14px;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#1A1A1A;line-height:1.5;">'
             . $html . '</td></tr></table>';
     }
 
     protected static function h2($text) {
-        return '<h2 style="color:#2D4A3E;font-family:Georgia,\'Times New Roman\',serif;font-weight:bold;font-size:17px;'
+        return '<h2 style="color:#24405C;font-family:Georgia,\'Times New Roman\',serif;font-weight:bold;font-size:17px;'
             . 'margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid #E5DCC3;">' . esc_html($text) . '</h2>';
     }
 
@@ -173,7 +173,7 @@ class Psc_Mailer {
         $body  .= $tables['html'];
 
         if ($tables['has_any'] && count($children) > 1) {
-            $body .= '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0;"><tr><td style="background-color:#2D4A3E;padding:14px 20px;">'
+            $body .= '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0;"><tr><td style="background-color:#24405C;padding:14px 20px;">'
                    . '<p style="margin:0;color:#ffffff;font-size:16px;font-weight:bold;">'
                    . 'Montant indicatif total : ' . number_format($tables['grand_total'], 2, ',', ' ') . ' €'
                    . '</p></td></tr></table>';
@@ -231,7 +231,7 @@ class Psc_Mailer {
         $body  .= $tables['html'];
 
         if ($tables['has_any'] && count($children) > 1) {
-            $body .= '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0;"><tr><td style="background-color:#2D4A3E;padding:14px 20px;">'
+            $body .= '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0;"><tr><td style="background-color:#24405C;padding:14px 20px;">'
                    . '<p style="margin:0;color:#ffffff;font-size:16px;font-weight:bold;">'
                    . 'Montant indicatif total : ' . number_format($tables['grand_total'], 2, ',', ' ') . ' €'
                    . '</p></td></tr></table>';
@@ -252,7 +252,7 @@ class Psc_Mailer {
      */
     private static function _build_diff_table($diff_added, $diff_removed, $child_index, $services) {
         if (empty($diff_added) && empty($diff_removed)) {
-            return '<p style="color:#8A837A;font-size:14px;font-style:italic;margin:0 0 24px;">Aucune modification.</p>';
+            return '<p style="color:#8B8279;font-size:14px;font-style:italic;margin:0 0 24px;">Aucune modification.</p>';
         }
 
         $diff_rows = array();
@@ -267,10 +267,10 @@ class Psc_Mailer {
 
         $html  = '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:13px;margin-bottom:24px;">';
         $html .= '<thead><tr>'
-               . '<th style="background-color:#F4EDD8;color:#2D4A3E;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">Date</th>'
-               . '<th style="background-color:#F4EDD8;color:#2D4A3E;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">Enfant</th>'
-               . '<th style="background-color:#F4EDD8;color:#2D4A3E;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">Prestation</th>'
-               . '<th style="background-color:#F4EDD8;color:#2D4A3E;padding:7px 10px;text-align:center;border:1px solid #E5DCC3;">Modification</th>'
+               . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">Date</th>'
+               . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">Enfant</th>'
+               . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">Prestation</th>'
+               . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:center;border:1px solid #E5DCC3;">Modification</th>'
                . '</tr></thead><tbody>';
 
         foreach ($diff_rows as $row) {
@@ -281,10 +281,10 @@ class Psc_Mailer {
             $date_lbl  = esc_html(psc_day_label($date) . ' ' . date_i18n('d/m/Y', strtotime($date)));
 
             if ($row['type'] === 'add') {
-                $badge = '<span style="background-color:#EAF1EA;color:#4A6B52;padding:2px 8px;font-weight:bold;font-size:12px;">+ Ajout</span>';
+                $badge = '<span style="background-color:#EAF1EA;color:#4E6C8D;padding:2px 8px;font-weight:bold;font-size:12px;">+ Ajout</span>';
                 $bg    = '#F7FAF7';
             } else {
-                $badge = '<span style="background-color:#F5E7E7;color:#8B3A3A;padding:2px 8px;font-weight:bold;font-size:12px;">− Suppression</span>';
+                $badge = '<span style="background-color:#F5E7E7;color:#9E4A4A;padding:2px 8px;font-weight:bold;font-size:12px;">− Suppression</span>';
                 $bg    = '#FBF6F6';
             }
 
@@ -315,11 +315,11 @@ class Psc_Mailer {
         foreach ($children as $child) {
             $child_classe = Psc_School_Years::classe_for($child->id);
             $child_label = strtoupper($child->prenom . ' ' . $child->nom)
-                . ($child_classe ? ' <span style="color:#8A837A;font-weight:normal;font-size:13px;">(' . esc_html($child_classe) . ')</span>' : '');
+                . ($child_classe ? ' <span style="color:#8B8279;font-weight:normal;font-size:13px;">(' . esc_html($child_classe) . ')</span>' : '');
 
             $html .= '<div style="margin:24px 0;">';
-            $html .= '<h3 style="font-size:15px;font-family:Georgia,\'Times New Roman\',serif;font-weight:bold;color:#2D4A3E;margin:0 0 10px;padding:8px 12px;'
-                   . 'background-color:#F4EDD8;">' . $child_label . '</h3>';
+            $html .= '<h3 style="font-size:15px;font-family:Georgia,\'Times New Roman\',serif;font-weight:bold;color:#24405C;margin:0 0 10px;padding:8px 12px;'
+                   . 'background-color:#F5E7DC;">' . $child_label . '</h3>';
 
             $dates = array();
             foreach ($reg_map as $key => $v) {
@@ -330,7 +330,7 @@ class Psc_Mailer {
             ksort($dates);
 
             if (empty($dates)) {
-                $html .= '<p style="color:#8A837A;font-size:14px;font-style:italic;margin:0;">Aucune inscription enregistrée.</p>';
+                $html .= '<p style="color:#8B8279;font-size:14px;font-style:italic;margin:0;">Aucune inscription enregistrée.</p>';
                 $html .= '</div>';
                 continue;
             }
@@ -350,9 +350,9 @@ class Psc_Mailer {
             if ($mode === 'days') {
                 $html .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:12px;font-size:13px;">';
                 $html .= '<thead><tr>'
-                       . '<th style="background-color:#F4EDD8;color:#2D4A3E;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">Date</th>'
-                       . '<th style="background-color:#F4EDD8;color:#2D4A3E;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">Jour</th>'
-                       . '<th style="background-color:#F4EDD8;color:#2D4A3E;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">Prestations</th>'
+                       . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">Date</th>'
+                       . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">Jour</th>'
+                       . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">Prestations</th>'
                        . '</tr></thead><tbody>';
                 $alt = false;
                 foreach ($dates as $date => $servs) {
@@ -360,7 +360,7 @@ class Psc_Mailer {
                     foreach (psc_allowed_services() as $code) {
                         if (in_array($code, $servs, true)) $labels[] = $services[$code]['label'];
                     }
-                    $bg    = $alt ? '#FBF7EC' : '#ffffff';
+                    $bg    = $alt ? '#FAF6F1' : '#ffffff';
                     $html .= '<tr style="background:' . $bg . ';">'
                            . '<td style="padding:6px 10px;border:1px solid #E5DCC3;white-space:nowrap;">' . date_i18n('d/m/Y', strtotime($date)) . '</td>'
                            . '<td style="padding:6px 10px;border:1px solid #E5DCC3;white-space:nowrap;">' . esc_html(psc_day_label($date)) . '</td>'
@@ -428,9 +428,9 @@ class Psc_Mailer {
                            . '</tr>';
                 }
             }
-            $html .= '<tr style="border-top:2px solid #2D4A3E;">'
-                   . '<td colspan="3" style="padding:7px 10px;font-weight:bold;color:#2D4A3E;">Montant indicatif</td>'
-                   . '<td style="padding:7px 10px;font-weight:bold;color:#2D4A3E;text-align:right;">' . number_format($child_total, 2, ',', ' ') . ' €</td>'
+            $html .= '<tr style="border-top:2px solid #24405C;">'
+                   . '<td colspan="3" style="padding:7px 10px;font-weight:bold;color:#24405C;">Montant indicatif</td>'
+                   . '<td style="padding:7px 10px;font-weight:bold;color:#24405C;text-align:right;">' . number_format($child_total, 2, ',', ' ') . ' €</td>'
                    . '</tr>';
             $html .= '</table>';
             $html .= '</div>';
@@ -466,14 +466,14 @@ class Psc_Mailer {
             if ($content === '') continue;
             $has_content = true;
             $body .= '<tr>'
-                . '<td style="background-color:#F4EDD8;color:#2D4A3E;font-weight:bold;padding:8px 12px;'
+                . '<td style="background-color:#F5E7DC;color:#24405C;font-weight:bold;padding:8px 12px;'
                 . 'border:1px solid #E5DCC3;width:110px;vertical-align:top;white-space:nowrap;">' . esc_html($label) . '</td>'
                 . '<td style="padding:8px 12px;border:1px solid #E5DCC3;">' . nl2br(esc_html($content)) . '</td>'
                 . '</tr>';
         }
         $body .= '</table>';
         if (!$has_content) {
-            $body .= '<p style="color:#8A837A;font-size:14px;font-style:italic;">Menu non encore renseigné pour cette semaine.</p>';
+            $body .= '<p style="color:#8B8279;font-size:14px;font-style:italic;">Menu non encore renseigné pour cette semaine.</p>';
         }
 
         return self::send($parent->email, $subject, self::layout($body, $subject));
@@ -516,16 +516,16 @@ class Psc_Mailer {
 
         $body .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:13px;margin:16px 0;">';
         $body .= '<thead><tr>'
-            . '<th style="background-color:#F4EDD8;color:#2D4A3E;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">Classe</th>';
+            . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">Classe</th>';
         foreach ($jours as $jour) {
-            $body .= '<th style="background-color:#F4EDD8;color:#2D4A3E;padding:7px 10px;text-align:center;border:1px solid #E5DCC3;">'
+            $body .= '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:center;border:1px solid #E5DCC3;">'
                 . esc_html($all_labels[$jour]) . '<br><small>' . esc_html(date_i18n('d/m', strtotime($data['jours'][$jour]))) . '</small></th>';
         }
-        $body .= '<th style="background-color:#E5DCC3;color:#2D4A3E;padding:7px 10px;text-align:center;border:1px solid #E5DCC3;">Total</th>';
+        $body .= '<th style="background-color:#E5DCC3;color:#24405C;padding:7px 10px;text-align:center;border:1px solid #E5DCC3;">Total</th>';
         $body .= '</tr></thead><tbody>';
 
         if (empty($data['classes'])) {
-            $body .= '<tr><td colspan="' . (count($jours) + 2) . '" style="padding:10px;color:#8A837A;font-style:italic;border:1px solid #E5DCC3;">Aucun repas de cantine déclaré cette semaine.</td></tr>';
+            $body .= '<tr><td colspan="' . (count($jours) + 2) . '" style="padding:10px;color:#8B8279;font-style:italic;border:1px solid #E5DCC3;">Aucun repas de cantine déclaré cette semaine.</td></tr>';
         }
 
         foreach ($data['classes'] as $code => $label) {
@@ -539,12 +539,12 @@ class Psc_Mailer {
             $body .= '</tr>';
         }
 
-        $body .= '<tr style="background-color:#F4EDD8;">'
+        $body .= '<tr style="background-color:#F5E7DC;">'
             . '<td style="padding:7px 10px;border:1px solid #E5DCC3;font-weight:bold;">TOTAL</td>';
         foreach ($jours as $jour) {
             $body .= '<td style="padding:7px 10px;border:1px solid #E5DCC3;text-align:center;font-weight:bold;">' . (int) $data['totaux_jour'][$jour] . '</td>';
         }
-        $body .= '<td style="padding:7px 10px;border:1px solid #E5DCC3;text-align:center;font-weight:bold;color:#2D4A3E;">' . (int) $data['total'] . '</td>';
+        $body .= '<td style="padding:7px 10px;border:1px solid #E5DCC3;text-align:center;font-weight:bold;color:#24405C;">' . (int) $data['total'] . '</td>';
         $body .= '</tr>';
         $body .= '</tbody></table>';
 
@@ -769,8 +769,8 @@ class Psc_Mailer {
             if (!empty($c['vegan']))     $badges[] = 'sans viande';
             $children_list .= '<li style="color:#1A1A1A;font-size:14px;margin-bottom:4px;">'
                 . esc_html($c['prenom'] . ' ' . $c['nom'])
-                . ($c['classe'] ? ' <span style="color:#8A837A;">(' . esc_html($c['classe']) . ')</span>' : '')
-                . ($badges ? ' <span style="color:#8A837A;">— ' . esc_html(implode(', ', $badges)) . '</span>' : '')
+                . ($c['classe'] ? ' <span style="color:#8B8279;">(' . esc_html($c['classe']) . ')</span>' : '')
+                . ($badges ? ' <span style="color:#8B8279;">— ' . esc_html(implode(', ', $badges)) . '</span>' : '')
                 . '</li>';
         }
         $children_list .= '</ul>';
@@ -784,7 +784,7 @@ class Psc_Mailer {
         if ($req->message) {
             $body .= '<p style="color:#1A1A1A;font-size:14px;font-weight:bold;margin:16px 0 6px;">Message du parent :</p>'
                    . '<blockquote style="margin:0;padding:12px 16px;border:1px solid #E5DCC3;'
-                   . 'background-color:#F4EDD8;color:#1A1A1A;font-size:14px;line-height:1.5;">'
+                   . 'background-color:#F5E7DC;color:#1A1A1A;font-size:14px;line-height:1.5;">'
                    . nl2br(esc_html($req->message))
                    . '</blockquote>';
         }
@@ -808,7 +808,7 @@ class Psc_Mailer {
         if ($note !== '') {
             $body .= '<p style="color:#1A1A1A;font-size:14px;font-weight:bold;margin:16px 0 6px;">Motif communiqué :</p>'
                    . '<blockquote style="margin:0;padding:12px 16px;border:1px solid #E5DCC3;'
-                   . 'background-color:#F4EDD8;color:#1A1A1A;font-size:14px;line-height:1.5;">'
+                   . 'background-color:#F5E7DC;color:#1A1A1A;font-size:14px;line-height:1.5;">'
                    . nl2br(esc_html($note))
                    . '</blockquote>';
         }

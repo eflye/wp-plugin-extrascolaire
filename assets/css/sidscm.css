@@ -38,18 +38,18 @@ body.psc-sidscm-active main.site-main .entry-content {
 }
 
 .psc-sidscm {
-    --psc-forest: #2D4A3E;
-    --psc-moss: #4A6B52;
-    --psc-gold: #E2A72B;
+    --psc-forest: #24405C;
+    --psc-moss: #4E6C8D;
+    --psc-gold: #E08A5F;
     --psc-ink: #1A1A1A;
-    --psc-cream: #FBF7EC;
-    --psc-paper: #F4EDD8;
-    --psc-stone: #8A837A;
-    --psc-line-light: #D8D0C0;
-    --psc-error: #8B3A3A;
-    --psc-rule: rgba(45, 74, 62, 0.22);
-    --psc-rule-light: rgba(45, 74, 62, 0.15);
-    --psc-rule-lighter: rgba(45, 74, 62, 0.1);
+    --psc-cream: #FAF6F1;
+    --psc-paper: #F5E7DC;
+    --psc-stone: #8B8279;
+    --psc-line-light: #DCD3C9;
+    --psc-error: #9E4A4A;
+    --psc-rule: rgba(36, 64, 92, 0.22);
+    --psc-rule-light: rgba(36, 64, 92, 0.15);
+    --psc-rule-lighter: rgba(36, 64, 92, 0.1);
 
     font-family: 'Work Sans', sans-serif;
     color: var(--psc-ink);
@@ -147,8 +147,8 @@ body.psc-sidscm-active main.site-main .entry-content {
 }
 .psc-sidscm-lock-card {
     background: #fff;
-    border: 1px solid rgba(45, 74, 62, 0.12);
-    box-shadow: 0 4px 16px rgba(45, 74, 62, 0.08);
+    border: 1px solid rgba(36, 64, 92, 0.12);
+    box-shadow: 0 4px 16px rgba(36, 64, 92, 0.08);
     padding: 40px 36px;
     max-width: 380px;
     width: 100%;
@@ -218,7 +218,7 @@ body.psc-sidscm-active main.site-main .entry-content {
 .psc-sidscm-title { font-family: 'Fraunces', serif; font-weight: 700; font-size: 22px; }
 .psc-sidscm-today {
     font-size: 12.5px;
-    color: rgba(251, 247, 236, 0.75);
+    color: rgba(250, 246, 241, 0.75);
     margin-top: 4px;
     text-transform: capitalize;
 }
@@ -232,13 +232,13 @@ body.psc-sidscm-active main.site-main .entry-content {
     letter-spacing: 0.06em;
     font-weight: 600;
     cursor: pointer;
-    background: rgba(251, 247, 236, 0.12);
+    background: rgba(250, 246, 241, 0.12);
     color: var(--psc-cream);
 }
 .psc-sidscm-mode-btn.is-active { background: var(--psc-gold); color: var(--psc-ink); }
 .psc-sidscm-lock-btn {
     background: none;
-    border: 1px solid rgba(251, 247, 236, 0.4);
+    border: 1px solid rgba(250, 246, 241, 0.4);
 }
 
 .psc-sidscm-days {
@@ -272,7 +272,7 @@ body.psc-sidscm-active main.site-main .entry-content {
     gap: 8px;
     background: #fff;
     color: var(--psc-ink);
-    border: 1px solid rgba(45, 74, 62, 0.25);
+    border: 1px solid rgba(36, 64, 92, 0.25);
     padding: 10px 18px;
     font-size: 13.5px;
     font-weight: 600;
@@ -290,7 +290,7 @@ body.psc-sidscm-active main.site-main .entry-content {
 
 .psc-sidscm-content { padding: 18px 28px 48px; }
 
-.psc-sidscm-panel { background: #fff; border: 1px solid rgba(45, 74, 62, 0.18); }
+.psc-sidscm-panel { background: #fff; border: 1px solid rgba(36, 64, 92, 0.18); }
 .psc-sidscm-panel-head {
     display: flex;
     align-items: center;

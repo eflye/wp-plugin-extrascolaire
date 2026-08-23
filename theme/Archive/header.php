@@ -11,7 +11,7 @@
   <div class="site-header-inner">
     <div class="site-branding">
       <svg width="30" height="34" viewBox="0 0 40 46" fill="none" aria-hidden="true">
-        <path d="M20 2 L36 8 L36 24 C36 34 28 40 20 44 C12 40 4 34 4 24 L4 8 Z" fill="#E2A72B" stroke="#1A1A1A" stroke-width="1"/>
+        <path d="M20 2 L36 8 L36 24 C36 34 28 40 20 44 C12 40 4 34 4 24 L4 8 Z" fill="#E08A5F" stroke="#1A1A1A" stroke-width="1"/>
         <ellipse cx="15" cy="19" rx="5.5" ry="3.2" fill="#1A1A1A"/>
         <ellipse cx="25" cy="26" rx="5.5" ry="3.2" fill="#1A1A1A"/>
       </svg>

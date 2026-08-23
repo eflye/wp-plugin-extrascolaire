@@ -5,8 +5,8 @@
  * Chargé après la feuille du plugin (voir functions.php).
  */
 :root{
-  --forest:#2D4A3E; --moss:#4A6B52; --gold:#E2A72B; --ink:#1A1A1A;
-  --cream:#FBF7EC; --paper:#F4EDD8; --stone:#8A837A; --rule:rgba(45,74,62,0.22);
+  --forest:#24405C; --moss:#4E6C8D; --gold:#E08A5F; --ink:#1A1A1A;
+  --cream:#FAF6F1; --paper:#F5E7DC; --stone:#8B8279; --rule:rgba(36,64,92,0.22);
 }
 
 .psc-wrap { font-family: 'Work Sans', sans-serif; color: var(--ink); }
@@ -14,7 +14,7 @@
 .psc-wrap a:hover { color: var(--gold); }
 
 /* Cartes communes (login, première inscription) */
-.psc-card { background: #fff; border: 1px solid rgba(45,74,62,0.15); border-radius: 0; box-shadow: none; }
+.psc-card { background: #fff; border: 1px solid rgba(36,64,92,0.15); border-radius: 0; box-shadow: none; }
 .psc-card h2 { font-family: 'Fraunces', serif; color: var(--forest); font-weight: 700; }
 .psc-card-intro { color: var(--ink); }
 .psc-lead { color: var(--forest); font-family: 'Fraunces', serif; font-weight: 600; }
@@ -55,7 +55,7 @@
 .psc-toast { border-radius: 0; box-shadow: 0 8px 30px rgba(26,26,26,0.25); }
 
 /* Glossaire des prestations */
-.psc-glossary { background: var(--paper); border: 1px solid rgba(45,74,62,0.2); border-radius: 0; color: var(--ink); }
+.psc-glossary { background: var(--paper); border: 1px solid rgba(36,64,92,0.2); border-radius: 0; color: var(--ink); }
 
 /* Calendrier de déclaration */
 .psc-child-name { font-family: 'Fraunces', serif; color: var(--ink); border-bottom: 2px solid var(--gold); font-size: 1.3em; }
@@ -63,17 +63,17 @@
 .psc-calendar th {
   background: var(--paper); color: var(--moss); font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72em;
-  border-color: rgba(45,74,62,0.25);
+  border-color: rgba(36,64,92,0.25);
 }
-.psc-calendar td { border-color: rgba(45,74,62,0.15); }
+.psc-calendar td { border-color: rgba(36,64,92,0.15); }
 .psc-daylabel { color: var(--ink); }
 .psc-row-locked { background: var(--cream); }
 .psc-row-locked .psc-daylabel { color: var(--stone); }
-.psc-cell.psc-ok { background: rgba(45,74,62,0.18); }
+.psc-cell.psc-ok { background: rgba(36,64,92,0.18); }
 .psc-lock { color: var(--stone); }
 
 /* Mois repliables */
-.psc-month-block { background: #fff; border: 1px solid rgba(45,74,62,0.15); border-radius: 0; }
+.psc-month-block { background: #fff; border: 1px solid rgba(36,64,92,0.15); border-radius: 0; }
 .psc-month-chevron::before, .psc-month-chevron::after { background: var(--forest); }
 .psc-month-name { font-family: 'Fraunces', serif; color: var(--ink); font-weight: 600; }
 .psc-badge { background: var(--paper); color: var(--forest); border-radius: 0; text-transform: uppercase; font-size: 0.65em; letter-spacing: 0.05em; }
@@ -87,18 +87,18 @@
 .psc-err-text { color: #b32d2e; }
 
 /* Menu de la cantine */
-.psc-menu-widget { background: #fff; border: 1px solid rgba(45,74,62,0.15); border-radius: 0; padding: 20px 24px; }
+.psc-menu-widget { background: #fff; border: 1px solid rgba(36,64,92,0.15); border-radius: 0; padding: 20px 24px; }
 .psc-menu-nav-btn { border: 1px solid var(--forest); border-radius: 0; color: var(--forest); background: #fff; }
 .psc-menu-nav-btn:hover { background: var(--paper); }
 .psc-menu-week-label { font-family: 'Fraunces', serif; color: var(--forest); }
 .psc-menu-today-link { color: var(--gold); }
 .psc-menu-table th { background: var(--paper); color: var(--moss); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.72em; }
-.psc-menu-table th, .psc-menu-table td { border-color: rgba(45,74,62,0.15); }
+.psc-menu-table th, .psc-menu-table td { border-color: rgba(36,64,92,0.15); }
 .psc-menu-empty { color: var(--stone); font-family: 'Cormorant Garamond', serif; font-style: italic; }
 
 /* Demande de première inscription */
 .psc-request-block > summary { font-family: 'Fraunces', serif; color: var(--forest); }
-.psc-request-form fieldset { border: 1px solid rgba(45,74,62,0.2); border-radius: 0; }
+.psc-request-form fieldset { border: 1px solid rgba(36,64,92,0.2); border-radius: 0; }
 .psc-request-form legend { color: var(--moss); text-transform: uppercase; font-size: 0.78em; letter-spacing: 0.08em; font-weight: 600; }
 .psc-request-form input[type="text"],
 .psc-request-form input[type="email"],
@@ -109,13 +109,13 @@
 }
 .psc-child-remove { color: var(--stone); }
 .psc-req { color: #b32d2e; }
-.psc-rgpd { border-left: 3px solid rgba(45,74,62,0.2); color: var(--stone); }
-.psc-reglement-box { border: 1px solid rgba(45,74,62,0.2); border-radius: 0; background: var(--cream); color: var(--ink); }
-.psc-sepa-block { border-top: 1px dashed rgba(45,74,62,0.3); }
+.psc-rgpd { border-left: 3px solid rgba(36,64,92,0.2); color: var(--stone); }
+.psc-reglement-box { border: 1px solid rgba(36,64,92,0.2); border-radius: 0; background: var(--cream); color: var(--ink); }
+.psc-sepa-block { border-top: 1px dashed rgba(36,64,92,0.3); }
 .psc-sepa-creditor { background: var(--paper); border-radius: 0; color: var(--ink); }
 
 /* Gestion des enfants / factures */
-.psc-children-mgmt, .psc-invoices-mgmt { border: 1px solid rgba(45,74,62,0.15); border-radius: 0; }
+.psc-children-mgmt, .psc-invoices-mgmt { border: 1px solid rgba(36,64,92,0.15); border-radius: 0; }
 .psc-children-mgmt > summary, .psc-invoices-mgmt > summary { color: var(--forest); font-family: 'Fraunces', serif; font-weight: 700; }
 .psc-children-table th, .psc-invoices-table th { color: var(--moss); }
 .psc-invoices-table .psc-active { color: var(--forest); }

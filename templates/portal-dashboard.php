@@ -15,7 +15,7 @@
     <div class="psc-portal-card-value" data-testid="dashboard-next-invoice"><?php echo esc_html($psc_portal_dashboard['next_invoice']['mois_label']); ?></div>
     <div class="psc-portal-card-sub"><?php echo esc_html($psc_portal_dashboard['next_invoice']['status_label']); ?></div>
     <?php else: ?>
-    <div class="psc-portal-card-value psc-portal-card-value--empty" style="font-size:17px;color:#8A837A;">Aucune</div>
+    <div class="psc-portal-card-value psc-portal-card-value--empty" style="font-size:17px;color:#8B8279;">Aucune</div>
     <div class="psc-portal-card-sub">Rien à régler pour le moment</div>
     <?php endif; ?>
   </div>

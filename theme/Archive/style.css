@@ -12,14 +12,14 @@ Text Domain: montgeroult
 */
 
 :root{
-  --forest:#2D4A3E;
-  --moss:#4A6B52;
-  --gold:#E2A72B;
+  --forest:#24405C;
+  --moss:#4E6C8D;
+  --gold:#E08A5F;
   --ink:#1A1A1A;
-  --cream:#FBF7EC;
-  --paper:#F4EDD8;
-  --stone:#8A837A;
-  --rule:rgba(45,74,62,0.22);
+  --cream:#FAF6F1;
+  --paper:#F5E7DC;
+  --stone:#8B8279;
+  --rule:rgba(36,64,92,0.22);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -67,7 +67,7 @@ button, input, select, textarea { font-family: 'Work Sans', sans-serif; }
 .site-title:hover { color: var(--gold); }
 .primary-nav ul { list-style: none; display: flex; gap: 28px; margin: 0; padding: 0; flex-wrap: wrap; }
 .primary-nav a {
-  color: rgba(251,247,236,0.85); text-decoration: none;
+  color: rgba(250,246,241,0.85); text-decoration: none;
   font-size: 13px; letter-spacing: 0.03em; font-weight: 500;
 }
 .primary-nav a:hover { color: var(--gold); }
@@ -89,7 +89,7 @@ button, input, select, textarea { font-family: 'Work Sans', sans-serif; }
 .familles-hairline .dot { width: 6px; height: 6px; background: var(--gold); transform: rotate(45deg); flex: none; }
 
 /* ---- Footer ---- */
-.site-footer { background: var(--forest); color: rgba(251,247,236,0.7); margin-top: 64px; }
+.site-footer { background: var(--forest); color: rgba(250,246,241,0.7); margin-top: 64px; }
 .site-footer-inner {
   max-width: 1120px; margin: 0 auto; padding: 28px 32px;
   display: flex; justify-content: space-between; align-items: center;
