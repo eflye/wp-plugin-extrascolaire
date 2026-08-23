@@ -43,6 +43,13 @@ if (!defined('PSC_REMOVE_DATA_ON_UNINSTALL') || !PSC_REMOVE_DATA_ON_UNINSTALL) {
     return;
 }
 
+// Lu AVANT la purge des options : le répertoire privé peut avoir été déplacé
+// hors de l'arborescence WordPress (constante PSC_PRIVATE_DIR), et cette
+// option est alors la seule trace de son emplacement réel. La supprimer
+// d'abord reviendrait à perdre l'adresse des fichiers à effacer, et donc à
+// laisser des données personnelles derrière soi.
+$psc_recorded_private_dir = (string) get_option('psc_private_dir_path', '');
+
 global $wpdb;
 
 /* ---------------- Tables ---------------- */
@@ -105,6 +112,16 @@ $targets = array(
     trailingslashit($upload['basedir']) . 'psc-private',
     trailingslashit($upload['basedir']) . 'periscolaire',
 );
+
+// Emplacement déclaré dans wp-config.php, et dernier emplacement réellement
+// utilisé : hors de l'arborescence WordPress, aucun des chemins ci-dessus ne
+// les couvre.
+if (defined('PSC_PRIVATE_DIR') && PSC_PRIVATE_DIR) {
+    $targets[] = rtrim(PSC_PRIVATE_DIR, '/\\');
+}
+if ($psc_recorded_private_dir !== '') {
+    $targets[] = $psc_recorded_private_dir;
+}
 
 foreach (array_unique($targets) as $dir) {
     psc_uninstall_rmdir($dir);

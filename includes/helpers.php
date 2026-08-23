@@ -826,6 +826,17 @@ function psc_client_ip() {
  * ce qui rend le déplacement transparent pour les données existantes.
  */
 function psc_private_dir() {
+    // Emplacement explicite, déclaré dans wp-config.php. Seule solution
+    // pleinement sûre en hébergement mutualisé, où l'on ne peut pas modifier
+    // la configuration du serveur web : viser un dossier situé HORS de la
+    // racine web le rend inatteignable par construction, quel que soit le
+    // traitement réservé aux .htaccess. Sur un mutualisé OVH par exemple, la
+    // racine web est .../www/, et le dossier parent convient :
+    //     define('PSC_PRIVATE_DIR', dirname(ABSPATH) . '/psc-private');
+    if (defined('PSC_PRIVATE_DIR') && PSC_PRIVATE_DIR) {
+        return apply_filters('psc_private_dir', rtrim(PSC_PRIVATE_DIR, '/\\'));
+    }
+
     $dir = WP_CONTENT_DIR . '/psc-private';
 
     // Repli : wp-content/ non inscriptible et dossier pas déjà créé.

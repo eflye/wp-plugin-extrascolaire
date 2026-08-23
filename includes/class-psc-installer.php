@@ -84,6 +84,40 @@ class Psc_Installer {
         // ses garde-fous) à chaque chargement, même si un administrateur l'a
         // supprimé à la main ou si l'hébergeur a réinitialisé le disque.
         psc_ensure_private_dir();
+        self::sync_private_dir();
+    }
+
+    /**
+     * Suit les documents lorsque l'emplacement du répertoire privé change.
+     *
+     * Le déclencheur n'est pas une version de base mais le chemin lui-même :
+     * déclarer PSC_PRIVATE_DIR dans wp-config.php (le seul correctif possible
+     * quand l'hébergement mutualisé ignore les .htaccess) modifie la
+     * destination sans rien changer au numéro de version, donc aucune
+     * migration classique ne se rejouerait. On mémorise le dernier chemin
+     * utilisé et on déménage dès qu'il diffère.
+     *
+     * Sans cela, les fichiers déjà déposés resteraient à l'ancien
+     * emplacement — c'est-à-dire exposés — pendant que le code n'écrirait
+     * plus que dans le nouveau : la correction n'aurait protégé que les
+     * dépôts à venir.
+     */
+    private static function sync_private_dir() {
+        $current = psc_private_dir();
+        $known   = (string) get_option('psc_private_dir_path', '');
+
+        if ($known === $current) {
+            return;
+        }
+
+        // Premier enregistrement, ou ancien dossier disparu : rien à déplacer.
+        if ($known !== '' && is_dir($known) && is_dir($current)) {
+            self::move_tree($known, $current);
+        }
+
+        if (is_dir($current)) {
+            update_option('psc_private_dir_path', $current, false);
+        }
     }
 
     /**

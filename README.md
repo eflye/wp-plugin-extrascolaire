@@ -330,13 +330,7 @@ panneau déjà déplié.
 - **IBAN chiffré au repos** (XSalsa20-Poly1305 via libsodium, repli AES-256-GCM) : une copie de la base — sauvegarde égarée, export SQL — ne livre aucune coordonnée bancaire exploitable. La clé vit dans `wp-config.php`, jamais en base. L'IBAN est également **effacé de la demande d'inscription dès son approbation**, puisqu'il a été reporté sur la fiche famille : il n'existe plus qu'à un seul endroit.
 - Le PDF du mandat de prélèvement SEPA (contient l'IBAN en clair) n'est **jamais stocké sur le serveur** : généré en fichier temporaire, joint à l'e-mail, puis supprimé immédiatement.
 - Justificatifs d'assurance scolaire limités à 1 Mo, formats PDF/JPG/PNG uniquement (vérifiés côté serveur, pas seulement par l'attribut `accept` du champ fichier).
-- **Documents stockés hors du dossier des médias.** Justificatifs d'assurance et factures PDF sont écrits sous `wp-content/psc-private/` — jamais sous `wp-content/uploads/`, qui est systématiquement servi en HTTP : leurs noms étant prévisibles (`child-12.pdf`, `facture-7.pdf`), ils y auraient été téléchargeables par simple énumération d'URL. Ils ne sont accessibles que par les routes de téléchargement du plugin, après contrôle de session et d'appartenance. Le dossier reçoit un `.htaccess` et un `web.config` bloquants ; **nginx ne lisant pas `.htaccess`**, l'extension vérifie depuis le navigateur de l'administrateur que le dossier est réellement injoignable et affiche sinon un avertissement avec la règle à poser :
-  ```nginx
-  location ~* /psc-private/ {
-      deny all;
-      return 404;
-  }
-  ```
+- **Documents stockés hors du dossier des médias.** Justificatifs d'assurance et factures PDF sont écrits sous `wp-content/psc-private/` — jamais sous `wp-content/uploads/`, qui est systématiquement servi en HTTP : leurs noms étant prévisibles (`child-12.pdf`, `facture-7.pdf`), ils y auraient été téléchargeables par simple énumération d'URL. Ils ne sont accessibles que par les routes de téléchargement du plugin, après contrôle de session et d'appartenance. Le dossier reçoit un `.htaccess` et un `web.config` bloquants ; ces fichiers n'étant pas lus par toutes les configurations (nginx notamment les ignore), l'extension vérifie **depuis le navigateur de l'administrateur** que le dossier est réellement injoignable — seul point de vue qui reflète ce qu'un visiteur atteint vraiment — et affiche sinon un avertissement. Le correctif proposé ne demande aucun accès au serveur (cf. [Emplacement des documents](#emplacement-des-documents)).
 - Fermer un jour du calendrier scolaire avec des inscriptions existantes exige une **confirmation explicite** après avertissement — pas de suppression accidentelle en un clic.
 
 ---
@@ -379,6 +373,22 @@ define('PSC_ENCRYPTION_KEY', 'coller-ici-une-longue-chaine-aleatoire');
 ```
 
 Si un IBAN devient indéchiffrable (clé perdue ou modifiée), le champ s'affiche vide dans la fiche famille : rien n'est perdu d'autre, la mairie ressaisit l'IBAN et l'enregistrement repart normalement.
+
+### Emplacement des documents
+
+Les justificatifs d'assurance et les factures sont écrits sous `wp-content/psc-private/`, protégé par un `.htaccess`. Cela suffit sous Apache, mais **certains hébergements ignorent ces fichiers** : les documents redeviennent alors téléchargeables par simple énumération d'URL. L'extension le détecte depuis le navigateur de l'administrateur et affiche une alerte.
+
+Le correctif ne demande **aucun accès au serveur** — utile en hébergement mutualisé, où la configuration d'Apache ou de nginx n'est pas modifiable. Il suffit de déclarer un dossier situé **hors de la racine web**, ce qui le rend inatteignable par construction plutôt que par convention :
+
+```php
+// wp-config.php — sur un mutualisé, la racine web est souvent .../www/,
+// et son dossier parent convient.
+define('PSC_PRIVATE_DIR', dirname(ABSPATH) . '/psc-private');
+```
+
+Les documents déjà déposés sont **déplacés automatiquement** au chargement suivant : le suivi porte sur le chemin lui-même, pas sur un numéro de version, de sorte qu'ajouter ou modifier la constante déménage bien l'existant. Sans cela, la correction n'aurait protégé que les dépôts à venir. Aucune écriture SQL n'est nécessaire, les chemins étant enregistrés en relatif.
+
+Si le chemin déclaré n'est pas inscriptible (dossier parent inexistant, droits refusés), une alerte le signale explicitement dans l'administration — plutôt que de laisser les téléchargements échouer sans explication. Retirer la ligne rétablit l'emplacement par défaut, et rapatrie les fichiers.
 
 ### Capacité d'accès personnalisée
 

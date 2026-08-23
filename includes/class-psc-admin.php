@@ -103,21 +103,62 @@ class Psc_Admin {
         $on_psc = $screen && strpos((string) $screen->id, 'psc_') !== false;
         if (!$on_psc && !($screen && $screen->id === 'dashboard')) return;
 
+        // Un chemin déclaré mais inutilisable (droits refusés par
+        // l'hébergeur, dossier parent inexistant) rendrait tous les
+        // justificatifs et factures introuvables, sans le moindre message :
+        // le plugin écrirait et lirait dans un dossier qui n'existe pas.
+        // C'est le premier écueil d'une configuration manuelle, il vaut
+        // mieux le nommer que laisser chercher.
+        $dir = psc_private_dir();
+        if (!is_dir($dir) || !wp_is_writable($dir)) {
+            ?>
+            <div class="notice notice-error">
+                <p><strong>Périscolaire — le dossier des documents est inutilisable.</strong></p>
+                <p>
+                    L'extension ne peut ni créer ni écrire dans
+                    <code><?php echo esc_html($dir); ?></code>. Les justificatifs d'assurance et les
+                    factures ne pourront pas être enregistrés ni téléchargés tant que ce sera le cas.
+                </p>
+                <p>
+                    Vérifiez la ligne <code>PSC_PRIVATE_DIR</code> de <code>wp-config.php</code> :
+                    le dossier parent doit exister et être accessible en écriture. Si le chemin est
+                    erroné, retirez la ligne — l'extension reprendra son emplacement par défaut.
+                </p>
+            </div>
+            <?php
+            return;
+        }
+
         $base = psc_private_dir_url();
         if ($base === null) return; // dossier hors racine web : rien à vérifier
 
         $probe = trailingslashit($base) . 'psc-probe.txt';
-        $rule  = "location ~* /" . basename(psc_private_dir()) . "/ {\n    deny all;\n    return 404;\n}";
+        // Correctif privilégié : déplacer le dossier hors de la racine web
+        // depuis wp-config.php. C'est le seul levier disponible en
+        // hébergement mutualisé, où la configuration du serveur est hors de
+        // portée — et il est plus sûr qu'une règle serveur, puisqu'il ne
+        // dépend d'aucun réglage d'Apache ou de nginx.
+        $suggestion = "define('PSC_PRIVATE_DIR', dirname(ABSPATH) . '/psc-private');";
         ?>
         <div class="notice notice-error" id="psc-private-exposed" hidden>
             <p><strong>Périscolaire — les documents des familles sont téléchargeables sans connexion.</strong></p>
             <p>
                 Les justificatifs d'assurance et les factures sont accessibles publiquement sous
                 <code><?php echo esc_html($base); ?></code>. Le serveur web ne tient pas compte du fichier
-                <code>.htaccess</code> déposé par l'extension — c'est notamment le cas sous nginx.
+                <code>.htaccess</code> déposé par l'extension.
             </p>
-            <p>Ajoutez cette règle à la configuration du serveur, puis rechargez cette page :</p>
-            <pre style="background:#fff;border:1px solid #ccd0d4;padding:10px;overflow:auto;"><?php echo esc_html($rule); ?></pre>
+            <p>
+                <strong>Correctif, sans accès au serveur :</strong> ajoutez cette ligne dans
+                <code>wp-config.php</code> (avant la ligne <code>/* C'est tout… */</code>), puis rechargez
+                cette page. Les documents déjà déposés seront déplacés automatiquement.
+            </p>
+            <pre style="background:#fff;border:1px solid #ccd0d4;padding:10px;overflow:auto;"><?php echo esc_html($suggestion); ?></pre>
+            <p class="description">
+                Ce dossier se place à côté de la racine du site (et non dedans), ce qui le rend
+                inaccessible par le web quelle que soit la configuration de l'hébergement.
+                Si votre hébergeur vous donne la main sur la configuration du serveur, une règle
+                <code>deny</code> sur le dossier fonctionne également.
+            </p>
         </div>
         <script>
         /* La vérification se fait depuis le navigateur, et non depuis le serveur :
