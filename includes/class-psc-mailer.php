@@ -314,7 +314,13 @@ class Psc_Mailer {
 
         foreach ($children as $child) {
             $child_classe = Psc_School_Years::classe_for($child->id);
-            $child_label = strtoupper($child->prenom . ' ' . $child->nom)
+            // Le prénom et le nom sont saisis par la famille : ils doivent
+            // être échappés comme la classe juste à côté l'était déjà.
+            // On met en majuscules AVANT d'échapper, sinon la bascule
+            // s'appliquerait aux entités produites par l'échappement.
+            // mb_strtoupper, et non strtoupper, qui laisserait les
+            // caractères accentués en minuscules.
+            $child_label = esc_html(mb_strtoupper($child->prenom . ' ' . $child->nom, 'UTF-8'))
                 . ($child_classe ? ' <span style="color:#8B8279;font-weight:normal;font-size:13px;">(' . esc_html($child_classe) . ')</span>' : '');
 
             $html .= '<div style="margin:24px 0;">';
