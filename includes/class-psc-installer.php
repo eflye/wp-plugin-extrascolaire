@@ -3,11 +3,12 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '3.8.0';
+    const DB_VERSION = '3.9.0';
     const ROLES_VERSION = '1.0.0';
 
     public static function activate() {
         self::create_tables();
+        self::ensure_foreign_keys();
         update_option('psc_db_version', self::DB_VERSION);
         self::sync_roles();
         update_option('psc_roles_version', self::ROLES_VERSION);
@@ -77,6 +78,11 @@ class Psc_Installer {
             if ($current && version_compare($current, '3.8.0', '<')) {
                 self::migrate_3_8_0();
             }
+            // Sans condition de version : la pose des contraintes est
+            // idempotente et se contente de constater ce qui existe déjà.
+            // La rejouer à chaque changement de schéma rattrape le cas où
+            // un ALTER TABLE avait échoué lors d'une mise à jour antérieure.
+            self::ensure_foreign_keys();
             update_option('psc_db_version', self::DB_VERSION);
         }
 
@@ -204,6 +210,145 @@ class Psc_Installer {
         $wpdb->query(
             "UPDATE $t_req SET sepa_iban = NULL, sepa_bic = NULL
              WHERE status IN ('approved','rejected')"
+        );
+    }
+
+    /**
+     * Liens entre tables, et ce que la base doit faire quand la ligne
+     * référencée disparaît.
+     *
+     * L'action déclarée reproduit exactement ce que le code applicatif fait
+     * déjà : la contrainte est un filet, pas une nouvelle règle métier.
+     * D'où le SET NULL sur trimestres.school_year_id — supprimer une année
+     * scolaire détache ses trimestres au lieu de les effacer
+     * (Psc_School_Years::delete()), et une cascade détruirait ici des
+     * données que le code prend soin de conserver.
+     *
+     * L'ordre compte : les enfants orphelins sont retirés avant les lignes
+     * qui les référencent, pour que le nettoyage se propage de proche en
+     * proche.
+     */
+    private static function foreign_key_map() {
+        return array(
+            array('children',           'parent_id',      'parents',      'CASCADE'),
+            array('registrations',      'child_id',       'children',     'CASCADE'),
+            array('child_school_years', 'child_id',       'children',     'CASCADE'),
+            array('pickup_persons',     'child_id',       'children',     'CASCADE'),
+            array('pickup_history',     'child_id',       'children',     'CASCADE'),
+            array('registrations',      'trimestre_id',   'trimestres',   'CASCADE'),
+            array('calendar_days',      'trimestre_id',   'trimestres',   'CASCADE'),
+            array('child_school_years', 'school_year_id', 'school_years', 'CASCADE'),
+            array('trimestres',         'school_year_id', 'school_years', 'SET NULL'),
+        );
+    }
+
+    /**
+     * Déclare les contraintes référentielles manquantes.
+     *
+     * Les tables sont en InnoDB depuis toujours, mais ne déclaraient aucun
+     * lien : le nettoyage reposait entièrement sur le code applicatif, qui
+     * le fait bien — mais rien ne protégeait les écritures passant à côté
+     * (script de peuplement, correction SQL manuelle, code futur). La base
+     * de test contenait déjà un enfant sans famille et neuf lignes
+     * pointant un enfant inexistant.
+     *
+     * Volontairement hors de dbDelta() : celui-ci ne sait pas lire une
+     * déclaration FOREIGN KEY et tenterait de la reposer à chaque passage.
+     *
+     * Tolérant à l'échec : sur un hébergement mutualisé, un ALTER TABLE
+     * peut être refusé. Mieux vaut un site qui fonctionne sans contrainte
+     * qu'une mise à jour qui s'interrompt — la prochaine réessaiera.
+     */
+    private static function ensure_foreign_keys() {
+        global $wpdb;
+
+        $existing = $wpdb->get_col(
+            "SELECT CONCAT(TABLE_NAME, '.', COLUMN_NAME)
+             FROM information_schema.KEY_COLUMN_USAGE
+             WHERE TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME IS NOT NULL"
+        );
+        if (!is_array($existing)) $existing = array();
+
+        foreach (self::foreign_key_map() as list($table, $column, $ref, $action)) {
+            $t = psc_table($table);
+            $r = psc_table($ref);
+
+            if (in_array($t . '.' . $column, $existing, true)) continue;
+            if (!self::table_exists($t) || !self::table_exists($r)) continue;
+
+            self::clear_orphans($t, $column, $r);
+
+            $name = substr($t . '_' . $column . '_fk', -64);
+            $wpdb->query(
+                "ALTER TABLE $t ADD CONSTRAINT `$name`
+                 FOREIGN KEY ($column) REFERENCES $r (id) ON DELETE $action"
+            );
+        }
+    }
+
+    private static function table_exists($table) {
+        global $wpdb;
+        return (bool) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
+    }
+
+    /**
+     * Rend le lien cohérent avant de le contraindre : sans cela, l'ALTER
+     * TABLE échoue et la contrainte n'est jamais posée.
+     *
+     * Les lignes visées désignent une ligne qui n'existe pas : elles sont
+     * déjà invisibles pour l'application, qui joint systématiquement sur la
+     * table référencée. Les supprimer ne retire donc rien de consultable.
+     *
+     * Le zéro est traité comme une absence : c'est une valeur sentinelle
+     * laissée par une ancienne migration exécutée sans année scolaire par
+     * défaut — ni un identifiant valide, ni NULL.
+     *
+     * Quand la colonne accepte NULL, on neutralise le lien plutôt que de
+     * supprimer la ligne : une inscription à l'année portant une classe et
+     * un justificatif reste ainsi consultable, alors qu'un simple zéro
+     * hérité d'une migration ne justifie pas d'en perdre le contenu.
+     */
+    private static function clear_orphans($table, $column, $ref) {
+        global $wpdb;
+
+        $broken = "a.$column = 0 OR (a.$column IS NOT NULL AND b.id IS NULL)";
+
+        $nullable = $wpdb->get_var($wpdb->prepare(
+            "SELECT IS_NULLABLE FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = %s",
+            $table,
+            $column
+        ));
+
+        if ($nullable === 'YES') {
+            $wpdb->query(
+                "UPDATE $table a LEFT JOIN $ref b ON a.$column = b.id
+                 SET a.$column = NULL WHERE $broken"
+            );
+            return;
+        }
+
+        // Colonne NOT NULL : la valeur ne peut pas être neutralisée, seule
+        // la suppression de la ligne rétablit la cohérence. Les
+        // justificatifs d'assurance qu'elle référençait n'auraient alors
+        // plus rien qui les désigne : les laisser sur le disque
+        // conserverait des documents nominatifs devenus inatteignables.
+        if (psc_table('child_school_years') === $table) {
+            $paths = $wpdb->get_col(
+                "SELECT a.assurance_file_path FROM $table a
+                 LEFT JOIN $ref b ON a.$column = b.id
+                 WHERE a.assurance_file_path IS NOT NULL AND ($broken)"
+            );
+            foreach ((array) $paths as $rel) {
+                $abs = $rel ? psc_private_path($rel) : '';
+                if ($abs && file_exists($abs)) {
+                    @unlink($abs); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+                }
+            }
+        }
+
+        $wpdb->query(
+            "DELETE a FROM $table a LEFT JOIN $ref b ON a.$column = b.id WHERE $broken"
         );
     }
 
@@ -603,7 +748,7 @@ CREATE TABLE $t_child (
 CREATE TABLE $t_cy (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             child_id BIGINT UNSIGNED NOT NULL,
-            school_year_id BIGINT UNSIGNED NOT NULL,
+            school_year_id BIGINT UNSIGNED NULL,
             classe VARCHAR(100) NULL,
             statut VARCHAR(20) NOT NULL DEFAULT 'inscrit',
             date_inscription DATETIME NULL,
@@ -636,7 +781,8 @@ CREATE TABLE $t_reg (
             updated_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY child_date_service (child_id, jour_date, service),
-            KEY trim_child (trimestre_id, child_id)
+            KEY trim_child (trimestre_id, child_id),
+            KEY jour_date (jour_date)
         ) $charset_collate;
 
 CREATE TABLE $t_req (
