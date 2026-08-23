@@ -44,6 +44,22 @@ function psc_allowed_services() {
 }
 
 /**
+ * Vérifie qu'un code de prestation est reconnu.
+ *
+ * Point de contrôle unique : la liste était déjà centralisée, mais le
+ * test était réécrit à chaque endroit qui écrit une inscription. Un
+ * chemin d'écriture ajouté plus tard pouvait donc simplement oublier de
+ * le faire, sans que rien ne le signale.
+ *
+ * La colonne correspondante est par ailleurs contrainte côté base
+ * (cf. Psc_Installer::ensure_service_enum()) : cette fonction refuse la
+ * valeur proprement, la base l'aurait de toute façon rejetée.
+ */
+function psc_is_valid_service($service) {
+    return in_array($service, psc_allowed_services(), true);
+}
+
+/**
  * Récupère et nettoie une valeur de $_POST.
  * wp_unslash() est indispensable : WordPress applique addslashes() sur les
  * superglobales, sans quoi "O'Brien" est enregistré "O\'Brien".

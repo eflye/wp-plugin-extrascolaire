@@ -514,7 +514,7 @@ class Psc_Frontend {
         if (!$child_id || !$date) {
             wp_send_json_error(array('code' => 'invalid'), 400);
         }
-        if (!in_array($service, psc_allowed_services(), true)) {
+        if (!psc_is_valid_service($service)) {
             wp_send_json_error(array('code' => 'service'), 400);
         }
 
@@ -652,7 +652,7 @@ class Psc_Frontend {
         $raw_dates = isset($_POST['dates']) ? wp_unslash($_POST['dates']) : '';
         $raw_dates = is_array($raw_dates) ? $raw_dates : explode(',', (string) $raw_dates);
 
-        if (!$child_id || !in_array($service, psc_allowed_services(), true)) {
+        if (!$child_id || !psc_is_valid_service($service)) {
             wp_send_json_error(array('code' => 'invalid'), 400);
         }
 
@@ -993,7 +993,7 @@ class Psc_Frontend {
             if (count($parts) !== 2) continue;
             $date    = psc_valid_date($parts[0]);
             $service = $parts[1];
-            if (!$date || !in_array($service, psc_allowed_services(), true)) continue;
+            if (!$date || !psc_is_valid_service($service)) continue;
             $pairs[$date . '|' . $service] = array('date' => $date, 'service' => $service);
         }
         if (!$child_id || !$pairs) self::parent_form_redirect('absence_invalid');

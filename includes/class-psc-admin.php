@@ -1045,7 +1045,7 @@ class Psc_Admin {
                 if (!is_array($svcs)) continue;
                 foreach ($svcs as $svc => $on) {
                     $svc = strtoupper(sanitize_key($svc));
-                    if (!in_array($svc, psc_allowed_services(), true)) continue;
+                    if (!psc_is_valid_service($svc)) continue;
                     $submitted[$cid . '|' . $date . '|' . $svc] = true;
                 }
             }

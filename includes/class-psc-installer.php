@@ -9,6 +9,7 @@ class Psc_Installer {
     public static function activate() {
         self::create_tables();
         self::ensure_foreign_keys();
+        self::ensure_service_constraint();
         update_option('psc_db_version', self::DB_VERSION);
         self::sync_roles();
         update_option('psc_roles_version', self::ROLES_VERSION);
@@ -83,6 +84,7 @@ class Psc_Installer {
             // La rejouer à chaque changement de schéma rattrape le cas où
             // un ALTER TABLE avait échoué lors d'une mise à jour antérieure.
             self::ensure_foreign_keys();
+            self::ensure_service_constraint();
             update_option('psc_db_version', self::DB_VERSION);
         }
 
@@ -284,6 +286,84 @@ class Psc_Installer {
                  FOREIGN KEY ($column) REFERENCES $r (id) ON DELETE $action"
             );
         }
+    }
+
+    /**
+     * Contraint la colonne `service` aux seuls codes reconnus.
+     *
+     * Elle est un VARCHAR libre : seul le code applicatif garantissait son
+     * contenu, et il le vérifiait en quatre endroits distincts. Un chemin
+     * d'écriture ajouté plus tard pouvait y déposer n'importe quoi. Même
+     * intention que les clés étrangères : ce que le code promet, la base le
+     * garantit.
+     *
+     * Une contrainte CHECK, et non un type ENUM. L'ENUM semblait le choix
+     * naturel, mais WordPress retire STRICT_TRANS_TABLES du mode SQL de la
+     * session : une valeur hors liste n'y est pas refusée, elle est
+     * silencieusement remplacée par une chaîne vide. La contrainte aurait
+     * donc corrompu la ligne au lieu de rejeter l'écriture — pire que pas
+     * de contrainte du tout. Vérifié sur cette base : l'insertion d'un code
+     * inconnu passait et enregistrait ''. Une contrainte CHECK, elle,
+     * s'applique quel que soit le mode SQL, et l'écriture échoue.
+     *
+     * La liste vient de psc_allowed_services() : ajouter une prestation
+     * là-bas et incrémenter DB_VERSION suffit à propager la contrainte.
+     *
+     * Hors dbDelta(), qui ne sait pas lire une déclaration CHECK. Silencieux
+     * en cas d'échec : les serveurs antérieurs à MySQL 8.0.16 et MariaDB
+     * 10.2 acceptent la syntaxe sans l'appliquer. La validation applicative
+     * (psc_is_valid_service()) reste dans tous les cas la première barrière.
+     */
+    private static function ensure_service_constraint() {
+        global $wpdb;
+
+        $t = psc_table('registrations');
+        if (!self::table_exists($t)) return;
+
+        $allowed = psc_allowed_services();
+        sort($allowed);
+        $name = substr($t . '_service_chk', -64);
+
+        $clause = $wpdb->get_var($wpdb->prepare(
+            "SELECT CHECK_CLAUSE FROM information_schema.CHECK_CONSTRAINTS
+             WHERE CONSTRAINT_SCHEMA = DATABASE() AND CONSTRAINT_NAME = %s",
+            $name
+        ));
+
+        if ($clause !== null) {
+            // Comparaison sur les codes extraits, pas sur le texte : le
+            // serveur réécrit la clause à sa façon. MySQL 8 la restitue
+            // sous la forme (`service` in (_utf8mb4\'GM\',…)) — préfixe de
+            // jeu de caractères et apostrophes échappées comprises. Sans
+            // retirer ces barres obliques, l'extraction rendrait « GM\ »,
+            // jamais égal à la liste attendue : la contrainte serait
+            // supprimée puis reposée à chaque passage, avec le risque de la
+            // perdre si l'ajout échouait.
+            preg_match_all("/'([^']*)'/", str_replace('\\', '', $clause), $m);
+            $found = $m[1];
+            sort($found);
+            if ($found === $allowed) return; // déjà conforme
+
+            $wpdb->suppress_errors(true);
+            if ($wpdb->query("ALTER TABLE $t DROP CHECK `$name`") === false) {
+                $wpdb->query("ALTER TABLE $t DROP CONSTRAINT `$name`"); // MariaDB
+            }
+            $wpdb->suppress_errors(false);
+        }
+
+        // Une donnée déjà hors liste ferait échouer l'ALTER : on renonce
+        // plutôt que de laisser croire que la contrainte est en place.
+        $placeholders = implode(',', array_fill(0, count($allowed), '%s'));
+        $outliers = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $t WHERE service NOT IN ($placeholders)",
+            $allowed
+        ));
+        if ($outliers > 0) return;
+
+        $list = "'" . implode("','", $allowed) . "'";
+        $wpdb->suppress_errors(true);
+        $wpdb->query("ALTER TABLE $t ADD CONSTRAINT `$name` CHECK (service IN ($list))");
+        $wpdb->suppress_errors(false);
     }
 
     private static function table_exists($table) {
