@@ -18,7 +18,7 @@
 <div class="psc-portal-panel">
   <div class="psc-portal-panel-title">État civil</div>
   <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="psc-portal-profile-form" data-testid="profil-form">
-    <?php wp_nonce_field('psc_parent_update_profile'); ?>
+    <?php wp_nonce_field('psc_parent_update_profile'); psc_parent_nonce_field('psc_parent_update_profile'); ?>
     <input type="hidden" name="action" value="psc_parent_update_profile">
 
     <div class="psc-portal-field-grid">
@@ -75,7 +75,7 @@
 
   <div id="psc-second-parent-block" data-testid="profil-second-parent-block"<?php echo $psc_has_second_parent ? '' : ' hidden'; ?>>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" data-testid="profil-second-parent-form">
-      <?php wp_nonce_field('psc_parent_update_second_parent'); ?>
+      <?php wp_nonce_field('psc_parent_update_second_parent'); psc_parent_nonce_field('psc_parent_update_second_parent'); ?>
       <input type="hidden" name="action" value="psc_parent_update_second_parent">
       <div class="psc-portal-field-grid">
         <div>
@@ -98,7 +98,7 @@
       <p style="margin-top:16px;"><button type="submit" class="psc-portal-btn-gold" data-testid="profil-second-parent-submit">Enregistrer</button></p>
     </form>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" data-testid="profil-second-parent-remove-form">
-      <?php wp_nonce_field('psc_parent_remove_second_parent'); ?>
+      <?php wp_nonce_field('psc_parent_remove_second_parent'); psc_parent_nonce_field('psc_parent_remove_second_parent'); ?>
       <input type="hidden" name="action" value="psc_parent_remove_second_parent">
       <button type="submit" class="psc-wizard-remove-pickup-btn" data-testid="profil-remove-second-parent" onclick="return confirm('Retirer le second parent ?');">Retirer</button>
     </form>
@@ -123,7 +123,7 @@
         <td class="psc-portal-row-save">
           <?php if ($psc_hh['removable']): ?>
           <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
-            <?php wp_nonce_field('psc_parent_remove_household_pickup_person'); ?>
+            <?php wp_nonce_field('psc_parent_remove_household_pickup_person'); psc_parent_nonce_field('psc_parent_remove_household_pickup_person'); ?>
             <input type="hidden" name="action" value="psc_parent_remove_household_pickup_person">
             <input type="hidden" name="pickup_ids" value="<?php echo esc_attr(implode(',', $psc_hh['ids'])); ?>">
             <button type="submit" class="psc-portal-btn-sm" data-testid="profil-remove-authorized-<?php echo esc_attr($psc_hh_i); ?>" onclick="return confirm('Retirer <?php echo esc_js($psc_hh['prenom'] . ' ' . $psc_hh['nom']); ?> de la liste des personnes autorisées ?');">Retirer</button>
@@ -141,7 +141,7 @@
     <button type="button" id="psc-add-household-pickup" class="psc-wizard-add-pickup-btn" data-testid="profil-add-household-pickup">+ Ajouter une personne autorisée</button>
     <div id="psc-household-pickup-form-block" hidden data-testid="profil-household-pickup-form-block">
       <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="psc-wizard-pickup-row" data-testid="profil-household-pickup-form">
-        <?php wp_nonce_field('psc_parent_add_household_pickup_person'); ?>
+        <?php wp_nonce_field('psc_parent_add_household_pickup_person'); psc_parent_nonce_field('psc_parent_add_household_pickup_person'); ?>
         <input type="hidden" name="action" value="psc_parent_add_household_pickup_person">
         <div>
           <label class="psc-portal-field-label screen-reader-text" for="psc-hh-prenom">Prénom</label>

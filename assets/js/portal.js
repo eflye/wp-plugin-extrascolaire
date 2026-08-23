@@ -78,6 +78,7 @@
             var body = new URLSearchParams();
             body.set('action', 'psc_menu_week');
             body.set('nonce', PSC.nonce);
+            body.set('parent_nonce', PSC.parent_nonce || '');
             body.set('semaine', semaine);
 
             fetch(PSC.ajax_url, {

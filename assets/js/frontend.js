@@ -28,6 +28,7 @@
     function post(payload) {
         var body = new URLSearchParams();
         body.append('nonce', PSC.nonce);
+        body.append('parent_nonce', PSC.parent_nonce || '');
         Object.keys(payload).forEach(function (k) { body.append(k, payload[k]); });
 
         return fetch(PSC.ajax_url, {

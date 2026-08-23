@@ -112,9 +112,15 @@ class Psc_Frontend {
 
         wp_enqueue_style('psc-frontend', PSC_URL . 'assets/css/frontend.css', array(), PSC_VERSION);
         wp_enqueue_script('psc-frontend', PSC_URL . 'assets/js/frontend.js', array(), PSC_VERSION, true);
+        // Second jeton, lié à la famille connectée : le nonce WordPress seul
+        // est identique pour tous les visiteurs non connectés (cf.
+        // psc_parent_nonce()). Vide pour un visiteur non identifié — les
+        // routes AJAX concernées exigent de toute façon une session.
+        $psc_parent = Psc_Parents::current();
         wp_localize_script('psc-frontend', 'PSC', array(
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce'    => wp_create_nonce('psc_front'),
+            'ajax_url'     => admin_url('admin-ajax.php'),
+            'nonce'        => wp_create_nonce('psc_front'),
+            'parent_nonce' => $psc_parent ? psc_parent_nonce('psc_front', $psc_parent->id) : '',
         ));
 
         // Design v2 : commun au portail connecté et à la vue invité —
@@ -429,9 +435,7 @@ class Psc_Frontend {
      * enfant déjà existant (remplacement depuis « Mes enfants »).
      */
     public static function handle_parent_upload_assurance() {
-        check_admin_referer('psc_parent_upload_assurance');
-
-        $parent = Psc_Parents::current();
+        $parent = self::authed_parent('psc_parent_upload_assurance');
         if (!$parent) self::parent_form_redirect('auth');
 
         global $wpdb;
@@ -492,6 +496,11 @@ class Psc_Frontend {
 
         $parent = Psc_Parents::current();
         if (!$parent) {
+            wp_send_json_error(array('code' => 'auth'), 403);
+        }
+        // Jeton propre à cette famille : le nonce ci-dessus ne distingue pas
+        // les visiteurs non connectés entre eux (cf. psc_parent_nonce()).
+        if (!psc_verify_parent_nonce('psc_front', $parent->id, psc_post('parent_nonce'))) {
             wp_send_json_error(array('code' => 'auth'), 403);
         }
 
@@ -629,6 +638,11 @@ class Psc_Frontend {
         if (!$parent) {
             wp_send_json_error(array('code' => 'auth'), 403);
         }
+        // Jeton propre à cette famille : le nonce ci-dessus ne distingue pas
+        // les visiteurs non connectés entre eux (cf. psc_parent_nonce()).
+        if (!psc_verify_parent_nonce('psc_front', $parent->id, psc_post('parent_nonce'))) {
+            wp_send_json_error(array('code' => 'auth'), 403);
+        }
 
         global $wpdb;
 
@@ -742,6 +756,11 @@ class Psc_Frontend {
         if (!$parent) {
             wp_send_json_error(array('code' => 'auth'), 403);
         }
+        // Jeton propre à cette famille : le nonce ci-dessus ne distingue pas
+        // les visiteurs non connectés entre eux (cf. psc_parent_nonce()).
+        if (!psc_verify_parent_nonce('psc_front', $parent->id, psc_post('parent_nonce'))) {
+            wp_send_json_error(array('code' => 'auth'), 403);
+        }
 
         // Évite l'envoi répété de récapitulatifs (clics multiples).
         if (!psc_rate_limit('recap_' . $parent->id, 5, 10 * MINUTE_IN_SECONDS)) {
@@ -795,6 +814,29 @@ class Psc_Frontend {
     }
 
     /**
+     * Point d'entrée unique des actions du portail : identifie la famille et
+     * valide le jeton anti-CSRF qui lui est propre. Retourne la famille, ou
+     * null (l'appelant redirige alors vers l'écran de connexion).
+     *
+     * Deux couches, volontairement : le nonce WordPress vérifie aussi le
+     * référent, mais il ne distingue pas les visiteurs non connectés entre
+     * eux — c'est psc_verify_parent_nonce() qui garantit que le jeton a bien
+     * été émis pour CETTE famille, et non lu sur une page publique par un
+     * tiers (cf. psc_parent_nonce()).
+     */
+    protected static function authed_parent($action) {
+        check_admin_referer($action);
+
+        $parent = Psc_Parents::current();
+        if (!$parent) return null;
+
+        $nonce = isset($_POST['psc_nonce']) ? sanitize_text_field(wp_unslash($_POST['psc_nonce'])) : '';
+        if (!psc_verify_parent_nonce($action, $parent->id, $nonce)) return null;
+
+        return $parent;
+    }
+
+    /**
      * Correction par le parent d'une faute de frappe sur l'état civil
      * (prénom / nom / date de naissance) d'un enfant déjà onboardé. La
      * classe (désormais par année scolaire, cf. wp_psc_child_school_years)
@@ -803,9 +845,7 @@ class Psc_Frontend {
      * relève de la mairie.
      */
     public static function handle_parent_update_child_identity() {
-        check_admin_referer('psc_parent_update_child_identity');
-
-        $parent = Psc_Parents::current();
+        $parent = self::authed_parent('psc_parent_update_child_identity');
         if (!$parent) self::parent_form_redirect('auth');
 
         $child_id  = psc_post_int('child_id');
@@ -837,9 +877,7 @@ class Psc_Frontend {
     }
 
     public static function handle_parent_add_child() {
-        check_admin_referer('psc_parent_add_child');
-
-        $parent = Psc_Parents::current();
+        $parent = self::authed_parent('psc_parent_add_child');
         if (!$parent) self::parent_form_redirect('auth');
 
         $prenom    = psc_post('new_prenom');
@@ -900,9 +938,7 @@ class Psc_Frontend {
      * confirmation par lien, jamais immédiatement.
      */
     public static function handle_parent_update_profile() {
-        check_admin_referer('psc_parent_update_profile');
-
-        $parent = Psc_Parents::current();
+        $parent = self::authed_parent('psc_parent_update_profile');
         if (!$parent) self::parent_form_redirect('auth');
 
         $result = Psc_Parents::update($parent->id, array(
@@ -944,9 +980,7 @@ class Psc_Frontend {
      * silencieusement ignorée plutôt que de faire échouer tout le lot.
      */
     public static function handle_cancel_absence() {
-        check_admin_referer('psc_cancel_absence');
-
-        $parent = Psc_Parents::current();
+        $parent = self::authed_parent('psc_cancel_absence');
         if (!$parent) self::parent_form_redirect('auth');
 
         global $wpdb;
@@ -1030,9 +1064,7 @@ class Psc_Frontend {
      * le backoffice (Psc_Admin) une fois la fenêtre refermée.
      */
     public static function handle_parent_reinscription() {
-        check_admin_referer('psc_parent_reinscription');
-
-        $parent = Psc_Parents::current();
+        $parent = self::authed_parent('psc_parent_reinscription');
         if (!$parent) self::parent_form_redirect('auth');
 
         if (!self::reinscription_window_open()) self::parent_form_redirect('reinscription_invalid');
@@ -1099,9 +1131,7 @@ class Psc_Frontend {
      * d'ajouter une entrée sur un enfant qui n'est pas le sien.
      */
     public static function handle_parent_add_pickup_person() {
-        check_admin_referer('psc_parent_pickup_person');
-
-        $parent = Psc_Parents::current();
+        $parent = self::authed_parent('psc_parent_pickup_person');
         if (!$parent) self::parent_form_redirect('auth');
 
         global $wpdb;
@@ -1124,9 +1154,7 @@ class Psc_Frontend {
      * c'est cet enfant, pas seulement la ligne, qui est revérifié.
      */
     public static function handle_parent_update_pickup_person() {
-        check_admin_referer('psc_parent_pickup_person');
-
-        $parent = Psc_Parents::current();
+        $parent = self::authed_parent('psc_parent_pickup_person');
         if (!$parent) self::parent_form_redirect('auth');
 
         $pickup_id = psc_post_int('pickup_id');
@@ -1143,9 +1171,7 @@ class Psc_Frontend {
 
     /** Retrait (soft-delete) d'une personne autorisée. */
     public static function handle_parent_remove_pickup_person() {
-        check_admin_referer('psc_parent_remove_pickup_person');
-
-        $parent = Psc_Parents::current();
+        $parent = self::authed_parent('psc_parent_remove_pickup_person');
         if (!$parent) self::parent_form_redirect('auth');
 
         $pickup_id = psc_post_int('pickup_id');
@@ -1167,9 +1193,7 @@ class Psc_Frontend {
      * inscription (Psc_Parents::update() revalide email/téléphone).
      */
     public static function handle_parent_update_second_parent() {
-        check_admin_referer('psc_parent_update_second_parent');
-
-        $parent = Psc_Parents::current();
+        $parent = self::authed_parent('psc_parent_update_second_parent');
         if (!$parent) self::parent_form_redirect('auth');
 
         $result = Psc_Parents::update($parent->id, array(
@@ -1196,9 +1220,7 @@ class Psc_Frontend {
      * wp_psc_parents, jamais une ligne wp_psc_pickup_persons à supprimer).
      */
     public static function handle_parent_remove_second_parent() {
-        check_admin_referer('psc_parent_remove_second_parent');
-
-        $parent = Psc_Parents::current();
+        $parent = self::authed_parent('psc_parent_remove_second_parent');
         if (!$parent) self::parent_form_redirect('auth');
 
         Psc_Parents::update($parent->id, array(
@@ -1219,9 +1241,7 @@ class Psc_Frontend {
      * n'empêche pas l'ajout pour les autres.
      */
     public static function handle_parent_add_household_pickup_person() {
-        check_admin_referer('psc_parent_add_household_pickup_person');
-
-        $parent = Psc_Parents::current();
+        $parent = self::authed_parent('psc_parent_add_household_pickup_person');
         if (!$parent) self::parent_form_redirect('auth');
 
         $fields = self::pickup_fields_from_post();
@@ -1247,9 +1267,7 @@ class Psc_Frontend {
      * tiers peut avoir une ligne par enfant) et les retire tous d'un coup.
      */
     public static function handle_parent_remove_household_pickup_person() {
-        check_admin_referer('psc_parent_remove_household_pickup_person');
-
-        $parent = Psc_Parents::current();
+        $parent = self::authed_parent('psc_parent_remove_household_pickup_person');
         if (!$parent) self::parent_form_redirect('auth');
 
         $raw_ids = isset($_POST['pickup_ids']) ? sanitize_text_field(wp_unslash($_POST['pickup_ids'])) : '';
@@ -1276,9 +1294,7 @@ class Psc_Frontend {
      * réapparaît pas — cohérent avec le compte partagé du foyer.
      */
     public static function handle_parent_dismiss_onboarding() {
-        check_admin_referer('psc_parent_dismiss_onboarding');
-
-        $parent = Psc_Parents::current();
+        $parent = self::authed_parent('psc_parent_dismiss_onboarding');
         if (!$parent) self::parent_form_redirect('auth');
 
         global $wpdb;

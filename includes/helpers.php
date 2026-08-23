@@ -708,6 +708,63 @@ function psc_hash_token($token) {
     return hash_hmac('sha256', $token, wp_salt('psc_token'));
 }
 
+/* ------------------------------------------------------------------
+ * Jetons anti-CSRF du portail famille
+ * ------------------------------------------------------------------ */
+
+/**
+ * Jeton anti-CSRF lié à UNE famille.
+ *
+ * wp_create_nonce() ne convient pas ici : il dérive le jeton de
+ * l'utilisateur WordPress courant, or les familles n'en sont pas. Pour tout
+ * visiteur non connecté, l'uid vaut 0 — le nonce est donc identique pour
+ * tout le monde, et un attaquant n'a qu'à charger la page publique pour
+ * obtenir un jeton valide et le rejouer.
+ *
+ * On dérive donc le jeton de l'identifiant de la famille et d'un secret du
+ * site : un tiers ne peut ni le calculer (il n'a pas le sel), ni le lire
+ * (sans la session de la famille, la page ne lui en montre aucun).
+ *
+ * Découpage en tranches de 12 h, la précédente restant acceptée : un
+ * formulaire ouvert longtemps reste valide jusqu'à 24 h, comme le
+ * comportement natif de WordPress.
+ */
+function psc_parent_nonce($action, $parent_id, $tick_offset = 0) {
+    $tick = (int) ceil(time() / (12 * HOUR_IN_SECONDS)) - (int) $tick_offset;
+    return substr(hash_hmac(
+        'sha256',
+        $tick . '|' . $action . '|' . (int) $parent_id,
+        wp_salt('psc_parent_nonce')
+    ), 0, 24);
+}
+
+/** Vérifie un jeton du portail (comparaison à temps constant, deux tranches acceptées). */
+function psc_verify_parent_nonce($action, $parent_id, $nonce) {
+    if (!$nonce || !$parent_id) return false;
+    $nonce = (string) $nonce;
+    foreach (array(0, 1) as $offset) {
+        if (hash_equals(psc_parent_nonce($action, $parent_id, $offset), $nonce)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Champ caché à placer dans chaque formulaire du portail — équivalent de
+ * wp_nonce_field() pour une famille. Sans session ouverte, aucun jeton
+ * n'est émis : le formulaire ne peut alors pas être soumis, ce qui est le
+ * comportement voulu.
+ */
+function psc_parent_nonce_field($action) {
+    $parent = Psc_Parents::current();
+    if (!$parent) return;
+    printf(
+        '<input type="hidden" name="psc_nonce" value="%s">',
+        esc_attr(psc_parent_nonce($action, $parent->id))
+    );
+}
+
 /**
  * Limitation de fréquence (anti-spam / anti-énumération).
  * Renvoie false si la limite est atteinte.

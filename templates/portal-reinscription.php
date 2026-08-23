@@ -19,7 +19,7 @@
 <?php else: ?>
 <div class="psc-portal-panel psc-portal-panel--wide">
   <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data" data-testid="reinscription-form">
-    <?php wp_nonce_field('psc_parent_reinscription'); ?>
+    <?php wp_nonce_field('psc_parent_reinscription'); psc_parent_nonce_field('psc_parent_reinscription'); ?>
     <input type="hidden" name="action" value="psc_parent_reinscription">
 
     <?php foreach ($psc_reins_children as $c):

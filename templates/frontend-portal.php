@@ -38,7 +38,7 @@
       </div>
 
       <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="psc-onboarding-dismiss-form">
-        <?php wp_nonce_field('psc_parent_dismiss_onboarding'); ?>
+        <?php wp_nonce_field('psc_parent_dismiss_onboarding'); psc_parent_nonce_field('psc_parent_dismiss_onboarding'); ?>
         <input type="hidden" name="action" value="psc_parent_dismiss_onboarding">
       </form>
 

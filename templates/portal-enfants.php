@@ -55,7 +55,7 @@
   <div class="psc-portal-modal">
     <h3 class="psc-portal-modal-title">Corriger les informations</h3>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" data-testid="child-edit-form">
-      <?php wp_nonce_field('psc_parent_update_child_identity'); ?>
+      <?php wp_nonce_field('psc_parent_update_child_identity'); psc_parent_nonce_field('psc_parent_update_child_identity'); ?>
       <input type="hidden" name="action" value="psc_parent_update_child_identity">
       <input type="hidden" name="child_id" id="psc-child-edit-id" value="">
 
@@ -140,7 +140,7 @@ if ($psc_active_year) {
   <div class="psc-portal-modal">
     <h3 class="psc-portal-modal-title" id="psc-assurance-upload-title">Justificatif d'assurance scolaire</h3>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data" data-testid="assurance-upload-form">
-      <?php wp_nonce_field('psc_parent_upload_assurance'); ?>
+      <?php wp_nonce_field('psc_parent_upload_assurance'); psc_parent_nonce_field('psc_parent_upload_assurance'); ?>
       <input type="hidden" name="action" value="psc_parent_upload_assurance">
       <input type="hidden" name="child_id" id="psc-assurance-upload-child-id" value="">
 
@@ -211,7 +211,7 @@ if ($psc_active_year) {
             <td class="psc-portal-row-save">
               <button type="button" class="psc-portal-btn-sm" data-pickup-edit-trigger data-pickup-id="<?php echo esc_attr($p->id); ?>" aria-label="Modifier les coordonnées de <?php echo esc_attr($p->prenom . ' ' . $p->nom); ?>">Modifier</button>
               <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
-                <?php wp_nonce_field('psc_parent_remove_pickup_person'); ?>
+                <?php wp_nonce_field('psc_parent_remove_pickup_person'); psc_parent_nonce_field('psc_parent_remove_pickup_person'); ?>
                 <input type="hidden" name="action" value="psc_parent_remove_pickup_person">
                 <input type="hidden" name="pickup_id" value="<?php echo esc_attr($p->id); ?>">
                 <button type="submit" class="psc-portal-btn-sm" onclick="return confirm('Retirer <?php echo esc_js($p->prenom . ' ' . $p->nom); ?> de la liste des personnes autorisées à récupérer <?php echo esc_js($c->prenom); ?> ?');">Retirer</button>
@@ -232,7 +232,7 @@ if ($psc_active_year) {
   <div class="psc-portal-modal">
     <h3 class="psc-portal-modal-title" id="psc-pickup-modal-title">Personne autorisée</h3>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" data-testid="pickup-form">
-      <?php wp_nonce_field('psc_parent_pickup_person'); ?>
+      <?php wp_nonce_field('psc_parent_pickup_person'); psc_parent_nonce_field('psc_parent_pickup_person'); ?>
       <input type="hidden" name="action" id="psc-pickup-form-action" value="psc_parent_add_pickup_person">
       <input type="hidden" name="child_id" id="psc-pickup-child-id" value="">
       <input type="hidden" name="pickup_id" id="psc-pickup-id" value="">
@@ -289,7 +289,7 @@ if ($psc_active_year) {
 <div class="psc-portal-panel psc-portal-panel--wide">
   <div class="psc-portal-panel-title">Ajouter un enfant</div>
   <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data" class="psc-add-child-form">
-    <?php wp_nonce_field('psc_parent_add_child'); ?>
+    <?php wp_nonce_field('psc_parent_add_child'); psc_parent_nonce_field('psc_parent_add_child'); ?>
     <input type="hidden" name="action" value="psc_parent_add_child">
     <div class="psc-portal-field-grid">
       <div>
