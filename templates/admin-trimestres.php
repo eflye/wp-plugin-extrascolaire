@@ -14,10 +14,57 @@ $psc_notices = array(
     'invalid'            => array('error', 'Opération impossible : élément introuvable.'),
     'active_trimestre'   => array('error', 'Impossible de supprimer le trimestre actif : activez-en un autre au préalable.'),
     'confirm_mismatch'   => array('error', 'Le texte de confirmation ne correspond pas ("CONFIRMER" attendu). Le trimestre n\'a pas été supprimé.'),
+    'cancelled'          => array('success', 'Modification annulée : le trimestre est inchangé.'),
+    'trim_confirm_needed' => array('error', 'Cette modification sort des présences déjà déclarées de la période. Confirmez ci-dessous.'),
+    'trim_updated_purged' => array('success', 'Trimestre modifié. Les présences situées hors de la nouvelle période ont été supprimées.'),
 );
 if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
     list($type, $text) = $psc_notices[$psc_msg]; ?>
     <div class="notice notice-<?php echo esc_attr($type); ?> is-dismissible"><p><?php echo esc_html($text); ?></p></div>
+<?php endif; ?>
+
+<?php
+/*
+ * Rétrécir un trimestre fait sortir de sa période des jours que des
+ * familles ont déjà déclarés. Ces présences ne peuvent pas rester
+ * rattachées au trimestre — elles seraient facturées sans appartenir à
+ * aucune période valide — mais leur suppression se voit annoncée et
+ * confirmée, comme pour la fermeture d'un jour occupé.
+ */
+if (!empty($pending_trimestre)): ?>
+<div class="psc-box" style="border-left:4px solid #d63638;">
+<h2>⚠ Confirmation nécessaire</h2>
+<p>
+    La nouvelle période
+    (<strong><?php echo esc_html(date_i18n('d/m/Y', strtotime($pending_trimestre['date_debut']))); ?></strong>
+    au
+    <strong><?php echo esc_html(date_i18n('d/m/Y', strtotime($pending_trimestre['date_fin']))); ?></strong>)
+    ne couvre plus
+    <strong><?php echo (int) $pending_trimestre['orphaned']; ?> présence(s) déjà déclarée(s)</strong>
+    par des familles sur ce trimestre.
+</p>
+<p>
+    Ces présences seront <strong>définitivement supprimées</strong> : elles ne
+    seront ni facturées, ni conservées. Les familles concernées ne sont pas
+    prévenues automatiquement.
+</p>
+<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline;">
+    <?php wp_nonce_field('psc_update_trimestre'); ?>
+    <input type="hidden" name="action" value="psc_update_trimestre">
+    <input type="hidden" name="confirm" value="1">
+    <input type="hidden" name="id" value="<?php echo esc_attr($pending_trimestre['id']); ?>">
+    <input type="hidden" name="label" value="<?php echo esc_attr($pending_trimestre['label']); ?>">
+    <input type="hidden" name="date_debut" value="<?php echo esc_attr($pending_trimestre['date_debut']); ?>">
+    <input type="hidden" name="date_fin" value="<?php echo esc_attr($pending_trimestre['date_fin']); ?>">
+    <input type="hidden" name="school_year_id" value="<?php echo esc_attr($pending_trimestre['school_year_id']); ?>">
+    <button type="submit" class="button button-primary">Confirmer et supprimer ces présences</button>
+</form>
+<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline;margin-left:8px;">
+    <?php wp_nonce_field('psc_cancel_trimestre_update'); ?>
+    <input type="hidden" name="action" value="psc_cancel_trimestre_update">
+    <button type="submit" class="button">Annuler</button>
+</form>
+</div>
 <?php endif; ?>
 
 <div class="psc-box">

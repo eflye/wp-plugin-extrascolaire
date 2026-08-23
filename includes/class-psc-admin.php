@@ -8,6 +8,7 @@ class Psc_Admin {
         add_action('admin_post_psc_add_trimestre', array(__CLASS__, 'handle_add_trimestre'));
         add_action('admin_post_psc_activate_trimestre', array(__CLASS__, 'handle_activate_trimestre'));
         add_action('admin_post_psc_update_trimestre', array(__CLASS__, 'handle_update_trimestre'));
+        add_action('admin_post_psc_cancel_trimestre_update', array(__CLASS__, 'handle_cancel_trimestre_update'));
         add_action('admin_post_psc_delete_trimestre', array(__CLASS__, 'handle_delete_trimestre'));
         add_action('admin_post_psc_add_school_year', array(__CLASS__, 'handle_add_school_year'));
         add_action('admin_post_psc_activate_school_year', array(__CLASS__, 'handle_activate_school_year'));
@@ -441,6 +442,27 @@ class Psc_Admin {
             self::redirect('psc_trimestres', 'too_long');
         }
 
+        // Rétrécir un trimestre laissait derrière lui des jours de
+        // calendrier et des inscriptions désormais hors de ses bornes :
+        // generate_calendar_days() ajoute des jours, n'en retire jamais.
+        // Ces présences restaient rattachées au trimestre et donc
+        // facturées, alors qu'elles ne tombaient plus dans aucune période
+        // valide. On mesure l'impact avant d'écrire quoi que ce soit.
+        $orphaned = self::registrations_outside_range($id, $debut, $fin);
+
+        if ($orphaned > 0 && !psc_post_int('confirm')) {
+            set_transient(
+                self::pending_trimestre_key(),
+                array('id' => $id, 'label' => $label, 'date_debut' => $debut,
+                      'date_fin' => $fin, 'school_year_id' => $school_year_id,
+                      'orphaned' => $orphaned),
+                10 * MINUTE_IN_SECONDS
+            );
+            self::redirect('psc_trimestres', 'trim_confirm_needed');
+        }
+
+        delete_transient(self::pending_trimestre_key());
+
         $wpdb->update($t_trim, array(
             'label'          => mb_substr($label, 0, 190),
             'date_debut'     => $debut,
@@ -449,7 +471,42 @@ class Psc_Admin {
         ), array('id' => $id), array('%s', '%s', '%s', '%d'), array('%d'));
 
         Psc_Installer::generate_calendar_days($id, $debut, $fin);
-        self::redirect('psc_trimestres', 'updated');
+
+        // Puis on retire ce qui est sorti de la période. L'ordre compte :
+        // le calendrier est régénéré d'abord, sans quoi la purge porterait
+        // sur les anciennes bornes.
+        $wpdb->query($wpdb->prepare(
+            "DELETE FROM " . psc_table('registrations') . "
+             WHERE trimestre_id = %d AND (jour_date < %s OR jour_date > %s)",
+            $id, $debut, $fin
+        ));
+        $wpdb->query($wpdb->prepare(
+            "DELETE FROM " . psc_table('calendar_days') . "
+             WHERE trimestre_id = %d AND (jour_date < %s OR jour_date > %s)",
+            $id, $debut, $fin
+        ));
+
+        self::redirect('psc_trimestres', $orphaned > 0 ? 'trim_updated_purged' : 'updated');
+    }
+
+    /** Présences déclarées qui tomberaient hors des nouvelles bornes. */
+    protected static function registrations_outside_range($trimestre_id, $debut, $fin) {
+        global $wpdb;
+        return (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM " . psc_table('registrations') . "
+             WHERE trimestre_id = %d AND (jour_date < %s OR jour_date > %s)",
+            $trimestre_id, $debut, $fin
+        ));
+    }
+
+    protected static function pending_trimestre_key() {
+        return 'psc_pending_trimestre_' . get_current_user_id();
+    }
+
+    public static function handle_cancel_trimestre_update() {
+        self::guard('psc_cancel_trimestre_update');
+        delete_transient(self::pending_trimestre_key());
+        self::redirect('psc_trimestres', 'cancelled');
     }
 
     /**
@@ -638,6 +695,8 @@ class Psc_Admin {
         foreach ($reg_count_rows as $r) {
             $trimestre_reg_counts[(int) $r->trimestre_id] = (int) $r->n;
         }
+
+        $pending_trimestre = get_transient(self::pending_trimestre_key());
 
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         include PSC_PATH . 'templates/admin-trimestres.php';
