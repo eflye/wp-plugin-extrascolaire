@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '3.6.0';
+    const DB_VERSION = '3.7.0';
     const ROLES_VERSION = '1.0.0';
 
     public static function activate() {
@@ -71,8 +71,87 @@ class Psc_Installer {
             if ($current && version_compare($current, '3.0.0', '<')) {
                 self::migrate_3_0_0();
             }
+            if ($current && version_compare($current, '3.7.0', '<')) {
+                self::migrate_3_7_0();
+            }
             update_option('psc_db_version', self::DB_VERSION);
         }
+
+        // Hors bloc de version : le répertoire privé doit exister (et porter
+        // ses garde-fous) à chaque chargement, même si un administrateur l'a
+        // supprimé à la main ou si l'hébergeur a réinitialisé le disque.
+        psc_ensure_private_dir();
+    }
+
+    /**
+     * Sort les documents des familles de wp-content/uploads/.
+     *
+     * Ces fichiers (justificatifs d'assurance nominatifs concernant des
+     * mineurs, factures) étaient écrits sous uploads/periscolaire/, servi
+     * publiquement par le serveur web, sous des noms séquentiels devinables
+     * (child-12.pdf, facture-7.pdf) : ils étaient donc téléchargeables sans
+     * aucune authentification par simple énumération d'URL.
+     *
+     * Les chemins enregistrés en base sont relatifs ("periscolaire/…") : les
+     * déplacer en bloc sous psc_private_dir() suffit, aucune écriture SQL
+     * n'est nécessaire. L'ancien dossier est neutralisé s'il subsiste.
+     */
+    private static function migrate_3_7_0() {
+        if (!psc_ensure_private_dir()) {
+            return;
+        }
+
+        $upload = wp_upload_dir();
+        $legacy = trailingslashit($upload['basedir']) . 'periscolaire';
+        $target = psc_private_path('periscolaire');
+
+        if (!is_dir($legacy)) {
+            return;
+        }
+
+        // rename() est atomique tant qu'on ne franchit pas de périphérique ;
+        // sinon on recopie fichier par fichier avant de purger la source.
+        if (!is_dir($target) && @rename($legacy, $target)) { // phpcs:ignore WordPress.PHP.NoSilencedErrors
+            return;
+        }
+
+        self::move_tree($legacy, $target);
+
+        // Si des fichiers résistent au déplacement (permissions), au moins
+        // interdire leur accès direct là où ils sont restés.
+        if (is_dir($legacy)) {
+            $guard = trailingslashit($legacy) . '.htaccess';
+            if (!file_exists($guard)) {
+                file_put_contents( // phpcs:ignore WordPress.WP.AlternativeFunctions
+                    $guard,
+                    "<IfModule mod_authz_core.c>\n  Require all denied\n</IfModule>\n"
+                    . "<IfModule !mod_authz_core.c>\n  Order allow,deny\n  Deny from all\n</IfModule>\n"
+                );
+            }
+        }
+    }
+
+    /** Déplace récursivement le contenu de $src vers $dst, puis retire les dossiers vidés. */
+    private static function move_tree($src, $dst) {
+        if (!is_dir($src)) return;
+        if (!is_dir($dst) && !wp_mkdir_p($dst)) return;
+
+        foreach (scandir($src) as $entry) {
+            if ($entry === '.' || $entry === '..') continue;
+            $from = trailingslashit($src) . $entry;
+            $to   = trailingslashit($dst) . $entry;
+
+            if (is_dir($from)) {
+                self::move_tree($from, $to);
+                continue;
+            }
+            if (!file_exists($to)) {
+                @rename($from, $to); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+            } else {
+                @unlink($from); // phpcs:ignore WordPress.PHP.NoSilencedErrors — déjà migré
+            }
+        }
+        @rmdir($src); // phpcs:ignore WordPress.PHP.NoSilencedErrors — ne vide que si plus rien dedans
     }
 
     /**

@@ -54,8 +54,7 @@ class Psc_Requests {
      * ou que la demande soit purgée sans jamais avoir été approuvée.
      */
     protected static function pending_assurance_dir($request_id) {
-        $upload_dir = wp_upload_dir();
-        return trailingslashit($upload_dir['basedir']) . 'periscolaire/assurances/pending/' . (int) $request_id;
+        return psc_private_path('periscolaire/assurances/pending/' . (int) $request_id);
     }
 
     protected static function delete_pending_assurance_files($request_id) {
@@ -725,7 +724,7 @@ class Psc_Requests {
             // (cas limite) : la demande doit toujours pouvoir être
             // approuvée, l'enfant reste rattrapable via « Mes enfants ».
             if (!empty($c['assurance_rel_path'])) {
-                $abs = trailingslashit(wp_upload_dir()['basedir']) . $c['assurance_rel_path'];
+                $abs = psc_private_path($c['assurance_rel_path']);
                 if (file_exists($abs)) {
                     Psc_Frontend::promote_pending_assurance($child_id, $abs, $c['assurance_original_filename'] ?? '');
                 }

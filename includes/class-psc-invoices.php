@@ -156,8 +156,7 @@ class Psc_Invoices {
         }
 
         // Store relative path
-        $upload_dir = wp_upload_dir();
-        $rel_path   = str_replace(trailingslashit($upload_dir['basedir']), '', $pdf_path);
+        $rel_path = str_replace(trailingslashit(psc_private_dir()), '', $pdf_path);
         $wpdb->update($t_inv, array('pdf_path' => $rel_path), array('id' => $invoice_id), array('%s'), array('%d'));
 
         return $invoice_id;
@@ -220,8 +219,7 @@ class Psc_Invoices {
             return new WP_Error('not_found', 'Facture introuvable.');
         }
 
-        $upload_dir = wp_upload_dir();
-        $pdf_path   = trailingslashit($upload_dir['basedir']) . $invoice->pdf_path;
+        $pdf_path = psc_private_path($invoice->pdf_path);
 
         if (!file_exists($pdf_path)) {
             return new WP_Error('no_file', 'Le fichier PDF est introuvable. Regénérez la facture.');
@@ -297,8 +295,7 @@ class Psc_Invoices {
             wp_die(esc_html__('Facture introuvable.', 'periscolaire-registration'));
         }
 
-        $upload_dir = wp_upload_dir();
-        $pdf_path   = trailingslashit($upload_dir['basedir']) . $invoice->pdf_path;
+        $pdf_path = psc_private_path($invoice->pdf_path);
 
         if (!file_exists($pdf_path)) {
             wp_die(esc_html__('Fichier PDF introuvable. Regénérez la facture.', 'periscolaire-registration'));
@@ -333,10 +330,10 @@ class Psc_Invoices {
     /* ------------------------------------------------------------------ */
 
     private static function pdf_path($mois, $parent_id) {
-        $upload_dir = wp_upload_dir();
-        return trailingslashit($upload_dir['basedir'])
-            . 'periscolaire/factures/' . $mois
-            . '/facture-' . (int) $parent_id . '.pdf';
+        return psc_private_path(
+            'periscolaire/factures/' . $mois
+            . '/facture-' . (int) $parent_id . '.pdf'
+        );
     }
 
     /** Encode une chaîne UTF-8 en ISO-8859-1 pour FPDF. */

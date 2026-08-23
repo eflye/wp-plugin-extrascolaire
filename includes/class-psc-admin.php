@@ -50,6 +50,7 @@ class Psc_Admin {
         add_action('admin_post_psc_download_assurance', array(__CLASS__, 'handle_download_assurance'));
         add_action('admin_post_psc_download_pending_assurance', array(__CLASS__, 'handle_download_pending_assurance'));
         add_action('admin_enqueue_scripts', array(__CLASS__, 'assets'));
+        add_action('admin_notices', array(__CLASS__, 'notice_private_dir_exposed'));
     }
 
     /**
@@ -82,6 +83,59 @@ class Psc_Admin {
         if (strpos($hook, 'psc_settings') !== false) {
             wp_enqueue_media();
         }
+    }
+
+    /**
+     * Alerte si les documents des familles sont téléchargeables sans
+     * authentification.
+     *
+     * Les fichiers .htaccess/web.config posés par psc_ensure_private_dir()
+     * ne protègent que sous Apache et IIS ; nginx les ignore. Plutôt que de
+     * supposer que la protection tient, on la vérifie réellement (une requête
+     * HTTP sur un fichier témoin, mise en cache) et on le dit clairement à
+     * l'administrateur si ce n'est pas le cas — il n'a alors qu'une règle
+     * serveur à poser.
+     */
+    public static function notice_private_dir_exposed() {
+        if (!psc_user_can_manage()) return;
+
+        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+        $on_psc = $screen && strpos((string) $screen->id, 'psc_') !== false;
+        if (!$on_psc && !($screen && $screen->id === 'dashboard')) return;
+
+        $base = psc_private_dir_url();
+        if ($base === null) return; // dossier hors racine web : rien à vérifier
+
+        $probe = trailingslashit($base) . 'psc-probe.txt';
+        $rule  = "location ~* /" . basename(psc_private_dir()) . "/ {\n    deny all;\n    return 404;\n}";
+        ?>
+        <div class="notice notice-error" id="psc-private-exposed" hidden>
+            <p><strong>Périscolaire — les documents des familles sont téléchargeables sans connexion.</strong></p>
+            <p>
+                Les justificatifs d'assurance et les factures sont accessibles publiquement sous
+                <code><?php echo esc_html($base); ?></code>. Le serveur web ne tient pas compte du fichier
+                <code>.htaccess</code> déposé par l'extension — c'est notamment le cas sous nginx.
+            </p>
+            <p>Ajoutez cette règle à la configuration du serveur, puis rechargez cette page :</p>
+            <pre style="background:#fff;border:1px solid #ccd0d4;padding:10px;overflow:auto;"><?php echo esc_html($rule); ?></pre>
+        </div>
+        <script>
+        /* La vérification se fait depuis le navigateur, et non depuis le serveur :
+           c'est le seul point de vue qui reflète ce qu'un visiteur peut réellement
+           atteindre (le serveur, lui, n'arrive pas toujours à se joindre lui-même). */
+        (function () {
+            fetch(<?php echo wp_json_encode($probe); ?>, { cache: 'no-store', credentials: 'omit' })
+                .then(function (r) { return r.ok ? r.text() : null; })
+                .then(function (body) {
+                    if (body && body.indexOf('psc-probe-') === 0) {
+                        var el = document.getElementById('psc-private-exposed');
+                        if (el) el.hidden = false;
+                    }
+                })
+                .catch(function () { /* injoignable = protégé */ });
+        })();
+        </script>
+        <?php
     }
 
     /**
@@ -609,13 +663,12 @@ class Psc_Admin {
         global $wpdb;
         $t_cy = psc_table('child_school_years');
 
-        $upload_dir = wp_upload_dir();
         $paths = $wpdb->get_col($wpdb->prepare(
             "SELECT assurance_file_path FROM $t_cy WHERE child_id = %d AND assurance_file_path IS NOT NULL",
             $child_id
         ));
         foreach ($paths as $rel_path) {
-            $abs = trailingslashit($upload_dir['basedir']) . $rel_path;
+            $abs = psc_private_path($rel_path);
             if (file_exists($abs)) {
                 @unlink($abs); // phpcs:ignore WordPress.PHP.NoSilencedErrors
             }
@@ -656,12 +709,11 @@ class Psc_Admin {
         }
 
         $t_inv = psc_table('invoices');
-        $upload_dir = wp_upload_dir();
         $pdf_paths = $wpdb->get_col($wpdb->prepare(
             "SELECT pdf_path FROM $t_inv WHERE parent_id = %d AND pdf_path IS NOT NULL", $id
         ));
         foreach ($pdf_paths as $rel_path) {
-            $abs = trailingslashit($upload_dir['basedir']) . $rel_path;
+            $abs = psc_private_path($rel_path);
             if (file_exists($abs)) {
                 @unlink($abs); // phpcs:ignore WordPress.PHP.NoSilencedErrors
             }

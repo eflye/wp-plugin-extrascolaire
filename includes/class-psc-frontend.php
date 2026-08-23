@@ -270,8 +270,7 @@ class Psc_Frontend {
      * Psc_Invoices::download().
      */
     public static function stream_assurance_file($rel_path, $filename) {
-        $upload_dir = wp_upload_dir();
-        $path = trailingslashit($upload_dir['basedir']) . $rel_path;
+        $path = psc_private_path($rel_path);
 
         if (!file_exists($path)) {
             wp_die(esc_html__('Fichier introuvable.', 'periscolaire-registration'));
@@ -340,8 +339,7 @@ class Psc_Frontend {
         ));
 
         $rel_dir = 'periscolaire/assurances/' . $rentree_year;
-        $upload_dir = wp_upload_dir();
-        $dir = trailingslashit($upload_dir['basedir']) . $rel_dir;
+        $dir = psc_private_path($rel_dir);
         if (!wp_mkdir_p($dir)) {
             return 'failed';
         }
@@ -356,7 +354,7 @@ class Psc_Frontend {
         }
 
         $rel_path = self::assurance_rel_path($child_id, $rentree_year, $filetype['ext']);
-        $target   = trailingslashit($upload_dir['basedir']) . $rel_path;
+        $target   = psc_private_path($rel_path);
 
         if (!move_uploaded_file($file['tmp_name'], $target)) {
             return 'failed';
@@ -379,13 +377,12 @@ class Psc_Frontend {
         if (!in_array($ext, array('pdf', 'jpg', 'jpeg', 'png'), true)) return false;
 
         $rentree_year = psc_rentree_year();
-        $upload_dir = wp_upload_dir();
         $rel_dir = 'periscolaire/assurances/' . $rentree_year;
-        $dir = trailingslashit($upload_dir['basedir']) . $rel_dir;
+        $dir = psc_private_path($rel_dir);
         if (!wp_mkdir_p($dir)) return false;
 
         $rel_path = self::assurance_rel_path($child_id, $rentree_year, $ext);
-        $target   = trailingslashit($upload_dir['basedir']) . $rel_path;
+        $target   = psc_private_path($rel_path);
 
         if (!rename($abs_source_path, $target)) return false;
 

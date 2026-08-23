@@ -133,13 +133,12 @@ class Psc_School_Years {
         }
 
         $t_cy = psc_table('child_school_years');
-        $upload_dir = wp_upload_dir();
         $paths = $wpdb->get_col($wpdb->prepare(
             "SELECT assurance_file_path FROM $t_cy WHERE school_year_id = %d AND assurance_file_path IS NOT NULL",
             $id
         ));
         foreach ($paths as $rel_path) {
-            $abs = trailingslashit($upload_dir['basedir']) . $rel_path;
+            $abs = psc_private_path($rel_path);
             if (file_exists($abs)) {
                 @unlink($abs); // phpcs:ignore WordPress.PHP.NoSilencedErrors
             }

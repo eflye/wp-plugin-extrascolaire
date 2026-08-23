@@ -328,7 +328,14 @@ panneau déjà déplié.
 - **IBAN validé par clé de contrôle réelle** (mod-97, ISO 7064), BIC validé par format ; rejet côté serveur indépendant de la validation du navigateur.
 - IBAN affiché **masqué** dans les listes du backoffice (seuls le pays et les 4 derniers caractères apparaissent).
 - Le PDF du mandat de prélèvement SEPA (contient l'IBAN en clair) n'est **jamais stocké sur le serveur** : généré en fichier temporaire, joint à l'e-mail, puis supprimé immédiatement.
-- Justificatifs d'assurance scolaire limités à 1 Mo, formats PDF/JPG/PNG uniquement (vérifiés côté serveur, pas seulement par l'attribut `accept` du champ fichier), stockés hors de portée d'accès direct par URL.
+- Justificatifs d'assurance scolaire limités à 1 Mo, formats PDF/JPG/PNG uniquement (vérifiés côté serveur, pas seulement par l'attribut `accept` du champ fichier).
+- **Documents stockés hors du dossier des médias.** Justificatifs d'assurance et factures PDF sont écrits sous `wp-content/psc-private/` — jamais sous `wp-content/uploads/`, qui est systématiquement servi en HTTP : leurs noms étant prévisibles (`child-12.pdf`, `facture-7.pdf`), ils y auraient été téléchargeables par simple énumération d'URL. Ils ne sont accessibles que par les routes de téléchargement du plugin, après contrôle de session et d'appartenance. Le dossier reçoit un `.htaccess` et un `web.config` bloquants ; **nginx ne lisant pas `.htaccess`**, l'extension vérifie depuis le navigateur de l'administrateur que le dossier est réellement injoignable et affiche sinon un avertissement avec la règle à poser :
+  ```nginx
+  location ~* /psc-private/ {
+      deny all;
+      return 404;
+  }
+  ```
 - Fermer un jour du calendrier scolaire avec des inscriptions existantes exige une **confirmation explicite** après avertissement — pas de suppression accidentelle en un clic.
 
 ---
