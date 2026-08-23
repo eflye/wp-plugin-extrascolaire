@@ -117,7 +117,7 @@ class Psc_Parents {
         // Deux limites : par adresse (évite le harcèlement d'une famille)
         // et par IP (évite l'usage du site comme relais d'envoi).
         $ok_mail = psc_rate_limit('mail_' . strtolower($email), 3, 15 * MINUTE_IN_SECONDS);
-        $ok_ip   = psc_rate_limit('ip_' . psc_client_ip(), 10, HOUR_IN_SECONDS);
+        $ok_ip   = psc_rate_limit_by_ip('ip_', 10, HOUR_IN_SECONDS);
 
         if ($ok_mail && $ok_ip) {
             self::send_login_link($email);

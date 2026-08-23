@@ -143,7 +143,7 @@ class Psc_Sidscm {
     public static function ajax_unlock() {
         check_ajax_referer('psc_sidscm_front', 'nonce');
 
-        if (!psc_rate_limit('sidscm_unlock_' . psc_client_ip(), 20, HOUR_IN_SECONDS)) {
+        if (!psc_rate_limit_by_ip('sidscm_unlock_', 20, HOUR_IN_SECONDS)) {
             wp_send_json_error(array('code' => 'rate'), 429);
         }
 

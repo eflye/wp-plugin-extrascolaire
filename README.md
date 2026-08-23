@@ -321,7 +321,7 @@ panneau déjà déplié.
 - Requêtes SQL préparées (`$wpdb->prepare()`) systématiquement, y compris avec un nombre variable de paramètres.
 - Échappement systématique des sorties (`esc_html`/`esc_attr`/`esc_url`).
 - Jetons de connexion et de vérification stockés **hachés** (HMAC-SHA256), jamais en clair ; comparaison à temps constant (`hash_equals`).
-- Limitation de fréquence (anti-spam / anti-énumération) sur les formulaires publics ; réponse identique qu'une adresse soit connue ou non.
+- Limitation de fréquence (anti-spam / anti-énumération) sur les formulaires publics ; réponse identique qu'une adresse soit connue ou non. La fenêtre est **fixe** : son échéance est fixée à la première tentative et n'est pas repoussée par les suivantes, sans quoi un attaquant maintiendrait le compteur vivant indéfiniment et priverait durablement une famille visée de son lien de connexion. L'adresse IP est lue depuis `REMOTE_ADDR`, jamais depuis un en-tête fourni par le client (cf. [Derrière un répartiteur de charge](#derrière-un-répartiteur-de-charge-ou-un-cdn)).
 - Champ honeypot sur le formulaire de demande d'inscription.
 - Protection contre l'injection de formules CSV sur l'export.
 - Sessions familles signées côté serveur (cookie `HttpOnly`, `SameSite=Lax`, `Secure` en HTTPS) — aucun mot de passe stocké.
@@ -390,6 +390,22 @@ define('PSC_PRIVATE_DIR', dirname(ABSPATH) . '/psc-private');
 Les documents déjà déposés sont **déplacés automatiquement** au chargement suivant : le suivi porte sur le chemin lui-même, pas sur un numéro de version, de sorte qu'ajouter ou modifier la constante déménage bien l'existant. Sans cela, la correction n'aurait protégé que les dépôts à venir. Aucune écriture SQL n'est nécessaire, les chemins étant enregistrés en relatif.
 
 Si le chemin déclaré n'est pas inscriptible (dossier parent inexistant, droits refusés), une alerte le signale explicitement dans l'administration — plutôt que de laisser les téléchargements échouer sans explication. Retirer la ligne rétablit l'emplacement par défaut, et rapatrie les fichiers.
+
+### Derrière un répartiteur de charge ou un CDN
+
+La limitation de fréquence s'appuie sur `REMOTE_ADDR`, seule valeur que l'appelant ne choisit pas. Un en-tête `X-Forwarded-For` est envoyé par le client lui-même : s'y fier sans précaution donnerait à un attaquant une adresse différente à chaque requête, donc un contournement complet de la limitation. Il est donc **ignoré par défaut**.
+
+Si le site est servi derrière un répartiteur ou un CDN, `REMOTE_ADDR` est celui de l'intermédiaire — identique pour tous les visiteurs. Désigner alors explicitement l'en-tête à lire :
+
+```php
+// wp-config.php
+define('PSC_CLIENT_IP_HEADER', 'HTTP_X_FORWARDED_FOR');
+define('PSC_TRUSTED_PROXIES', 1); // nombre d'intermédiaires, 1 par défaut
+```
+
+L'adresse retenue est la **dernière** de la liste, pas la première : un intermédiaire ajoute à la fin l'adresse qu'il constate, et tout ce qui précède a pu être fabriqué par le client. Un attaquant qui envoie `X-Forwarded-For: 9.9.9.9` se voit donc toujours compté sur sa vraie adresse.
+
+Sans cette configuration, si l'adresse reste indéterminable, les limites par IP sont **levées** plutôt qu'appliquées à un seau commun : dans le cas contraire, les premiers visiteurs épuiseraient le quota de tous les autres et la protection anti-abus se transformerait en panne générale. Les limites par adresse e-mail continuent de s'appliquer.
 
 ### Capacité d'accès personnalisée
 

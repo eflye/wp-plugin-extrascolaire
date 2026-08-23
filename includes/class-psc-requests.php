@@ -217,7 +217,7 @@ class Psc_Requests {
         $email = strtolower($email);
 
         // Limitation stricte : ce formulaire est public.
-        $ok_ip = psc_rate_limit('req_ip_' . psc_client_ip(), 5, HOUR_IN_SECONDS);
+        $ok_ip = psc_rate_limit_by_ip('req_ip_', 5, HOUR_IN_SECONDS);
         $ok_mail = psc_rate_limit('req_mail_' . $email, 3, DAY_IN_SECONDS);
         if (!$ok_ip || !$ok_mail) {
             // Réponse identique : ne pas révéler que la limite est atteinte.
