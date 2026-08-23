@@ -7,7 +7,7 @@ License: GPLv2 or later
 Thème institutionnel pour le site de la commune de Montgeroult, conçu pour
 habiller le portail familles du plugin "Périscolaire - Inscriptions"
 (inscriptions cantine/garderie, factures, enfants, menu) avec la charte
-graphique de la commune (forêt/or, Fraunces + Work Sans).
+graphique de la commune (bleu encre/abricot terracotta, Fraunces + Work Sans).
 
 == Installation ==
 

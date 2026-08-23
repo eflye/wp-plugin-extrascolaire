@@ -1,4 +1,4 @@
-name: Release plugin ZIP
+name: Release plugin & thème ZIP
 
 # Se déclenche uniquement quand tu pousses un tag de version, ex: v3.0.33
 # (git tag v3.0.33 && git push origin v3.0.33). Aucun impact sur les push
@@ -43,13 +43,31 @@ jobs:
           cp -R assets build/periscolaire-registration/
           find build -name ".DS_Store" -delete
 
-      - name: Crée l'archive ZIP
+      - name: Crée l'archive ZIP du plugin
         run: |
           cd build
           zip -rq -X "../periscolaire-registration-${PLUGIN_VERSION}.zip" periscolaire-registration
 
+      # Thème du site (theme/Archive dans ce repo, Theme Name "Montgeroult
+      # Familles") : empaqueté sous le nom de dossier "Archive" pour
+      # correspondre au thème déjà installé sur le site de prod — seul le
+      # nom du fichier zip est plus lisible ("montgeroult-familles-...").
+      - name: Prépare le dossier du thème (fichiers de prod uniquement)
+        run: |
+          mkdir -p build/Archive
+          cp theme/Archive/style.css theme/Archive/functions.php theme/Archive/header.php theme/Archive/footer.php theme/Archive/index.php theme/Archive/page.php theme/Archive/page-espace-familles.php theme/Archive/readme.txt theme/Archive/screenshot.png build/Archive/
+          cp -R theme/Archive/assets build/Archive/
+          find build/Archive -name ".DS_Store" -delete
+
+      - name: Crée l'archive ZIP du thème
+        run: |
+          cd build
+          zip -rq -X "../montgeroult-familles-${PLUGIN_VERSION}.zip" Archive
+
       - name: Publie la Release GitHub
         uses: softprops/action-gh-release@v2
         with:
-          files: periscolaire-registration-${{ env.PLUGIN_VERSION }}.zip
+          files: |
+            periscolaire-registration-${{ env.PLUGIN_VERSION }}.zip
+            montgeroult-familles-${{ env.PLUGIN_VERSION }}.zip
           generate_release_notes: true
