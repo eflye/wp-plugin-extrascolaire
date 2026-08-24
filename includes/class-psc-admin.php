@@ -510,24 +510,17 @@ class Psc_Admin {
     }
 
     /**
-     * Supprime un trimestre. Jamais le trimestre actif (même principe que
-     * l'année active) : il faut d'abord en activer un autre. Jamais un
-     * trimestre qui porte déjà des présences déclarées par une famille
-     * (wp_psc_registrations) — à la différence d'une année scolaire, un
-     * trimestre est l'unité opérationnelle réelle (c'est lui qui porte les
-     * inscriptions), sa suppression avec des données réelles serait bien
-     * plus destructrice qu'un simple regroupement. Un trimestre vide (créé
-     * par erreur, jamais activé, jamais utilisé) reste librement
-     * supprimable, calendrier généré compris.
-     */
-    /**
-     * Supprime un trimestre. Autorisé même si des familles ont déjà déclaré
-     * des présences dessus (contrairement au comportement précédent, qui
-     * bloquait purement et simplement la suppression) : la perte de ces
-     * inscriptions est explicitement couverte par la confirmation exigée
-     * ci-dessous, saisie par l'admin dans la popin (champ 'confirm_text',
-     * revalidé côté serveur — jamais de confiance dans la seule validation
-     * JS du bouton).
+     * Supprime un trimestre.
+     *
+     * Jamais le trimestre actif (même principe que l'année active) : il
+     * faut d'abord en activer un autre.
+     *
+     * Autorisé en revanche même si des familles ont déjà déclaré des
+     * présences dessus — le comportement précédent bloquait purement et
+     * simplement. La perte de ces inscriptions est couverte par la
+     * confirmation exigée ci-dessous, saisie dans la popin (champ
+     * 'confirm_text', revalidé côté serveur : jamais de confiance dans la
+     * seule validation JS du bouton).
      */
     public static function handle_delete_trimestre() {
         self::guard('psc_delete_trimestre');
