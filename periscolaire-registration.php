@@ -21,6 +21,7 @@ define('PSC_FILE', __FILE__);
 require_once PSC_PATH . 'includes/helpers.php';
 require_once PSC_PATH . 'includes/class-psc-installer.php';
 require_once PSC_PATH . 'includes/class-psc-mailer.php';
+require_once PSC_PATH . 'includes/class-psc-assurances.php';
 require_once PSC_PATH . 'includes/class-psc-parents.php';
 require_once PSC_PATH . 'includes/class-psc-requests.php';
 require_once PSC_PATH . 'includes/class-psc-email-templates.php';

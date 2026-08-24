@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) exit;
  * Ces fichiers concernent des mineurs (attestations d'assurance nominatives)
  * ou portent des données financières (factures) : ils ne doivent JAMAIS être
  * servis directement par le serveur web, mais uniquement streamés après
- * contrôle d'accès (Psc_Frontend::stream_assurance_file(),
+ * contrôle d'accès (Psc_Assurances::stream(),
  * Psc_Invoices::download()).
  *
  * wp-content/uploads/ est systématiquement exposé en HTTP — y déposer ces

@@ -583,6 +583,7 @@ periscolaire-registration/
 │   ├── class-psc-mailer.php        # Tous les e-mails (HTML, layout commun)
 │   ├── class-psc-parents.php       # Authentification familles (sans mot de passe)
 │   ├── class-psc-requests.php      # Demandes d'inscription (modération)
+│   ├── class-psc-assurances.php    # Justificatifs d'assurance : dépôt, diffusion, suppression
 │   ├── class-psc-invoices.php      # Génération PDF et envoi factures
 │   ├── class-psc-sepa-mandate.php  # PDF du mandat de prélèvement SEPA (éphémère)
 │   ├── class-psc-menus.php         # Menus de cantine hebdomadaires

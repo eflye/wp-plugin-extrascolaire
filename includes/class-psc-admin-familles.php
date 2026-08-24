@@ -321,6 +321,6 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
             wp_die(esc_html__('Aucun document pour cette année.', 'periscolaire-registration'), '', array('response' => 404));
         }
 
-        Psc_Frontend::stream_assurance_file($doc->assurance_file_path, $doc->assurance_original_filename);
+        Psc_Assurances::stream($doc->assurance_file_path, $doc->assurance_original_filename);
     }
 }

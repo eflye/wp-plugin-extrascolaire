@@ -108,20 +108,34 @@ function psc_seed_attach_assurance($child_id, $school_year_id) {
 
     psc_ensure_private_dir();
 
-    $rel = 'periscolaire/assurances/seed/child-' . (int) $child_id . '.pdf';
+    $rel = Psc_Assurances::BASE . '/seed/child-' . (int) $child_id . '.pdf';
     $abs = psc_private_path($rel);
     wp_mkdir_p(dirname($abs));
 
     // PDF minimal mais valide : une page blanche. Suffit à ce que le
     // téléchargement renvoie un document que le navigateur accepte.
     if (!file_exists($abs)) {
-        file_put_contents($abs, // phpcs:ignore WordPress.WP.AlternativeFunctions
+        $written = @file_put_contents($abs, // phpcs:ignore WordPress.WP.AlternativeFunctions,WordPress.PHP.NoSilencedErrors
             "%PDF-1.4\n"
             . "1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
             . "2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n"
             . "3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]>>endobj\n"
             . "trailer<</Root 1 0 R>>\n%%EOF\n"
         );
+
+        // Échouer bruyamment plutôt que d'enregistrer en base un chemin qui
+        // ne mène nulle part. Un jeu de données qui ment coûte cher : le
+        // scénario échoue bien plus loin, sur un téléchargement vide ou une
+        // case grisée, et rien ne désigne la vraie cause. C'est arrivé —
+        // le dossier appartenait à root, l'écriture échouait en silence et
+        // les lignes s'écrivaient quand même.
+        if ($written === false) {
+            WP_CLI::error(sprintf(
+                'Écriture impossible dans %s. Le peuplement tourne-t-il sous le compte du serveur web ' .
+                '(www-data) ? Un dossier créé par root lui reste inaccessible en écriture.',
+                dirname($abs)
+            ));
+        }
     }
 
     $wpdb->update(

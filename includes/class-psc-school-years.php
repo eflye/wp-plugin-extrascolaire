@@ -200,7 +200,7 @@ class Psc_School_Years {
     /**
      * Crée ou met à jour la ligne d'inscription d'un enfant pour une année
      * (classe, statut, acceptation du règlement) — n'écrase jamais les
-     * champs d'assurance, gérés séparément par store_assurance_upload().
+     * champs d'assurance, gérés séparément par Psc_Assurances::store_upload().
      */
     public static function enroll($child_id, $school_year_id, $classe, $statut = 'inscrit', $reglement_accepted_at = null) {
         global $wpdb;

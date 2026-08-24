@@ -46,27 +46,6 @@ class Psc_Requests {
     }
 
     /**
-     * Zone d'attente pour les justificatifs d'assurance scolaire uploadés
-     * avec le wizard public : aucun child_id n'existe encore à ce stade
-     * (la demande doit d'abord être vérifiée par e-mail PUIS approuvée par
-     * la mairie). Les fichiers y restent jusqu'à ce que handle_approve()
-     * les rattache à un vrai enfant (Psc_Frontend::promote_pending_assurance())
-     * ou que la demande soit purgée sans jamais avoir été approuvée.
-     */
-    protected static function pending_assurance_dir($request_id) {
-        return psc_private_path('periscolaire/assurances/pending/' . (int) $request_id);
-    }
-
-    protected static function delete_pending_assurance_files($request_id) {
-        $dir = self::pending_assurance_dir($request_id);
-        if (!is_dir($dir)) return;
-        foreach (glob(trailingslashit($dir) . '*') as $file) {
-            @unlink($file); // phpcs:ignore WordPress.PHP.NoSilencedErrors
-        }
-        @rmdir($dir); // phpcs:ignore WordPress.PHP.NoSilencedErrors
-    }
-
-    /**
      * Supprime les demandes non vérifiées de plus de 7 jours et les
      * demandes traitées de plus de 90 jours — et, avec elles, tout
      * justificatif d'assurance resté en zone d'attente (jamais promu si la
@@ -85,7 +64,7 @@ class Psc_Requests {
             gmdate('Y-m-d H:i:s', time() - 90 * DAY_IN_SECONDS)
         ));
         foreach (array_merge($unverified_ids, $stale_ids) as $id) {
-            self::delete_pending_assurance_files($id);
+            Psc_Assurances::delete_pending_files($id);
         }
 
         $wpdb->query($wpdb->prepare(
@@ -315,7 +294,7 @@ class Psc_Requests {
             }
 
             $file = isset($_FILES['child_assurance_' . $i]) ? $_FILES['child_assurance_' . $i] : null;
-            $file_check = Psc_Frontend::validate_assurance_file($file);
+            $file_check = Psc_Assurances::validate_upload($file);
             if ($file_check !== true) {
                 $codes = array('too_large' => 'assurance_too_large', 'invalid_type' => 'assurance_invalid_type');
                 wp_safe_redirect(add_query_arg('psc_msg', isset($codes[$file_check]) ? $codes[$file_check] : 'assurance_required', $back));
@@ -455,8 +434,8 @@ class Psc_Requests {
         // $existing ci-dessus), on purge d'abord l'éventuelle zone
         // d'attente précédente pour éviter des fichiers orphelins si le
         // nombre d'enfants a changé entre les deux soumissions.
-        self::delete_pending_assurance_files($request_id);
-        $pending_dir = self::pending_assurance_dir($request_id);
+        Psc_Assurances::delete_pending_files($request_id);
+        $pending_dir = Psc_Assurances::pending_dir($request_id);
         wp_mkdir_p($pending_dir);
         foreach ($assurance_uploads as $children_index => $file) {
             $filetype = wp_check_filetype($file['name'], array(
@@ -466,7 +445,7 @@ class Psc_Requests {
             ));
             $target = trailingslashit($pending_dir) . 'child-' . $children_index . '.' . $filetype['ext'];
             if (move_uploaded_file($file['tmp_name'], $target)) {
-                $children[$children_index]['assurance_rel_path'] = 'periscolaire/assurances/pending/' . $request_id . '/child-' . $children_index . '.' . $filetype['ext'];
+                $children[$children_index]['assurance_rel_path'] = Psc_Assurances::pending_rel_path($request_id, $children_index, $filetype['ext']);
                 $children[$children_index]['assurance_original_filename'] = sanitize_file_name($file['name']);
             }
         }
@@ -729,12 +708,12 @@ class Psc_Requests {
             if (!empty($c['assurance_rel_path'])) {
                 $abs = psc_private_path($c['assurance_rel_path']);
                 if (file_exists($abs)) {
-                    Psc_Frontend::promote_pending_assurance($child_id, $abs, $c['assurance_original_filename'] ?? '');
+                    Psc_Assurances::promote_pending($child_id, $abs, $c['assurance_original_filename'] ?? '');
                 }
             }
         }
 
-        self::delete_pending_assurance_files($req->id);
+        Psc_Assurances::delete_pending_files($req->id);
 
         // Les coordonnées bancaires viennent d'être reportées sur le compte
         // famille : les conserver en double dans la demande ne sert plus à
@@ -806,7 +785,7 @@ class Psc_Requests {
         global $wpdb;
         $id = psc_post_int('id');
         if ($id) {
-            self::delete_pending_assurance_files($id);
+            Psc_Assurances::delete_pending_files($id);
             $wpdb->delete(psc_table('requests'), array('id' => $id), array('%d'));
         }
         Psc_Admin::redirect_public('psc_requests', 'deleted');

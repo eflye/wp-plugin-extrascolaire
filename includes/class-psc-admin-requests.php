@@ -54,6 +54,6 @@ class Psc_Admin_Requests extends Psc_Admin_Base {
             wp_die(esc_html__('Aucun justificatif pour cet enfant.', 'periscolaire-registration'), '', array('response' => 404));
         }
 
-        Psc_Frontend::stream_assurance_file($children[$index]['assurance_rel_path'], $children[$index]['assurance_original_filename']);
+        Psc_Assurances::stream($children[$index]['assurance_rel_path'], $children[$index]['assurance_original_filename']);
     }
 }

@@ -263,231 +263,6 @@ class Psc_Frontend {
     /* ---------------- Assurance scolaire (espace famille) ---------------- */
 
     /**
-     * Un enfant a-t-il fourni son assurance scolaire pour l'année scolaire
-     * active ? Un document fourni l'an dernier ne compte plus une fois
-     * l'année suivante activée par la mairie : pas de tâche cron
-     * nécessaire, la vérification se fait à la volée à chaque tentative de
-     * déclaration d'un jour (cf. ajax_toggle()).
-     */
-    protected static function has_valid_assurance($child_id) {
-        global $wpdb;
-        $year_id = Psc_School_Years::active_id();
-        if (!$year_id) return false;
-        $t_cy = psc_table('child_school_years');
-        return (bool) $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $t_cy WHERE child_id = %d AND school_year_id = %d AND assurance_file_path IS NOT NULL",
-            $child_id, $year_id
-        ));
-    }
-
-    /**
-     * Statut d'assurance scolaire (année active) pour une liste d'enfants,
-     * en une seule requête groupée — même principe que reg_map() ci-dessus.
-     * Clé : child_id. Renvoie des objets avec les mêmes propriétés que
-     * l'ancienne table child_assurances (file_path, original_filename,
-     * uploaded_at), pour ne pas changer les templates qui les lisent.
-     */
-    protected static function assurance_map($children) {
-        global $wpdb;
-        if (empty($children)) return array();
-        $year_id = Psc_School_Years::active_id();
-        if (!$year_id) return array();
-
-        $ids = array_map('intval', wp_list_pluck($children, 'id'));
-        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
-        $t_cy = psc_table('child_school_years');
-        $params = array_merge(array($year_id), $ids);
-
-        $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT child_id,
-                    assurance_file_path AS file_path,
-                    assurance_original_filename AS original_filename,
-                    assurance_uploaded_at AS uploaded_at
-             FROM $t_cy
-             WHERE school_year_id = %d AND child_id IN ($placeholders) AND assurance_file_path IS NOT NULL",
-            $params
-        ));
-
-        $map = array();
-        foreach ($rows as $r) {
-            $map[$r->child_id] = $r;
-        }
-        return $map;
-    }
-
-    /**
-     * Chemin relatif (à wp_upload_dir()['basedir']) du fichier d'assurance
-     * d'un enfant pour une année de rentrée donnée. Hors du dossier public
-     * standard des médias : le fichier n'est jamais lié par une URL directe,
-     * seulement streamé via handle_parent_download_assurance() /
-     * Psc_Admin::handle_download_assurance() après contrôle d'accès.
-     */
-    protected static function assurance_rel_path($child_id, $rentree_year, $ext) {
-        return 'periscolaire/assurances/' . $rentree_year . '/child-' . (int) $child_id . '.' . $ext;
-    }
-
-    /**
-     * Streame un document d'assurance scolaire. Partagé par le
-     * téléchargement côté parent (avec contrôle d'appartenance) et côté
-     * admin (avec contrôle de capacité) — même principe que
-     * Psc_Invoices::download().
-     */
-    public static function stream_assurance_file($rel_path, $filename) {
-        $path = psc_private_path($rel_path);
-
-        if (!file_exists($path)) {
-            wp_die(esc_html__('Fichier introuvable.', 'periscolaire-registration'));
-        }
-
-        $filetype = wp_check_filetype($path);
-        nocache_headers();
-        header('Content-Type: ' . ($filetype['type'] ?: 'application/octet-stream'));
-        header('Content-Disposition: inline; filename="' . sanitize_file_name($filename) . '"');
-        header('Content-Length: ' . filesize($path));
-        header('X-Content-Type-Options: nosniff');
-        readfile($path); // phpcs:ignore WordPress.WP.AlternativeFunctions
-        exit;
-    }
-
-    /**
-     * Validation pure d'un fichier d'assurance scolaire (présence, taille,
-     * type), sans aucun effet de bord — utilisable en pré-contrôle avant de
-     * créer quoi que ce soit en base (ex : ajout d'un enfant, où l'on ne
-     * veut pas insérer la fiche si le justificatif obligatoire est absent).
-     * Retourne true, ou un code : 'required'|'too_large'|'invalid_type'.
-     */
-    public static function validate_assurance_file($file) {
-        if (empty($file) || !isset($file['error']) || $file['error'] !== UPLOAD_ERR_OK) {
-            return 'required';
-        }
-        if ($file['size'] > MB_IN_BYTES) {
-            return 'too_large';
-        }
-        $filetype = wp_check_filetype($file['name'], array(
-            'pdf'      => 'application/pdf',
-            'jpg|jpeg' => 'image/jpeg',
-            'png'      => 'image/png',
-        ));
-        if (!$filetype['ext']) {
-            return 'invalid_type';
-        }
-        return true;
-    }
-
-    /**
-     * Enregistre le justificatif d'assurance scolaire d'un enfant déjà
-     * existant en base, pour l'année scolaire donnée (l'année active par
-     * défaut ; la réinscription passe explicitement l'année en
-     * préparation, pas encore active). Auto-validé : aucune étape de
-     * vérification manuelle par la mairie pour l'instant (cf. Psc_Admin
-     * qui expose seulement une consultation en lecture seule). $file doit
-     * être un upload de LA REQUÊTE EN COURS (move_uploaded_file() échoue
-     * sinon) — cf. promote_pending_assurance() pour le cas d'un fichier
-     * déplacé lors d'une requête précédente.
-     * Retourne true, ou un code : 'required'|'too_large'|'invalid_type'|'failed'.
-     */
-    public static function store_assurance_upload($child_id, $file, $school_year_id = null) {
-        $check = self::validate_assurance_file($file);
-        if ($check !== true) return $check;
-
-        $year_id = $school_year_id ? absint($school_year_id) : Psc_School_Years::active_id();
-        $year = $year_id ? Psc_School_Years::get($year_id) : null;
-        if (!$year) return 'failed';
-        $rentree_year = (int) date('Y', strtotime($year->date_debut));
-
-        $filetype = wp_check_filetype($file['name'], array(
-            'pdf'      => 'application/pdf',
-            'jpg|jpeg' => 'image/jpeg',
-            'png'      => 'image/png',
-        ));
-
-        $rel_dir = 'periscolaire/assurances/' . $rentree_year;
-        $dir = psc_private_path($rel_dir);
-        if (!wp_mkdir_p($dir)) {
-            return 'failed';
-        }
-
-        // Nettoie un fichier d'une extension différente laissé par un
-        // précédent upload la même année (ex : remplacement JPG → PDF).
-        foreach (array('pdf', 'jpg', 'jpeg', 'png') as $ext) {
-            $stale = trailingslashit($dir) . 'child-' . $child_id . '.' . $ext;
-            if ($ext !== $filetype['ext'] && file_exists($stale)) {
-                @unlink($stale); // phpcs:ignore WordPress.PHP.NoSilencedErrors
-            }
-        }
-
-        $rel_path = self::assurance_rel_path($child_id, $rentree_year, $filetype['ext']);
-        $target   = psc_private_path($rel_path);
-
-        if (!move_uploaded_file($file['tmp_name'], $target)) {
-            return 'failed';
-        }
-
-        self::upsert_assurance_row($child_id, $rel_path, $file['name'], $year_id);
-        return true;
-    }
-
-    /**
-     * Rattache à un enfant un justificatif déjà présent sur le disque mais
-     * NE PROVENANT PAS de l'upload de la requête en cours (ex : fichier
-     * déposé en zone d'attente lors de la soumission du wizard public,
-     * promu ici seulement après approbation de la mairie, potentiellement
-     * plusieurs jours plus tard). move_uploaded_file() échouerait sur un tel
-     * fichier ; rename() est la bonne primitive.
-     */
-    public static function promote_pending_assurance($child_id, $abs_source_path, $original_filename) {
-        $ext = strtolower(pathinfo($abs_source_path, PATHINFO_EXTENSION));
-        if (!in_array($ext, array('pdf', 'jpg', 'jpeg', 'png'), true)) return false;
-
-        $rentree_year = psc_rentree_year();
-        $rel_dir = 'periscolaire/assurances/' . $rentree_year;
-        $dir = psc_private_path($rel_dir);
-        if (!wp_mkdir_p($dir)) return false;
-
-        $rel_path = self::assurance_rel_path($child_id, $rentree_year, $ext);
-        $target   = psc_private_path($rel_path);
-
-        if (!rename($abs_source_path, $target)) return false;
-
-        self::upsert_assurance_row($child_id, $rel_path, $original_filename ?: basename($abs_source_path));
-        return true;
-    }
-
-    /**
-     * N'écrit QUE les colonnes assurance_* de la ligne enfant x année
-     * active — ne touche jamais classe/statut/règlement, déjà posés par
-     * ailleurs (approbation de demande, passage d'année) ou à venir (Mes
-     * enfants ne gère que l'assurance, jamais la classe).
-     */
-    protected static function upsert_assurance_row($child_id, $rel_path, $original_filename, $school_year_id = null) {
-        global $wpdb;
-        $year_id = $school_year_id ? absint($school_year_id) : Psc_School_Years::active_id();
-        if (!$year_id) return false;
-
-        $t_cy = psc_table('child_school_years');
-        $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $t_cy WHERE child_id = %d AND school_year_id = %d", $child_id, $year_id
-        ));
-
-        $data = array(
-            'assurance_file_path'         => $rel_path,
-            'assurance_original_filename' => sanitize_file_name($original_filename),
-            'assurance_uploaded_at'       => current_time('mysql'),
-        );
-
-        if ($existing) {
-            $wpdb->update($t_cy, $data, array('id' => $existing), array('%s', '%s', '%s'), array('%d'));
-        } else {
-            $data['child_id'] = $child_id;
-            $data['school_year_id'] = $year_id;
-            $data['statut'] = 'inscrit';
-            $data['date_inscription'] = current_time('mysql');
-            $wpdb->insert($t_cy, $data, array('%s', '%s', '%s', '%d', '%d', '%s', '%s'));
-        }
-        return true;
-    }
-
-    /**
      * Upload par le parent du justificatif d'assurance scolaire d'un
      * enfant déjà existant (remplacement depuis « Mes enfants »).
      */
@@ -503,7 +278,7 @@ class Psc_Frontend {
         ));
         if (!$owned) self::parent_form_redirect('assurance_invalid');
 
-        $result = self::store_assurance_upload($child_id, isset($_FILES['assurance_file']) ? $_FILES['assurance_file'] : null);
+        $result = Psc_Assurances::store_upload($child_id, isset($_FILES['assurance_file']) ? $_FILES['assurance_file'] : null);
         if ($result !== true) {
             $codes = array('too_large' => 'assurance_too_large', 'invalid_type' => 'assurance_invalid_type');
             self::parent_form_redirect(isset($codes[$result]) ? $codes[$result] : 'assurance_upload_failed');
@@ -543,7 +318,7 @@ class Psc_Frontend {
             wp_die(esc_html__('Aucun document pour cette année.', 'periscolaire-registration'), '', array('response' => 404));
         }
 
-        self::stream_assurance_file($doc->assurance_file_path, $doc->assurance_original_filename);
+        Psc_Assurances::stream($doc->assurance_file_path, $doc->assurance_original_filename);
     }
 
     /* ---------------- AJAX : cocher / décocher ---------------- */
@@ -588,7 +363,7 @@ class Psc_Frontend {
         // L'assurance scolaire de l'année en cours ne bloque que l'AJOUT
         // d'un jour : un enfant déjà déclaré peut toujours être décoché
         // même sans document à jour (pas de blocage rétroactif).
-        if ($checked && !self::has_valid_assurance($child_id)) {
+        if ($checked && !Psc_Assurances::has_valid($child_id)) {
             wp_send_json_error(array(
                 'code'    => 'assurance_missing',
                 'message' => 'L\'assurance scolaire de cet enfant n\'a pas été fournie pour l\'année en cours. Ajoutez-la depuis « Mes enfants » pour pouvoir déclarer des jours.',
@@ -695,7 +470,7 @@ class Psc_Frontend {
             wp_send_json_error(array('code' => 'forbidden'), 403);
         }
 
-        if ($checked && !self::has_valid_assurance($child_id)) {
+        if ($checked && !Psc_Assurances::has_valid($child_id)) {
             wp_send_json_error(array(
                 'code'    => 'assurance_missing',
                 'message' => 'L\'assurance scolaire de cet enfant n\'a pas été fournie pour l\'année en cours. Ajoutez-la depuis « Mes enfants » pour pouvoir déclarer des jours.',
@@ -884,7 +659,7 @@ class Psc_Frontend {
         // (ici le portail connecté ; cf. Psc_Requests::handle_submit()
         // pour le wizard public). Validé AVANT toute écriture en base : pas
         // de fiche enfant orpheline si le fichier est absent/invalide.
-        $file_check = self::validate_assurance_file(isset($_FILES['new_assurance_file']) ? $_FILES['new_assurance_file'] : null);
+        $file_check = Psc_Assurances::validate_upload(isset($_FILES['new_assurance_file']) ? $_FILES['new_assurance_file'] : null);
         if ($file_check !== true) {
             $codes = array('too_large' => 'assurance_too_large', 'invalid_type' => 'assurance_invalid_type');
             self::parent_form_redirect(isset($codes[$file_check]) ? $codes[$file_check] : 'assurance_required');
@@ -916,7 +691,7 @@ class Psc_Frontend {
         $child_id = (int) $wpdb->insert_id;
 
         Psc_School_Years::enroll($child_id, $year_id, $classe, 'inscrit', current_time('mysql'));
-        self::store_assurance_upload($child_id, $_FILES['new_assurance_file']);
+        Psc_Assurances::store_upload($child_id, $_FILES['new_assurance_file']);
 
         self::parent_form_redirect('child_added');
     }
@@ -1078,13 +853,13 @@ class Psc_Frontend {
             if (!$classe_proposee || $classe_proposee === 'sortie') continue; // fin de cycle : rien à réinscrire
 
             $file = isset($_FILES['assurance_' . $child->id]) ? $_FILES['assurance_' . $child->id] : null;
-            $file_check = self::validate_assurance_file($file);
+            $file_check = Psc_Assurances::validate_upload($file);
             if ($file_check !== true) {
                 self::parent_form_redirect('reinscription_required');
             }
 
             Psc_School_Years::enroll($child->id, $target_year->id, $classe_proposee, 'inscrit', $reglement_accepted_at);
-            self::store_assurance_upload($child->id, $file, $target_year->id);
+            Psc_Assurances::store_upload($child->id, $file, $target_year->id);
             $confirmed_count++;
         }
 
@@ -1771,7 +1546,7 @@ class Psc_Frontend {
         $psc_portal_menu  = self::portal_menu_data();
         $psc_portal_dashboard = self::dashboard_data($parent, $children, $days_by_month, $reg_map, $services, $invoices);
         $psc_portal_absence_days = self::absence_candidates($children);
-        $psc_assurance_map = self::assurance_map($all_children);
+        $psc_assurance_map = Psc_Assurances::map_for($all_children);
 
         // Uniquement les enfants actifs : un enfant sorti disparaît du
         // planning (cf. $children plus haut), la liste des personnes
