@@ -219,7 +219,11 @@ test('parent déjà connu — de la connexion au récapitulatif', async ({ page,
       await page.goto(loginLink);
       await expect(page.getByTestId('account-bar')).toBeVisible();
       await expect(page.getByTestId('notice-welcome')).toBeVisible();
-      await expect(page.getByTestId('notice-welcome')).toHaveText('Vous êtes connecté.');
+      // toContainText et non toHaveText : la popin porte aussi une croix de
+      // fermeture, dont le "×" compte dans le texte complet. C'est le message
+      // qui est vérifié ici, pas la présence du bouton — même convention
+      // qu'à l'étape précédente sur notice-link_sent.
+      await expect(page.getByTestId('notice-welcome')).toContainText('Vous êtes connecté.');
       await expect(page.getByTestId('account-email')).toHaveText(seed.parent_email);
       const cookies = await context.cookies();
       expect(cookies.some((c) => c.name === 'psc_session')).toBe(true);

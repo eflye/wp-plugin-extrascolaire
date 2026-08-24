@@ -162,12 +162,31 @@ function selectedProfiles(): Array<'test' | 'demo'> {
   return profiles.size > 0 ? [...profiles] : ['test'];
 }
 
+/**
+ * Dépose le mu-plugin qui fige l'horloge du site.
+ *
+ * Il est installé avant le peuplement : celui-ci choisit le jour d'ancrage
+ * et renseigne l'option que le mu-plugin relaie, de sorte que le peuplement
+ * et l'extension voient la même heure. Sans lui, le peuplement désignerait
+ * un jour comme verrouillé que le portail afficherait comme modifiable.
+ *
+ * Volontairement hors du dossier de l'extension : figer le temps est un
+ * besoin du banc de test, pas une fonctionnalité livrée.
+ */
+function installFrozenClock(): void {
+  const source = path.join(__dirname, 'mu-plugin-frozen-clock.php');
+  const target = `${CONTAINER_WP_PATH}/wp-content/mu-plugins`;
+  sh(ENGINE, ['exec', CONTAINER, 'mkdir', '-p', target]);
+  sh(ENGINE, ['cp', source, `${CONTAINER}:${target}/psc-frozen-clock.php`]);
+}
+
 export default async function globalSetup(_config: FullConfig): Promise<void> {
   mkdirSync(OUT_DIR, { recursive: true });
 
   const profiles = selectedProfiles();
 
   await ensureWpCli();
+  installFrozenClock();
 
   for (const profile of profiles) {
     const result = runSeed(profile);

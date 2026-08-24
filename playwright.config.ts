@@ -25,7 +25,19 @@ export default defineConfig({
   testDir: './tests',
   globalSetup: require.resolve('./playwright/global-setup'),
   outputDir: path.join(OUT_DIR, 'test-results'),
-  fullyParallel: true,
+
+  // Exécution strictement séquentielle. Les scénarios partagent une unique
+  // instance WordPress, une seule base et le même compte administrateur :
+  // joués en parallèle ils se marchent dessus — un test se retrouvait
+  // renvoyé sur la page de connexion parce qu'un autre venait d'ouvrir une
+  // session avec le même compte, et l'échec se déplaçait d'un scénario à
+  // l'autre à chaque exécution. Une suite intermittente est pire qu'absente :
+  // on apprend vite à ignorer le rouge.
+  //
+  // Le coût est faible — une quinzaine de secondes de plus — et bien
+  // inférieur à celui d'isoler l'état (comptes distincts, bases séparées).
+  fullyParallel: false,
+  workers: 1,
   reporter: [['list']],
 
   projects: [

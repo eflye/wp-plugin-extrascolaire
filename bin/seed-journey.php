@@ -38,6 +38,105 @@ if (!defined('WP_CLI') || !WP_CLI) {
     return;
 }
 
+/**
+ * Cherche un jour d'école utilisable comme « maintenant » pour le parcours.
+ *
+ * Le scénario a besoin, dans un même mois, de deux jours aux propriétés
+ * opposées : un déjà verrouillé (pour vérifier qu'on ne peut plus le
+ * cocher) et un encore largement modifiable. Avec un verrou de V heures et
+ * une ancre A fixée à 10 h :
+ *
+ *   verrouillé  A lui-même — son échéance (A 00:00 − V) est déjà passée.
+ *   ouvert      le premier jour d'école dont l'échéance dépasse A + 3 jours,
+ *               soit environ A + V/24 + 4 jours.
+ *
+ * D'où les deux conditions ci-dessous : l'ancre doit tomber assez tôt dans
+ * le mois pour que le jour « ouvert » y tombe encore, et ce jour doit
+ * exister. Toute période scolaire les satisfait ; aucune période de vacances
+ * ne les satisfait, ce qui est précisément la raison d'être de cette
+ * recherche.
+ *
+ * $from permet de rejouer la recherche depuis une date arbitraire, pour
+ * vérifier qu'elle aboutit toute l'année — c'est précisément ce qui manquait
+ * quand le jeu de données dépendait de la date d'exécution.
+ *
+ * @return DateTime|null Ancre à 10 h, ou null si rien n'a été trouvé.
+ */
+function psc_seed_find_anchor(DateTimeZone $tz, $from = 'today') {
+    $lock_days = (int) ceil(psc_lock_hours() / 24);
+    $gap       = $lock_days + 4; // marge entre l'ancre et le jour « ouvert »
+
+    $cursor = new DateTime($from, $tz);
+    $cursor->setTime(0, 0);
+
+    for ($i = 0; $i < 400; $i++, $cursor->modify('+1 day')) {
+        $anchor_date = $cursor->format('Y-m-d');
+        if (!psc_is_school_day($anchor_date)) continue;
+
+        // Laisser la place au jour « ouvert » dans le même mois civil : le
+        // scénario déplie un seul mois et lit les deux jours dedans.
+        $month = $cursor->format('Y-m');
+
+        $open = null;
+        $probe = (clone $cursor)->modify("+{$gap} days");
+        for ($j = 0; $j < 25; $j++, $probe->modify('+1 day')) {
+            if ($probe->format('Y-m') !== $month) break;
+            if (psc_is_school_day($probe->format('Y-m-d'))) { $open = clone $probe; break; }
+        }
+        if (!$open) continue;
+
+        return (clone $cursor)->setTime(10, 0);
+    }
+
+    return null;
+}
+
+/**
+ * Dépose un justificatif d'assurance pour l'année scolaire donnée.
+ *
+ * Sans lui, l'extension refuse toute nouvelle déclaration de jour : les
+ * cases du planning sont rendues désactivées, avec la mention « assurance
+ * scolaire manquante ». Le parcours parent ne pouvait donc pas aboutir —
+ * un manque du jeu de données passé inaperçu tant qu'un autre échec, plus
+ * précoce, empêchait d'arriver jusque-là.
+ *
+ * Un vrai fichier est écrit, et non un simple chemin en base : c'est ce que
+ * fait un dépôt réel, et le parcours propose de le télécharger.
+ */
+function psc_seed_attach_assurance($child_id, $school_year_id) {
+    global $wpdb;
+
+    psc_ensure_private_dir();
+
+    $rel = 'periscolaire/assurances/seed/child-' . (int) $child_id . '.pdf';
+    $abs = psc_private_path($rel);
+    wp_mkdir_p(dirname($abs));
+
+    // PDF minimal mais valide : une page blanche. Suffit à ce que le
+    // téléchargement renvoie un document que le navigateur accepte.
+    if (!file_exists($abs)) {
+        file_put_contents($abs, // phpcs:ignore WordPress.WP.AlternativeFunctions
+            "%PDF-1.4\n"
+            . "1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
+            . "2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n"
+            . "3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]>>endobj\n"
+            . "trailer<</Root 1 0 R>>\n%%EOF\n"
+        );
+    }
+
+    $wpdb->update(
+        psc_table('child_school_years'),
+        array(
+            'assurance_file_path'         => $rel,
+            'assurance_original_filename' => 'attestation-assurance.pdf',
+            'assurance_uploaded_at'       => current_time('mysql'),
+        ),
+        array('child_id' => (int) $child_id, 'school_year_id' => (int) $school_year_id),
+        array('%s', '%s', '%s'),
+        array('%d', '%d')
+    );
+}
+
 WP_CLI::add_command('seed-journey', function ($args, $assoc_args) {
 
     if (!class_exists('Psc_Installer') || !class_exists('Psc_Parents')) {
@@ -53,12 +152,43 @@ WP_CLI::add_command('seed-journey', function ($args, $assoc_args) {
         WP_CLI::error("Profil inconnu : '$profile'. Valeurs acceptées : test, demo.");
     }
 
-    $tz    = wp_timezone();
-    $today = new DateTime('today', $tz);
+    $tz = wp_timezone();
 
     $fmt = function (DateTime $d) {
         return $d->format('Y-m-d');
     };
+
+    /* ---------------------------------------------------------------- */
+    /* Ancrage temporel                                                  */
+    /* ---------------------------------------------------------------- */
+
+    // Le peuplement ne part plus de la date réelle mais d'un jour d'école
+    // choisi pour que le parcours soit jouable, et fige l'horloge dessus.
+    //
+    // Auparavant le trimestre était calé sur « aujourd'hui ». Lancé pendant
+    // les vacances, le scénario ne trouvait plus de jour à la fois ouvert et
+    // déjà verrouillé — le premier jour d'école était à plus d'une semaine
+    // quand le verrou n'en couvre que deux — et la suite échouait tous les
+    // ans à la même période avant de redevenir verte d'elle-même.
+    //
+    // L'ancre est cherchée dans le calendrier réel plutôt que codée en dur :
+    // le jeu de données reste fidèle aux vraies vacances, et ne périme pas
+    // quand on change d'année scolaire.
+    $anchor = psc_seed_find_anchor($tz);
+    if (!$anchor) {
+        WP_CLI::error(
+            'Aucun jour d\'ancrage trouvé sur les 400 prochains jours : le calendrier scolaire '
+            . 'est-il importé, et psc_lock_hours() (' . psc_lock_hours() . 'h) laisse-t-il une fenêtre exploitable ?'
+        );
+    }
+
+    update_option('psc_test_frozen_now', $anchor->getTimestamp(), false);
+    WP_CLI::log(sprintf(
+        '  horloge figée ....... %s (ancrage sur un jour d\'école)',
+        $anchor->format('D d/m/Y H:i')
+    ));
+
+    $today = (clone $anchor)->setTime(0, 0);
 
     /* ---------------------------------------------------------------- */
     /* Configuration par profil                                          */
@@ -235,6 +365,7 @@ WP_CLI::add_command('seed-journey', function ($args, $assoc_args) {
         $children_ids[] = $child_id;
 
         Psc_School_Years::enroll($child_id, $school_year_id, $c['classe'], 'inscrit', current_time('mysql'));
+        psc_seed_attach_assurance($child_id, $school_year_id);
     }
 
     // children_of() trie par prénom : l'index "-0"/"-1" des testid suit cet

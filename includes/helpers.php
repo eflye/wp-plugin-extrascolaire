@@ -609,9 +609,18 @@ function psc_lock_hours() {
  * Horodatage courant dans le fuseau du site.
  * On n'utilise pas time() directement : le serveur peut être en UTC alors
  * que la commune est en Europe/Paris, ce qui décalerait le verrouillage.
+ *
+ * Filtrable pour rendre l'horloge injectable. Le délai de modification se
+ * mesure par rapport à « maintenant » : un test qui en dépend est donc à la
+ * merci de la date d'exécution, et la suite échouait chaque été — pendant
+ * les vacances, le premier jour d'école est à plus d'une semaine alors que
+ * le verrou n'en couvre que deux. Figer cette fonction suffit à rendre le
+ * verrouillage déterministe, puisque psc_is_locked() en dépend seule.
+ *
+ * En production rien ne s'abonne à ce filtre : le comportement est inchangé.
  */
 function psc_now_ts() {
-    return (int) current_time('timestamp');
+    return (int) apply_filters('psc_now_ts', (int) current_time('timestamp'));
 }
 
 /**
