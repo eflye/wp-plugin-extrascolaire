@@ -569,7 +569,16 @@ periscolaire-registration/
 │   │   ├── files.php               #   documents déposés, hors racine web
 │   │   └── settings.php            #   plafonds, destinataires, options
 │   ├── class-psc-installer.php     # Création / migration des tables
-│   ├── class-psc-admin.php         # Backoffice WordPress (toutes les routes admin_post_*)
+│   ├── class-psc-admin-base.php    # Socle des écrans admin : contrôle d'accès et redirections
+│   ├── class-psc-admin.php         # Menu, ressources, alertes, tableau de bord
+│   ├── class-psc-admin-trimestres.php     # Trimestres
+│   ├── class-psc-admin-school-years.php   # Années scolaires, calendrier officiel, passage d'année
+│   ├── class-psc-admin-familles.php       # Familles, enfants, personnes autorisées
+│   ├── class-psc-admin-inscriptions.php   # Présences déclarées et export
+│   ├── class-psc-admin-cantine.php        # Menus et commande fournisseur
+│   ├── class-psc-admin-invoices.php       # Factures
+│   ├── class-psc-admin-config.php         # Réglages et modèles d'e-mails
+│   ├── class-psc-admin-requests.php       # Écran de modération des demandes
 │   ├── class-psc-frontend.php      # Portail famille connecté + page publique (menu, login)
 │   ├── class-psc-mailer.php        # Tous les e-mails (HTML, layout commun)
 │   ├── class-psc-parents.php       # Authentification familles (sans mot de passe)

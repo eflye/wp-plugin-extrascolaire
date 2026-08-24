@@ -24,7 +24,18 @@ require_once PSC_PATH . 'includes/class-psc-mailer.php';
 require_once PSC_PATH . 'includes/class-psc-parents.php';
 require_once PSC_PATH . 'includes/class-psc-requests.php';
 require_once PSC_PATH . 'includes/class-psc-email-templates.php';
+// Administration : un socle commun, un noyau (menu, tableau de bord) et
+// une classe par domaine métier. Psc_Admin::init() déclare les siennes.
+require_once PSC_PATH . 'includes/class-psc-admin-base.php';
 require_once PSC_PATH . 'includes/class-psc-admin.php';
+require_once PSC_PATH . 'includes/class-psc-admin-trimestres.php';
+require_once PSC_PATH . 'includes/class-psc-admin-school-years.php';
+require_once PSC_PATH . 'includes/class-psc-admin-familles.php';
+require_once PSC_PATH . 'includes/class-psc-admin-inscriptions.php';
+require_once PSC_PATH . 'includes/class-psc-admin-cantine.php';
+require_once PSC_PATH . 'includes/class-psc-admin-invoices.php';
+require_once PSC_PATH . 'includes/class-psc-admin-config.php';
+require_once PSC_PATH . 'includes/class-psc-admin-requests.php';
 require_once PSC_PATH . 'includes/class-psc-invoices.php';
 require_once PSC_PATH . 'includes/class-psc-sepa-mandate.php';
 require_once PSC_PATH . 'includes/class-psc-menus.php';
