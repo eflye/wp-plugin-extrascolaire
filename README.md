@@ -39,6 +39,7 @@ Remplace les fichiers papier/Excel remplis à la main par un site accessible aux
 - [Côté mairie](#côté-mairie-backoffice)
 - [Listes intervenantes SIDSCM](#listes-intervenantes-sidscm)
 - [Règles métier](#règles-métier)
+- [Intégrité des données](#intégrité-des-données)
 - [Sécurité](#sécurité)
 - [Conformité RGPD](#conformité-rgpd)
 - [Installation](#installation)
@@ -311,6 +312,19 @@ panneau déjà déplié.
 - Aucun remboursement automatique en cas d'absence, hors cas prévus par le règlement intérieur (fermeture, sortie scolaire, hospitalisation, maladie de plus de 3 jours justifiée).
 - Un justificatif d'assurance scolaire à jour est requis pour ajouter un nouveau jour de cantine/garderie ; il se renouvelle chaque année scolaire.
 - Un forfait journée (GM + Cantine + GS) est une prestation indivisible : impossible d'en annuler une partie seulement.
+
+---
+
+## Intégrité des données
+
+Le nettoyage applicatif est complet — supprimer un enfant efface ses présences, ses inscriptions annuelles, ses personnes autorisées, son historique et ses fichiers — mais il ne protégeait pas les écritures qui passent à côté : script de peuplement, correction SQL manuelle, code ajouté plus tard. La base contenait de fait un enfant sans famille et neuf lignes désignant un enfant inexistant.
+
+- **Clés étrangères déclarées** sur les neuf liens réels. Les actions `ON DELETE` reproduisent ce que le code fait déjà : la contrainte est un filet, pas une nouvelle règle métier. D'où le `SET NULL` sur `trimestres.school_year_id` — supprimer une année scolaire **détache** ses trimestres au lieu de les effacer, et une cascade aurait détruit là des données que le code prend soin de conserver.
+- Elles sont posées par `ALTER TABLE` et non via `dbDelta()`, qui ne sait pas lire une déclaration `FOREIGN KEY` et tenterait de la reposer à chaque passage. La pose est idempotente et tolérante à l'échec : sur un hébergement mutualisé, mieux vaut un site qui fonctionne sans contrainte qu'une mise à jour interrompue.
+- **Codes de prestation contraints** par une contrainte `CHECK`, et non par un type `ENUM` : WordPress retire `STRICT_TRANS_TABLES` du mode SQL de la session, si bien qu'un `ENUM` ne refuse pas une valeur inconnue mais la remplace silencieusement par une chaîne vide — il aurait corrompu la ligne au lieu de rejeter l'écriture. Côté code, `psc_is_valid_service()` est le point de contrôle unique.
+- **Plus de valeur sentinelle** : `child_school_years.school_year_id` accepte `NULL` au lieu de porter un zéro qui n'était ni un identifiant valide ni une absence.
+- **Cohérence du trimestre à la modification de ses dates.** Le générateur de calendrier ajoute des jours mais n'en retire jamais : rétrécir un trimestre laissait derrière lui des jours et des présences hors de ses bornes, qui restaient facturées sans appartenir à aucune période valide. La modification mesure désormais son impact, ramène le calendrier aux nouvelles bornes, et n'écrit rien tant que la suppression des présences concernées n'a pas été confirmée — leur nombre exact étant annoncé.
+- **Index par date** sur `registrations` et `calendar_days` : la clé unique commençant par `child_id`, toute recherche sur une plage de dates balayait l'index en entier. Le volume croît d'environ 20 000 lignes par rentrée.
 
 ---
 
