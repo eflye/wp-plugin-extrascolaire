@@ -136,6 +136,63 @@ class Psc_Frontend {
         }
     }
 
+    /**
+     * Cette prestation est-elle fermée ce jour-là par la mairie ?
+     *
+     * Le forfait est indivisible : il est bloqué dès qu'une seule de ses
+     * composantes l'est, puisqu'on ne peut pas en facturer une partie.
+     */
+    protected static function service_closed_on($date, $service) {
+        $closed = Psc_School_Calendar::closed_services_for_date($date);
+
+        return $service === psc_forfait_code()
+            ? (bool) array_intersect($closed, psc_unit_services())
+            : in_array($service, $closed, true);
+    }
+
+    /**
+     * Écrit ou retire une présence déclarée, en maintenant l'exclusivité
+     * entre le forfait et ses composantes.
+     *
+     * Ne décide de rien : les contrôles (appartenance de l'enfant, jour
+     * ouvert, délai de prévenance, prestation fermée) restent à la charge
+     * de l'appelant, qui seul sait comment signaler un refus — en JSON
+     * pour une case cochée à l'unité, en passant au jour suivant pour un
+     * envoi par lot.
+     *
+     * Cette routine existait en double, à vingt lignes identiques sur
+     * vingt-huit, l'invariant du forfait compris. Corriger un défaut dans
+     * l'une sans l'autre était une erreur silencieuse et probable.
+     */
+    protected static function apply_registration($child_id, $trimestre_id, $date, $service, $checked) {
+        global $wpdb;
+        $t_reg = psc_table('registrations');
+
+        if (!$checked) {
+            $wpdb->delete(
+                $t_reg,
+                array('child_id' => $child_id, 'jour_date' => $date, 'service' => $service),
+                array('%d', '%s', '%s')
+            );
+            return;
+        }
+
+        $wpdb->query($wpdb->prepare(
+            "INSERT INTO $t_reg (child_id, trimestre_id, jour_date, service, updated_at)
+             VALUES (%d, %d, %s, %s, %s)
+             ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at)",
+            $child_id, $trimestre_id, $date, $service, current_time('mysql')
+        ));
+
+        foreach (psc_conflicting_services($service) as $svc) {
+            $wpdb->delete(
+                $t_reg,
+                array('child_id' => $child_id, 'jour_date' => $date, 'service' => $svc),
+                array('%d', '%s', '%s')
+            );
+        }
+    }
+
     protected static function active_trimestre() {
         global $wpdb;
         $t_trim = psc_table('trimestres');
@@ -570,50 +627,14 @@ class Psc_Frontend {
         // case dans le navigateur ne suffit pas. Un enfant déjà déclaré
         // peut toujours être décoché (pas de blocage rétroactif), donc ce
         // contrôle ne s'applique qu'à une nouvelle déclaration ($checked).
-        if ($checked) {
-            $closed_services = Psc_School_Calendar::closed_services_for_date($date);
-            $service_blocked = $service === 'FORF'
-                ? (bool) array_intersect($closed_services, array('GM', 'CANT', 'GS'))
-                : in_array($service, $closed_services, true);
-            if ($service_blocked) {
-                wp_send_json_error(array(
-                    'code'    => 'service_closed',
-                    'message' => 'Cette prestation est fermée ce jour-là. Contactez la mairie.',
-                ), 403);
-            }
+        if ($checked && self::service_closed_on($date, $service)) {
+            wp_send_json_error(array(
+                'code'    => 'service_closed',
+                'message' => 'Cette prestation est fermée ce jour-là. Contactez la mairie.',
+            ), 403);
         }
 
-        $t_reg = psc_table('registrations');
-        if ($checked) {
-            $wpdb->query($wpdb->prepare(
-                "INSERT INTO $t_reg (child_id, trimestre_id, jour_date, service, updated_at)
-                 VALUES (%d, %d, %s, %s, %s)
-                 ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at)",
-                $child_id, $trimestre->id, $date, $service, current_time('mysql')
-            ));
-            // FORF inclut GM+CANT+GS : retirer les prestations individuelles si elles existent
-            if ($service === 'FORF') {
-                foreach (array('GM', 'CANT', 'GS') as $svc) {
-                    $wpdb->delete($t_reg,
-                        array('child_id' => $child_id, 'jour_date' => $date, 'service' => $svc),
-                        array('%d', '%s', '%s')
-                    );
-                }
-            }
-            // Une prestation individuelle est incompatible avec FORF
-            if (in_array($service, array('GM', 'CANT', 'GS'), true)) {
-                $wpdb->delete($t_reg,
-                    array('child_id' => $child_id, 'jour_date' => $date, 'service' => 'FORF'),
-                    array('%d', '%s', '%s')
-                );
-            }
-        } else {
-            $wpdb->delete(
-                $t_reg,
-                array('child_id' => $child_id, 'jour_date' => $date, 'service' => $service),
-                array('%d', '%s', '%s')
-            );
-        }
+        self::apply_registration($child_id, $trimestre->id, $date, $service, $checked);
 
         wp_send_json_success();
     }
@@ -703,43 +724,12 @@ class Psc_Frontend {
             if (psc_is_locked($date)) continue;
 
             // Fermeture par prestation (calendrier scolaire v2), même
-            // logique et même revérification par date que ci-dessus.
-            if ($checked) {
-                $closed_services = Psc_School_Calendar::closed_services_for_date($date);
-                $service_blocked = $service === 'FORF'
-                    ? (bool) array_intersect($closed_services, array('GM', 'CANT', 'GS'))
-                    : in_array($service, $closed_services, true);
-                if ($service_blocked) continue;
-            }
+            // revérification par date que le délai ci-dessus. Un jour
+            // refusé est ignoré silencieusement plutôt que d'échouer tout
+            // le lot — c'est la seule différence avec la case à l'unité.
+            if ($checked && self::service_closed_on($date, $service)) continue;
 
-            if ($checked) {
-                $wpdb->query($wpdb->prepare(
-                    "INSERT INTO $t_reg (child_id, trimestre_id, jour_date, service, updated_at)
-                     VALUES (%d, %d, %s, %s, %s)
-                     ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at)",
-                    $child_id, $trimestre->id, $date, $service, current_time('mysql')
-                ));
-                if ($service === 'FORF') {
-                    foreach (array('GM', 'CANT', 'GS') as $svc) {
-                        $wpdb->delete($t_reg,
-                            array('child_id' => $child_id, 'jour_date' => $date, 'service' => $svc),
-                            array('%d', '%s', '%s')
-                        );
-                    }
-                }
-                if (in_array($service, array('GM', 'CANT', 'GS'), true)) {
-                    $wpdb->delete($t_reg,
-                        array('child_id' => $child_id, 'jour_date' => $date, 'service' => 'FORF'),
-                        array('%d', '%s', '%s')
-                    );
-                }
-            } else {
-                $wpdb->delete(
-                    $t_reg,
-                    array('child_id' => $child_id, 'jour_date' => $date, 'service' => $service),
-                    array('%d', '%s', '%s')
-                );
-            }
+            self::apply_registration($child_id, $trimestre->id, $date, $service, $checked);
 
             $applied[] = $date;
         }
@@ -1674,7 +1664,12 @@ class Psc_Frontend {
             foreach ($rows as $row) {
                 if (psc_is_locked($row->jour_date)) continue;
                 $day_label = psc_day_label($row->jour_date) . ' ' . date_i18n('d/m/Y', strtotime($row->jour_date));
-                $sub_services = $row->service === 'FORF' ? array('GM', 'CANT', 'GS') : array($row->service);
+                // Un forfait se lit comme les trois prestations qu'il couvre :
+                // la famille les voit détaillées, mais c'est bien le forfait
+                // entier qui sera annulé (cf. 'service' ci-dessous).
+                $sub_services = $row->service === psc_forfait_code()
+                    ? psc_unit_services()
+                    : array($row->service);
                 foreach ($sub_services as $sub) {
                     $items[] = array(
                         'date'    => $row->jour_date,

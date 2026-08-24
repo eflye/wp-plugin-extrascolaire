@@ -1,7 +1,9 @@
 (function () {
     'use strict';
 
-    var SERVICES = ['GM', 'CANT', 'GS'];
+    // Fournie par le serveur (psc_unit_services()) : une seule source pour
+    // la composition du forfait, PHP et JavaScript confondus.
+    var SERVICES = PSC_CAL_V2.unit_services;
     var menuEl = null;
 
     function svcLabel(code) {

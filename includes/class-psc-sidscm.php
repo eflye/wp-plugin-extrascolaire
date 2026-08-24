@@ -23,8 +23,6 @@ if (!defined('ABSPATH')) exit;
  */
 class Psc_Sidscm {
 
-    /** Services concernés par cet écran — le forfait (FORF) implique les trois. */
-    const SERVICES = array('GM', 'CANT', 'GS');
 
     public static function init() {
         add_shortcode('periscolaire_sidscm', array(__CLASS__, 'shortcode'));
@@ -125,6 +123,9 @@ class Psc_Sidscm {
         wp_localize_script('psc-sidscm', 'PSC_SIDSCM', array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce'    => wp_create_nonce('psc_sidscm_front'),
+            // Transmise plutôt que redéclarée côté navigateur : la liste des
+            // prestations élémentaires n'a qu'une seule source (psc_unit_services()).
+            'services' => psc_unit_services(),
         ));
     }
 
@@ -247,7 +248,7 @@ class Psc_Sidscm {
 
             $per_service = array();
             $has_any = false;
-            foreach (self::SERVICES as $svc) {
+            foreach (psc_unit_services() as $svc) {
                 $jours = array();
                 foreach ($open_days as $jour => $date) {
                     if ($expected($c->id, $date, $svc)) {
@@ -313,7 +314,7 @@ class Psc_Sidscm {
         $service  = psc_post('service');
         $present  = psc_post('present') === '1' ? 1 : 0;
 
-        if (!$child_id || !$date || !in_array($service, self::SERVICES, true)) {
+        if (!$child_id || !$date || !in_array($service, psc_unit_services(), true)) {
             wp_send_json_error(array('code' => 'invalid'), 400);
         }
 

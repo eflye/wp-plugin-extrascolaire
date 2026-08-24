@@ -39,8 +39,77 @@ function psc_table($name) {
 /**
  * Codes de service autorisés. Toute valeur hors de cette liste est rejetée.
  */
+/**
+ * Prestations élémentaires : garderie matin, cantine, garderie soir.
+ *
+ * Ce sont celles qu'on déclare, ferme et compte une par une. Le forfait
+ * journée n'en fait pas partie — il les recouvre exactement toutes les
+ * trois, ce qui est la règle métier structurante de l'extension : elle
+ * décide de ce qui est facturé.
+ *
+ * Source unique. Cette liste était auparavant réécrite à une douzaine
+ * d'endroits sous trois noms différents (deux constantes de classe, deux
+ * tableaux JavaScript, six littéraux en dur). Ajouter une prestation ou
+ * changer la composition du forfait imposait de tous les retrouver ; en
+ * oublier un ne produisait aucune erreur, seulement une facturation fausse.
+ */
+function psc_unit_services() {
+    return array('GM', 'CANT', 'GS');
+}
+
+/** Code du forfait journée — il couvre exactement psc_unit_services(). */
+function psc_forfait_code() {
+    return 'FORF';
+}
+
+/**
+ * Prestations qu'un enregistrement peut porter : les élémentaires, plus le
+ * forfait. Dérivée, pour que l'ajout d'une prestation à la liste ci-dessus
+ * se propage sans qu'on ait à y penser.
+ */
 function psc_allowed_services() {
-    return array('GM', 'CANT', 'GS', 'FORF');
+    return array_merge(psc_unit_services(), array(psc_forfait_code()));
+}
+
+/**
+ * Prestations incompatibles avec celle-ci, pour un même enfant et un même
+ * jour. Le forfait et ses composantes s'excluent mutuellement : déclarer le
+ * forfait retire les prestations individuelles, et déclarer une prestation
+ * individuelle retire le forfait. Sans quoi la journée serait comptée deux
+ * fois.
+ */
+/**
+ * Une prestation est-elle fermée ce jour-là, d'après une carte de
+ * fermetures déjà chargée (clés « date|code », cf. service_closures_map()) ?
+ *
+ * Pendant du contrôle en base côté serveur, pour les gabarits qui ont déjà
+ * la carte en main et n'ont pas à réinterroger. Même règle : le forfait est
+ * bloqué dès qu'une seule de ses composantes l'est, puisqu'on ne peut pas
+ * en facturer une partie.
+ */
+function psc_service_closed_in_map(array $closures, $date, $service) {
+    $codes = $service === psc_forfait_code() ? psc_unit_services() : array($service);
+    foreach ($codes as $code) {
+        if (isset($closures[$date . '|' . $code])) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/** Libellés abrégés, pour les en-têtes de colonnes serrées. */
+function psc_service_short_labels() {
+    return array('GM' => 'G.M.', 'CANT' => 'Cant.', 'GS' => 'G.S.', 'FORF' => 'Forf.');
+}
+
+function psc_conflicting_services($service) {
+    if ($service === psc_forfait_code()) {
+        return psc_unit_services();
+    }
+    if (in_array($service, psc_unit_services(), true)) {
+        return array(psc_forfait_code());
+    }
+    return array();
 }
 
 /**

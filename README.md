@@ -311,7 +311,7 @@ panneau déjà déplié.
 - La facturation est **mensuelle**, calculée à partir des inscriptions réellement déclarées (jour × enfant × prestation), et ne peut être générée qu'une fois le mois écoulé.
 - Aucun remboursement automatique en cas d'absence, hors cas prévus par le règlement intérieur (fermeture, sortie scolaire, hospitalisation, maladie de plus de 3 jours justifiée).
 - Un justificatif d'assurance scolaire à jour est requis pour ajouter un nouveau jour de cantine/garderie ; il se renouvelle chaque année scolaire.
-- Un forfait journée (GM + Cantine + GS) est une prestation indivisible : impossible d'en annuler une partie seulement.
+- Un forfait journée (GM + Cantine + GS) est une prestation indivisible : impossible d'en annuler une partie seulement. Sa composition a **une seule source**, `psc_unit_services()` : `psc_allowed_services()` en dérive, l'exclusivité forfait/composantes aussi, et le JavaScript la reçoit du serveur. Elle était auparavant réécrite à une douzaine d'endroits sous trois noms différents — en oublier un ne produisait aucune erreur, seulement une facturation fausse.
 
 ---
 

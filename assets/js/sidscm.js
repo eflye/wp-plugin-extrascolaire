@@ -2,13 +2,15 @@
     'use strict';
 
     var STORAGE_KEY = 'psc_sidscm_code';
-    var SERVICE_ORDER = ['GM', 'CANT', 'GS'];
+    // Fournie par le serveur (psc_unit_services()) : une seule source pour
+    // la composition du forfait, PHP et JavaScript confondus.
+    var SERVICE_ORDER = PSC_SIDSCM.services;
 
     var state = {
         code: '',
         viewMode: 'day',
         activeDay: null,
-        activeService: 'GM',
+        activeService: SERVICE_ORDER[0], // première prestation de la journée
         days: {},      // jour => date (Y-m-d), ordre lundi/mardi/jeudi/vendredi
         services: {},  // code => { label, price }
         children: [],  // { id, prenom, nom, classe, diet, GM: [jours], CANT: [jours], GS: [jours] }

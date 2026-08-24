@@ -56,7 +56,7 @@
 <input type="hidden" name="parent_id" value="<?php echo esc_attr($parent_id); ?>">
 <input type="hidden" name="trimestre_id" value="<?php echo esc_attr($trimestre_id); ?>">
 
-<?php $short = array('GM' => 'G.M.', 'CANT' => 'Cant.', 'GS' => 'G.S.', 'FORF' => 'Forf.'); ?>
+<?php $short = psc_service_short_labels(); ?>
 
 <?php foreach ($children as $child): ?>
 <div class="psc-box">

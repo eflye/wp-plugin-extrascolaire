@@ -34,6 +34,8 @@ class Psc_Admin_Calendar_V2 {
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce'    => wp_create_nonce('psc_calendar_v2'),
             'services' => psc_services(),
+            // Idem : la liste des prestations élémentaires vient du serveur.
+            'unit_services' => psc_unit_services(),
         ));
     }
 
@@ -275,7 +277,7 @@ class Psc_Admin_Calendar_V2 {
             }
 
             $services = array();
-            foreach (Psc_School_Calendar::CLOSABLE_SERVICES as $code) {
+            foreach (psc_unit_services() as $code) {
                 $services[$code] = array(
                     'closed' => isset($closures[$date][$code]),
                     'label'  => isset($closures[$date][$code]) ? $closures[$date][$code] : null,
@@ -343,7 +345,7 @@ class Psc_Admin_Calendar_V2 {
         self::ajax_guard();
         $date    = psc_valid_date(psc_post('date'));
         $service = psc_post('service');
-        if (!$date || !in_array($service, Psc_School_Calendar::CLOSABLE_SERVICES, true)) {
+        if (!$date || !in_array($service, psc_unit_services(), true)) {
             wp_send_json_error(array('code' => 'invalid'), 400);
         }
 
@@ -361,7 +363,7 @@ class Psc_Admin_Calendar_V2 {
         $date    = psc_valid_date(psc_post('date'));
         $service = psc_post('service');
         $label   = psc_post('label');
-        if (!$date || !in_array($service, Psc_School_Calendar::CLOSABLE_SERVICES, true)) {
+        if (!$date || !in_array($service, psc_unit_services(), true)) {
             wp_send_json_error(array('code' => 'invalid'), 400);
         }
 
@@ -375,7 +377,7 @@ class Psc_Admin_Calendar_V2 {
         self::ajax_guard();
         $date    = psc_valid_date(psc_post('date'));
         $service = psc_post('service');
-        if (!$date || !in_array($service, Psc_School_Calendar::CLOSABLE_SERVICES, true)) {
+        if (!$date || !in_array($service, psc_unit_services(), true)) {
             wp_send_json_error(array('code' => 'invalid'), 400);
         }
 

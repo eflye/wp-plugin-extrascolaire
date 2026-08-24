@@ -431,8 +431,6 @@ class Psc_School_Calendar {
      * jour entier — utilisée par le calendrier scolaire v2.
      * ------------------------------------------------------------------ */
 
-    /** Prestations fermables individuellement (FORF exclu : c'est un forfait dérivé des 3 autres, pas une prestation qu'on ferme elle-même). */
-    const CLOSABLE_SERVICES = array('GM', 'CANT', 'GS');
 
     public static function is_service_closed($date_str, $service) {
         global $wpdb;
@@ -514,7 +512,7 @@ class Psc_School_Calendar {
     public static function close_service($date_str, $service, $label) {
         $date_str = psc_valid_date($date_str);
         if (!$date_str) return new WP_Error('invalid_date', 'Date invalide.');
-        if (!in_array($service, self::CLOSABLE_SERVICES, true)) {
+        if (!in_array($service, psc_unit_services(), true)) {
             return new WP_Error('invalid_service', 'Prestation invalide.');
         }
         $label = $label !== '' ? sanitize_text_field($label) : 'Fermeture exceptionnelle';
@@ -547,7 +545,7 @@ class Psc_School_Calendar {
 
         if (!empty($affected['forf']['families'])) {
             $closed_now = self::closed_services_for_date($date_str);
-            $remaining  = array_diff(self::CLOSABLE_SERVICES, array($service), $closed_now);
+            $remaining  = array_diff(psc_unit_services(), array($service), $closed_now);
 
             $remaining_labels = array();
             foreach ($remaining as $code) {

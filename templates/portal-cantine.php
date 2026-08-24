@@ -112,7 +112,7 @@
               <tr>
                 <th scope="col">Jour</th>
                 <?php
-                $short = array('GM' => 'G.M.', 'CANT' => 'Cant.', 'GS' => 'G.S.', 'FORF' => 'Forf.');
+                $short = psc_service_short_labels();
                 foreach (psc_allowed_services() as $code): ?>
                   <th scope="col">
                     <abbr class="psc-portal-th-abbr" title="<?php echo esc_attr($services[$code]['label']); ?>"><?php echo esc_html($short[$code]); ?></abbr>
@@ -127,9 +127,7 @@
                     $tout_checked_count = 0;
                     foreach ($days as $d) {
                         if (psc_is_locked($d->jour_date)) continue;
-                        $svc_closed = $code === 'FORF'
-                            ? (isset($service_closures_map[$d->jour_date . '|GM']) || isset($service_closures_map[$d->jour_date . '|CANT']) || isset($service_closures_map[$d->jour_date . '|GS']))
-                            : isset($service_closures_map[$d->jour_date . '|' . $code]);
+                        $svc_closed = psc_service_closed_in_map($service_closures_map, $d->jour_date, $code);
                         if ($svc_closed) continue;
                         $tout_dates[] = $d->jour_date;
                         if (isset($reg_map[$child->id . '|' . $d->jour_date . '|' . $code])) $tout_checked_count++;
@@ -170,9 +168,7 @@
                     // v2) n'est plus proposée ce jour-là. Le forfait journée
                     // implique les 3 prestations : il est bloqué dès qu'une
                     // seule d'entre elles est fermée.
-                    $service_closed = $s === 'FORF'
-                        ? (isset($service_closures_map[$date . '|GM']) || isset($service_closures_map[$date . '|CANT']) || isset($service_closures_map[$date . '|GS']))
-                        : isset($service_closures_map[$date . '|' . $s]);
+                    $service_closed = psc_service_closed_in_map($service_closures_map, $date, $s);
                     // L'assurance manquante bloque uniquement l'AJOUT d'un
                     // jour : une case déjà cochée reste décochable (pas de
                     // blocage rétroactif, cf. ajax_toggle()).
