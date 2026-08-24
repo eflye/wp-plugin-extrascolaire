@@ -120,7 +120,7 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
           <div>
             <label class="psc-portal-field-label screen-reader-text" for="psc-cc-0">Classe de l'enfant 1</label>
             <select id="psc-cc-0" class="psc-portal-field-underline" name="child_classe_0" required>
-              <?php foreach (psc_classe_options() as $v => $l): ?>
+              <?php foreach (Psc_School_Years::classe_options() as $v => $l): ?>
               <option value="<?php echo esc_attr($v); ?>"><?php echo esc_html($l); ?></option>
               <?php endforeach; ?>
             </select>

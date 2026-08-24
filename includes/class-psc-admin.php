@@ -672,7 +672,7 @@ class Psc_Admin {
         $from_year = $staged ? Psc_School_Years::get($staged['from_year_id']) : null;
         $to_year   = $staged ? Psc_School_Years::get($staged['to_year_id']) : null;
         $plan      = $staged ? $staged['plan'] : array();
-        $classe_options = psc_classe_options();
+        $classe_options = Psc_School_Years::classe_options();
         include PSC_PATH . 'templates/admin-passage-annee.php';
     }
 
@@ -715,7 +715,7 @@ class Psc_Admin {
             self::redirect('psc_children', 'nouser');
         }
 
-        $allowed = array_keys(psc_classe_options());
+        $allowed = array_keys(Psc_School_Years::classe_options());
         if (!in_array($classe, $allowed, true)) $classe = '';
 
         $wpdb->insert(psc_table('children'), array(
@@ -856,7 +856,7 @@ class Psc_Admin {
         )) : array();
 
         $parents = Psc_Parents::all();
-        $psc_classe_labels = psc_classe_options();
+        $psc_classe_labels = Psc_School_Years::classe_options();
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         include PSC_PATH . 'templates/admin-children.php';
     }
@@ -962,7 +962,7 @@ class Psc_Admin {
         // Table de correspondance des classes (passage d'année) : un select
         // par classe existante vers sa classe suivante, ou "sortie".
         $progression = array();
-        foreach (array_keys(psc_classe_options()) as $code) {
+        foreach (array_keys(Psc_School_Years::classe_options()) as $code) {
             if ($code === '') continue;
             $next = isset($_POST['progression_' . $code]) ? sanitize_text_field(wp_unslash($_POST['progression_' . $code])) : 'sortie';
             $progression[$code] = $next;
@@ -980,7 +980,7 @@ class Psc_Admin {
     public static function page_settings() {
         if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         $services = psc_services();
-        $psc_classe_progression = psc_classe_progression();
+        $psc_classe_progression = Psc_School_Years::classe_progression();
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         include PSC_PATH . 'templates/admin-settings.php';
     }

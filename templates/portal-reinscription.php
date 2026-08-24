@@ -5,7 +5,7 @@
 <?php if (empty($psc_portal_reinscription['target_year'])): ?>
 <p class="psc-portal-dash-menu-empty" data-testid="reinscription-no-year">La réinscription n'est pas encore ouverte : contactez la mairie.</p>
 <?php else:
-  $psc_classe_labels = psc_classe_options();
+  $psc_classe_labels = Psc_School_Years::classe_options();
   $psc_target_year = $psc_portal_reinscription['target_year'];
   $psc_reins_children = $psc_portal_reinscription['children'];
 ?>

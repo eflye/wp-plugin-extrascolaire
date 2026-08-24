@@ -102,7 +102,7 @@ if ($psc_msg && isset($msgs[$psc_msg])):
 <div class="psc-box" style="border-left:4px solid #f5a623;" data-testid="cantine-pending-warning">
 <h2>⚠ Confirmation nécessaire</h2>
 <p>
-    Annuler la cantine de la classe <strong><?php echo esc_html($pending_cantine['classe'] !== '' ? (psc_classe_options()[$pending_cantine['classe']] ?? $pending_cantine['classe']) : 'Non renseignée'); ?></strong>
+    Annuler la cantine de la classe <strong><?php echo esc_html($pending_cantine['classe'] !== '' ? (Psc_School_Years::classe_options()[$pending_cantine['classe']] ?? $pending_cantine['classe']) : 'Non renseignée'); ?></strong>
     le <strong><?php echo esc_html(psc_day_label($pending_cantine['date']) . ' ' . date_i18n('d/m/Y', strtotime($pending_cantine['date']))); ?></strong>
     supprimera <strong><?php echo count($pending_cantine_affected); ?> inscription(s)</strong> déjà déclarée(s). Ces prestations ne seront
     pas facturées, et chaque famille concernée recevra un e-mail avec le motif indiqué : «&nbsp;<?php echo esc_html($pending_cantine['reason']); ?>&nbsp;».
@@ -150,7 +150,7 @@ if ($psc_msg && isset($msgs[$psc_msg])):
 <th><label for="psc-cantine-classe">Classe</label></th>
 <td>
 <select id="psc-cantine-classe" name="classe" data-testid="cantine-classe-select">
-<?php foreach (psc_classe_options() as $code => $label): ?>
+<?php foreach (Psc_School_Years::classe_options() as $code => $label): ?>
 <option value="<?php echo esc_attr($code); ?>"><?php echo esc_html($label ?: 'Non renseignée'); ?></option>
 <?php endforeach; ?>
 </select>

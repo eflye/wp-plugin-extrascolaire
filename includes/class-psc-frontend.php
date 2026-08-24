@@ -890,7 +890,7 @@ class Psc_Frontend {
             self::parent_form_redirect(isset($codes[$file_check]) ? $codes[$file_check] : 'assurance_required');
         }
 
-        $allowed = array_keys(psc_classe_options());
+        $allowed = array_keys(Psc_School_Years::classe_options());
         if (!in_array($classe, $allowed, true)) $classe = '';
 
         $year_id = Psc_School_Years::active_id();
@@ -1074,7 +1074,7 @@ class Psc_Frontend {
             if (empty($_POST['confirm_' . $child->id])) continue; // enfant retiré pour la nouvelle année
 
             $classe_actuelle = Psc_School_Years::classe_for($child->id); // année en cours (active)
-            $classe_proposee = $classe_actuelle !== '' ? psc_classe_superieure($classe_actuelle) : null;
+            $classe_proposee = $classe_actuelle !== '' ? Psc_School_Years::classe_superieure($classe_actuelle) : null;
             if (!$classe_proposee || $classe_proposee === 'sortie') continue; // fin de cycle : rien à réinscrire
 
             $file = isset($_FILES['assurance_' . $child->id]) ? $_FILES['assurance_' . $child->id] : null;
@@ -1820,7 +1820,7 @@ class Psc_Frontend {
                 'target_year' => self::reinscription_target_year(),
                 'children'    => array_map(function ($child) {
                     $classe_actuelle = Psc_School_Years::classe_for($child->id);
-                    $classe_proposee = $classe_actuelle !== '' ? psc_classe_superieure($classe_actuelle) : null;
+                    $classe_proposee = $classe_actuelle !== '' ? Psc_School_Years::classe_superieure($classe_actuelle) : null;
                     return array(
                         'id'              => $child->id,
                         'name'            => trim($child->prenom . ' ' . $child->nom),

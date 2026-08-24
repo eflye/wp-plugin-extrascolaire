@@ -27,7 +27,7 @@ class Psc_Supplier_Orders {
 
     /**
      * Codes de classe ayant au moins un enfant actif (famille active
-     * comprise), dans l'ordre pédagogique de psc_classe_options().
+     * comprise), dans l'ordre pédagogique de Psc_School_Years::classe_options().
      * Une classe non renseignée ('') est ajoutée en dernier, si des
      * enfants actifs sont dans ce cas.
      */
@@ -48,7 +48,7 @@ class Psc_Supplier_Orders {
         $existing = array_map('strval', $existing);
 
         $ordered = array();
-        foreach (psc_classe_options() as $code => $label) {
+        foreach (Psc_School_Years::classe_options() as $code => $label) {
             if ($code === '') continue;
             if (in_array($code, $existing, true)) $ordered[] = $code;
         }
@@ -83,7 +83,7 @@ class Psc_Supplier_Orders {
         $year = Psc_School_Years::for_date($semaine);
         $year_id = $year ? (int) $year->id : 0;
 
-        $classes_labels = psc_classe_options();
+        $classes_labels = Psc_School_Years::classe_options();
         $classes = self::known_classes($year_id);
 
         // Seuls les jours d'école réellement ouverts (vacances, jours fériés
@@ -271,7 +271,7 @@ class Psc_Supplier_Orders {
         $placeholders = implode(',', array_fill(0, count($ids), '%d'));
         $wpdb->query($wpdb->prepare("DELETE FROM $t_reg WHERE id IN ($placeholders)", $ids));
 
-        $classe_labels = psc_classe_options();
+        $classe_labels = Psc_School_Years::classe_options();
         $classe_label  = ($classe === '') ? 'Non renseignée' : ($classe_labels[$classe] ?? $classe);
 
         foreach ($by_family as $fam) {

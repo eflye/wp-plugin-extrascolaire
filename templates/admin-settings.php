@@ -280,12 +280,12 @@ $doc_rp_id = (int) get_option('psc_doc_reglement_prelevement_id', 0);
 <h2>Passage d'année : progression des classes</h2>
 <p>Classe suivante proposée pour chaque classe lors d'un passage d'année (Périscolaire &gt; Années scolaires). Modifiable ligne par ligne au moment du passage d'année lui-même — cette table ne sert que de proposition par défaut. Utile si l'école a des classes à plusieurs niveaux.</p>
 <table class="form-table">
-<?php foreach (psc_classe_options() as $code => $label): if ($code === '') continue; ?>
+<?php foreach (Psc_School_Years::classe_options() as $code => $label): if ($code === '') continue; ?>
 <tr>
 <th><label for="psc-prog-<?php echo esc_attr($code); ?>"><?php echo esc_html($label); ?></label></th>
 <td>
 <select id="psc-prog-<?php echo esc_attr($code); ?>" name="progression_<?php echo esc_attr($code); ?>">
-<?php foreach (psc_classe_options() as $next_code => $next_label): if ($next_code === '') continue; ?>
+<?php foreach (Psc_School_Years::classe_options() as $next_code => $next_label): if ($next_code === '') continue; ?>
 <option value="<?php echo esc_attr($next_code); ?>" <?php selected($psc_classe_progression[$code] ?? '', $next_code); ?>><?php echo esc_html($next_label); ?></option>
 <?php endforeach; ?>
 <option value="sortie" <?php selected($psc_classe_progression[$code] ?? '', 'sortie'); ?>>Sortie (fin de cycle périscolaire)</option>

@@ -15,7 +15,7 @@
     </tr>
   </thead>
   <tbody>
-  <?php $psc_classe_labels = psc_classe_options(); ?>
+  <?php $psc_classe_labels = Psc_School_Years::classe_options(); ?>
   <?php foreach ($all_children as $c): ?>
     <tr data-testid="portal-child-row-<?php echo esc_attr($c->id); ?>">
       <td style="font-weight:500;" data-label="Prénom"><?php echo esc_html($c->prenom); ?></td>
@@ -303,7 +303,7 @@ if ($psc_active_year) {
       <div>
         <div class="psc-portal-field-label">Classe</div>
         <select name="new_classe" class="psc-portal-field-underline">
-          <?php foreach (psc_classe_options() as $v => $l): ?>
+          <?php foreach (Psc_School_Years::classe_options() as $v => $l): ?>
           <option value="<?php echo esc_attr($v); ?>"><?php echo esc_html($l); ?></option>
           <?php endforeach; ?>
         </select>

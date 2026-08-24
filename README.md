@@ -554,7 +554,20 @@ periscolaire-registration/
 ├── periscolaire-registration.php   # Point d'entrée du plugin
 ├── uninstall.php                   # Nettoyage à la désinstallation
 ├── includes/
-│   ├── helpers.php                 # Fonctions utilitaires (dates, IBAN/BIC, sécurité...)
+│   ├── helpers.php                 # Charge les fichiers ci-dessous, n'en contient aucune fonction
+│   ├── helpers/                    # Un fichier par domaine, chacun annonçant en tête ce qui y entre
+│   │   ├── core.php                #   tables et droits d'accès
+│   │   ├── request.php             #   lecture et validation des entrées HTTP
+│   │   ├── dates.php               #   dates et jours fériés — rien de scolaire
+│   │   ├── school-calendar.php     #   vacances, jours d'école, semaines de service
+│   │   ├── lock.php                #   délai de modification d'un jour
+│   │   ├── services.php            #   prestations et règles qui les lient
+│   │   ├── banking.php             #   IBAN/BIC, masquage, référence de mandat
+│   │   ├── crypto.php              #   chiffrement au repos, empreintes
+│   │   ├── session.php             #   sessions familles, durées, jetons anti-CSRF
+│   │   ├── throttle.php            #   limitation de fréquence
+│   │   ├── files.php               #   documents déposés, hors racine web
+│   │   └── settings.php            #   plafonds, destinataires, options
 │   ├── class-psc-installer.php     # Création / migration des tables
 │   ├── class-psc-admin.php         # Backoffice WordPress (toutes les routes admin_post_*)
 │   ├── class-psc-frontend.php      # Portail famille connecté + page publique (menu, login)

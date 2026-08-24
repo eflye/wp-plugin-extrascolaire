@@ -256,10 +256,10 @@ class Psc_School_Years {
     /**
      * Calcule le plan de montée de classe : pour chaque enfant actif
      * inscrit à $from_year_id, sa classe actuelle et la classe proposée
-     * pour $to_year_id d'après psc_classe_progression(). 'sortie' déclenche
+     * pour $to_year_id d'après self::classe_progression(). 'sortie' déclenche
      * la sortie de l'enfant plutôt qu'une inscription. Un enfant sans
      * classe connue se voit proposer une classe déduite de sa date de
-     * naissance (psc_classe_for_birthdate()) plutôt que d'être ignoré.
+     * naissance (self::classe_for_birthdate()) plutôt que d'être ignoré.
      * N'écrit rien en base — cf. apply_promotion().
      */
     public static function build_promotion_plan($from_year_id, $to_year_id) {
@@ -288,10 +288,10 @@ class Psc_School_Years {
         $plan = array();
         foreach ($children as $c) {
             $classe_actuelle = $c->classe_actuelle ?: '';
-            $proposition = $classe_actuelle !== '' ? psc_classe_superieure($classe_actuelle) : null;
+            $proposition = $classe_actuelle !== '' ? self::classe_superieure($classe_actuelle) : null;
             if ($proposition === null) {
                 $proposition = $c->date_naissance
-                    ? psc_classe_for_birthdate($c->date_naissance, $rentree_year)
+                    ? self::classe_for_birthdate($c->date_naissance, $rentree_year)
                     : '';
                 if ($proposition === '') $proposition = 'sortie';
             }
@@ -352,4 +352,88 @@ class Psc_School_Years {
     public static function clear_staged_promotion() {
         delete_transient(self::TRANSIENT_PROMOTION);
     }
+
+    /* ------------------------------------------------------------------
+     * Niveaux de classe et progression d'une année sur l'autre
+     *
+     * Déplacées depuis helpers.php : ce sont des règles d'année scolaire,
+     * au même titre que le passage d'année qui les consomme
+     * (build_promotion_plan() juste au-dessus).
+     * ------------------------------------------------------------------ */
+
+    /**
+     * Liste ordonnée des niveaux scolaires pour les menus déroulants.
+     * Clé = valeur stockée en base, valeur = libellé affiché.
+     */
+    public static function classe_options() {
+        return array(
+            ''   => '— Classe —',
+            'PS' => 'Petite Section (PS)',
+            'MS' => 'Moyenne Section (MS)',
+            'GS' => 'Grande Section (GS)',
+            'CP' => 'CP',
+            'CE1'=> 'CE1',
+            'CE2'=> 'CE2',
+            'CM1'=> 'CM1',
+            'CM2'=> 'CM2',
+        );
+    }
+
+    /**
+     * Classe attendue pour un enfant né le $date_naissance, à la rentrée
+     * $rentree_year (âge au 31 décembre de cette année civile — règle
+     * officielle française). Sert uniquement à initialiser la classe d'un
+     * enfant qui n'en a pas encore : jamais utilisée pour recorriger une
+     * classe déjà définie (cf. Psc_School_Years::build_promotion_plan()).
+     */
+    public static function classe_for_birthdate($date_naissance, $rentree_year) {
+        if (!$date_naissance) return '';
+        $age = $rentree_year - (int) date('Y', strtotime($date_naissance));
+        $map = array(3 => 'PS', 4 => 'MS', 5 => 'GS', 6 => 'CP', 7 => 'CE1', 8 => 'CE2', 9 => 'CM1', 10 => 'CM2');
+        return $map[$age] ?? '';
+    }
+
+    /**
+     * Table de correspondance classe -> classe suivante (ou 'sortie'),
+     * éditable depuis Périscolaire > Réglages : une école à classes
+     * multi-niveaux peut avoir une progression différente du simple
+     * PS→MS→GS→CP→CE1→CE2→CM1→CM2. Valeur par défaut = cette progression
+     * standard, CM2 menant à la sortie.
+     */
+    public static function classe_progression_defaut() {
+        return array(
+            'PS'  => 'MS',
+            'MS'  => 'GS',
+            'GS'  => 'CP',
+            'CP'  => 'CE1',
+            'CE1' => 'CE2',
+            'CE2' => 'CM1',
+            'CM1' => 'CM2',
+            'CM2' => 'sortie',
+        );
+    }
+
+    public static function classe_progression() {
+        $saved = get_option('psc_classe_progression', array());
+        $defaut = self::classe_progression_defaut();
+        if (!is_array($saved) || empty($saved)) return $defaut;
+
+        $progression = array();
+        foreach (array_keys(self::classe_options()) as $code) {
+            if ($code === '') continue;
+            $progression[$code] = isset($saved[$code]) ? $saved[$code] : ($defaut[$code] ?? 'sortie');
+        }
+        return $progression;
+    }
+
+    /**
+     * Classe suivante pour $classe selon la table de correspondance
+     * configurée (Réglages). Renvoie 'sortie' en fin de cycle, ou null si
+     * $classe n'est pas une classe reconnue.
+     */
+    public static function classe_superieure($classe) {
+        $progression = self::classe_progression();
+        return $progression[$classe] ?? null;
+    }
+
 }

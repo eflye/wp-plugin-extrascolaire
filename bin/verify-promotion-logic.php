@@ -105,7 +105,7 @@ WP_CLI::add_command('verify-promotion-logic', function ($args, $assoc_args) {
         WP_CLI::error('Création du parent de test : ' . $parent_id->get_error_message());
     }
 
-    // rentree_year de l'année N+1, utilisé par psc_classe_for_birthdate()
+    // rentree_year de l'année N+1, utilisé par Psc_School_Years::classe_for_birthdate()
     // pour la fixture "classe inconnue" : un enfant né il y a 6 ans doit
     // être déduit en CP à cette rentrée-là (âge au 31/12).
     $rentree_year_to = (int) date('Y', strtotime($to_debut));
@@ -158,19 +158,19 @@ WP_CLI::add_command('verify-promotion-logic', function ($args, $assoc_args) {
         isset($by_child[$child_ids['enfant_sorti']]),
         false
     );
-    // Comparé à la progression réellement configurée (psc_classe_progression()),
+    // Comparé à la progression réellement configurée (Psc_School_Years::classe_progression()),
     // pas à une valeur codée en dur : ce script vérifie que build_promotion_plan()
     // consulte bien la table de correspondance, quelle que soit celle
     // effectivement enregistrée sur ce site (Réglages a pu la personnaliser).
     $assert(
         "CP -> classe suivante d'après la table de correspondance configurée",
         $by_child[$child_ids['cp_vers_ce1']]['classe_proposee'] ?? null,
-        psc_classe_superieure('CP')
+        Psc_School_Years::classe_superieure('CP')
     );
     $assert(
         "CM2 -> classe suivante d'après la table de correspondance configurée",
         $by_child[$child_ids['cm2_vers_sortie']]['classe_proposee'] ?? null,
-        psc_classe_superieure('CM2')
+        Psc_School_Years::classe_superieure('CM2')
     );
     $assert(
         "Classe inconnue déduite de la date de naissance -> CP",
@@ -192,7 +192,7 @@ WP_CLI::add_command('verify-promotion-logic', function ($args, $assoc_args) {
     $assert(
         "CP promu et inscrit dans sa classe suivante pour N+1",
         Psc_School_Years::classe_for($child_ids['cp_vers_ce1'], $to_year_id),
-        psc_classe_superieure('CP')
+        Psc_School_Years::classe_superieure('CP')
     );
     $assert(
         "Override manuel respecté (CE1 au lieu du CP proposé)",
