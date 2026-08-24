@@ -543,6 +543,8 @@ Les mêmes scénarios s'exécutent à chaque poussée (`.github/workflows/e2e.ym
 
 **Horloge figée.** Le délai de modification d'un jour se mesure par rapport à maintenant : un scénario qui vérifie qu'un jour est verrouillé dépendrait donc de la date d'exécution, et la suite échouait chaque été — pendant les vacances, le premier jour d'école est à plus d'une semaine quand le verrou n'en couvre que deux. Le peuplement choisit désormais un jour d'école comme point d'ancrage et fige l'horloge dessus, via le filtre `psc_now_ts` relayé par `mu-plugins/psc-frozen-clock.php`. Un bandeau le signale dans l'administration ; supprimer l'option `psc_test_frozen_now` rétablit l'heure réelle. Rien de tout cela n'est distribué avec l'extension.
 
+**JavaScript.** Cinq fichiers autonomes, sans empaqueteur ni cadriciel — proportionné au besoin. Un seul module partagé, `assets/js/psc-ajax.js`, porte la mécanique des appels AJAX : chaque écran avait le sien, et un même incident réseau produisait trois comportements selon la page. Il garantit désormais qu'une réponse illisible (page d'erreur PHP) comme une panne réseau deviennent un échec structuré, jamais une exception de parsing remontée telle quelle.
+
 **Exécution séquentielle.** Les scénarios partagent une instance WordPress et le même compte administrateur : joués en parallèle, ils se déconnectent mutuellement et l'échec se déplace d'un scénario à l'autre. `workers: 1` coûte une quinzaine de secondes et rend le résultat reproductible.
 
 ---

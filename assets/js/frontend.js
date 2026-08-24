@@ -26,21 +26,9 @@
     }
 
     function post(payload) {
-        var body = new URLSearchParams();
-        body.append('nonce', PSC.nonce);
-        body.append('parent_nonce', PSC.parent_nonce || '');
-        Object.keys(payload).forEach(function (k) { body.append(k, payload[k]); });
-
-        return fetch(PSC.ajax_url, {
-            method: 'POST',
-            body: body,
-            credentials: 'same-origin',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        }).then(function (r) {
-            return r.json().catch(function () {
-                return { success: false, data: { code: 'generic' } };
-            });
-        });
+        var params = { nonce: PSC.nonce, parent_nonce: PSC.parent_nonce || '' };
+        Object.keys(payload).forEach(function (k) { params[k] = payload[k]; });
+        return window.PscAjax.envelope(PSC.ajax_url, params);
     }
 
     /* ---------- Cases à cocher ---------- */

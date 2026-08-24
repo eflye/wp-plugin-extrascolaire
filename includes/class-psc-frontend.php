@@ -111,7 +111,10 @@ class Psc_Frontend {
         if (!$post || !has_shortcode($post->post_content, 'periscolaire_form')) return;
 
         wp_enqueue_style('psc-frontend', PSC_URL . 'assets/css/frontend.css', array(), PSC_VERSION);
-        wp_enqueue_script('psc-frontend', PSC_URL . 'assets/js/frontend.js', array(), PSC_VERSION, true);
+        // Mécanique AJAX commune (assets/js/psc-ajax.js) : déclarée en
+        // dépendance pour que WordPress garantisse l'ordre de chargement.
+        wp_enqueue_script('psc-ajax', PSC_URL . 'assets/js/psc-ajax.js', array(), PSC_VERSION, true);
+        wp_enqueue_script('psc-frontend', PSC_URL . 'assets/js/frontend.js', array('psc-ajax'), PSC_VERSION, true);
         // Second jeton, lié à la famille connectée : le nonce WordPress seul
         // est identique pour tous les visiteurs non connectés (cf.
         // psc_parent_nonce()). Vide pour un visiteur non identifié — les
@@ -130,7 +133,7 @@ class Psc_Frontend {
         wp_enqueue_style('psc-portal', PSC_URL . 'assets/css/portal.css', array('psc-frontend'), PSC_VERSION);
 
         if (Psc_Parents::current()) {
-            wp_enqueue_script('psc-portal', PSC_URL . 'assets/js/portal.js', array(), PSC_VERSION, true);
+            wp_enqueue_script('psc-portal', PSC_URL . 'assets/js/portal.js', array('psc-ajax'), PSC_VERSION, true);
         } else {
             wp_enqueue_script('psc-guest', PSC_URL . 'assets/js/guest.js', array(), PSC_VERSION, true);
         }

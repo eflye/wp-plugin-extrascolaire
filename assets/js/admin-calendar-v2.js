@@ -18,20 +18,9 @@
     /* ---------------- AJAX ---------------- */
 
     function ajax(action, params) {
-        var body = new URLSearchParams();
-        body.set('action', action);
-        body.set('nonce', PSC_CAL_V2.nonce);
-        Object.keys(params || {}).forEach(function (k) { body.set(k, params[k]); });
-        return fetch(PSC_CAL_V2.ajax_url, { method: 'POST', credentials: 'same-origin', body: body })
-            .then(function (res) { return res.json(); })
-            .then(function (json) {
-                if (!json || !json.success) {
-                    var err = new Error('psc_cal_v2_ajax_failed');
-                    err.data = json;
-                    throw err;
-                }
-                return json.data;
-            });
+        var all = { action: action, nonce: PSC_CAL_V2.nonce };
+        Object.keys(params || {}).forEach(function (k) { all[k] = params[k]; });
+        return window.PscAjax.data(PSC_CAL_V2.ajax_url, all);
     }
 
     function reload() { window.location.reload(); }

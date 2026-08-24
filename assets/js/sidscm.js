@@ -51,27 +51,17 @@
     /* ---------------- AJAX ---------------- */
 
     function ajax(action, params) {
-        var body = new URLSearchParams();
-        body.set('action', action);
-        body.set('nonce', PSC_SIDSCM.nonce);
-        // Le code d'accès est revalidé côté serveur à chaque appel (voir
-        // Psc_Sidscm::code_valid) : toujours envoyé depuis l'état courant,
-        // sauf si l'appelant fournit le sien explicitement (unlock, avant
-        // que state.code ne soit renseigné).
-        body.set('code', state.code);
-        Object.keys(params || {}).forEach(function (k) {
-            body.set(k, params[k]);
-        });
-        return fetch(PSC_SIDSCM.ajax_url, { method: 'POST', credentials: 'same-origin', body: body })
-            .then(function (res) { return res.json(); })
-            .then(function (json) {
-                if (!json || !json.success) {
-                    var err = new Error('psc_sidscm_ajax_failed');
-                    err.data = json;
-                    throw err;
-                }
-                return json.data;
-            });
+        var all = {
+            action: action,
+            nonce: PSC_SIDSCM.nonce,
+            // Le code d'accès est revalidé côté serveur à chaque appel (voir
+            // Psc_Sidscm::code_valid) : toujours envoyé depuis l'état courant,
+            // sauf si l'appelant fournit le sien explicitement (unlock, avant
+            // que state.code ne soit renseigné).
+            code: state.code
+        };
+        Object.keys(params || {}).forEach(function (k) { all[k] = params[k]; });
+        return window.PscAjax.data(PSC_SIDSCM.ajax_url, all);
     }
 
     /* ---------------- Déverrouillage ---------------- */

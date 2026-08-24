@@ -119,7 +119,10 @@ class Psc_Sidscm {
         // dupliquer — jamais de requête vers Google Fonts.
         wp_enqueue_style('psc-portal', PSC_URL . 'assets/css/portal.css', array(), PSC_VERSION);
         wp_enqueue_style('psc-sidscm', PSC_URL . 'assets/css/sidscm.css', array('psc-portal'), PSC_VERSION);
-        wp_enqueue_script('psc-sidscm', PSC_URL . 'assets/js/sidscm.js', array(), PSC_VERSION, true);
+        // Mécanique AJAX commune (assets/js/psc-ajax.js) : déclarée en
+        // dépendance pour que WordPress garantisse l'ordre de chargement.
+        wp_enqueue_script('psc-ajax', PSC_URL . 'assets/js/psc-ajax.js', array(), PSC_VERSION, true);
+        wp_enqueue_script('psc-sidscm', PSC_URL . 'assets/js/sidscm.js', array('psc-ajax'), PSC_VERSION, true);
         wp_localize_script('psc-sidscm', 'PSC_SIDSCM', array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce'    => wp_create_nonce('psc_sidscm_front'),

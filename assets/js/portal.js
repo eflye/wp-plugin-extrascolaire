@@ -75,33 +75,28 @@
 
             block.classList.add('psc-menu-loading');
 
-            var body = new URLSearchParams();
-            body.set('action', 'psc_menu_week');
-            body.set('nonce', PSC.nonce);
-            body.set('parent_nonce', PSC.parent_nonce || '');
-            body.set('semaine', semaine);
-
-            fetch(PSC.ajax_url, {
-                method: 'POST',
-                body: body,
-                credentials: 'same-origin',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            }).then(function (r) {
-                return r.json().catch(function () { return { success: false }; });
+            window.PscAjax.envelope(PSC.ajax_url, {
+                action: 'psc_menu_week',
+                nonce: PSC.nonce,
+                parent_nonce: PSC.parent_nonce || '',
+                semaine: semaine
             }).then(function (res) {
                 block.classList.remove('psc-menu-loading');
-                if (!res || !res.success || !res.data || typeof res.data.html !== 'string') {
-                    menuNotice(block, "Impossible de charger cette semaine. Merci de réessayer.");
+
+                if (!res.success || typeof res.data.html !== 'string') {
+                    // Une panne réseau se distingue d'un refus du serveur :
+                    // seule la première vaut la peine d'être réessayée.
+                    menuNotice(block, res.data.code === 'network'
+                        ? 'Erreur réseau. Vérifiez votre connexion et réessayez.'
+                        : 'Impossible de charger cette semaine. Merci de réessayer.');
                     return;
                 }
+
                 block.innerHTML = res.data.html;
                 bindLinks();
                 if (window.history && window.history.pushState) {
                     window.history.pushState({}, '', href);
                 }
-            }).catch(function () {
-                block.classList.remove('psc-menu-loading');
-                menuNotice(block, 'Erreur réseau. Vérifiez votre connexion et réessayez.');
             });
         }
 
