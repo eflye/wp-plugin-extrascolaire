@@ -193,12 +193,6 @@ class Psc_Frontend {
         }
     }
 
-    protected static function active_trimestre() {
-        global $wpdb;
-        $t_trim = psc_table('trimestres');
-        return $wpdb->get_row("SELECT * FROM $t_trim WHERE active = 1 ORDER BY id DESC LIMIT 1");
-    }
-
     protected static function children_of($parent_id, $active_only = false) {
         global $wpdb;
         $t_child = psc_table('children');
@@ -370,7 +364,7 @@ class Psc_Frontend {
             ), 403);
         }
 
-        $trimestre = self::active_trimestre();
+        $trimestre = Psc_Trimestres::active();
         if (!$trimestre) {
             wp_send_json_error(array('code' => 'closed'), 403);
         }
@@ -477,7 +471,7 @@ class Psc_Frontend {
             ), 403);
         }
 
-        $trimestre = self::active_trimestre();
+        $trimestre = Psc_Trimestres::active();
         if (!$trimestre) {
             wp_send_json_error(array('code' => 'closed'), 403);
         }
@@ -535,7 +529,7 @@ class Psc_Frontend {
             ), 429);
         }
 
-        $trimestre = self::active_trimestre();
+        $trimestre = Psc_Trimestres::active();
         if (!$trimestre) {
             wp_send_json_error(array('code' => 'closed'), 403);
         }
@@ -769,7 +763,7 @@ class Psc_Frontend {
         ));
         if (!$owned) self::parent_form_redirect('absence_invalid');
 
-        $trimestre = self::active_trimestre();
+        $trimestre = Psc_Trimestres::active();
         if (!$trimestre) self::parent_form_redirect('absence_invalid');
 
         $t_days = psc_table('calendar_days');
@@ -1517,7 +1511,7 @@ class Psc_Frontend {
             return ob_get_clean();
         }
 
-        $trimestre    = self::active_trimestre();
+        $trimestre    = Psc_Trimestres::active();
         $all_children = self::children_of($parent->id);               // pour la section "Mes enfants"
         $children     = self::children_of($parent->id, true);         // uniquement actifs → calendrier
         $days_by_month = array();

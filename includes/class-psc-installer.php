@@ -633,7 +633,7 @@ class Psc_Installer {
             $debut = $bounds && $bounds->debut ? $bounds->debut : current_time('Y-m-d');
             $fin   = $bounds && $bounds->fin   ? $bounds->fin   : gmdate('Y-m-d', strtotime($debut . ' +1 year'));
             $rentree_year = (int) date('Y', strtotime($debut));
-            $has_active_trimestre = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$t_trim} WHERE active = 1");
+            $has_active_trimestre = (bool) Psc_Trimestres::active();
 
             $wpdb->insert($t_years, array(
                 'label'      => $rentree_year . '-' . ($rentree_year + 1),

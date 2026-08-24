@@ -210,9 +210,7 @@ class Psc_Admin extends Psc_Admin_Base {
      */
     protected static function dashboard_stats() {
         global $wpdb;
-        $trimestre = $wpdb->get_row(
-            'SELECT * FROM ' . psc_table('trimestres') . ' WHERE active = 1 ORDER BY id DESC LIMIT 1'
-        );
+        $trimestre = Psc_Trimestres::active();
         return array(
             'trimestre'        => $trimestre,
             'familles_actives' => (int) $wpdb->get_var('SELECT COUNT(*) FROM ' . psc_table('parents') . ' WHERE active = 1'),
@@ -277,9 +275,7 @@ class Psc_Admin extends Psc_Admin_Base {
             'url'  => admin_url('admin.php?page=psc_supplier_orders&semaine_debut=' . $next_week),
         );
 
-        $trimestre = $wpdb->get_row(
-            'SELECT * FROM ' . psc_table('trimestres') . ' WHERE active = 1 ORDER BY id DESC LIMIT 1'
-        );
+        $trimestre = Psc_Trimestres::active();
         if (!$trimestre) {
             $todos[] = array(
                 'label' => 'Aucun trimestre actif — créez-en un pour ouvrir les inscriptions',

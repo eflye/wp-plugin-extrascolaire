@@ -43,6 +43,7 @@ require_once PSC_PATH . 'includes/class-psc-menus.php';
 require_once PSC_PATH . 'includes/class-psc-supplier-orders.php';
 require_once PSC_PATH . 'includes/class-psc-school-calendar.php';
 require_once PSC_PATH . 'includes/class-psc-admin-calendar-v2.php';
+require_once PSC_PATH . 'includes/class-psc-trimestres.php';
 require_once PSC_PATH . 'includes/class-psc-school-years.php';
 require_once PSC_PATH . 'includes/class-psc-pickup-persons.php';
 require_once PSC_PATH . 'includes/class-psc-frontend.php';

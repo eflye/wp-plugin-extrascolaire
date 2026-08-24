@@ -590,6 +590,7 @@ periscolaire-registration/
 │   ├── class-psc-supplier-orders.php  # Commande fournisseur hebdomadaire (repas par classe)
 │   ├── class-psc-school-calendar.php  # Calendrier scolaire zone C (import iCal + corrections manuelles)
 │   ├── class-psc-email-templates.php  # Modèles d'e-mails personnalisables
+│   ├── class-psc-trimestres.php    # Trimestres : cycle de vie, trimestre actif
 │   ├── class-psc-school-years.php  # Années scolaires, passage d'année
 │   ├── class-psc-pickup-persons.php   # Personnes autorisées à récupérer un enfant
 │   ├── class-psc-sidscm.php        # Écran intervenantes SIDSCM (shortcode + AJAX)
