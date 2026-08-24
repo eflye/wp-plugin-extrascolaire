@@ -47,6 +47,8 @@ export interface SeedResult {
   open_day: string | null;
   locked_day: string | null;
   months: string[];
+  /** URL de la page portant le formulaire, résolue par l'extension elle-même. */
+  form_page_url: string;
 }
 
 function sh(cmd: string, args: string[]): string {
@@ -98,9 +100,22 @@ async function ensureWpCli(): Promise<void> {
   sh(ENGINE, ['exec', CONTAINER, 'chmod', '+x', CONTAINER_WP_CLI]);
 }
 
+/**
+ * Utilisateur sous lequel tourne le serveur web dans l'image officielle
+ * WordPress. Le peuplement écrit des fichiers que l'application relira et
+ * complétera ensuite (justificatifs d'assurance) : exécuté en root, il crée
+ * un dossier privé appartenant à root, et les dépôts ultérieurs des familles
+ * échouent en silence — le fichier n'est pas écrit et la colonne reste vide.
+ * Le symptôme est distant de la cause, et invisible sur une installation
+ * ancienne dont le dossier existait déjà.
+ */
+const WEB_USER = 'www-data';
+
 function runSeed(profile: 'test' | 'demo'): SeedResult {
   const output = sh(ENGINE, [
     'exec',
+    '-u',
+    WEB_USER,
     CONTAINER,
     'php',
     CONTAINER_WP_CLI,
@@ -162,31 +177,12 @@ function selectedProfiles(): Array<'test' | 'demo'> {
   return profiles.size > 0 ? [...profiles] : ['test'];
 }
 
-/**
- * Dépose le mu-plugin qui fige l'horloge du site.
- *
- * Il est installé avant le peuplement : celui-ci choisit le jour d'ancrage
- * et renseigne l'option que le mu-plugin relaie, de sorte que le peuplement
- * et l'extension voient la même heure. Sans lui, le peuplement désignerait
- * un jour comme verrouillé que le portail afficherait comme modifiable.
- *
- * Volontairement hors du dossier de l'extension : figer le temps est un
- * besoin du banc de test, pas une fonctionnalité livrée.
- */
-function installFrozenClock(): void {
-  const source = path.join(__dirname, 'mu-plugin-frozen-clock.php');
-  const target = `${CONTAINER_WP_PATH}/wp-content/mu-plugins`;
-  sh(ENGINE, ['exec', CONTAINER, 'mkdir', '-p', target]);
-  sh(ENGINE, ['cp', source, `${CONTAINER}:${target}/psc-frozen-clock.php`]);
-}
-
 export default async function globalSetup(_config: FullConfig): Promise<void> {
   mkdirSync(OUT_DIR, { recursive: true });
 
   const profiles = selectedProfiles();
 
   await ensureWpCli();
-  installFrozenClock();
 
   for (const profile of profiles) {
     const result = runSeed(profile);

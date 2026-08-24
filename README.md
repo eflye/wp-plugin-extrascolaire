@@ -529,6 +529,22 @@ add_action('phpmailer_init', function ($phpmailer) {
 
 Pour un déploiement de démonstration/production via `docker-compose.prod.yml` (voir [docs/self-hosting-docker.md](docs/self-hosting-docker.md)), Mailpit n'est pas derrière un profil et son port hôte est **8087** (pas 8025).
 
+### Scénarios end-to-end
+
+```bash
+MAILPIT_ENABLED=true podman compose --profile mailpit up -d
+npm ci && npx playwright install chromium
+npm run test:e2e
+```
+
+Mailpit est **indispensable** : les scénarios lisent le lien de connexion et les notifications via son API, jamais dans l'interface.
+
+Les mêmes scénarios s'exécutent à chaque poussée (`.github/workflows/e2e.yml`), sur une installation WordPress créée pour l'occasion. C'est le seul contrôle qui attrape les pannes réelles de ce projet : le contrôle de syntaxe est aveugle à un `ALTER` qui échoue en silence, à une valeur remplacée par une chaîne vide, ou à un avertissement émis avant les en-têtes HTTP.
+
+**Horloge figée.** Le délai de modification d'un jour se mesure par rapport à maintenant : un scénario qui vérifie qu'un jour est verrouillé dépendrait donc de la date d'exécution, et la suite échouait chaque été — pendant les vacances, le premier jour d'école est à plus d'une semaine quand le verrou n'en couvre que deux. Le peuplement choisit désormais un jour d'école comme point d'ancrage et fige l'horloge dessus, via le filtre `psc_now_ts` relayé par `mu-plugins/psc-frozen-clock.php`. Un bandeau le signale dans l'administration ; supprimer l'option `psc_test_frozen_now` rétablit l'heure réelle. Rien de tout cela n'est distribué avec l'extension.
+
+**Exécution séquentielle.** Les scénarios partagent une instance WordPress et le même compte administrateur : joués en parallèle, ils se déconnectent mutuellement et l'échec se déplace d'un scénario à l'autre. `workers: 1` coûte une quinzaine de secondes et rend le résultat reproductible.
+
 ---
 
 ## Structure du projet

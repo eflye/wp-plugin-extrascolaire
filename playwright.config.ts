@@ -57,12 +57,11 @@ export default defineConfig({
     },
     {
       name: 'demo',
-      // tests/_diag-hang.spec.ts est un outil de diagnostic et
-      // tests/supplier-order.spec.ts un parcours backoffice pur (aucune
+      // tests/supplier-order.spec.ts est un parcours backoffice pur (aucune
       // famille impliquée, pas d'habillage vidéo) : sans cette exclusion,
-      // le profil demo les exécute aussi et produit des .webm parasites en
+      // le profil demo l'exécute aussi et produit des .webm parasites en
       // plus de parent-connu.spec.ts.
-      testIgnore: /(_diag-hang|supplier-order)\.spec\.ts$/,
+      testIgnore: /supplier-order\.spec\.ts$/,
       // slowMo ralentit aussi les attentes internes à chaque action
       // (waitForResponse, waitForSelector...), pas seulement le rendu :
       // des timeouts calibrés pour le profil "test" échoueraient ici.

@@ -24,9 +24,17 @@
 import { test, expect, type Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { findLatestMessage } from '../helpers/mailpit';
+import { readFormPageUrl } from '../playwright/seed-result';
 
 const APP_BASE = 'http://localhost:8080';
-const APP_PAGE = `${APP_BASE}/?page_id=6`;
+/**
+ * Page portant le formulaire, lue dans le résultat du peuplement : c'est
+ * l'extension elle-même qui la résout, la même que celle de ses liens de
+ * connexion. Un ?page_id= codé en dur ne valait que pour l'installation de
+ * développement où ce numéro avait été relevé — sur un site fraîchement
+ * installé la page en porte un autre, et le scénario ouvrait une page vide.
+ */
+const appPage = () => readFormPageUrl();
 const ADMIN_BASE = `${APP_BASE}/wp-admin`;
 
 const ENGINE = process.env.PSC_CONTAINER_ENGINE ?? 'podman';
@@ -101,7 +109,7 @@ async function loginAsAdmin(page: Page): Promise<void> {
 
 /** Connexion famille sans mot de passe — même séquence que les autres specs. */
 async function loginAsFamily(page: Page, email: string, parentId: number): Promise<void> {
-  await page.goto(APP_PAGE);
+  await page.goto(appPage());
   await page.getByTestId('login-email-input').fill(email);
 
   const anyNotice = page.locator('[data-testid^="notice-"]');
@@ -127,7 +135,7 @@ test('onboarding — une personne autorisée saisie à la demande devient une en
   const data = seed();
 
   /* ---------------- Wizard public : Coordonnées ---------------- */
-  await page.goto(APP_PAGE);
+  await page.goto(appPage());
   await page.locator('#psc-req-email').fill(data.onboarding_email);
   await page.locator('#psc-req-prenom').fill('Onboarding');
   await page.locator('#psc-req-nom').fill('E2E');

@@ -522,6 +522,13 @@ WP_CLI::add_command('seed-journey', function ($args, $assoc_args) {
         'open_day'         => $open_day,
         'locked_day'       => $locked_day,
         'months'           => array_keys($months),
+        // Page portant le formulaire, telle que l'extension la résout
+        // elle-même pour construire ses liens de connexion. Les scénarios
+        // visaient auparavant un ?page_id= codé en dur, qui ne valait que
+        // pour l'installation de développement où ce numéro avait été
+        // observé : sur un site fraîchement installé, la page en porte un
+        // autre et la page ouverte n'était pas la bonne.
+        'form_page_url'    => Psc_Mailer::form_page_url(),
     )));
 
     WP_CLI::success("Seed '$profile' prêt.");

@@ -1,0 +1,164 @@
+# Scénarios end-to-end
+#
+# Le contrôle de syntaxe (lint.yml) ne détecte aucune des pannes réellement
+# survenues sur ce projet : un commentaire "--" qui fait échouer un ALTER en
+# silence, un ENUM qui remplace une valeur inconnue par une chaîne vide, un
+# warning émis avant les en-têtes HTTP qui casse toutes les redirections.
+# Tous ces cas sont syntaxiquement irréprochables. Seul un parcours réel les
+# attrape — d'où ce workflow.
+#
+# Les scénarios s'exécutent séquentiellement (playwright.config.ts) : ils
+# partagent une seule instance WordPress et le même compte administrateur.
+# L'horloge du site est figée par le peuplement, de sorte que le résultat ne
+# dépende pas de la date d'exécution.
+
+name: Scénarios end-to-end
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  e2e:
+    name: Parcours Playwright
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Mailpit est indispensable : les scénarios lisent le lien de connexion
+      # et les notifications dans sa boîte, via son API. MAILPIT_ENABLED
+      # active le mu-plugin qui y redirige wp_mail().
+      - name: Démarre WordPress, MySQL et Mailpit
+        env:
+          MAILPIT_ENABLED: 'true'
+        run: docker compose --profile mailpit up -d db wordpress mailpit
+
+      # WordPress répond en HTTP bien avant que MySQL n'accepte les
+      # connexions : il sert alors sa page « Error establishing a database
+      # connection ». Attendre la seule réponse HTTP laisse donc passer un
+      # site inutilisable, et l'installation échoue juste après. On attend
+      # la base d'abord, explicitement.
+      - name: Attend que la base, WordPress et Mailpit soient prêts
+        run: |
+          set -e
+          for i in $(seq 1 90); do
+            if docker compose exec -T db mysqladmin ping --silent >/dev/null 2>&1; then
+              echo "MySQL prêt après ${i}s."
+              break
+            fi
+            [ "$i" -eq 90 ] && { echo "::error::MySQL n'a pas démarré en 90 s."; docker compose logs --tail=50 db; exit 1; }
+            sleep 1
+          done
+
+          wait_http() {
+            for i in $(seq 1 90); do
+              if curl -fsS "$2" -o /tmp/probe.html 2>/dev/null \
+                 && ! grep -q 'Error establishing a database connection' /tmp/probe.html; then
+                echo "$1 prêt après ${i}s."
+                return 0
+              fi
+              sleep 1
+            done
+            echo "::error::$1 n'a pas répondu correctement en 90 s."
+            return 1
+          }
+          wait_http WordPress http://localhost:8080/ \
+            && wait_http Mailpit http://localhost:8025/api/v1/messages \
+            || { docker compose logs --tail=50 wordpress db mailpit; exit 1; }
+
+      - name: Identifie le conteneur WordPress
+        run: |
+          # Le nom dépend du nom du projet compose, lui-même dérivé du dossier :
+          # on le lit plutôt que de le supposer.
+          NAME=$(docker inspect --format '{{.Name}}' "$(docker compose ps -q wordpress)" | sed 's|^/||')
+          echo "PSC_WP_CONTAINER=$NAME" >> "$GITHUB_ENV"
+          echo "Conteneur : $NAME"
+
+      - name: Installe WP-CLI dans le conteneur
+        run: |
+          # Déposé à l'emplacement que playwright/global-setup.ts vérifie :
+          # il le trouvera déjà présent et n'aura pas à le réinstaller.
+          mkdir -p .cache
+          curl -fsSL -o .cache/wp-cli.phar \
+            https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+          docker cp .cache/wp-cli.phar "$PSC_WP_CONTAINER:/usr/local/bin/wp-cli.phar"
+          docker exec "$PSC_WP_CONTAINER" chmod +x /usr/local/bin/wp-cli.phar
+
+      - name: Installe le site et active l'extension
+        run: |
+          # Sous www-data, l'utilisateur du serveur web, et non root :
+          # l'activation de l'extension crée le dossier privé des documents.
+          # Créé par root, il reste inaccessible en écriture au serveur web,
+          # et les dépôts de justificatifs échouent ensuite en silence — le
+          # fichier n'est pas écrit, la colonne reste vide, et le scénario
+          # échoue très loin de la cause.
+          # WP_CLI_CACHE_DIR : le dossier personnel de www-data ne lui
+          # appartient pas dans l'image officielle.
+          wp() {
+            docker exec -u www-data -e WP_CLI_CACHE_DIR=/tmp/wp-cli-cache \
+              "$PSC_WP_CONTAINER" php /usr/local/bin/wp-cli.phar --path=/var/www/html "$@"
+          }
+
+          wp core install \
+            --url='http://localhost:8080' \
+            --title='Périscolaire — intégration continue' \
+            --admin_user='admin' \
+            --admin_password='admin' \
+            --admin_email='admin@example.invalid' \
+            --skip-email
+
+          # Le peuplement et les scénarios s'appuient sur les limitations
+          # anti-abus désactivées, comme sur un poste de développement :
+          # sans cela, plusieurs demandes de lien dans un même run seraient
+          # refusées.
+          wp config set WP_ENVIRONMENT_TYPE local
+
+          wp theme activate Archive
+          wp plugin activate periscolaire-registration
+
+          # Les scénarios visent la racine du site : le formulaire doit y être.
+          PAGE_ID=$(wp post create \
+            --post_type=page \
+            --post_status=publish \
+            --post_title='Espace familles' \
+            --post_content='[periscolaire_form]' \
+            --porcelain)
+          wp option update show_on_front page
+          wp option update page_on_front "$PAGE_ID"
+
+          wp plugin list
+          wp option get page_on_front
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Dépendances
+        run: npm ci
+
+      - name: Navigateur Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Scénarios
+        env:
+          PSC_CONTAINER_ENGINE: docker
+        run: npm run test:e2e
+
+      - name: Journaux WordPress en cas d'échec
+        if: failure()
+        run: docker compose logs --tail=200 wordpress db
+
+      - name: Traces et captures en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-resultats
+          path: .playwright/
+          retention-days: 7
