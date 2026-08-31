@@ -144,6 +144,30 @@ class Psc_Sidscm {
         return hash_equals(strtoupper($configured), strtoupper(trim((string) $submitted)));
     }
 
+    /**
+     * Le code est la seule barrière des endpoints anonymes de cet écran
+     * (pas d'authentification WordPress) : chaque tentative à code
+     * erroné, sur n'importe quel endpoint, alimente le même seau —
+     * 20 mauvais codes par heure et par IP, comme ajax_unlock(). Sans
+     * cela, ajax_data / ajax_toggle / ajax_set_departure offraient une
+     * porte d'énumération à débit illimité : les noms, classes et
+     * régimes des mineurs, et la falsification des pointages, à
+     * raison d'autant d'essais de code que l'attaquant veut.
+     *
+     * Les appels légitimes portent toujours le bon code (sidscm.js le
+     * renvoie depuis son état à chaque requête), donc seul un attaquant
+     * ou un code périmé dans un localStorage consomme ce seau : une
+     * rafale de pointage ne peut pas s'y faire bloquer.
+     */
+    protected static function require_code() {
+        if (self::code_valid(psc_post('code'))) return;
+
+        if (!psc_rate_limit_by_ip('sidscm_bad_', 20, HOUR_IN_SECONDS)) {
+            wp_send_json_error(array('code' => 'rate'), 429);
+        }
+        wp_send_json_error(array('code' => 'auth'), 403);
+    }
+
     public static function ajax_unlock() {
         check_ajax_referer('psc_sidscm_front', 'nonce');
 
@@ -152,6 +176,12 @@ class Psc_Sidscm {
         }
 
         if (!self::code_valid(psc_post('code'))) {
+            // Les échecs de déverrouillage comptent aussi dans le seau
+            // partagé des mauvais codes (cf. require_code()) : 20 essais
+            // ratés par heure et par IP, sur l'ensemble des endpoints.
+            if (!psc_rate_limit_by_ip('sidscm_bad_', 20, HOUR_IN_SECONDS)) {
+                wp_send_json_error(array('code' => 'rate'), 429);
+            }
             wp_send_json_error(array('code' => 'bad_code'), 403);
         }
 
@@ -170,9 +200,13 @@ class Psc_Sidscm {
      */
     public static function ajax_data() {
         check_ajax_referer('psc_sidscm_front', 'nonce');
-        if (!self::code_valid(psc_post('code'))) {
-            wp_send_json_error(array('code' => 'auth'), 403);
+        // Volume borné même avec un code valide divulgué : un appel par
+        // chargement d'écran, 60/heure laisse toute la marge à une équipe
+        // complète derrière l'adresse IP de l'école.
+        if (!psc_rate_limit_by_ip('sidscm_data_', 60, HOUR_IN_SECONDS)) {
+            wp_send_json_error(array('code' => 'rate'), 429);
         }
+        self::require_code();
 
         global $wpdb;
         $monday = psc_week_start(current_time('Y-m-d'));
@@ -308,9 +342,14 @@ class Psc_Sidscm {
 
     public static function ajax_toggle() {
         check_ajax_referer('psc_sidscm_front', 'nonce');
-        if (!self::code_valid(psc_post('code'))) {
-            wp_send_json_error(array('code' => 'auth'), 403);
+        // Pointage en rafale le matin (une requête par enfant décoché,
+        // jamais regroupées) : 300/heure laisse toute la marge à un
+        // dépointage complet de la cantine sans jamais approcher la
+        // limite.
+        if (!psc_rate_limit_by_ip('sidscm_toggle_', 300, HOUR_IN_SECONDS)) {
+            wp_send_json_error(array('code' => 'rate'), 429);
         }
+        self::require_code();
 
         $child_id = psc_post_int('child_id');
         $date     = psc_valid_date(psc_post('jour_date'));
@@ -361,9 +400,12 @@ class Psc_Sidscm {
      */
     public static function ajax_set_departure() {
         check_ajax_referer('psc_sidscm_front', 'nonce');
-        if (!self::code_valid(psc_post('code'))) {
-            wp_send_json_error(array('code' => 'auth'), 403);
+        // Même logique que le pointage : les heures de départ se saisissent
+        // en série le soir (une requête par enfant de garderie).
+        if (!psc_rate_limit_by_ip('sidscm_depart_', 240, HOUR_IN_SECONDS)) {
+            wp_send_json_error(array('code' => 'rate'), 429);
         }
+        self::require_code();
 
         $child_id = psc_post_int('child_id');
         $date     = psc_valid_date(psc_post('jour_date'));
