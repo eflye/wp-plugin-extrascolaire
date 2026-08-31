@@ -8,6 +8,14 @@ on:
     tags:
       - "v*.*.*"
 
+# On annule volontiers un E2E périmé, jamais une release à mi-course :
+# interrompue entre la publication de la Release GitHub et l'attachement
+# des zips — ou l'inverse — elle laisserait une release incomplète. Les
+# tags d'une même référence se sérialisent donc sans annulation.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: write # nécessaire pour créer la Release et y attacher le zip
 
@@ -43,10 +51,100 @@ jobs:
           cp -R assets build/periscolaire-registration/
           find build -name ".DS_Store" -delete
 
+      # La liste des fichiers copiés ci-dessus est tenue à la main : un
+      # nouveau répertoire racine du plugin oublié dans le cp partirait
+      # en production silencieusement absent — et l'E2E ne le verrait
+      # jamais, puisqu'il teste le dépôt bind-monté, pas l'archive. On
+      # dérive donc l'attendu du dépôt lui-même : toute entrée racine
+      # suivie par git doit être dans le paquet, OU explicitement listée
+      # comme n'en faisant pas partie (outillage CI, tests, thème,
+      # sources des parcours…). Un nouvel arrivant échoue ici dans les
+      # deux sens : du code du plugin → l'ajouter au cp ; de
+      # l'outillage → l'exclure. La liste d'exclusion devient le seul
+      # endroit tenu à la main, et sa dérive est bruyante au lieu de
+      # silencieuse. (git ls-files ignore les fichiers non suivis :
+      # archives locales, exports et rapports ne polluent pas le test.)
+      - name: Vérifie la complétude du paquet
+        run: |
+          EXCLUSIONS="|.github|.gitignore|.env.example|.env.prod.example|bin|docker-compose.yml|docker-compose.prod.yml|docs|journeys|mu-plugins|package.json|package-lock.json|playwright|playwright.config.ts|tests|theme|helpers|"
+          MISSING=0
+          for entry in $(git ls-files | cut -d/ -f1 | sort -u); do
+            case "$EXCLUSIONS" in *"|$entry|"*) continue ;; esac
+            if [ ! -e "build/periscolaire-registration/$entry" ]; then
+              echo "::error::« $entry » est suivi par git mais absent du paquet construit — ajoute-le au cp ci-dessus, ou à la liste d'exclusion si ce n'est pas du code du plugin."
+              MISSING=1
+            fi
+          done
+          [ "$MISSING" -eq 0 ] || exit 1
+          echo "Paquet complet."
+
       - name: Crée l'archive ZIP du plugin
         run: |
           cd build
           zip -rq -X "../periscolaire-registration-${PLUGIN_VERSION}.zip" periscolaire-registration
+
+      # Fume le zip fraîchement construit dans un WordPress vierge, avec
+      # une stack jetable SANS bind-mount : docker-compose.yml monte le
+      # dépôt comme plugin déjà présent, et un « wp plugin install » du
+      # zip y entrerait en collision. L'archive doit se suffire à
+      # elle-même : installation PUIS activation — c'est l'activation
+      # qui pose les tables et le dossier privé, donc psc_db_version
+      # présent atteste que le zip contenait tout ce qu'il faut pour
+      # vivre seul, sans le dépôt à côté de lui. Un échec ici arrête la
+      # release AVANT sa publication : jamais de Release GitHub liée à
+      # un zip invivable.
+      - name: Fume le zip dans un WordPress vierge
+        run: |
+          docker network create smoke
+          docker run -d --name smoke-db --network smoke \
+            -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=wp \
+            -e MYSQL_USER=wp -e MYSQL_PASSWORD=wp mysql:8.0
+          docker run -d --name smoke-wp --network smoke -p 8090:80 \
+            -e WORDPRESS_DB_HOST=smoke-db:3306 -e WORDPRESS_DB_NAME=wp \
+            -e WORDPRESS_DB_USER=wp -e WORDPRESS_DB_PASSWORD=wp wordpress:latest
+
+          # Même attente en deux temps que e2e.yml : WordPress répond en
+          # HTTP bien avant que MySQL n'accepte les connexions, et sert
+          # alors sa page d'erreur de base — la seule réponse HTTP ne
+          # prouve rien.
+          for i in $(seq 1 90); do
+            docker exec smoke-db mysqladmin ping --silent >/dev/null 2>&1 && break
+            [ "$i" -eq 90 ] && { echo "::error::MySQL n'a pas démarré en 90 s."; exit 1; }
+            sleep 1
+          done
+          for i in $(seq 1 90); do
+            if curl -fsS http://localhost:8090/ -o /tmp/probe.html 2>/dev/null \
+               && ! grep -q 'Error establishing a database connection' /tmp/probe.html; then
+              break
+            fi
+            [ "$i" -eq 90 ] && { echo "::error::WordPress n'a pas répondu en 90 s."; exit 1; }
+            sleep 1
+          done
+
+          mkdir -p .cache
+          curl -fsSL -o .cache/wp-cli.phar \
+            https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+          docker cp .cache/wp-cli.phar smoke-wp:/usr/local/bin/wp-cli.phar
+          docker cp "periscolaire-registration-${PLUGIN_VERSION}.zip" smoke-wp:/tmp/
+
+          wp() {
+            docker exec -u www-data -e WP_CLI_CACHE_DIR=/tmp/wp-cli-cache \
+              smoke-wp php /usr/local/bin/wp-cli.phar --path=/var/www/html "$@"
+          }
+          # Sous www-data, comme e2e.yml : l'activation crée le dossier
+          # privé des documents ; créé par root, il serait ensuite
+          # inscriptible pour le serveur web.
+          wp core install \
+            --url='http://localhost:8090' \
+            --title='Fumage release' \
+            --admin_user='admin' \
+            --admin_password='admin' \
+            --admin_email='admin@example.invalid' \
+            --skip-email
+          wp plugin install "/tmp/periscolaire-registration-${PLUGIN_VERSION}.zip" --activate
+          DBV=$(wp option get psc_db_version)
+          test -n "$DBV" || { echo "::error::psc_db_version vide : l'activation n'a pas mené ses migrations."; exit 1; }
+          echo "Zip installé et activé — psc_db_version=$DBV."
 
       # Thème du site (theme/Archive dans ce repo, Theme Name "Montgeroult
       # Familles") : empaqueté sous le nom de dossier "Archive" pour

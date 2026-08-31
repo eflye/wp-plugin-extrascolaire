@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: ["**"]
 
+# Même raison qu'e2e.yml : les poussées successives d'une même branche se
+# remplacent, elles ne s'empilent pas.
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     name: PHP ${{ matrix.php-version }} syntax check

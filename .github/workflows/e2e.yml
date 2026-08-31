@@ -20,6 +20,14 @@ on:
   pull_request:
     branches: ["**"]
 
+# Des poussées successives sur une même branche empileraient des suites
+# E2E complètes (stack Docker + Playwright) au lieu d'annuler les runs
+# déjà périmés : on ne garde que la dernière, la précédente n'a plus de
+# lecteur au moment où elle se terminerait.
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   e2e:
     name: Parcours Playwright
@@ -133,6 +141,26 @@ jobs:
 
           wp plugin list
           wp option get page_on_front
+
+      # bin/verify-*.php : assertions PHP autonomes, écrites pour jouer le
+      # rôle de tests unitaires (cf. leurs en-têtes). Jusqu'ici elles ne
+      # tenaient qu'à la discipline manuelle du mainteneur. Branchées
+      # ici, la logique de promotion des classes et l'invariant de
+      # l'historique des personnes autorisées redeviennent régressives à
+      # chaque poussée, sans nouvelle dépendance. Chaque script purge
+      # ses données avant et après (préfixe de libellé dédié) et
+      # n'active jamais l'année scolaire réelle : l'état du site est
+      # intact pour les scénarios qui suivent. WP_CLI::error() sort en
+      # code non nul : un invariant cassé échoue l'étape.
+      - name: Vérifications PHP autonomes
+        run: |
+          wp() {
+            docker exec -u www-data -e WP_CLI_CACHE_DIR=/tmp/wp-cli-cache \
+              "$PSC_WP_CONTAINER" php /usr/local/bin/wp-cli.phar --path=/var/www/html "$@"
+          }
+
+          wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-promotion-logic.php verify-promotion-logic
+          wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-pickup-history.php verify-pickup-history
 
       - name: Node
         uses: actions/setup-node@v4
