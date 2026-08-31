@@ -12,6 +12,19 @@ class Psc_School_Calendar {
 
     const ICS_URL = 'https://fr.ftp.opendatasoft.com/openscol/fr-en-calendrier-scolaire/Zone-A-B-C-Corse.ics';
 
+    /**
+     * Cache des lectures de is_closed(), pour la durée de la requête PHP.
+     * is_closed() est la lecture la plus chaude du plugin : chaque
+     * psc_is_school_day() y passe, psc_open_days() l'appelle pour chaque
+     * jour de la semaine visée, et psc_next_open_week() balaye les
+     * semaines une par une — l'écran calendrier v2 documente déjà ce
+     * coût par date (cf. classify_closed_day(), qui pré-charge sa propre
+     * grille pour la même raison). L'état d'un jour ne peut pas changer
+     * au fil d'une même requête sauf écriture explicite, qui vide le
+     * cache (flush_closed_cache()).
+     */
+    private static $closed_cache = array();
+
     /** URL effectivement utilisée pour le chargement automatique (réglable dans Réglages). */
     public static function ics_url() {
         $custom = get_option('psc_school_calendar_ics_url', '');
@@ -25,12 +38,24 @@ class Psc_School_Calendar {
     }
 
     public static function is_closed($date_str) {
-        global $wpdb;
-        $row = $wpdb->get_row($wpdb->prepare(
-            'SELECT is_closed FROM ' . psc_table('school_calendar') . ' WHERE jour_date = %s',
-            $date_str
-        ));
-        return $row ? (bool) $row->is_closed : false;
+        if (!isset(self::$closed_cache[$date_str])) {
+            global $wpdb;
+            $row = $wpdb->get_row($wpdb->prepare(
+                'SELECT is_closed FROM ' . psc_table('school_calendar') . ' WHERE jour_date = %s',
+                $date_str
+            ));
+            self::$closed_cache[$date_str] = $row ? (bool) $row->is_closed : false;
+        }
+        return self::$closed_cache[$date_str];
+    }
+
+    /**
+     * Vide le cache de is_closed(). Appelé après chaque écriture de la
+     * table : un même traitement PHP ne doit jamais lire l'état périmé
+     * d'un jour qu'il vient de fermer ou de rouvrir.
+     */
+    public static function flush_closed_cache() {
+        self::$closed_cache = array();
     }
 
     public static function label($date_str) {
@@ -101,6 +126,7 @@ class Psc_School_Calendar {
         }
 
         update_option('psc_school_calendar_imported_at', $now);
+        self::flush_closed_cache();
 
         return $count;
     }
@@ -362,6 +388,7 @@ class Psc_School_Calendar {
             $wpdb->query($wpdb->prepare("DELETE FROM $t_reg WHERE jour_date = %s", $date_str));
         }
 
+        self::flush_closed_cache();
         return $affected;
     }
 
@@ -413,6 +440,7 @@ class Psc_School_Calendar {
             self::apply_to_calendar_days($date_str, 1, null);
         }
 
+        self::flush_closed_cache();
         return true;
     }
 

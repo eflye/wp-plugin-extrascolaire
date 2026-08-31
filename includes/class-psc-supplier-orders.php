@@ -95,18 +95,27 @@ class Psc_Supplier_Orders {
         $counts = array();
         foreach ($classes as $c) $counts[$c] = array_fill_keys($jours, 0);
 
-        foreach ($jours_dates as $jour => $date) {
-            $rows = $year_id ? $wpdb->get_results($wpdb->prepare(
-                "SELECT cy.classe, COUNT(*) AS n
+        // Une seule requête groupée par jour ET par classe : la boucle
+        // d'origine interrogeait la base une fois par jour ouvert de la
+        // semaine — 4-5 requêtes à chaque affichage de l'écran et à
+        // chaque envoi hebdomadaire, ~60 par trimestre. Le regroupement
+        // sur les deux dimensions rend le comptage à coût constant,
+        // quelle que soit la longueur de la période commandée. La garde
+        // sur $jours_dates n'est pas décorative : une semaine entièrement
+        // en vacances produirait un IN () vide, refusé par MySQL.
+        if ($year_id && !empty($jours_dates)) {
+            $ph_dates = implode(',', array_fill(0, count($jours_dates), '%s'));
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT r.jour_date, cy.classe, COUNT(*) AS n
                  FROM $t_reg r
                  JOIN $t_child c ON c.id = r.child_id
                  JOIN $t_par p ON p.id = c.parent_id
                  JOIN $t_cy cy ON cy.child_id = c.id AND cy.school_year_id = %d
-                 WHERE r.jour_date = %s AND r.service = 'CANT'
+                 WHERE r.jour_date IN ($ph_dates) AND r.service = 'CANT'
                    AND c.statut = 'actif' AND p.active = 1
-                 GROUP BY cy.classe",
-                $year_id, $date
-            )) : array();
+                 GROUP BY r.jour_date, cy.classe",
+                array_merge(array($year_id), array_values($jours_dates))
+            ));
             foreach ($rows as $row) {
                 $classe = (string) $row->classe;
                 if (!isset($counts[$classe])) {
@@ -115,7 +124,12 @@ class Psc_Supplier_Orders {
                     $counts[$classe] = array_fill_keys($jours, 0);
                     $classes[] = $classe;
                 }
-                $counts[$classe][$jour] = (int) $row->n;
+                // Restitue le libellé du jour depuis sa date : deux jours
+                // d'une même semaine ne partagent jamais la même date.
+                $jour = array_search($row->jour_date, $jours_dates, true);
+                if ($jour !== false) {
+                    $counts[$classe][$jour] = (int) $row->n;
+                }
             }
         }
 
