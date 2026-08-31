@@ -69,6 +69,12 @@ body.psc-portal-active main.site-main {
     --psc-forest: #24405C;
     --psc-moss: #4E6C8D;
     --psc-gold: #E08A5F;
+    /* Or assombri pour l'or utilisé COMME TEXTE : #E08A5F sur crème ne
+       tient que ~2,5:1 (RGAA 3.2) ; en 14px il faut 4,5:1 — #9A5B2E
+       tient ~5:1 sur crème et blanc. L'or plein reste la couleur des
+       fonds et des filets, où le contraste porté est celui de l'encre
+       posée dessus (~6,6:1). */
+    --psc-gold-ink: #9A5B2E;
     --psc-ink: #1A1A1A;
     --psc-cream: #FAF6F1;
     --psc-paper: #F5E7DC;
@@ -143,7 +149,10 @@ body.psc-portal-active main.site-main {
 .psc-portal-nav-btn:hover { color: var(--psc-cream); }
 .psc-portal-nav-btn.is-active {
     background: rgba(224, 138, 95, 0.14);
-    color: var(--psc-gold);
+    /* Crème plutôt qu'or : le texte or sur le fond de barre latérale ne
+       tient que ~3,4:1 (RGAA 3.2). L'état actif reste porté par le fond
+       teinté or et la graisse, pas par la couleur du texte. */
+    color: var(--psc-cream);
     font-weight: 600;
 }
 .psc-portal-account {
@@ -224,7 +233,7 @@ body.psc-portal-active main.site-main {
     font-family: 'Fraunces', serif;
     font-style: italic;
     font-weight: 600;
-    color: var(--psc-gold);
+    color: var(--psc-gold-ink);
     font-size: 14px;
 }
 .psc-portal-heading-label {
@@ -1498,4 +1507,18 @@ body.psc-portal-active main.site-main {
    montrer où on en est. */
 @media (max-width: 560px) {
     .psc-wizard-step-label:not(.is-current) { display: none; }
+}
+
+/* ---- Mouvement réduit : les transitions de ce fichier sont des fondus
+   d'ornement, jamais des porteuses de sens — l'état final (infobulle
+   affichée, jour coché, bloc en chargement) reste porté par la couleur
+   et la mise en page sans elles. L'utilisateur qui demande un mouvement
+   réduit au niveau du système les reçoit donc neutres : durées quasi
+   nulles, pour que les états finaux s'appliquent instantanément. ---- */
+@media (prefers-reduced-motion: reduce) {
+    .psc-portal-th-abbr::after,
+    .psc-portal-calendar td.psc-ok,
+    #psc-menu-block.psc-menu-loading {
+        transition-duration: 0.01ms;
+    }
 }

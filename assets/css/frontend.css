@@ -637,3 +637,22 @@ span.psc-diet-options { flex-direction: row; gap: 12px; }
 
     .psc-card { padding: 18px 16px; }
 }
+
+/* ---- Mouvement réduit : même principe que portal.css — fondus
+   d'ornement (case validée, chevron du mois déplié, interrupteur),
+   neutres pour qui demande un mouvement réduit au niveau du système.
+   Des durées quasi nulles plutôt que « animation: none » : le cycle de
+   vie des keyframes est préservé, psc-toast-out atteint toujours son
+   état final (opacity: 0) et le retrait du toast n'en dépend jamais. ---- */
+@media (prefers-reduced-motion: reduce) {
+    .psc-cell.psc-ok,
+    .psc-month-chevron::after,
+    .psc-toggle-track,
+    .psc-toggle-track::after {
+        transition-duration: 0.01ms;
+    }
+    .psc-toast,
+    .psc-toast.psc-toast-hide {
+        animation-duration: 0.01ms;
+    }
+}

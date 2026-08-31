@@ -49,7 +49,7 @@
           <?php $psc_child_classe = Psc_School_Years::classe_for($child->id); ?>
           <?php if ($psc_child_classe): ?><span class="psc-portal-child-classe">(<?php echo esc_html($psc_child_classe); ?>)</span><?php endif; ?>
         </h2>
-        <span class="psc-portal-child-total" data-child-total data-testid="child-total-<?php echo esc_attr($child_index); ?>">
+        <span class="psc-portal-child-total" data-child-total role="status" aria-live="polite" data-testid="child-total-<?php echo esc_attr($child_index); ?>">
           <?php echo esc_html($child_days_count); ?> jour<?php echo $child_days_count > 1 ? 's' : ''; ?>
           · <?php echo esc_html(number_format_i18n($child_total, 2)); ?> €
         </span>
@@ -92,7 +92,7 @@
               <?php if (!$has_open): ?><span class="psc-badge">clôturé</span><?php endif; ?>
             </span>
             <span class="psc-month-summary <?php echo $month_days_count > 0 ? 'psc-month-summary-active' : 'psc-month-summary-empty'; ?>"
-                  data-month-summary
+                  data-month-summary role="status" aria-live="polite"
                   data-testid="month-summary-<?php echo esc_attr($child_index); ?>-<?php echo esc_attr($month_key); ?>">
               <?php if ($month_days_count > 0): ?>
                 <?php echo esc_html($month_days_count); ?> jour<?php echo $month_days_count > 1 ? 's' : ''; ?>

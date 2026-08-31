@@ -258,7 +258,7 @@
             '<div class="psc-sidscm-panel" data-testid="sidscm-day-panel">' +
             '<div class="psc-sidscm-panel-head">' +
             '<div class="psc-sidscm-panel-title">' + escapeHtml(svcLabel(svc)) + ' — ' + escapeHtml(capitalize(day)) + '</div>' +
-            '<div class="psc-sidscm-panel-count" data-testid="sidscm-present-count">' + presentCount + ' / ' + rows.length + ' présents</div>' +
+            '<div class="psc-sidscm-panel-count" role="status" aria-live="polite" data-testid="sidscm-present-count">' + presentCount + ' / ' + rows.length + ' présents</div>' +
             '</div>' + rowsHtml + emptyHtml +
             '</div>';
 
