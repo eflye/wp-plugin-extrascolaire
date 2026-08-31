@@ -186,8 +186,11 @@
                 '<input id="psc-cb-' + idx + '" class="psc-portal-field-underline" type="date" name="child_naissance_' + idx + '" required></div>' +
                 '<div><label class="psc-portal-field-label" for="psc-ca-' + idx + '">Justificatif d’assurance scolaire</label>' +
                 '<input id="psc-ca-' + idx + '" type="file" name="child_assurance_' + idx + '" accept=".pdf,.jpg,.jpeg,.png" required></div>' +
+                '<div class="psc-wizard-diet-cell"><div class="psc-portal-field-label">Régime alimentaire</div>' +
+                '<div class="psc-wizard-diet-group">' +
                 '<label class="psc-wizard-diet-check"><input type="checkbox" name="child_sans_porc_' + idx + '" value="1"> Sans porc</label>' +
                 '<label class="psc-wizard-diet-check"><input type="checkbox" name="child_vegan_' + idx + '" value="1"> Sans viande</label>' +
+                '</div></div>' +
                 '<div class="psc-wizard-pickup-block">' +
                 '<p class="psc-wizard-pickup-title">Personnes autorisées à récupérer cet enfant en fin de garderie du soir (facultatif)</p>' +
                 '<div class="psc-wizard-pickup-list" data-pickup-list></div>' +

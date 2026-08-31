@@ -924,11 +924,17 @@ body.psc-portal-active main.site-main {
     border-radius: 0;
 }
 .psc-portal-field-underline:focus { outline: none; border-bottom-color: var(--psc-gold); }
+/* Les deux cases forment une seule cellule de la grille, sous un libellé
+   « Régime alimentaire » identique à celui des champs voisins : isolées,
+   elles n'indiquaient pas de quoi elles parlaient.
+   min-height compense la hauteur du libellé, pour que la rangée de cases
+   retombe sur la ligne de base des autres champs. */
 .psc-portal-diet-checks {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     gap: 16px;
     flex-wrap: wrap;
+    min-height: 26px;
 }
 .psc-portal-diet-checks label {
     font-size: 12.5px;
@@ -1304,6 +1310,25 @@ body.psc-portal-active main.site-main {
     padding-bottom: 16px;
     border-bottom: 1px solid var(--psc-rule-lighter);
 }
+/* Même principe que .psc-portal-diet-checks : les deux cases tiennent dans
+   une seule cellule de la ligne enfant, sous leur libellé. Le nom est au
+   pluriel « group » et non « checks » pour ne pas se confondre à une lettre
+   près avec .psc-wizard-diet-check, qui style chaque case. */
+/* La cellule occupe deux pistes : « Sans porc » et « Sans viande » demandent
+   ensemble ~192 px, une piste de la ligne enfant en fait 177 dans la largeur
+   de la carte — sur une seule piste, les deux cases s'empilaient au lieu de
+   rester côte à côte. */
+.psc-wizard-diet-cell {
+    grid-column: span 2;
+}
+
+.psc-wizard-diet-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 34px;
+}
+
 .psc-wizard-diet-check {
     font-size: 12px;
     color: var(--psc-ink);
@@ -1460,6 +1485,9 @@ body.psc-portal-active main.site-main {
     .psc-guest-h1 { font-size: 22px; }
     .psc-wizard-field-grid { grid-template-columns: 1fr; }
     .psc-wizard-child-row { grid-template-columns: 1fr; }
+    /* Une seule colonne : la cellule régime ne s'étend plus, sans quoi
+       elle créerait une piste implicite et déborderait. */
+    .psc-wizard-diet-cell { grid-column: auto; }
     .psc-wizard-payment-cards { flex-direction: column; }
     .psc-guest-login-row { flex-direction: column; align-items: stretch; }
 }

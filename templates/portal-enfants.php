@@ -316,9 +316,12 @@ if ($psc_active_year) {
         <div class="psc-portal-field-label">Justificatif d'assurance scolaire</div>
         <input type="file" name="new_assurance_file" accept=".pdf,.jpg,.jpeg,.png" required class="psc-portal-field-underline">
       </div>
-      <div class="psc-portal-diet-checks">
-        <label><input type="checkbox" name="new_sans_porc" value="1"> Sans porc</label>
-        <label><input type="checkbox" name="new_vegan" value="1"> Sans viande</label>
+      <div>
+        <div class="psc-portal-field-label">Régime alimentaire</div>
+        <div class="psc-portal-diet-checks">
+          <label><input type="checkbox" name="new_sans_porc" value="1"> Sans porc</label>
+          <label><input type="checkbox" name="new_vegan" value="1"> Sans viande</label>
+        </div>
       </div>
     </div>
     <button type="submit" class="psc-portal-btn-gold">Ajouter</button>

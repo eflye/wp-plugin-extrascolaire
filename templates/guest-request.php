@@ -133,8 +133,13 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
             <label class="psc-portal-field-label" for="psc-ca-0">Justificatif d'assurance scolaire</label>
             <input id="psc-ca-0" type="file" name="child_assurance_0" accept=".pdf,.jpg,.jpeg,.png" required>
           </div>
-          <label class="psc-wizard-diet-check"><input type="checkbox" name="child_sans_porc_0" value="1"> Sans porc</label>
-          <label class="psc-wizard-diet-check"><input type="checkbox" name="child_vegan_0" value="1"> Sans viande</label>
+          <div class="psc-wizard-diet-cell">
+            <div class="psc-portal-field-label">Régime alimentaire</div>
+            <div class="psc-wizard-diet-group">
+              <label class="psc-wizard-diet-check"><input type="checkbox" name="child_sans_porc_0" value="1"> Sans porc</label>
+              <label class="psc-wizard-diet-check"><input type="checkbox" name="child_vegan_0" value="1"> Sans viande</label>
+            </div>
+          </div>
 
           <div class="psc-wizard-pickup-block">
             <p class="psc-wizard-pickup-title">Personnes autorisées à récupérer cet enfant en fin de garderie du soir (facultatif)</p>
