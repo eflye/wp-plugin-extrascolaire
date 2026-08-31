@@ -51,9 +51,58 @@ function psc_private_dir() {
     return apply_filters('psc_private_dir', $dir);
 }
 
-/** Chemin absolu d'un fichier à partir de son chemin relatif stocké en base. */
+/**
+ * Chemin absolu d'un fichier à partir de son chemin relatif stocké en
+ * base — contraint à rester SOUS le répertoire privé.
+ *
+ * Les chemins relatifs viennent de la base (champs assurance_file_path,
+ * pdf_path…), écrite par le plugin lui-même : aucun ne devrait contenir
+ * de "..". Les contrôler ici plutôt qu'à chaque site d'appel protège
+ * aussi tout appel futur, et ferme la porte à un chemin falsifié
+ * (import, autre extension écrivant dans les tables, compromission) :
+ * la lecture d'un justificatif de mineur ne doit jamais pouvoir devenir
+ * celle d'un fichier arbitraire du serveur, wp-config.php en tête.
+ *
+ * La cible n'existe pas forcément encore (répertoire sur le point d'être
+ * créé) : les segments sont d'abord réduits lexicalement — ce qui retire
+ * tout ".." restant — puis le chemin est revérifié par realpath() quand
+ * il existe, pour couvrir un lien symbolique glissé dans l'arborescence.
+ *
+ * @return string Chemin absolu, ou chaîne vide si le chemin sort du
+ *                répertoire privé (les appelants testent file_exists(),
+ *                qui échoue alors proprement).
+ */
 function psc_private_path($rel_path) {
-    return trailingslashit(psc_private_dir()) . ltrim((string) $rel_path, '/');
+    $root = wp_normalize_path(psc_private_dir());
+    $rel  = str_replace('\\', '/', ltrim((string) $rel_path, '/'));
+
+    // Réduction lexicale : "a/b/../../c" devient "c". Un segment ".."
+    // qui remonterait au-dessus de la racine est rejeté d'office.
+    $segs = array();
+    foreach (explode('/', $rel) as $seg) {
+        if ($seg === '' || $seg === '.') continue;
+        if ($seg === '..') {
+            if (!$segs) return '';
+            array_pop($segs);
+            continue;
+        }
+        $segs[] = $seg;
+    }
+    $abs = $segs ? $root . '/' . implode('/', $segs) : $root;
+
+    // Cible déjà sur disque : realpath() résout aussi les liens
+    // symboliques — une cible qui s'échappe du répertoire privé est
+    // rejetée. (Si le répertoire privé lui-même n'existe pas encore,
+    // la réduction lexicale ci-dessus a déjà fait tout le travail.)
+    $resolved = realpath($abs);
+    if ($resolved !== false) {
+        $resolved_root = realpath(psc_private_dir());
+        if ($resolved_root && strpos($resolved . DIRECTORY_SEPARATOR, $resolved_root . DIRECTORY_SEPARATOR) !== 0) {
+            return '';
+        }
+    }
+
+    return $abs;
 }
 
 /**
