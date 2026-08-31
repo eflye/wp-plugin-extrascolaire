@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 4.33.0
+Stable tag: 4.34.0
 License: GPLv2 or later
 
 == Description ==
@@ -267,6 +267,54 @@ Conservation des données (RGPD) :
   fréquenté, prévoir un cron système si la ponctualité importe.
 - Le formulaire affiche une mention d'information sur le traitement des
   données ; adaptez-la au registre des traitements de la commune.
+
+== Changelog ==
+
+La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
+release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
+numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
+complet, commit par commit, reste dans le dépôt git.
+
+= 4.34.0 =
+* Sécurité : le code d'accès de l'écran des intervenants (SIDSCM) ne se
+  brute-force plus — limitation de fréquence sur les quatre appels, mauvais
+  codes plafonnés à 20 par heure et par adresse IP ; les chemins des
+  justificatifs sont contraints au répertoire privé (traversée de chemin et
+  liens symboliques rejetés).
+* Performance : la commande fournisseur compte la cantine en une seule
+  requête ; l'état du calendrier scolaire est mis en cache le temps d'une
+  requête.
+* Accessibilité : les totaux (jours déclarés, repas pointés) sont annoncés
+  aux lecteurs d'écran ; le mouvement réduit du système est respecté ; les
+  contrastes des textes dorés sont conformes.
+* Outillage : les vérifications PHP tournent dans l'intégration continue ;
+  l'archive de release est fumée dans un WordPress vierge avant publication
+  et la liste de ses fichiers est vérifiée contre le dépôt ; les runs
+  d'intégration continue périmés sont annulés.
+
+= 4.33.0 =
+* Le lien de connexion résiste aux scanners d'URL (l'exposition du jeton
+  dans l'URL, documentée en 4.31.0, est désormais atténuée).
+
+= 4.32.1 =
+* Regroupe « Sans porc » et « Sans viande » sous un libellé unique
+  « Régime alimentaire » sur les cases de régime.
+* Tests : l'assertion du total de repas ne dépend plus de la date d'exécution.
+
+= 4.32.0 =
+* Revue de conception, sans changement fonctionnel : l'administration est
+  éclatée en une classe par domaine, les helpers découpés par domaine, la
+  composition du trimestre et les assurances ont chacune leur classe, et une
+  seule mécanique d'appel AJAX sert les quatre écrans.
+
+= 4.31.0 =
+* Audit de sécurité : jetons anti-CSRF liés à la famille connectée, exposition
+  des justificatifs corrigée sans accès serveur, la déconnexion invalide
+  réellement la session, limitation de fréquence fiabilisée (fenêtre fixe et
+  adresse IP), nom de l'enfant échappé dans les e-mails de planning.
+* Revue du modèle de données : clés étrangères et index par date, un seul
+  point de contrôle pour les prestations, cohérence du trimestre.
+* Performance : le calendrier n'interroge plus la base jour par jour.
 
 == Évolutions depuis la 2.1.0 : portail famille, assurance scolaire, facturation, commande fournisseur ==
 
