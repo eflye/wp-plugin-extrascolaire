@@ -170,7 +170,14 @@ test('configuration, calcul par classe, envoi et historique', async ({ page }) =
   }
   // Le piège du seed (Garderie Matin le même jour que la première Cantine
   // de la classe CP) ne doit jamais faire gonfler un total.
-  expect(mail.Text).not.toContain(String(expected.total + 1));
+  //
+  // Vérifié sur le sujet, qui porte le nombre suivi de « repas », et non par
+  // recherche du chiffre nu dans le corps : celui-ci contient les dates de la
+  // semaine, si bien que l'assertion échouait dès que l'une d'elles contenait
+  // le chiffre cherché — « 24/11 » pour un total attendu de 3. Elle dépendait
+  // donc de la semaine sur laquelle tombait le jeu de données, c'est-à-dire de
+  // la date d'exécution.
+  expect(mail.Subject).not.toContain(`${expected.total + 1} repas`);
 
   /* ---------------- 4. Historique : entrée + contenu exact archivé ---------------- */
   await page.reload();
