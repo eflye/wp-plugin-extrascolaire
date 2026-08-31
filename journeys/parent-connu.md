@@ -52,7 +52,7 @@ parent:
   email: famille.dupont@example.com
   nom: Dupont
   active: 1
-  # aucun mot de passe : authentification par lien à usage unique
+  # aucun mot de passe : authentification par lien de connexion
 
 enfants:
   - prenom: Léo

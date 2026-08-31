@@ -116,8 +116,7 @@ class Psc_Mailer {
             . '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 12px;">' . $intro . '</p>'
             . self::btn($url, $btn_label)
             . self::info_box(
-                '<strong>⏱ Durée de validité :</strong> ce lien expire dans <strong>' . $minutes . ' minutes</strong> '
-                . 'et ne peut être utilisé qu\'une seule fois.'
+                '<strong>⏱ Durée de validité :</strong> ce lien expire dans <strong>' . $minutes . ' minutes</strong>.'
             )
             . self::p('Si vous n\'êtes pas à l\'origine de cette demande, vous pouvez ignorer ce message en toute sécurité.');
 

@@ -51,7 +51,7 @@ const monthKeyOf = (iso: string) => iso.slice(0, 7);
 
 /* ------------------------------------------------------------------ */
 
-test('parent déjà connu — de la connexion au récapitulatif', async ({ page, context }, testInfo) => {
+test('parent déjà connu — de la connexion au récapitulatif', async ({ page, context, browser }, testInfo) => {
   const profile = testInfo.project.name === 'demo' ? 'demo' : 'test';
   const isDemo = profile === 'demo';
   const seed = readSeedResult(profile);
@@ -223,6 +223,21 @@ test('parent déjà connu — de la connexion au récapitulatif', async ({ page,
     'account-bar',
     'Il arrive directement sur le planning de ses enfants',
     async () => {
+      // Pré-clic d'une passerelle de sécurité de messagerie (Outlook
+      // SafeLinks, Proofpoint…) : elles suivent les liens des e-mails
+      // entrants par un simple GET pour les analyser, avant même que le
+      // parent n'ouvre son mail. Contexte vierge séparé — aucun cookie
+      // partagé avec le parent — pour reproduire la passerelle, pas un
+      // second onglet du même navigateur. Le lien doit rester utilisable
+      // après ce pré-clic, sinon le parent tomberait sur « lien non
+      // valide » sans avoir rien fait (jeton non à usage unique, cf.
+      // Psc_Parents::maybe_consume_token()).
+      const scannerContext = await browser.newContext();
+      const scannerResponse = await scannerContext.request.get(loginLink);
+      expect(scannerResponse.ok(), 'pré-clic scanner : requête rejetée').toBe(true);
+      expect(scannerResponse.url()).toContain('psc_msg=welcome');
+      await scannerContext.close();
+
       await page.goto(loginLink);
       await expect(page.getByTestId('account-bar')).toBeVisible();
       await expect(page.getByTestId('notice-welcome')).toBeVisible();

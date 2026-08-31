@@ -5,9 +5,10 @@ if (!defined('ABSPATH')) exit;
  * Authentification des familles SANS compte WordPress.
  *
  * Principe : la mairie enregistre les adresses e-mail des familles.
- * Le parent saisit son adresse sur le site, reçoit un lien à usage unique
- * valable 30 minutes, et accède à son planning. Aucun mot de passe n'est
- * créé ni transmis.
+ * Le parent saisit son adresse sur le site, reçoit un lien valable
+ * 30 minutes, et accède à son planning. Aucun mot de passe n'est
+ * créé ni transmis. Le lien n'est PAS à usage unique — pourquoi, cf.
+ * maybe_consume_token() plus bas.
  *
  * Ce choix évite :
  *  - de gérer des mots de passe pour des données concernant des mineurs,
@@ -134,6 +135,17 @@ class Psc_Parents {
      * Si l'URL contient un jeton valide, ouvre la session et retire le
      * jeton de l'URL par une redirection (évite qu'il reste dans
      * l'historique du navigateur ou dans un lien partagé).
+     *
+     * Le jeton n'est PAS effacé à la première utilisation : il reste
+     * valable jusqu'à token_expires. Les passerelles de sécurité des
+     * messageries (Outlook SafeLinks, Proofpoint…) suivent les liens
+     * des e-mails entrants par un simple GET pour les analyser, souvent
+     * avant que le parent n'ouvre son mail : un jeton à usage unique
+     * était donc dépensé par la passerelle, et le parent tombait sur
+     * « lien non valide » en cliquant. La session reste le contrôle
+     * d'accès effectif : chaque clic valide en ouvre une (la passerelle
+     * ne fait rien de la sienne, révocable individuellement), et le
+     * jeton s'éteint seul à l'expiration (psc_login_link_ttl()).
      */
     public static function maybe_consume_token() {
         if (empty($_GET['psc_token']) || empty($_GET['psc_pid'])) {
@@ -165,12 +177,13 @@ class Psc_Parents {
             exit;
         }
 
-        // Jeton à usage unique : il est effacé dès qu'il a servi.
+        // Seul last_login est tracé : le jeton n'est pas effacé — cf.
+        // doc de la méthode — il reste valable jusqu'à son expiration.
         $wpdb->update(
             psc_table('parents'),
-            array('token_hash' => null, 'token_expires' => null, 'last_login' => current_time('mysql')),
+            array('last_login' => current_time('mysql')),
             array('id' => $parent->id),
-            array('%s', '%s', '%s'),
+            array('%s'),
             array('%d')
         );
 

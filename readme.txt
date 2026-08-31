@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 4.32.1
+Stable tag: 4.33.0
 License: GPLv2 or later
 
 == Description ==
@@ -162,7 +162,7 @@ Fonctionnement :
    Périscolaire > Familles (les enfants sont rattachés ensuite dans
    Périscolaire > Enfants).
 2. Le parent saisit son adresse sur la page publique et reçoit un lien
-   valable 30 minutes, à usage unique.
+   valable 30 minutes.
 3. Ce lien ouvre une session de 12 heures, gérée par un cookie signé.
    Aucun mot de passe n'est créé ni transmis.
 

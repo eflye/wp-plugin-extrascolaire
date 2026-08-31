@@ -81,7 +81,7 @@
   <input id="psc-login-ttl" type="number" name="login_link_ttl_minutes" min="5" max="1440" step="1"
          value="<?php echo esc_attr((int) get_option('psc_login_link_ttl_minutes', 30)); ?>" class="small-text"> minutes
   <p class="description">
-    Durée de validité du lien à usage unique envoyé pour se connecter à l'espace famille
+    Durée de validité du lien de connexion envoyé par e-mail
     (30 minutes par défaut). S'applique aussi au lien reçu par une famille dont la demande
     vient d'être validée par la mairie.
   </p>
