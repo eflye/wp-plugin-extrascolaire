@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 4.34.0
+Stable tag: 4.35.0
 License: GPLv2 or later
 
 == Description ==
@@ -274,6 +274,31 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 4.35.0 =
+* Fiabilité : l'approbation d'une demande d'inscription (création du foyer,
+  des enfants et de l'année scolaire) s'exécute dans une transaction SQL —
+  un échec au milieu ne laisse plus de foyer à moitié créé.
+* Données : les contraintes SQL refusées par certains hébergeurs sont
+  signalées en administration (santé du schéma) et retentées à la mise à
+  jour suivante ; une montée de version bloquée ne s'affiche plus comme un
+  succès.
+* Pointage : le pointage des intervenants refuse un jour non ouvert ou un
+  enfant non inscrit au service visé (les données fausses n'entraient plus
+  dans les statistiques) ; chaque téléchargement de justificatif ou de
+  facture est journalisé dans le répertoire privé (qui, quoi, quand).
+* Accessibilité : les cinq popins du plugin ont la sémantique de dialogue
+  complète (rôle dialog, aria-modal, focus piégé, fermeture par Échap).
+* Qualité : analyse statique PHPStan niveau 3 sur tout le code (zéro
+  erreur) ; tests unitaires des validations IBAN/BIC et du chiffrement
+  bancaire, rejoués en intégration continue de PHP 7.4 à 8.3 ; scénario
+  E2E de l'écran des intervenants (déverrouillage, pointage, départ) et
+  scénario de migration depuis le schéma 2.4 en CI — ce dernier a permis
+  de corriger une mise à jour « par bonds » qui perdait une colonne des
+  factures.
+* Outillage : notices d'administration factorisées dans un helper unique
+  (la classe des avertissements des écrans menus, factures et commande
+  fournisseur est corrigée au passage) ; ESLint minimal sur les écrans.
 
 = 4.34.0 =
 * Sécurité : le code d'accès de l'écran des intervenants (SIDSCM) ne se
