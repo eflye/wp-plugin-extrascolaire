@@ -14,11 +14,13 @@
  *      ligne wp_psc_pickup_persons + une entrée d'historique 'ajout'
  *      (source='parent', même si c'est le clic d'approbation de la
  *      mairie qui déclenche l'écriture).
- *   2. Fiche vivante (portail famille) : ajout, modification et retrait
- *      depuis "Mes enfants" — chacun produit exactement une entrée
- *      d'historique — puis consultation de la liste courante (vide après
- *      retrait) et de l'historique complet (3 entrées) côté mairie,
- *      lecture seule.
+ *   2. Fiche vivante (portail famille) : un second enfant est ajouté via
+ *      le portail, puis dans "Habilitations" une personne autorisée est
+ *      ajoutée via le bouton global — elle doit apparaître dans la liste
+ *      des DEUX enfants — puis modifiée et retirée ligne par ligne
+ *      (granularité par enfant). Chaque mouvement produit exactement une
+ *      entrée d'historique par enfant ; consultation de la liste courante
+ *      et de l'historique complet côté mairie, lecture seule.
  */
 
 import { test, expect, type Page } from '@playwright/test';
@@ -223,49 +225,81 @@ test('onboarding — une personne autorisée saisie à la demande devient une en
   expect(currentCount).toBe('1');
 });
 
-test('fiche vivante — ajout, modification, retrait, puis consultation mairie', async ({ page }) => {
+test('fiche vivante — ajout pour toute la fratrie, modification, retrait, puis consultation mairie', async ({ page }) => {
   const data = seed();
 
   await loginAsFamily(page, data.living_parent_email, data.living_parent_id);
-  await page.goto(`${APP_BASE}/?psc_tab=enfants`);
 
-  /* ---------------- Ajout ---------------- */
-  await page.locator('[data-pickup-add-trigger]').click();
+  /* ---------------- Un second enfant d'abord : l'ajout d'une personne doit couvrir toute la fratrie ---------------- */
+  await page.goto(`${APP_BASE}/?psc_tab=enfants`);
+  await page.locator('input[name="new_prenom"]').fill('Jules');
+  await page.locator('input[name="new_nom"]').fill(data.living_child_nom);
+  await page.locator('select[name="new_classe"]').selectOption('CP');
+  await page.locator('input[name="new_assurance_file"]').setInputFiles({
+    name: 'assurance-jules.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4 e2e pickup-persons second child'),
+  });
+  await page.locator('.psc-add-child-form').getByRole('button', { name: 'Ajouter' }).click();
+  await expect(page.getByTestId('notice-child_added')).toBeVisible();
+
+  const secondChildId = Number(
+    wpCliEval(
+      `global $wpdb; echo (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM {$wpdb->prefix}psc_children
+         WHERE parent_id = %d AND prenom = 'Jules' AND statut = 'actif'", ${data.living_parent_id}
+      ));`
+    )
+  );
+  expect(secondChildId, 'second enfant créé via le portail').toBeGreaterThan(0);
+
+  /* ---------------- Habilitations : l'ajout porte sur tous les enfants ---------------- */
+  await page.getByTestId('portal-nav-habilitations').click();
+  await expect(page.getByTestId('habilitations-title')).toBeVisible();
+  await expect(page.getByTestId('portal-section-habilitations')).toHaveClass(/is-active/);
+
+  await page.getByTestId('pickup-add-all').click();
   await expect(page.getByTestId('pickup-modal')).toBeVisible();
   await page.locator('#psc-pickup-prenom').fill('Sophie');
   await page.locator('#psc-pickup-nom').fill('Martin');
   await page.locator('#psc-pickup-telephone').fill('0600000002');
   await page.locator('#psc-pickup-lien').fill('Nounou');
   await page.getByTestId('pickup-submit').click();
-  await expect(page.getByTestId('notice-pickup_added')).toBeVisible();
+  await expect(page.getByTestId('notice-household_pickup_added')).toBeVisible();
 
-  const table = page.getByTestId(`pickup-table-${data.living_child_id}`);
-  await expect(table).toContainText('Sophie');
+  const tableOf = (childId: number) => page.getByTestId(`pickup-table-${childId}`);
+  await expect(tableOf(data.living_child_id)).toContainText('Sophie');
+  await expect(tableOf(secondChildId)).toContainText('Sophie');
 
-  /* ---------------- Modification ---------------- */
-  await table.locator('tr', { hasText: 'Sophie' }).getByRole('button', { name: 'Modifier' }).click();
+  /* ---------------- Modification (granulaire : une ligne = un enfant) ---------------- */
+  await tableOf(data.living_child_id)
+    .locator('tr', { hasText: 'Sophie' })
+    .getByRole('button', { name: 'Modifier' })
+    .click();
   await expect(page.getByTestId('pickup-modal')).toBeVisible();
   await expect(page.locator('#psc-pickup-prenom')).toHaveValue('Sophie');
   await page.locator('#psc-pickup-telephone').fill('0600000003');
   await page.getByTestId('pickup-submit').click();
   await expect(page.getByTestId('notice-pickup_updated')).toBeVisible();
-  await expect(page.getByTestId(`pickup-table-${data.living_child_id}`)).toContainText('0600000003');
+  await expect(tableOf(data.living_child_id)).toContainText('0600000003');
+  await expect(tableOf(secondChildId)).toContainText('0600000002');
 
-  /* ---------------- Retrait ---------------- */
+  /* ---------------- Retrait (idem : ne retire que la ligne de cet enfant) ---------------- */
   page.once('dialog', (dialog) => dialog.accept());
-  await page
-    .getByTestId(`pickup-table-${data.living_child_id}`)
+  await tableOf(data.living_child_id)
     .locator('tr', { hasText: 'Sophie' })
     .getByRole('button', { name: 'Retirer' })
     .click();
   await expect(page.getByTestId('notice-pickup_removed')).toBeVisible();
-  // Sophie a disparu, mais le(s) parent(s) du foyer restent toujours
-  // affichés (non supprimables depuis cette liste) — jamais de table vide.
-  await expect(table).not.toContainText('Sophie');
-  await expect(table).toContainText('PickupLiving');
-  await expect(table).toContainText('Parent');
+  // Sophie a disparu de Nina mais reste habilitée pour Jules ; le(s)
+  // parent(s) du foyer restent toujours affichés (non supprimables depuis
+  // cette liste) — jamais de table vide.
+  await expect(tableOf(data.living_child_id)).not.toContainText('Sophie');
+  await expect(tableOf(secondChildId)).toContainText('Sophie');
+  await expect(tableOf(data.living_child_id)).toContainText('PickupLiving');
+  await expect(tableOf(data.living_child_id)).toContainText('Parent');
 
-  /* ---------------- Consultation mairie : liste courante + historique ---------------- */
+  /* ---------------- Consultation mairie : liste courante + historique (Nina) ---------------- */
   await loginAsAdmin(page);
   await page.goto(`${ADMIN_BASE}/admin.php?page=psc_pickup_persons&child_id=${data.living_child_id}`);
   await expect(page.locator('body')).not.toContainText('Aucune personne autorisée déclarée');
@@ -277,7 +311,8 @@ test('fiche vivante — ajout, modification, retrait, puis consultation mairie',
   expect(bodyText).toContain('Retrait');
   expect(bodyText).toContain('Sophie Martin');
 
-  /* ---------------- Vérification base : exactement 3 entrées, jamais modifiées ---------------- */
+  /* ---------------- Vérifications base : historique par enfant ---------------- */
+  // Nina : ajout foyer + modification + retrait = 3 entrées, jamais modifiées.
   const historyCount = wpCliEval(
     `global $wpdb; echo (int) $wpdb->get_var($wpdb->prepare(
       "SELECT COUNT(*) FROM {$wpdb->prefix}psc_pickup_history WHERE child_id = %d", ${data.living_child_id}
@@ -291,6 +326,15 @@ test('fiche vivante — ajout, modification, retrait, puis consultation mairie',
     )));`
   );
   expect(actions).toBe('ajout,modification,retrait');
+
+  // Jules : l'ajout foyer a créé sa propre entrée, Sophie y est toujours active.
+  const julesActive = wpCliEval(
+    `global $wpdb; echo $wpdb->get_var($wpdb->prepare(
+      "SELECT prenom FROM {$wpdb->prefix}psc_pickup_persons
+       WHERE child_id = %d AND statut = 'active'", ${secondChildId}
+    ));`
+  );
+  expect(julesActive).toBe('Sophie');
 });
 
 });

@@ -173,7 +173,7 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
     }
 
     /**
-     * Bouton "Tout" par colonne de service (Cantine & Garderie) : coche ou
+     * Bouton "Tout" par colonne de service (Planning cantine & garderie) : coche ou
      * décoche en une fois tous les jours déclarables d'un mois pour un
      * enfant/service donnés. Reçoit la liste exacte des dates depuis le
      * client (celles rendues comme déclarables — non verrouillées — au

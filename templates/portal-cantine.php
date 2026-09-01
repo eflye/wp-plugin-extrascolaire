@@ -1,6 +1,6 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="psc-portal-eyebrow"><?php esc_html_e('Inscriptions', 'periscolaire-registration'); ?></div>
-<h1 class="psc-portal-h1" data-testid="cantine-title"><?php esc_html_e('Cantine & Garderie', 'periscolaire-registration'); ?></h1>
+<h1 class="psc-portal-h1" data-testid="cantine-title"><?php esc_html_e('Planning cantine & garderie', 'periscolaire-registration'); ?></h1>
 
 <?php if (!$trimestre): ?>
 

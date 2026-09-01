@@ -110,7 +110,6 @@
         'reinscription_invalid'   => array('err', __('La fenêtre de réinscription est fermée ou votre sélection est invalide.', 'periscolaire-registration')),
         'reinscription_required'  => array('err', __("Merci de confirmer le règlement intérieur et de fournir un justificatif d'assurance pour chaque enfant réinscrit.", 'periscolaire-registration')),
 
-        'pickup_added'   => array('ok',  __('Personne autorisée ajoutée (départ de garderie du soir).', 'periscolaire-registration')),
         'pickup_updated' => array('ok',  __('Personne autorisée modifiée.', 'periscolaire-registration')),
         'pickup_removed' => array('ok',  __('Personne retirée de la liste des personnes autorisées.', 'periscolaire-registration')),
         'pickup_invalid' => array('err', __("Nom, prénom et téléphone sont obligatoires, et l'enfant doit être le vôtre.", 'periscolaire-registration')),
@@ -122,7 +121,6 @@
         'second_parent_email_taken' => array('err', __('Cette adresse e-mail est déjà utilisée par un autre foyer.', 'periscolaire-registration')),
 
         'household_pickup_added'   => array('ok',  __('Personne autorisée ajoutée (départ de garderie du soir).', 'periscolaire-registration')),
-        'household_pickup_removed' => array('ok',  __('Personne retirée de la liste des personnes autorisées.', 'periscolaire-registration')),
         'household_pickup_invalid' => array('err', __('Nom, prénom et téléphone sont obligatoires.', 'periscolaire-registration')),
     );
     // Confirmations : popin auto-masquée (cf. assets/js/frontend.js).
@@ -169,6 +167,10 @@
 
     <section class="psc-portal-section<?php echo $active_tab === 'enfants' ? ' is-active' : ''; ?>" data-portal-section="enfants" data-testid="portal-section-enfants">
       <?php include PSC_PATH . 'templates/portal-enfants.php'; ?>
+    </section>
+
+    <section class="psc-portal-section<?php echo $active_tab === 'habilitations' ? ' is-active' : ''; ?>" data-portal-section="habilitations" data-testid="portal-section-habilitations">
+      <?php include PSC_PATH . 'templates/portal-habilitations.php'; ?>
     </section>
 
     <section class="psc-portal-section<?php echo $active_tab === 'factures' ? ' is-active' : ''; ?>" data-portal-section="factures" data-testid="portal-section-factures">

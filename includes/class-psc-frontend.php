@@ -143,7 +143,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 'pickup_id_check'   => __('Présentera une pièce d’identité', 'periscolaire-registration'),
                 'pickup_remove'     => __('Retirer cette personne autorisée', 'periscolaire-registration'),
                 'week_load_failed'  => __('Impossible de charger cette semaine. Merci de réessayer.', 'periscolaire-registration'),
-                'pickup_add_title'  => __('Ajouter — %s', 'periscolaire-registration'),
+                'pickup_add_all_title' => __('Ajouter une personne autorisée', 'periscolaire-registration'),
                 'pickup_edit_title' => __('Modifier — %s', 'periscolaire-registration'),
                 'next'              => __('Suivant', 'periscolaire-registration'),
                 'finish'            => __('Terminer', 'periscolaire-registration'),
@@ -202,7 +202,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9h13v-9"/><path d="M10 19v-6h4v6"/></svg>',
             ),
             'cantine' => array(
-                'label' => __('Cantine & Garderie', 'periscolaire-registration'),
+                'label' => __('Planning', 'periscolaire-registration'),
                 'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="5" width="17" height="15" rx="1"/><path d="M3.5 9.5h17"/><path d="M8 3v3M16 3v3"/></svg>',
             ),
             'menu' => array(
@@ -212,6 +212,10 @@ class Psc_Frontend extends Psc_Frontend_Base {
             'enfants' => array(
                 'label' => __('Mes enfants', 'periscolaire-registration'),
                 'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="7" r="3.2"/><path d="M5 20c0-3.5 3.2-6 7-6s7 2.5 7 6"/></svg>',
+            ),
+            'habilitations' => array(
+                'label' => __('Habilitations', 'periscolaire-registration'),
+                'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l7 3v5c0 4.6-3 7.6-7 9-4-1.4-7-4.4-7-9V6l7-3Z"/><path d="M9 11.5l2 2 4-4"/></svg>',
             ),
             'factures' => array(
                 'label' => __('Mes factures', 'periscolaire-registration'),
@@ -243,7 +247,8 @@ class Psc_Frontend extends Psc_Frontend_Base {
      * message lié à la gestion des enfants (retour d'un POST classique,
      * cf. handle_parent_*) ramène toujours sur l'onglet "Mes enfants",
      * quel que soit l'onglet d'où le formulaire a été soumis — même chose
-     * pour "Mon profil" avec les messages liés à sa propre mise à jour.
+     * pour "Habilitations" (personnes autorisées) et pour "Mon profil"
+     * avec les messages liés à leur propre mise à jour.
      */
     protected static function resolve_active_tab($psc_msg) {
         $known = array_keys(self::portal_tab_defs());
@@ -254,9 +259,16 @@ class Psc_Frontend extends Psc_Frontend_Base {
             'child_updated', 'child_added', 'child_invalid', 'child_limit',
             'assurance_uploaded', 'assurance_invalid', 'assurance_upload_failed',
             'assurance_too_large', 'assurance_invalid_type', 'assurance_required',
-            'pickup_added', 'pickup_updated', 'pickup_removed', 'pickup_invalid',
         ), true)) {
             $tab = 'enfants';
+        }
+        // Personnes autorisées (ajout foyer, édition et retrait par ligne) :
+        // le bloc vit dans l'onglet « Habilitations », les retours y reviennent.
+        if (in_array($psc_msg, array(
+            'pickup_updated', 'pickup_removed', 'pickup_invalid',
+            'household_pickup_added', 'household_pickup_invalid',
+        ), true)) {
+            $tab = 'habilitations';
         }
         if (in_array($psc_msg, array(
             'profil_updated', 'profil_updated_email_pending', 'profil_error',
@@ -264,7 +276,6 @@ class Psc_Frontend extends Psc_Frontend_Base {
             'bad_email_token', 'expired_email_token',
             'second_parent_updated', 'second_parent_removed',
             'second_parent_bad_email', 'second_parent_bad_phone', 'second_parent_email_taken',
-            'household_pickup_added', 'household_pickup_removed', 'household_pickup_invalid',
         ), true)) {
             $tab = 'profil';
         }
@@ -504,39 +515,6 @@ class Psc_Frontend extends Psc_Frontend_Base {
         $psc_pickup_map = array();
         foreach ($children as $child) {
             $psc_pickup_map[$child->id] = Psc_Pickup_Persons::for_child($child->id);
-        }
-
-        // "Mon profil" : vue foyer dédupliquée (les deux parents toujours
-        // présents, même sans enfant actif ; un tiers ajouté depuis "Mes
-        // enfants" pour plusieurs enfants n'apparaît qu'une fois, avec
-        // tous les pickup_person_id concernés regroupés dans 'ids' — un
-        // retrait depuis cette vue les retire de tous ces enfants d'un coup).
-        $psc_household_authorized = Psc_Pickup_Persons::parent_entries($parent);
-        foreach ($psc_household_authorized as &$psc_hh_entry) {
-            $psc_hh_entry['ids'] = array();
-        }
-        unset($psc_hh_entry);
-        $psc_household_seen = array();
-        foreach ($psc_household_authorized as $psc_hh_i => $psc_hh_entry) {
-            $psc_household_seen[mb_strtolower($psc_hh_entry['prenom'] . '|' . $psc_hh_entry['nom'] . '|' . $psc_hh_entry['telephone'])] = $psc_hh_i;
-        }
-        foreach ($children as $child) {
-            foreach (Psc_Pickup_Persons::for_child($child->id) as $p) {
-                $key = mb_strtolower($p->prenom . '|' . $p->nom . '|' . $p->telephone);
-                if (isset($psc_household_seen[$key])) {
-                    $psc_household_authorized[$psc_household_seen[$key]]['ids'][] = (int) $p->id;
-                    continue;
-                }
-                $psc_household_authorized[] = array(
-                    'role'      => $p->lien !== '' ? $p->lien : __('Autre', 'periscolaire-registration'),
-                    'prenom'    => $p->prenom,
-                    'nom'       => $p->nom,
-                    'telephone' => $p->telephone,
-                    'removable' => true,
-                    'ids'       => array((int) $p->id),
-                );
-                $psc_household_seen[$key] = count($psc_household_authorized) - 1;
-            }
         }
 
         $psc_portal_reinscription = null;

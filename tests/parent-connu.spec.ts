@@ -252,16 +252,16 @@ test('parent déjà connu — de la connexion au récapitulatif', async ({ page,
     }
   );
 
-  /* ---------------- 05b-ouverture-onglet-cantine (v2 portail) ---------------- */
+  /* ---------------- 05b-ouverture-onglet-planning (v2 portail) ---------------- */
   // Depuis la refonte en portail à onglets, la connexion atterrit sur le
   // Tableau de bord — le calendrier n'est plus visible par défaut, il faut
-  // d'abord ouvrir l'onglet "Cantine & Garderie" (bascule cliente, aucun
+  // d'abord ouvrir l'onglet "Planning" (bascule cliente, aucun
   // rechargement de page — cf. assets/js/portal.js).
   await playScene(
-    '05b-ouverture-onglet-cantine',
+    '05b-ouverture-onglet-planning',
     3_000,
     'portal-nav-cantine',
-    "Le calendrier se trouve dans l'onglet Cantine & Garderie",
+    "Le calendrier se trouve dans l'onglet Planning",
     async () => {
       await page.getByTestId('portal-nav-cantine').click();
       await expect(page.getByTestId('portal-section-cantine')).toBeVisible();

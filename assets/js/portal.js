@@ -30,7 +30,7 @@
         var tab = link.dataset.portalTab || link.dataset.portalTabLink;
         if (!tab) return;
 
-        // Une case de "Cantine & Garderie" a réellement changé côté serveur
+        // Une case du "Planning cantine & garderie" a réellement changé côté serveur
         // depuis le chargement de la page : les autres onglets déjà rendus
         // (ex : Tableau de bord, "X jours déclarés") sont maintenant
         // obsolètes. On laisse le lien naviguer normalement (rechargement
@@ -270,7 +270,7 @@
         });
     }
 
-    /* ---------- Popin "Personne autorisée à récupérer" (Mes enfants) ---------- */
+    /* ---------- Popin "Personne autorisée à récupérer" (Habilitations) ---------- */
 
     function initPickupPersonModal() {
         var overlay = document.getElementById('psc-pickup-modal');
@@ -294,12 +294,12 @@
         var lienField   = document.getElementById('psc-pickup-lien');
         var pieceField  = document.getElementById('psc-pickup-piece-identite');
 
-        function openAdd(childId) {
-            var c = (data.children || {})[childId];
-            if (!c) return;
-            title.textContent = t('pickup_add_title', c.name);
-            actionField.value = 'psc_parent_add_pickup_person';
-            childField.value = childId;
+        /* L'ajout vaut pour tous les enfants : l'endpoint foyer boucle sur
+           toute la fratrie (psc_parent_add_household_pickup_person). */
+        function openAddHousehold() {
+            title.textContent = t('pickup_add_all_title');
+            actionField.value = 'psc_parent_add_household_pickup_person';
+            childField.value = '';
             idField.value = '';
             prenomField.value = '';
             nomField.value = '';
@@ -326,8 +326,8 @@
 
         function close() { window.PscDialog.close(overlay); }
 
-        document.querySelectorAll('[data-pickup-add-trigger]').forEach(function (btn) {
-            btn.addEventListener('click', function () { openAdd(btn.dataset.childId); });
+        document.querySelectorAll('[data-pickup-add-all-trigger]').forEach(function (btn) {
+            btn.addEventListener('click', openAddHousehold);
         });
         document.querySelectorAll('[data-pickup-edit-trigger]').forEach(function (btn) {
             btn.addEventListener('click', function () { openEdit(btn.dataset.pickupId); });
@@ -340,7 +340,7 @@
         });
     }
 
-    /* ---------- Bloc "ajout" repliable (Mon profil : second parent, personne autorisée du foyer) ---------- */
+    /* ---------- Bloc "ajout" repliable (Mon profil : second parent) ---------- */
 
     function initToggleAddBlock(addBtnId, blockId, cancelSelector) {
         var addBtn = document.getElementById(addBtnId);
@@ -422,7 +422,6 @@
         initPickupPersonModal();
         initMenuNav();
         initToggleAddBlock('psc-add-second-parent', 'psc-second-parent-block');
-        initToggleAddBlock('psc-add-household-pickup', 'psc-household-pickup-form-block', '[data-household-pickup-cancel]');
         initOnboardingTour();
     });
 })();

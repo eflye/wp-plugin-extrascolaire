@@ -35,7 +35,7 @@ class Psc_Pickup_Persons {
      * second parent s'il est renseigné) d'une ligne wp_psc_parents — jamais
      * des lignes wp_psc_pickup_persons. Partagé par authorized_for_child()
      * (par enfant, ex. SIDSCM) et Psc_Frontend::shortcode() (vue foyer,
-     * "Mon profil", qui a déjà $parent en main et n'a pas besoin de
+     * "Habilitations", qui a déjà $parent en main et n'a pas besoin de
      * repasser par un enfant particulier — un foyer sans enfant actif doit
      * quand même voir ses deux parents).
      */
@@ -66,9 +66,9 @@ class Psc_Pickup_Persons {
      * le(s) parent(s) du foyer (synthétisés depuis wp_psc_parents — jamais
      * des lignes wp_psc_pickup_persons, jamais supprimables depuis cette
      * liste, jamais dans l'historique) suivis des tiers réellement
-     * enregistrés via add()/update()/remove(). Source unique pour "Mon
-     * profil" (vue foyer) et l'écran SIDSCM (vue par enfant) — toujours
-     * lue à la demande, jamais une copie figée à l'inscription.
+     * enregistrés via add()/update()/remove(). Source unique pour
+     * "Habilitations" (vue foyer) et l'écran SIDSCM (vue par enfant) —
+     * toujours lue à la demande, jamais une copie figée à l'inscription.
      */
     public static function authorized_for_child($child_id) {
         global $wpdb;

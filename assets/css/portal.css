@@ -623,7 +623,7 @@ a.psc-portal-switch-link:focus-visible {
     font-weight: 400;
     font-family: 'Work Sans', sans-serif;
 }
-.psc-portal-pickup-child-block { margin-bottom: 24px; }
+.psc-portal-pickup-child-block { margin: 20px 0 24px; }
 .psc-portal-pickup-child-block:last-of-type { margin-bottom: 12px; }
 .psc-portal-pickup-child-name {
     font-family: 'Fraunces', serif;
