@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 4.36.0
+Stable tag: 4.37.0
 License: GPLv2 or later
 
 == Description ==
@@ -274,6 +274,16 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 4.37.0 =
+* Portail familles : la vue connectée adopte la maquette Family Portal v2 —
+  la bascule « Espace familles / Espace intervenants » s'affiche en haut à
+  droite de la colonne de contenu et le bandeau « Service périscolaire »
+  disparaît une fois connectée (il reste la vitrine visiteur, ramenée à un
+  fût de 920px).
+* Mise en page : la sidebar bleue descend en continu jusqu'au pied de page
+  (fini la hauteur figée et la barre collante), le portail démarre juste
+  sous l'en-tête du site et il n'y a plus de défilement au-delà du contenu.
 
 = 4.36.0 =
 * Architecture : la classe monolithique Psc_Frontend (49 méthodes, espace
