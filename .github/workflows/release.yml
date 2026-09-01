@@ -57,8 +57,9 @@ jobs:
       # jamais, puisqu'il teste le dépôt bind-monté, pas l'archive. On
       # dérive donc l'attendu du dépôt lui-même : toute entrée racine
       # suivie par git doit être dans le paquet, OU explicitement listée
-      # comme n'en faisant pas partie (outillage CI, tests, thème,
-      # sources des parcours…). Un nouvel arrivant échoue ici dans les
+      # comme n'en faisant pas partie (outillage CI, outillage de dev
+      # composer/phpstan/eslint, tests, thème, sources des parcours…).
+      # Un nouvel arrivant échoue ici dans les
       # deux sens : du code du plugin → l'ajouter au cp ; de
       # l'outillage → l'exclure. La liste d'exclusion devient le seul
       # endroit tenu à la main, et sa dérive est bruyante au lieu de
@@ -66,7 +67,7 @@ jobs:
       # archives locales, exports et rapports ne polluent pas le test.)
       - name: Vérifie la complétude du paquet
         run: |
-          EXCLUSIONS="|.github|.gitignore|.env.example|.env.prod.example|bin|docker-compose.yml|docker-compose.prod.yml|docs|journeys|mu-plugins|package.json|package-lock.json|playwright|playwright.config.ts|tests|theme|helpers|"
+          EXCLUSIONS="|.env.example|.env.prod.example|.github|.gitignore|bin|composer.json|composer.lock|docker-compose.prod.yml|docker-compose.yml|docs|eslint.config.js|helpers|journeys|mu-plugins|package-lock.json|package.json|phpstan-bootstrap.php|phpstan.neon|playwright|playwright.config.ts|tests|theme|"
           MISSING=0
           for entry in $(git ls-files | cut -d/ -f1 | sort -u); do
             case "$EXCLUSIONS" in *"|$entry|"*) continue ;; esac
