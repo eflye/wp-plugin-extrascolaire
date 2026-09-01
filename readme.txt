@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 4.37.0
+Stable tag: 4.38.0
 License: GPLv2 or later
 
 == Description ==
@@ -274,6 +274,17 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 4.38.0 =
+* Portail familles : le menu « Cantine & Garderie » devient « Planning »
+  (titre de la page : « Planning cantine & garderie »).
+* Nouvel onglet « Habilitations » : la liste des personnes autorisées à
+  récupérer les enfants à la garderie du soir y est gérée en un seul
+  endroit, à la place de « Mes enfants » et « Mon profil ».
+* « Ajouter une personne » déclare désormais la personne pour tous les
+  enfants du foyer d'un coup ; la modification et le retrait restent
+  possibles ligne par ligne, avec le même historique consultable par la
+  mairie.
 
 = 4.37.0 =
 * Portail familles : la vue connectée adopte la maquette Family Portal v2 —

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Périscolaire - Inscriptions
  * Description: Formulaire d'inscription en ligne aux services périscolaires (garderie matin, cantine, garderie soir, forfait) avec backoffice de centralisation pour la mairie. Remplace le fichier calendrier rempli à la main.
- * Version: 4.37.0
+ * Version: 4.38.0
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: Mairie
@@ -13,7 +13,7 @@
 // Empêche l'exécution directe du fichier via son URL.
 if (!defined('ABSPATH')) exit;
 
-define('PSC_VERSION', '4.37.0');
+define('PSC_VERSION', '4.38.0');
 define('PSC_PATH', plugin_dir_path(__FILE__));
 define('PSC_URL', plugin_dir_url(__FILE__));
 define('PSC_FILE', __FILE__);
