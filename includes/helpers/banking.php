@@ -29,7 +29,7 @@ function psc_valid_iban($iban) {
     // Modulo 97 par blocs : le nombre dépasse la capacité d'un int.
     $checksum = 0;
     foreach (str_split($numeric, 7) as $block) {
-        $checksum = (int) (((string) $checksum . $block) % 97);
+        $checksum = ((int) ((string) $checksum . $block)) % 97;
     }
     return $checksum === 1 ? $iban : false;
 }

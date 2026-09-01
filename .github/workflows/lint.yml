@@ -39,3 +39,29 @@ jobs:
             -not -path "./includes/fpdf/*" \
             -print0 \
           | xargs -0 -n1 php -l
+
+  # Analyse statique du code de l'extension (includes/), niveau 3 —
+  # cf. phpstan.neon. Le résultat est indépendant de la version de PHP
+  # qui exécute l'outil : une seule version suffit, contrairement au
+  # simple lint syntaxique ci-dessus. composer.json ne porte que des
+  # dépendances de développement (aucune au runtime : l'extension ne
+  # requiert rien de composer pour fonctionner sur un site).
+  phpstan:
+    name: PHPStan (includes/, niveau 3)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          coverage: none
+
+      - name: Install dev dependencies
+        run: composer install --no-interaction --no-progress
+
+      - name: Analyse statique
+        run: composer phpstan

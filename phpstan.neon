@@ -1,0 +1,21 @@
+# Analyse statique du code de l'extension (niveau 3 — cf. plan d'action
+# post-audit). Le cœur de WordPress n'est pas chargé : ses signatures
+# proviennent des stubs de szepeviktor/phpstan-wordpress, et les
+# constantes d'environnement du bootstrap ci-dessous.
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+    level: 3
+    paths:
+        - includes
+    excludePaths:
+        analyse:
+            # Bibliothèque tierce embarquée (génération des PDF de
+            # factures), déjà exclue du lint : elle n'est pas du code que
+            # nous maintenons. Elle reste SCANNÉE (et non analyseAndScan)
+            # pour que la classe FPDF soit connue des fichiers de
+            # includes/ qui l'utilisent.
+            - includes/fpdf
+    bootstrapFiles:
+        - phpstan-bootstrap.php

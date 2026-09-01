@@ -42,7 +42,8 @@ yarn-error.log*
 .cache/
 .playwright/
 
-# Composer (aucune dépendance pour l'instant, mais par précaution)
+# Composer (outillage de développement uniquement : phpstan. Aucune
+# dépendance au runtime — cf. composer.json)
 vendor/
 
 # WordPress
