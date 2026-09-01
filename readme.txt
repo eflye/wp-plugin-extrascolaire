@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 4.35.0
+Stable tag: 4.36.0
 License: GPLv2 or later
 
 == Description ==
@@ -274,6 +274,20 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 4.36.0 =
+* Architecture : la classe monolithique Psc_Frontend (49 méthodes, espace
+  famille, inscription invité et vues publiques confondus) est décomposée
+  sur le modèle de l'administration — un socle commun, un concentrateur et
+  sept classes par domaine (tableau de bord, enfants, inscriptions,
+  profil, personnes autorisées, réinscription, documents/menus). Aucun
+  changement de comportement, même shortcode, mêmes routes AJAX.
+* Internationalisation : tout le texte visible passe désormais par le
+  Text Domain « periscolaire-registration », jusqu'ici déclaré sans jamais
+  être utilisé — templates (espaces famille/invité, backoffice, e-mails,
+  espace intervenants), messages des classes et libellés servis au
+  JavaScript. Le plugin est prêt pour une traduction sans retoucher le
+  code ; l'affichage français reste strictement identique.
 
 = 4.35.0 =
 * Fiabilité : l'approbation d'une demande d'inscription (création du foyer,
