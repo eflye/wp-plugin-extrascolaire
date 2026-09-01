@@ -306,7 +306,7 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
     /**
      * Consultation par la mairie d'un justificatif d'assurance scolaire.
      * Lecture seule : aucune validation/rejet n'existe pour l'instant
-     * (auto-validation à l'upload, cf. Psc_Frontend::handle_parent_upload_assurance()).
+     * (auto-validation à l'upload, cf. Psc_Frontend_Documents::handle_parent_upload_assurance()).
      */
     public static function handle_download_assurance() {
         if (!psc_user_can_manage()) {

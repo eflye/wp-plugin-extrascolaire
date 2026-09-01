@@ -46,7 +46,18 @@ require_once PSC_PATH . 'includes/class-psc-admin-calendar-v2.php';
 require_once PSC_PATH . 'includes/class-psc-trimestres.php';
 require_once PSC_PATH . 'includes/class-psc-school-years.php';
 require_once PSC_PATH . 'includes/class-psc-pickup-persons.php';
+// Portail famille : même modèle que l'administration — un socle commun,
+// un noyau (prise de contrôle de la page, shortcode, tableau de bord) et
+// une classe par domaine métier. Psc_Frontend::init() déclare les siennes.
+require_once PSC_PATH . 'includes/class-psc-frontend-base.php';
 require_once PSC_PATH . 'includes/class-psc-frontend.php';
+require_once PSC_PATH . 'includes/class-psc-frontend-inscriptions.php';
+require_once PSC_PATH . 'includes/class-psc-frontend-enfants.php';
+require_once PSC_PATH . 'includes/class-psc-frontend-documents.php';
+require_once PSC_PATH . 'includes/class-psc-frontend-pickup.php';
+require_once PSC_PATH . 'includes/class-psc-frontend-profil.php';
+require_once PSC_PATH . 'includes/class-psc-frontend-reinscription.php';
+require_once PSC_PATH . 'includes/class-psc-frontend-menus.php';
 require_once PSC_PATH . 'includes/class-psc-sidscm.php';
 
 register_activation_hook(__FILE__, function () {

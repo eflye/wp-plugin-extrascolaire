@@ -479,7 +479,7 @@ class Psc_Parents {
             'second_parent_email'        => $extra['second_parent_email'] ?? null,
             'second_parent_telephone'    => $extra['second_parent_telephone'] ?? null,
             // Laisser à null (défaut) déclenche la popin de découverte à la
-            // première connexion, cf. Psc_Frontend::handle_parent_dismiss_onboarding()
+            // première connexion, cf. Psc_Frontend_Profil::handle_parent_dismiss_onboarding()
             // et templates/frontend-portal.php. Un appelant peut passer une
             // date explicite pour créer un foyer déjà "onboardé" (ex. seeds
             // de test dont ce n'est pas l'objet).

@@ -104,7 +104,7 @@ class Psc_Assurances {
      * avec le wizard public : aucun child_id n'existe encore à ce stade
      * (la demande doit d'abord être vérifiée par e-mail PUIS approuvée par
      * la mairie). Les fichiers y restent jusqu'à ce que handle_approve()
-     * les rattache à un vrai enfant (Psc_Frontend::promote_pending_assurance())
+     * les rattache à un vrai enfant (Psc_Assurances::promote_pending())
      * ou que la demande soit purgée sans jamais avoir été approuvée.
      */
     public static function pending_dir($request_id) {
@@ -144,7 +144,7 @@ class Psc_Assurances {
      * vérification manuelle par la mairie pour l'instant (cf. Psc_Admin
      * qui expose seulement une consultation en lecture seule). $file doit
      * être un upload de LA REQUÊTE EN COURS (move_uploaded_file() échoue
-     * sinon) — cf. promote_pending_assurance() pour le cas d'un fichier
+     * sinon) — cf. promote_pending() pour le cas d'un fichier
      * déplacé lors d'une requête précédente.
      * Retourne true, ou un code : 'required'|'too_large'|'invalid_type'|'failed'.
      */

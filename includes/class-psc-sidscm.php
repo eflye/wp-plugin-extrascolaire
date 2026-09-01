@@ -307,7 +307,7 @@ class Psc_Sidscm {
 
         // Un forfait (FORF) couvre GM+CANT+GS d'un même coup : une ligne
         // service=FORF vaut inscription pour les trois, jamais stockée sous
-        // les trois codes séparément (cf. ajax_toggle() de Psc_Frontend).
+        // les trois codes séparément (cf. ajax_toggle() de Psc_Frontend_Inscriptions).
         $expected = function ($child_id, $date, $service) use ($reg_map) {
             return isset($reg_map[$child_id . '|' . $date . '|' . $service])
                 || isset($reg_map[$child_id . '|' . $date . '|FORF']);

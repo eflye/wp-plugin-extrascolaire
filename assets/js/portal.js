@@ -382,7 +382,7 @@
         });
         // Dernière étape : "Suivant" devient "Terminer" et soumet le
         // formulaire de fermeture (persiste onboarding_seen_at côté
-        // serveur, cf. Psc_Frontend::handle_parent_dismiss_onboarding()) —
+        // serveur, cf. Psc_Frontend_Profil::handle_parent_dismiss_onboarding()) —
         // même formulaire que "Passer", qui saute directement à la fin
         // sans repasser par les étapes intermédiaires.
         nextBtn.addEventListener('click', function () {

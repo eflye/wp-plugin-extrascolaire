@@ -20,7 +20,7 @@
  * où une résolution non-active était possible.
  *
  * Toute année en statut "preparation" préexistante est archivée avant
- * création de l'année "B" : Psc_Frontend::reinscription_target_year() lit
+ * création de l'année "B" : Psc_Frontend_Reinscription::reinscription_target_year() lit
  * la plus récente en préparation site-wide (campagne unique par
  * conception, comme un seul trimestre/année actif) — sans ce nettoyage, un
  * résidu d'un run précédent ou d'un autre test pourrait devenir la cible

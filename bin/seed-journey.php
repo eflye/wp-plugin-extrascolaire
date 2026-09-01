@@ -341,7 +341,7 @@ WP_CLI::add_command('seed-journey', function ($args, $assoc_args) {
     }
     Psc_School_Years::activate($school_year_id);
 
-    // Un seul trimestre actif à la fois pour que Psc_Frontend::active_trimestre()
+    // Un seul trimestre actif à la fois pour que Psc_Trimestres::active()
     // pointe sans ambiguïté vers celui du seed.
     $wpdb->query("UPDATE $t_trim SET active = 0");
 
