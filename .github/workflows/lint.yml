@@ -40,6 +40,15 @@ jobs:
             -print0 \
           | xargs -0 -n1 php -l
 
+      # Tests unitaires des helpers purs, sans bootstrap WordPress
+      # (tests/unit/run.php). Sur la matrice plutôt qu'un job unique :
+      # les chemins de chiffrement de crypto.php (sodium, openssl, repli)
+      # varient selon la build de PHP, et le contrat — aller-retour
+      # chiffré, altération détectée, clair hérité préservé — doit tenir
+      # sur chacun.
+      - name: Tests unitaires des helpers purs
+        run: php tests/unit/run.php
+
   # Analyse statique du code de l'extension (includes/), niveau 3 —
   # cf. phpstan.neon. Le résultat est indépendant de la version de PHP
   # qui exécute l'outil : une seule version suffit, contrairement au
