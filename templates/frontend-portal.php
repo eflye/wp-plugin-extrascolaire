@@ -125,7 +125,7 @@
     );
     // Confirmations : popin auto-masquée (cf. assets/js/frontend.js).
     // Erreurs à corriger : bandeau classique, le temps de lire et d'agir.
-    $psc_toast_messages = array('welcome', 'child_updated', 'child_added', 'absence_cancelled', 'profil_updated', 'assurance_uploaded');
+    $psc_toast_messages = array('welcome', 'child_updated', 'child_added', 'absence_cancelled', 'profil_updated', 'assurance_uploaded', 'household_pickup_added', 'pickup_updated', 'pickup_removed');
     if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
         list($type, $text) = $psc_notices[$psc_msg];
         $is_toast = in_array($psc_msg, $psc_toast_messages, true);
