@@ -321,12 +321,19 @@ class Psc_Invoices {
      * Libellé français d'un mois au format YYYY-MM.
      */
     public static function month_label($mois) {
-        static $mois_fr = array(
-            '01' => __('Janvier', 'periscolaire-registration'),   '02' => __('Février', 'periscolaire-registration'),  '03' => __('Mars', 'periscolaire-registration'),
-            '04' => __('Avril', 'periscolaire-registration'),     '05' => __('Mai', 'periscolaire-registration'),       '06' => __('Juin', 'periscolaire-registration'),
-            '07' => __('Juillet', 'periscolaire-registration'),   '08' => __('Août', 'periscolaire-registration'),      '09' => __('Septembre', 'periscolaire-registration'),
-            '10' => __('Octobre', 'periscolaire-registration'),   '11' => __('Novembre', 'periscolaire-registration'),  '12' => __('Décembre', 'periscolaire-registration'),
-        );
+        // Initialisation paresseuse : un initialisateur de variable static
+        // doit être une expression constante avant PHP 8.3 — les appels __()
+        // y sont donc interdits (fatal « Constant expression contains
+        // invalid operations » en 7.4–8.2, la version requise est 7.4).
+        static $mois_fr = null;
+        if ($mois_fr === null) {
+            $mois_fr = array(
+                '01' => __('Janvier', 'periscolaire-registration'),   '02' => __('Février', 'periscolaire-registration'),  '03' => __('Mars', 'periscolaire-registration'),
+                '04' => __('Avril', 'periscolaire-registration'),     '05' => __('Mai', 'periscolaire-registration'),       '06' => __('Juin', 'periscolaire-registration'),
+                '07' => __('Juillet', 'periscolaire-registration'),   '08' => __('Août', 'periscolaire-registration'),      '09' => __('Septembre', 'periscolaire-registration'),
+                '10' => __('Octobre', 'periscolaire-registration'),   '11' => __('Novembre', 'periscolaire-registration'),  '12' => __('Décembre', 'periscolaire-registration'),
+            );
+        }
         list($year, $month) = explode('-', $mois . '-01');
         return ($mois_fr[$month] ?? $month) . ' ' . $year;
     }
@@ -356,12 +363,17 @@ class Psc_Invoices {
 
     /** Retourne une date au format "7 juillet 2026" (UTF-8, pour passer ensuite dans enc()). */
     private static function french_full_date($ts) {
-        static $mois = array(
-            1=>__('janvier', 'periscolaire-registration'), 2=>__('février', 'periscolaire-registration'),   3=>__('mars', 'periscolaire-registration'),
-            4=>__('avril', 'periscolaire-registration'),   5=>__('mai', 'periscolaire-registration'),        6=>__('juin', 'periscolaire-registration'),
-            7=>__('juillet', 'periscolaire-registration'), 8=>__('août', 'periscolaire-registration'),       9=>__('septembre', 'periscolaire-registration'),
-            10=>__('octobre', 'periscolaire-registration'),11=>__('novembre', 'periscolaire-registration'), 12=>__('décembre', 'periscolaire-registration'),
-        );
+        // Initialisation paresseuse, même raison que month_label() :
+        // __() n'est pas une expression constante avant PHP 8.3.
+        static $mois = null;
+        if ($mois === null) {
+            $mois = array(
+                1=>__('janvier', 'periscolaire-registration'), 2=>__('février', 'periscolaire-registration'),   3=>__('mars', 'periscolaire-registration'),
+                4=>__('avril', 'periscolaire-registration'),   5=>__('mai', 'periscolaire-registration'),        6=>__('juin', 'periscolaire-registration'),
+                7=>__('juillet', 'periscolaire-registration'), 8=>__('août', 'periscolaire-registration'),       9=>__('septembre', 'periscolaire-registration'),
+                10=>__('octobre', 'periscolaire-registration'),11=>__('novembre', 'periscolaire-registration'), 12=>__('décembre', 'periscolaire-registration'),
+            );
+        }
         $tz = wp_timezone();
         $dt = new DateTime('@' . $ts);
         $dt->setTimezone($tz);
