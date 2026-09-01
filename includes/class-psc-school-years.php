@@ -224,15 +224,16 @@ class Psc_School_Years {
         }
 
         if ($existing) {
-            $wpdb->update($t_cy, $data, array('id' => $existing), $format, array('%d'));
-        } else {
-            $data['child_id'] = $child_id;
-            $data['school_year_id'] = $school_year_id;
-            $data['date_inscription'] = current_time('mysql');
-            $format = array_merge($format, array('%d', '%d', '%s'));
-            $wpdb->insert($t_cy, $data, $format);
+            // 0 = aucune ligne modifiée (valeurs identiques) : succès.
+            return false !== $wpdb->update($t_cy, $data, array('id' => $existing), $format, array('%d'));
         }
-        return true;
+
+        $data['child_id'] = $child_id;
+        $data['school_year_id'] = $school_year_id;
+        $data['date_inscription'] = current_time('mysql');
+        $format = array_merge($format, array('%d', '%d', '%s'));
+
+        return false !== $wpdb->insert($t_cy, $data, $format);
     }
 
     /* ---------------- Statut de l'enfant (actif | sorti) ---------------- */

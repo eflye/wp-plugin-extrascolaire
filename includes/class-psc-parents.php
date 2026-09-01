@@ -487,7 +487,10 @@ class Psc_Parents {
             'created_at'                 => current_time('mysql'),
         );
 
-        $wpdb->insert(psc_table('parents'), $data);
+        $inserted = $wpdb->insert(psc_table('parents'), $data);
+        if (false === $inserted) {
+            return new WP_Error('psc_create_failed', 'Création du foyer impossible.');
+        }
 
         return (int) $wpdb->insert_id;
     }

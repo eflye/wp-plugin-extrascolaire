@@ -659,22 +659,49 @@ class Psc_Requests {
             $parent_extra['sepa_mandate_ref'] = psc_sepa_mandate_ref($req->id);
         }
 
+        // Toute l'approbation — foyer, enfants, inscriptions, clôture de
+        // la demande — se déroule dans une transaction : un échec
+        // d'écriture à mi-course laissait auparavant une famille sans
+        // ses enfants (l'insert râté n'interrompait pas la boucle), et
+        // une ré-approbation dupliquait ce que le premier passage avait
+        // créé. Les tables sont sur le moteur par défaut de la stack
+        // cible (MySQL 8 : InnoDB). Les opérations non transactionnelles
+        // (déplacement des justificatifs, e-mail) attendent le commit.
+        $rollback = static function ($cause) use ($wpdb) {
+            $wpdb->query('ROLLBACK');
+            // Une cause déjà typée (validation du foyer, e-mail…) est
+            // propagée telle quelle pour le diagnostic ; sinon fallback
+            // générique.
+            return is_wp_error($cause) ? $cause : new WP_Error('psc_approve_failed', $cause);
+        };
+
+        $wpdb->query('START TRANSACTION');
+
         // Création de la famille (ou récupération si elle existe déjà).
         $parent = Psc_Parents::get_by_email($req->email);
         if ($parent) {
             $parent_id = (int) $parent->id;
-            Psc_Parents::update($parent_id, $parent_extra);
+            // 0 = valeurs inchangées (succès) ; false/WP_Error = échec.
+            $updated = Psc_Parents::update($parent_id, $parent_extra);
+            if (is_wp_error($updated) || false === $updated) {
+                return $rollback(is_wp_error($updated) ? $updated : 'Mise à jour du foyer impossible.');
+            }
         } else {
             $parent_id = Psc_Parents::create($req->email, $req->nom, array_merge($parent_extra, array('prenom' => $req->prenom ?? '')));
-            if (is_wp_error($parent_id)) {
-                return $parent_id;
+            if (is_wp_error($parent_id) || !$parent_id) {
+                return $rollback(is_wp_error($parent_id) ? $parent_id : 'Création du foyer impossible.');
             }
         }
 
         $active_year_id = Psc_School_Years::active_id();
 
+        // Justificatifs d'assurance à déplacer hors de la zone d'attente :
+        // le rename() ne suit pas un rollback, le déplacement attend donc
+        // le commit (cf. $promotions), les lignes enfants d'abord.
+        $promotions = array();
+
         foreach ($children as $c) {
-            $wpdb->insert(psc_table('children'), array(
+            $inserted = $wpdb->insert(psc_table('children'), array(
                 'parent_id'      => $parent_id,
                 'nom'            => $c['nom'],
                 'prenom'         => $c['prenom'],
@@ -684,17 +711,25 @@ class Psc_Requests {
                 'statut'         => 'actif',
                 'created_at'     => current_time('mysql'),
             ), array('%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s'));
+            if (false === $inserted) {
+                return $rollback('Création de l\'enfant impossible.');
+            }
             $child_id = (int) $wpdb->insert_id;
 
             if ($active_year_id) {
-                Psc_School_Years::enroll($child_id, $active_year_id, $c['classe'], 'inscrit', $req->reglement_accepted_at ?? current_time('mysql'));
+                if (!Psc_School_Years::enroll($child_id, $active_year_id, $c['classe'], 'inscrit', $req->reglement_accepted_at ?? current_time('mysql'))) {
+                    return $rollback('Inscription de l\'enfant impossible.');
+                }
             }
 
             // Personnes autorisées déclarées à l'onboarding : l'auteur réel
             // de l'information est la famille (source='parent'), même si
             // c'est ce code (déclenché par un clic mairie ou par la
             // validation automatique) qui effectue l'écriture — aucune
-            // session parent n'existe à ce moment-là.
+            // session parent n'existe à ce moment-là. Best-effort assumé :
+            // un échec (ex. maximum atteint) ne doit pas bloquer
+            // l'approbation, ces personnes restant modifiables par la
+            // mairie sur la fiche famille.
             if (!empty($c['personnes_autorisees']) && is_array($c['personnes_autorisees'])) {
                 foreach ($c['personnes_autorisees'] as $p) {
                     Psc_Pickup_Persons::add($child_id, $p, 'parent', $parent_id);
@@ -708,19 +743,17 @@ class Psc_Requests {
             if (!empty($c['assurance_rel_path'])) {
                 $abs = psc_private_path($c['assurance_rel_path']);
                 if (file_exists($abs)) {
-                    Psc_Assurances::promote_pending($child_id, $abs, $c['assurance_original_filename'] ?? '');
+                    $promotions[] = array($child_id, $abs, $c['assurance_original_filename'] ?? '');
                 }
             }
         }
-
-        Psc_Assurances::delete_pending_files($req->id);
 
         // Les coordonnées bancaires viennent d'être reportées sur le compte
         // famille : les conserver en double dans la demande ne sert plus à
         // rien et doublerait inutilement la surface d'exposition de l'IBAN.
         // La demande garde le mode de paiement et l'acceptation du règlement,
         // qui documentent le consentement.
-        $wpdb->update(
+        $updated = $wpdb->update(
             psc_table('requests'),
             array(
                 'status'     => 'approved',
@@ -732,6 +765,20 @@ class Psc_Requests {
             array('%s', '%s', '%s', '%s'),
             array('%d')
         );
+        if (false === $updated) {
+            return $rollback('Clôture de la demande impossible.');
+        }
+
+        $wpdb->query('COMMIT');
+
+        // Approbation acquise : les opérations non transactionnelles
+        // reprennent. Un échec ici ne laisse qu'un état rattrapable
+        // manuellement (justificatif encore en zone d'attente), jamais
+        // une famille amputée de ses enfants.
+        foreach ($promotions as $promotion) {
+            Psc_Assurances::promote_pending($promotion[0], $promotion[1], $promotion[2]);
+        }
+        Psc_Assurances::delete_pending_files($req->id);
 
         // Le parent reçoit directement son lien d'accès — sauf s'il est
         // déjà connecté (validation automatique, cf. maybe_verify()).
