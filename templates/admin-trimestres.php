@@ -187,8 +187,8 @@ Pour fermer les vacances scolaires ou toute autre période, rendez-vous sur <a h
 </style>
 
 <div id="psc-del-trim-backdrop" class="psc-del-trim-backdrop" hidden></div>
-<div id="psc-del-trim-modal" class="psc-del-trim-modal" hidden>
-    <h3>Supprimer <span id="psc-del-trim-label"></span> ?</h3>
+<div id="psc-del-trim-modal" class="psc-del-trim-modal" role="dialog" aria-modal="true" aria-labelledby="psc-del-trim-title" tabindex="-1" hidden>
+    <h3 id="psc-del-trim-title">Supprimer <span id="psc-del-trim-label"></span> ?</h3>
     <p id="psc-del-trim-consequence"></p>
     <p>Cette action est <strong>irréversible</strong>.</p>
     <p>Pour confirmer, tapez <strong>CONFIRMER</strong> ci-dessous :</p>
@@ -202,6 +202,7 @@ Pour fermer les vacances scolaires ou toute autre période, rendez-vous sur <a h
 <script>
 (function () {
     var activeForm = null;
+    var lastTrigger = null;
     var backdrop = document.getElementById('psc-del-trim-backdrop');
     var modal = document.getElementById('psc-del-trim-modal');
     var labelEl = document.getElementById('psc-del-trim-label');
@@ -209,6 +210,26 @@ Pour fermer les vacances scolaires ou toute autre période, rendez-vous sur <a h
     var input = document.getElementById('psc-del-trim-input');
     var confirmBtn = document.getElementById('psc-del-trim-confirm');
     var cancelBtn = document.getElementById('psc-del-trim-cancel');
+
+    /* La page ne charge pas la mécanique commune (psc-ajax) : la sémantique
+       de dialogue est reprise ici en version minimale — Tab piégé dans la
+       popin, Échap pour fermer, focus restitué au déclencheur (RGAA 7.1/7.3).
+       offsetParent null = élément non rendu, à ignorer dans le cycle. */
+    var FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    function trapKeydown(e) {
+        if (e.key === 'Escape') { closeModal(); return; }
+        if (e.key !== 'Tab') return;
+        var items = Array.prototype.filter.call(
+            modal.querySelectorAll(FOCUSABLE),
+            function (el) { return el.offsetParent !== null; }
+        );
+        if (!items.length) return;
+        var first = items[0];
+        var last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
 
     document.querySelectorAll('.psc-delete-trimestre-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -222,6 +243,8 @@ Pour fermer les vacances scolaires ou toute autre période, rendez-vous sur <a h
             confirmBtn.disabled = true;
             modal.hidden = false;
             backdrop.hidden = false;
+            lastTrigger = btn;
+            document.addEventListener('keydown', trapKeydown);
             input.focus();
         });
     });
@@ -233,6 +256,8 @@ Pour fermer les vacances scolaires ou toute autre période, rendez-vous sur <a h
     function closeModal() {
         modal.hidden = true;
         backdrop.hidden = true;
+        document.removeEventListener('keydown', trapKeydown);
+        if (lastTrigger) { lastTrigger.focus(); lastTrigger = null; }
         activeForm = null;
     }
     cancelBtn.addEventListener('click', closeModal);

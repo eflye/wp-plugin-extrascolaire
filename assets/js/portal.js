@@ -110,8 +110,13 @@
         var overlay = document.getElementById('psc-absence-modal');
         if (!trigger || !overlay) return;
 
-        function open() { overlay.hidden = false; }
-        function close() { overlay.hidden = true; }
+        // La sémantique de dialogue (role="dialog", aria-modal, piège de
+        // focus, Échap, restitution du focus) vit dans PscDialog — cf.
+        // assets/js/psc-dialog.js. Idem pour les popins suivantes.
+        function open() {
+            window.PscDialog.open(overlay, { focus: '#psc-absence-child' });
+        }
+        function close() { window.PscDialog.close(overlay); }
 
         trigger.addEventListener('click', open);
         overlay.querySelectorAll('[data-absence-close]').forEach(function (btn) {
@@ -120,9 +125,6 @@
         // Clic sur le fond (pas sur le contenu de la popin) : ferme aussi.
         overlay.addEventListener('click', function (e) {
             if (e.target === overlay) close();
-        });
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && !overlay.hidden) close();
         });
 
         // Liste des prestations annulables dépend de l'enfant choisi.
@@ -195,9 +197,9 @@
             prenomField.value = c.prenom || '';
             nomField.value = c.nom || '';
             naissanceField.value = c.naissance || '';
-            overlay.hidden = false;
+            window.PscDialog.open(overlay, { focus: '#psc-child-edit-prenom' });
         }
-        function close() { overlay.hidden = true; }
+        function close() { window.PscDialog.close(overlay); }
 
         document.querySelectorAll('[data-child-edit-trigger]').forEach(function (btn) {
             btn.addEventListener('click', function () { open(btn.dataset.childId); });
@@ -207,9 +209,6 @@
         });
         overlay.addEventListener('click', function (e) {
             if (e.target === overlay) close();
-        });
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && !overlay.hidden) close();
         });
     }
 
@@ -239,9 +238,9 @@
             title.textContent = c.label;
             fileInput.value = '';
             fileName.textContent = '';
-            overlay.hidden = false;
+            window.PscDialog.open(overlay, { focus: '#psc-assurance-upload-file' });
         }
-        function close() { overlay.hidden = true; }
+        function close() { window.PscDialog.close(overlay); }
 
         document.querySelectorAll('[data-assurance-upload-trigger]').forEach(function (btn) {
             btn.addEventListener('click', function () { open(btn.dataset.childId); });
@@ -251,9 +250,6 @@
         });
         overlay.addEventListener('click', function (e) {
             if (e.target === overlay) close();
-        });
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && !overlay.hidden) close();
         });
 
         // Le nom natif ("Aucun fichier choisi") reste masqué en permanence :
@@ -300,7 +296,7 @@
             telField.value = '';
             lienField.value = '';
             pieceField.checked = false;
-            overlay.hidden = false;
+            window.PscDialog.open(overlay, { focus: '#psc-pickup-prenom' });
         }
 
         function openEdit(pickupId) {
@@ -315,10 +311,10 @@
             telField.value = p.telephone || '';
             lienField.value = p.lien || '';
             pieceField.checked = !!p.piece_identite;
-            overlay.hidden = false;
+            window.PscDialog.open(overlay, { focus: '#psc-pickup-prenom' });
         }
 
-        function close() { overlay.hidden = true; }
+        function close() { window.PscDialog.close(overlay); }
 
         document.querySelectorAll('[data-pickup-add-trigger]').forEach(function (btn) {
             btn.addEventListener('click', function () { openAdd(btn.dataset.childId); });
@@ -331,9 +327,6 @@
         });
         overlay.addEventListener('click', function (e) {
             if (e.target === overlay) close();
-        });
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && !overlay.hidden) close();
         });
     }
 
@@ -397,6 +390,14 @@
             else { dismissForm.submit(); }
         });
         skipBtn.addEventListener('click', function () { dismissForm.submit(); });
+
+        // Le tour est ouvert dès le chargement (première connexion) : la
+        // sémantique de dialogue y est posée immédiatement. Échap vaut
+        // "Passer" — seule fermeture possible, elle persiste le seen_at.
+        window.PscDialog.open(overlay, {
+            focus: '#psc-onboarding-next',
+            onEscape: function () { dismissForm.submit(); }
+        });
 
         render();
     }

@@ -52,8 +52,8 @@
 </div>
 
 <div id="psc-child-edit-modal" class="psc-portal-modal-overlay" hidden data-testid="child-edit-modal">
-  <div class="psc-portal-modal">
-    <h3 class="psc-portal-modal-title">Corriger les informations</h3>
+  <div class="psc-portal-modal" role="dialog" aria-modal="true" aria-labelledby="psc-child-edit-modal-title" tabindex="-1">
+    <h3 class="psc-portal-modal-title" id="psc-child-edit-modal-title">Corriger les informations</h3>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" data-testid="child-edit-form">
       <?php wp_nonce_field('psc_parent_update_child_identity'); psc_parent_nonce_field('psc_parent_update_child_identity'); ?>
       <input type="hidden" name="action" value="psc_parent_update_child_identity">
@@ -137,7 +137,7 @@ if ($psc_active_year) {
 </div>
 
 <div id="psc-assurance-upload-modal" class="psc-portal-modal-overlay" hidden data-testid="assurance-upload-modal">
-  <div class="psc-portal-modal">
+  <div class="psc-portal-modal" role="dialog" aria-modal="true" aria-labelledby="psc-assurance-upload-title" tabindex="-1">
     <h3 class="psc-portal-modal-title" id="psc-assurance-upload-title">Justificatif d'assurance scolaire</h3>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data" data-testid="assurance-upload-form">
       <?php wp_nonce_field('psc_parent_upload_assurance'); psc_parent_nonce_field('psc_parent_upload_assurance'); ?>
@@ -229,7 +229,7 @@ if ($psc_active_year) {
 </div>
 
 <div id="psc-pickup-modal" class="psc-portal-modal-overlay" hidden data-testid="pickup-modal">
-  <div class="psc-portal-modal">
+  <div class="psc-portal-modal" role="dialog" aria-modal="true" aria-labelledby="psc-pickup-modal-title" tabindex="-1">
     <h3 class="psc-portal-modal-title" id="psc-pickup-modal-title">Personne autorisée</h3>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" data-testid="pickup-form">
       <?php wp_nonce_field('psc_parent_pickup_person'); psc_parent_nonce_field('psc_parent_pickup_person'); ?>

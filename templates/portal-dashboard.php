@@ -28,8 +28,8 @@
 </div>
 
 <div id="psc-absence-modal" class="psc-portal-modal-overlay" hidden data-testid="absence-modal">
-  <div class="psc-portal-modal">
-    <h3 class="psc-portal-modal-title">Signaler une absence</h3>
+  <div class="psc-portal-modal" role="dialog" aria-modal="true" aria-labelledby="psc-absence-modal-title" tabindex="-1">
+    <h3 class="psc-portal-modal-title" id="psc-absence-modal-title">Signaler une absence</h3>
 
     <?php if (empty($psc_portal_absence_days)): ?>
       <p class="psc-portal-dash-menu-empty">Aucune prestation à venir à annuler pour le moment.</p>

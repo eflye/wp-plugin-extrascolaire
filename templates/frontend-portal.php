@@ -3,7 +3,7 @@
 
   <?php if (empty($parent->onboarding_seen_at)): ?>
   <div class="psc-portal-modal-overlay psc-onboarding-overlay" id="psc-onboarding-overlay" data-testid="onboarding-overlay">
-    <div class="psc-portal-modal psc-onboarding-modal">
+    <div class="psc-portal-modal psc-onboarding-modal" role="dialog" aria-modal="true" aria-label="Découverte de votre espace" tabindex="-1">
       <div class="psc-onboarding-dots" data-testid="onboarding-dots">
         <span class="psc-onboarding-dot is-active"></span>
         <span class="psc-onboarding-dot"></span>
@@ -133,7 +133,7 @@
         $is_toast = in_array($psc_msg, $psc_toast_messages, true);
     ?>
       <?php if ($is_toast): ?>
-      <div class="psc-notice psc-notice-<?php echo esc_attr($type); ?> psc-toast" data-testid="notice-<?php echo esc_attr($psc_msg); ?>">
+      <div class="psc-notice psc-notice-<?php echo esc_attr($type); ?> psc-toast" role="status" data-testid="notice-<?php echo esc_attr($psc_msg); ?>">
         <span class="psc-toast-text"><?php echo esc_html($text); ?></span>
         <button type="button" class="psc-toast-close" aria-label="Fermer">&times;</button>
       </div>

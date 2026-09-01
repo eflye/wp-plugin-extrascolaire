@@ -133,7 +133,11 @@ class Psc_Frontend {
         wp_enqueue_style('psc-portal', PSC_URL . 'assets/css/portal.css', array('psc-frontend'), PSC_VERSION);
 
         if (Psc_Parents::current()) {
-            wp_enqueue_script('psc-portal', PSC_URL . 'assets/js/portal.js', array('psc-ajax'), PSC_VERSION, true);
+            // psc-dialog : sémantique de dialogue des popins du portail
+            // (role="dialog", aria-modal, piège de focus, Échap) — cf. les
+            // modales de portal.js et le tour de découverte.
+            wp_enqueue_script('psc-dialog', PSC_URL . 'assets/js/psc-dialog.js', array(), PSC_VERSION, true);
+            wp_enqueue_script('psc-portal', PSC_URL . 'assets/js/portal.js', array('psc-ajax', 'psc-dialog'), PSC_VERSION, true);
         } else {
             wp_enqueue_script('psc-guest', PSC_URL . 'assets/js/guest.js', array(), PSC_VERSION, true);
         }
