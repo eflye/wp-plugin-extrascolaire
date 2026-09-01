@@ -78,6 +78,21 @@ class Psc_Installer {
             if ($current && version_compare($current, '3.8.0', '<')) {
                 self::migrate_3_8_0();
             }
+
+            // Deuxième passe dbDelta, après les migrations. Celles-ci
+            // suppriment des colonnes et des indices (invoices.mois,
+            // children.classe…) que la définition finale réintroduit ou
+            // conserve : sur une montée de version « par bonds » (2.4 →
+            // 3.9 sans passer par les releases intermédiaires, le cas
+            // réel d'une mise à jour par copie de fichiers), personne
+            // d'autre ne les recrée — la première passe, avant les
+            // migrations, aligne sur la définition finale AVANT que les
+            // migrations ne suppriment quoi que ce soit. Sans cette
+            // seconde passe, le bond aboutit à un schéma que la montée
+            // pas à pas, elle, ne produit pas (bin/verify-migrations.php
+            // verrouille ce cas en intégration continue).
+            self::create_tables();
+
             update_option('psc_db_version', self::DB_VERSION);
         }
 

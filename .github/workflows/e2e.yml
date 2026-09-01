@@ -142,6 +142,22 @@ jobs:
           wp plugin list
           wp option get page_on_front
 
+      # Scénario de migration : détruit le schéma périscolaire, le
+      # reconstruit à un état hérité (2.4.x), rejoue la montée de version
+      # complète et vérifie le résultat (schéma final, données
+      # transformées) — cf. l'en-tête de bin/verify-migrations.php. Il est
+      # DÉSTRUCTIF (il ressort avec des tables vides mais valides) : il
+      # s'exécute donc tout de suite après l'installation, avant le
+      # peuplement des scénarios et les autres vérifications.
+      - name: Scénario de migration
+        run: |
+          wp() {
+            docker exec -u www-data -e WP_CLI_CACHE_DIR=/tmp/wp-cli-cache \
+              "$PSC_WP_CONTAINER" php /usr/local/bin/wp-cli.phar --path=/var/www/html "$@"
+          }
+
+          wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-migrations.php verify-migrations
+
       # bin/verify-*.php : assertions PHP autonomes, écrites pour jouer le
       # rôle de tests unitaires (cf. leurs en-têtes). Jusqu'ici elles ne
       # tenaient qu'à la discipline manuelle du mainteneur. Branchées
