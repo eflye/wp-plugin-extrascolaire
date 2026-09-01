@@ -19,6 +19,7 @@ class Psc_Admin extends Psc_Admin_Base {
         add_action('admin_menu', array(__CLASS__, 'menu'));
         add_action('admin_enqueue_scripts', array(__CLASS__, 'assets'));
         add_action('admin_notices', array(__CLASS__, 'notice_private_dir_exposed'));
+        add_action('admin_notices', array(__CLASS__, 'notice_db_constraints'));
 
         foreach (array(
             'Psc_Admin_Trimestres',
@@ -202,6 +203,77 @@ class Psc_Admin extends Psc_Admin_Base {
         })();
         </script>
         <?php
+    }
+
+    /**
+     * Alerte si une contrainte de base (clé étrangère, CHECK) n'a pas pu
+     * être posée — ALTER TABLE refusé par l'hébergeur, donnée hors liste.
+     *
+     * Ces échecs étaient jusqu'ici silencieux : psc_db_version avançait,
+     * et la contrainte n'était retentée qu'à la prochaine montée de
+     * version. Psc_Installer::store_constraints_state() publie désormais
+     * l'état dans l'option psc_constraints_missing et retente à chaque
+     * écran admin ; cet avis ferme la boucle côté mairie, qui voit enfin
+     * pourquoi sa base ne garantit pas la cohérence qu'elle croit avoir.
+     */
+    public static function notice_db_constraints() {
+        if (!psc_user_can_manage()) return;
+
+        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+        $on_psc = $screen && strpos((string) $screen->id, 'psc_') !== false;
+        if (!$on_psc && !($screen && $screen->id === 'dashboard')) return;
+
+        $missing = get_option('psc_constraints_missing');
+        if (!is_array($missing) || !$missing) return;
+        ?>
+        <div class="notice notice-warning">
+            <p><strong>Périscolaire — contraintes de base de données non posées.</strong></p>
+            <p>
+                Le site fonctionne, mais l'hébergement a refusé une modification de schéma ou des
+                données empêchent la pose des contraintes ci-dessous. La base ne garantit donc pas
+                elle-même la cohérence des données — la validation applicative reste la première
+                barrière.
+            </p>
+            <ul>
+                <?php foreach ($missing as $constraint) : ?>
+                <li><?php echo esc_html(self::constraint_label($constraint)); ?></li>
+                <?php endforeach; ?>
+            </ul>
+            <p>
+                Une nouvelle tentative est faite à chaque ouverture du backoffice : cet
+                avertissement disparaîtra seul dès que la contrainte sera posée. S'il persiste,
+                la cause est côté hébergement (dépassement de quota, moteur de table non
+                transactionnel) ou une donnée à corriger dans la liste ci-dessus.
+            </p>
+        </div>
+        <?php
+    }
+
+    /**
+     * Libellé lisible d'une contrainte non posée, pour l'alerte ci-dessus.
+     * Les entrées viennent de Psc_Installer (clé 'type' = 'fk' | 'check').
+     */
+    private static function constraint_label($constraint) {
+        $type = isset($constraint['type']) ? $constraint['type'] : '';
+
+        if ($type === 'fk') {
+            $action = isset($constraint['action']) && $constraint['action'] === 'SET NULL'
+                ? 'mise à null à la suppression'
+                : 'suppression en cascade';
+            return sprintf(
+                'Clé étrangère %1$s.%2$s → %3$s (%4$s)',
+                isset($constraint['table']) ? $constraint['table'] : '?',
+                isset($constraint['column']) ? $constraint['column'] : '?',
+                isset($constraint['ref']) ? $constraint['ref'] : '?',
+                $action
+            );
+        }
+
+        if ($type === 'check' && isset($constraint['reason']) && $constraint['reason'] === 'dirty') {
+            return 'Contrainte CHECK sur registrations.service : des lignes portent une prestation inconnue de la liste actuelle, à corriger avant la pose.';
+        }
+
+        return 'Contrainte CHECK sur registrations.service (codes de prestation autorisés).';
     }
 
     /**

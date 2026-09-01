@@ -8,8 +8,7 @@ class Psc_Installer {
 
     public static function activate() {
         self::create_tables();
-        self::ensure_foreign_keys();
-        self::ensure_service_constraint();
+        self::store_constraints_state();
         update_option('psc_db_version', self::DB_VERSION);
         self::sync_roles();
         update_option('psc_roles_version', self::ROLES_VERSION);
@@ -79,12 +78,6 @@ class Psc_Installer {
             if ($current && version_compare($current, '3.8.0', '<')) {
                 self::migrate_3_8_0();
             }
-            // Sans condition de version : la pose des contraintes est
-            // idempotente et se contente de constater ce qui existe déjà.
-            // La rejouer à chaque changement de schéma rattrape le cas où
-            // un ALTER TABLE avait échoué lors d'une mise à jour antérieure.
-            self::ensure_foreign_keys();
-            self::ensure_service_constraint();
             update_option('psc_db_version', self::DB_VERSION);
         }
 
@@ -93,6 +86,18 @@ class Psc_Installer {
         // supprimé à la main ou si l'hébergeur a réinitialisé le disque.
         psc_ensure_private_dir();
         self::sync_private_dir();
+
+        // Hors bloc de version également : les contraintes sont idempotentes
+        // et bon marché quand tout est en place (trois SELECT). Un ALTER
+        // refusé par l'hébergeur est donc retenté à chaque écran admin —
+        // plus besoin d'attendre la prochaine montée de version pour que la
+        // pose se rejoue — et l'état publié alimente l'alerte admin
+        // (Psc_Admin::notice_db_constraints). Hors admin : la mairie
+        // n'écrit pas, et le coût des requêtes sur information_schema ne
+        // doit pas peser sur le portail public.
+        if (is_admin()) {
+            self::store_constraints_state();
+        }
     }
 
     /**
@@ -245,6 +250,23 @@ class Psc_Installer {
     }
 
     /**
+     * Re-constate l'état des contraintes et le publie pour l'alerte admin.
+     *
+     * Idempotent et sans effet de bord quand tout est en place. Un refus
+     * d'ALTER n'y perd plus son silence : la liste des contraintes non
+     * posées part dans l'option psc_constraints_missing, lue par
+     * Psc_Admin::notice_db_constraints() — et, à chaque écran admin, la
+     * pose est retentée.
+     */
+    private static function store_constraints_state() {
+        update_option(
+            'psc_constraints_missing',
+            array_merge(self::ensure_foreign_keys(), self::ensure_service_constraint()),
+            false
+        );
+    }
+
+    /**
      * Déclare les contraintes référentielles manquantes.
      *
      * Les tables sont en InnoDB depuis toujours, mais ne déclaraient aucun
@@ -259,10 +281,14 @@ class Psc_Installer {
      *
      * Tolérant à l'échec : sur un hébergement mutualisé, un ALTER TABLE
      * peut être refusé. Mieux vaut un site qui fonctionne sans contrainte
-     * qu'une mise à jour qui s'interrompt — la prochaine réessaiera.
+     * qu'une mise à jour qui s'interrompt. Le refus n'est plus muet pour
+     * autant : chaque contrainte non posée est renvoyée à l'appelant,
+     * qui la publie et la retente à l'écran admin suivant.
      */
     private static function ensure_foreign_keys() {
         global $wpdb;
+
+        $missing = array();
 
         $existing = $wpdb->get_col(
             "SELECT CONCAT(TABLE_NAME, '.', COLUMN_NAME)
@@ -281,11 +307,18 @@ class Psc_Installer {
             self::clear_orphans($t, $column, $r);
 
             $name = substr($t . '_' . $column . '_fk', -64);
-            $wpdb->query(
+            $wpdb->suppress_errors(true);
+            $altered = $wpdb->query(
                 "ALTER TABLE $t ADD CONSTRAINT `$name`
                  FOREIGN KEY ($column) REFERENCES $r (id) ON DELETE $action"
             );
+            $wpdb->suppress_errors(false);
+            if ($altered === false) {
+                $missing[] = array('type' => 'fk', 'table' => $table, 'column' => $column, 'ref' => $ref, 'action' => $action);
+            }
         }
+
+        return $missing;
     }
 
     /**
@@ -309,16 +342,18 @@ class Psc_Installer {
      * La liste vient de psc_allowed_services() : ajouter une prestation
      * là-bas et incrémenter DB_VERSION suffit à propager la contrainte.
      *
-     * Hors dbDelta(), qui ne sait pas lire une déclaration CHECK. Silencieux
-     * en cas d'échec : les serveurs antérieurs à MySQL 8.0.16 et MariaDB
-     * 10.2 acceptent la syntaxe sans l'appliquer. La validation applicative
-     * (psc_is_valid_service()) reste dans tous les cas la première barrière.
+     * Hors dbDelta(), qui ne sait pas lire une déclaration CHECK. Les
+     * serveurs antérieurs à MySQL 8.0.16 et MariaDB 10.2 acceptent la
+     * syntaxe sans l'appliquer ; un échec réel (hébergeur, donnée hors
+     * liste) est renvoyé à l'appelant comme les clés étrangères. La
+     * validation applicative (psc_is_valid_service()) reste dans tous
+     * les cas la première barrière.
      */
     private static function ensure_service_constraint() {
         global $wpdb;
 
         $t = psc_table('registrations');
-        if (!self::table_exists($t)) return;
+        if (!self::table_exists($t)) return array();
 
         $allowed = psc_allowed_services();
         sort($allowed);
@@ -342,7 +377,7 @@ class Psc_Installer {
             preg_match_all("/'([^']*)'/", str_replace('\\', '', $clause), $m);
             $found = $m[1];
             sort($found);
-            if ($found === $allowed) return; // déjà conforme
+            if ($found === $allowed) return array(); // déjà conforme
 
             $wpdb->suppress_errors(true);
             if ($wpdb->query("ALTER TABLE $t DROP CHECK `$name`") === false) {
@@ -352,18 +387,27 @@ class Psc_Installer {
         }
 
         // Une donnée déjà hors liste ferait échouer l'ALTER : on renonce
-        // plutôt que de laisser croire que la contrainte est en place.
+        // plutôt que de laisser croire que la contrainte est en place —
+        // et c'est signalé : ces lignes demandent une correction, pas une
+        // simple nouvelle tentative.
         $placeholders = implode(',', array_fill(0, count($allowed), '%s'));
         $outliers = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM $t WHERE service NOT IN ($placeholders)",
             $allowed
         ));
-        if ($outliers > 0) return;
+        if ($outliers > 0) {
+            return array(array('type' => 'check', 'table' => 'registrations', 'column' => 'service', 'reason' => 'dirty'));
+        }
 
         $list = "'" . implode("','", $allowed) . "'";
         $wpdb->suppress_errors(true);
-        $wpdb->query("ALTER TABLE $t ADD CONSTRAINT `$name` CHECK (service IN ($list))");
+        $altered = $wpdb->query("ALTER TABLE $t ADD CONSTRAINT `$name` CHECK (service IN ($list))");
         $wpdb->suppress_errors(false);
+        if ($altered === false) {
+            return array(array('type' => 'check', 'table' => 'registrations', 'column' => 'service', 'reason' => 'refused'));
+        }
+
+        return array();
     }
 
     private static function table_exists($table) {
