@@ -74,6 +74,11 @@ button, input, select, textarea { font-family: 'Work Sans', sans-serif; }
 
 /* ---- Main ---- */
 .site-main { max-width: 1120px; margin: 0 auto; padding: 48px 32px 80px; }
+/* Gabarit Espace familles (page-espace-familles.php) : la maquette ramène
+   la vue visiteur à un fût de 920px. Une fois connectée, le plugin
+   (body.psc-portal-active) reprend toute la largeur de l'écran et écrase
+   ce plafond comme les paddings. */
+.page-template-page-espace-familles .site-main { max-width: 920px; }
 .page-title { font-size: 32px; margin-bottom: 0.6em; }
 .entry-content { font-size: 15px; }
 

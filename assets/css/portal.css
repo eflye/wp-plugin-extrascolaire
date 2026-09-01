@@ -56,13 +56,46 @@ body.psc-portal-active main > .wp-block-group.has-global-padding {
    des marges automatiques) : hérité par .psc-portal (qui compte dessus
    pour occuper toute la largeur de l'écran, sidebar + colonne à
    1120px). Sans ce reset, sidebar + colonne se retrouvent compressées
-   dans cette largeur de contenu au lieu de celle de l'écran. */
+   dans cette largeur de contenu au lieu de celle de l'écran. Les
+   paddings verticaux du thème partent aussi : le shell démarre juste
+   sous l'en-tête du site et s'arrête au pied de page, sans bande crème
+   (maquette Family Portal v2, vue « Vue famille connectée »). */
 body.psc-portal-active main.site-main {
     max-width: none !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+    padding: 0 !important;
+}
+/* Le pied de page du thème suit immédiatement le shell (le thème lui
+   donne une marge haute pour les pages ordinaires). */
+body.psc-portal-active .site-footer {
+    margin-top: 0;
+}
+/* La page est une colonne flex : en-tête et pied de page gardent leur
+   hauteur naturelle, le shell s'étire pour occuper l'écran restant.
+   Aucune hauteur en vh sur le shell ou la sidebar : pas de défilement
+   au-delà du contenu, et le fond bleu de la sidebar descend en continu
+   jusqu'au pied de page. */
+body.psc-portal-active {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+body.psc-portal-active main.site-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+body.psc-portal-active main.site-main > .entry-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+}
+body.psc-portal-active main.site-main > .psc-portal {
+    flex: 1;
 }
 
 .psc-portal, .psc-guest {
@@ -90,8 +123,12 @@ body.psc-portal-active main.site-main {
 }
 .psc-portal {
     display: flex;
-    align-items: flex-start;
-    min-height: 100vh;
+    /* stretch : la sidebar occupe toute la hauteur de la ligne flex —
+       son fond bleu descend jusqu'au pied de page (complété par la
+       chaîne flex posée sur body.psc-portal-active plus haut, qui étire
+       le shell lui-même jusqu'au footer). */
+    align-items: stretch;
+    flex: 1;
 }
 .psc-portal *, .psc-guest *,
 .psc-portal *::before, .psc-guest *::before,
@@ -103,6 +140,10 @@ body.psc-portal-active main.site-main {
 }
 
 /* ---- Sidebar ---- */
+/* Hauteur naturelle : c'est l'étirement du shell (align-items:stretch
+   ci-dessus) qui la fait descendre jusqu'au pied de page — ni hauteur
+   fixe, ni position:sticky. Le bloc « Connecté avec » est poussé en bas
+   par son margin-top:auto. */
 .psc-portal-sidebar {
     width: 264px;
     flex-shrink: 0;
@@ -111,9 +152,6 @@ body.psc-portal-active main.site-main {
     display: flex;
     flex-direction: column;
     padding: 28px 20px;
-    position: sticky;
-    top: 0;
-    min-height: 100vh;
 }
 .psc-portal-section-label {
     font-size: 10px;
@@ -189,9 +227,35 @@ body.psc-portal-active main.site-main {
 /* ---- Main ---- */
 .psc-portal-main {
     flex: 1;
-    padding: 44px 56px 64px;
+    padding: 28px 56px 64px;
     max-width: 1120px;
     min-width: 0;
+}
+/* Bascule Espaces (maquette Family Portal v2) : « Espace familles » est
+   l'état courant (non cliquable), « Espace intervenants » le lien —
+   alignés à droite au-dessus du contenu. Le bloc vit dans la colonne
+   (frontend-portal.php), pas dans le thème. */
+.psc-portal-switch {
+    display: flex;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: 22px;
+    margin-bottom: 26px;
+    font-size: 10px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+.psc-portal-switch-current {
+    color: var(--psc-forest);
+}
+a.psc-portal-switch-link {
+    color: var(--psc-moss);
+    text-decoration: none;
+}
+a.psc-portal-switch-link:hover,
+a.psc-portal-switch-link:focus-visible {
+    text-decoration: underline;
 }
 .psc-portal-section { display: none; }
 .psc-portal-section.is-active { display: block; }

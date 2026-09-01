@@ -142,6 +142,19 @@
       <?php endif; ?>
     <?php endif; ?>
 
+    <?php
+    // Bascule Espaces (maquette Family Portal v2, vue « Vue famille connectée ») :
+    // l'espace courant n'est pas un lien ; l'autre espace, oui. S'affiche en haut
+    // à droite de la colonne de contenu (cf. .psc-portal-switch dans portal.css).
+    $psc_intervenants_id = class_exists('Psc_Sidscm') ? Psc_Sidscm::page_id() : 0;
+    if ($psc_intervenants_id && $psc_intervenants_id !== get_queried_object_id()):
+    ?>
+    <nav class="psc-portal-switch" data-testid="portal-switch" aria-label="<?php esc_attr_e('Changer d\'espace', 'periscolaire-registration'); ?>">
+      <span class="psc-portal-switch-current"><?php esc_html_e('Espace familles', 'periscolaire-registration'); ?></span>
+      <a href="<?php echo esc_url(get_permalink($psc_intervenants_id)); ?>" class="psc-portal-switch-link"><?php esc_html_e('Espace intervenants', 'periscolaire-registration'); ?></a>
+    </nav>
+    <?php endif; ?>
+
     <section class="psc-portal-section<?php echo $active_tab === 'dashboard' ? ' is-active' : ''; ?>" data-portal-section="dashboard" data-testid="portal-section-dashboard">
       <?php include PSC_PATH . 'templates/portal-dashboard.php'; ?>
     </section>
