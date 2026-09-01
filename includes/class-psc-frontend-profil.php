@@ -32,6 +32,21 @@ class Psc_Frontend_Profil extends Psc_Frontend_Base {
         $parent = self::authed_parent('psc_parent_update_profile');
         if (!$parent) self::parent_form_redirect('auth');
 
+        // Formats contrôlés ici et pas dans Psc_Parents::update() : la
+        // même méthode écrit les coordonnées depuis l'approbation d'une
+        // demande (données déjà validées à la source) — la rejeter là
+        // rendrait des demandes légitimes inapprovables. Champs
+        // facultatifs : seuls les valeurs renseignées sont contrôlées.
+        $profil_cps = psc_post('profil_code_postal');
+        foreach (array(psc_post('profil_tel_mobile'), psc_post('profil_tel_fixe')) as $profil_tel) {
+            if ($profil_tel !== '' && psc_valid_phone($profil_tel) === false) {
+                self::parent_form_redirect('profil_invalid');
+            }
+        }
+        if ($profil_cps !== '' && !psc_valid_postcode($profil_cps)) {
+            self::parent_form_redirect('profil_invalid');
+        }
+
         $result = Psc_Parents::update($parent->id, array(
             'nom'              => psc_post('profil_nom'),
             'prenom'           => psc_post('profil_prenom'),

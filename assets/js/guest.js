@@ -13,6 +13,18 @@
         return s;
     }
 
+    function debounce(fn, ms) {
+        var timer = null;
+        return function () {
+            var self = this, args = arguments;
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(function () {
+                timer = null;
+                fn.apply(self, args);
+            }, ms);
+        };
+    }
+
     /* ---------- Stepper "Première inscription" ---------- */
 
     function initWizard() {
@@ -193,7 +205,7 @@
                 '<div><label class="psc-portal-field-label screen-reader-text" for="psc-cc-' + idx + '">' + t('child_class', n) + '</label>' +
                 '<select id="psc-cc-' + idx + '" class="psc-portal-field-underline" name="child_classe_' + idx + '" required>' + classeOptionsHTML + '</select></div>' +
                 '<div><label class="psc-portal-field-label screen-reader-text" for="psc-cb-' + idx + '">' + t('child_birthdate', n) + '</label>' +
-                '<input id="psc-cb-' + idx + '" class="psc-portal-field-underline" type="date" name="child_naissance_' + idx + '" required></div>' +
+                '<input id="psc-cb-' + idx + '" class="psc-portal-field-underline" type="date" name="child_naissance_' + idx + '" max="' + t('child_birthdate_max') + '" required></div>' +
                 '<div><label class="psc-portal-field-label" for="psc-ca-' + idx + '">' + t('insurance') + '</label>' +
                 '<input id="psc-ca-' + idx + '" type="file" name="child_assurance_' + idx + '" accept=".pdf,.jpg,.jpeg,.png" required></div>' +
                 '<div class="psc-wizard-diet-cell"><div class="psc-portal-field-label">' + t('diet') + '</div>' +
@@ -271,7 +283,7 @@
                 '<div><label class="psc-portal-field-label screen-reader-text" for="' + base + '-nom">' + t('pickup_lastname') + '</label>' +
                 '<input id="' + base + '-nom" class="psc-portal-field-underline" type="text" name="child_pickup_nom_' + childIdx + '_' + n + '" placeholder="' + t('lastname') + '" maxlength="191"></div>' +
                 '<div><label class="psc-portal-field-label screen-reader-text" for="' + base + '-tel">' + t('pickup_phone') + '</label>' +
-                '<input id="' + base + '-tel" class="psc-portal-field-underline" type="tel" name="child_pickup_telephone_' + childIdx + '_' + n + '" placeholder="' + t('phone') + '" maxlength="40"></div>' +
+                '<input id="' + base + '-tel" class="psc-portal-field-underline" type="tel" name="child_pickup_telephone_' + childIdx + '_' + n + '" placeholder="' + t('phone') + '" maxlength="40" pattern="(?:\\+33|0)[1-9](?:[ .-]?[0-9]{2}){4}" title="' + t('phone_pattern_title') + '"></div>' +
                 '<div><label class="psc-portal-field-label screen-reader-text" for="' + base + '-lien">' + t('pickup_link') + '</label>' +
                 '<input id="' + base + '-lien" class="psc-portal-field-underline" type="text" name="child_pickup_lien_' + childIdx + '_' + n + '" placeholder="' + t('link_placeholder') + '" maxlength="100" list="psc-pickup-lien-suggestions"></div>' +
                 '<label class="psc-wizard-diet-check"><input type="checkbox" name="child_pickup_piece_identite_' + childIdx + '_' + n + '" value="1"> ' + t('pickup_id_check') + '</label>' +
@@ -282,6 +294,233 @@
             updateAddPickupBtn(childRow);
             row.querySelector('input[type="text"]').focus();
         });
+    }
+
+    /* ---------- Autocomplétion d'adresse (Base Adresse Nationale) ---------- */
+
+    // L'API BAN est appelée directement par le navigateur de la famille :
+    // rien ne transite par le serveur WordPress (aucune adresse ne lui est
+    // envoyée, aucune clé, quota public). Sans JS, le bloc ci-dessous
+    // reste invisible et le trio adresse / code postal / ville rendu par
+    // le serveur reste visible et requis : le formulaire historique est
+    // intact — règle de dégradation du wizard.
+    function initAddressAutocomplete() {
+        var wrap       = document.querySelector('.psc-address-wrap');
+        var search     = document.getElementById('psc-req-adresse-search');
+        var list       = document.getElementById('psc-address-listbox');
+        var toggle     = document.getElementById('psc-address-toggle');
+        var label      = document.getElementById('psc-req-adresse-label');
+        var adresse    = document.getElementById('psc-req-adresse');
+        var cp         = document.getElementById('psc-req-cp');
+        var ville      = document.getElementById('psc-req-ville');
+        if (!wrap || !search || !list || !toggle || !label || !adresse || !cp || !ville) return;
+        var status     = wrap.querySelector('.psc-address-status');
+        var attribution = wrap.querySelector('.psc-address-attribution');
+
+        var ADDRESS_MIN_CHARS  = 3;
+        var ADDRESS_DEBOUNCE_MS = 250;
+        var ADDRESS_API = 'https://api-adresse.data.gouv.fr/search/';
+
+        var lastLabel = '';  // Dernier libellé sélectionné : retaper autre chose vide le trio.
+        var options   = [];  // Résultats courants (propriétés BAN filtrées).
+        var activeIdx = -1;
+        var aborter   = null;
+        var mode      = 'auto';
+
+        function closeList() {
+            list.hidden = true;
+            list.innerHTML = '';
+            options = [];
+            activeIdx = -1;
+            search.removeAttribute('aria-activedescendant');
+            search.setAttribute('aria-expanded', 'false');
+        }
+
+        function setActive(i) {
+            if (!options.length) return;
+            activeIdx = (i + options.length) % options.length;
+            Array.prototype.forEach.call(list.children, function (li, k) {
+                li.classList.toggle('is-active', k === activeIdx);
+                if (k === activeIdx) li.setAttribute('aria-selected', 'true');
+                else li.removeAttribute('aria-selected');
+            });
+            search.setAttribute('aria-activedescendant', list.children[activeIdx].id);
+        }
+
+        function refreshValidity() {
+            // La validité de l'adresse ne dépend pas du champ de recherche
+            // lui-même mais du trio : tant que adresse/cp/ville sont vides,
+            // aucune adresse n'a été retenue. Jamais d'attribut required
+            // natif sur la recherche — après une erreur serveur le wizard
+            // rouvre sur une étape avancée et un champ requis invisible
+            // d'une autre étape déadlockerait la soumission en silence.
+            if (mode !== 'auto') { search.setCustomValidity(''); return; }
+            search.setCustomValidity(adresse.value.trim() ? '' : t('address_pick_required'));
+        }
+
+        function pick(props) {
+            adresse.value = props.name || props.label;
+            cp.value     = props.postcode;
+            ville.value  = props.city;
+            lastLabel    = props.label;
+            search.value = props.label;
+            status.textContent = '';
+            refreshValidity();
+            closeList();
+        }
+
+        function selectActive() {
+            if (!options.length) return;
+            pick(options[activeIdx >= 0 ? activeIdx : 0]);
+        }
+
+        var runSearch = debounce(function () {
+            var q = search.value.trim();
+            if (q.length < ADDRESS_MIN_CHARS) {
+                if (aborter) aborter.abort();
+                closeList();
+                status.textContent = '';
+                return;
+            }
+
+            if (aborter) aborter.abort();
+            aborter = new AbortController();
+            fetch(ADDRESS_API + '?q=' + encodeURIComponent(q) + '&limit=5', { signal: aborter.signal })
+                .then(function (r) {
+                    if (!r.ok) throw new Error('BAN http ' + r.status);
+                    return r.json();
+                })
+                .then(function (data) {
+                    // Données externes : on ne conserve que les propriétés
+                    // utiles et le rendu passe par createElement/textContent
+                    // (jamais innerHTML) — cf. gestion des données non
+                    // approuvées.
+                    options = (data.features || []).filter(function (f) {
+                        var p = f && f.properties;
+                        return p && p.postcode && p.city;
+                    }).slice(0, 5).map(function (f) { return f.properties; });
+
+                    list.innerHTML = '';
+                    activeIdx = -1;
+                    options.forEach(function (p, i) {
+                        var li = document.createElement('li');
+                        li.className = 'psc-address-option';
+                        li.id = 'psc-address-opt-' + i;
+                        li.setAttribute('role', 'option');
+                        li.setAttribute('data-testid', 'address-option');
+                        li.textContent = p.label;
+                        li.addEventListener('mousedown', function (e) {
+                            // mousedown : sélection avant le blur du champ
+                            // (preventDefault empêche le transfert de focus).
+                            e.preventDefault();
+                            pick(p);
+                            search.focus();
+                        });
+                        list.appendChild(li);
+                    });
+
+                    if (options.length) {
+                        list.hidden = false;
+                        search.setAttribute('aria-expanded', 'true');
+                    } else {
+                        closeList();
+                        status.textContent = t('address_no_result');
+                    }
+                })
+                .catch(function (err) {
+                    if (err && err.name === 'AbortError') return;
+                    closeList();
+                    status.textContent = t('address_service_error');
+                });
+        }, ADDRESS_DEBOUNCE_MS);
+
+        search.addEventListener('input', function () {
+            if (search.value !== lastLabel) {
+                // Retape autre chose que la sélection : le trio n'est plus
+                // garanti exact, on le vide (refreshValidity ré-arme ensuite
+                // l'exigence de choix, cf. ci-dessous).
+                adresse.value = '';
+                cp.value = '';
+                ville.value = '';
+            }
+            refreshValidity();
+            runSearch();
+        });
+
+        search.addEventListener('keydown', function (e) {
+            var open = !list.hidden && options.length > 0;
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                if (!open) return;
+                e.preventDefault();
+                setActive(e.key === 'ArrowDown'
+                    ? (activeIdx < 0 ? 0 : activeIdx + 1)
+                    : (activeIdx < 0 ? options.length - 1 : activeIdx - 1));
+            } else if (e.key === 'Enter') {
+                if (!open) return; // liste fermée : soumission normale
+                e.preventDefault(); // liste ouverte : sélection, jamais d'envoi
+                selectActive();
+            } else if (e.key === 'Escape') {
+                if (!list.hidden) {
+                    closeList();
+                    e.preventDefault();
+                }
+            } else if (e.key === 'Tab') {
+                closeList();
+            }
+        });
+
+        search.addEventListener('blur', function () { closeList(); });
+        document.addEventListener('click', function (e) {
+            if (!list.hidden && !wrap.contains(e.target)) closeList();
+        });
+
+        function setMode(next) {
+            mode = next;
+            var isAuto = mode === 'auto';
+
+            wrap.hidden = !isAuto;
+            toggle.hidden = false;
+
+            // Bascule par type, pas par visibilité : type="hidden" sort le
+            // champ de la validation de contraintes MAIS il reste soumis.
+            // Retirer aussi required est indispensable — la soumission
+            // finale valide tous les champs du formulaire et un champ
+            // requis caché la déadlockerait.
+            adresse.type = isAuto ? 'hidden' : 'text';
+            adresse.required = !isAuto;
+            cp.type = isAuto ? 'hidden' : 'text';
+            cp.required = !isAuto;
+            ville.type = isAuto ? 'hidden' : 'text';
+            ville.required = !isAuto;
+
+            // Les libellés CP / ville restent dans leurs cellules de la
+            // grille : on masque les cellules entières.
+            [cp, ville].forEach(function (input) {
+                var cell = input.closest('div');
+                if (cell) cell.hidden = isAuto;
+            });
+
+            if (isAuto) {
+                label.setAttribute('for', 'psc-req-adresse-search');
+                search.setAttribute('placeholder', t('address_search_placeholder'));
+                if (attribution) attribution.textContent = t('address_attribution');
+                toggle.textContent = t('address_toggle_manual');
+            } else {
+                label.setAttribute('for', 'psc-req-adresse');
+                closeList();
+                if (status) status.textContent = '';
+                toggle.textContent = t('address_toggle_search');
+            }
+            refreshValidity();
+        }
+
+        toggle.addEventListener('click', function () {
+            setMode(mode === 'auto' ? 'manual' : 'auto');
+            var target = mode === 'auto' ? search : adresse;
+            if (target && !target.hidden) target.focus();
+        });
+
+        setMode('auto');
     }
 
     /* ---------- Second parent (facultatif, étape "Coordonnées") ---------- */
@@ -311,6 +550,7 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         initWizard();
+        initAddressAutocomplete();
         initPaymentCards();
         initChildren();
         initPickupPersons();

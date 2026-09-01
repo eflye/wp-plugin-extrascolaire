@@ -87,6 +87,7 @@
         'child_added'       => array('ok',  __('Enfant ajouté à votre compte.', 'periscolaire-registration')),
         'child_invalid'     => array('err', __('Merci de renseigner le prénom et le nom.', 'periscolaire-registration')),
         'child_limit'       => array('err', __("Nombre maximum d'enfants atteint.", 'periscolaire-registration')),
+        'child_bad_birthdate' => array('err', __('La date de naissance est incohérente : jamais dans le futur, et au moins 3 ans au 1er septembre de l\'année en cours.', 'periscolaire-registration')),
         'absence_cancelled' => array('ok',  __('Absence signalée : la mairie a été prévenue, ces prestations ne seront pas facturées.', 'periscolaire-registration')),
         'absence_invalid'   => array('err', __("Impossible d'annuler ces prestations (délai dépassé, déjà annulées ou sélection invalide). Rechargez la page.", 'periscolaire-registration')),
 
@@ -100,6 +101,7 @@
         'profil_updated'               => array('ok',  __('Vos informations ont été mises à jour.', 'periscolaire-registration')),
         'profil_updated_email_pending' => array('ok',  __("Informations mises à jour. Un e-mail de confirmation a été envoyé à votre nouvelle adresse : cliquez sur le lien qu'il contient pour l'activer.", 'periscolaire-registration')),
         'profil_error'                 => array('err', __("Certaines informations n'ont pas pu être enregistrées. Vérifiez votre saisie.", 'periscolaire-registration')),
+        'profil_invalid'               => array('err', __("Certaines informations sont invalides : vérifiez les numéros de téléphone et le code postal.", 'periscolaire-registration')),
         'email_taken'                  => array('err', __('Cette adresse e-mail est déjà utilisée par une autre famille.', 'periscolaire-registration')),
         'email_changed'                => array('ok',  __('Votre nouvelle adresse e-mail est confirmée : utilisez-la désormais pour vous connecter.', 'periscolaire-registration')),
         'email_change_cancelled'       => array('ok',  __("Changement d'adresse e-mail annulé.", 'periscolaire-registration')),
@@ -112,7 +114,7 @@
 
         'pickup_updated' => array('ok',  __('Personne autorisée modifiée.', 'periscolaire-registration')),
         'pickup_removed' => array('ok',  __('Personne retirée de la liste des personnes autorisées.', 'periscolaire-registration')),
-        'pickup_invalid' => array('err', __("Nom, prénom et téléphone sont obligatoires, et l'enfant doit être le vôtre.", 'periscolaire-registration')),
+        'pickup_invalid' => array('err', __("Nom, prénom et téléphone sont obligatoires, le numéro de téléphone doit être valide, et l'enfant doit être le vôtre.", 'periscolaire-registration')),
 
         'second_parent_updated'     => array('ok',  __('Second parent enregistré.', 'periscolaire-registration')),
         'second_parent_removed'     => array('ok',  __('Second parent retiré.', 'periscolaire-registration')),
@@ -121,7 +123,7 @@
         'second_parent_email_taken' => array('err', __('Cette adresse e-mail est déjà utilisée par un autre foyer.', 'periscolaire-registration')),
 
         'household_pickup_added'   => array('ok',  __('Personne autorisée ajoutée (départ de garderie du soir).', 'periscolaire-registration')),
-        'household_pickup_invalid' => array('err', __('Nom, prénom et téléphone sont obligatoires.', 'periscolaire-registration')),
+        'household_pickup_invalid' => array('err', __('Nom, prénom et téléphone sont obligatoires, et le numéro de téléphone doit être valide.', 'periscolaire-registration')),
     );
     // Confirmations : popin auto-masquée (cf. assets/js/frontend.js).
     // Erreurs à corriger : bandeau classique, le temps de lire et d'agir.

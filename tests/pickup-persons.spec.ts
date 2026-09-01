@@ -136,15 +136,46 @@ test.describe.serial('Personnes autorisées à récupérer un enfant', () => {
 test('onboarding — une personne autorisée saisie à la demande devient une entrée d\'historique "ajout"', async ({ page }) => {
   const data = seed();
 
+  /* ---------------- BAN mockée : la CI ne touche jamais le réseau externe ---------------- */
+  const BAN_FIXTURE = {
+    features: [
+      {
+        properties: {
+          label: '1 rue de Test 95000 Testville',
+          name: '1 rue de Test',
+          postcode: '95000',
+          city: 'Testville',
+        },
+      },
+    ],
+  };
+  // Interception AVANT le premier goto : aucune requête sortante réelle.
+  // Le glob finit en ** car l'URL réelle porte un slash (search/?q=…),
+  // qu'un * final ne traverse pas.
+  await page.route('**/api-adresse.data.gouv.fr/search**', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(BAN_FIXTURE) })
+  );
+
   /* ---------------- Wizard public : Coordonnées ---------------- */
   await page.goto(appPage());
   await page.locator('#psc-req-email').fill(data.onboarding_email);
   await page.locator('#psc-req-prenom').fill('Onboarding');
   await page.locator('#psc-req-nom').fill('E2E');
+  await page.locator('#psc-req-tel').fill('06000');
+  // Négatif : téléphone invalide (pattern natif) — l'étape 0 reste
+  // active, le wizard ne passe pas à la suite.
+  await page.getByTestId('wizard-next').click();
+  await expect(page.getByTestId('wizard-step-0')).toHaveClass(/is-active/);
   await page.locator('#psc-req-tel').fill('0600000001');
-  await page.locator('#psc-req-adresse').fill('1 rue de Test');
-  await page.locator('#psc-req-cp').fill('95000');
-  await page.locator('#psc-req-ville').fill('Testville');
+
+  // Adresse via autocomplétion BAN (mockée ci-dessus) : le trio
+  // adresse / code postal / ville est rempli par la sélection, pas à la
+  // main — les inputs restent en type=hidden, la valeur est lisible.
+  await page.getByTestId('address-search').fill('1 rue de');
+  await page.getByTestId('address-option').first().click();
+  await expect(page.locator('#psc-req-adresse')).toHaveValue('1 rue de Test');
+  await expect(page.locator('#psc-req-cp')).toHaveValue('95000');
+  await expect(page.locator('#psc-req-ville')).toHaveValue('Testville');
   await page.getByTestId('wizard-next').click();
 
   /* ---------------- Enfants : un enfant + une personne autorisée ---------------- */

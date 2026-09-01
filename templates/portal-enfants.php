@@ -66,7 +66,7 @@
       <input type="text" id="psc-child-edit-nom" name="nom" maxlength="190" required class="psc-portal-field-underline">
 
       <label class="psc-portal-field-label" for="psc-child-edit-naissance" style="margin-top:16px;"><?php esc_html_e('Date de naissance', 'periscolaire-registration'); ?></label>
-      <input type="date" id="psc-child-edit-naissance" name="naissance" class="psc-portal-field-underline">
+      <input type="date" id="psc-child-edit-naissance" name="naissance" max="<?php echo esc_attr(psc_child_birthdate_max()); ?>" class="psc-portal-field-underline">
 
       <div class="psc-portal-modal-actions">
         <button type="button" class="psc-portal-btn-outline-ink" data-child-edit-close><?php esc_html_e('Annuler', 'periscolaire-registration'); ?></button>
@@ -194,7 +194,7 @@ if ($psc_active_year) {
       </div>
       <div>
         <div class="psc-portal-field-label"><?php esc_html_e('Date de naissance', 'periscolaire-registration'); ?></div>
-        <input type="date" name="new_naissance" class="psc-portal-field-underline">
+        <input type="date" name="new_naissance" max="<?php echo esc_attr(psc_child_birthdate_max()); ?>" class="psc-portal-field-underline">
       </div>
       <div>
         <div class="psc-portal-field-label"><?php esc_html_e("Justificatif d'assurance scolaire", 'periscolaire-registration'); ?></div>

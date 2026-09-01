@@ -143,7 +143,8 @@ class Psc_Pickup_Persons {
     }
 
     protected static function is_valid($clean) {
-        return $clean['nom'] !== '' && $clean['prenom'] !== '' && $clean['telephone'] !== '';
+        return $clean['nom'] !== '' && $clean['prenom'] !== '' && $clean['telephone'] !== ''
+            && psc_valid_phone($clean['telephone']) !== false;
     }
 
     /* ---------------- Écriture (liste courante + historique) ---------------- */

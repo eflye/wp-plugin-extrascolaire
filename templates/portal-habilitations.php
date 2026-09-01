@@ -81,7 +81,7 @@
       <input type="text" id="psc-pickup-nom" name="nom" maxlength="191" required class="psc-portal-field-underline">
 
       <label class="psc-portal-field-label" for="psc-pickup-telephone" style="margin-top:16px;"><?php esc_html_e('Téléphone', 'periscolaire-registration'); ?></label>
-      <input type="tel" id="psc-pickup-telephone" name="telephone" maxlength="40" required class="psc-portal-field-underline">
+      <input type="tel" id="psc-pickup-telephone" name="telephone" maxlength="40" required pattern="<?php echo esc_attr(psc_tel_pattern()); ?>" title="<?php esc_attr_e('Format attendu : 06 12 34 56 78 ou +33 6 12 34 56 78.', 'periscolaire-registration'); ?>" class="psc-portal-field-underline">
 
       <label class="psc-portal-field-label" for="psc-pickup-lien" style="margin-top:16px;"><?php esc_html_e("Lien avec l'enfant", 'periscolaire-registration'); ?></label>
       <input type="text" id="psc-pickup-lien" name="lien" maxlength="100" list="psc-pickup-lien-suggestions-portal" class="psc-portal-field-underline">

@@ -147,6 +147,19 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 'pickup_edit_title' => __('Modifier — %s', 'periscolaire-registration'),
                 'next'              => __('Suivant', 'periscolaire-registration'),
                 'finish'            => __('Terminer', 'periscolaire-registration'),
+                // Autocomplétion d'adresse (wizard invité, guest.js) :
+                // recherche Base Adresse Nationale avec bascule manuelle.
+                'address_search_placeholder' => __('Saisissez votre adresse (numéro, rue, ville)', 'periscolaire-registration'),
+                'address_pick_required'      => __('Veuillez choisir une adresse dans la liste, ou saisir l\'adresse manuellement.', 'periscolaire-registration'),
+                'address_no_result'          => __('Aucune adresse trouvée. Vous pouvez saisir votre adresse manuellement.', 'periscolaire-registration'),
+                'address_service_error'      => __('Recherche d\'adresse momentanément indisponible. Vous pouvez saisir votre adresse manuellement.', 'periscolaire-registration'),
+                'address_toggle_manual'      => __('Saisir l\'adresse manuellement', 'periscolaire-registration'),
+                'address_toggle_search'      => __('Rechercher mon adresse', 'periscolaire-registration'),
+                'address_attribution'        => __('Recherche d\'adresse propulsée par la Base Adresse Nationale (adresse.data.gouv.fr)', 'periscolaire-registration'),
+                // Messages natifs de validation (attributs pattern/max/title).
+                'phone_pattern_title'   => __('Format attendu : 06 12 34 56 78 ou +33 6 12 34 56 78.', 'periscolaire-registration'),
+                'postcode_pattern_title' => __('Format attendu : 5 chiffres.', 'periscolaire-registration'),
+                'child_birthdate_max'   => psc_child_birthdate_max(),
             ),
         ));
 
@@ -256,7 +269,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
         $tab = in_array($requested, $known, true) ? $requested : 'dashboard';
 
         if (in_array($psc_msg, array(
-            'child_updated', 'child_added', 'child_invalid', 'child_limit',
+            'child_updated', 'child_added', 'child_invalid', 'child_limit', 'child_bad_birthdate',
             'assurance_uploaded', 'assurance_invalid', 'assurance_upload_failed',
             'assurance_too_large', 'assurance_invalid_type', 'assurance_required',
         ), true)) {
@@ -271,7 +284,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
             $tab = 'habilitations';
         }
         if (in_array($psc_msg, array(
-            'profil_updated', 'profil_updated_email_pending', 'profil_error',
+            'profil_updated', 'profil_updated_email_pending', 'profil_error', 'profil_invalid',
             'email_taken', 'email_changed', 'email_change_cancelled',
             'bad_email_token', 'expired_email_token',
             'second_parent_updated', 'second_parent_removed',
@@ -444,6 +457,8 @@ class Psc_Frontend extends Psc_Frontend_Base {
             'second_parent_email_taken' => array('step' => 0, 'sepa' => false),
             'need_child'               => array('step' => 1, 'sepa' => false),
             'child_incomplete'         => array('step' => 1, 'sepa' => false),
+            'child_bad_birthdate'      => array('step' => 1, 'sepa' => false),
+            'pickup_person_incomplete' => array('step' => 1, 'sepa' => false),
             'assurance_required'       => array('step' => 1, 'sepa' => false),
             'assurance_too_large'      => array('step' => 1, 'sepa' => false),
             'assurance_invalid_type'   => array('step' => 1, 'sepa' => false),
@@ -451,6 +466,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
             'sepa_missing'             => array('step' => 2, 'sepa' => true),
             'bad_iban'                 => array('step' => 2, 'sepa' => true),
             'bad_bic'                  => array('step' => 2, 'sepa' => true),
+            'bad_code_postal'          => array('step' => 2, 'sepa' => true),
             'reglement_required'       => array('step' => 3, 'sepa' => false),
         );
         if (isset($map[$psc_msg])) {

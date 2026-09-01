@@ -32,6 +32,12 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         if (!$parent_id || $nom === '' || $prenom === '') {
             self::redirect('psc_children', 'invalid');
         }
+        // Date bien formée mais incohérente : refusée, cf.
+        // psc_valid_child_birthdate() (futur, moins de 3 ans au 1er
+        // septembre de l'année en cours).
+        if ($naissance && !psc_valid_child_birthdate($naissance)) {
+            self::redirect('psc_children', 'child_bad_birthdate');
+        }
 
         if (!Psc_Parents::get_by_id($parent_id)) {
             self::redirect('psc_children', 'nouser');
@@ -270,6 +276,17 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
 
         $id = psc_post_int('id');
         if (!$id) self::redirect('psc_parents', 'invalid');
+
+        // Formats contrôlés ici et pas dans Psc_Parents::update() : la
+        // même méthode écrit les coordonnées depuis l'approbation d'une
+        // demande (déjà validée à la source) — la rejeter là rendrait des
+        // demandes légitimes inapprovables. Facultatif : seules les valeurs
+        // renseignées sont contrôlées.
+        foreach (array(psc_post('code_postal'), psc_post('sepa_code_postal')) as $psc_edit_cp) {
+            if ($psc_edit_cp !== '' && !psc_valid_postcode($psc_edit_cp)) {
+                self::redirect('psc_parents', 'bad_code_postal');
+            }
+        }
 
         $result = Psc_Parents::update($id, array(
             'nom'              => psc_post('nom'),

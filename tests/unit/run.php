@@ -4,14 +4,18 @@
  *
  * Pas de harnais PHPUnit dans ce projet (Playwright seul pour les tests
  * E2E, verify-*.php pour la logique en conditions WP-CLI) : ceux-ci
- * jouent le rôle du test unitaire classique sur les deux seuls fichiers
+ * jouent le rôle du test unitaire classique sur les trois seuls fichiers
  * qui n'ont besoin de rien d'autre qu'eux-mêmes :
  *
  *   - includes/helpers/banking.php : validation IBAN (mod-97) et BIC,
  *     masquage, référence de mandat ;
  *   - includes/helpers/crypto.php : chiffrement au repos
  *     (encrypt/decrypt, préfixe "psc1:", idempotence, altération
- *     détectée) et empreinte de jeton.
+ *     détectée) et empreinte de jeton ;
+ *   - includes/helpers/request.php : validation téléphone (français,
+ *     indicatif +33/00 33), code postal (5 chiffres) et dates de
+ *     naissance (enfant ≥ 3 ans au 1er septembre, adulte ≥ 18 ans,
+ *     jamais dans le futur).
  *
  * WordPress n'est PAS amorcé : ABSPATH est posé pour passer les
  * garde-fous, PSC_ENCRYPTION_KEY rend la clé de chiffrement
@@ -41,6 +45,7 @@ if (!function_exists('wp_salt')) {
 
 require __DIR__ . '/../../includes/helpers/crypto.php';
 require __DIR__ . '/../../includes/helpers/banking.php';
+require __DIR__ . '/../../includes/helpers/request.php';
 
 $failures = array();
 $checks   = 0;
@@ -132,6 +137,56 @@ $assert(
     $iban_sepa
 );
 $assert('lecture : enregistrement vide', psc_read_iban(false), '');
+
+/* ---------------------------------------------------------------- */
+/* request.php — téléphone, code postal, naissances                   */
+/* ---------------------------------------------------------------- */
+
+$assert('téléphone : mobile collé', psc_valid_phone('0612345678'), '0612345678');
+$assert('téléphone : mobile espacé normalisé', psc_valid_phone('06 12 34 56 78'), '0612345678');
+$assert('téléphone : points et tirets', psc_valid_phone('06.12-34 56 78'), '0612345678');
+$assert('téléphone : indicatif +33', psc_valid_phone('+33612345678'), '+33612345678');
+$assert('téléphone : indicatif 0033', psc_valid_phone('0033612345678'), '0033612345678');
+$assert('téléphone : fixe', psc_valid_phone('01 45 67 89 01'), '0145678901');
+$assert('téléphone : numéro étranger (+32) -> false', psc_valid_phone('+3212345678'), false);
+$assert('téléphone : trop court -> false', psc_valid_phone('123456'), false);
+$assert('téléphone : trop long -> false', psc_valid_phone('06 12 34 56 78 90'), false);
+$assert('téléphone : lettres -> false', psc_valid_phone('06 12 34 56 AB'), false);
+$assert('téléphone : vide -> false', psc_valid_phone(''), false);
+
+$assert('code postal : 95000', psc_valid_postcode('95000'), true);
+$assert('code postal : Monaco 98000', psc_valid_postcode('98000'), true);
+$assert('code postal : espace -> false', psc_valid_postcode('95 000'), false);
+$assert('code postal : 6 chiffres -> false', psc_valid_postcode('950000'), false);
+$assert('code postal : 4 chiffres -> false', psc_valid_postcode('9500'), false);
+$assert('code postal : vide -> false', psc_valid_postcode(''), false);
+
+// Le 1er septembre de l'année en cours sert de référence : les cas de
+// bordure sont calculés pour rester justes quelle que soit la date
+// d'exécution (CI comprise, été inclus).
+$ref_sept = new DateTime(date('Y') . '-09-01');
+$ref_3ans = clone $ref_sept;
+$ref_3ans->modify('-3 years');
+$b3 = $ref_3ans->format('Y-m-d');
+$b3_plus1 = (clone $ref_3ans)->modify('+1 day')->format('Y-m-d');
+$b3_moins1 = (clone $ref_3ans)->modify('-1 day')->format('Y-m-d');
+
+$assert('naissance enfant : 3 ans révolus ce 1er septembre', psc_valid_child_birthdate($b3), $b3);
+$assert('naissance enfant : un jour de moins (3 ans et 1 jour)', psc_valid_child_birthdate($b3_moins1), $b3_moins1);
+$assert('naissance enfant : 2 ans au 1er septembre -> false', psc_valid_child_birthdate($b3_plus1), false);
+$assert('naissance enfant : dans le futur -> false', psc_valid_child_birthdate(date('Y-m-d', strtotime('+1 year'))), false);
+$assert('naissance enfant : format invalide -> false', psc_valid_child_birthdate('10/03/2019'), false);
+$assert('naissance enfant : mois impossible -> false', psc_valid_child_birthdate('2019-13-45'), false);
+
+$ref_18ans = new DateTime(date('Y-m-d'));
+$ref_18ans->modify('-18 years');
+$a18 = $ref_18ans->format('Y-m-d');
+$a18_plus1 = (clone $ref_18ans)->modify('+1 day')->format('Y-m-d');
+
+$assert('naissance adulte : 18 ans aujourd\'hui', psc_valid_adult_birthdate($a18), $a18);
+$assert('naissance adulte : 17 ans -> false', psc_valid_adult_birthdate($a18_plus1), false);
+$assert('naissance adulte : né avant 2000 (pas de plancher d\'année)', psc_valid_adult_birthdate('1976-03-15'), '1976-03-15');
+$assert('naissance adulte : dans le futur -> false', psc_valid_adult_birthdate(date('Y-m-d', strtotime('+1 year'))), false);
 
 /* ---------------------------------------------------------------- */
 

@@ -14,6 +14,7 @@ $psc_notices = array(
     'updated'     => array('success', __('Informations de la famille mises à jour.', 'periscolaire-registration')),
     'bad_iban'    => array('error', __('IBAN invalide.', 'periscolaire-registration')),
     'bad_bic'     => array('error', __('BIC invalide.', 'periscolaire-registration')),
+    'bad_code_postal' => array('error', __('Code postal invalide.', 'periscolaire-registration')),
     'family_deleted' => array('success', __('Famille supprimée définitivement, avec ses enfants, inscriptions, justificatifs et factures.', 'periscolaire-registration')),
 );
 psc_admin_notice_map($psc_notices, $psc_msg); ?>
@@ -42,6 +43,7 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
     value="<?php echo esc_attr($edit_parent->adresse ?? ''); ?>"></td></tr>
 <tr><th><label for="psc-edit-cp"><?php esc_html_e('Code postal', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-edit-cp" type="text" name="code_postal" class="small-text" maxlength="10"
+    pattern="[0-9]{5}" title="<?php esc_attr_e('Format attendu : 5 chiffres.', 'periscolaire-registration'); ?>"
     value="<?php echo esc_attr($edit_parent->code_postal ?? ''); ?>"></td></tr>
 <tr><th><label for="psc-edit-ville"><?php esc_html_e('Ville', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-edit-ville" type="text" name="ville" class="regular-text" maxlength="100"
@@ -59,6 +61,7 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
     value="<?php echo esc_attr($edit_parent->sepa_adresse ?? ''); ?>"></td></tr>
 <tr><th><label for="psc-edit-sepa-cp"><?php esc_html_e('Code postal (titulaire)', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-edit-sepa-cp" type="text" name="sepa_code_postal" class="small-text" maxlength="10"
+    pattern="[0-9]{5}" title="<?php esc_attr_e('Format attendu : 5 chiffres.', 'periscolaire-registration'); ?>"
     value="<?php echo esc_attr($edit_parent->sepa_code_postal ?? ''); ?>"></td></tr>
 <tr><th><label for="psc-edit-sepa-ville"><?php esc_html_e('Ville (titulaire)', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-edit-sepa-ville" type="text" name="sepa_ville" class="regular-text" maxlength="100"

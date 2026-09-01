@@ -10,6 +10,7 @@ $psc_notices = array(
     'marked_actif' => array('success', __('Enfant marqué actif.', 'periscolaire-registration')),
     'nouser'       => array('error', __("Famille introuvable. Enregistrez-la d'abord dans l'onglet « Familles ».", 'periscolaire-registration')),
     'invalid'      => array('error', __('Merci de choisir une famille et de renseigner le nom et le prénom.', 'periscolaire-registration')),
+    'child_bad_birthdate' => array('error', __('Date de naissance incohérente : jamais dans le futur, et au moins 3 ans au 1er septembre de l\'année en cours.', 'periscolaire-registration')),
 );
 psc_admin_notice_map($psc_notices, $psc_msg); ?>
 
@@ -44,7 +45,7 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 <p class="description"><?php esc_html_e("Aucune année scolaire active : la classe ne pourra pas être enregistrée tant qu'une année n'est pas activée.", 'periscolaire-registration'); ?></p>
 <?php endif; ?>
 </td></tr>
-<tr><th><label for="psc-naissance"><?php esc_html_e('Date de naissance', 'periscolaire-registration'); ?></label></th><td><input id="psc-naissance" type="date" name="naissance"></td></tr>
+<tr><th><label for="psc-naissance"><?php esc_html_e('Date de naissance', 'periscolaire-registration'); ?></label></th><td><input id="psc-naissance" type="date" name="naissance" max="<?php echo esc_attr(psc_child_birthdate_max()); ?>"></td></tr>
 </table>
 <?php submit_button(__('Ajouter', 'periscolaire-registration')); ?>
 </form>

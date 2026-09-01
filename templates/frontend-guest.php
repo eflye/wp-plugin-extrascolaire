@@ -16,9 +16,11 @@
         'verified_auto' => array('ok', __('Merci, votre adresse est confirmée. Votre espace famille est prêt : vous allez recevoir votre lien d\'accès par e-mail.', 'periscolaire-registration')),
         'bad_verify'    => array('err', __('Ce lien de confirmation n\'est pas valide.', 'periscolaire-registration')),
         'expired_verify'=> array('err', __('Ce lien de confirmation a expiré. Vous pouvez déposer une nouvelle demande.', 'periscolaire-registration')),
-        'coordonnees_incomplete'  => array('err', __('Merci de renseigner tous les champs (prénom, nom, téléphone, adresse, code postal, ville).', 'periscolaire-registration')),
+        'coordonnees_incomplete'  => array('err', __('Merci de renseigner tous les champs (prénom, nom, téléphone, adresse, code postal, ville), avec un téléphone et un code postal valides.', 'periscolaire-registration')),
         'need_child'    => array('err', __('Merci d\'indiquer au moins un enfant (nom et prénom).', 'periscolaire-registration')),
         'child_incomplete' => array('err', __('Merci de renseigner tous les champs de chaque enfant (prénom, nom, classe, date de naissance).', 'periscolaire-registration')),
+        'child_bad_birthdate' => array('err', __('La date de naissance d\'un enfant est incohérente : jamais dans le futur, et au moins 3 ans au 1er septembre de l\'année en cours.', 'periscolaire-registration')),
+        'pickup_person_incomplete' => array('err', __('Merci de renseigner le prénom, le nom et un téléphone valide pour chaque personne autorisée.', 'periscolaire-registration')),
         'assurance_required'      => array('err', __('Merci de joindre le justificatif d\'assurance scolaire de chaque enfant déclaré.', 'periscolaire-registration')),
         'assurance_too_large'     => array('err', __('Un des justificatifs d\'assurance dépasse la taille maximale autorisée (1 Mo).', 'periscolaire-registration')),
         'assurance_invalid_type'  => array('err', __('Format de justificatif non accepté (PDF, JPG ou PNG uniquement).', 'periscolaire-registration')),
@@ -27,6 +29,7 @@
         'sepa_missing'            => array('err', __('Merci de renseigner le titulaire du compte à débiter.', 'periscolaire-registration')),
         'bad_iban'                => array('err', __('L\'IBAN saisi n\'est pas valide. Vérifiez sa saisie.', 'periscolaire-registration')),
         'bad_bic'                 => array('err', __('Le BIC saisi n\'est pas valide. Vérifiez sa saisie.', 'periscolaire-registration')),
+        'bad_code_postal'         => array('err', __('Le code postal saisi n\'est pas valide. Vérifiez sa saisie.', 'periscolaire-registration')),
         'second_parent_bad_email'   => array('err', __('L\'adresse e-mail du second parent n\'est pas valide.', 'periscolaire-registration')),
         'second_parent_bad_phone'   => array('err', __('Le numéro de téléphone du second parent n\'est pas valide.', 'periscolaire-registration')),
         'second_parent_email_taken' => array('err', __('Cette adresse e-mail est déjà utilisée par un autre foyer.', 'periscolaire-registration')),
@@ -41,9 +44,10 @@
     $psc_toast_messages = array('link_sent', 'logged_out', 'bad_token', 'expired_token', 'request_sent');
     $psc_wizard_messages = array(
         'coordonnees_incomplete',
-        'need_child', 'child_incomplete', 'assurance_required', 'assurance_too_large', 'assurance_invalid_type',
+        'need_child', 'child_incomplete', 'child_bad_birthdate', 'pickup_person_incomplete',
+        'assurance_required', 'assurance_too_large', 'assurance_invalid_type',
         'reglement_required', 'sepa_reglement_required',
-        'sepa_missing', 'bad_iban', 'bad_bic',
+        'sepa_missing', 'bad_iban', 'bad_bic', 'bad_code_postal',
         'second_parent_bad_email', 'second_parent_bad_phone', 'second_parent_email_taken',
     );
     if (!empty($psc_msg) && isset($psc_notices[$psc_msg]) && !in_array($psc_msg, $psc_wizard_messages, true)):

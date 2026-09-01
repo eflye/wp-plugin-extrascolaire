@@ -60,15 +60,29 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
         </div>
         <div>
           <label class="psc-portal-field-label" for="psc-req-tel"><?php esc_html_e('Téléphone', 'periscolaire-registration'); ?> <span class="psc-req">*</span></label>
-          <input id="psc-req-tel" class="psc-portal-field-underline" type="tel" name="req_telephone" maxlength="40" autocomplete="tel" required>
+          <input id="psc-req-tel" class="psc-portal-field-underline" type="tel" name="req_telephone" maxlength="40" autocomplete="tel" pattern="<?php echo esc_attr(psc_tel_pattern()); ?>" title="<?php esc_attr_e('Format attendu : 06 12 34 56 78 ou +33 6 12 34 56 78.', 'periscolaire-registration'); ?>" required>
         </div>
         <div>
-          <label class="psc-portal-field-label" for="psc-req-adresse"><?php esc_html_e('Adresse postale', 'periscolaire-registration'); ?> <span class="psc-req">*</span></label>
+          <label class="psc-portal-field-label" for="psc-req-adresse" id="psc-req-adresse-label"><?php esc_html_e('Adresse postale', 'periscolaire-registration'); ?> <span class="psc-req">*</span></label>
+
+          <?php /* Autocomplétion Base Adresse Nationale : bloc muet côté serveur,
+                   peuplé et piloté par guest.js (initAddressAutocomplete), avec
+                   bascule vers la saisie manuelle. Sans JS, tout ceci reste
+                   invisible et le trio ci-dessous reste requis — le comportement
+                   historique est intact. */ ?>
+          <div class="psc-address-wrap" hidden>
+            <input id="psc-req-adresse-search" class="psc-portal-field-underline" type="text" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="psc-address-listbox" aria-autocomplete="list" data-testid="address-search">
+            <ul id="psc-address-listbox" class="psc-address-listbox" role="listbox" hidden></ul>
+            <p class="psc-address-status" role="status"></p>
+            <p class="psc-address-attribution"></p>
+          </div>
+
           <input id="psc-req-adresse" class="psc-portal-field-underline" type="text" name="req_adresse" maxlength="255" autocomplete="street-address" required>
+          <button type="button" id="psc-address-toggle" class="psc-address-toggle" hidden data-testid="address-toggle"></button>
         </div>
         <div>
           <label class="psc-portal-field-label" for="psc-req-cp"><?php esc_html_e('Code postal', 'periscolaire-registration'); ?> <span class="psc-req">*</span></label>
-          <input id="psc-req-cp" class="psc-portal-field-underline" type="text" name="req_code_postal" maxlength="10" autocomplete="postal-code" required>
+          <input id="psc-req-cp" class="psc-portal-field-underline" type="text" name="req_code_postal" maxlength="10" autocomplete="postal-code" pattern="[0-9]{5}" title="<?php esc_attr_e('Format attendu : 5 chiffres.', 'periscolaire-registration'); ?>" required>
         </div>
         <div>
           <label class="psc-portal-field-label" for="psc-req-ville"><?php esc_html_e('Ville', 'periscolaire-registration'); ?> <span class="psc-req">*</span></label>
@@ -95,7 +109,7 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
             </div>
             <div>
               <label class="psc-portal-field-label" for="psc-sp-tel"><?php esc_html_e('Téléphone', 'periscolaire-registration'); ?></label>
-              <input id="psc-sp-tel" class="psc-portal-field-underline" type="tel" name="second_parent_telephone" maxlength="40" autocomplete="tel">
+              <input id="psc-sp-tel" class="psc-portal-field-underline" type="tel" name="second_parent_telephone" maxlength="40" autocomplete="tel" pattern="<?php echo esc_attr(psc_tel_pattern()); ?>" title="<?php esc_attr_e('Format attendu : 06 12 34 56 78 ou +33 6 12 34 56 78.', 'periscolaire-registration'); ?>">
             </div>
           </div>
           <button type="button" id="psc-remove-second-parent" class="psc-wizard-remove-pickup-btn" data-testid="remove-second-parent-button"><?php esc_html_e('Retirer', 'periscolaire-registration'); ?></button>
@@ -132,7 +146,7 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
           </div>
           <div>
             <label class="psc-portal-field-label screen-reader-text" for="psc-cb-0"><?php esc_html_e("Date de naissance de l'enfant 1", 'periscolaire-registration'); ?></label>
-            <input id="psc-cb-0" class="psc-portal-field-underline" type="date" name="child_naissance_0" required>
+            <input id="psc-cb-0" class="psc-portal-field-underline" type="date" name="child_naissance_0" max="<?php echo esc_attr(psc_child_birthdate_max()); ?>" required>
           </div>
           <div>
             <label class="psc-portal-field-label" for="psc-ca-0"><?php esc_html_e("Justificatif d'assurance scolaire", 'periscolaire-registration'); ?></label>
@@ -214,7 +228,7 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
           <div style="display:flex;gap:12px;">
             <span style="flex:0 0 100px;">
               <label class="psc-portal-field-label" for="psc-sepa-cp"><?php esc_html_e('Code postal', 'periscolaire-registration'); ?></label>
-              <input id="psc-sepa-cp" class="psc-portal-field-underline" type="text" name="sepa_code_postal" maxlength="10" autocomplete="off">
+              <input id="psc-sepa-cp" class="psc-portal-field-underline" type="text" name="sepa_code_postal" maxlength="10" autocomplete="off" pattern="[0-9]{5}" title="<?php esc_attr_e('Format attendu : 5 chiffres.', 'periscolaire-registration'); ?>">
             </span>
             <span style="flex:1;">
               <label class="psc-portal-field-label" for="psc-sepa-ville"><?php esc_html_e('Ville', 'periscolaire-registration'); ?></label>

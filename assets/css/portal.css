@@ -997,6 +997,59 @@ a.psc-portal-switch-link:focus-visible {
     border-radius: 0;
 }
 .psc-portal-field-underline:focus { outline: none; border-bottom-color: var(--psc-gold); }
+/* Autocomplétion d'adresse (wizard invité) : liste déroulante ancrée sous
+   le champ de recherche, pilotée par guest.js (initAddressAutocomplete).
+   Le conteneur est en position:relative et la liste en absolu — le bloc
+   ne pousse pas la grille au fil des résultats. */
+.psc-address-wrap { position: relative; }
+.psc-address-listbox {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    margin: 0;
+    padding: 4px 0;
+    list-style: none;
+    background: var(--psc-cream);
+    border: 1px solid var(--psc-rule);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(36, 64, 92, 0.12);
+    max-height: 240px;
+    overflow-y: auto;
+}
+.psc-address-option {
+    padding: 8px 12px;
+    font-size: 13.5px;
+    color: var(--psc-ink);
+    cursor: pointer;
+}
+.psc-address-option:hover,
+.psc-address-option.is-active { background: var(--psc-paper); }
+.psc-address-option:focus-visible { outline: 2px solid var(--psc-gold); outline-offset: -2px; }
+.psc-address-status {
+    min-height: 16px;
+    margin: 4px 0 0;
+    font-size: 12.5px;
+    color: var(--psc-stone);
+}
+.psc-address-toggle {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-top: 6px;
+    font-family: 'Work Sans', sans-serif;
+    font-size: 12.5px;
+    color: var(--psc-forest);
+    text-decoration: underline;
+    cursor: pointer;
+}
+.psc-address-toggle:focus-visible { outline: 2px solid var(--psc-gold); outline-offset: 2px; }
+.psc-address-attribution {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--psc-stone);
+}
 /* Les deux cases forment une seule cellule de la grille, sous un libellé
    « Régime alimentaire » identique à celui des champs voisins : isolées,
    elles n'indiquaient pas de quoi elles parlaient.

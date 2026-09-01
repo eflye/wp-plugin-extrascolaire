@@ -33,6 +33,11 @@ class Psc_Frontend_Enfants extends Psc_Frontend_Base {
         $naissance = psc_valid_date(psc_post('naissance'));
 
         if ($prenom === '' || $nom === '') self::parent_form_redirect('child_invalid');
+        // Date bien formée mais incohérente (futur, moins de 3 ans au
+        // 1er septembre) : refusée, cf. psc_valid_child_birthdate().
+        if ($naissance && !psc_valid_child_birthdate($naissance)) {
+            self::parent_form_redirect('child_bad_birthdate');
+        }
 
         global $wpdb;
         $t_child = psc_table('children');
@@ -67,6 +72,9 @@ class Psc_Frontend_Enfants extends Psc_Frontend_Base {
         $vegan     = isset($_POST['new_vegan']) ? 1 : 0;
 
         if ($prenom === '' || $nom === '') self::parent_form_redirect('child_invalid');
+        if ($naissance && !psc_valid_child_birthdate($naissance)) {
+            self::parent_form_redirect('child_bad_birthdate');
+        }
 
         // Le justificatif d'assurance scolaire est obligatoire dès la
         // création de la fiche enfant, quel que soit le point d'entrée

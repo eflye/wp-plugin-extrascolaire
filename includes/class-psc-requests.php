@@ -230,8 +230,13 @@ class Psc_Requests {
 
         // Coordonnées (étape 1) : le "required" HTML5 empêche déjà de
         // passer à l'étape suivante côté client, mais reste contournable
-        // (POST direct) — on revalide donc côté serveur.
+        // (POST direct) — on revalide donc côté serveur, formats compris
+        // (téléphone français, code postal à 5 chiffres).
         if ($nom === '' || $prenom === '' || $telephone === '' || $adresse === '' || $code_postal === '' || $ville === '') {
+            wp_safe_redirect(add_query_arg('psc_msg', 'coordonnees_incomplete', $back));
+            exit;
+        }
+        if (!psc_valid_phone($telephone) || !psc_valid_postcode($code_postal)) {
             wp_safe_redirect(add_query_arg('psc_msg', 'coordonnees_incomplete', $back));
             exit;
         }
@@ -292,6 +297,13 @@ class Psc_Requests {
                 wp_safe_redirect(add_query_arg('psc_msg', 'child_incomplete', $back));
                 exit;
             }
+            // Date bien formée mais incohérente (dans le futur, moins de
+            // 3 ans au 1er septembre de l'année en cours) : message dédié,
+            // distinct du simple champ manquant ci-dessus.
+            if (!psc_valid_child_birthdate($cb)) {
+                wp_safe_redirect(add_query_arg('psc_msg', 'child_bad_birthdate', $back));
+                exit;
+            }
 
             $file = isset($_FILES['child_assurance_' . $i]) ? $_FILES['child_assurance_' . $i] : null;
             $file_check = Psc_Assurances::validate_upload($file);
@@ -315,7 +327,7 @@ class Psc_Requests {
                 $pp_tel    = psc_post("child_pickup_telephone_{$i}_{$j}");
                 $pp_lien   = psc_post("child_pickup_lien_{$i}_{$j}");
                 if ($pp_prenom === '' && $pp_nom === '' && $pp_tel === '' && $pp_lien === '') continue;
-                if ($pp_prenom === '' || $pp_nom === '' || $pp_tel === '') {
+                if ($pp_prenom === '' || $pp_nom === '' || $pp_tel === '' || psc_valid_phone($pp_tel) === false) {
                     wp_safe_redirect(add_query_arg('psc_msg', 'pickup_person_incomplete', $back));
                     exit;
                 }
@@ -383,6 +395,13 @@ class Psc_Requests {
             $sepa_bic = psc_valid_bic(psc_post('sepa_bic'));
             if (!$sepa_bic) {
                 wp_safe_redirect(add_query_arg('psc_msg', 'bad_bic', $back));
+                exit;
+            }
+
+            // Facultatif mais contrôlé s'il est renseigné : même convention
+            // que le téléphone du second parent ci-dessus.
+            if ($sepa_code_postal !== '' && !psc_valid_postcode($sepa_code_postal)) {
+                wp_safe_redirect(add_query_arg('psc_msg', 'bad_code_postal', $back));
                 exit;
             }
 
@@ -579,6 +598,12 @@ class Psc_Requests {
             $cc = psc_post('child_classe_' . $i);
             $cb = psc_valid_date(psc_post('child_naissance_' . $i));
             if ($cn === '' || $cp === '') continue;
+            // La mairie corrige avant validation : une date de naissance
+            // rendue incohérente par l'édition (futur, moins de 3 ans au
+            // 1er septembre) est refusée, comme à l'inscription.
+            if ($cb && !psc_valid_child_birthdate($cb)) {
+                Psc_Admin::redirect_public('psc_requests', 'child_bad_birthdate');
+            }
             $children[] = array(
                 'nom'                          => mb_substr($cn, 0, 190),
                 'prenom'                       => mb_substr($cp, 0, 190),

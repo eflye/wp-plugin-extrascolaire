@@ -9,6 +9,7 @@ $psc_notices = array(
     'deleted'    => array('success', __('Demande supprimée.', 'periscolaire-registration')),
     'invalid'    => array('error', __('Demande introuvable ou déjà traitée.', 'periscolaire-registration')),
     'need_child' => array('error', __('Indiquez au moins un enfant (nom et prénom) avant de valider.', 'periscolaire-registration')),
+    'child_bad_birthdate' => array('error', __('Date de naissance incohérente : jamais dans le futur, et au moins 3 ans au 1er septembre de l\'année en cours.', 'periscolaire-registration')),
 );
 psc_admin_notice_map($psc_notices, $psc_msg); ?>
 
@@ -101,6 +102,7 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
             <td><input type="text" name="child_classe_<?php echo (int) $i; ?>" maxlength="100"
                        value="<?php echo $c ? esc_attr($c['classe']) : ''; ?>"></td>
             <td><input type="date" name="child_naissance_<?php echo (int) $i; ?>"
+                       max="<?php echo esc_attr(psc_child_birthdate_max()); ?>"
                        value="<?php echo ($c && !empty($c['date_naissance'])) ? esc_attr($c['date_naissance']) : ''; ?>"></td>
             <td class="psc-diet-options">
               <label><input type="checkbox" name="child_sans_porc_<?php echo (int) $i; ?>" value="1" <?php checked($c && !empty($c['sans_porc'])); ?>> <?php esc_html_e('Sans porc', 'periscolaire-registration'); ?></label>
