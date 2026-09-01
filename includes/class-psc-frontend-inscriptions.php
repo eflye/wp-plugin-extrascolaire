@@ -124,7 +124,7 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         if ($checked && !Psc_Assurances::has_valid($child_id)) {
             wp_send_json_error(array(
                 'code'    => 'assurance_missing',
-                'message' => 'L\'assurance scolaire de cet enfant n\'a pas été fournie pour l\'année en cours. Ajoutez-la depuis « Mes enfants » pour pouvoir déclarer des jours.',
+                'message' => __('L\'assurance scolaire de cet enfant n\'a pas été fournie pour l\'année en cours. Ajoutez-la depuis « Mes enfants » pour pouvoir déclarer des jours.', 'periscolaire-registration'),
             ), 403);
         }
 
@@ -149,7 +149,7 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
             wp_send_json_error(array(
                 'code'    => 'locked',
                 'message' => sprintf(
-                    'Ce jour n\'est plus modifiable en ligne (délai de %d h dépassé). Contactez la mairie.',
+                    __('Ce jour n\'est plus modifiable en ligne (délai de %d h dépassé). Contactez la mairie.', 'periscolaire-registration'),
                     psc_lock_hours()
                 ),
             ), 403);
@@ -163,7 +163,7 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         if ($checked && self::service_closed_on($date, $service)) {
             wp_send_json_error(array(
                 'code'    => 'service_closed',
-                'message' => 'Cette prestation est fermée ce jour-là. Contactez la mairie.',
+                'message' => __('Cette prestation est fermée ce jour-là. Contactez la mairie.', 'periscolaire-registration'),
             ), 403);
         }
 
@@ -231,7 +231,7 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         if ($checked && !Psc_Assurances::has_valid($child_id)) {
             wp_send_json_error(array(
                 'code'    => 'assurance_missing',
-                'message' => 'L\'assurance scolaire de cet enfant n\'a pas été fournie pour l\'année en cours. Ajoutez-la depuis « Mes enfants » pour pouvoir déclarer des jours.',
+                'message' => __('L\'assurance scolaire de cet enfant n\'a pas été fournie pour l\'année en cours. Ajoutez-la depuis « Mes enfants » pour pouvoir déclarer des jours.', 'periscolaire-registration'),
             ), 403);
         }
 
@@ -287,7 +287,7 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         if (!psc_rate_limit('recap_' . $parent->id, 5, 10 * MINUTE_IN_SECONDS)) {
             wp_send_json_error(array(
                 'code'    => 'rate',
-                'message' => 'Plusieurs récapitulatifs viennent d\'être envoyés. Merci de patienter quelques minutes.',
+                'message' => __('Plusieurs récapitulatifs viennent d\'être envoyés. Merci de patienter quelques minutes.', 'periscolaire-registration'),
             ), 429);
         }
 
@@ -318,12 +318,12 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         if (!$sent) {
             wp_send_json_error(array(
                 'code'    => 'mail',
-                'message' => 'L\'envoi de l\'e-mail a échoué. Vos inscriptions sont bien enregistrées ; contactez la mairie si besoin.',
+                'message' => __('L\'envoi de l\'e-mail a échoué. Vos inscriptions sont bien enregistrées ; contactez la mairie si besoin.', 'periscolaire-registration'),
             ), 500);
         }
 
         wp_send_json_success(array(
-            'message' => sprintf('Récapitulatif envoyé à %s.', $parent->email),
+            'message' => sprintf(__('Récapitulatif envoyé à %s.', 'periscolaire-registration'), $parent->email),
         ));
     }
 

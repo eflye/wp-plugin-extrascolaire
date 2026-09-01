@@ -23,14 +23,14 @@ class Psc_Invoices {
         global $wpdb;
 
         if (!preg_match('/^\d{4}-\d{2}$/', $mois)) {
-            return new WP_Error('invalid_month', 'Format de mois invalide.');
+            return new WP_Error('invalid_month', __('Format de mois invalide.', 'periscolaire-registration'));
         }
 
         // Un mois en cours peut encore recevoir des inscriptions/annulations
         // jusqu'à son dernier jour : générer la facture avant qu'il soit
         // terminé risquerait de la rendre incomplète ou incorrecte.
         if ($mois >= current_time('Y-m')) {
-            return new WP_Error('month_not_finished', 'Ce mois n\'est pas encore terminé : les factures ne peuvent pas encore être générées.');
+            return new WP_Error('month_not_finished', __('Ce mois n\'est pas encore terminé : les factures ne peuvent pas encore être générées.', 'periscolaire-registration'));
         }
 
         $t_reg   = psc_table('registrations');
@@ -70,7 +70,7 @@ class Psc_Invoices {
             $parent_id
         ));
         if (!$parent) {
-            return new WP_Error('no_parent', 'Famille introuvable.');
+            return new WP_Error('no_parent', __('Famille introuvable.', 'periscolaire-registration'));
         }
 
         $t_reg   = psc_table('registrations');
@@ -82,7 +82,7 @@ class Psc_Invoices {
             $parent_id
         ));
         if (empty($children)) {
-            return new WP_Error('no_children', 'Aucun enfant pour cette famille.');
+            return new WP_Error('no_children', __('Aucun enfant pour cette famille.', 'periscolaire-registration'));
         }
 
         // Registrations for this month: service + child_id
@@ -95,7 +95,7 @@ class Psc_Invoices {
             $parent_id, $mois
         ));
         if (empty($regs)) {
-            return new WP_Error('no_data', 'Aucune inscription ce mois-ci.');
+            return new WP_Error('no_data', __('Aucune inscription ce mois-ci.', 'periscolaire-registration'));
         }
 
         // Build grid[service_code][child_id] = count
@@ -147,7 +147,7 @@ class Psc_Invoices {
         // Generate PDF
         $pdf_path = self::pdf_path($mois, $parent_id);
         if (!wp_mkdir_p(dirname($pdf_path))) {
-            return new WP_Error('mkdir_fail', 'Impossible de créer le répertoire des factures.');
+            return new WP_Error('mkdir_fail', __('Impossible de créer le répertoire des factures.', 'periscolaire-registration'));
         }
 
         $build_ok = self::build_pdf($parent, $mois, $children, $grid, $services, $pdf_path, $invoice_id);
@@ -216,18 +216,18 @@ class Psc_Invoices {
     public static function send($invoice_id) {
         $invoice = self::get($invoice_id);
         if (!$invoice) {
-            return new WP_Error('not_found', 'Facture introuvable.');
+            return new WP_Error('not_found', __('Facture introuvable.', 'periscolaire-registration'));
         }
 
         $pdf_path = psc_private_path($invoice->pdf_path);
 
         if (!file_exists($pdf_path)) {
-            return new WP_Error('no_file', 'Le fichier PDF est introuvable. Regénérez la facture.');
+            return new WP_Error('no_file', __('Le fichier PDF est introuvable. Regénérez la facture.', 'periscolaire-registration'));
         }
 
         $nom         = $invoice->parent_nom ?: $invoice->parent_email;
         $month_label = self::month_label($invoice->mois);
-        $commune     = get_option('blogname', 'la mairie');
+        $commune     = get_option('blogname', __('la mairie', 'periscolaire-registration'));
         $site_name   = wp_specialchars_decode(get_bloginfo('name'), ENT_QUOTES);
 
         $subject = Psc_Email_Templates::subject('invoice', array(
@@ -246,11 +246,11 @@ class Psc_Invoices {
 
         $body_html =
             '<h2 style="color:#24405C;font-family:Georgia,\'Times New Roman\',serif;font-weight:bold;font-size:17px;margin:0 0 16px;padding-bottom:8px;border-bottom:1px solid #E5DCC3;">'
-            . 'Votre facture périscolaire — ' . esc_html($month_label) . '</h2>'
+            . __('Votre facture périscolaire — ', 'periscolaire-registration') . esc_html($month_label) . '</h2>'
             . '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 20px;">' . $body_text . '</p>'
             . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0;">'
             . '<tr><td style="background-color:#F5E7DC;border:1px solid #E5DCC3;border-left:4px solid #E08A5F;padding:16px 18px 16px 14px;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#1A1A1A;line-height:1.5;">'
-            . '<strong>Montant total :</strong> ' . number_format((float) $invoice->total, 2, ',', ' ') . ' €'
+            . __('<strong>Montant total :</strong> ', 'periscolaire-registration') . number_format((float) $invoice->total, 2, ',', ' ') . ' €'
             . '</td></tr></table>';
 
         ob_start();
@@ -283,7 +283,7 @@ class Psc_Invoices {
             );
         }
 
-        return $ok ? true : new WP_Error('mail_failed', 'L\'envoi du mail a échoué.');
+        return $ok ? true : new WP_Error('mail_failed', __('L\'envoi du mail a échoué.', 'periscolaire-registration'));
     }
 
     /**
@@ -322,10 +322,10 @@ class Psc_Invoices {
      */
     public static function month_label($mois) {
         static $mois_fr = array(
-            '01' => 'Janvier',   '02' => 'Février',  '03' => 'Mars',
-            '04' => 'Avril',     '05' => 'Mai',       '06' => 'Juin',
-            '07' => 'Juillet',   '08' => 'Août',      '09' => 'Septembre',
-            '10' => 'Octobre',   '11' => 'Novembre',  '12' => 'Décembre',
+            '01' => __('Janvier', 'periscolaire-registration'),   '02' => __('Février', 'periscolaire-registration'),  '03' => __('Mars', 'periscolaire-registration'),
+            '04' => __('Avril', 'periscolaire-registration'),     '05' => __('Mai', 'periscolaire-registration'),       '06' => __('Juin', 'periscolaire-registration'),
+            '07' => __('Juillet', 'periscolaire-registration'),   '08' => __('Août', 'periscolaire-registration'),      '09' => __('Septembre', 'periscolaire-registration'),
+            '10' => __('Octobre', 'periscolaire-registration'),   '11' => __('Novembre', 'periscolaire-registration'),  '12' => __('Décembre', 'periscolaire-registration'),
         );
         list($year, $month) = explode('-', $mois . '-01');
         return ($mois_fr[$month] ?? $month) . ' ' . $year;
@@ -357,10 +357,10 @@ class Psc_Invoices {
     /** Retourne une date au format "7 juillet 2026" (UTF-8, pour passer ensuite dans enc()). */
     private static function french_full_date($ts) {
         static $mois = array(
-            1=>'janvier', 2=>'février',   3=>'mars',
-            4=>'avril',   5=>'mai',        6=>'juin',
-            7=>'juillet', 8=>'août',       9=>'septembre',
-            10=>'octobre',11=>'novembre', 12=>'décembre',
+            1=>__('janvier', 'periscolaire-registration'), 2=>__('février', 'periscolaire-registration'),   3=>__('mars', 'periscolaire-registration'),
+            4=>__('avril', 'periscolaire-registration'),   5=>__('mai', 'periscolaire-registration'),        6=>__('juin', 'periscolaire-registration'),
+            7=>__('juillet', 'periscolaire-registration'), 8=>__('août', 'periscolaire-registration'),       9=>__('septembre', 'periscolaire-registration'),
+            10=>__('octobre', 'periscolaire-registration'),11=>__('novembre', 'periscolaire-registration'), 12=>__('décembre', 'periscolaire-registration'),
         );
         $tz = wp_timezone();
         $dt = new DateTime('@' . $ts);
@@ -418,7 +418,7 @@ class Psc_Invoices {
         $month_label  = self::month_label($mois);
         $nom_famille  = trim(($parent->nom ?? '') ?: $parent->email);
         $date_fr      = self::french_full_date((int) current_time('timestamp'));
-        $city_date    = $org_city ? self::enc($org_city . ', le ' . $date_fr) : self::enc($date_fr);
+        $city_date    = $org_city ? self::enc($org_city . __(', le ', 'periscolaire-registration') . $date_fr) : self::enc($date_fr);
 
         // Margins: left=20, right=20 → usable = 170mm
         $ml = 20;
@@ -462,8 +462,8 @@ class Psc_Invoices {
         }
         if ($org_phone || $org_fax) {
             $tel_line = '';
-            if ($org_phone) $tel_line = 'Tél : ' . $org_phone;
-            if ($org_fax)   $tel_line .= ($tel_line ? ' – Télécopie : ' : 'Télécopie : ') . $org_fax;
+            if ($org_phone) $tel_line = __('Tél : ', 'periscolaire-registration') . $org_phone;
+            if ($org_fax)   $tel_line .= ($tel_line ? __(' – Télécopie : ', 'periscolaire-registration') : __('Télécopie : ', 'periscolaire-registration')) . $org_fax;
             $pdf->SetX($txt_x);
             $pdf->MultiCell($txt_w, 4, self::enc($tel_line), 0, 'C');
         }
@@ -509,14 +509,14 @@ class Psc_Invoices {
         $pdf->SetTextColor(0, 0, 0);
         // "FACTURE N°" en noir, numéro en rouge (comme le PDF de référence)
         $pdf->SetX($ml);
-        $pdf->Write(5, self::enc('FACTURE N° '));
+        $pdf->Write(5, self::enc(__('FACTURE N° ', 'periscolaire-registration')));
         $pdf->SetTextColor(180, 30, 30);
         $pdf->Write(5, self::enc($invoice_num));
         $pdf->SetTextColor(0, 0, 0);
         $pdf->Ln(9);
 
         $pdf->SetFont('Helvetica', '', 10);
-        $pdf->Cell($pw, 5, self::enc('Prestation du mois de :'), 0, 1, 'L');
+        $pdf->Cell($pw, 5, self::enc(__('Prestation du mois de :', 'periscolaire-registration')), 0, 1, 'L');
         $pdf->SetFont('Helvetica', 'B', 10);
         $pdf->Cell($pw, 5, self::enc($month_label), 0, 1, 'L');
         $pdf->Ln(5);
@@ -537,9 +537,9 @@ class Psc_Invoices {
         // En-tête tableau : #D3D3D3
         $pdf->SetFillColor(211, 211, 211);
         self::tbl_header_cell($pdf, $x0,                            $y0, $cw[0], $hdr, '');
-        self::tbl_header_cell($pdf, $x0 + $cw[0],                   $y0, $cw[1], $hdr, self::enc('Tarif par'),   self::enc('prestation'));
-        self::tbl_header_cell($pdf, $x0 + $cw[0] + $cw[1],          $y0, $cw[2], $hdr, self::enc('Nombre de'),  self::enc('prestations'));
-        self::tbl_header_cell($pdf, $x0 + $cw[0] + $cw[1] + $cw[2], $y0, $cw[3], $hdr, self::enc('Total'));
+        self::tbl_header_cell($pdf, $x0 + $cw[0],                   $y0, $cw[1], $hdr, self::enc(__('Tarif par', 'periscolaire-registration')),   self::enc(__('prestation', 'periscolaire-registration')));
+        self::tbl_header_cell($pdf, $x0 + $cw[0] + $cw[1],          $y0, $cw[2], $hdr, self::enc(__('Nombre de', 'periscolaire-registration')),  self::enc(__('prestations', 'periscolaire-registration')));
+        self::tbl_header_cell($pdf, $x0 + $cw[0] + $cw[1] + $cw[2], $y0, $cw[3], $hdr, self::enc(__('Total', 'periscolaire-registration')));
 
         $pdf->SetXY($x0, $y0 + $hdr);
 
@@ -579,7 +579,7 @@ class Psc_Invoices {
         $pdf->SetFillColor(211, 211, 211);
         $pdf->SetFont('Helvetica', 'B', 9);
         $pdf->Cell($cw[0] + $cw[1], $row_h, '',                              1, 0, 'C', true);
-        $pdf->Cell($cw[2],           $row_h, 'TOTAL',                         1, 0, 'R', true);
+        $pdf->Cell($cw[2],           $row_h, __('TOTAL', 'periscolaire-registration'),   1, 0, 'R', true);
         $pdf->Cell($cw[3],           $row_h, self::price_cell($grand_total),  1, 1, 'R', true);
 
         // ---- PIED DE PAGE ----

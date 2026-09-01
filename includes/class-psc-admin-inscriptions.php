@@ -218,7 +218,15 @@ class Psc_Admin_Inscriptions extends Psc_Admin_Base {
 
         $out = fopen('php://output', 'w');
         fwrite($out, "\xEF\xBB\xBF"); // BOM UTF-8 pour Excel
-        fputcsv($out, array('Nom', 'Prénom', 'Classe', 'Contact parent', 'Date', 'Jour', 'Service'), ';');
+        fputcsv($out, array(
+            __('Nom', 'periscolaire-registration'),
+            __('Prénom', 'periscolaire-registration'),
+            __('Classe', 'periscolaire-registration'),
+            __('Contact parent', 'periscolaire-registration'),
+            __('Date', 'periscolaire-registration'),
+            __('Jour', 'periscolaire-registration'),
+            __('Service', 'periscolaire-registration'),
+        ), ';');
         foreach ($data as $row) {
             // psc_csv_escape() neutralise les formules Excel : les noms
             // proviennent d'une saisie parent, donc de données non fiables.

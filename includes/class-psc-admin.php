@@ -55,52 +55,52 @@ class Psc_Admin extends Psc_Admin_Base {
      */
     public static function menu() {
         $cap = psc_manage_cap();
-        add_menu_page('Périscolaire', 'Périscolaire', $cap, 'psc_dashboard', array(__CLASS__, 'page_dashboard'), 'dashicons-groups', 58);
-        add_submenu_page('psc_dashboard', 'Tableau de bord', 'Tableau de bord', $cap, 'psc_dashboard', array(__CLASS__, 'page_dashboard'));
+        add_menu_page(__('Périscolaire', 'periscolaire-registration'), __('Périscolaire', 'periscolaire-registration'), $cap, 'psc_dashboard', array(__CLASS__, 'page_dashboard'), 'dashicons-groups', 58);
+        add_submenu_page('psc_dashboard', __('Tableau de bord', 'periscolaire-registration'), __('Tableau de bord', 'periscolaire-registration'), $cap, 'psc_dashboard', array(__CLASS__, 'page_dashboard'));
 
         // Calendrier scolaire en cours (Psc_Admin_Calendar_V2, classe
         // isolée) : enregistré ici plutôt que dans sa propre classe pour
         // contrôler sa position dans le sous-menu (juste sous le tableau
         // de bord, c'est l'écran le plus consulté au quotidien).
-        add_submenu_page('psc_dashboard', 'Calendrier scolaire en cours', 'Calendrier scolaire en cours', $cap, 'psc_school_calendar_v2', array('Psc_Admin_Calendar_V2', 'page_calendar_v2'));
+        add_submenu_page('psc_dashboard', __('Calendrier scolaire en cours', 'periscolaire-registration'), __('Calendrier scolaire en cours', 'periscolaire-registration'), $cap, 'psc_school_calendar_v2', array('Psc_Admin_Calendar_V2', 'page_calendar_v2'));
 
-        add_submenu_page('psc_dashboard', 'Trimestres', 'Trimestres', $cap, 'psc_trimestres', array('Psc_Admin_Trimestres', 'page_trimestres'));
+        add_submenu_page('psc_dashboard', __('Trimestres', 'periscolaire-registration'), __('Trimestres', 'periscolaire-registration'), $cap, 'psc_trimestres', array('Psc_Admin_Trimestres', 'page_trimestres'));
 
         // Cantine
-        add_submenu_page('psc_dashboard', 'Menus cantine', 'Menus cantine', $cap, 'psc_menus', array('Psc_Admin_Cantine', 'page_menus'));
-        add_submenu_page('psc_dashboard', 'Commande fournisseur', 'Commande fournisseur', $cap, 'psc_supplier_orders', array('Psc_Admin_Cantine', 'page_supplier_orders'));
+        add_submenu_page('psc_dashboard', __('Menus cantine', 'periscolaire-registration'), __('Menus cantine', 'periscolaire-registration'), $cap, 'psc_menus', array('Psc_Admin_Cantine', 'page_menus'));
+        add_submenu_page('psc_dashboard', __('Commande fournisseur', 'periscolaire-registration'), __('Commande fournisseur', 'periscolaire-registration'), $cap, 'psc_supplier_orders', array('Psc_Admin_Cantine', 'page_supplier_orders'));
 
         // Demandes & suivi
         $pending = Psc_Requests::pending_count();
         $req_label = $pending
-            ? sprintf('Demandes <span class="awaiting-mod"><span class="pending-count">%d</span></span>', $pending)
-            : 'Demandes';
-        add_submenu_page('psc_dashboard', "Demandes d'inscription", $req_label, $cap, 'psc_requests', array('Psc_Admin_Requests', 'page_requests'));
-        add_submenu_page('psc_dashboard', 'Présences déclarées', 'Présences déclarées', $cap, 'psc_inscriptions', array('Psc_Admin_Inscriptions', 'page_inscriptions'));
+            ? sprintf(__('Demandes <span class="awaiting-mod"><span class="pending-count">%d</span></span>', 'periscolaire-registration'), $pending)
+            : __('Demandes', 'periscolaire-registration');
+        add_submenu_page('psc_dashboard', __('Demandes d\'inscription', 'periscolaire-registration'), $req_label, $cap, 'psc_requests', array('Psc_Admin_Requests', 'page_requests'));
+        add_submenu_page('psc_dashboard', __('Présences déclarées', 'periscolaire-registration'), __('Présences déclarées', 'periscolaire-registration'), $cap, 'psc_inscriptions', array('Psc_Admin_Inscriptions', 'page_inscriptions'));
 
         // Familles
-        add_submenu_page('psc_dashboard', 'Familles', 'Familles', $cap, 'psc_parents', array('Psc_Admin_Familles', 'page_parents'));
-        add_submenu_page('psc_dashboard', 'Enfants', 'Enfants', $cap, 'psc_children', array('Psc_Admin_Familles', 'page_children'));
+        add_submenu_page('psc_dashboard', __('Familles', 'periscolaire-registration'), __('Familles', 'periscolaire-registration'), $cap, 'psc_parents', array('Psc_Admin_Familles', 'page_parents'));
+        add_submenu_page('psc_dashboard', __('Enfants', 'periscolaire-registration'), __('Enfants', 'periscolaire-registration'), $cap, 'psc_children', array('Psc_Admin_Familles', 'page_children'));
         // Fiche "Personnes autorisées" d'un enfant — accessible uniquement
         // depuis la ligne de l'enfant dans Enfants, jamais dans le menu.
-        add_submenu_page('psc_dashboard', 'Personnes autorisées', null, $cap, 'psc_pickup_persons', array('Psc_Admin_Familles', 'page_pickup_persons'));
+        add_submenu_page('psc_dashboard', __('Personnes autorisées', 'periscolaire-registration'), null, $cap, 'psc_pickup_persons', array('Psc_Admin_Familles', 'page_pickup_persons'));
 
         // Facturation
-        add_submenu_page('psc_dashboard', 'Factures', 'Factures', $cap, 'psc_factures', array('Psc_Admin_Invoices', 'page_factures'));
+        add_submenu_page('psc_dashboard', __('Factures', 'periscolaire-registration'), __('Factures', 'periscolaire-registration'), $cap, 'psc_factures', array('Psc_Admin_Invoices', 'page_factures'));
 
         // Configuration
-        add_submenu_page('psc_dashboard', 'Modèles e-mails', 'Modèles e-mails', $cap, 'psc_email_templates', array('Psc_Admin_Config', 'page_email_templates'));
+        add_submenu_page('psc_dashboard', __('Modèles e-mails', 'periscolaire-registration'), __('Modèles e-mails', 'periscolaire-registration'), $cap, 'psc_email_templates', array('Psc_Admin_Config', 'page_email_templates'));
 
         // Années scolaires : usage occasionnel (~1 fois par an), reléguée
         // en bas du menu plutôt qu'à côté des écrans du quotidien.
-        add_submenu_page('psc_dashboard', 'Années scolaires', 'Années scolaires', $cap, 'psc_school_years', array('Psc_Admin_School_Years', 'page_school_years'));
+        add_submenu_page('psc_dashboard', __('Années scolaires', 'periscolaire-registration'), __('Années scolaires', 'periscolaire-registration'), $cap, 'psc_school_years', array('Psc_Admin_School_Years', 'page_school_years'));
         // Écran intermédiaire du passage d'année (récapitulatif + confirmation) :
         // pas un lien de menu à part entière, seulement atteint depuis
         // "Années scolaires" — menu_title à null pour ne pas apparaître dans
         // la barre latérale.
-        add_submenu_page('psc_dashboard', 'Passage d\'année', null, $cap, 'psc_passage_annee', array('Psc_Admin_School_Years', 'page_passage_annee'));
+        add_submenu_page('psc_dashboard', __('Passage d\'année', 'periscolaire-registration'), null, $cap, 'psc_passage_annee', array('Psc_Admin_School_Years', 'page_passage_annee'));
 
-        add_submenu_page('psc_dashboard', 'Réglages', 'Réglages', $cap, 'psc_settings', array('Psc_Admin_Config', 'page_settings'));
+        add_submenu_page('psc_dashboard', __('Réglages', 'periscolaire-registration'), __('Réglages', 'periscolaire-registration'), $cap, 'psc_settings', array('Psc_Admin_Config', 'page_settings'));
     }
 
     public static function assets($hook) {
@@ -139,16 +139,14 @@ class Psc_Admin extends Psc_Admin_Base {
         if (!is_dir($dir) || !wp_is_writable($dir)) {
             ?>
             <div class="notice notice-error">
-                <p><strong>Périscolaire — le dossier des documents est inutilisable.</strong></p>
+                <p><strong><?php esc_html_e('Périscolaire — le dossier des documents est inutilisable.', 'periscolaire-registration'); ?></strong></p>
                 <p>
-                    L'extension ne peut ni créer ni écrire dans
-                    <code><?php echo esc_html($dir); ?></code>. Les justificatifs d'assurance et les
-                    factures ne pourront pas être enregistrés ni téléchargés tant que ce sera le cas.
+                    <?php esc_html_e("L'extension ne peut ni créer ni écrire dans", 'periscolaire-registration'); ?>
+                    <code><?php echo esc_html($dir); ?></code>. <?php esc_html_e("Les justificatifs d'assurance et les factures ne pourront pas être enregistrés ni téléchargés tant que ce sera le cas.", 'periscolaire-registration'); ?>
                 </p>
                 <p>
-                    Vérifiez la ligne <code>PSC_PRIVATE_DIR</code> de <code>wp-config.php</code> :
-                    le dossier parent doit exister et être accessible en écriture. Si le chemin est
-                    erroné, retirez la ligne — l'extension reprendra son emplacement par défaut.
+                    <?php esc_html_e('Vérifiez la ligne', 'periscolaire-registration'); ?> <code>PSC_PRIVATE_DIR</code> <?php esc_html_e('de', 'periscolaire-registration'); ?> <code>wp-config.php</code> :
+                    <?php esc_html_e("le dossier parent doit exister et être accessible en écriture. Si le chemin est erroné, retirez la ligne — l'extension reprendra son emplacement par défaut.", 'periscolaire-registration'); ?>
                 </p>
             </div>
             <?php
@@ -167,23 +165,21 @@ class Psc_Admin extends Psc_Admin_Base {
         $suggestion = "define('PSC_PRIVATE_DIR', dirname(ABSPATH) . '/psc-private');";
         ?>
         <div class="notice notice-error" id="psc-private-exposed" hidden>
-            <p><strong>Périscolaire — les documents des familles sont téléchargeables sans connexion.</strong></p>
+            <p><strong><?php esc_html_e('Périscolaire — les documents des familles sont téléchargeables sans connexion.', 'periscolaire-registration'); ?></strong></p>
             <p>
-                Les justificatifs d'assurance et les factures sont accessibles publiquement sous
-                <code><?php echo esc_html($base); ?></code>. Le serveur web ne tient pas compte du fichier
-                <code>.htaccess</code> déposé par l'extension.
+                <?php esc_html_e("Les justificatifs d'assurance et les factures sont accessibles publiquement sous", 'periscolaire-registration'); ?>
+                <code><?php echo esc_html($base); ?></code>. <?php esc_html_e('Le serveur web ne tient pas compte du fichier', 'periscolaire-registration'); ?>
+                <code>.htaccess</code> <?php esc_html_e("déposé par l'extension.", 'periscolaire-registration'); ?>
             </p>
             <p>
-                <strong>Correctif, sans accès au serveur :</strong> ajoutez cette ligne dans
-                <code>wp-config.php</code> (avant la ligne <code>/* C'est tout… */</code>), puis rechargez
-                cette page. Les documents déjà déposés seront déplacés automatiquement.
+                <strong><?php esc_html_e('Correctif, sans accès au serveur :', 'periscolaire-registration'); ?></strong> <?php esc_html_e('ajoutez cette ligne dans', 'periscolaire-registration'); ?>
+                <code>wp-config.php</code> <?php esc_html_e('(avant la ligne', 'periscolaire-registration'); ?> <code>/* C'est tout… */</code><?php esc_html_e('), puis rechargez cette page. Les documents déjà déposés seront déplacés automatiquement.', 'periscolaire-registration'); ?>
             </p>
             <pre style="background:#fff;border:1px solid #ccd0d4;padding:10px;overflow:auto;"><?php echo esc_html($suggestion); ?></pre>
             <p class="description">
-                Ce dossier se place à côté de la racine du site (et non dedans), ce qui le rend
-                inaccessible par le web quelle que soit la configuration de l'hébergement.
-                Si votre hébergeur vous donne la main sur la configuration du serveur, une règle
-                <code>deny</code> sur le dossier fonctionne également.
+                <?php esc_html_e("Ce dossier se place à côté de la racine du site (et non dedans), ce qui le rend inaccessible par le web quelle que soit la configuration de l'hébergement.", 'periscolaire-registration'); ?>
+                <?php esc_html_e('Si votre hébergeur vous donne la main sur la configuration du serveur, une règle', 'periscolaire-registration'); ?>
+                <code>deny</code> <?php esc_html_e('sur le dossier fonctionne également.', 'periscolaire-registration'); ?>
             </p>
         </div>
         <script>
@@ -227,12 +223,9 @@ class Psc_Admin extends Psc_Admin_Base {
         if (!is_array($missing) || !$missing) return;
         ?>
         <div class="notice notice-warning">
-            <p><strong>Périscolaire — contraintes de base de données non posées.</strong></p>
+            <p><strong><?php esc_html_e('Périscolaire — contraintes de base de données non posées.', 'periscolaire-registration'); ?></strong></p>
             <p>
-                Le site fonctionne, mais l'hébergement a refusé une modification de schéma ou des
-                données empêchent la pose des contraintes ci-dessous. La base ne garantit donc pas
-                elle-même la cohérence des données — la validation applicative reste la première
-                barrière.
+                <?php esc_html_e('Le site fonctionne, mais l\'hébergement a refusé une modification de schéma ou des données empêchent la pose des contraintes ci-dessous. La base ne garantit donc pas elle-même la cohérence des données — la validation applicative reste la première barrière.', 'periscolaire-registration'); ?>
             </p>
             <ul>
                 <?php foreach ($missing as $constraint) : ?>
@@ -240,10 +233,7 @@ class Psc_Admin extends Psc_Admin_Base {
                 <?php endforeach; ?>
             </ul>
             <p>
-                Une nouvelle tentative est faite à chaque ouverture du backoffice : cet
-                avertissement disparaîtra seul dès que la contrainte sera posée. S'il persiste,
-                la cause est côté hébergement (dépassement de quota, moteur de table non
-                transactionnel) ou une donnée à corriger dans la liste ci-dessus.
+                <?php esc_html_e('Une nouvelle tentative est faite à chaque ouverture du backoffice : cet avertissement disparaîtra seul dès que la contrainte sera posée. S\'il persiste, la cause est côté hébergement (dépassement de quota, moteur de table non transactionnel) ou une donnée à corriger dans la liste ci-dessus.', 'periscolaire-registration'); ?>
             </p>
         </div>
         <?php
@@ -258,10 +248,10 @@ class Psc_Admin extends Psc_Admin_Base {
 
         if ($type === 'fk') {
             $action = isset($constraint['action']) && $constraint['action'] === 'SET NULL'
-                ? 'mise à null à la suppression'
-                : 'suppression en cascade';
+                ? __('mise à null à la suppression', 'periscolaire-registration')
+                : __('suppression en cascade', 'periscolaire-registration');
             return sprintf(
-                'Clé étrangère %1$s.%2$s → %3$s (%4$s)',
+                __('Clé étrangère %1$s.%2$s → %3$s (%4$s)', 'periscolaire-registration'),
                 isset($constraint['table']) ? $constraint['table'] : '?',
                 isset($constraint['column']) ? $constraint['column'] : '?',
                 isset($constraint['ref']) ? $constraint['ref'] : '?',
@@ -270,10 +260,10 @@ class Psc_Admin extends Psc_Admin_Base {
         }
 
         if ($type === 'check' && isset($constraint['reason']) && $constraint['reason'] === 'dirty') {
-            return 'Contrainte CHECK sur registrations.service : des lignes portent une prestation inconnue de la liste actuelle, à corriger avant la pose.';
+            return __('Contrainte CHECK sur registrations.service : des lignes portent une prestation inconnue de la liste actuelle, à corriger avant la pose.', 'periscolaire-registration');
         }
 
-        return 'Contrainte CHECK sur registrations.service (codes de prestation autorisés).';
+        return __('Contrainte CHECK sur registrations.service (codes de prestation autorisés).', 'periscolaire-registration');
     }
 
     /**
@@ -304,8 +294,8 @@ class Psc_Admin extends Psc_Admin_Base {
         $pending = Psc_Requests::pending_count();
         $todos[] = array(
             'label' => $pending > 0
-                ? sprintf('%d demande(s) d\'inscription en attente de traitement', $pending)
-                : 'Aucune demande d\'inscription en attente',
+                ? sprintf(__('%d demande(s) d\'inscription en attente de traitement', 'periscolaire-registration'), $pending)
+                : __('Aucune demande d\'inscription en attente', 'periscolaire-registration'),
             'done'  => $pending === 0,
             'url'   => admin_url('admin.php?page=psc_requests'),
         );
@@ -326,9 +316,9 @@ class Psc_Admin extends Psc_Admin_Base {
         $menu_sent = $menu && $menu->sent_at;
         $todos[] = array(
             'label' => sprintf(
-                'Menu de cantine — semaine du %s : %s',
+                __('Menu de cantine — semaine du %s : %s', 'periscolaire-registration'),
                 $next_week_label,
-                $menu_sent ? 'envoyé' : ($menu_has_content ? 'saisi, pas encore envoyé' : 'pas encore saisi')
+                $menu_sent ? __('envoyé', 'periscolaire-registration') : ($menu_has_content ? __('saisi, pas encore envoyé', 'periscolaire-registration') : __('pas encore saisi', 'periscolaire-registration'))
             ),
             'done' => (bool) $menu_sent,
             'url'  => admin_url('admin.php?page=psc_menus'),
@@ -339,9 +329,9 @@ class Psc_Admin extends Psc_Admin_Base {
         ));
         $todos[] = array(
             'label' => sprintf(
-                'Commande fournisseur — semaine du %s : %s',
+                __('Commande fournisseur — semaine du %s : %s', 'periscolaire-registration'),
                 $next_week_label,
-                $order_sent ? 'envoyée' : 'pas encore envoyée'
+                $order_sent ? __('envoyée', 'periscolaire-registration') : __('pas encore envoyée', 'periscolaire-registration')
             ),
             'done' => (bool) $order_sent,
             'url'  => admin_url('admin.php?page=psc_supplier_orders&semaine_debut=' . $next_week),
@@ -350,7 +340,7 @@ class Psc_Admin extends Psc_Admin_Base {
         $trimestre = Psc_Trimestres::active();
         if (!$trimestre) {
             $todos[] = array(
-                'label' => 'Aucun trimestre actif — créez-en un pour ouvrir les inscriptions',
+                'label' => __('Aucun trimestre actif — créez-en un pour ouvrir les inscriptions', 'periscolaire-registration'),
                 'done'  => false,
                 'url'   => admin_url('admin.php?page=psc_trimestres'),
             );
@@ -359,8 +349,8 @@ class Psc_Admin extends Psc_Admin_Base {
             if ($days_left <= 14) {
                 $todos[] = array(
                     'label' => $days_left >= 0
-                        ? sprintf('Le trimestre actif se termine dans %d jour(s) — pensez à préparer le suivant', $days_left)
-                        : 'Le trimestre actif est terminé — pensez à en activer un nouveau',
+                        ? sprintf(__('Le trimestre actif se termine dans %d jour(s) — pensez à préparer le suivant', 'periscolaire-registration'), $days_left)
+                        : __('Le trimestre actif est terminé — pensez à en activer un nouveau', 'periscolaire-registration'),
                     'done' => false,
                     'url'  => admin_url('admin.php?page=psc_trimestres'),
                 );

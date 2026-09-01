@@ -3,7 +3,7 @@
 
   <?php if (empty($parent->onboarding_seen_at)): ?>
   <div class="psc-portal-modal-overlay psc-onboarding-overlay" id="psc-onboarding-overlay" data-testid="onboarding-overlay">
-    <div class="psc-portal-modal psc-onboarding-modal" role="dialog" aria-modal="true" aria-label="Découverte de votre espace" tabindex="-1">
+    <div class="psc-portal-modal psc-onboarding-modal" role="dialog" aria-modal="true" aria-label="<?php esc_attr_e('Découverte de votre espace', 'periscolaire-registration'); ?>" tabindex="-1">
       <div class="psc-onboarding-dots" data-testid="onboarding-dots">
         <span class="psc-onboarding-dot is-active"></span>
         <span class="psc-onboarding-dot"></span>
@@ -13,28 +13,28 @@
       </div>
 
       <div class="psc-onboarding-step is-active" data-step="1">
-        <p class="psc-portal-modal-title">Bienvenue dans votre espace famille</p>
-        <p class="psc-onboarding-text">Cet espace vous permet de gérer au quotidien la garderie, la cantine et les informations de vos enfants, sans avoir à contacter la mairie. Ce petit tour en 5 étapes vous montre l'essentiel.</p>
+        <p class="psc-portal-modal-title"><?php esc_html_e('Bienvenue dans votre espace famille', 'periscolaire-registration'); ?></p>
+        <p class="psc-onboarding-text"><?php esc_html_e("Cet espace vous permet de gérer au quotidien la garderie, la cantine et les informations de vos enfants, sans avoir à contacter la mairie. Ce petit tour en 5 étapes vous montre l'essentiel.", 'periscolaire-registration'); ?></p>
       </div>
 
       <div class="psc-onboarding-step" data-step="2">
-        <p class="psc-portal-modal-title">Cantine &amp; Garderie</p>
-        <p class="psc-onboarding-text">Cochez les jours de garderie matin, cantine et garderie soir directement dans le calendrier : chaque case est enregistrée immédiatement, sans bouton « Envoyer » à chercher. Vous pouvez aussi annuler rapidement une prestation depuis le tableau de bord si un jour ne convient plus.</p>
+        <p class="psc-portal-modal-title"><?php esc_html_e('Cantine & Garderie', 'periscolaire-registration'); ?></p>
+        <p class="psc-onboarding-text"><?php esc_html_e('Cochez les jours de garderie matin, cantine et garderie soir directement dans le calendrier : chaque case est enregistrée immédiatement, sans bouton « Envoyer » à chercher. Vous pouvez aussi annuler rapidement une prestation depuis le tableau de bord si un jour ne convient plus.', 'periscolaire-registration'); ?></p>
       </div>
 
       <div class="psc-onboarding-step" data-step="3">
-        <p class="psc-portal-modal-title">Mes enfants</p>
-        <p class="psc-onboarding-text">Ajoutez un enfant, déposez son justificatif d'assurance scolaire, et déclarez les personnes autorisées à venir le récupérer au départ de la <strong>garderie du soir</strong> — vous et l'autre parent y figurez toujours automatiquement.</p>
+        <p class="psc-portal-modal-title"><?php esc_html_e('Mes enfants', 'periscolaire-registration'); ?></p>
+        <p class="psc-onboarding-text"><?php esc_html_e("Ajoutez un enfant, déposez son justificatif d'assurance scolaire, et déclarez les personnes autorisées à venir le récupérer au départ de la", 'periscolaire-registration'); ?> <strong><?php esc_html_e('garderie du soir', 'periscolaire-registration'); ?></strong> <?php esc_html_e(' — vous et l\'autre parent y figurez toujours automatiquement.', 'periscolaire-registration'); ?></p>
       </div>
 
       <div class="psc-onboarding-step" data-step="4">
-        <p class="psc-portal-modal-title">Mon profil</p>
-        <p class="psc-onboarding-text">Tenez vos coordonnées à jour, et ajoutez un second parent si besoin : une fois renseigné, il pourra se connecter à cet espace avec sa propre adresse e-mail et agir exactement comme vous — aucune action supplémentaire à faire de votre côté.</p>
+        <p class="psc-portal-modal-title"><?php esc_html_e('Mon profil', 'periscolaire-registration'); ?></p>
+        <p class="psc-onboarding-text"><?php esc_html_e('Tenez vos coordonnées à jour, et ajoutez un second parent si besoin : une fois renseigné, il pourra se connecter à cet espace avec sa propre adresse e-mail et agir exactement comme vous — aucune action supplémentaire à faire de votre côté.', 'periscolaire-registration'); ?></p>
       </div>
 
       <div class="psc-onboarding-step" data-step="5">
-        <p class="psc-portal-modal-title">Mes factures &amp; Documents</p>
-        <p class="psc-onboarding-text">Retrouvez vos factures mensuelles et leur statut de paiement, ainsi que le règlement intérieur et les autres documents mis à disposition par la mairie. Vous êtes prêt·e — bonne visite !</p>
+        <p class="psc-portal-modal-title"><?php esc_html_e('Mes factures & Documents', 'periscolaire-registration'); ?></p>
+        <p class="psc-onboarding-text"><?php esc_html_e('Retrouvez vos factures mensuelles et leur statut de paiement, ainsi que le règlement intérieur et les autres documents mis à disposition par la mairie. Vous êtes prêt·e — bonne visite !', 'periscolaire-registration'); ?></p>
       </div>
 
       <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="psc-onboarding-dismiss-form">
@@ -43,10 +43,10 @@
       </form>
 
       <div class="psc-portal-modal-actions psc-onboarding-actions">
-        <button type="button" class="psc-portal-btn-outline-ink" id="psc-onboarding-skip" data-testid="onboarding-skip">Passer</button>
+        <button type="button" class="psc-portal-btn-outline-ink" id="psc-onboarding-skip" data-testid="onboarding-skip"><?php esc_html_e('Passer', 'periscolaire-registration'); ?></button>
         <div class="psc-onboarding-nav-right">
-          <button type="button" class="psc-portal-btn-outline-ink" id="psc-onboarding-prev" data-testid="onboarding-prev" hidden>Précédent</button>
-          <button type="button" class="psc-portal-btn-gold" id="psc-onboarding-next" data-testid="onboarding-next">Suivant</button>
+          <button type="button" class="psc-portal-btn-outline-ink" id="psc-onboarding-prev" data-testid="onboarding-prev" hidden><?php esc_html_e('Précédent', 'periscolaire-registration'); ?></button>
+          <button type="button" class="psc-portal-btn-gold" id="psc-onboarding-next" data-testid="onboarding-next"><?php esc_html_e('Suivant', 'periscolaire-registration'); ?></button>
         </div>
       </div>
     </div>
@@ -54,7 +54,7 @@
   <?php endif; ?>
 
   <aside class="psc-portal-sidebar">
-    <div class="psc-portal-section-label">Espace familles</div>
+    <div class="psc-portal-section-label"><?php esc_html_e('Espace familles', 'periscolaire-registration'); ?></div>
 
     <nav class="psc-portal-nav" data-testid="portal-nav">
       <?php foreach ($psc_portal_tabs as $tab_key => $tab): ?>
@@ -69,12 +69,12 @@
     </nav>
 
     <div class="psc-portal-account" data-testid="account-bar">
-      <div class="psc-portal-account-label">Connecté avec</div>
+      <div class="psc-portal-account-label"><?php esc_html_e('Connecté avec', 'periscolaire-registration'); ?></div>
       <div class="psc-portal-account-email" data-testid="account-email"><?php echo esc_html($parent->email); ?></div>
       <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
         <?php wp_nonce_field('psc_logout'); ?>
         <input type="hidden" name="action" value="psc_logout">
-        <button type="submit" class="psc-portal-account-logout" data-testid="logout-button">Se déconnecter</button>
+        <button type="submit" class="psc-portal-account-logout" data-testid="logout-button"><?php esc_html_e('Se déconnecter', 'periscolaire-registration'); ?></button>
       </form>
     </div>
   </aside>
@@ -82,48 +82,48 @@
   <main class="psc-portal-main">
     <?php
     $psc_notices = array(
-        'welcome'           => array('ok',  'Vous êtes connecté.'),
-        'child_updated'     => array('ok',  'Informations de l\'enfant mises à jour.'),
-        'child_added'       => array('ok',  'Enfant ajouté à votre compte.'),
-        'child_invalid'     => array('err', 'Merci de renseigner le prénom et le nom.'),
-        'child_limit'       => array('err', 'Nombre maximum d\'enfants atteint.'),
-        'absence_cancelled' => array('ok',  'Absence signalée : la mairie a été prévenue, ces prestations ne seront pas facturées.'),
-        'absence_invalid'   => array('err', 'Impossible d\'annuler ces prestations (délai dépassé, déjà annulées ou sélection invalide). Rechargez la page.'),
+        'welcome'           => array('ok',  __('Vous êtes connecté.', 'periscolaire-registration')),
+        'child_updated'     => array('ok',  __("Informations de l'enfant mises à jour.", 'periscolaire-registration')),
+        'child_added'       => array('ok',  __('Enfant ajouté à votre compte.', 'periscolaire-registration')),
+        'child_invalid'     => array('err', __('Merci de renseigner le prénom et le nom.', 'periscolaire-registration')),
+        'child_limit'       => array('err', __("Nombre maximum d'enfants atteint.", 'periscolaire-registration')),
+        'absence_cancelled' => array('ok',  __('Absence signalée : la mairie a été prévenue, ces prestations ne seront pas facturées.', 'periscolaire-registration')),
+        'absence_invalid'   => array('err', __("Impossible d'annuler ces prestations (délai dépassé, déjà annulées ou sélection invalide). Rechargez la page.", 'periscolaire-registration')),
 
-        'assurance_uploaded'      => array('ok',  'Justificatif d\'assurance scolaire enregistré.'),
-        'assurance_invalid'       => array('err', 'Enfant introuvable. Rechargez la page.'),
-        'assurance_upload_failed' => array('err', 'L\'envoi du fichier a échoué. Merci de réessayer.'),
-        'assurance_too_large'     => array('err', 'Le fichier dépasse la taille maximale autorisée (1 Mo).'),
-        'assurance_invalid_type'  => array('err', 'Format de fichier non accepté (PDF, JPG ou PNG uniquement).'),
-        'assurance_required'      => array('err', 'Le justificatif d\'assurance scolaire est obligatoire pour ajouter un enfant.'),
+        'assurance_uploaded'      => array('ok',  __("Justificatif d'assurance scolaire enregistré.", 'periscolaire-registration')),
+        'assurance_invalid'       => array('err', __('Enfant introuvable. Rechargez la page.', 'periscolaire-registration')),
+        'assurance_upload_failed' => array('err', __("L'envoi du fichier a échoué. Merci de réessayer.", 'periscolaire-registration')),
+        'assurance_too_large'     => array('err', __('Le fichier dépasse la taille maximale autorisée (1 Mo).', 'periscolaire-registration')),
+        'assurance_invalid_type'  => array('err', __('Format de fichier non accepté (PDF, JPG ou PNG uniquement).', 'periscolaire-registration')),
+        'assurance_required'      => array('err', __("Le justificatif d'assurance scolaire est obligatoire pour ajouter un enfant.", 'periscolaire-registration')),
 
-        'profil_updated'               => array('ok',  'Vos informations ont été mises à jour.'),
-        'profil_updated_email_pending' => array('ok',  'Informations mises à jour. Un e-mail de confirmation a été envoyé à votre nouvelle adresse : cliquez sur le lien qu\'il contient pour l\'activer.'),
-        'profil_error'                 => array('err', 'Certaines informations n\'ont pas pu être enregistrées. Vérifiez votre saisie.'),
-        'email_taken'                  => array('err', 'Cette adresse e-mail est déjà utilisée par une autre famille.'),
-        'email_changed'                => array('ok',  'Votre nouvelle adresse e-mail est confirmée : utilisez-la désormais pour vous connecter.'),
-        'email_change_cancelled'       => array('ok',  'Changement d\'adresse e-mail annulé.'),
-        'bad_email_token'              => array('err', 'Ce lien de confirmation n\'est pas valide.'),
-        'expired_email_token'          => array('err', 'Ce lien de confirmation a expiré. Refaites une demande depuis votre profil.'),
+        'profil_updated'               => array('ok',  __('Vos informations ont été mises à jour.', 'periscolaire-registration')),
+        'profil_updated_email_pending' => array('ok',  __("Informations mises à jour. Un e-mail de confirmation a été envoyé à votre nouvelle adresse : cliquez sur le lien qu'il contient pour l'activer.", 'periscolaire-registration')),
+        'profil_error'                 => array('err', __("Certaines informations n'ont pas pu être enregistrées. Vérifiez votre saisie.", 'periscolaire-registration')),
+        'email_taken'                  => array('err', __('Cette adresse e-mail est déjà utilisée par une autre famille.', 'periscolaire-registration')),
+        'email_changed'                => array('ok',  __('Votre nouvelle adresse e-mail est confirmée : utilisez-la désormais pour vous connecter.', 'periscolaire-registration')),
+        'email_change_cancelled'       => array('ok',  __("Changement d'adresse e-mail annulé.", 'periscolaire-registration')),
+        'bad_email_token'              => array('err', __("Ce lien de confirmation n'est pas valide.", 'periscolaire-registration')),
+        'expired_email_token'          => array('err', __('Ce lien de confirmation a expiré. Refaites une demande depuis votre profil.', 'periscolaire-registration')),
 
-        'reinscription_confirmee' => array('ok',  'Réinscription enregistrée. Merci !'),
-        'reinscription_invalid'   => array('err', 'La fenêtre de réinscription est fermée ou votre sélection est invalide.'),
-        'reinscription_required'  => array('err', 'Merci de confirmer le règlement intérieur et de fournir un justificatif d\'assurance pour chaque enfant réinscrit.'),
+        'reinscription_confirmee' => array('ok',  __('Réinscription enregistrée. Merci !', 'periscolaire-registration')),
+        'reinscription_invalid'   => array('err', __('La fenêtre de réinscription est fermée ou votre sélection est invalide.', 'periscolaire-registration')),
+        'reinscription_required'  => array('err', __("Merci de confirmer le règlement intérieur et de fournir un justificatif d'assurance pour chaque enfant réinscrit.", 'periscolaire-registration')),
 
-        'pickup_added'   => array('ok',  'Personne autorisée ajoutée (départ de garderie du soir).'),
-        'pickup_updated' => array('ok',  'Personne autorisée modifiée.'),
-        'pickup_removed' => array('ok',  'Personne retirée de la liste des personnes autorisées.'),
-        'pickup_invalid' => array('err', 'Nom, prénom et téléphone sont obligatoires, et l\'enfant doit être le vôtre.'),
+        'pickup_added'   => array('ok',  __('Personne autorisée ajoutée (départ de garderie du soir).', 'periscolaire-registration')),
+        'pickup_updated' => array('ok',  __('Personne autorisée modifiée.', 'periscolaire-registration')),
+        'pickup_removed' => array('ok',  __('Personne retirée de la liste des personnes autorisées.', 'periscolaire-registration')),
+        'pickup_invalid' => array('err', __("Nom, prénom et téléphone sont obligatoires, et l'enfant doit être le vôtre.", 'periscolaire-registration')),
 
-        'second_parent_updated'     => array('ok',  'Second parent enregistré.'),
-        'second_parent_removed'     => array('ok',  'Second parent retiré.'),
-        'second_parent_bad_email'   => array('err', 'L\'adresse e-mail du second parent n\'est pas valide.'),
-        'second_parent_bad_phone'   => array('err', 'Le numéro de téléphone du second parent n\'est pas valide.'),
-        'second_parent_email_taken' => array('err', 'Cette adresse e-mail est déjà utilisée par un autre foyer.'),
+        'second_parent_updated'     => array('ok',  __('Second parent enregistré.', 'periscolaire-registration')),
+        'second_parent_removed'     => array('ok',  __('Second parent retiré.', 'periscolaire-registration')),
+        'second_parent_bad_email'   => array('err', __("L'adresse e-mail du second parent n'est pas valide.", 'periscolaire-registration')),
+        'second_parent_bad_phone'   => array('err', __("Le numéro de téléphone du second parent n'est pas valide.", 'periscolaire-registration')),
+        'second_parent_email_taken' => array('err', __('Cette adresse e-mail est déjà utilisée par un autre foyer.', 'periscolaire-registration')),
 
-        'household_pickup_added'   => array('ok',  'Personne autorisée ajoutée (départ de garderie du soir).'),
-        'household_pickup_removed' => array('ok',  'Personne retirée de la liste des personnes autorisées.'),
-        'household_pickup_invalid' => array('err', 'Nom, prénom et téléphone sont obligatoires.'),
+        'household_pickup_added'   => array('ok',  __('Personne autorisée ajoutée (départ de garderie du soir).', 'periscolaire-registration')),
+        'household_pickup_removed' => array('ok',  __('Personne retirée de la liste des personnes autorisées.', 'periscolaire-registration')),
+        'household_pickup_invalid' => array('err', __('Nom, prénom et téléphone sont obligatoires.', 'periscolaire-registration')),
     );
     // Confirmations : popin auto-masquée (cf. assets/js/frontend.js).
     // Erreurs à corriger : bandeau classique, le temps de lire et d'agir.
@@ -135,7 +135,7 @@
       <?php if ($is_toast): ?>
       <div class="psc-notice psc-notice-<?php echo esc_attr($type); ?> psc-toast" role="status" data-testid="notice-<?php echo esc_attr($psc_msg); ?>">
         <span class="psc-toast-text"><?php echo esc_html($text); ?></span>
-        <button type="button" class="psc-toast-close" aria-label="Fermer">&times;</button>
+        <button type="button" class="psc-toast-close" aria-label="<?php esc_attr_e('Fermer', 'periscolaire-registration'); ?>">&times;</button>
       </div>
       <?php else: ?>
       <p class="psc-notice psc-notice-<?php echo esc_attr($type); ?>" data-testid="notice-<?php echo esc_attr($psc_msg); ?>"><?php echo esc_html($text); ?></p>

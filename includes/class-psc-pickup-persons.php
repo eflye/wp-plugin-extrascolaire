@@ -41,7 +41,7 @@ class Psc_Pickup_Persons {
      */
     public static function parent_entries($parent) {
         $list = array(array(
-            'role'      => 'Parent',
+            'role'      => __('Parent', 'periscolaire-registration'),
             'prenom'    => (string) $parent->prenom,
             'nom'       => (string) $parent->nom,
             'telephone' => (string) ($parent->telephone_mobile ?: $parent->telephone_fixe),
@@ -50,7 +50,7 @@ class Psc_Pickup_Persons {
         ));
         if ((string) $parent->second_parent_prenom !== '' || (string) $parent->second_parent_nom !== '') {
             $list[] = array(
-                'role'      => 'Parent',
+                'role'      => __('Parent', 'periscolaire-registration'),
                 'prenom'    => (string) $parent->second_parent_prenom,
                 'nom'       => (string) $parent->second_parent_nom,
                 'telephone' => (string) $parent->second_parent_telephone,
@@ -161,11 +161,11 @@ class Psc_Pickup_Persons {
     public static function add($child_id, $fields, $source, $actor_parent_id = null) {
         global $wpdb;
         $child_id = absint($child_id);
-        if (!$child_id) return new WP_Error('psc_invalid', 'Enfant invalide.');
+        if (!$child_id) return new WP_Error('psc_invalid', __('Enfant invalide.', 'periscolaire-registration'));
 
         $clean = self::sanitize_fields($fields);
         if (!self::is_valid($clean)) {
-            return new WP_Error('psc_invalid', 'Nom, prénom et téléphone sont obligatoires.');
+            return new WP_Error('psc_invalid', __('Nom, prénom et téléphone sont obligatoires.', 'periscolaire-registration'));
         }
 
         $t_pickup = psc_table('pickup_persons');
@@ -173,7 +173,7 @@ class Psc_Pickup_Persons {
             "SELECT COUNT(*) FROM $t_pickup WHERE child_id = %d AND statut = 'active'", $child_id
         ));
         if ($count >= psc_max_pickup_persons_per_child()) {
-            return new WP_Error('psc_limit', 'Nombre maximum de personnes autorisées atteint pour cet enfant.');
+            return new WP_Error('psc_limit', __('Nombre maximum de personnes autorisées atteint pour cet enfant.', 'periscolaire-registration'));
         }
 
         $now = current_time('mysql');
@@ -185,7 +185,7 @@ class Psc_Pickup_Persons {
         )), array('%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s'));
 
         $person_id = (int) $wpdb->insert_id;
-        if (!$person_id) return new WP_Error('psc_failed', "Échec de l'enregistrement.");
+        if (!$person_id) return new WP_Error('psc_failed', __("Échec de l'enregistrement.", 'periscolaire-registration'));
 
         self::log($child_id, $person_id, 'ajout', $clean, $source, $actor_parent_id);
         return $person_id;
@@ -200,12 +200,12 @@ class Psc_Pickup_Persons {
         global $wpdb;
         $person = self::get($person_id);
         if (!$person || $person->statut !== 'active') {
-            return new WP_Error('psc_invalid', 'Personne introuvable ou déjà retirée.');
+            return new WP_Error('psc_invalid', __('Personne introuvable ou déjà retirée.', 'periscolaire-registration'));
         }
 
         $clean = self::sanitize_fields($fields);
         if (!self::is_valid($clean)) {
-            return new WP_Error('psc_invalid', 'Nom, prénom et téléphone sont obligatoires.');
+            return new WP_Error('psc_invalid', __('Nom, prénom et téléphone sont obligatoires.', 'periscolaire-registration'));
         }
 
         $wpdb->update(
@@ -231,7 +231,7 @@ class Psc_Pickup_Persons {
         global $wpdb;
         $person = self::get($person_id);
         if (!$person || $person->statut !== 'active') {
-            return new WP_Error('psc_invalid', 'Personne introuvable ou déjà retirée.');
+            return new WP_Error('psc_invalid', __('Personne introuvable ou déjà retirée.', 'periscolaire-registration'));
         }
 
         $actor = self::resolve_actor($source, $actor_parent_id);

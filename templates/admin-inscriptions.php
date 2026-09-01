@@ -1,21 +1,21 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="wrap psc-admin">
-<h1>Présences déclarées</h1>
+<h1><?php esc_html_e('Présences déclarées', 'periscolaire-registration'); ?></h1>
 
 <?php
 psc_admin_notice_map(array(
-    'saved'   => array('success', 'Planning mis à jour. Un récapitulatif a été envoyé par e-mail à la famille.'),
-    'invalid' => array('error', 'Paramètres invalides.'),
+    'saved'   => array('success', __('Planning mis à jour. Un récapitulatif a été envoyé par e-mail à la famille.', 'periscolaire-registration')),
+    'invalid' => array('error', __('Paramètres invalides.', 'periscolaire-registration')),
 ), $psc_msg);
 ?>
 
 <div class="psc-box">
-<p>Sélectionnez une famille et une période pour consulter ou corriger ses inscriptions. Un e-mail de notification est envoyé à la famille à chaque enregistrement.</p>
+<p><?php esc_html_e('Sélectionnez une famille et une période pour consulter ou corriger ses inscriptions. Un e-mail de notification est envoyé à la famille à chaque enregistrement.', 'periscolaire-registration'); ?></p>
 <form method="get" class="psc-filters" id="psc-insc-filter">
 <input type="hidden" name="page" value="psc_inscriptions">
-<label>Famille :
+<label><?php esc_html_e('Famille :', 'periscolaire-registration'); ?>
 <select name="parent_id" onchange="this.form.submit()">
-<option value="">— Choisir —</option>
+<option value=""><?php esc_html_e('— Choisir —', 'periscolaire-registration'); ?></option>
 <?php foreach ($parents as $p): ?>
 <option value="<?php echo esc_attr($p->id); ?>" <?php selected($parent_id, $p->id); ?>>
   <?php echo esc_html(($p->nom ? $p->nom . ' — ' : '') . $p->email); ?>
@@ -24,7 +24,7 @@ psc_admin_notice_map(array(
 </select>
 </label>
 &nbsp;
-<label>Période :
+<label><?php esc_html_e('Période :', 'periscolaire-registration'); ?>
 <select name="trimestre_id" onchange="this.form.submit()">
 <?php foreach ($trimestres as $t): ?>
 <option value="<?php echo esc_attr($t->id); ?>" <?php selected($trimestre_id, $t->id); ?>><?php echo esc_html($t->label); ?></option>
@@ -32,21 +32,21 @@ psc_admin_notice_map(array(
 </select>
 </label>
 &nbsp;
-<a class="button" href="<?php echo esc_url(wp_nonce_url(add_query_arg(array('action' => 'psc_export_csv', 'trimestre_id' => $trimestre_id), admin_url('admin-post.php')), 'psc_export_csv')); ?>">Exporter CSV</a>
+<a class="button" href="<?php echo esc_url(wp_nonce_url(add_query_arg(array('action' => 'psc_export_csv', 'trimestre_id' => $trimestre_id), admin_url('admin-post.php')), 'psc_export_csv')); ?>"><?php esc_html_e('Exporter CSV', 'periscolaire-registration'); ?></a>
 </form>
 </div>
 
 <?php if (!$selected_parent): ?>
-<p class="description">Choisissez une famille dans la liste ci-dessus pour afficher et modifier son planning.</p>
+<p class="description"><?php esc_html_e('Choisissez une famille dans la liste ci-dessus pour afficher et modifier son planning.', 'periscolaire-registration'); ?></p>
 
 <?php elseif (empty($children)): ?>
 <div class="psc-box">
-<p>Cette famille n'a aucun enfant rattaché. <a href="<?php echo esc_url(admin_url('admin.php?page=psc_children')); ?>">Gérer les enfants</a></p>
+<p><?php esc_html_e("Cette famille n'a aucun enfant rattaché.", 'periscolaire-registration'); ?> <a href="<?php echo esc_url(admin_url('admin.php?page=psc_children')); ?>"><?php esc_html_e('Gérer les enfants', 'periscolaire-registration'); ?></a></p>
 </div>
 
 <?php elseif (empty($days_by_month)): ?>
 <div class="psc-box">
-<p>Aucun jour ouvert pour cette période.</p>
+<p><?php esc_html_e('Aucun jour ouvert pour cette période.', 'periscolaire-registration'); ?></p>
 </div>
 
 <?php else: ?>
@@ -69,7 +69,7 @@ psc_admin_notice_map(array(
 <table class="psc-calendar widefat">
 <thead>
 <tr>
-<th>Jour</th>
+<th><?php esc_html_e('Jour', 'periscolaire-registration'); ?></th>
 <?php foreach (psc_allowed_services() as $code): ?>
 <th class="psc-center"><abbr class="psc-th-abbr" title="<?php echo esc_attr($services[$code]['label']); ?>"><?php echo esc_html($short[$code]); ?></abbr><br><small><?php echo esc_html(number_format_i18n($services[$code]['price'], 2)); ?> €</small></th>
 <?php endforeach; ?>
@@ -101,8 +101,8 @@ psc_admin_notice_map(array(
 <?php endforeach; ?>
 
 <p>
-<?php submit_button('Enregistrer et notifier la famille', 'primary', 'submit', false); ?>
-<span style="margin-left:8px;color:#666;font-size:13px;">Un e-mail récapitulatif sera envoyé à <strong><?php echo esc_html($selected_parent->email); ?></strong>.</span>
+<?php submit_button(__('Enregistrer et notifier la famille', 'periscolaire-registration'), 'primary', 'submit', false); ?>
+<span style="margin-left:8px;color:#666;font-size:13px;"><?php esc_html_e('Un e-mail récapitulatif sera envoyé à', 'periscolaire-registration'); ?> <strong><?php echo esc_html($selected_parent->email); ?></strong>.</span>
 </p>
 
 </form>

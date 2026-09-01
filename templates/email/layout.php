@@ -19,7 +19,7 @@
     <tr>
       <td style="background-color:#24405C;padding:22px 32px;">
         <p style="margin:0;color:#E08A5F;font-family:Helvetica,Arial,sans-serif;font-size:11px;font-weight:bold;letter-spacing:0.28em;text-transform:uppercase;">
-          Syndicat Intercommunal d'Intérêt Scolaire de Montgeroult – Courcelles
+          <?php esc_html_e("Syndicat Intercommunal d'Intérêt Scolaire de Montgeroult – Courcelles", 'periscolaire-registration'); ?>
         </p>
       </td>
     </tr>
@@ -47,7 +47,7 @@
     <tr>
       <td style="background-color:#FAF6F1;padding:18px 32px;border-top:1px solid #E5DCC3;">
         <p style="margin:0;color:#8B8279;font-family:Helvetica,Arial,sans-serif;font-size:11px;line-height:1.6;">
-          Ce message est envoyé automatiquement par <?php echo esc_html($site_name); ?> — merci de ne pas y répondre directement.<br>
+          <?php esc_html_e('Ce message est envoyé automatiquement par', 'periscolaire-registration'); ?> <?php echo esc_html($site_name); ?> <?php esc_html_e('— merci de ne pas y répondre directement.', 'periscolaire-registration'); ?><br>
           © <?php echo date('Y'); ?> <?php echo esc_html($site_name); ?>
         </p>
       </td>

@@ -1,34 +1,33 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="wrap psc-admin">
-<h1>Commande fournisseur</h1>
+<h1><?php esc_html_e('Commande fournisseur', 'periscolaire-registration'); ?></h1>
 
 <?php
 $psc_notices = array(
-    'sent'                    => array('updated',  'Commande envoyée au fournisseur.'),
-    'psc_invalid_week'        => array('error',    'Date de semaine invalide.'),
-    'psc_no_supplier_email'   => array('error',    "Aucune adresse e-mail fournisseur n'est configurée. Renseignez-la dans Périscolaire > Réglages."),
-    'psc_mail_failed'         => array('error',    "L'envoi du mail a échoué. Vérifiez la configuration e-mail."),
-    'error'                   => array('error',    'Une erreur est survenue.'),
-    'cantine_invalid'         => array('error',    'Date invalide.'),
-    'cantine_reason_required' => array('error',    'Merci d\'indiquer un motif.'),
-    'cantine_none'            => array('warning',  'Aucune inscription cantine trouvée pour cette classe ce jour-là.'),
-    'cantine_confirm_needed'  => array('warning',  'Confirmation nécessaire : des familles ont déjà déclaré cette cantine.'),
-    'cantine_dismissed'       => array('updated',  'Annulation abandonnée, rien n\'a été modifié.'),
-    'cantine_cancelled'       => array('updated',  'Cantine annulée pour la classe : ' . $cantine_n . ' inscription(s) supprimée(s), famille(s) prévenue(s) par e-mail.'),
+    'sent'                    => array('updated',  __('Commande envoyée au fournisseur.', 'periscolaire-registration')),
+    'psc_invalid_week'        => array('error',    __('Date de semaine invalide.', 'periscolaire-registration')),
+    'psc_no_supplier_email'   => array('error',    __("Aucune adresse e-mail fournisseur n'est configurée. Renseignez-la dans Périscolaire > Réglages.", 'periscolaire-registration')),
+    'psc_mail_failed'         => array('error',    __("L'envoi du mail a échoué. Vérifiez la configuration e-mail.", 'periscolaire-registration')),
+    'error'                   => array('error',    __('Une erreur est survenue.', 'periscolaire-registration')),
+    'cantine_invalid'         => array('error',    __('Date invalide.', 'periscolaire-registration')),
+    'cantine_reason_required' => array('error',    __("Merci d'indiquer un motif.", 'periscolaire-registration')),
+    'cantine_none'            => array('warning',  __('Aucune inscription cantine trouvée pour cette classe ce jour-là.', 'periscolaire-registration')),
+    'cantine_confirm_needed'  => array('warning',  __('Confirmation nécessaire : des familles ont déjà déclaré cette cantine.', 'periscolaire-registration')),
+    'cantine_dismissed'       => array('updated',  __("Annulation abandonnée, rien n'a été modifié.", 'periscolaire-registration')),
+    'cantine_cancelled'       => array('updated',  __('Cantine annulée pour la classe :', 'periscolaire-registration') . ' ' . $cantine_n . ' ' . __('inscription(s) supprimée(s), famille(s) prévenue(s) par e-mail.', 'periscolaire-registration')),
 );
 psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
 ?>
 
 <div class="psc-box">
 <p>
-    Nombre de repas de cantine par classe, pour la semaine choisie. L'envoi au fournisseur est toujours
-    manuel — aucun envoi automatique ni planifié.
+    <?php esc_html_e("Nombre de repas de cantine par classe, pour la semaine choisie. L'envoi au fournisseur est toujours manuel — aucun envoi automatique ni planifié.", 'periscolaire-registration'); ?>
 </p>
 <form method="get" style="display:flex;align-items:center;gap:10px;">
     <input type="hidden" name="page" value="psc_supplier_orders">
-    <label for="psc-sup-week"><strong>Semaine du</strong></label>
+    <label for="psc-sup-week"><strong><?php esc_html_e('Semaine du', 'periscolaire-registration'); ?></strong></label>
     <input id="psc-sup-week" type="date" name="semaine_debut" value="<?php echo esc_attr($preview['semaine_debut'] ?? ''); ?>" data-testid="supplier-week-input">
-    <button type="submit" class="button" data-testid="supplier-refresh-button">Actualiser l'aperçu</button>
+    <button type="submit" class="button" data-testid="supplier-refresh-button"><?php esc_html_e("Actualiser l'aperçu", 'periscolaire-registration'); ?></button>
 </form>
 </div>
 
@@ -36,23 +35,23 @@ psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
 <div class="psc-box"><p><?php echo esc_html($preview->get_error_message()); ?></p></div>
 <?php else: ?>
 <div class="psc-box" data-testid="supplier-preview">
-<h2>Aperçu — semaine du <?php echo esc_html(date_i18n('d/m/Y', strtotime($preview['semaine_debut']))); ?></h2>
+<h2><?php esc_html_e('Aperçu — semaine du', 'periscolaire-registration'); ?> <?php echo esc_html(date_i18n('d/m/Y', strtotime($preview['semaine_debut']))); ?></h2>
 
 <?php if (empty($preview['jours'])): ?>
-<p data-testid="supplier-preview-empty"><em>Aucun jour d'école cette semaine-là (vacances scolaires ou jour férié) — pas de service cantine, rien à commander.</em></p>
+<p data-testid="supplier-preview-empty"><em><?php esc_html_e("Aucun jour d'école cette semaine-là (vacances scolaires ou jour férié) — pas de service cantine, rien à commander.", 'periscolaire-registration'); ?></em></p>
 <?php else: ?>
 
 <?php if (empty($preview['classes'])): ?>
-<p data-testid="supplier-preview-empty">Aucun repas de cantine déclaré pour cette semaine.</p>
+<p data-testid="supplier-preview-empty"><?php esc_html_e('Aucun repas de cantine déclaré pour cette semaine.', 'periscolaire-registration'); ?></p>
 <?php else: ?>
 <table class="widefat striped psc-recap">
 <thead>
 <tr>
-    <th>Classe</th>
+    <th><?php esc_html_e('Classe', 'periscolaire-registration'); ?></th>
     <?php foreach (array_keys($preview['jours']) as $jour): ?>
     <th style="text-align:center"><?php echo esc_html(Psc_Supplier_Orders::jour_labels()[$jour]); ?><br><small><?php echo esc_html(date_i18n('d/m', strtotime($preview['jours'][$jour]))); ?></small></th>
     <?php endforeach; ?>
-    <th style="text-align:center">Total</th>
+    <th style="text-align:center"><?php esc_html_e('Total', 'periscolaire-registration'); ?></th>
 </tr>
 </thead>
 <tbody>
@@ -72,7 +71,7 @@ psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
 </tbody>
 <tfoot>
 <tr>
-    <th>TOTAL</th>
+    <th><?php esc_html_e('TOTAL', 'periscolaire-registration'); ?></th>
     <?php foreach (array_keys($preview['jours']) as $jour): ?>
     <th style="text-align:center" data-testid="supplier-total-jour-<?php echo esc_attr($jour); ?>"><?php echo (int) $preview['totaux_jour'][$jour]; ?></th>
     <?php endforeach; ?>
@@ -87,8 +86,8 @@ psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
     <input type="hidden" name="action" value="psc_send_supplier_order">
     <input type="hidden" name="semaine_debut" value="<?php echo esc_attr($preview['semaine_debut']); ?>">
     <button type="submit" class="button button-primary" data-testid="supplier-send-button"
-            onclick="return confirm('Envoyer la commande de <?php echo (int) $preview['total']; ?> repas au fournisseur ?');">
-        &#9993; Envoyer au fournisseur (<?php echo (int) $preview['total']; ?> repas)
+            onclick="return confirm('<?php echo esc_js(__('Envoyer la commande de', 'periscolaire-registration')); ?> <?php echo (int) $preview['total']; ?> <?php echo esc_js(__('repas au fournisseur ?', 'periscolaire-registration')); ?>');">
+        &#9993; <?php esc_html_e('Envoyer au fournisseur (', 'periscolaire-registration'); ?><?php echo (int) $preview['total']; ?> <?php esc_html_e('repas)', 'periscolaire-registration'); ?>
     </button>
 </form>
 <?php endif; ?>
@@ -97,15 +96,14 @@ psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
 
 <?php if ($pending_cantine): ?>
 <div class="psc-box" style="border-left:4px solid #f5a623;" data-testid="cantine-pending-warning">
-<h2>⚠ Confirmation nécessaire</h2>
+<h2>⚠ <?php esc_html_e('Confirmation nécessaire', 'periscolaire-registration'); ?></h2>
 <p>
-    Annuler la cantine de la classe <strong><?php echo esc_html($pending_cantine['classe'] !== '' ? (Psc_School_Years::classe_options()[$pending_cantine['classe']] ?? $pending_cantine['classe']) : 'Non renseignée'); ?></strong>
-    le <strong><?php echo esc_html(psc_day_label($pending_cantine['date']) . ' ' . date_i18n('d/m/Y', strtotime($pending_cantine['date']))); ?></strong>
-    supprimera <strong><?php echo count($pending_cantine_affected); ?> inscription(s)</strong> déjà déclarée(s). Ces prestations ne seront
-    pas facturées, et chaque famille concernée recevra un e-mail avec le motif indiqué : «&nbsp;<?php echo esc_html($pending_cantine['reason']); ?>&nbsp;».
+    <?php esc_html_e('Annuler la cantine de la classe', 'periscolaire-registration'); ?> <strong><?php echo esc_html($pending_cantine['classe'] !== '' ? (Psc_School_Years::classe_options()[$pending_cantine['classe']] ?? $pending_cantine['classe']) : __('Non renseignée', 'periscolaire-registration')); ?></strong>
+    <?php esc_html_e('le', 'periscolaire-registration'); ?> <strong><?php echo esc_html(psc_day_label($pending_cantine['date']) . ' ' . date_i18n('d/m/Y', strtotime($pending_cantine['date']))); ?></strong>
+    <?php esc_html_e('supprimera', 'periscolaire-registration'); ?> <strong><?php echo count($pending_cantine_affected); ?> <?php esc_html_e('inscription(s)', 'periscolaire-registration'); ?></strong> <?php esc_html_e('déjà déclarée(s). Ces prestations ne seront pas facturées, et chaque famille concernée recevra un e-mail avec le motif indiqué :', 'periscolaire-registration'); ?> «&nbsp;<?php echo esc_html($pending_cantine['reason']); ?>&nbsp;».
 </p>
 <table class="widefat striped" style="margin-bottom:16px;">
-<thead><tr><th>Famille</th><th>Enfant</th></tr></thead>
+<thead><tr><th><?php esc_html_e('Famille', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Enfant', 'periscolaire-registration'); ?></th></tr></thead>
 <tbody>
 <?php foreach ($pending_cantine_affected as $row): ?>
 <tr>
@@ -122,58 +120,58 @@ psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
 <input type="hidden" name="classe" value="<?php echo esc_attr($pending_cantine['classe']); ?>">
 <input type="hidden" name="reason" value="<?php echo esc_attr($pending_cantine['reason']); ?>">
 <input type="hidden" name="confirm" value="1">
-<button type="submit" class="button button-primary" data-testid="cantine-confirm-button">Confirmer l'annulation</button>
+<button type="submit" class="button button-primary" data-testid="cantine-confirm-button"><?php esc_html_e("Confirmer l'annulation", 'periscolaire-registration'); ?></button>
 </form>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline-block;">
 <?php wp_nonce_field('psc_dismiss_cancel_class_meals'); ?>
 <input type="hidden" name="action" value="psc_dismiss_cancel_class_meals">
-<button type="submit" class="button" data-testid="cantine-dismiss-button">Annuler</button>
+<button type="submit" class="button" data-testid="cantine-dismiss-button"><?php esc_html_e('Annuler', 'periscolaire-registration'); ?></button>
 </form>
 </div>
 <?php endif; ?>
 
 <div class="psc-box">
-<h2>Annuler la cantine pour une classe</h2>
-<p>Sortie scolaire ou fermeture ponctuelle touchant une classe entière — usage exceptionnel. Les familles concernées sont prévenues par e-mail avec le motif indiqué.</p>
+<h2><?php esc_html_e('Annuler la cantine pour une classe', 'periscolaire-registration'); ?></h2>
+<p><?php esc_html_e('Sortie scolaire ou fermeture ponctuelle touchant une classe entière — usage exceptionnel. Les familles concernées sont prévenues par e-mail avec le motif indiqué.', 'periscolaire-registration'); ?></p>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
 <?php wp_nonce_field('psc_cancel_class_meals'); ?>
 <input type="hidden" name="action" value="psc_cancel_class_meals">
 <table class="form-table">
 <tr>
-<th><label for="psc-cantine-date">Jour</label></th>
+<th><label for="psc-cantine-date"><?php esc_html_e('Jour', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-cantine-date" type="date" name="date" required data-testid="cantine-date-input"></td>
 </tr>
 <tr>
-<th><label for="psc-cantine-classe">Classe</label></th>
+<th><label for="psc-cantine-classe"><?php esc_html_e('Classe', 'periscolaire-registration'); ?></label></th>
 <td>
 <select id="psc-cantine-classe" name="classe" data-testid="cantine-classe-select">
 <?php foreach (Psc_School_Years::classe_options() as $code => $label): ?>
-<option value="<?php echo esc_attr($code); ?>"><?php echo esc_html($label ?: 'Non renseignée'); ?></option>
+<option value="<?php echo esc_attr($code); ?>"><?php echo esc_html($label ?: __('Non renseignée', 'periscolaire-registration')); ?></option>
 <?php endforeach; ?>
 </select>
 </td>
 </tr>
 <tr>
-<th><label for="psc-cantine-reason">Motif</label></th>
-<td><textarea id="psc-cantine-reason" name="reason" rows="2" class="large-text" maxlength="500" required placeholder="Ex : Sortie scolaire à la ferme pédagogique" data-testid="cantine-reason-input"></textarea></td>
+<th><label for="psc-cantine-reason"><?php esc_html_e('Motif', 'periscolaire-registration'); ?></label></th>
+<td><textarea id="psc-cantine-reason" name="reason" rows="2" class="large-text" maxlength="500" required placeholder="<?php esc_attr_e('Ex : Sortie scolaire à la ferme pédagogique', 'periscolaire-registration'); ?>" data-testid="cantine-reason-input"></textarea></td>
 </tr>
 </table>
-<?php submit_button('Annuler la cantine', 'secondary', 'submit', false, array('data-testid' => 'cantine-cancel-submit')); ?>
+<?php submit_button(__('Annuler la cantine', 'periscolaire-registration'), 'secondary', 'submit', false, array('data-testid' => 'cantine-cancel-submit')); ?>
 </form>
 </div>
 
 <div class="psc-box">
-<h2>Historique des envois</h2>
+<h2><?php esc_html_e('Historique des envois', 'periscolaire-registration'); ?></h2>
 <?php if (empty($recent)): ?>
-<p data-testid="supplier-history-empty">Aucune commande envoyée pour le moment.</p>
+<p data-testid="supplier-history-empty"><?php esc_html_e('Aucune commande envoyée pour le moment.', 'periscolaire-registration'); ?></p>
 <?php else: ?>
 <table class="widefat striped" data-testid="supplier-history-table">
 <thead>
 <tr>
-    <th>Semaine</th>
-    <th>Total repas</th>
-    <th>Destinataire</th>
-    <th>Envoyée le</th>
+    <th><?php esc_html_e('Semaine', 'periscolaire-registration'); ?></th>
+    <th><?php esc_html_e('Total repas', 'periscolaire-registration'); ?></th>
+    <th><?php esc_html_e('Destinataire', 'periscolaire-registration'); ?></th>
+    <th><?php esc_html_e('Envoyée le', 'periscolaire-registration'); ?></th>
     <th></th>
 </tr>
 </thead>
@@ -186,9 +184,9 @@ psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
     <td data-testid="supplier-history-date-<?php echo esc_attr($h->id); ?>"><?php echo esc_html(date_i18n('d/m/Y H:i', strtotime($h->sent_at))); ?></td>
     <td>
         <details data-testid="supplier-history-details-<?php echo esc_attr($h->id); ?>">
-            <summary>Voir le contenu envoyé</summary>
-            <p><strong>Sujet :</strong> <span data-testid="supplier-history-subject-<?php echo esc_attr($h->id); ?>"><?php echo esc_html($h->email_subject); ?></span></p>
-            <iframe title="Contenu de l'e-mail envoyé le <?php echo esc_attr(date_i18n('d/m/Y H:i', strtotime($h->sent_at))); ?>"
+            <summary><?php esc_html_e('Voir le contenu envoyé', 'periscolaire-registration'); ?></summary>
+            <p><strong><?php esc_html_e('Sujet :', 'periscolaire-registration'); ?></strong> <span data-testid="supplier-history-subject-<?php echo esc_attr($h->id); ?>"><?php echo esc_html($h->email_subject); ?></span></p>
+            <iframe title="<?php esc_attr_e("Contenu de l'e-mail envoyé le", 'periscolaire-registration'); ?> <?php echo esc_attr(date_i18n('d/m/Y H:i', strtotime($h->sent_at))); ?>"
                     data-testid="supplier-history-iframe-<?php echo esc_attr($h->id); ?>"
                     srcdoc="<?php echo esc_attr($h->email_body); ?>"
                     style="width:100%;max-width:700px;height:420px;border:1px solid #dcdcde;margin-top:8px;"></iframe>

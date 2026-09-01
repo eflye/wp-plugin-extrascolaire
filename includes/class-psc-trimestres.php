@@ -90,15 +90,15 @@ class Psc_Trimestres {
         $fin   = psc_valid_date($date_fin);
 
         if ($label === '' || !$debut || !$fin) {
-            return new WP_Error('invalid_dates', 'Libellé ou dates invalides.');
+            return new WP_Error('invalid_dates', __('Libellé ou dates invalides.', 'periscolaire-registration'));
         }
         if (strtotime($fin) < strtotime($debut)) {
-            return new WP_Error('order_dates', 'La date de fin doit être postérieure à la date de début.');
+            return new WP_Error('order_dates', __('La date de fin doit être postérieure à la date de début.', 'periscolaire-registration'));
         }
         // Garde-fou : une faute de frappe sur l'année générerait des
         // millions de jours de calendrier.
         if ((strtotime($fin) - strtotime($debut)) / DAY_IN_SECONDS > psc_max_trimestre_days()) {
-            return new WP_Error('too_long', 'La période est trop longue.');
+            return new WP_Error('too_long', __('La période est trop longue.', 'periscolaire-registration'));
         }
 
         return array($label, $debut, $fin);
@@ -146,7 +146,7 @@ class Psc_Trimestres {
 
         $id = absint($id);
         if (!$id || !self::get($id)) {
-            return new WP_Error('invalid', 'Trimestre introuvable.');
+            return new WP_Error('invalid', __('Trimestre introuvable.', 'periscolaire-registration'));
         }
 
         $checked = self::validated($label, $date_debut, $date_fin);
@@ -201,10 +201,10 @@ class Psc_Trimestres {
 
         $trimestre = self::get($id);
         if (!$trimestre) {
-            return new WP_Error('invalid', 'Trimestre introuvable.');
+            return new WP_Error('invalid', __('Trimestre introuvable.', 'periscolaire-registration'));
         }
         if ($trimestre->active) {
-            return new WP_Error('active_trimestre', 'Impossible de supprimer le trimestre actif.');
+            return new WP_Error('active_trimestre', __('Impossible de supprimer le trimestre actif.', 'periscolaire-registration'));
         }
 
         $id = (int) $trimestre->id;

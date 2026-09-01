@@ -95,6 +95,59 @@ class Psc_Frontend extends Psc_Frontend_Base {
             'ajax_url'     => admin_url('admin-ajax.php'),
             'nonce'        => wp_create_nonce('psc_front'),
             'parent_nonce' => $psc_parent ? psc_parent_nonce('psc_front', $psc_parent->id) : '',
+            // Chaînes traduites côté serveur, consommées par frontend.js,
+            // guest.js et portal.js : les codes d'erreur restent ceux
+            // renvoyés par l'AJAX, seuls les libellés passent par ici.
+            'i18n'         => array(
+                'auth'              => __('Votre session a expiré. Rechargez la page pour demander un nouveau lien.', 'periscolaire-registration'),
+                'forbidden'         => __("Vous n'êtes pas autorisé à modifier cette inscription.", 'periscolaire-registration'),
+                'notfound'          => __('Enfant introuvable. Merci de recharger la page.', 'periscolaire-registration'),
+                'day_closed'        => __("Ce jour n'est pas ouvert aux inscriptions.", 'periscolaire-registration'),
+                'closed'            => __("Aucune période d'inscription n'est ouverte actuellement.", 'periscolaire-registration'),
+                'locked'            => __('Le délai de modification est dépassé pour ce jour. Contactez la mairie.', 'periscolaire-registration'),
+                'assurance_missing' => __('L\'assurance scolaire de cet enfant n\'a pas été fournie pour l\'année en cours. Ajoutez-la depuis « Mes enfants ».', 'periscolaire-registration'),
+                'service_closed'    => __('Cette prestation est fermée ce jour-là. Contactez la mairie.', 'periscolaire-registration'),
+                'service'           => __('Prestation inconnue.', 'periscolaire-registration'),
+                'invalid'           => __('Données invalides.', 'periscolaire-registration'),
+                'nochild'           => __('Aucun enfant rattaché à votre compte.', 'periscolaire-registration'),
+                'rate'              => __('Trop de demandes. Merci de patienter quelques minutes.', 'periscolaire-registration'),
+                'mail'              => __("L'envoi de l'e-mail a échoué.", 'periscolaire-registration'),
+                'network'           => __('Erreur réseau. Vérifiez votre connexion et réessayez.', 'periscolaire-registration'),
+                'generic'           => __("Une erreur est survenue. Merci de réessayer.", 'periscolaire-registration'),
+                'summary_none'      => __('Aucun jour déclaré', 'periscolaire-registration'),
+                'day'               => __('jour', 'periscolaire-registration'),
+                'days'              => __('jours', 'periscolaire-registration'),
+                'tout'              => __('Tout', 'periscolaire-registration'),
+                'remove'            => __('Retirer', 'periscolaire-registration'),
+                'sending'           => __('Envoi en cours...', 'periscolaire-registration'),
+                'summary_sent'      => __('Récapitulatif envoyé.', 'periscolaire-registration'),
+                'firstname'         => __('Prénom', 'periscolaire-registration'),
+                'lastname'          => __('Nom', 'periscolaire-registration'),
+                'phone'             => __('Téléphone', 'periscolaire-registration'),
+                'child_firstname'   => __('Prénom de l’enfant %s', 'periscolaire-registration'),
+                'child_lastname'    => __('Nom de l’enfant %s', 'periscolaire-registration'),
+                'child_class'       => __('Classe de l’enfant %s', 'periscolaire-registration'),
+                'child_birthdate'   => __('Date de naissance de l’enfant %s', 'periscolaire-registration'),
+                'insurance'         => __('Justificatif d’assurance scolaire', 'periscolaire-registration'),
+                'diet'              => __('Régime alimentaire', 'periscolaire-registration'),
+                'diet_pork'         => __('Sans porc', 'periscolaire-registration'),
+                'diet_meat'         => __('Sans viande', 'periscolaire-registration'),
+                'pickup_title'      => __('Personnes autorisées à récupérer cet enfant en fin de garderie du soir (facultatif)', 'periscolaire-registration'),
+                'pickup_add'        => __('+ Ajouter une personne autorisée', 'periscolaire-registration'),
+                'child_remove'      => __('Supprimer cet enfant', 'periscolaire-registration'),
+                'pickup_firstname'  => __('Prénom de la personne autorisée', 'periscolaire-registration'),
+                'pickup_lastname'   => __('Nom de la personne autorisée', 'periscolaire-registration'),
+                'pickup_phone'      => __('Téléphone de la personne autorisée', 'periscolaire-registration'),
+                'pickup_link'       => __('Lien avec l’enfant', 'periscolaire-registration'),
+                'link_placeholder'  => __('Lien (ex : Grand-parent)', 'periscolaire-registration'),
+                'pickup_id_check'   => __('Présentera une pièce d’identité', 'periscolaire-registration'),
+                'pickup_remove'     => __('Retirer cette personne autorisée', 'periscolaire-registration'),
+                'week_load_failed'  => __('Impossible de charger cette semaine. Merci de réessayer.', 'periscolaire-registration'),
+                'pickup_add_title'  => __('Ajouter — %s', 'periscolaire-registration'),
+                'pickup_edit_title' => __('Modifier — %s', 'periscolaire-registration'),
+                'next'              => __('Suivant', 'periscolaire-registration'),
+                'finish'            => __('Terminer', 'periscolaire-registration'),
+            ),
         ));
 
         // Design v2 : commun au portail connecté et à la vue invité —
@@ -145,31 +198,31 @@ class Psc_Frontend extends Psc_Frontend_Base {
     protected static function portal_tab_defs() {
         $tabs = array(
             'dashboard' => array(
-                'label' => 'Tableau de bord',
+                'label' => __('Tableau de bord', 'periscolaire-registration'),
                 'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9h13v-9"/><path d="M10 19v-6h4v6"/></svg>',
             ),
             'cantine' => array(
-                'label' => 'Cantine & Garderie',
+                'label' => __('Cantine & Garderie', 'periscolaire-registration'),
                 'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="5" width="17" height="15" rx="1"/><path d="M3.5 9.5h17"/><path d="M8 3v3M16 3v3"/></svg>',
             ),
             'menu' => array(
-                'label' => 'Menu de la semaine',
+                'label' => __('Menu de la semaine', 'periscolaire-registration'),
                 'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3v8a2 2 0 0 0 4 0V3M6 6h4"/><path d="M14 3c-1.2 1.3-1.2 6 0 8M14 3v18M17 3v6a2 2 0 0 0 2 2v10"/></svg>',
             ),
             'enfants' => array(
-                'label' => 'Mes enfants',
+                'label' => __('Mes enfants', 'periscolaire-registration'),
                 'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="7" r="3.2"/><path d="M5 20c0-3.5 3.2-6 7-6s7 2.5 7 6"/></svg>',
             ),
             'factures' => array(
-                'label' => 'Mes factures',
+                'label' => __('Mes factures', 'periscolaire-registration'),
                 'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2Z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>',
             ),
             'profil' => array(
-                'label' => 'Mon profil',
+                'label' => __('Mon profil', 'periscolaire-registration'),
                 'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-4 3.1-7 7-7s7 3 7 7"/></svg>',
             ),
             'documents' => array(
-                'label' => 'Documents',
+                'label' => __('Documents', 'periscolaire-registration'),
                 'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>',
             ),
         );
@@ -178,7 +231,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
         // courante comme les autres onglets, une action annuelle ponctuelle.
         if (Psc_Frontend_Reinscription::reinscription_window_open()) {
             $tabs['reinscription'] = array(
-                'label' => 'Réinscription',
+                'label' => __('Réinscription', 'periscolaire-registration'),
                 'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12a8 8 0 1 1 2.34 5.66"/><path d="M4 21v-5h5"/></svg>',
             );
         }
@@ -265,8 +318,8 @@ class Psc_Frontend extends Psc_Frontend_Base {
             $amount += $child_amount;
 
             $diet_bits = array();
-            if ((int) $child->sans_porc) $diet_bits[] = 'Sans porc';
-            if ((int) $child->vegan) $diet_bits[] = 'Sans viande';
+            if ((int) $child->sans_porc) $diet_bits[] = __('Sans porc', 'periscolaire-registration');
+            if ((int) $child->vegan) $diet_bits[] = __('Sans viande', 'periscolaire-registration');
             $meta = Psc_School_Years::classe_for($child->id);
             if ($diet_bits) $meta .= ($meta !== '' ? ' · ' : '') . implode(', ', $diet_bits);
             if ($meta === '') $meta = '—';
@@ -275,7 +328,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 'name'    => trim($child->prenom . ' ' . $child->nom),
                 'meta'    => $meta,
                 'summary' => sprintf(
-                    '%d jour%s déclaré%s · %s €',
+                    __('%d jour%s déclaré%s · %s €', 'periscolaire-registration'),
                     $child_days, $child_days > 1 ? 's' : '', $child_days > 1 ? 's' : '',
                     number_format_i18n($child_amount, 2)
                 ),
@@ -288,15 +341,15 @@ class Psc_Frontend extends Psc_Frontend_Base {
             usort($pending, function ($a, $b) { return strcmp($a->mois, $b->mois); });
             $next_invoice = array(
                 'mois_label'   => Psc_Invoices::month_label($pending[0]->mois),
-                'status_label' => 'En attente',
+                'status_label' => __('En attente', 'periscolaire-registration'),
             );
         }
 
         $current_week = psc_week_start(current_time('Y-m-d'));
 
         return array(
-            'title'          => $parent->nom !== '' ? 'Famille ' . $parent->nom : 'Bienvenue',
-            'days_label'     => $days_count . ($days_count > 1 ? ' jours' : ' jour'),
+            'title'          => $parent->nom !== '' ? __('Famille ', 'periscolaire-registration') . $parent->nom : __('Bienvenue', 'periscolaire-registration'),
+            'days_label'     => $days_count . ($days_count > 1 ? ' ' . __('jours', 'periscolaire-registration') : ' ' . __('jour', 'periscolaire-registration')),
             'amount_label'   => number_format_i18n($amount, 2),
             'next_invoice'   => $next_invoice,
             'menu'           => Psc_Frontend_Menus::menu_days_for_week($current_week),
@@ -475,7 +528,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
                     continue;
                 }
                 $psc_household_authorized[] = array(
-                    'role'      => $p->lien !== '' ? $p->lien : 'Autre',
+                    'role'      => $p->lien !== '' ? $p->lien : __('Autre', 'periscolaire-registration'),
                     'prenom'    => $p->prenom,
                     'nom'       => $p->nom,
                     'telephone' => $p->telephone,

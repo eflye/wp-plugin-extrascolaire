@@ -129,6 +129,17 @@ class Psc_Sidscm {
             // Transmise plutôt que redéclarée côté navigateur : la liste des
             // prestations élémentaires n'a qu'une seule source (psc_unit_services()).
             'services' => psc_unit_services(),
+            // Libellés affichés par sidscm.js (vues Jour et Semaine) :
+            // traduits côté serveur, codes et attributs techniques restent bruts.
+            'i18n'     => array(
+                'empty_day'     => __('Aucun enfant attendu ce jour pour ce service.', 'periscolaire-registration'),
+                'present_count' => __('%s / %s présents', 'periscolaire-registration'),
+                'authorised'    => __('Autorisés', 'periscolaire-registration'),
+                'departure'     => __('Départ', 'periscolaire-registration'),
+                'no_authorised' => __('Aucune personne autorisée renseignée.', 'periscolaire-registration'),
+                'week'          => __('semaine', 'periscolaire-registration'),
+                'child'         => __('Enfant', 'periscolaire-registration'),
+            ),
         ));
     }
 
@@ -318,8 +329,8 @@ class Psc_Sidscm {
             $classe = Psc_School_Years::classe_for($c->id);
 
             $diet_bits = array();
-            if ((int) $c->sans_porc === 1) $diet_bits[] = 'Sans porc';
-            if ((int) $c->vegan === 1) $diet_bits[] = 'Sans viande';
+            if ((int) $c->sans_porc === 1) $diet_bits[] = __('Sans porc', 'periscolaire-registration');
+            if ((int) $c->vegan === 1) $diet_bits[] = __('Sans viande', 'periscolaire-registration');
 
             $per_service = array();
             $has_any = false;

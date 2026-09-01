@@ -79,11 +79,11 @@ class Psc_School_Calendar {
         }
         $code = wp_remote_retrieve_response_code($response);
         if ($code !== 200) {
-            return new WP_Error('psc_ics_http', "Le serveur du ministère a répondu $code.");
+            return new WP_Error('psc_ics_http', sprintf(__('Le serveur du ministère a répondu %s.', 'periscolaire-registration'), $code));
         }
         $body = wp_remote_retrieve_body($response);
         if (!$body) {
-            return new WP_Error('psc_ics_empty', 'Réponse vide.');
+            return new WP_Error('psc_ics_empty', __('Réponse vide.', 'periscolaire-registration'));
         }
 
         return self::import_ics_content($body);
@@ -95,7 +95,7 @@ class Psc_School_Calendar {
      */
     public static function import_from_upload($body) {
         if (!$body) {
-            return new WP_Error('psc_ics_empty', 'Fichier vide.');
+            return new WP_Error('psc_ics_empty', __('Fichier vide.', 'periscolaire-registration'));
         }
         return self::import_ics_content($body);
     }
@@ -145,7 +145,7 @@ class Psc_School_Calendar {
      */
     public static function parse_ics($ics) {
         if (!preg_match_all('/BEGIN:VEVENT(.*?)END:VEVENT/s', $ics, $matches)) {
-            return new WP_Error('psc_ics_parse', 'Aucun événement trouvé dans le flux.');
+            return new WP_Error('psc_ics_parse', __('Aucun événement trouvé dans le flux.', 'periscolaire-registration'));
         }
 
         $closed = array();
@@ -363,7 +363,7 @@ class Psc_School_Calendar {
      */
     public static function close_day($date_str, $label) {
         $date_str = psc_valid_date($date_str);
-        if (!$date_str) return new WP_Error('invalid_date', 'Date invalide.');
+        if (!$date_str) return new WP_Error('invalid_date', __('Date invalide.', 'periscolaire-registration'));
         $label = $label !== '' ? sanitize_text_field($label) : 'Fermeture exceptionnelle';
 
         $affected = self::affected_families($date_str);
@@ -403,7 +403,7 @@ class Psc_School_Calendar {
         $date_debut = psc_valid_date($date_debut);
         $date_fin   = psc_valid_date($date_fin);
         if (!$date_debut || !$date_fin || strtotime($date_fin) < strtotime($date_debut)) {
-            return new WP_Error('invalid_date', 'Dates invalides.');
+            return new WP_Error('invalid_date', __('Dates invalides.', 'periscolaire-registration'));
         }
 
         $start = new DateTime($date_debut);
@@ -422,7 +422,7 @@ class Psc_School_Calendar {
     /** Réouvre un jour (annule une fermeture, import ou manuelle). */
     public static function open_day($date_str) {
         $date_str = psc_valid_date($date_str);
-        if (!$date_str) return new WP_Error('invalid_date', 'Date invalide.');
+        if (!$date_str) return new WP_Error('invalid_date', __('Date invalide.', 'periscolaire-registration'));
 
         global $wpdb;
         $t   = psc_table('school_calendar');
@@ -539,9 +539,9 @@ class Psc_School_Calendar {
      */
     public static function close_service($date_str, $service, $label) {
         $date_str = psc_valid_date($date_str);
-        if (!$date_str) return new WP_Error('invalid_date', 'Date invalide.');
+        if (!$date_str) return new WP_Error('invalid_date', __('Date invalide.', 'periscolaire-registration'));
         if (!in_array($service, psc_unit_services(), true)) {
-            return new WP_Error('invalid_service', 'Prestation invalide.');
+            return new WP_Error('invalid_service', __('Prestation invalide.', 'periscolaire-registration'));
         }
         $label = $label !== '' ? sanitize_text_field($label) : 'Fermeture exceptionnelle';
 
@@ -604,7 +604,7 @@ class Psc_School_Calendar {
     /** Réouvre une prestation (annule sa fermeture ; ne restaure pas les inscriptions supprimées, même logique que open_day()). */
     public static function open_service($date_str, $service) {
         $date_str = psc_valid_date($date_str);
-        if (!$date_str) return new WP_Error('invalid_date', 'Date invalide.');
+        if (!$date_str) return new WP_Error('invalid_date', __('Date invalide.', 'periscolaire-registration'));
 
         global $wpdb;
         $t = psc_table('service_closures');

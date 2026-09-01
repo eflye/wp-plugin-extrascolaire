@@ -67,10 +67,10 @@ class Psc_School_Years {
         $date_debut = psc_valid_date($date_debut);
         $date_fin   = psc_valid_date($date_fin);
         if ($label === '' || !$date_debut || !$date_fin) {
-            return new WP_Error('invalid', 'Libellé ou dates invalides.');
+            return new WP_Error('invalid', __('Libellé ou dates invalides.', 'periscolaire-registration'));
         }
         if (strtotime($date_fin) < strtotime($date_debut)) {
-            return new WP_Error('order_dates', 'La date de fin doit être après la date de début.');
+            return new WP_Error('order_dates', __('La date de fin doit être après la date de début.', 'periscolaire-registration'));
         }
 
         $wpdb->insert(psc_table('school_years'), array(
@@ -90,16 +90,16 @@ class Psc_School_Years {
         $id = absint($id);
         $t_years = psc_table('school_years');
         $exists = $id ? $wpdb->get_var($wpdb->prepare("SELECT id FROM $t_years WHERE id = %d", $id)) : null;
-        if (!$exists) return new WP_Error('invalid', 'Année scolaire introuvable.');
+        if (!$exists) return new WP_Error('invalid', __('Année scolaire introuvable.', 'periscolaire-registration'));
 
         $label = mb_substr(sanitize_text_field($label), 0, 20);
         $date_debut = psc_valid_date($date_debut);
         $date_fin   = psc_valid_date($date_fin);
         if ($label === '' || !$date_debut || !$date_fin) {
-            return new WP_Error('invalid', 'Libellé ou dates invalides.');
+            return new WP_Error('invalid', __('Libellé ou dates invalides.', 'periscolaire-registration'));
         }
         if (strtotime($date_fin) < strtotime($date_debut)) {
-            return new WP_Error('order_dates', 'La date de fin doit être après la date de début.');
+            return new WP_Error('order_dates', __('La date de fin doit être après la date de début.', 'periscolaire-registration'));
         }
 
         $wpdb->update($t_years, array(
@@ -127,9 +127,9 @@ class Psc_School_Years {
         $id = absint($id);
         $t_years = psc_table('school_years');
         $year = $id ? $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_years WHERE id = %d", $id)) : null;
-        if (!$year) return new WP_Error('invalid', 'Année scolaire introuvable.');
+        if (!$year) return new WP_Error('invalid', __('Année scolaire introuvable.', 'periscolaire-registration'));
         if ($year->statut === 'active') {
-            return new WP_Error('active_year', 'Impossible de supprimer l\'année active : activez-en une autre au préalable.');
+            return new WP_Error('active_year', __('Impossible de supprimer l\'année active : activez-en une autre au préalable.', 'periscolaire-registration'));
         }
 
         $t_cy = psc_table('child_school_years');
@@ -368,10 +368,10 @@ class Psc_School_Years {
      */
     public static function classe_options() {
         return array(
-            ''   => '— Classe —',
-            'PS' => 'Petite Section (PS)',
-            'MS' => 'Moyenne Section (MS)',
-            'GS' => 'Grande Section (GS)',
+            ''   => __('— Classe —', 'periscolaire-registration'),
+            'PS' => __('Petite Section (PS)', 'periscolaire-registration'),
+            'MS' => __('Moyenne Section (MS)', 'periscolaire-registration'),
+            'GS' => __('Grande Section (GS)', 'periscolaire-registration'),
             'CP' => 'CP',
             'CE1'=> 'CE1',
             'CE2'=> 'CE2',

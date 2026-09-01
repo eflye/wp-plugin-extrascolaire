@@ -1,6 +1,16 @@
 (function () {
     'use strict';
 
+    // Chaînes traduites côté serveur (PSC.i18n, cf. Psc_Frontend::assets())
+    // : t('cle', args…) remplace les %s dans l'ordre des arguments.
+    function t(key) {
+        var s = PSC.i18n[key] || '';
+        for (var i = 1; i < arguments.length; i++) {
+            s = s.replace('%s', arguments[i]);
+        }
+        return s;
+    }
+
     // Bascule d'onglets côté client : chaque lien (sidebar + accès rapide
     // du tableau de bord) reste un vrai <a href="?psc_tab=..."> — rendu
     // côté serveur avec la bonne section déjà visible (progressive
@@ -87,8 +97,8 @@
                     // Une panne réseau se distingue d'un refus du serveur :
                     // seule la première vaut la peine d'être réessayée.
                     menuNotice(block, res.data.code === 'network'
-                        ? 'Erreur réseau. Vérifiez votre connexion et réessayez.'
-                        : 'Impossible de charger cette semaine. Merci de réessayer.');
+                        ? PSC.i18n.network
+                        : PSC.i18n.week_load_failed);
                     return;
                 }
 
@@ -287,7 +297,7 @@
         function openAdd(childId) {
             var c = (data.children || {})[childId];
             if (!c) return;
-            title.textContent = 'Ajouter — ' + c.name;
+            title.textContent = t('pickup_add_title', c.name);
             actionField.value = 'psc_parent_add_pickup_person';
             childField.value = childId;
             idField.value = '';
@@ -302,7 +312,7 @@
         function openEdit(pickupId) {
             var p = (data.persons || {})[pickupId];
             if (!p) return;
-            title.textContent = 'Modifier — ' + p.prenom + ' ' + p.nom;
+            title.textContent = t('pickup_edit_title', p.prenom + ' ' + p.nom);
             actionField.value = 'psc_parent_update_pickup_person';
             childField.value = p.child_id;
             idField.value = pickupId;
@@ -374,7 +384,7 @@
             steps.forEach(function (step, i) { step.classList.toggle('is-active', i === current); });
             dots.forEach(function (dot, i) { dot.classList.toggle('is-active', i === current); });
             prevBtn.hidden = current === 0;
-            nextBtn.textContent = current === steps.length - 1 ? 'Terminer' : 'Suivant';
+            nextBtn.textContent = current === steps.length - 1 ? PSC.i18n.finish : PSC.i18n.next;
         }
 
         prevBtn.addEventListener('click', function () {

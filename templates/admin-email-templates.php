@@ -1,19 +1,19 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="wrap psc-admin">
-<h1>Modèles d'e-mails</h1>
+<h1><?php esc_html_e("Modèles d'e-mails", 'periscolaire-registration'); ?></h1>
 
 <?php
 psc_admin_notice_map(array(
-    'saved'     => array('success', 'Modèles enregistrés.'),
-    'reset_one' => array('success', 'Modèle réinitialisé aux valeurs par défaut.'),
-    'reset_all' => array('success', 'Tous les modèles ont été réinitialisés.'),
+    'saved'     => array('success', __('Modèles enregistrés.', 'periscolaire-registration')),
+    'reset_one' => array('success', __('Modèle réinitialisé aux valeurs par défaut.', 'periscolaire-registration')),
+    'reset_all' => array('success', __('Tous les modèles ont été réinitialisés.', 'periscolaire-registration')),
 ), $psc_msg);
 ?>
 
 <p style="color:#666;margin-bottom:20px;">
-    Personnalisez le sujet et le corps de chaque e-mail envoyé aux familles et à la mairie.
-    Les variables <code>{{entre doubles accolades}}</code> sont remplacées automatiquement à l'envoi.
-    Le contenu généré automatiquement (tableaux, boutons, pièces jointes) est indiqué dans la note de chaque modèle.
+    <?php esc_html_e('Personnalisez le sujet et le corps de chaque e-mail envoyé aux familles et à la mairie.', 'periscolaire-registration'); ?>
+    <?php esc_html_e('Les variables', 'periscolaire-registration'); ?> <code>{{entre doubles accolades}}</code> <?php esc_html_e("sont remplacées automatiquement à l'envoi.", 'periscolaire-registration'); ?>
+    <?php esc_html_e('Le contenu généré automatiquement (tableaux, boutons, pièces jointes) est indiqué dans la note de chaque modèle.', 'periscolaire-registration'); ?>
 </p>
 
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
@@ -21,11 +21,11 @@ psc_admin_notice_map(array(
     <?php wp_nonce_field('psc_save_email_templates'); ?>
 
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <button type="submit" class="button button-primary button-large">Enregistrer tous les modèles</button>
+        <button type="submit" class="button button-primary button-large"><?php esc_html_e('Enregistrer tous les modèles', 'periscolaire-registration'); ?></button>
         <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=psc_reset_email_templates'), 'psc_reset_email_templates')); ?>"
            class="button button-link-delete"
-           onclick="return confirm('Réinitialiser TOUS les modèles aux valeurs par défaut ?');">
-            ↺ Tout réinitialiser
+           onclick="return confirm('<?php echo esc_js(__('Réinitialiser TOUS les modèles aux valeurs par défaut ?', 'periscolaire-registration')); ?>');">
+            ↺ <?php esc_html_e('Tout réinitialiser', 'periscolaire-registration'); ?>
         </a>
     </div>
 
@@ -36,7 +36,7 @@ psc_admin_notice_map(array(
             <h3>
                 <?php echo esc_html($tpl['label']); ?>
                 <?php if (!empty($tpl['customized'])): ?>
-                <span class="psc-tpl-badge">Personnalisé</span>
+                <span class="psc-tpl-badge"><?php esc_html_e('Personnalisé', 'periscolaire-registration'); ?></span>
                 <?php endif; ?>
             </h3>
             <?php if (!empty($tpl['customized'])): ?>
@@ -45,8 +45,8 @@ psc_admin_notice_map(array(
                 'psc_reset_email_template_' . $key
             )); ?>"
                class="button button-small"
-               onclick="return confirm('Réinitialiser ce modèle aux valeurs par défaut ?');">
-                ↺ Réinitialiser
+               onclick="return confirm('<?php echo esc_js(__('Réinitialiser ce modèle aux valeurs par défaut ?', 'periscolaire-registration')); ?>');">
+                ↺ <?php esc_html_e('Réinitialiser', 'periscolaire-registration'); ?>
             </a>
             <?php endif; ?>
         </div>
@@ -60,7 +60,7 @@ psc_admin_notice_map(array(
 
         <table class="form-table" style="margin:0;">
             <tr>
-                <th style="width:120px;padding:8px 0;"><label for="tpl_<?php echo esc_attr($key); ?>_subject">Sujet</label></th>
+                <th style="width:120px;padding:8px 0;"><label for="tpl_<?php echo esc_attr($key); ?>_subject"><?php esc_html_e('Sujet', 'periscolaire-registration'); ?></label></th>
                 <td style="padding:8px 0;">
                     <input type="text"
                            id="tpl_<?php echo esc_attr($key); ?>_subject"
@@ -70,7 +70,7 @@ psc_admin_notice_map(array(
                 </td>
             </tr>
             <tr>
-                <th style="padding:8px 0;vertical-align:top;"><label for="tpl_<?php echo esc_attr($key); ?>_body">Corps</label></th>
+                <th style="padding:8px 0;vertical-align:top;"><label for="tpl_<?php echo esc_attr($key); ?>_body"><?php esc_html_e('Corps', 'periscolaire-registration'); ?></label></th>
                 <td style="padding:8px 0;">
                     <textarea id="tpl_<?php echo esc_attr($key); ?>_body"
                               name="templates[<?php echo esc_attr($key); ?>][body]"
@@ -78,11 +78,11 @@ psc_admin_notice_map(array(
                               class="large-text psc-tpl-body"
                     ><?php echo esc_textarea($tpl['body']); ?></textarea>
                     <p class="description" style="margin-top:6px;">
-                        Variables disponibles :
+                        <?php esc_html_e('Variables disponibles :', 'periscolaire-registration'); ?>
                         <?php foreach ($tpl['vars'] as $var): ?>
                         <code class="psc-var-chip"
                               data-target="tpl_<?php echo esc_attr($key); ?>_body"
-                              title="Cliquer pour insérer"
+                              title="<?php esc_attr_e('Cliquer pour insérer', 'periscolaire-registration'); ?>"
                               style="cursor:pointer;"><?php echo esc_html($var); ?></code>
                         <?php endforeach; ?>
                     </p>
@@ -93,7 +93,7 @@ psc_admin_notice_map(array(
     <?php endforeach; ?>
 
     <div style="margin-top:20px;">
-        <button type="submit" class="button button-primary button-large">Enregistrer tous les modèles</button>
+        <button type="submit" class="button button-primary button-large"><?php esc_html_e('Enregistrer tous les modèles', 'periscolaire-registration'); ?></button>
     </div>
 </form>
 </div>

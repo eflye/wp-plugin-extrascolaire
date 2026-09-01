@@ -1,22 +1,22 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="wrap psc-admin">
-<h1>Trimestres</h1>
+<h1><?php esc_html_e('Trimestres', 'periscolaire-registration'); ?></h1>
 
 <?php
 $psc_notices = array(
-    'created'            => array('success', 'Trimestre créé, le calendrier a été généré.'),
-    'updated'            => array('success', 'Trimestre modifié, le calendrier a été régénéré sur la nouvelle période.'),
-    'trimestre_deleted'  => array('success', 'Trimestre supprimé.'),
-    'activated'          => array('success', 'Trimestre activé : il est désormais visible par les familles.'),
-    'invalid_dates'      => array('error', 'Dates invalides. Merci de vérifier le format et de renseigner tous les champs.'),
-    'order_dates'        => array('error', 'La date de fin doit être postérieure à la date de début.'),
-    'too_long'           => array('error', 'La période est trop longue (maximum ' . psc_max_trimestre_days() . ' jours). Vérifiez les années saisies.'),
-    'invalid'            => array('error', 'Opération impossible : élément introuvable.'),
-    'active_trimestre'   => array('error', 'Impossible de supprimer le trimestre actif : activez-en un autre au préalable.'),
-    'confirm_mismatch'   => array('error', 'Le texte de confirmation ne correspond pas ("CONFIRMER" attendu). Le trimestre n\'a pas été supprimé.'),
-    'cancelled'          => array('success', 'Modification annulée : le trimestre est inchangé.'),
-    'trim_confirm_needed' => array('error', 'Cette modification sort des présences déjà déclarées de la période. Confirmez ci-dessous.'),
-    'trim_updated_purged' => array('success', 'Trimestre modifié. Les présences situées hors de la nouvelle période ont été supprimées.'),
+    'created'            => array('success', __('Trimestre créé, le calendrier a été généré.', 'periscolaire-registration')),
+    'updated'            => array('success', __('Trimestre modifié, le calendrier a été régénéré sur la nouvelle période.', 'periscolaire-registration')),
+    'trimestre_deleted'  => array('success', __('Trimestre supprimé.', 'periscolaire-registration')),
+    'activated'          => array('success', __('Trimestre activé : il est désormais visible par les familles.', 'periscolaire-registration')),
+    'invalid_dates'      => array('error', __('Dates invalides. Merci de vérifier le format et de renseigner tous les champs.', 'periscolaire-registration')),
+    'order_dates'        => array('error', __('La date de fin doit être postérieure à la date de début.', 'periscolaire-registration')),
+    'too_long'           => array('error', __('La période est trop longue (maximum', 'periscolaire-registration') . ' ' . psc_max_trimestre_days() . ' ' . __('jours). Vérifiez les années saisies.', 'periscolaire-registration')),
+    'invalid'            => array('error', __('Opération impossible : élément introuvable.', 'periscolaire-registration')),
+    'active_trimestre'   => array('error', __('Impossible de supprimer le trimestre actif : activez-en un autre au préalable.', 'periscolaire-registration')),
+    'confirm_mismatch'   => array('error', __('Le texte de confirmation ne correspond pas ("CONFIRMER" attendu). Le trimestre n\'a pas été supprimé.', 'periscolaire-registration')),
+    'cancelled'          => array('success', __('Modification annulée : le trimestre est inchangé.', 'periscolaire-registration')),
+    'trim_confirm_needed' => array('error', __('Cette modification sort des présences déjà déclarées de la période. Confirmez ci-dessous.', 'periscolaire-registration')),
+    'trim_updated_purged' => array('success', __('Trimestre modifié. Les présences situées hors de la nouvelle période ont été supprimées.', 'periscolaire-registration')),
 );
 psc_admin_notice_map($psc_notices, $psc_msg); ?>
 
@@ -30,20 +30,18 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
  */
 if (!empty($pending_trimestre)): ?>
 <div class="psc-box" style="border-left:4px solid #d63638;">
-<h2>⚠ Confirmation nécessaire</h2>
+<h2>⚠ <?php esc_html_e('Confirmation nécessaire', 'periscolaire-registration'); ?></h2>
 <p>
-    La nouvelle période
+    <?php esc_html_e('La nouvelle période', 'periscolaire-registration'); ?>
     (<strong><?php echo esc_html(date_i18n('d/m/Y', strtotime($pending_trimestre['date_debut']))); ?></strong>
-    au
+    <?php esc_html_e('au', 'periscolaire-registration'); ?>
     <strong><?php echo esc_html(date_i18n('d/m/Y', strtotime($pending_trimestre['date_fin']))); ?></strong>)
-    ne couvre plus
-    <strong><?php echo (int) $pending_trimestre['orphaned']; ?> présence(s) déjà déclarée(s)</strong>
-    par des familles sur ce trimestre.
+    <?php esc_html_e('ne couvre plus', 'periscolaire-registration'); ?>
+    <strong><?php echo (int) $pending_trimestre['orphaned']; ?> <?php esc_html_e('présence(s) déjà déclarée(s)', 'periscolaire-registration'); ?></strong>
+    <?php esc_html_e('par des familles sur ce trimestre.', 'periscolaire-registration'); ?>
 </p>
 <p>
-    Ces présences seront <strong>définitivement supprimées</strong> : elles ne
-    seront ni facturées, ni conservées. Les familles concernées ne sont pas
-    prévenues automatiquement.
+    <?php esc_html_e('Ces présences seront', 'periscolaire-registration'); ?> <strong><?php esc_html_e('définitivement supprimées', 'periscolaire-registration'); ?></strong><?php esc_html_e(' : elles ne seront ni facturées, ni conservées. Les familles concernées ne sont pas prévenues automatiquement.', 'periscolaire-registration'); ?>
 </p>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline;">
     <?php wp_nonce_field('psc_update_trimestre'); ?>
@@ -54,28 +52,28 @@ if (!empty($pending_trimestre)): ?>
     <input type="hidden" name="date_debut" value="<?php echo esc_attr($pending_trimestre['date_debut']); ?>">
     <input type="hidden" name="date_fin" value="<?php echo esc_attr($pending_trimestre['date_fin']); ?>">
     <input type="hidden" name="school_year_id" value="<?php echo esc_attr($pending_trimestre['school_year_id']); ?>">
-    <button type="submit" class="button button-primary">Confirmer et supprimer ces présences</button>
+    <button type="submit" class="button button-primary"><?php esc_html_e('Confirmer et supprimer ces présences', 'periscolaire-registration'); ?></button>
 </form>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline;margin-left:8px;">
     <?php wp_nonce_field('psc_cancel_trimestre_update'); ?>
     <input type="hidden" name="action" value="psc_cancel_trimestre_update">
-    <button type="submit" class="button">Annuler</button>
+    <button type="submit" class="button"><?php esc_html_e('Annuler', 'periscolaire-registration'); ?></button>
 </form>
 </div>
 <?php endif; ?>
 
 <div class="psc-box">
-<h2>Créer un trimestre</h2>
-<p>Génère automatiquement le calendrier du trimestre : week-ends et jours fériés fermés par défaut, tout le reste ouvert.</p>
+<h2><?php esc_html_e('Créer un trimestre', 'periscolaire-registration'); ?></h2>
+<p><?php esc_html_e('Génère automatiquement le calendrier du trimestre : week-ends et jours fériés fermés par défaut, tout le reste ouvert.', 'periscolaire-registration'); ?></p>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
 <?php wp_nonce_field('psc_add_trimestre'); ?>
 <input type="hidden" name="action" value="psc_add_trimestre">
 <table class="form-table">
-<tr><th><label for="psc-label">Libellé</label></th><td><input id="psc-label" type="text" name="label" class="regular-text" placeholder="3ème trimestre 2025/2026" maxlength="190" required></td></tr>
-<tr><th><label for="psc-annee">Année scolaire</label></th><td>
+<tr><th><label for="psc-label"><?php esc_html_e('Libellé', 'periscolaire-registration'); ?></label></th><td><input id="psc-label" type="text" name="label" class="regular-text" placeholder="<?php esc_attr_e('3ème trimestre 2025/2026', 'periscolaire-registration'); ?>" maxlength="190" required></td></tr>
+<tr><th><label for="psc-annee"><?php esc_html_e('Année scolaire', 'periscolaire-registration'); ?></label></th><td>
 <?php $psc_trim_years = Psc_School_Years::all(); ?>
 <?php if (empty($psc_trim_years)): ?>
-<em>Créez d'abord une <a href="<?php echo esc_url(admin_url('admin.php?page=psc_school_years')); ?>">année scolaire</a>.</em>
+<em><?php esc_html_e("Créez d'abord une", 'periscolaire-registration'); ?> <a href="<?php echo esc_url(admin_url('admin.php?page=psc_school_years')); ?>"><?php esc_html_e('année scolaire', 'periscolaire-registration'); ?></a>.</em>
 <?php else: ?>
 <select id="psc-annee" name="school_year_id" required>
 <?php foreach ($psc_trim_years as $y): ?>
@@ -84,30 +82,30 @@ if (!empty($pending_trimestre)): ?>
 </select>
 <?php endif; ?>
 </td></tr>
-<tr><th><label for="psc-debut">Date de début</label></th><td><input id="psc-debut" type="date" name="date_debut" required></td></tr>
-<tr><th><label for="psc-fin">Date de fin</label></th><td><input id="psc-fin" type="date" name="date_fin" required></td></tr>
+<tr><th><label for="psc-debut"><?php esc_html_e('Date de début', 'periscolaire-registration'); ?></label></th><td><input id="psc-debut" type="date" name="date_debut" required></td></tr>
+<tr><th><label for="psc-fin"><?php esc_html_e('Date de fin', 'periscolaire-registration'); ?></label></th><td><input id="psc-fin" type="date" name="date_fin" required></td></tr>
 </table>
-<?php submit_button('Créer le trimestre'); ?>
+<?php submit_button(__('Créer le trimestre', 'periscolaire-registration')); ?>
 </form>
 </div>
 
 <div class="psc-box">
-<h2>Trimestres existants</h2>
-<p>Modifier les dates régénère le calendrier du trimestre sur la nouvelle période : les jours fériés/vacances sont recalculés automatiquement, mais une fermeture ponctuelle que vous auriez ajoutée à la main sur un jour resté dans la période peut être réinitialisée.
-Pour fermer les vacances scolaires ou toute autre période, rendez-vous sur <a href="<?php echo esc_url(admin_url('admin.php?page=psc_school_years')); ?>">Années scolaires</a>.</p>
+<h2><?php esc_html_e('Trimestres existants', 'periscolaire-registration'); ?></h2>
+<p><?php esc_html_e('Modifier les dates régénère le calendrier du trimestre sur la nouvelle période : les jours fériés/vacances sont recalculés automatiquement, mais une fermeture ponctuelle que vous auriez ajoutée à la main sur un jour resté dans la période peut être réinitialisée.', 'periscolaire-registration'); ?>
+<?php esc_html_e('Pour fermer les vacances scolaires ou toute autre période, rendez-vous sur', 'periscolaire-registration'); ?> <a href="<?php echo esc_url(admin_url('admin.php?page=psc_school_years')); ?>"><?php esc_html_e('Années scolaires', 'periscolaire-registration'); ?></a>.</p>
 <table class="widefat striped">
-<thead><tr><th>Libellé</th><th>Année scolaire</th><th>Début</th><th>Fin</th><th>Statut</th><th>Action</th></tr></thead>
+<thead><tr><th><?php esc_html_e('Libellé', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Année scolaire', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Début', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Fin', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Action', 'periscolaire-registration'); ?></th></tr></thead>
 <tbody>
 <?php if (empty($trimestres)): ?>
-<tr><td colspan="6">Aucun trimestre créé pour le moment.</td></tr>
+<tr><td colspan="6"><?php esc_html_e('Aucun trimestre créé pour le moment.', 'periscolaire-registration'); ?></td></tr>
 <?php else: foreach ($trimestres as $t): $edit_form_id = 'trim-edit-form-' . $t->id; ?>
 <tr>
 <td>
-  <label class="screen-reader-text" for="psc-t-label-<?php echo esc_attr($t->id); ?>">Libellé</label>
+  <label class="screen-reader-text" for="psc-t-label-<?php echo esc_attr($t->id); ?>"><?php esc_html_e('Libellé', 'periscolaire-registration'); ?></label>
   <input id="psc-t-label-<?php echo esc_attr($t->id); ?>" type="text" form="<?php echo esc_attr($edit_form_id); ?>" name="label" value="<?php echo esc_attr($t->label); ?>" maxlength="190" required class="regular-text">
 </td>
 <td>
-  <label class="screen-reader-text" for="psc-t-annee-<?php echo esc_attr($t->id); ?>">Année scolaire</label>
+  <label class="screen-reader-text" for="psc-t-annee-<?php echo esc_attr($t->id); ?>"><?php esc_html_e('Année scolaire', 'periscolaire-registration'); ?></label>
   <?php if (empty($psc_trim_years)): ?>
   —
   <?php else: ?>
@@ -119,27 +117,27 @@ Pour fermer les vacances scolaires ou toute autre période, rendez-vous sur <a h
   <?php endif; ?>
 </td>
 <td>
-  <label class="screen-reader-text" for="psc-t-debut-<?php echo esc_attr($t->id); ?>">Date de début</label>
+  <label class="screen-reader-text" for="psc-t-debut-<?php echo esc_attr($t->id); ?>"><?php esc_html_e('Date de début', 'periscolaire-registration'); ?></label>
   <input id="psc-t-debut-<?php echo esc_attr($t->id); ?>" type="date" form="<?php echo esc_attr($edit_form_id); ?>" name="date_debut" value="<?php echo esc_attr($t->date_debut); ?>" required>
 </td>
 <td>
-  <label class="screen-reader-text" for="psc-t-fin-<?php echo esc_attr($t->id); ?>">Date de fin</label>
+  <label class="screen-reader-text" for="psc-t-fin-<?php echo esc_attr($t->id); ?>"><?php esc_html_e('Date de fin', 'periscolaire-registration'); ?></label>
   <input id="psc-t-fin-<?php echo esc_attr($t->id); ?>" type="date" form="<?php echo esc_attr($edit_form_id); ?>" name="date_fin" value="<?php echo esc_attr($t->date_fin); ?>" required>
 </td>
-<td><?php echo $t->active ? '<strong class="psc-active">Actif (visible sur le site)</strong>' : '—'; ?></td>
+<td><?php echo $t->active ? '<strong class="psc-active">' . esc_html__('Actif (visible sur le site)', 'periscolaire-registration') . '</strong>' : '—'; ?></td>
 <td style="white-space:nowrap">
 <form id="<?php echo esc_attr($edit_form_id); ?>" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
 <?php wp_nonce_field('psc_update_trimestre'); ?>
 <input type="hidden" name="action" value="psc_update_trimestre">
 <input type="hidden" name="id" value="<?php echo esc_attr($t->id); ?>">
-<button type="submit" class="button">Enregistrer</button>
+<button type="submit" class="button"><?php esc_html_e('Enregistrer', 'periscolaire-registration'); ?></button>
 </form>
 <?php if (!$t->active): ?>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
 <?php wp_nonce_field('psc_activate_trimestre'); ?>
 <input type="hidden" name="action" value="psc_activate_trimestre">
 <input type="hidden" name="id" value="<?php echo esc_attr($t->id); ?>">
-<button class="button">Activer</button>
+<button class="button"><?php esc_html_e('Activer', 'periscolaire-registration'); ?></button>
 </form>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline" class="psc-delete-trimestre-form">
 <?php wp_nonce_field('psc_delete_trimestre'); ?>
@@ -148,7 +146,7 @@ Pour fermer les vacances scolaires ou toute autre période, rendez-vous sur <a h
 <input type="hidden" name="confirm_text" value="">
 <button type="button" class="button psc-delete-trimestre-btn"
         data-label="<?php echo esc_attr($t->label); ?>"
-        data-count="<?php echo esc_attr($trimestre_reg_counts[$t->id] ?? 0); ?>">Supprimer</button>
+        data-count="<?php echo esc_attr($trimestre_reg_counts[$t->id] ?? 0); ?>"><?php esc_html_e('Supprimer', 'periscolaire-registration'); ?></button>
 </form>
 <?php endif; ?>
 </td>
@@ -185,14 +183,14 @@ Pour fermer les vacances scolaires ou toute autre période, rendez-vous sur <a h
 
 <div id="psc-del-trim-backdrop" class="psc-del-trim-backdrop" hidden></div>
 <div id="psc-del-trim-modal" class="psc-del-trim-modal" role="dialog" aria-modal="true" aria-labelledby="psc-del-trim-title" tabindex="-1" hidden>
-    <h3 id="psc-del-trim-title">Supprimer <span id="psc-del-trim-label"></span> ?</h3>
+    <h3 id="psc-del-trim-title"><?php esc_html_e('Supprimer', 'periscolaire-registration'); ?> <span id="psc-del-trim-label"></span> ?</h3>
     <p id="psc-del-trim-consequence"></p>
-    <p>Cette action est <strong>irréversible</strong>.</p>
-    <p>Pour confirmer, tapez <strong>CONFIRMER</strong> ci-dessous :</p>
+    <p><?php esc_html_e('Cette action est', 'periscolaire-registration'); ?> <strong><?php esc_html_e('irréversible', 'periscolaire-registration'); ?></strong>.</p>
+    <p><?php esc_html_e('Pour confirmer, tapez', 'periscolaire-registration'); ?> <strong>CONFIRMER</strong> <?php esc_html_e('ci-dessous :', 'periscolaire-registration'); ?></p>
     <input type="text" id="psc-del-trim-input" autocomplete="off">
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
-        <button type="button" class="button" id="psc-del-trim-cancel">Annuler</button>
-        <button type="button" class="button button-primary" id="psc-del-trim-confirm" disabled style="background:#b32d2e;border-color:#b32d2e;">Supprimer définitivement</button>
+        <button type="button" class="button" id="psc-del-trim-cancel"><?php esc_html_e('Annuler', 'periscolaire-registration'); ?></button>
+        <button type="button" class="button button-primary" id="psc-del-trim-confirm" disabled style="background:#b32d2e;border-color:#b32d2e;"><?php esc_html_e('Supprimer définitivement', 'periscolaire-registration'); ?></button>
     </div>
 </div>
 
@@ -234,8 +232,8 @@ Pour fermer les vacances scolaires ou toute autre période, rendez-vous sur <a h
             var count = parseInt(btn.getAttribute('data-count'), 10) || 0;
             labelEl.textContent = btn.getAttribute('data-label');
             consequenceEl.textContent = count > 0
-                ? 'Ce trimestre, son calendrier, ET les ' + count + ' inscription(s) déjà déclarée(s) par les familles pour cette période seront supprimés définitivement.'
-                : 'Ce trimestre et son calendrier seront supprimés définitivement.';
+                ? '<?php echo esc_js(__('Ce trimestre, son calendrier, ET les', 'periscolaire-registration')); ?> ' + count + ' <?php echo esc_js(__('inscription(s) déjà déclarée(s) par les familles pour cette période seront supprimés définitivement.', 'periscolaire-registration')); ?>'
+                : '<?php echo esc_js(__('Ce trimestre et son calendrier seront supprimés définitivement.', 'periscolaire-registration')); ?>';
             input.value = '';
             confirmBtn.disabled = true;
             modal.hidden = false;

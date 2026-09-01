@@ -39,6 +39,23 @@ class Psc_Admin_Calendar_V2 {
             'services' => psc_services(),
             // Idem : la liste des prestations élémentaires vient du serveur.
             'unit_services' => psc_unit_services(),
+            // Libellés du menu contextuel et des popins de confirmation,
+            // traduits côté serveur (%s remplacés côté navigateur).
+            'i18n' => array(
+                'ajax_error'            => __('Une erreur est survenue, merci de réessayer.', 'periscolaire-registration'),
+                'reopen_day'            => __('Réouvrir ce jour', 'periscolaire-registration'),
+                'reopen_date'           => __('Réouvrir le %s ?', 'periscolaire-registration'),
+                'close_all_day'         => __('Fermer tout le jour', 'periscolaire-registration'),
+                'reopen_service'        => __('Réouvrir %s', 'periscolaire-registration'),
+                'reopen_service_date'   => __('Réouvrir %s le %s ?', 'periscolaire-registration'),
+                'close_service'         => __('Fermer %s', 'periscolaire-registration'),
+                'close_date'            => __('Fermer le %s', 'periscolaire-registration'),
+                'close_service_date'    => __('Fermer %s le %s ?', 'periscolaire-registration'),
+                'preview_day'           => __('Supprimera %s inscription(s) déjà déclarée(s) par %s famille(s). Ces prestations ne seront pas facturées, et chaque famille recevra un e-mail.', 'periscolaire-registration'),
+                'no_registrations'      => __('Aucune inscription existante ce jour-là.', 'periscolaire-registration'),
+                'preview_service_direct' => __('%s inscription(s) directe(s) de %s seront supprimées (%s famille(s), non facturées).', 'periscolaire-registration'),
+                'preview_service_forf'  => __('%s enfant(s) en forfait journée (%s famille(s)) seront basculés vers les 2 autres prestations ce jour-là.', 'periscolaire-registration'),
+            ),
         ));
     }
 
@@ -150,22 +167,22 @@ class Psc_Admin_Calendar_V2 {
      */
     private static function classify_closed_day($date, array $school_calendar) {
         if (psc_is_weekend($date)) {
-            return array('category' => 'weekend', 'label' => 'Week-end');
+            return array('category' => 'weekend', 'label' => __('Week-end', 'periscolaire-registration'));
         }
         if (psc_is_wednesday($date)) {
-            return array('category' => 'wednesday', 'label' => 'Mercredi');
+            return array('category' => 'wednesday', 'label' => __('Mercredi', 'periscolaire-registration'));
         }
 
         $row = isset($school_calendar[$date]) ? $school_calendar[$date] : null;
         if ($row && $row->is_closed) {
             return array(
                 'category' => $row->source === 'manual' ? 'manual' : 'vacation',
-                'label'    => $row->label ?: ($row->source === 'manual' ? 'Fermeture manuelle' : 'Vacances'),
+                'label'    => $row->label ?: ($row->source === 'manual' ? __('Fermeture manuelle', 'periscolaire-registration') : __('Vacances', 'periscolaire-registration')),
             );
         }
 
         if (psc_is_holiday($date)) {
-            return array('category' => 'holiday', 'label' => 'Férié');
+            return array('category' => 'holiday', 'label' => __('Férié', 'periscolaire-registration'));
         }
         return null;
     }
@@ -273,7 +290,7 @@ class Psc_Admin_Calendar_V2 {
                     'date'         => $date,
                     'status'       => 'closed_day',
                     'category'     => 'manual',
-                    'label'        => $cal->label ?: 'Fermé',
+                    'label'        => $cal->label ?: __('Fermé', 'periscolaire-registration'),
                     'trimestre_id' => $trimestre->id,
                 );
                 continue;

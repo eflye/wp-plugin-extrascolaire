@@ -36,7 +36,10 @@ function psc_is_wednesday($date_str) {
 }
 
 function psc_day_label($date_str) {
-    $jours = array('Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche');
+    $jours = array(
+        __('Lundi', 'periscolaire-registration'), __('Mardi', 'periscolaire-registration'), __('Mercredi', 'periscolaire-registration'), __('Jeudi', 'periscolaire-registration'),
+        __('Vendredi', 'periscolaire-registration'), __('Samedi', 'periscolaire-registration'), __('Dimanche', 'periscolaire-registration')
+    );
     $dow = (int) date('N', strtotime($date_str));
     return isset($jours[$dow - 1]) ? $jours[$dow - 1] : '';
 }

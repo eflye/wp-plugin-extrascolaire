@@ -1,9 +1,10 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="wrap psc-admin">
-<h1>Calendrier scolaire en cours</h1>
+<h1><?php esc_html_e('Calendrier scolaire en cours', 'periscolaire-registration'); ?></h1>
 <p class="description">
-    Vue visuelle du calendrier — pour fermer une <strong>plage de dates</strong>, faire une correction texte, ou recharger le
-    calendrier officiel, utilisez <a href="<?php echo esc_url(admin_url('admin.php?page=psc_school_years')); ?>">Années scolaires</a>.
+    <?php esc_html_e('Vue visuelle du calendrier — pour fermer une', 'periscolaire-registration'); ?>
+    <strong><?php esc_html_e('plage de dates', 'periscolaire-registration'); ?></strong><?php esc_html_e(', faire une correction texte, ou recharger le calendrier officiel, utilisez', 'periscolaire-registration'); ?>
+    <a href="<?php echo esc_url(admin_url('admin.php?page=psc_school_years')); ?>"><?php esc_html_e('Années scolaires', 'periscolaire-registration'); ?></a>.
 </p>
 
 <div class="psc-box" style="max-width:none;">
@@ -17,7 +18,7 @@
         <a class="button" href="<?php echo esc_url(add_query_arg(array('view' => 'month', 'month' => $prev_month))); ?>">&larr;</a>
         <h2><?php echo esc_html(date_i18n('F Y', strtotime($month . '-01'))); ?></h2>
         <a class="button" href="<?php echo esc_url(add_query_arg(array('view' => 'month', 'month' => $next_month))); ?>">&rarr;</a>
-        <a class="button" href="<?php echo esc_url(add_query_arg(array('view' => 'month', 'month' => gmdate('Y-m')))); ?>">Aujourd'hui</a>
+        <a class="button" href="<?php echo esc_url(add_query_arg(array('view' => 'month', 'month' => gmdate('Y-m')))); ?>"><?php esc_html_e("Aujourd'hui", 'periscolaire-registration'); ?></a>
         <?php else:
             $prev_week = gmdate('Y-m-d', strtotime($dates[0] . ' -7 days'));
             $next_week = gmdate('Y-m-d', strtotime($dates[0] . ' +7 days'));
@@ -25,25 +26,25 @@
         <a class="button" href="<?php echo esc_url(add_query_arg(array('view' => 'week', 'week' => $prev_week))); ?>">&larr;</a>
         <h2><?php echo esc_html(date_i18n('d/m', strtotime($dates[0]))) . ' – ' . esc_html(date_i18n('d/m/Y', strtotime(end($dates)))); ?></h2>
         <a class="button" href="<?php echo esc_url(add_query_arg(array('view' => 'week', 'week' => $next_week))); ?>">&rarr;</a>
-        <a class="button" href="<?php echo esc_url(add_query_arg(array('view' => 'week', 'week' => gmdate('Y-m-d')))); ?>">Cette semaine</a>
+        <a class="button" href="<?php echo esc_url(add_query_arg(array('view' => 'week', 'week' => gmdate('Y-m-d')))); ?>"><?php esc_html_e('Cette semaine', 'periscolaire-registration'); ?></a>
         <?php endif; ?>
     </div>
     <div class="psc-cal2-view-switch">
-        <a class="button <?php echo $view === 'month' ? 'button-primary' : ''; ?>" href="<?php echo esc_url(add_query_arg(array('view' => 'month', 'month' => gmdate('Y-m'), 'week' => false))); ?>">Mois</a>
-        <a class="button <?php echo $view === 'week' ? 'button-primary' : ''; ?>" href="<?php echo esc_url(add_query_arg(array('view' => 'week', 'week' => $dates[0], 'month' => false))); ?>">Semaine</a>
+        <a class="button <?php echo $view === 'month' ? 'button-primary' : ''; ?>" href="<?php echo esc_url(add_query_arg(array('view' => 'month', 'month' => gmdate('Y-m'), 'week' => false))); ?>"><?php esc_html_e('Mois', 'periscolaire-registration'); ?></a>
+        <a class="button <?php echo $view === 'week' ? 'button-primary' : ''; ?>" href="<?php echo esc_url(add_query_arg(array('view' => 'week', 'week' => $dates[0], 'month' => false))); ?>"><?php esc_html_e('Semaine', 'periscolaire-registration'); ?></a>
     </div>
 </div>
 
 <div class="psc-cal2-legend">
-    <span><span class="psc-cal2-legend-swatch" style="background:#f4faf3;border:1px solid #b8dfb8;"></span>Ouvert</span>
-    <span><span class="psc-cal2-legend-swatch" style="background:#fdf2f2;border:1px solid #f0b8b8;"></span>Fermé (jour)</span>
-    <span><span class="psc-cal2-legend-swatch" style="background:#f6f7f7;border:1px solid #dcdcde;"></span>Hors trimestre</span>
-    <span><span class="psc-cal2-legend-swatch" style="background:#d63638;"></span>Prestation fermée</span>
-    <span>Cliquez sur un jour pour le fermer/réouvrir, en tout ou en partie.</span>
+    <span><span class="psc-cal2-legend-swatch" style="background:#f4faf3;border:1px solid #b8dfb8;"></span><?php esc_html_e('Ouvert', 'periscolaire-registration'); ?></span>
+    <span><span class="psc-cal2-legend-swatch" style="background:#fdf2f2;border:1px solid #f0b8b8;"></span><?php esc_html_e('Fermé (jour)', 'periscolaire-registration'); ?></span>
+    <span><span class="psc-cal2-legend-swatch" style="background:#f6f7f7;border:1px solid #dcdcde;"></span><?php esc_html_e('Hors trimestre', 'periscolaire-registration'); ?></span>
+    <span><span class="psc-cal2-legend-swatch" style="background:#d63638;"></span><?php esc_html_e('Prestation fermée', 'periscolaire-registration'); ?></span>
+    <span><?php esc_html_e('Cliquez sur un jour pour le fermer/réouvrir, en tout ou en partie.', 'periscolaire-registration'); ?></span>
 </div>
 
 <div class="psc-cal2-grid <?php echo $view === 'week' ? 'psc-cal2-grid--week' : ''; ?>">
-<?php foreach (array('Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim') as $wd): ?>
+<?php foreach (array(__('Lun', 'periscolaire-registration'), __('Mar', 'periscolaire-registration'), __('Mer', 'periscolaire-registration'), __('Jeu', 'periscolaire-registration'), __('Ven', 'periscolaire-registration'), __('Sam', 'periscolaire-registration'), __('Dim', 'periscolaire-registration')) as $wd): ?>
     <div class="psc-cal2-weekday"><?php echo esc_html($wd); ?></div>
 <?php endforeach; ?>
 
@@ -60,11 +61,11 @@
         <div class="psc-cal2-daynum"><?php echo (int) substr($date, 8, 2); ?></div>
 
         <?php if ($d['status'] === 'out_of_term'): ?>
-            <span class="psc-cal2-badge psc-cal2-badge--muted">Hors trimestre</span>
+            <span class="psc-cal2-badge psc-cal2-badge--muted"><?php esc_html_e('Hors trimestre', 'periscolaire-registration'); ?></span>
         <?php elseif ($d['status'] === 'closed_day'): ?>
             <span class="psc-cal2-badge psc-cal2-badge--closed"><?php echo esc_html($d['label']); ?></span>
         <?php else: ?>
-            <span class="psc-cal2-badge psc-cal2-badge--open">Ouvert</span>
+            <span class="psc-cal2-badge psc-cal2-badge--open"><?php esc_html_e('Ouvert', 'periscolaire-registration'); ?></span>
             <div class="psc-cal2-services">
             <?php foreach ($d['services'] as $code => $svc):
                 $lbl = isset($services_meta[$code]) ? $services_meta[$code]['label'] : $code;
@@ -87,10 +88,10 @@
     <h3 id="psc-cal2-modal-title"></h3>
     <p id="psc-cal2-modal-body"></p>
     <div class="psc-cal2-modal-actions" style="flex-direction:column;align-items:stretch;">
-        <input type="text" id="psc-cal2-modal-label" placeholder="Motif (optionnel)" maxlength="191">
+        <input type="text" id="psc-cal2-modal-label" placeholder="<?php esc_attr_e('Motif (optionnel)', 'periscolaire-registration'); ?>" maxlength="191">
         <div style="display:flex;justify-content:flex-end;gap:8px;">
-            <button type="button" class="button" id="psc-cal2-modal-cancel">Annuler</button>
-            <button type="button" class="button button-primary" id="psc-cal2-modal-confirm">Confirmer</button>
+            <button type="button" class="button" id="psc-cal2-modal-cancel"><?php esc_html_e('Annuler', 'periscolaire-registration'); ?></button>
+            <button type="button" class="button button-primary" id="psc-cal2-modal-confirm"><?php esc_html_e('Confirmer', 'periscolaire-registration'); ?></button>
         </div>
     </div>
 </div>

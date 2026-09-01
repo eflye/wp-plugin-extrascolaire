@@ -684,12 +684,12 @@ class Psc_Requests {
             // 0 = valeurs inchangées (succès) ; false/WP_Error = échec.
             $updated = Psc_Parents::update($parent_id, $parent_extra);
             if (is_wp_error($updated) || false === $updated) {
-                return $rollback(is_wp_error($updated) ? $updated : 'Mise à jour du foyer impossible.');
+                return $rollback(is_wp_error($updated) ? $updated : __('Mise à jour du foyer impossible.', 'periscolaire-registration'));
             }
         } else {
             $parent_id = Psc_Parents::create($req->email, $req->nom, array_merge($parent_extra, array('prenom' => $req->prenom ?? '')));
             if (is_wp_error($parent_id) || !$parent_id) {
-                return $rollback(is_wp_error($parent_id) ? $parent_id : 'Création du foyer impossible.');
+                return $rollback(is_wp_error($parent_id) ? $parent_id : __('Création du foyer impossible.', 'periscolaire-registration'));
             }
         }
 
@@ -712,13 +712,13 @@ class Psc_Requests {
                 'created_at'     => current_time('mysql'),
             ), array('%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s'));
             if (false === $inserted) {
-                return $rollback('Création de l\'enfant impossible.');
+                return $rollback(__('Création de l\'enfant impossible.', 'periscolaire-registration'));
             }
             $child_id = (int) $wpdb->insert_id;
 
             if ($active_year_id) {
                 if (!Psc_School_Years::enroll($child_id, $active_year_id, $c['classe'], 'inscrit', $req->reglement_accepted_at ?? current_time('mysql'))) {
-                    return $rollback('Inscription de l\'enfant impossible.');
+                    return $rollback(__('Inscription de l\'enfant impossible.', 'periscolaire-registration'));
                 }
             }
 
@@ -766,7 +766,7 @@ class Psc_Requests {
             array('%d')
         );
         if (false === $updated) {
-            return $rollback('Clôture de la demande impossible.');
+            return $rollback(__('Clôture de la demande impossible.', 'periscolaire-registration'));
         }
 
         $wpdb->query('COMMIT');

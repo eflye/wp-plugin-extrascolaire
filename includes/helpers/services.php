@@ -93,7 +93,12 @@ function psc_service_closed_in_map(array $closures, $date, $service) {
 
 /** Libellés abrégés, pour les en-têtes de colonnes serrées. */
 function psc_service_short_labels() {
-    return array('GM' => 'G.M.', 'CANT' => 'Cant.', 'GS' => 'G.S.', 'FORF' => 'Forf.');
+    return array(
+        'GM'   => __('G.M.', 'periscolaire-registration'),
+        'CANT' => __('Cant.', 'periscolaire-registration'),
+        'GS'   => __('G.S.', 'periscolaire-registration'),
+        'FORF' => __('Forf.', 'periscolaire-registration'),
+    );
 }
 
 /**
@@ -101,10 +106,10 @@ function psc_service_short_labels() {
  */
 function psc_services() {
     $defaults = array(
-        'GM'   => array('label' => 'Garderie Matin', 'price' => 1.85),
-        'CANT' => array('label' => 'Cantine', 'price' => 5.80),
-        'GS'   => array('label' => 'Garderie Soir', 'price' => 4.70),
-        'FORF' => array('label' => 'Forfait journée', 'price' => 11.70),
+        'GM'   => array('label' => __('Garderie Matin', 'periscolaire-registration'), 'price' => 1.85),
+        'CANT' => array('label' => __('Cantine', 'periscolaire-registration'), 'price' => 5.80),
+        'GS'   => array('label' => __('Garderie Soir', 'periscolaire-registration'), 'price' => 4.70),
+        'FORF' => array('label' => __('Forfait journée', 'periscolaire-registration'), 'price' => 11.70),
     );
     $saved = get_option('psc_service_prices', array());
     if (is_array($saved)) {

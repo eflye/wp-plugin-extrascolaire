@@ -50,21 +50,22 @@ class Psc_Sepa_Mandate {
 
         // ---- Titre ----
         $pdf->SetFont('Helvetica', 'B', 15);
-        $pdf->Cell($pw, 8, self::enc('MANDAT DE PRÉLÈVEMENT SEPA'), 0, 1, 'C');
+        $pdf->Cell($pw, 8, self::enc(__('MANDAT DE PRÉLÈVEMENT SEPA', 'periscolaire-registration')), 0, 1, 'C');
         $pdf->Ln(2);
 
         // ---- Texte légal standard (formulation officielle CFONB/EPC) ----
         $pdf->SetFont('Helvetica', '', 8.5);
-        $pdf->MultiCell($pw, 4, self::enc(
-            'En signant ce formulaire de mandat, vous autorisez (A) le créancier '
-            . 'désigné ci-dessous à envoyer des instructions à votre banque pour '
-            . 'débiter votre compte, et (B) votre banque à débiter votre compte '
-            . 'conformément aux instructions du créancier. Vous bénéficiez du droit '
-            . 'd\'être remboursé par votre banque selon les conditions décrites dans '
-            . 'la convention que vous avez passée avec elle. Une demande de '
-            . 'remboursement doit être présentée dans les 8 semaines suivant la date '
-            . 'de débit de votre compte pour un prélèvement autorisé.'
-        ), 0, 'J');
+        $pdf->MultiCell($pw, 4, self::enc(__(
+            "En signant ce formulaire de mandat, vous autorisez (A) le créancier "
+            . "désigné ci-dessous à envoyer des instructions à votre banque pour "
+            . "débiter votre compte, et (B) votre banque à débiter votre compte "
+            . "conformément aux instructions du créancier. Vous bénéficiez du droit "
+            . "d'être remboursé par votre banque selon les conditions décrites dans "
+            . "la convention que vous avez passée avec elle. Une demande de "
+            . "remboursement doit être présentée dans les 8 semaines suivant la date "
+            . "de débit de votre compte pour un prélèvement autorisé.",
+            'periscolaire-registration'
+        )), 0, 'J');
         $pdf->Ln(4);
 
         $pdf->SetDrawColor(0, 0, 0);
@@ -74,23 +75,23 @@ class Psc_Sepa_Mandate {
 
         // ---- Créancier ----
         $pdf->SetFont('Helvetica', 'B', 10);
-        $pdf->Cell($pw, 5, self::enc('Créancier'), 0, 1, 'L');
+        $pdf->Cell($pw, 5, self::enc(__('Créancier', 'periscolaire-registration')), 0, 1, 'L');
         $pdf->SetFont('Helvetica', '', 9.5);
         $pdf->Cell($pw, 5, self::enc($org_name), 0, 1, 'L');
         if ($org_address) $pdf->Cell($pw, 5, self::enc($org_address), 0, 1, 'L');
         if ($org_city)    $pdf->Cell($pw, 5, self::enc($org_city), 0, 1, 'L');
-        $pdf->Cell($pw, 5, self::enc('Identifiant créancier SEPA (ICS) : ' . $ics), 0, 1, 'L');
+        $pdf->Cell($pw, 5, self::enc(__('Identifiant créancier SEPA (ICS) : ', 'periscolaire-registration') . $ics), 0, 1, 'L');
         $pdf->Ln(2);
 
         // ---- Référence du mandat / type de paiement ----
         $pdf->SetFont('Helvetica', 'B', 10);
-        $pdf->Write(5, self::enc('Référence unique du mandat (RUM) : '));
+        $pdf->Write(5, self::enc(__('Référence unique du mandat (RUM) : ', 'periscolaire-registration')));
         $pdf->SetTextColor(180, 30, 30);
         $pdf->Write(5, self::enc($rum));
         $pdf->SetTextColor(0, 0, 0);
         $pdf->Ln(7);
         $pdf->SetFont('Helvetica', '', 9.5);
-        $pdf->Cell($pw, 5, self::enc('Type de paiement : Paiement récurrent'), 0, 1, 'L');
+        $pdf->Cell($pw, 5, self::enc(__('Type de paiement : Paiement récurrent', 'periscolaire-registration')), 0, 1, 'L');
         $pdf->Ln(4);
 
         $pdf->Line($ml, $pdf->GetY(), 210 - $mr, $pdf->GetY());
@@ -98,7 +99,7 @@ class Psc_Sepa_Mandate {
 
         // ---- Débiteur ----
         $pdf->SetFont('Helvetica', 'B', 10);
-        $pdf->Cell($pw, 5, self::enc('Débiteur (titulaire du compte à débiter)'), 0, 1, 'L');
+        $pdf->Cell($pw, 5, self::enc(__('Débiteur (titulaire du compte à débiter)', 'periscolaire-registration')), 0, 1, 'L');
         $pdf->SetFont('Helvetica', '', 9.5);
         $pdf->Cell($pw, 5, self::enc($debtor['titulaire']), 0, 1, 'L');
         if (!empty($debtor['adresse'])) $pdf->Cell($pw, 5, self::enc($debtor['adresse']), 0, 1, 'L');
@@ -106,40 +107,42 @@ class Psc_Sepa_Mandate {
         if ($ville_line !== '') $pdf->Cell($pw, 5, self::enc($ville_line), 0, 1, 'L');
         $pdf->Ln(3);
 
-        $pdf->Cell(30, 5, self::enc('IBAN :'), 0, 0, 'L');
+        $pdf->Cell(30, 5, self::enc(__('IBAN :', 'periscolaire-registration')), 0, 0, 'L');
         $pdf->SetFont('Helvetica', 'B', 9.5);
         $pdf->Cell($pw - 30, 5, self::enc(self::format_iban($debtor['iban'])), 0, 1, 'L');
         $pdf->SetFont('Helvetica', '', 9.5);
-        $pdf->Cell(30, 5, self::enc('BIC :'), 0, 0, 'L');
+        $pdf->Cell(30, 5, self::enc(__('BIC :', 'periscolaire-registration')), 0, 0, 'L');
         $pdf->SetFont('Helvetica', 'B', 9.5);
         $pdf->Cell($pw - 30, 5, self::enc($debtor['bic']), 0, 1, 'L');
         $pdf->Ln(10);
 
         // ---- Signature ----
         $pdf->SetFont('Helvetica', '', 9.5);
-        $pdf->Cell($pw / 2, 5, self::enc('Fait à ................................................'), 0, 0, 'L');
-        $pdf->Cell($pw / 2, 5, self::enc('le ....... / ....... / ..........'), 0, 1, 'L');
+        $pdf->Cell($pw / 2, 5, self::enc(__('Fait à ................................................', 'periscolaire-registration')), 0, 0, 'L');
+        $pdf->Cell($pw / 2, 5, self::enc(__('le ....... / ....... / ..........', 'periscolaire-registration')), 0, 1, 'L');
         $pdf->Ln(10);
-        $pdf->Cell($pw, 5, self::enc('Signature du débiteur :'), 0, 1, 'L');
+        $pdf->Cell($pw, 5, self::enc(__('Signature du débiteur :', 'periscolaire-registration')), 0, 1, 'L');
         $pdf->Ln(18);
         $pdf->Line($ml, $pdf->GetY(), $ml + 70, $pdf->GetY());
         $pdf->Ln(10);
 
         // ---- Note RGPD + rappel d'envoi ----
         $pdf->SetFont('Helvetica', 'I', 8);
-        $pdf->MultiCell($pw, 4, self::enc(
-            'Les informations contenues dans le présent mandat, qui doit être '
-            . 'complété, sont destinées à n\'être utilisées par le créancier pour la '
-            . 'gestion de sa relation avec son client. Elles pourront donner lieu à '
-            . 'l\'exercice, par ce dernier, de ses droits d\'accès et de rectification '
-            . 'auprès de l\'émetteur du mandat par voie postale.'
-        ), 0, 'J');
+        $pdf->MultiCell($pw, 4, self::enc(__(
+            "Les informations contenues dans le présent mandat, qui doit être "
+            . "complété, sont destinées à n'être utilisées par le créancier pour la "
+            . "gestion de sa relation avec son client. Elles pourront donner lieu à "
+            . "l'exercice, par ce dernier, de ses droits d'accès et de rectification "
+            . "auprès de l'émetteur du mandat par voie postale.",
+            'periscolaire-registration'
+        )), 0, 'J');
         $pdf->Ln(3);
         $pdf->SetFont('Helvetica', 'B', 8.5);
-        $pdf->MultiCell($pw, 4, self::enc(
-            'Merci d\'imprimer ce mandat, de le signer, puis de l\'adresser à votre '
-            . 'banque afin d\'autoriser les prélèvements. Conservez-en une copie.'
-        ), 0, 'J');
+        $pdf->MultiCell($pw, 4, self::enc(__(
+            "Merci d'imprimer ce mandat, de le signer, puis de l'adresser à votre "
+            . "banque afin d'autoriser les prélèvements. Conservez-en une copie.",
+            'periscolaire-registration'
+        )), 0, 'J');
 
         $pdf->Output('F', $path);
     }

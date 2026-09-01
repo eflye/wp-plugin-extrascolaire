@@ -18,10 +18,10 @@ class Psc_Menus {
 
     public static function jour_labels() {
         return array(
-            'lundi'     => 'Lundi',
-            'mardi'     => 'Mardi',
-            'jeudi'     => 'Jeudi',
-            'vendredi'  => 'Vendredi',
+            'lundi'     => __('Lundi', 'periscolaire-registration'),
+            'mardi'     => __('Mardi', 'periscolaire-registration'),
+            'jeudi'     => __('Jeudi', 'periscolaire-registration'),
+            'vendredi'  => __('Vendredi', 'periscolaire-registration'),
         );
     }
 
@@ -70,7 +70,7 @@ class Psc_Menus {
 
         $semaine = psc_week_start($semaine_debut);
         if (!$semaine) {
-            return new WP_Error('psc_invalid_week', 'Date de semaine invalide.');
+            return new WP_Error('psc_invalid_week', __('Date de semaine invalide.', 'periscolaire-registration'));
         }
 
         // Un jour fermé (vacances, férié, fermeture ponctuelle) n'a jamais de

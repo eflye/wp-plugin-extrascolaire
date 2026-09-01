@@ -67,14 +67,14 @@ class Psc_Frontend_Menus extends Psc_Frontend_Base {
         $end_year  = date_i18n('Y', strtotime($friday));
 
         if (date('Y-m', strtotime($monday)) === date('Y-m', strtotime($friday))) {
-            return sprintf('Semaine du %s au %s %s %s', $start_day, $end_day, $end_month, $end_year);
+            return sprintf(__('Semaine du %s au %s %s %s', 'periscolaire-registration'), $start_day, $end_day, $end_month, $end_year);
         }
         $start_month = date_i18n('F', strtotime($monday));
         $start_year  = date_i18n('Y', strtotime($monday));
         if ($start_year !== $end_year) {
-            return sprintf('Semaine du %s %s %s au %s %s %s', $start_day, $start_month, $start_year, $end_day, $end_month, $end_year);
+            return sprintf(__('Semaine du %s %s %s au %s %s %s', 'periscolaire-registration'), $start_day, $start_month, $start_year, $end_day, $end_month, $end_year);
         }
-        return sprintf('Semaine du %s %s au %s %s %s', $start_day, $start_month, $end_day, $end_month, $end_year);
+        return sprintf(__('Semaine du %s %s au %s %s %s', 'periscolaire-registration'), $start_day, $start_month, $end_day, $end_month, $end_year);
     }
 
     /**

@@ -18,10 +18,10 @@ class Psc_Supplier_Orders {
 
     public static function jour_labels() {
         return array(
-            'lundi'    => 'Lundi',
-            'mardi'    => 'Mardi',
-            'jeudi'    => 'Jeudi',
-            'vendredi' => 'Vendredi',
+            'lundi'    => __('Lundi', 'periscolaire-registration'),
+            'mardi'    => __('Mardi', 'periscolaire-registration'),
+            'jeudi'    => __('Jeudi', 'periscolaire-registration'),
+            'vendredi' => __('Vendredi', 'periscolaire-registration'),
         );
     }
 
@@ -69,7 +69,7 @@ class Psc_Supplier_Orders {
     public static function compute_counts($semaine_debut) {
         $semaine = psc_week_start($semaine_debut);
         if (!$semaine) {
-            return new WP_Error('psc_invalid_week', 'Date de semaine invalide.');
+            return new WP_Error('psc_invalid_week', __('Date de semaine invalide.', 'periscolaire-registration'));
         }
 
         global $wpdb;
@@ -146,7 +146,7 @@ class Psc_Supplier_Orders {
 
         $classes_out = array();
         foreach ($classes as $c) {
-            $classes_out[$c] = ($c === '') ? 'Non renseignée' : ($classes_labels[$c] ?? $c);
+            $classes_out[$c] = ($c === '') ? __('Non renseignée', 'periscolaire-registration') : ($classes_labels[$c] ?? $c);
         }
 
         return array(
@@ -187,13 +187,13 @@ class Psc_Supplier_Orders {
         if (!$supplier_email || !is_email($supplier_email)) {
             return new WP_Error(
                 'psc_no_supplier_email',
-                "Aucune adresse e-mail fournisseur n'est configurée (Périscolaire > Réglages)."
+                __("Aucune adresse e-mail fournisseur n'est configurée (Périscolaire > Réglages).", 'periscolaire-registration')
             );
         }
 
         $rendered = Psc_Mailer::send_supplier_order($supplier_email, $data);
         if (!$rendered['sent']) {
-            return new WP_Error('psc_mail_failed', "L'envoi du mail a échoué.");
+            return new WP_Error('psc_mail_failed', __("L'envoi du mail a échoué.", 'periscolaire-registration'));
         }
 
         global $wpdb;
@@ -255,11 +255,11 @@ class Psc_Supplier_Orders {
     public static function cancel_class_meals($date, $classe, $reason) {
         $date = psc_valid_date($date);
         if (!$date) {
-            return new WP_Error('psc_invalid_date', 'Date invalide.');
+            return new WP_Error('psc_invalid_date', __('Date invalide.', 'periscolaire-registration'));
         }
         $reason = trim((string) $reason);
         if ($reason === '') {
-            return new WP_Error('psc_reason_required', 'Merci d\'indiquer un motif.');
+            return new WP_Error('psc_reason_required', __('Merci d\'indiquer un motif.', 'periscolaire-registration'));
         }
 
         $rows = self::cantine_registrations_for_class_day($date, $classe);
@@ -286,7 +286,7 @@ class Psc_Supplier_Orders {
         $wpdb->query($wpdb->prepare("DELETE FROM $t_reg WHERE id IN ($placeholders)", $ids));
 
         $classe_labels = Psc_School_Years::classe_options();
-        $classe_label  = ($classe === '') ? 'Non renseignée' : ($classe_labels[$classe] ?? $classe);
+        $classe_label  = ($classe === '') ? __('Non renseignée', 'periscolaire-registration') : ($classe_labels[$classe] ?? $classe);
 
         foreach ($by_family as $fam) {
             Psc_Mailer::send_cantine_cancelled($fam, $date, $classe_label, $reason);

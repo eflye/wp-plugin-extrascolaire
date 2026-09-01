@@ -6,6 +6,17 @@
     var SERVICES = PSC_CAL_V2.unit_services;
     var menuEl = null;
 
+    // Chaînes traduites côté serveur (PSC_CAL_V2.i18n, cf.
+    // Psc_Admin_Calendar_V2::assets()) : t('cle', args…) remplace les %s
+    // dans l'ordre des arguments.
+    function t(key) {
+        var s = PSC_CAL_V2.i18n[key] || '';
+        for (var i = 1; i < arguments.length; i++) {
+            s = s.replace('%s', arguments[i]);
+        }
+        return s;
+    }
+
     function svcLabel(code) {
         return (PSC_CAL_V2.services[code] && PSC_CAL_V2.services[code].label) || code;
     }
@@ -25,7 +36,7 @@
 
     function reload() { window.location.reload(); }
 
-    function showAjaxError() { window.alert('Une erreur est survenue, merci de réessayer.'); }
+    function showAjaxError() { window.alert(t('ajax_error')); }
 
     /* ---------------- Menu contextuel (clic sur un jour) ---------------- */
 
@@ -51,23 +62,23 @@
         var items = [];
 
         if (status === 'closed_day') {
-            addMenuItem(items, 'Réouvrir ce jour', function () {
-                confirmSimple('Réouvrir le ' + formatDDMMYYYY(date) + ' ?', function () {
+            addMenuItem(items, t('reopen_day'), function () {
+                confirmSimple(t('reopen_date', formatDDMMYYYY(date)), function () {
                     return ajax('psc_cal_v2_open_day', { date: date });
                 });
             });
         } else if (status === 'open') {
-            addMenuItem(items, 'Fermer tout le jour', function () { openCloseDayModal(date); });
+            addMenuItem(items, t('close_all_day'), function () { openCloseDayModal(date); });
             SERVICES.forEach(function (code) {
                 var closed = cell.getAttribute('data-closed-' + code.toLowerCase()) === '1';
                 if (closed) {
-                    addMenuItem(items, 'Réouvrir ' + svcLabel(code), function () {
-                        confirmSimple('Réouvrir ' + svcLabel(code) + ' le ' + formatDDMMYYYY(date) + ' ?', function () {
+                    addMenuItem(items, t('reopen_service', svcLabel(code)), function () {
+                        confirmSimple(t('reopen_service_date', svcLabel(code), formatDDMMYYYY(date)), function () {
                             return ajax('psc_cal_v2_open_service', { date: date, service: code });
                         });
                     });
                 } else {
-                    addMenuItem(items, 'Fermer ' + svcLabel(code), function () { openCloseServiceModal(date, code); });
+                    addMenuItem(items, t('close_service', svcLabel(code)), function () { openCloseServiceModal(date, code); });
                 }
             });
         }
@@ -133,10 +144,10 @@
     function openCloseDayModal(date) {
         ajax('psc_cal_v2_preview_close_day', { date: date }).then(function (data) {
             var body = data.registrations > 0
-                ? 'Supprimera ' + data.registrations + ' inscription(s) déjà déclarée(s) par ' + data.families + ' famille(s). Ces prestations ne seront pas facturées, et chaque famille recevra un e-mail.'
-                : 'Aucune inscription existante ce jour-là.';
+                ? t('preview_day', data.registrations, data.families)
+                : t('no_registrations');
             showConfirmModal({
-                title: 'Fermer le ' + formatDDMMYYYY(date),
+                title: t('close_date', formatDDMMYYYY(date)),
                 body: body,
                 onConfirm: function (label) {
                     return ajax('psc_cal_v2_close_day', { date: date, label: label });
@@ -149,14 +160,14 @@
         ajax('psc_cal_v2_preview_close_service', { date: date, service: service }).then(function (data) {
             var parts = [];
             if (data.direct_registrations > 0) {
-                parts.push(data.direct_registrations + ' inscription(s) directe(s) de ' + svcLabel(service) + ' seront supprimées (' + data.direct_families + ' famille(s), non facturées).');
+                parts.push(t('preview_service_direct', data.direct_registrations, svcLabel(service), data.direct_families));
             }
             if (data.forf_registrations > 0) {
-                parts.push(data.forf_registrations + ' enfant(s) en forfait journée (' + data.forf_families + ' famille(s)) seront basculés vers les 2 autres prestations ce jour-là.');
+                parts.push(t('preview_service_forf', data.forf_registrations, data.forf_families));
             }
-            var body = parts.length ? parts.join(' ') : 'Aucune inscription existante ce jour-là.';
+            var body = parts.length ? parts.join(' ') : t('no_registrations');
             showConfirmModal({
-                title: 'Fermer ' + svcLabel(service) + ' le ' + formatDDMMYYYY(date),
+                title: t('close_service_date', svcLabel(service), formatDDMMYYYY(date)),
                 body: body,
                 onConfirm: function (label) {
                     return ajax('psc_cal_v2_close_service', { date: date, service: service, label: label });

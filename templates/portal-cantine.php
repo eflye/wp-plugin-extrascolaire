@@ -1,27 +1,27 @@
 <?php if (!defined('ABSPATH')) exit; ?>
-<div class="psc-portal-eyebrow">Inscriptions</div>
-<h1 class="psc-portal-h1" data-testid="cantine-title">Cantine &amp; Garderie</h1>
+<div class="psc-portal-eyebrow"><?php esc_html_e('Inscriptions', 'periscolaire-registration'); ?></div>
+<h1 class="psc-portal-h1" data-testid="cantine-title"><?php esc_html_e('Cantine & Garderie', 'periscolaire-registration'); ?></h1>
 
 <?php if (!$trimestre): ?>
 
-  <p>Aucune période d'inscription périscolaire n'est actuellement ouverte. Merci de repasser plus tard ou de contacter la mairie.</p>
+  <p><?php esc_html_e("Aucune période d'inscription périscolaire n'est actuellement ouverte. Merci de repasser plus tard ou de contacter la mairie.", 'periscolaire-registration'); ?></p>
 
 <?php elseif (empty($children)): ?>
 
   <p class="psc-notice psc-notice-err">
-    Aucun enfant n'est encore rattaché à votre adresse. Merci de contacter la mairie
-    pour faire enregistrer votre ou vos enfants.
+    <?php esc_html_e("Aucun enfant n'est encore rattaché à votre adresse. Merci de contacter la mairie
+    pour faire enregistrer votre ou vos enfants.", 'periscolaire-registration'); ?>
   </p>
 
 <?php else: ?>
 
   <p class="psc-portal-intro" data-testid="period-label">
-    Période en cours : <strong><?php echo esc_html($trimestre->label); ?></strong>. Cochez les jours et prestations
-    souhaités : l'enregistrement est automatique.
+    <?php esc_html_e('Période en cours :', 'periscolaire-registration'); ?> <strong><?php echo esc_html($trimestre->label); ?></strong><?php esc_html_e(". Cochez les jours et prestations
+    souhaités : l'enregistrement est automatique.", 'periscolaire-registration'); ?>
   </p>
   <p class="psc-portal-intro-sub">
-    Chaque jour reste modifiable jusqu'à <?php echo esc_html(psc_lock_hours()); ?> heures avant la date concernée.
-    Passé ce délai, la case est grisée : contactez la mairie.
+    <?php esc_html_e("Chaque jour reste modifiable jusqu'à", 'periscolaire-registration'); ?> <?php echo esc_html(psc_lock_hours()); ?> <?php esc_html_e("heures avant la date concernée.
+    Passé ce délai, la case est grisée : contactez la mairie.", 'periscolaire-registration'); ?>
   </p>
 
   <?php $child_index = 0; foreach ($children as $child):
@@ -50,15 +50,15 @@
           <?php if ($psc_child_classe): ?><span class="psc-portal-child-classe">(<?php echo esc_html($psc_child_classe); ?>)</span><?php endif; ?>
         </h2>
         <span class="psc-portal-child-total" data-child-total role="status" aria-live="polite" data-testid="child-total-<?php echo esc_attr($child_index); ?>">
-          <?php echo esc_html($child_days_count); ?> jour<?php echo $child_days_count > 1 ? 's' : ''; ?>
+          <?php echo esc_html($child_days_count); ?> <?php echo esc_html(_n('jour', 'jours', $child_days_count, 'periscolaire-registration')); ?>
           · <?php echo esc_html(number_format_i18n($child_total, 2)); ?> €
         </span>
       </div>
 
       <?php if ($assurance_missing): ?>
       <p class="psc-notice psc-notice-err" data-testid="assurance-missing-<?php echo esc_attr($child_index); ?>">
-        Assurance scolaire manquante pour <?php echo esc_html($child->prenom); ?> : les cases sont désactivées tant
-        que le justificatif n'est pas fourni. Ajoutez-le depuis « Mes enfants ».
+        <?php esc_html_e('Assurance scolaire manquante pour', 'periscolaire-registration'); ?> <?php echo esc_html($child->prenom); ?> <?php esc_html_e(" : les cases sont désactivées tant
+        que le justificatif n'est pas fourni. Ajoutez-le depuis « Mes enfants ».", 'periscolaire-registration'); ?>
       </p>
       <?php endif; ?>
 
@@ -89,16 +89,16 @@
             <span class="psc-month-chevron" aria-hidden="true"></span>
             <span class="psc-month-name">
               <?php echo esc_html(ucfirst($month_label)); ?>
-              <?php if (!$has_open): ?><span class="psc-badge">clôturé</span><?php endif; ?>
+              <?php if (!$has_open): ?><span class="psc-badge"><?php esc_html_e('clôturé', 'periscolaire-registration'); ?></span><?php endif; ?>
             </span>
             <span class="psc-month-summary <?php echo $month_days_count > 0 ? 'psc-month-summary-active' : 'psc-month-summary-empty'; ?>"
                   data-month-summary role="status" aria-live="polite"
                   data-testid="month-summary-<?php echo esc_attr($child_index); ?>-<?php echo esc_attr($month_key); ?>">
               <?php if ($month_days_count > 0): ?>
-                <?php echo esc_html($month_days_count); ?> jour<?php echo $month_days_count > 1 ? 's' : ''; ?>
+                <?php echo esc_html($month_days_count); ?> <?php echo esc_html(_n('jour', 'jours', $month_days_count, 'periscolaire-registration')); ?>
                 · <?php echo esc_html(number_format_i18n($month_total, 2)); ?> €
               <?php else: ?>
-                Aucun jour déclaré
+                <?php esc_html_e('Aucun jour déclaré', 'periscolaire-registration'); ?>
               <?php endif; ?>
             </span>
           </summary>
@@ -106,11 +106,11 @@
           <div class="psc-portal-table-scroll">
           <table class="psc-portal-calendar" data-testid="calendar-table-<?php echo esc_attr($child_index); ?>-<?php echo esc_attr($month_key); ?>">
             <caption class="screen-reader-text">
-              Calendrier périscolaire de <?php echo esc_html($child->prenom); ?> pour <?php echo esc_html($month_label); ?>
+              <?php esc_html_e('Calendrier périscolaire de', 'periscolaire-registration'); ?> <?php echo esc_html($child->prenom); ?> <?php esc_html_e('pour', 'periscolaire-registration'); ?> <?php echo esc_html($month_label); ?>
             </caption>
             <thead>
               <tr>
-                <th scope="col">Jour</th>
+                <th scope="col"><?php esc_html_e('Jour', 'periscolaire-registration'); ?></th>
                 <?php
                 $short = psc_service_short_labels();
                 foreach (psc_allowed_services() as $code): ?>
@@ -143,7 +143,7 @@
                             data-dates="<?php echo esc_attr(implode(',', $tout_dates)); ?>"
                             data-testid="tout-<?php echo esc_attr($child_index); ?>-<?php echo esc_attr($month_key); ?>-<?php echo esc_attr($code); ?>"
                             <?php disabled($tout_disabled); ?>>
-                      <?php echo $tout_all_checked ? 'Retirer' : 'Tout'; ?>
+                      <?php echo esc_html($tout_all_checked ? __('Retirer', 'periscolaire-registration') : __('Tout', 'periscolaire-registration')); ?>
                     </button>
                   </th>
                 <?php endforeach; ?>
@@ -158,7 +158,7 @@
                 <th scope="row" class="psc-daylabel">
                   <?php echo esc_html(psc_day_label($date) . ' ' . date_i18n('d/m', strtotime($date))); ?>
                   <?php if ($locked): ?>
-                    <span class="psc-lock" title="Délai de modification dépassé" aria-label="Délai de modification dépassé">&#128274;</span>
+                    <span class="psc-lock" title="<?php esc_attr_e('Délai de modification dépassé', 'periscolaire-registration'); ?>" aria-label="<?php esc_attr_e('Délai de modification dépassé', 'periscolaire-registration'); ?>">&#128274;</span>
                   <?php endif; ?>
                 </th>
                 <?php foreach (psc_allowed_services() as $s):
@@ -179,9 +179,9 @@
                            aria-label="<?php echo esc_attr(
                                $services[$s]['label'] . ' — ' . psc_day_label($date) . ' '
                                . date_i18n('d/m', strtotime($date)) . ' — ' . $child->prenom
-                               . ($locked ? ' (non modifiable)' : '')
-                               . ($service_closed ? ' (prestation fermée)' : '')
-                               . ($assurance_missing && !$checked ? ' (assurance scolaire manquante)' : '')
+                               . ($locked ? ' ' . __('(non modifiable)', 'periscolaire-registration') : '')
+                               . ($service_closed ? ' ' . __('(prestation fermée)', 'periscolaire-registration') : '')
+                               . ($assurance_missing && !$checked ? ' ' . __('(assurance scolaire manquante)', 'periscolaire-registration') : '')
                            ); ?>"
                            data-child="<?php echo esc_attr($child->id); ?>"
                            data-date="<?php echo esc_attr($date); ?>"
@@ -204,12 +204,12 @@
   <?php $child_index++; endforeach; ?>
 
   <div class="psc-portal-confirm" data-testid="confirm-block">
-    <div class="psc-portal-confirm-title">Confirmer mon planning</div>
+    <div class="psc-portal-confirm-title"><?php esc_html_e('Confirmer mon planning', 'periscolaire-registration'); ?></div>
     <p class="psc-portal-confirm-text">
-      Vos inscriptions sont déjà enregistrées. Ce bouton vous envoie par e-mail
-      un récapitulatif complet, à conserver comme preuve de votre saisie.
+      <?php esc_html_e("Vos inscriptions sont déjà enregistrées. Ce bouton vous envoie par e-mail
+      un récapitulatif complet, à conserver comme preuve de votre saisie.", 'periscolaire-registration'); ?>
     </p>
-    <button type="button" class="psc-portal-btn-gold" id="psc-confirm" data-testid="confirm-button">Valider et recevoir mon planning</button>
+    <button type="button" class="psc-portal-btn-gold" id="psc-confirm" data-testid="confirm-button"><?php esc_html_e('Valider et recevoir mon planning', 'periscolaire-registration'); ?></button>
     <p class="psc-confirm-feedback" id="psc-confirm-feedback" role="status" aria-live="polite" data-testid="confirm-feedback"></p>
   </div>
 

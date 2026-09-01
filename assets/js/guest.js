@@ -3,6 +3,16 @@
 
     var MAX_CHILDREN = 5;
 
+    // Chaînes traduites côté serveur (PSC.i18n, cf. Psc_Frontend::assets())
+    // : t('cle', args…) remplace les %s dans l'ordre des arguments.
+    function t(key) {
+        var s = PSC.i18n[key] || '';
+        for (var i = 1; i < arguments.length; i++) {
+            s = s.replace('%s', arguments[i]);
+        }
+        return s;
+    }
+
     /* ---------- Stepper "Première inscription" ---------- */
 
     function initWizard() {
@@ -176,27 +186,27 @@
             row.className = 'psc-wizard-child-row';
             row.dataset.index = idx;
             row.innerHTML =
-                '<div><label class="psc-portal-field-label screen-reader-text" for="psc-cp-' + idx + '">Prénom de l’enfant ' + n + '</label>' +
-                '<input id="psc-cp-' + idx + '" class="psc-portal-field-underline" type="text" name="child_prenom_' + idx + '" placeholder="Prénom" maxlength="190" required></div>' +
-                '<div><label class="psc-portal-field-label screen-reader-text" for="psc-cn-' + idx + '">Nom de l’enfant ' + n + '</label>' +
-                '<input id="psc-cn-' + idx + '" class="psc-portal-field-underline" type="text" name="child_nom_' + idx + '" placeholder="Nom" maxlength="190" required></div>' +
-                '<div><label class="psc-portal-field-label screen-reader-text" for="psc-cc-' + idx + '">Classe de l’enfant ' + n + '</label>' +
+                '<div><label class="psc-portal-field-label screen-reader-text" for="psc-cp-' + idx + '">' + t('child_firstname', n) + '</label>' +
+                '<input id="psc-cp-' + idx + '" class="psc-portal-field-underline" type="text" name="child_prenom_' + idx + '" placeholder="' + t('firstname') + '" maxlength="190" required></div>' +
+                '<div><label class="psc-portal-field-label screen-reader-text" for="psc-cn-' + idx + '">' + t('child_lastname', n) + '</label>' +
+                '<input id="psc-cn-' + idx + '" class="psc-portal-field-underline" type="text" name="child_nom_' + idx + '" placeholder="' + t('lastname') + '" maxlength="190" required></div>' +
+                '<div><label class="psc-portal-field-label screen-reader-text" for="psc-cc-' + idx + '">' + t('child_class', n) + '</label>' +
                 '<select id="psc-cc-' + idx + '" class="psc-portal-field-underline" name="child_classe_' + idx + '" required>' + classeOptionsHTML + '</select></div>' +
-                '<div><label class="psc-portal-field-label screen-reader-text" for="psc-cb-' + idx + '">Date de naissance de l’enfant ' + n + '</label>' +
+                '<div><label class="psc-portal-field-label screen-reader-text" for="psc-cb-' + idx + '">' + t('child_birthdate', n) + '</label>' +
                 '<input id="psc-cb-' + idx + '" class="psc-portal-field-underline" type="date" name="child_naissance_' + idx + '" required></div>' +
-                '<div><label class="psc-portal-field-label" for="psc-ca-' + idx + '">Justificatif d’assurance scolaire</label>' +
+                '<div><label class="psc-portal-field-label" for="psc-ca-' + idx + '">' + t('insurance') + '</label>' +
                 '<input id="psc-ca-' + idx + '" type="file" name="child_assurance_' + idx + '" accept=".pdf,.jpg,.jpeg,.png" required></div>' +
-                '<div class="psc-wizard-diet-cell"><div class="psc-portal-field-label">Régime alimentaire</div>' +
+                '<div class="psc-wizard-diet-cell"><div class="psc-portal-field-label">' + t('diet') + '</div>' +
                 '<div class="psc-wizard-diet-group">' +
-                '<label class="psc-wizard-diet-check"><input type="checkbox" name="child_sans_porc_' + idx + '" value="1"> Sans porc</label>' +
-                '<label class="psc-wizard-diet-check"><input type="checkbox" name="child_vegan_' + idx + '" value="1"> Sans viande</label>' +
+                '<label class="psc-wizard-diet-check"><input type="checkbox" name="child_sans_porc_' + idx + '" value="1"> ' + t('diet_pork') + '</label>' +
+                '<label class="psc-wizard-diet-check"><input type="checkbox" name="child_vegan_' + idx + '" value="1"> ' + t('diet_meat') + '</label>' +
                 '</div></div>' +
                 '<div class="psc-wizard-pickup-block">' +
-                '<p class="psc-wizard-pickup-title">Personnes autorisées à récupérer cet enfant en fin de garderie du soir (facultatif)</p>' +
+                '<p class="psc-wizard-pickup-title">' + t('pickup_title') + '</p>' +
                 '<div class="psc-wizard-pickup-list" data-pickup-list></div>' +
-                '<button type="button" class="psc-wizard-add-pickup-btn" data-testid="add-pickup-person-' + idx + '">+ Ajouter une personne autorisée</button>' +
+                '<button type="button" class="psc-wizard-add-pickup-btn" data-testid="add-pickup-person-' + idx + '">' + t('pickup_add') + '</button>' +
                 '</div>' +
-                '<button type="button" class="psc-wizard-remove-btn" aria-label="Supprimer cet enfant">Retirer</button>';
+                '<button type="button" class="psc-wizard-remove-btn" aria-label="' + t('child_remove') + '">' + t('remove') + '</button>';
 
             list.appendChild(row);
             wireRemove(row);
@@ -256,16 +266,16 @@
             row.className = 'psc-wizard-pickup-row';
             var base = 'psc-pp-' + childIdx + '-' + n;
             row.innerHTML =
-                '<div><label class="psc-portal-field-label screen-reader-text" for="' + base + '-prenom">Prénom de la personne autorisée</label>' +
-                '<input id="' + base + '-prenom" class="psc-portal-field-underline" type="text" name="child_pickup_prenom_' + childIdx + '_' + n + '" placeholder="Prénom" maxlength="191"></div>' +
-                '<div><label class="psc-portal-field-label screen-reader-text" for="' + base + '-nom">Nom de la personne autorisée</label>' +
-                '<input id="' + base + '-nom" class="psc-portal-field-underline" type="text" name="child_pickup_nom_' + childIdx + '_' + n + '" placeholder="Nom" maxlength="191"></div>' +
-                '<div><label class="psc-portal-field-label screen-reader-text" for="' + base + '-tel">Téléphone de la personne autorisée</label>' +
-                '<input id="' + base + '-tel" class="psc-portal-field-underline" type="tel" name="child_pickup_telephone_' + childIdx + '_' + n + '" placeholder="Téléphone" maxlength="40"></div>' +
-                '<div><label class="psc-portal-field-label screen-reader-text" for="' + base + '-lien">Lien avec l’enfant</label>' +
-                '<input id="' + base + '-lien" class="psc-portal-field-underline" type="text" name="child_pickup_lien_' + childIdx + '_' + n + '" placeholder="Lien (ex : Grand-parent)" maxlength="100" list="psc-pickup-lien-suggestions"></div>' +
-                '<label class="psc-wizard-diet-check"><input type="checkbox" name="child_pickup_piece_identite_' + childIdx + '_' + n + '" value="1"> Présentera une pièce d’identité</label>' +
-                '<button type="button" class="psc-wizard-remove-pickup-btn" aria-label="Retirer cette personne autorisée">Retirer</button>';
+                '<div><label class="psc-portal-field-label screen-reader-text" for="' + base + '-prenom">' + t('pickup_firstname') + '</label>' +
+                '<input id="' + base + '-prenom" class="psc-portal-field-underline" type="text" name="child_pickup_prenom_' + childIdx + '_' + n + '" placeholder="' + t('firstname') + '" maxlength="191"></div>' +
+                '<div><label class="psc-portal-field-label screen-reader-text" for="' + base + '-nom">' + t('pickup_lastname') + '</label>' +
+                '<input id="' + base + '-nom" class="psc-portal-field-underline" type="text" name="child_pickup_nom_' + childIdx + '_' + n + '" placeholder="' + t('lastname') + '" maxlength="191"></div>' +
+                '<div><label class="psc-portal-field-label screen-reader-text" for="' + base + '-tel">' + t('pickup_phone') + '</label>' +
+                '<input id="' + base + '-tel" class="psc-portal-field-underline" type="tel" name="child_pickup_telephone_' + childIdx + '_' + n + '" placeholder="' + t('phone') + '" maxlength="40"></div>' +
+                '<div><label class="psc-portal-field-label screen-reader-text" for="' + base + '-lien">' + t('pickup_link') + '</label>' +
+                '<input id="' + base + '-lien" class="psc-portal-field-underline" type="text" name="child_pickup_lien_' + childIdx + '_' + n + '" placeholder="' + t('link_placeholder') + '" maxlength="100" list="psc-pickup-lien-suggestions"></div>' +
+                '<label class="psc-wizard-diet-check"><input type="checkbox" name="child_pickup_piece_identite_' + childIdx + '_' + n + '" value="1"> ' + t('pickup_id_check') + '</label>' +
+                '<button type="button" class="psc-wizard-remove-pickup-btn" aria-label="' + t('pickup_remove') + '">' + t('remove') + '</button>';
 
             pickupList.appendChild(row);
             wirePickupRemove(row, childRow);

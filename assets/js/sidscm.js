@@ -2,6 +2,16 @@
     'use strict';
 
     var STORAGE_KEY = 'psc_sidscm_code';
+
+    // Chaînes traduites côté serveur (PSC_SIDSCM.i18n, cf. Psc_Sidscm::assets())
+    // : t('cle', args…) remplace les %s dans l'ordre des arguments.
+    function t(key) {
+        var s = PSC_SIDSCM.i18n[key] || '';
+        for (var i = 1; i < arguments.length; i++) {
+            s = s.replace('%s', arguments[i]);
+        }
+        return s;
+    }
     // Fournie par le serveur (psc_unit_services()) : une seule source pour
     // la composition du forfait, PHP et JavaScript confondus.
     var SERVICE_ORDER = PSC_SIDSCM.services;
@@ -202,7 +212,7 @@
                     '<span class="psc-sidscm-auth-tel">' + escapeHtml(p.telephone || '—') + '</span>' +
                     '</div>';
             }).join('')
-            : '<div class="psc-sidscm-auth-empty">Aucune personne autorisée renseignée.</div>';
+            : '<div class="psc-sidscm-auth-empty">' + t('no_authorised') + '</div>';
         return '<div class="psc-sidscm-auth-panel" data-testid="sidscm-auth-panel-' + c.id + '">' + personsHtml + '</div>';
     }
 
@@ -226,7 +236,7 @@
             var departureHtml = '';
             if (svc === 'GS') {
                 var departureVal = state.departures[key] || '';
-                departureHtml = '<label class="psc-sidscm-row-departure">Départ' +
+                departureHtml = '<label class="psc-sidscm-row-departure">' + t('departure') +
                     '<input type="time" class="psc-sidscm-row-departure-input" data-child-id="' + c.id + '"' +
                     ' value="' + escapeHtml(departureVal) + '" data-testid="sidscm-departure-' + c.id + '"></label>';
             }
@@ -238,7 +248,7 @@
             var authToggleHtml = svc === 'GS'
                 ? '<button type="button" class="psc-sidscm-auth-toggle' + (expanded ? ' is-expanded' : '') +
                     '" data-child-id="' + c.id + '" data-testid="sidscm-auth-toggle-' + c.id + '" aria-expanded="' + (expanded ? 'true' : 'false') + '">' +
-                    '<span class="psc-sidscm-auth-toggle-icon">' + (expanded ? '−' : '+') + '</span> Autorisés</button>'
+                    '<span class="psc-sidscm-auth-toggle-icon">' + (expanded ? '−' : '+') + '</span> ' + t('authorised') + '</button>'
                 : '';
             return '<div class="psc-sidscm-row" data-testid="sidscm-row-' + c.id + '">' +
                 '<label class="psc-sidscm-row-label">' +
@@ -251,14 +261,14 @@
         }).join('');
 
         var emptyHtml = rows.length === 0
-            ? '<div class="psc-sidscm-empty" data-testid="sidscm-empty">Aucun enfant attendu ce jour pour ce service.</div>'
+            ? '<div class="psc-sidscm-empty" data-testid="sidscm-empty">' + t('empty_day') + '</div>'
             : '';
 
         els.content.innerHTML =
             '<div class="psc-sidscm-panel" data-testid="sidscm-day-panel">' +
             '<div class="psc-sidscm-panel-head">' +
             '<div class="psc-sidscm-panel-title">' + escapeHtml(svcLabel(svc)) + ' — ' + escapeHtml(capitalize(day)) + '</div>' +
-            '<div class="psc-sidscm-panel-count" role="status" aria-live="polite" data-testid="sidscm-present-count">' + presentCount + ' / ' + rows.length + ' présents</div>' +
+            '<div class="psc-sidscm-panel-count" role="status" aria-live="polite" data-testid="sidscm-present-count">' + t('present_count', presentCount, rows.length) + '</div>' +
             '</div>' + rowsHtml + emptyHtml +
             '</div>';
 
@@ -311,7 +321,7 @@
         var authWeekBtn = function (c) {
             return svc === 'GS'
                 ? '<button type="button" class="psc-sidscm-auth-toggle psc-sidscm-auth-toggle--week" data-child-id="' + c.id + '"' +
-                    ' data-testid="sidscm-auth-week-' + c.id + '"><span class="psc-sidscm-auth-toggle-icon">+</span> Autorisés</button>'
+                    ' data-testid="sidscm-auth-week-' + c.id + '"><span class="psc-sidscm-auth-toggle-icon">+</span> ' + t('authorised') + '</button>'
                 : '';
         };
 
@@ -329,9 +339,9 @@
 
         els.content.innerHTML =
             '<div class="psc-sidscm-panel" data-testid="sidscm-week-panel">' +
-            '<div class="psc-sidscm-panel-head"><div class="psc-sidscm-panel-title">' + escapeHtml(svcLabel(svc)) + ' — semaine</div></div>' +
+            '<div class="psc-sidscm-panel-head"><div class="psc-sidscm-panel-title">' + escapeHtml(svcLabel(svc)) + ' — ' + t('week') + '</div></div>' +
             '<div class="psc-sidscm-table-scroll"><table class="psc-sidscm-table">' +
-            '<thead><tr><th class="psc-sidscm-table-child-head">Enfant</th>' + headHtml + '</tr></thead>' +
+            '<thead><tr><th class="psc-sidscm-table-child-head">' + t('child') + '</th>' + headHtml + '</tr></thead>' +
             '<tbody>' + rowsHtml + '</tbody></table></div>' +
             '</div>';
 

@@ -1,23 +1,10 @@
 (function () {
     'use strict';
 
-    var MESSAGES = {
-        auth: 'Votre session a expiré. Rechargez la page pour demander un nouveau lien.',
-        forbidden: "Vous n'êtes pas autorisé à modifier cette inscription.",
-        notfound: 'Enfant introuvable. Merci de recharger la page.',
-        day_closed: "Ce jour n'est pas ouvert aux inscriptions.",
-        closed: "Aucune période d'inscription n'est ouverte actuellement.",
-        locked: 'Le délai de modification est dépassé pour ce jour. Contactez la mairie.',
-        assurance_missing: 'L\'assurance scolaire de cet enfant n\'a pas été fournie pour l\'année en cours. Ajoutez-la depuis « Mes enfants ».',
-        service_closed: 'Cette prestation est fermée ce jour-là. Contactez la mairie.',
-        service: 'Prestation inconnue.',
-        invalid: 'Données invalides.',
-        nochild: 'Aucun enfant rattaché à votre compte.',
-        rate: 'Trop de demandes. Merci de patienter quelques minutes.',
-        mail: "L'envoi de l'e-mail a échoué.",
-        network: 'Erreur réseau. Vérifiez votre connexion et réessayez.',
-        generic: "Une erreur est survenue. Merci de réessayer."
-    };
+    // Messages traduits côté serveur (PSC.i18n, cf. Psc_Frontend::assets())
+    // : les codes restent ceux renvoyés par l'AJAX, seuls les libellés
+    // sont injectés ici.
+    var MESSAGES = PSC.i18n;
 
     function messageFor(res, fallback) {
         if (res && res.data && res.data.message) return res.data.message;
@@ -61,12 +48,12 @@
 
         var count = Object.keys(daysWithReg).length;
         if (count > 0) {
-            summaryEl.textContent = count + ' jour' + (count > 1 ? 's' : '') + ' · ' +
+            summaryEl.textContent = count + ' ' + (count > 1 ? MESSAGES.days : MESSAGES.day) + ' · ' +
                 total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
             summaryEl.classList.add('psc-month-summary-active');
             summaryEl.classList.remove('psc-month-summary-empty');
         } else {
-            summaryEl.textContent = 'Aucun jour déclaré';
+            summaryEl.textContent = MESSAGES.summary_none;
             summaryEl.classList.remove('psc-month-summary-active');
             summaryEl.classList.add('psc-month-summary-empty');
         }
@@ -88,7 +75,7 @@
         });
 
         var count = Object.keys(daysWithReg).length;
-        totalEl.textContent = count + ' jour' + (count > 1 ? 's' : '') + ' · ' +
+        totalEl.textContent = count + ' ' + (count > 1 ? MESSAGES.days : MESSAGES.day) + ' · ' +
             total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
     }
 
@@ -133,7 +120,7 @@
         if (!dates.length) return;
         var allChecked = dates.every(function (d) { return targets[d].checked; });
         btn.classList.toggle('psc-tout-btn-all', allChecked);
-        btn.textContent = allChecked ? 'Retirer' : 'Tout';
+        btn.textContent = allChecked ? MESSAGES.remove : MESSAGES.tout;
     }
 
     function recomputeToutButtonsIn(table) {
@@ -355,7 +342,7 @@
     function onConfirm(btn, feedback) {
         btn.disabled = true;
         var original = btn.textContent;
-        btn.textContent = 'Envoi en cours...';
+        btn.textContent = MESSAGES.sending;
         feedback.textContent = '';
         feedback.className = 'psc-confirm-feedback';
 
@@ -365,7 +352,7 @@
 
             if (res && res.success) {
                 feedback.className = 'psc-confirm-feedback psc-ok-text';
-                feedback.textContent = (res.data && res.data.message) || 'Récapitulatif envoyé.';
+                feedback.textContent = (res.data && res.data.message) || MESSAGES.summary_sent;
             } else {
                 feedback.className = 'psc-confirm-feedback psc-err-text';
                 feedback.textContent = messageFor(res, 'generic');

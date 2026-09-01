@@ -207,10 +207,10 @@ class Psc_Parents {
         global $wpdb;
         $new_email = strtolower(sanitize_email($new_email));
         if (!is_email($new_email)) {
-            return new WP_Error('psc_bad_email', 'Adresse e-mail invalide.');
+            return new WP_Error('psc_bad_email', __('Adresse e-mail invalide.', 'periscolaire-registration'));
         }
         if (self::get_by_email($new_email)) {
-            return new WP_Error('psc_email_taken', 'Cette adresse est déjà utilisée par une autre famille.');
+            return new WP_Error('psc_email_taken', __('Cette adresse est déjà utilisée par une autre famille.', 'periscolaire-registration'));
         }
 
         $token = bin2hex(random_bytes(32));
@@ -445,10 +445,10 @@ class Psc_Parents {
 
         $email = strtolower(sanitize_email($email));
         if (!is_email($email)) {
-            return new WP_Error('psc_bad_email', 'Adresse e-mail invalide.');
+            return new WP_Error('psc_bad_email', __('Adresse e-mail invalide.', 'periscolaire-registration'));
         }
         if (self::get_by_email($email)) {
-            return new WP_Error('psc_exists', 'Cette adresse est déjà enregistrée.');
+            return new WP_Error('psc_exists', __('Cette adresse est déjà enregistrée.', 'periscolaire-registration'));
         }
 
         $payment_mode = ($extra['payment_mode'] ?? '') === 'prelevement' ? 'prelevement' : 'autre';
@@ -489,7 +489,7 @@ class Psc_Parents {
 
         $inserted = $wpdb->insert(psc_table('parents'), $data);
         if (false === $inserted) {
-            return new WP_Error('psc_create_failed', 'Création du foyer impossible.');
+            return new WP_Error('psc_create_failed', __('Création du foyer impossible.', 'periscolaire-registration'));
         }
 
         return (int) $wpdb->insert_id;
@@ -532,13 +532,13 @@ class Psc_Parents {
         }
         if (array_key_exists('sepa_iban', $data)) {
             $iban = !empty($data['sepa_iban']) ? psc_valid_iban($data['sepa_iban']) : null;
-            if (!empty($data['sepa_iban']) && !$iban) return new WP_Error('psc_bad_iban', 'IBAN invalide.');
+            if (!empty($data['sepa_iban']) && !$iban) return new WP_Error('psc_bad_iban', __('IBAN invalide.', 'periscolaire-registration'));
             $set['sepa_iban'] = psc_encrypt($iban);
             $formats[] = '%s';
         }
         if (array_key_exists('sepa_bic', $data)) {
             $bic = !empty($data['sepa_bic']) ? psc_valid_bic($data['sepa_bic']) : null;
-            if (!empty($data['sepa_bic']) && !$bic) return new WP_Error('psc_bad_bic', 'BIC invalide.');
+            if (!empty($data['sepa_bic']) && !$bic) return new WP_Error('psc_bad_bic', __('BIC invalide.', 'periscolaire-registration'));
             $set['sepa_bic'] = $bic;
             $formats[] = '%s';
         }
@@ -547,7 +547,7 @@ class Psc_Parents {
         if (array_key_exists('second_parent_email', $data)) {
             $raw_email = trim((string) $data['second_parent_email']);
             if ($raw_email !== '' && !is_email($raw_email)) {
-                return new WP_Error('psc_bad_second_parent_email', 'E-mail du second parent invalide.');
+                return new WP_Error('psc_bad_second_parent_email', __('E-mail du second parent invalide.', 'periscolaire-registration'));
             }
             $normalized_email = $raw_email !== '' ? strtolower(sanitize_email($raw_email)) : '';
             // Le second parent se connecte avec cette adresse (cf.
@@ -557,7 +557,7 @@ class Psc_Parents {
             if ($normalized_email !== '') {
                 $existing = self::get_by_email($normalized_email);
                 if ($existing && (int) $existing->id !== $parent_id) {
-                    return new WP_Error('psc_second_parent_email_taken', 'Cette adresse e-mail est déjà utilisée par un autre foyer.');
+                    return new WP_Error('psc_second_parent_email_taken', __('Cette adresse e-mail est déjà utilisée par un autre foyer.', 'periscolaire-registration'));
                 }
             }
             $set['second_parent_email'] = $normalized_email !== '' ? $normalized_email : null;
@@ -567,7 +567,7 @@ class Psc_Parents {
             $raw_phone = trim((string) $data['second_parent_telephone']);
             $phone     = $raw_phone !== '' ? psc_valid_phone($raw_phone) : null;
             if ($raw_phone !== '' && !$phone) {
-                return new WP_Error('psc_bad_second_parent_phone', 'Téléphone du second parent invalide.');
+                return new WP_Error('psc_bad_second_parent_phone', __('Téléphone du second parent invalide.', 'periscolaire-registration'));
             }
             $set['second_parent_telephone'] = $phone;
             $formats[] = '%s';
