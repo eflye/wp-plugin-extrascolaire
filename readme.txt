@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 4.38.0
+Stable tag: 4.38.1
 License: GPLv2 or later
 
 == Description ==
@@ -274,6 +274,12 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 4.38.1 =
+* Correction : les confirmations de gestion des personnes autorisées
+  (ajout, modification, retrait) s'affichent désormais en popin fermable
+  (petite croix) qui disparaît d'elle-même, au lieu d'un bandeau restant
+  affiché en permanence.
 
 = 4.38.0 =
 * Portail familles : le menu « Cantine & Garderie » devient « Planning »
