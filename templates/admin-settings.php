@@ -1,9 +1,11 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="wrap psc-admin">
 <h1>Réglages</h1>
-<?php if (!empty($psc_msg) && $psc_msg === 'saved'): ?>
-<div class="notice notice-success is-dismissible"><p>Tarifs enregistrés.</p></div>
-<?php endif; ?>
+<?php
+psc_admin_notice_map(array(
+    'saved' => array('success', 'Tarifs enregistrés.'),
+), $psc_msg);
+?>
 
 <div class="psc-box">
 <h2>Tarifs des prestations</h2>

@@ -11,10 +11,7 @@ $psc_notices = array(
     'nouser'       => array('error', 'Famille introuvable. Enregistrez-la d\'abord dans l\'onglet « Familles ».'),
     'invalid'      => array('error', 'Merci de choisir une famille et de renseigner le nom et le prénom.'),
 );
-if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
-    list($type, $text) = $psc_notices[$psc_msg]; ?>
-    <div class="notice notice-<?php echo esc_attr($type); ?> is-dismissible"><p><?php echo esc_html($text); ?></p></div>
-<?php endif; ?>
+psc_admin_notice_map($psc_notices, $psc_msg); ?>
 
 <div class="psc-box">
 <h2>Rattacher un enfant à un parent existant</h2>

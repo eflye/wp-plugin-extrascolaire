@@ -10,10 +10,7 @@ $psc_notices = array(
     'invalid'    => array('error', 'Demande introuvable ou déjà traitée.'),
     'need_child' => array('error', 'Indiquez au moins un enfant (nom et prénom) avant de valider.'),
 );
-if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
-    list($type, $text) = $psc_notices[$psc_msg]; ?>
-    <div class="notice notice-<?php echo esc_attr($type); ?> is-dismissible"><p><?php echo esc_html($text); ?></p></div>
-<?php endif; ?>
+psc_admin_notice_map($psc_notices, $psc_msg); ?>
 
 <div class="psc-box">
 <p>

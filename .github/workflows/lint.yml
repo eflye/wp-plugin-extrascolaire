@@ -74,3 +74,27 @@ jobs:
 
       - name: Analyse statique
         run: composer phpstan
+
+  # Lint JavaScript des écrans (assets/js) — cf. eslint.config.js : un
+  # filet minimal (symboles non définis, variables jamais lues) sur un
+  # code ES5 assumé, pas une modernisation forcée. Même raison que
+  # phpstan ci-dessus : indépendant de la version de PHP, un job suffit.
+  eslint:
+    name: ESLint (assets/js)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint JavaScript
+        run: npx eslint assets/js

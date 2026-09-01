@@ -2,13 +2,13 @@
 <div class="wrap psc-admin">
 <h1>Modèles d'e-mails</h1>
 
-<?php if ($psc_msg === 'saved'): ?>
-<div class="notice notice-success is-dismissible"><p>Modèles enregistrés.</p></div>
-<?php elseif ($psc_msg === 'reset_one'): ?>
-<div class="notice notice-success is-dismissible"><p>Modèle réinitialisé aux valeurs par défaut.</p></div>
-<?php elseif ($psc_msg === 'reset_all'): ?>
-<div class="notice notice-success is-dismissible"><p>Tous les modèles ont été réinitialisés.</p></div>
-<?php endif; ?>
+<?php
+psc_admin_notice_map(array(
+    'saved'     => array('success', 'Modèles enregistrés.'),
+    'reset_one' => array('success', 'Modèle réinitialisé aux valeurs par défaut.'),
+    'reset_all' => array('success', 'Tous les modèles ont été réinitialisés.'),
+), $psc_msg);
+?>
 
 <p style="color:#666;margin-bottom:20px;">
     Personnalisez le sujet et le corps de chaque e-mail envoyé aux familles et à la mairie.

@@ -29,6 +29,7 @@ foreach (array(
     'throttle',
     'files',
     'settings',
+    'admin-ui',
 ) as $psc_helper) {
     require_once PSC_PATH . 'includes/helpers/' . $psc_helper . '.php';
 }

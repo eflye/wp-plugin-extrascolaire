@@ -16,10 +16,7 @@ $psc_notices = array(
     'bad_bic'     => array('error', 'BIC invalide.'),
     'family_deleted' => array('success', 'Famille supprimée définitivement, avec ses enfants, inscriptions, justificatifs et factures.'),
 );
-if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
-    list($type, $text) = $psc_notices[$psc_msg]; ?>
-    <div class="notice notice-<?php echo esc_attr($type); ?> is-dismissible"><p><?php echo esc_html($text); ?></p></div>
-<?php endif; ?>
+psc_admin_notice_map($psc_notices, $psc_msg); ?>
 
 <div class="psc-box">
 <p>

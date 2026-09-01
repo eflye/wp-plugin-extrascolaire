@@ -2,11 +2,12 @@
 <div class="wrap psc-admin">
 <h1>Présences déclarées</h1>
 
-<?php if (!empty($psc_msg) && $psc_msg === 'saved'): ?>
-<div class="notice notice-success is-dismissible"><p>Planning mis à jour. Un récapitulatif a été envoyé par e-mail à la famille.</p></div>
-<?php elseif (!empty($psc_msg) && $psc_msg === 'invalid'): ?>
-<div class="notice notice-error is-dismissible"><p>Paramètres invalides.</p></div>
-<?php endif; ?>
+<?php
+psc_admin_notice_map(array(
+    'saved'   => array('success', 'Planning mis à jour. Un récapitulatif a été envoyé par e-mail à la famille.'),
+    'invalid' => array('error', 'Paramètres invalides.'),
+), $psc_msg);
+?>
 
 <div class="psc-box">
 <p>Sélectionnez une famille et une période pour consulter ou corriger ses inscriptions. Un e-mail de notification est envoyé à la famille à chaque enregistrement.</p>

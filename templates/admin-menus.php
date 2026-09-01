@@ -3,18 +3,15 @@
 <h1>Menus cantine</h1>
 
 <?php
-$msgs = array(
-    'saved'     => array('updated',       'Menu enregistré.'),
-    'sent'      => array('updated',       'Menu envoyé aux familles.'),
-    'sent_zero' => array('notice-warning', 'Aucune famille active à notifier (vérifiez qu\'il y a des enfants actifs).'),
-    'deleted'   => array('updated',       'Menu supprimé.'),
-    'invalid'   => array('error',         'Paramètre invalide.'),
+$psc_notices = array(
+    'saved'     => array('updated',  'Menu enregistré.'),
+    'sent'      => array('updated',  'Menu envoyé aux familles.'),
+    'sent_zero' => array('warning',  'Aucune famille active à notifier (vérifiez qu\'il y a des enfants actifs).'),
+    'deleted'   => array('updated',  'Menu supprimé.'),
+    'invalid'   => array('error',    'Paramètre invalide.'),
 );
-if ($psc_msg && isset($msgs[$psc_msg])):
-    list($cls, $txt) = $msgs[$psc_msg];
+psc_admin_notice_map($psc_notices, $psc_msg);
 ?>
-<div class="notice notice-<?php echo esc_attr($cls); ?> is-dismissible"><p><?php echo esc_html($txt); ?></p></div>
-<?php endif; ?>
 
 <div class="psc-box">
 <h2><?php echo $editing ? 'Modifier le menu' : 'Saisir un menu'; ?> — semaine du <?php echo esc_html(date_i18n('d/m/Y', strtotime($target_week))); ?></h2>

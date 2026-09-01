@@ -3,9 +3,9 @@
 <h1>Factures</h1>
 
 <?php
-$msgs = array(
+$psc_notices = array(
     'generated'   => array('updated', 'Factures générées avec succès.'),
-    'gen_zero'    => array('notice-warning', 'Aucune inscription trouvée pour ce mois.'),
+    'gen_zero'    => array('warning', 'Aucune inscription trouvée pour ce mois.'),
     'gen_error'   => array('error', 'Erreur lors de la génération.'),
     'month_not_finished' => array('error', 'Ce mois n\'est pas encore terminé : impossible de générer les factures.'),
     'sent'        => array('updated', 'Facture envoyée par e-mail.'),
@@ -14,11 +14,8 @@ $msgs = array(
     'no_file'     => array('error', 'Fichier PDF introuvable. Regénérez la facture.'),
     'invalid'     => array('error', 'Paramètre invalide.'),
 );
-if ($psc_msg && isset($msgs[$psc_msg])):
-    list($cls, $txt) = $msgs[$psc_msg];
+psc_admin_notice_map($psc_notices, $psc_msg);
 ?>
-<div class="notice notice-<?php echo esc_attr($cls); ?> is-dismissible"><p><?php echo esc_html($txt); ?></p></div>
-<?php endif; ?>
 
 <?php if (empty($all_months)): ?>
 <p>Aucune inscription enregistrée. Les factures seront disponibles dès que des familles auront des inscriptions.</p>

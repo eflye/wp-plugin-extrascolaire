@@ -3,24 +3,21 @@
 <h1>Commande fournisseur</h1>
 
 <?php
-$msgs = array(
-    'sent'                    => array('updated', 'Commande envoyée au fournisseur.'),
-    'psc_invalid_week'        => array('error', 'Date de semaine invalide.'),
-    'psc_no_supplier_email'   => array('error', "Aucune adresse e-mail fournisseur n'est configurée. Renseignez-la dans Périscolaire > Réglages."),
-    'psc_mail_failed'         => array('error', "L'envoi du mail a échoué. Vérifiez la configuration e-mail."),
-    'error'                   => array('error', 'Une erreur est survenue.'),
-    'cantine_invalid'         => array('error', 'Date invalide.'),
-    'cantine_reason_required' => array('error', 'Merci d\'indiquer un motif.'),
-    'cantine_none'            => array('notice-warning', 'Aucune inscription cantine trouvée pour cette classe ce jour-là.'),
-    'cantine_confirm_needed'  => array('notice-warning', 'Confirmation nécessaire : des familles ont déjà déclaré cette cantine.'),
-    'cantine_dismissed'       => array('updated', 'Annulation abandonnée, rien n\'a été modifié.'),
-    'cantine_cancelled'       => array('updated', 'Cantine annulée pour la classe : ' . $cantine_n . ' inscription(s) supprimée(s), famille(s) prévenue(s) par e-mail.'),
+$psc_notices = array(
+    'sent'                    => array('updated',  'Commande envoyée au fournisseur.'),
+    'psc_invalid_week'        => array('error',    'Date de semaine invalide.'),
+    'psc_no_supplier_email'   => array('error',    "Aucune adresse e-mail fournisseur n'est configurée. Renseignez-la dans Périscolaire > Réglages."),
+    'psc_mail_failed'         => array('error',    "L'envoi du mail a échoué. Vérifiez la configuration e-mail."),
+    'error'                   => array('error',    'Une erreur est survenue.'),
+    'cantine_invalid'         => array('error',    'Date invalide.'),
+    'cantine_reason_required' => array('error',    'Merci d\'indiquer un motif.'),
+    'cantine_none'            => array('warning',  'Aucune inscription cantine trouvée pour cette classe ce jour-là.'),
+    'cantine_confirm_needed'  => array('warning',  'Confirmation nécessaire : des familles ont déjà déclaré cette cantine.'),
+    'cantine_dismissed'       => array('updated',  'Annulation abandonnée, rien n\'a été modifié.'),
+    'cantine_cancelled'       => array('updated',  'Cantine annulée pour la classe : ' . $cantine_n . ' inscription(s) supprimée(s), famille(s) prévenue(s) par e-mail.'),
 );
-if ($psc_msg && isset($msgs[$psc_msg])):
-    list($cls, $txt) = $msgs[$psc_msg];
+psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
 ?>
-<div class="notice notice-<?php echo esc_attr($cls); ?> is-dismissible" data-testid="notice-<?php echo esc_attr($psc_msg); ?>"><p><?php echo esc_html($txt); ?></p></div>
-<?php endif; ?>
 
 <div class="psc-box">
 <p>
