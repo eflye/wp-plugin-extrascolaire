@@ -171,3 +171,51 @@ function psc_private_dir_url() {
 
     return null; // hors racine web : inatteignable par construction
 }
+
+/**
+ * Journal des téléchargements depuis le répertoire privé.
+ *
+ * Documents de mineurs ou données financières : la contrepartie du
+ * contrôle d'accès est la traçabilité — savoir qui a consulté quoi et
+ * quand. Les deux seuls points de service du répertoire privé
+ * (Psc_Assurances::stream(), Psc_Invoices::download()) journalisent ici,
+ * et pas à chaque site d'appel : toute voie de lecture ajoutée plus tard
+ * sera vue de ce point, ou n'existera pas.
+ *
+ * Une ligne JSON par téléchargement dans journal-acces.log, déposé dans
+ * le répertoire privé lui-même — mêmes garde-fous .htaccess/web.config
+ * que les documents journalisés.
+ *
+ * Un échec d'écriture est silencieux (même règle que
+ * psc_ensure_private_dir) : ne jamais empêcher un téléchargement
+ * légitime parce que le journal ne peut pas écrire.
+ *
+ * @param string $kind     Nature du document (« assurance », « facture »).
+ * @param string $rel_path Chemin relatif stocké en base.
+ */
+function psc_log_download($kind, $rel_path) {
+    // Identité du demandeur : agent connecté au backoffice, sinon famille
+    // connectée au portail. Les deux flux de lecture sont gardés en amont —
+    // si aucun des deux n'est identifiable, la ligne le dit : un
+    // téléchargement anonyme est précisément ce que le journal doit
+    // révéler, jamais ce qu'il doit taire.
+    $qui = 'inconnu';
+    if (is_user_logged_in()) {
+        $qui = 'agent:' . wp_get_current_user()->user_login;
+    } elseif (class_exists('Psc_Parents') && ($parent = Psc_Parents::current())) {
+        $qui = 'famille:' . (int) $parent->id . ':' . $parent->email;
+    }
+
+    $entry = wp_json_encode(array(
+        'horodatage' => current_time('mysql'),
+        'qui'        => $qui,
+        'type'       => (string) $kind,
+        'fichier'    => (string) $rel_path,
+        'ip'         => psc_client_ip(),
+    )) . "\n";
+
+    $log_path = psc_private_path('journal-acces.log');
+    if ($log_path) {
+        @file_put_contents($log_path, $entry, FILE_APPEND | LOCK_EX); // phpcs:ignore WordPress.WP.AlternativeFunctions,WordPress.PHP.NoSilencedErrors
+    }
+}

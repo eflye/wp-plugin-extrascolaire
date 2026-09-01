@@ -301,6 +301,10 @@ class Psc_Invoices {
             wp_die(esc_html__('Fichier PDF introuvable. Regénérez la facture.', 'periscolaire-registration'));
         }
 
+        // Le PDF quitte le répertoire privé : c'est ici, au point de
+        // service unique, que l'accès est journalisé (cf. psc_log_download()).
+        psc_log_download('facture', $invoice->pdf_path);
+
         $slug     = sanitize_file_name($invoice->parent_nom ?: $invoice->parent_email);
         $filename = 'facture-' . $invoice->mois . '-' . $slug . '.pdf';
 

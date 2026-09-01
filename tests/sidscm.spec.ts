@@ -19,9 +19,10 @@
  * est attendu via expect.poll sur la base plutôt que sur le DOM.
  *
  * Appels consommés par run : 1 mauvais code (seau partagé sidscm_bad_,
- * 20/h tous endpoints confondus — le scénario s'en tient là), 3
- * déverrouillages, 3 chargements de semaine, 3 pointages, 1 départ :
- * très en dessous des quatre rate-limits de l'écran.
+ * 20/h tous endpoints confondus — le scénario s'en tient là), 4
+ * déverrouillages, 4 chargements de semaine, 3 pointages, 1 départ,
+ * 2 pointages forgés refusés par la cohérence jour/service : très en
+ * dessous des quatre rate-limits de l'écran.
  */
 
 import { test, expect, type Page } from '@playwright/test';
@@ -215,6 +216,53 @@ test('départ GS — l\'heure de départ crée la ligne sans toucher au pointage
   await expect
     .poll(() => attendanceRow(data.enfant_b_id, data.first_date, 'GS'), { intervals: [1_000], timeout: 15_000 })
     .toEqual({ present: 1, departure_time: '17:05:00' });
+});
+
+test('cohérence jour/service — pointage forgé refusé, aucune ligne créée', async ({ page, request }) => {
+  const data = seed();
+  await unlock(page, data);
+
+  // Le nonce prouve l'intention (PSC_SIDSCM, localisé par
+  // wp_localize_script) ; c'est la vérification jour/service côté serveur
+  // (Psc_Sidscm::require_day_service()) qui refuse la donnée : le pointage
+  // ne peut viser que ce que l'écran affiche, même avec un code valide.
+  const nonce = await page.evaluate(
+    () => (window as unknown as { PSC_SIDSCM?: { nonce?: string } }).PSC_SIDSCM?.nonce
+  );
+  expect(nonce).toBeTruthy();
+
+  const ajaxUrl = `${new URL(data.page_url).origin}/wp-admin/admin-ajax.php`;
+  const forgedToggle = (childId: number, date: string, service: string) =>
+    request.post(ajaxUrl, {
+      form: {
+        action: 'psc_sidscm_toggle',
+        code: data.access_code,
+        nonce: nonce as string,
+        child_id: String(childId),
+        jour_date: date,
+        service,
+        present: '0',
+      },
+    });
+  const errorBody = async (resp: Awaited<ReturnType<typeof forgedToggle>>) =>
+    (await resp.json()) as { success: boolean; data: { code: string } };
+
+  // Jour non ouvert : le mercredi de la même semaine — jamais dans
+  // psc_open_days() (cf. psc_service_jour_offsets(), lundi/mardi/jeudi/
+  // vendredi seulement). Refusé avant toute écriture.
+  const mercredi = wpCliEval(
+    `$monday = psc_week_start('${data.first_date}');
+     echo gmdate('Y-m-d', strtotime($monday . ' +2 days'));`
+  );
+  const respNotOpen = await forgedToggle(data.enfant_a_id, mercredi, 'GM');
+  expect(await errorBody(respNotOpen)).toEqual({ success: false, data: { code: 'not_open' } });
+  expect(attendanceRow(data.enfant_a_id, mercredi, 'GM')).toBeNull();
+
+  // Jour ouvert mais enfant non attendu au service : Marco n'est inscrit
+  // qu'en Garderie soir — un pointage cantine à son sujet est refusé.
+  const respNotExpected = await forgedToggle(data.enfant_b_id, data.first_date, 'GM');
+  expect(await errorBody(respNotExpected)).toEqual({ success: false, data: { code: 'not_expected' } });
+  expect(attendanceRow(data.enfant_b_id, data.first_date, 'GM')).toBeNull();
 });
 
 });

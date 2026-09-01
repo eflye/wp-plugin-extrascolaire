@@ -168,6 +168,44 @@ class Psc_Sidscm {
         wp_send_json_error(array('code' => 'auth'), 403);
     }
 
+    /* ---------------- Cohérence jour/service ---------------- */
+
+    /**
+     * On ne pointe que ce que l'écran affiche (cohérence jour/service) :
+     * un jour réellement en service cette semaine (l'écran ne propose que
+     * psc_open_days() de la semaine courante), et un enfant réellement
+     * attendu à ce service ce jour-là (cf. is_expected()). Sans ce
+     * contrôle, une requête forgée — ou une simple erreur de manipulation
+     * — crée une ligne de pointage valide en base pour un enfant non
+     * inscrit, un mercredi ou en pleines vacances : la donnée fausse
+     * entre ensuite dans les statistiques comme si elle était vraie.
+     */
+    protected static function require_day_service($child_id, $date, $service) {
+        $monday = psc_week_start(current_time('Y-m-d'));
+        if (!in_array($date, array_values(psc_open_days($monday)), true)) {
+            wp_send_json_error(array('code' => 'not_open'), 400);
+        }
+        if (!self::is_expected($child_id, $date, $service)) {
+            wp_send_json_error(array('code' => 'not_expected'), 400);
+        }
+    }
+
+    /**
+     * L'enfant est-il attendu à ce service ce jour-là ? Même règle que
+     * l'affichage (ajax_data) : une inscription à ce service à cette
+     * date, ou un forfait (FORF) qui couvre GM, CANT et GS d'un même coup
+     * — jamais une ligne d'attendance seule, qui ne prouve rien.
+     */
+    protected static function is_expected($child_id, $date, $service) {
+        global $wpdb;
+        $t_reg = psc_table('registrations');
+        return (bool) $wpdb->get_var($wpdb->prepare(
+            "SELECT 1 FROM $t_reg
+             WHERE child_id = %d AND jour_date = %s AND service IN (%s, 'FORF')",
+            $child_id, $date, $service
+        ));
+    }
+
     public static function ajax_unlock() {
         check_ajax_referer('psc_sidscm_front', 'nonce');
 
@@ -360,6 +398,10 @@ class Psc_Sidscm {
             wp_send_json_error(array('code' => 'invalid'), 400);
         }
 
+        // Pointage hors jour ou hors inscription refusé (cohérence
+        // jour/service, cf. require_day_service()).
+        self::require_day_service($child_id, $date, $service);
+
         global $wpdb;
         $t_att = psc_table('attendance');
         $existing = $wpdb->get_var($wpdb->prepare(
@@ -417,6 +459,10 @@ class Psc_Sidscm {
         if ($time !== '' && !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time)) {
             wp_send_json_error(array('code' => 'invalid'), 400);
         }
+
+        // Départ hors jour ou pour un enfant non attendu en garderie soir
+        // refusé (cohérence jour/service, cf. require_day_service()).
+        self::require_day_service($child_id, $date, 'GS');
 
         global $wpdb;
         $t_att = psc_table('attendance');

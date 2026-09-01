@@ -262,6 +262,10 @@ class Psc_Assurances {
             wp_die(esc_html__('Fichier introuvable.', 'periscolaire-registration'));
         }
 
+        // Le document quitte le répertoire privé : c'est ici, au point de
+        // service unique, que l'accès est journalisé (cf. psc_log_download()).
+        psc_log_download('assurance', $rel_path);
+
         $filetype = wp_check_filetype($path);
         nocache_headers();
         header('Content-Type: ' . ($filetype['type'] ?: 'application/octet-stream'));
