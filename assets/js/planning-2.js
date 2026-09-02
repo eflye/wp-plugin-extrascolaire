@@ -64,6 +64,9 @@
 
     var state_year_amount = 0;
 
+    // patterns : le rythme de l'enfant affiché, restreint à son année
+    // ({weekday => {service => true}}) — le serveur retire les niveaux
+    // enfant et année (cf. planning_state()).
     function renderPatternGrid(patterns) {
         var grid = document.querySelector('[data-testid="pattern-grid"]');
         if (!grid) return;
@@ -399,9 +402,10 @@
     }
 
     function onApplySiblings() {
-        var sourcePatterns = (boot.patterns && boot.patterns[boot.active_child]) || {};
+        var mine = (boot.patterns && boot.patterns[boot.active_child]) || {};
+        var sourcePatterns = (mine && mine[boot.year_key]) || {};
         var sourceNonEmpty = Object.keys(sourcePatterns).some(function (wd) {
-            return Object.keys(sourcePatterns[wd]).length > 0;
+            return Object.keys(sourcePatterns[wd] || {}).length > 0;
         });
 
         // Aucun rythme à copier : la copie est sans effet, on le dit
@@ -415,7 +419,8 @@
         var siblingsFilled = boot.children.some(function (c) {
             if (c.id === boot.active_child) return false;
             var p = (boot.patterns && boot.patterns[c.id]) || {};
-            return Object.keys(p).some(function (wd) { return Object.keys(p[wd]).length > 0; });
+            var yearly = (p && p[boot.year_key]) || {};
+            return Object.keys(yearly).some(function (wd) { return Object.keys(yearly[wd] || {}).length > 0; });
         });
         if (siblingsFilled && !window.confirm(t('apply_siblings_confirm'))) return;
 

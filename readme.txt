@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.0.1
+Stable tag: 5.0.2
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,27 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.0.2 =
+* Correction — Planning - 2 fonctionnel : la grille du rythme ne se mettait
+  JAMAIS à jour après un clic (l'état renvoyé par l'AJAX portait un niveau
+  d'imbrication que le client ne lisait pas) — cocher, décocher, copier vers
+  la fratrie semblaient sans effet à l'écran alors que la base écrivait.
+* Correction : « Tout / Aucun » d'une colonne effaçait le tableau au
+  re-rendu (le mois renvoyé par le lot était vide — mauvaise clé de tableau
+  côté serveur).
+* Correction : sur Planning - 1, un retrait exceptionnel laissait la case
+  cochée alors que l'état effectif était faux — l'affichage suit désormais
+  la résolution (l'exception gagne, dans un sens comme dans l'autre).
+* Correction : le rythme habituel n'exige plus l'assurance scolaire (il est
+  posé dès l'inscription sans cette exigence) ; l'assurance ne bloque que
+  l'AJOUT NET d'une exception — un retrait et le retour au rythme passent
+  toujours, l'invariant ne peut plus laisser de lignes résiduelles.
+* Tests : nouvelle suite E2E durcie tests/planning-2.spec.ts (9 scénarios) —
+  chaque interaction vérifie le rendu ET l'état en base (invariant « cocher
+  puis décocher ne laisse aucune ligne », copie fratrie, Tout/Aucun,
+  revenir au rythme, cohérence Planning - 1 ↔ Planning - 2, cas enfant sans
+  assurance) ; seed dédiée bin/seed-planning-2.php.
 
 = 5.0.1 =
 * Correction : cliquer « Planning - 2 » depuis le menu affichait « Aucun

@@ -564,7 +564,11 @@ class Psc_Planning {
 
                 foreach (psc_allowed_services() as $svc) {
                     $exc_val = array_key_exists($svc, $exc) ? (bool) $exc[$svc] : null;
-                    $explicit = !empty($pats[$svc]) || $exc_val === true;
+                    // L'exception GAGNE dans l'affichage comme dans la
+                    // résolution : un retrait exceptionnel sur un jour du
+                    // rythme doit décocher la case, sinon l'écran montrerait
+                    // « déclaré » ce que la facturation ne compte pas.
+                    $explicit = $exc_val !== null ? $exc_val : !empty($pats[$svc]);
                     $declared = psc_resolve_declaration(
                         $svc === $forf,
                         !empty($pats[$svc]),
