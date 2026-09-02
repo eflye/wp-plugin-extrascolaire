@@ -905,6 +905,11 @@ a.psc-portal-switch-link:focus-visible {
     border: 1px solid var(--psc-rule-light);
     margin-bottom: 32px;
 }
+/* Mes enfants : 7 colonnes dont un champ libre (allergies alimentaires) —
+   la largeur min-content déborde de la colonne de contenu : le tableau
+   défile dans son overflow-x:auto plutôt que de pousser la page. La vue
+   carte (< 640px) prend le relais et repasse la largeur à auto. */
+.psc-portal-table--children { min-width: 760px; }
 .psc-portal-table th {
     text-align: left;
     padding: 12px 16px;
@@ -1156,6 +1161,7 @@ a.psc-portal-switch-link:focus-visible {
    data-label) garde son comportement de scroll existant, inchangé. */
 @media (max-width: 640px) {
     [data-portal-section="enfants"] .psc-portal-table-scroll { overflow-x: visible; }
+    [data-portal-section="enfants"] .psc-portal-table--children { min-width: 0; }
     [data-portal-section="enfants"] .psc-portal-table { border: none; margin-bottom: 20px; }
     [data-portal-section="enfants"] .psc-portal-table thead { display: none; }
     [data-portal-section="enfants"] .psc-portal-table tbody tr {
@@ -1638,4 +1644,473 @@ a.psc-portal-switch-link:focus-visible {
     #psc-menu-block.psc-menu-loading {
         transition-duration: 0.01ms;
     }
+}
+
+/* ===================================================================
+   Écrans Planning (variantes 1 et 2) — maquette Family Portal v3.dc
+   Charte v2 inchangée : bleu encre (#24405C) / abricot (#E08A5F).
+   Planning - 2 reprend le design exact de la maquette : cases
+   carrées 30×30 sans arrondi, libellés compacts, barre récap sable.
+   =================================================================== */
+
+/* Bandeau de bascule entre les deux variantes (exigence fonctionnelle :
+   la mairie tranche sur pièces ; chaque écran porte le lien vers l'autre). */
+.psc-planning-switch {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 16px;
+    margin: 0 0 18px;
+    padding: 8px 0;
+    font-size: 12px;
+}
+.psc-planning-switch-current { color: #8B8279; font-weight: 500; }
+.psc-planning-switch-link {
+    color: #24405C;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.psc-planning-switch-link:hover { color: #9A5B2E; }
+
+/* ---- a. Frise de l'année : onze boutons (Sept. → Juil.), le compte
+   de jours déclarés de la fratrie sur chaque mois. Mois courant en
+   abricot ; un mois à « 0 j » saute aux yeux (compteur sable). ---- */
+.psc-frieze-wrap { margin-bottom: 22px; }
+.psc-frieze-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 7px;
+}
+.psc-frieze-title, .psc-child-tabs-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #4E6C8D;
+    font-weight: 600;
+}
+.psc-frieze-estimate { font-size: 12px; color: #24405C; font-weight: 600; }
+.psc-frieze {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+.psc-frieze-btn {
+    flex: 1 1 0;
+    min-width: 64px;
+    padding: 8px 4px 9px;
+    text-align: center;
+    background: #fff;
+    border: 1px solid rgba(36, 64, 92, 0.16);
+    color: #1A1A1A;
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    cursor: pointer;
+}
+.psc-frieze-btn:hover { border-color: #E08A5F; }
+.psc-frieze-btn.is-current {
+    background: #E08A5F;
+    border-color: #E08A5F;
+    color: #1A1A1A;
+    font-weight: 700;
+}
+.psc-frieze-count {
+    display: block;
+    margin-top: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #4E6C8D;
+}
+.psc-frieze-btn.is-current .psc-frieze-count { color: #1A1A1A; }
+.psc-frieze-btn.is-zero .psc-frieze-count { color: #DCD3C9; }
+
+/* ---- b. Onglets enfants : prénom + classe · jours du mois. Actif :
+   fond #24405C, texte crème. ---- */
+.psc-child-tabs-label { margin-bottom: 7px; }
+.psc-child-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+}
+.psc-child-tab {
+    flex: 1 1 150px;
+    text-align: left;
+    padding: 11px 14px;
+    background: #fff;
+    border: 1px solid rgba(36, 64, 92, 0.18);
+    color: #1A1A1A;
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 15px;
+    line-height: 1.25;
+    cursor: pointer;
+}
+.psc-child-tab .psc-child-tab-meta {
+    display: block;
+    margin-top: 3px;
+    font-family: 'Work Sans', sans-serif;
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: #8B8279;
+}
+.psc-child-tab:hover { border-color: #E08A5F; }
+.psc-child-tab.is-active {
+    background: #24405C;
+    border-color: #24405C;
+    color: #FAF6F1;
+}
+.psc-child-tab.is-active .psc-child-tab-meta { color: rgba(250, 246, 241, 0.75); }
+
+/* ---- c/d. Les deux panneaux : rythme (gauche) + exceptions du mois
+   (droite). min-width: 0 est OBLIGATOIRE — sans ça, la largeur
+   min-content du tableau force la piste de grille et fait déborder la
+   page entière. Empilement naturel sous ~620px disponibles. ---- */
+.psc-planning-panels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+    gap: 20px;
+    align-items: start;
+    margin-bottom: 24px;
+}
+.psc-planning-panel {
+    min-width: 0;
+    background: #fff;
+    border: 1px solid rgba(36, 64, 92, 0.15);
+    padding: 18px 20px;
+}
+.psc-planning-panel--flush { padding: 0; }
+
+.psc-panel-step {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #E08A5F;
+    font-weight: 700;
+    margin-bottom: 3px;
+}
+.psc-panel-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 17px;
+    color: #24405C;
+}
+.psc-panel-sub {
+    font-size: 12.5px;
+    color: #4E6C8D;
+    line-height: 1.5;
+    margin: 4px 0 14px;
+}
+
+/* Grille du rythme : boutons carrés 30×30, ✓ abricot. */
+.psc-pattern-grid, .psc-exception-grid {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.psc-pattern-grid th {
+    text-align: left;
+    padding: 7px 8px 7px 0;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #4E6C8D;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(36, 64, 92, 0.22);
+}
+.psc-pattern-grid thead th:not(:first-child),
+.psc-exception-grid thead th:not(:first-child) {
+    text-align: center;
+    padding: 7px 6px;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #4E6C8D;
+}
+.psc-pattern-grid tbody th {
+    text-align: left;
+    padding: 6px 8px 6px 0;
+    font-weight: 500;
+    color: #1A1A1A;
+    border-bottom: 1px solid rgba(36, 64, 92, 0.1);
+    white-space: nowrap;
+}
+.psc-pattern-grid td {
+    text-align: center;
+    padding: 5px 6px;
+    border-bottom: 1px solid rgba(36, 64, 92, 0.1);
+}
+.psc-pat-btn {
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    background: transparent;
+    border: 1px solid rgba(36, 64, 92, 0.3);
+    color: #1A1A1A;
+    padding: 0;
+}
+.psc-pat-btn:hover { border-color: #E08A5F; }
+.psc-pat-btn.is-on {
+    background: #E08A5F;
+    border-color: #E08A5F;
+    color: #1A1A1A;
+}
+
+/* Bouton fratrie : pleine largeur, bordure pointillée encre. */
+.psc-apply-siblings {
+    margin-top: 14px;
+    width: 100%;
+    background: none;
+    border: 1px dashed #24405C;
+    color: #24405C;
+    padding: 9px 12px;
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    font-weight: 600;
+}
+.psc-apply-siblings:hover { background: rgba(224, 138, 95, 0.08); }
+.psc-apply-siblings-feedback {
+    font-size: 11.5px;
+    color: #E08A5F;
+    font-weight: 600;
+    margin: 8px 0 0;
+    min-height: 15px;
+}
+
+/* En-tête du panneau exceptions : libellés + navigation mois 30×30. */
+.psc-exc-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(36, 64, 92, 0.15);
+}
+.psc-month-nav { display: flex; align-items: center; gap: 6px; }
+.psc-month-nav-btn {
+    background: none;
+    border: 1px solid #24405C;
+    color: #24405C;
+    width: 30px;
+    height: 30px;
+    font-size: 15px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+.psc-month-nav-btn:hover:not(:disabled) { background: rgba(224, 138, 95, 0.12); }
+.psc-month-nav-btn:disabled { opacity: 0.35; cursor: default; }
+
+/* Barre récap de l'enfant (fond sable) : jours + montant du mois, lien
+   « N exception(s) ce mois-ci — revenir au rythme ». */
+.psc-exc-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 18px;
+    background: #F5E7DC;
+    font-size: 11.5px;
+    color: #4E6C8D;
+}
+.psc-exc-bar strong { color: #24405C; }
+.psc-exc-reset {
+    background: none;
+    border: none;
+    color: #9E4A4A;
+    font-size: 11px;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+    white-space: nowrap;
+}
+.psc-exc-reset:hover { color: #7d3b3b; }
+
+.psc-exc-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.psc-exception-grid thead .psc-exc-day-col,
+.psc-exception-grid tbody .psc-exc-day {
+    text-align: left;
+    padding: 8px 10px;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #4E6C8D;
+    font-weight: 600;
+}
+.psc-exception-grid thead .psc-exc-price {
+    font-weight: 400;
+    color: #8B8279;
+    text-transform: none;
+    letter-spacing: 0;
+}
+.psc-exception-grid thead .psc-exc-month-label {
+    text-align: left;
+    padding: 4px 10px 8px;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #8B8279;
+    font-weight: 500;
+    border-bottom: 1px solid rgba(36, 64, 92, 0.22);
+}
+.psc-exception-grid thead .psc-exc-actions-row th { border-bottom: 1px solid rgba(36, 64, 92, 0.22); }
+.psc-exc-tout {
+    background: none;
+    border: 1px solid rgba(36, 64, 92, 0.3);
+    color: #24405C;
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 3px 7px;
+    cursor: pointer;
+}
+.psc-exc-tout:disabled { color: #DCD3C9; cursor: default; }
+.psc-exc-tout:hover:not(:disabled) { border-color: #E08A5F; }
+
+.psc-exception-grid tbody .psc-exc-day {
+    font-size: 13px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: #1A1A1A;
+    font-weight: 500;
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(36, 64, 92, 0.1);
+    white-space: nowrap;
+}
+.psc-exception-grid tbody .psc-exc-day.is-locked { color: #8B8279; }
+.psc-exception-grid td {
+    text-align: center;
+    padding: 5px 6px;
+    border-bottom: 1px solid rgba(36, 64, 92, 0.1);
+}
+
+/* Cases d'exception : l'origine est lisible au premier coup d'œil
+   (rendu maquette : carrés 30×30, sans arrondi). */
+.psc-exc-cell {
+    position: relative;
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+    font-weight: 700;
+    background: transparent;
+    border: 1px solid rgba(36, 64, 92, 0.3);
+    color: #1A1A1A;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+.psc-exc-cell:hover:not(:disabled) { border-color: #E08A5F; }
+.psc-exc-pattern { background: #E08A5F; border-color: #E08A5F; }
+.psc-exc-add {
+    background: #E08A5F;
+    border: 2px dashed #24405C;
+}
+.psc-exc-remove {
+    background: transparent;
+    border: 2px dashed #9E4A4A;
+    color: #9E4A4A;
+}
+.psc-exc-locked, .psc-exc-cell:disabled { cursor: not-allowed; }
+.psc-exc-locked {
+    background: #DCD3C9;
+    border-color: #DCD3C9;
+    color: #8B8279;
+}
+.psc-exc-cell.psc-exc-none.psc-exc-locked,
+button.psc-exc-locked[aria-pressed="false"] { background: transparent; border-color: #DCD3C9; }
+.psc-exc-cell:disabled:hover { border-color: #DCD3C9; }
+.psc-exc-glyph { pointer-events: none; }
+
+/* Légende obligatoire : sans elle, la distinction rythme / exception
+   est illisible. Libellés maquette v3. */
+.psc-exc-legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 11px 18px;
+    border-top: 1px solid rgba(36, 64, 92, 0.15);
+    font-size: 11px;
+    color: #8B8279;
+}
+.psc-exc-legend span { display: flex; align-items: center; gap: 6px; }
+.psc-exc-swatch {
+    width: 13px;
+    height: 13px;
+    display: inline-block;
+    background: transparent;
+    border: 1px solid rgba(36, 64, 92, 0.3);
+}
+.psc-exc-swatch.psc-exc-pattern { background: #E08A5F; border-color: #E08A5F; }
+.psc-exc-swatch.psc-exc-add { background: #E08A5F; border: 2px dashed #24405C; }
+.psc-exc-swatch.psc-exc-remove { border: 2px dashed #9E4A4A; }
+.psc-exc-swatch.psc-exc-locked { background: #DCD3C9; border-color: #DCD3C9; }
+
+/* ---- e. Récapitulatif fratrie : un bloc par enfant à filet abricot,
+   jours + montant du mois et de l'année, total famille à droite. ---- */
+.psc-sibling-recap {
+    background: #fff;
+    border: 1px solid rgba(36, 64, 92, 0.15);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+}
+.psc-sibling-recap-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.psc-sibling-recap-title {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #4E6C8D;
+    font-weight: 600;
+}
+.psc-sibling-recap-total { font-size: 13px; color: #24405C; font-weight: 700; }
+.psc-sibling-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+}
+.psc-sibling-card {
+    border-left: 2px solid #E08A5F;
+    padding: 2px 0 2px 10px;
+    min-width: 0;
+}
+.psc-sibling-card-name {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: #1A1A1A;
+}
+.psc-sibling-card-name span {
+    font-family: 'Work Sans', sans-serif;
+    font-weight: 400;
+    font-size: 11px;
+    color: #8B8279;
+}
+.psc-sibling-card-month {
+    font-size: 11.5px;
+    color: #4E6C8D;
+    margin-top: 2px;
+}
+.psc-sibling-card-year {
+    font-size: 11px;
+    color: #8B8279;
+}
+
+@media (max-width: 620px) {
+    .psc-planning-panels { grid-template-columns: 1fr; }
+    .psc-frieze-btn { min-width: 56px; }
+    .psc-exc-bar { flex-wrap: wrap; }
 }

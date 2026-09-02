@@ -49,28 +49,17 @@ abstract class Psc_Frontend_Base {
     }
 
     /**
-     * Construit la table des inscriptions existantes pour une liste d'enfants.
-     * Clé : childId|date|service
+     * Vérifie que l'enfant appartient bien au foyer connecté — contrôle
+     * serveur exigé sur chaque point d'entrée d'écriture du planning.
      */
-    protected static function reg_map($trimestre_id, $children) {
+    protected static function owned_child($child_id, $parent_id) {
         global $wpdb;
-        if (empty($children)) return array();
-
-        $ids = array_map('intval', wp_list_pluck($children, 'id'));
-        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
-        $t_reg = psc_table('registrations');
-        $params = array_merge(array($trimestre_id), $ids);
-
-        $regs = $wpdb->get_results($wpdb->prepare(
-            "SELECT child_id, jour_date, service FROM $t_reg
-             WHERE trimestre_id = %d AND child_id IN ($placeholders)",
-            $params
+        $child_id = (int) $child_id;
+        if (!$child_id) return null;
+        $child = $wpdb->get_row($wpdb->prepare(
+            'SELECT * FROM ' . psc_table('children') . ' WHERE id = %d', $child_id
         ));
-
-        $map = array();
-        foreach ($regs as $r) {
-            $map[$r->child_id . '|' . $r->jour_date . '|' . $r->service] = 1;
-        }
-        return $map;
+        if (!$child || (int) $child->parent_id !== (int) $parent_id) return null;
+        return $child;
     }
 }

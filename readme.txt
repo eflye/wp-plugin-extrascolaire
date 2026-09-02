@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 4.38.1
+Stable tag: 5.0.0
 License: GPLv2 or later
 
 == Description ==
@@ -16,17 +16,19 @@ Une famille non connue de la mairie dépose une demande d'inscription en ligne
 (règlement intérieur, justificatif d'assurance scolaire par enfant et, si
 elle règle par prélèvement, un mandat SEPA). Une fois la demande validée par
 la mairie, la famille se connecte sans mot de passe (lien reçu par e-mail) à
-son espace personnel : elle y coche jour par jour les prestations souhaitées
-pour chacun de ses enfants — chaque case cochée est enregistrée immédiatement,
+son espace personnel : elle y déclare le RYTHME HABITUEL de chacun de ses
+enfants pour toute l'année scolaire, puis ajuste jour par jour (exceptions)
+quand un imprévu survient — chaque case cochée est enregistrée immédiatement,
 pas de bouton "Envoyer" à chercher, pas de fichier à renvoyer par e-mail —
 et y suit aussi ses factures, ses justificatifs d'assurance et son profil.
 
 La mairie centralise tout dans un backoffice dédié (menu "Périscolaire" dans
 l'administration WordPress) : tableau de bord avec liste de tâches, calendrier
-scolaire (import automatique zone C), trimestres, modération des demandes,
-familles, enfants (avec bascule de classe automatique à la rentrée), menus de
-cantine, commande fournisseur hebdomadaire, facturation mensuelle en PDF, et
-export CSV pour la comptabilité.
+scolaire (import automatique zone C), configuration de l'année scolaire
+(dates, vacances, fériés), modération des demandes, familles, enfants (avec
+bascule de classe automatique à la rentrée), menus de cantine, commande
+fournisseur hebdomadaire, facturation mensuelle en PDF, et export CSV pour la
+comptabilité.
 
 Aucun compte WordPress n'est nécessaire côté famille. Aucun paiement en ligne
 n'est intégré : le mode de paiement (chèque/espèces ou prélèvement SEPA) est
@@ -274,6 +276,64 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.0.0 =
+* NOUVEAU MODÈLE — Fin du trimestre : tout le portail passe à l'année scolaire
+  (school_year '2026-2027'). Tables de configuration administrables
+  psc_school_year (dates, plages de vacances, délai de modification) et
+  psc_holidays (jours fériés à exclure, pré-remplis). Les jours d'école sont
+  CALCULÉS, jamais stockés : lundi, mardi, jeudi, vendredi, moins vacances et
+  fériés.
+* NOUVEAU MODÈLE — Déclaration « rythme habituel + exceptions » : une ligne
+  de psc_pattern = « cet enfant mange à la cantine tous les mardis de
+  l'année » (max 16 par enfant) ; psc_exception porte les écarts ponctuels
+  (ajout ou retrait). Source de vérité unique psc_is_declared() : facturation,
+  listes intervenants, effectifs cantine et exports mairie passent tous par
+  elle. Invariant en écriture : jamais d'exception dont la valeur égale le
+  rythme — cocher puis décocher supprime la ligne.
+* Verrou 48 h sur les deux écritures : exception refusée côté serveur à moins
+  de 48 h ; un changement de rythme matérialise les jours déjà verrouillés en
+  exceptions figées (il ne repropage jamais rétroactivement sur le mardi déjà
+  transmis à la cantine).
+* Migration idempotente depuis l'ancienne table (seuil ≥ 60 % par jour de
+  semaine), test bloquant inclus (bin/verify-planning-migration.php) :
+  psc_is_declared() doit renvoyer exactement le même résultat que l'ancienne
+  table sur toutes les lignes historiques. L'ancienne table reste en lecture
+  seule le temps d'un cycle de facturation.
+* Écran Planning — deux variantes livrées en parallèle pour que la mairie
+  tranche sur pièces, un réglage (Réglages > Périscolaire) permet de n'exposer
+  que l'une sans redéploiement. Les deux lisent et écrivent le même modèle :
+  une saisie faite dans l'une se retrouve dans l'autre.
+  - Planning - 1 : saisie jour par jour, navigation mois par mois, récap
+    fratrie du mois au-dessus des tableaux.
+  - Planning - 2 : frise de l'année (onze mois, contrôle de complétude),
+    onglets enfants, rythme habituel + « Appliquer ce rythme à toute la
+    fratrie », exceptions du mois avec origine lisible (issu du rythme, ajout,
+    retrait, verrouillé), récapitulatif fratrie mois et année.
+* Enregistrement automatique AJAX (psc_toggle_pattern, psc_toggle_exception,
+  psc_apply_pattern_to_siblings, psc_reset_month_exceptions, psc_load_month) :
+  nonce + vérification serveur de l'appartenance de l'enfant au foyer sur
+  chaque point d'entrée ; seul le mois affiché est rendu, la frise lit un
+  compteur groupé.
+* Champ enfant « Allergies alimentaires » : champ libre strictement
+  alimentaire, facultatif, 1 000 caractères max, échappé à l'affichage.
+  Saisie à l'inscription (étape Enfants, y compris lignes ajoutées
+  dynamiquement), dans « Mes enfants » (ajout et édition). La mairie est
+  alertée à l'enregistrement d'une allergie non vide pour déclencher la prise
+  de contact PAI. Restitutions : colonne dédiée dans « Mes enfants », remontée
+  en tête de la liste cantine intervenants (mention « apporte son repas — à ne
+  pas compter dans les couverts »), colonne allergies dans l'export effectifs
+  cantine, exclusion de ces enfants du comptage des repas commandés (ils
+  restent sur les listes de présence).
+* Inscription initiale : l'étape « Enfants » gagne la saisie du rythme
+  habituel — la famille arrive avec une année pré-remplie.
+* Admin mairie : gestion de l'année scolaire du planning (dates, plages de
+  vacances, fériés, préavis) sur l'écran Années scolaires ; écran Présences
+  déclarées refondu (mois par mois, corrections sans verrou) ; export CSV des
+  déclarations par mois ; calendrier v2 recalculé.
+* E-mails : « Valider et recevoir mon planning » envoie un récapitulatif
+  annuel (rythme par enfant, écarts à venir, estimation annuelle) ; libellés
+  ramenés de « trimestre » à « année scolaire », règlement intérieur inclus.
 
 = 4.38.1 =
 * Correction : les confirmations de gestion des personnes autorisées

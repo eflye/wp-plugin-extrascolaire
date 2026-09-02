@@ -118,7 +118,7 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
     </div>
 
     <div class="psc-wizard-step" data-wizard-step="1" data-testid="wizard-step-1">
-      <p class="psc-wizard-help"><?php esc_html_e('Renseignez au moins un enfant (nom, prénom). Vous pouvez préciser un régime alimentaire particulier.', 'periscolaire-registration'); ?></p>
+      <p class="psc-wizard-help"><?php esc_html_e('Renseignez au moins un enfant (nom, prénom). Vous pouvez préciser un régime alimentaire, des allergies et le rythme habituel prévu.', 'periscolaire-registration'); ?></p>
 
       <datalist id="psc-pickup-lien-suggestions">
         <?php foreach (psc_pickup_lien_suggestions() as $psc_lien): ?>
@@ -158,6 +158,45 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
               <label class="psc-wizard-diet-check"><input type="checkbox" name="child_sans_porc_0" value="1"> <?php esc_html_e('Sans porc', 'periscolaire-registration'); ?></label>
               <label class="psc-wizard-diet-check"><input type="checkbox" name="child_vegan_0" value="1"> <?php esc_html_e('Sans viande', 'periscolaire-registration'); ?></label>
             </div>
+          </div>
+
+          <div class="psc-wizard-allergy-cell" style="grid-column: 1 / -1;">
+            <label class="psc-wizard-diet-check" style="font-weight:600;"><input type="checkbox" class="psc-child-allergy-toggle" data-toggle="0" name="child_has_allergy_0" value="1"> <?php esc_html_e('Cet enfant a une allergie alimentaire', 'periscolaire-registration'); ?></label>
+            <div class="psc-child-allergy-field" data-field="0" hidden>
+              <textarea name="child_food_allergies_0" rows="2" maxlength="1000"
+                        placeholder="<?php esc_attr_e('Aliments à exclure des repas, réaction en cas d\'ingestion, conduite à tenir.', 'periscolaire-registration'); ?>"
+                        style="width:100%;resize:vertical;border:1px solid rgba(36,64,92,0.3);background:#fff;font-size:13px;padding:8px;"></textarea>
+              <p class="psc-child-allergy-help" style="font-size:11px;color:#8B8279;margin:6px 0 0;"><?php esc_html_e("Strictement alimentaire. La mairie vous contactera si un PAI (projet d'accueil individualisé) doit être mis en place. Aucun menu différencié n'est proposé : l'enfant déjeune à la cantine avec son propre repas fourni par la famille.", 'periscolaire-registration'); ?></p>
+            </div>
+          </div>
+
+          <div class="psc-wizard-rhythm-cell" style="grid-column: 1 / -1;">
+            <div class="psc-portal-field-label"><?php esc_html_e('Rythme habituel prévu (facultatif — modifiable toute l\'année depuis votre espace)', 'periscolaire-registration'); ?></div>
+            <table class="psc-wizard-rhythm" style="border-collapse:collapse;font-size:13px;">
+              <thead><tr>
+                <th></th>
+                <?php foreach (psc_service_short_labels() as $code => $short): ?>
+                <th style="padding:4px 10px;font-size:11px;letter-spacing:0.08em;color:#4E6C8D;text-transform:uppercase;" title="<?php echo esc_attr(psc_services()[$code]['label']); ?>"><?php echo esc_html($short); ?></th>
+                <?php endforeach; ?>
+              </tr></thead>
+              <tbody>
+                <?php
+                $psc_wizard_jours = array(1 => 'Lundi', 2 => 'Mardi', 4 => 'Jeudi', 5 => 'Vendredi');
+                foreach ($psc_wizard_jours as $wd => $jour):
+                ?>
+                <tr>
+                  <th style="padding:4px 10px;text-align:left;font-weight:600;color:#24405C;"><?php echo esc_html($jour); ?></th>
+                  <?php foreach (psc_service_short_labels() as $code => $short): ?>
+                  <td style="text-align:center;padding:4px;">
+                    <input type="checkbox" class="psc-rhythm-check" name="child_rhythm_0_<?php echo esc_attr($wd); ?>_<?php echo esc_attr($code); ?>" value="1" data-rhythm-day="<?php echo esc_attr($wd); ?>"
+                           aria-label="<?php echo esc_attr($jour . ' — ' . psc_services()[$code]['label']); ?>">
+                  </td>
+                  <?php endforeach; ?>
+                </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+            <p style="font-size:11px;color:#8B8279;margin:6px 0 0;"><?php esc_html_e('Le mercredi n\'est pas un jour de service. Ces choix préremplissent votre planning pour toute l\'année scolaire : vous pourrez l\'ajuster à tout moment.', 'periscolaire-registration'); ?></p>
           </div>
 
           <div class="psc-wizard-pickup-block">
@@ -261,7 +300,7 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
 
         <h4><?php esc_html_e('2 – Fonctionnement', 'periscolaire-registration'); ?></h4>
         <p><strong><?php esc_html_e('Inscription', 'periscolaire-registration'); ?></strong> <?php esc_html_e("— L'inscription de chaque enfant est obligatoire pour être accueilli aux différents temps périscolaires. Toute modification d'inscription doit être signalée au responsable du périscolaire.", 'periscolaire-registration'); ?></p>
-        <p><strong><?php esc_html_e('Engagement', 'periscolaire-registration'); ?></strong> <?php esc_html_e('— Les inscriptions sont fermes et définitives pour le trimestre, que ce soit pour la demi-pension ou la garderie. Cet engagement permet de bénéficier d\'un tarif annuel avantageux.', 'periscolaire-registration'); ?></p>
+        <p><strong><?php esc_html_e('Engagement', 'periscolaire-registration'); ?></strong> <?php esc_html_e('— Les inscriptions sont fermes et définitives pour l\'année scolaire, que ce soit pour la demi-pension ou la garderie. Cet engagement permet de bénéficier d\'un tarif annuel avantageux.', 'periscolaire-registration'); ?></p>
         <p><strong><?php esc_html_e('Facturation', 'periscolaire-registration'); ?></strong> <?php esc_html_e('— Le paiement des prestations s\'effectue par prélèvement, par chèque ou en espèces à terme échu. Il n\'y aura pas de remboursement pour absence de l\'enfant, sauf fermeture de l\'établissement, sortie scolaire, hospitalisation ou maladie de plus de 3 jours médicalement justifiée (justificatif à fournir dans les deux premiers jours d\'absence ; une franchise de deux jours sera appliquée dans ces deux derniers cas).', 'periscolaire-registration'); ?></p>
         <p><strong><?php esc_html_e('Tarifs', 'periscolaire-registration'); ?></strong> <?php esc_html_e('— Les tarifs sont déterminés par délibération pour l\'année scolaire et sont identiques pour les enfants de maternelle et d\'élémentaire. Aucun calcul de quotient familial n\'est appliqué.', 'periscolaire-registration'); ?></p>
         <p><strong><?php esc_html_e('Repas', 'periscolaire-registration'); ?></strong> <?php esc_html_e('— Les repas sont fournis par un prestataire de service. En cas de prescription médicale d\'un régime particulier, un certificat médical doit être fourni.', 'periscolaire-registration'); ?></p>

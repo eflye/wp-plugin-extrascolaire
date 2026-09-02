@@ -8,11 +8,12 @@
 if (!defined('ABSPATH')) exit;
 
 /**
- * Nombre maximum de jours qu'un trimestre peut couvrir.
- * Garde-fou contre une saisie erronée qui générerait des millions de lignes.
+ * Nombre maximum de jours qu'une plage de dates peut couvrir (fermeture de
+ * jours, calcul des jours d'école d'une année). Garde-fou contre une saisie
+ * erronée qui générerait des millions d'itérations.
  */
-function psc_max_trimestre_days() {
-    return 400;
+function psc_max_school_days() {
+    return (int) apply_filters('psc_max_school_days', 400);
 }
 
 /**
@@ -67,4 +68,29 @@ function psc_mairie_email() {
         $mail = get_option('admin_email');
     }
     return $mail;
+}
+
+/**
+ * Variante(s) de l'écran Planning exposée(s) aux familles.
+ *
+ * Deux variantes sont livrées en parallèle (Planning - 1 : saisie jour par
+ * jour ; Planning - 2 : rythme + exceptions) pour que la mairie tranche sur
+ * pièces. Le réglage (Réglages > Périscolaire) permet de retirer l'écran non
+ * retenu sans redéploiement :
+ *   'both' (défaut) → les deux onglets « Planning - 1 » et « Planning - 2 » ;
+ *   '1' → un seul onglet « Planning » (saisie jour par jour) ;
+ *   '2' → un seul onglet « Planning » (rythme + exceptions).
+ *
+ * Retour : tableau des slugs d'onglet exposés ('cantine', 'cantine2').
+ */
+function psc_planning_variants() {
+    $setting = get_option('psc_planning_variant', 'both');
+    if ($setting === '1') return array('cantine');
+    if ($setting === '2') return array('cantine2');
+    return array('cantine', 'cantine2');
+}
+
+/** Un seul écran Planning exposé ? (le libellé d'onglet redevient « Planning ») */
+function psc_planning_single_variant() {
+    return count(psc_planning_variants()) === 1;
 }

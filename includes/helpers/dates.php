@@ -45,6 +45,21 @@ function psc_day_label($date_str) {
 }
 
 /**
+ * Libellé compact d'un jour de planning, maquette Family Portal v3 :
+ * « Mar. 08/09 ». Abréviation figurent dans la grille des exceptions —
+ * la largeur min-content du tableau en dépend.
+ */
+function psc_day_short($date_str) {
+    $abrs = array(
+        __('Lun.', 'periscolaire-registration'), __('Mar.', 'periscolaire-registration'), __('Mer.', 'periscolaire-registration'), __('Jeu.', 'periscolaire-registration'),
+        __('Ven.', 'periscolaire-registration'), __('Sam.', 'periscolaire-registration'), __('Dim.', 'periscolaire-registration')
+    );
+    $dow = (int) date('N', strtotime($date_str));
+    $abr = isset($abrs[$dow - 1]) ? $abrs[$dow - 1] : '';
+    return trim($abr . ' ' . date_i18n('d/m', strtotime($date_str)));
+}
+
+/**
  * Date de Pâques (algorithme de Gauss/Meeus), sans dépendance à l'extension calendar.
  */
 function psc_easter_date($year) {

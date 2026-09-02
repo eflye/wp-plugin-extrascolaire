@@ -3,6 +3,13 @@ if (!defined('ABSPATH')) exit;
 
 /**
  * Présences déclarées : consultation, correction par la mairie, export.
+ *
+ * L'unité est le MOIS de l'année scolaire (navigation mois par mois) — la
+ * correction de la mairie écrit des exceptions (ajout / retrait), sans être
+ * soumise au verrou de 48 h : elle corrige au dernier moment, comme elle
+ * pouvait supprimer une ligne de l'ancienne table. La source de vérité est
+ * unique (psc_is_declared) : ce que la mairie voit est exactement ce que la
+ * facturation comptera.
  */
 class Psc_Admin_Inscriptions extends Psc_Admin_Base {
 
@@ -15,60 +22,45 @@ class Psc_Admin_Inscriptions extends Psc_Admin_Base {
         if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         global $wpdb;
 
-        $trimestres = $wpdb->get_results('SELECT * FROM ' . psc_table('trimestres') . ' ORDER BY date_debut DESC');
-        $trimestre_id = psc_get_int('trimestre_id');
-        if (!$trimestre_id && $trimestres) {
-            foreach ($trimestres as $t) {
-                if ($t->active) { $trimestre_id = (int) $t->id; break; }
-            }
-            if (!$trimestre_id && $trimestres) $trimestre_id = (int) $trimestres[0]->id;
-        }
-        $trimestre = null;
-        foreach ($trimestres as $t) {
-            if ((int) $t->id === $trimestre_id) { $trimestre = $t; break; }
+        Psc_School_Year::ensure_default();
+        $annee = Psc_School_Year::active();
+
+        // Navigation mois par mois sur l'année scolaire.
+        $months = Psc_School_Year::months();
+        $month_keys = wp_list_pluck($months, 'key');
+        $mois = isset($_GET['mois']) ? sanitize_text_field(wp_unslash($_GET['mois'])) : '';
+        if (!preg_match('/^\d{4}-\d{2}$/', $mois) || !in_array($mois, $month_keys, true)) {
+            $today = current_time('Y-m');
+            $mois = in_array($today, $month_keys, true) ? $today : ($month_keys ? $month_keys[0] : '');
         }
 
         $parents   = Psc_Parents::all();
         $parent_id = psc_get_int('parent_id');
         $selected_parent = $parent_id ? Psc_Parents::get_by_id($parent_id) : null;
 
-        $children      = array();
-        $days_by_month = array();
-        $reg_map       = array();
-        $services      = psc_services();
+        $children = array();
+        $month_dates = array();
+        $declared    = array();
+        $explicit    = array();
+        $services    = psc_services();
 
-        if ($selected_parent && $trimestre_id) {
+        if ($selected_parent && $mois && $annee) {
             $t_child  = psc_table('children');
             $t_cy     = psc_table('child_school_years');
-            $year_id  = $trimestre ? (int) $trimestre->school_year_id : Psc_School_Years::active_id();
+            $year_id  = Psc_School_Years::active_id();
             $children = $wpdb->get_results($wpdb->prepare(
                 "SELECT c.*, cy.classe AS classe
                  FROM $t_child c
                  LEFT JOIN $t_cy cy ON cy.child_id = c.id AND cy.school_year_id = %d
-                 WHERE c.parent_id = %d ORDER BY c.nom",
-                $year_id, $parent_id
+                 WHERE c.parent_id = %d ORDER BY c.nom", $year_id, $parent_id
             ));
 
-            $t_days = psc_table('calendar_days');
-            $days   = $wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM $t_days WHERE trimestre_id = %d AND is_open = 1 ORDER BY jour_date", $trimestre_id
-            ));
-            foreach ($days as $d) {
-                $month_key = date_i18n('F Y', strtotime($d->jour_date));
-                $days_by_month[$month_key][] = $d;
-            }
-
-            if (!empty($children)) {
+            $month_dates = Psc_School_Year::school_days_in_month($mois);
+            Psc_School_Calendar::preload_closed($month_dates);
+            if (!empty($children) && $month_dates) {
                 $child_ids = array_map(function ($c) { return (int) $c->id; }, $children);
-                $ph        = implode(',', array_fill(0, count($child_ids), '%d'));
-                $t_reg     = psc_table('registrations');
-                $regs      = $wpdb->get_results($wpdb->prepare(
-                    "SELECT child_id, jour_date, service FROM $t_reg WHERE trimestre_id = %d AND child_id IN ($ph)",
-                    array_merge(array($trimestre_id), $child_ids)
-                ));
-                foreach ($regs as $r) {
-                    $reg_map[$r->child_id . '|' . $r->jour_date . '|' . $r->service] = true;
-                }
+                $declared = Psc_Planning::declared_map($child_ids, $month_dates);
+                $explicit = Psc_Planning::month_explicit_map($child_ids, $mois);
             }
         }
 
@@ -76,140 +68,143 @@ class Psc_Admin_Inscriptions extends Psc_Admin_Base {
         include PSC_PATH . 'templates/admin-inscriptions.php';
     }
 
+    /**
+     * Correction de la mairie : le POST porte l'état complet des cases du
+     * mois (regs[enfant][date][service]) pour la famille affichée. Le diff
+     * avec l'état effectif (psc_is_declared) est appliqué en exceptions —
+     * l'invariant d'écriture fait le reste — puis notifié à la famille.
+     */
     public static function handle_admin_update_registrations() {
         self::guard('psc_admin_update_registrations');
-        global $wpdb;
 
-        $parent_id    = psc_post_int('parent_id');
-        $trimestre_id = psc_post_int('trimestre_id');
-        if (!$parent_id || !$trimestre_id) self::redirect('psc_inscriptions', 'invalid');
+        $parent_id = psc_post_int('parent_id');
+        $mois      = psc_post('mois');
+        if (!$parent_id || !preg_match('/^\d{4}-\d{2}$/', $mois)) {
+            self::redirect('psc_inscriptions', 'invalid');
+        }
 
         $parent = Psc_Parents::get_by_id($parent_id);
         if (!$parent) self::redirect('psc_inscriptions', 'invalid');
 
-        $trimestre = $wpdb->get_row($wpdb->prepare(
-            'SELECT * FROM ' . psc_table('trimestres') . ' WHERE id = %d', $trimestre_id
-        ));
-        if (!$trimestre) self::redirect('psc_inscriptions', 'invalid');
+        $dates = Psc_School_Year::school_days_in_month($mois);
+        if (!$dates) self::redirect_to_inscriptions($parent_id, $mois, 'invalid');
 
+        $children = array();
+        global $wpdb;
         $t_child  = psc_table('children');
         $children = $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM $t_child WHERE parent_id = %d ORDER BY nom", $parent_id
         ));
         if (empty($children)) {
-            self::redirect_to_inscriptions($parent_id, $trimestre_id, 'saved');
+            self::redirect_to_inscriptions($parent_id, $mois, 'saved');
         }
 
         $child_ids = array_map(function ($c) { return (int) $c->id; }, $children);
-        $ph        = implode(',', array_fill(0, count($child_ids), '%d'));
-        $t_days    = psc_table('calendar_days');
-        $open_days   = $wpdb->get_col($wpdb->prepare(
-            "SELECT jour_date FROM $t_days WHERE trimestre_id = %d AND is_open = 1", $trimestre_id
-        ));
-        $open_set = array_flip($open_days);
+        $child_set = array_flip($child_ids);
+        $dates_set = array_flip($dates);
 
-        // Build set of submitted registrations (only for valid children + open dates + allowed services).
-        $submitted  = array();
-        $regs_post  = isset($_POST['regs']) && is_array($_POST['regs']) ? $_POST['regs'] : array();
-        foreach ($regs_post as $cid => $dates) {
+        // État soumis (cases cochées du formulaire).
+        $submitted = array();
+        $regs_post = isset($_POST['regs']) && is_array($_POST['regs']) ? wp_unslash($_POST['regs']) : array();
+        foreach ($regs_post as $cid => $by_date) {
             $cid = (int) $cid;
-            if (!in_array($cid, $child_ids, true)) continue;
-            if (!is_array($dates)) continue;
-            foreach ($dates as $date => $svcs) {
-                $date = sanitize_text_field(wp_unslash($date));
-                if (!isset($open_set[$date])) continue;
-                if (!is_array($svcs)) continue;
+            if (!isset($child_set[$cid]) || !is_array($by_date)) continue;
+            foreach ($by_date as $date => $svcs) {
+                $date = sanitize_text_field((string) $date);
+                if (!isset($dates_set[$date]) || !is_array($svcs)) continue;
                 foreach ($svcs as $svc => $on) {
-                    $svc = strtoupper(sanitize_key($svc));
+                    $svc = strtoupper(sanitize_key((string) $svc));
                     if (!psc_is_valid_service($svc)) continue;
                     $submitted[$cid . '|' . $date . '|' . $svc] = true;
                 }
             }
         }
 
-        // Current registrations for this family + trimestre.
-        $t_reg      = psc_table('registrations');
-        $current_rs = $wpdb->get_results($wpdb->prepare(
-            "SELECT id, child_id, jour_date, service FROM $t_reg WHERE trimestre_id = %d AND child_id IN ($ph)",
-            array_merge(array($trimestre_id), $child_ids)
-        ));
-        $current_map = array();
-        foreach ($current_rs as $r) {
-            $current_map[$r->child_id . '|' . $r->jour_date . '|' . $r->service] = (int) $r->id;
+        // État effectif avant correction.
+        $declared_before = Psc_Planning::declared_map($child_ids, $dates);
+        $current = array();
+        foreach ($declared_before as $cid => $by_date) {
+            foreach ($by_date as $date => $by_svc) {
+                foreach ($by_svc as $svc => $on) {
+                    if ($on) $current[$cid . '|' . $date . '|' . $svc] = true;
+                }
+            }
         }
 
-        // Compute diff before applying (for the email).
-        $diff_added   = array_keys(array_diff_key($submitted, $current_map));
-        $diff_removed = array_keys(array_diff_key($current_map, $submitted));
+        $diff_added   = array_values(array_diff_key($submitted, $current));
+        $diff_removed = array_values(array_diff_key($current, $submitted));
 
-        // Apply diff.
-        foreach (array_diff_key($current_map, $submitted) as $key => $reg_id) {
-            $wpdb->delete($t_reg, array('id' => $reg_id), array('%d'));
-        }
+        // Application du diff : chaque triplet divergent reçoit une
+        // exception — la mairie n'est pas soumise au verrou de 48 h.
         foreach ($diff_added as $key) {
             list($cid, $date, $svc) = explode('|', $key);
-            $wpdb->insert($t_reg, array(
-                'trimestre_id' => $trimestre_id,
-                'child_id'     => (int) $cid,
-                'jour_date'    => $date,
-                'service'      => $svc,
-            ), array('%d', '%d', '%s', '%s'));
+            Psc_Planning::toggle_exception((int) $cid, $date, $svc, true, true);
+        }
+        foreach ($diff_removed as $key) {
+            list($cid, $date, $svc) = explode('|', $key);
+            Psc_Planning::toggle_exception((int) $cid, $date, $svc, false, true);
         }
 
-        // Re-fetch final state for email.
-        $new_regs = $wpdb->get_results($wpdb->prepare(
-            "SELECT child_id, jour_date, service FROM $t_reg WHERE trimestre_id = %d AND child_id IN ($ph)",
-            array_merge(array($trimestre_id), $child_ids)
-        ));
-        $reg_map = array();
-        foreach ($new_regs as $r) {
-            $reg_map[$r->child_id . '|' . $r->jour_date . '|' . $r->service] = true;
+        if ($diff_added || $diff_removed) {
+            Psc_Mailer::send_admin_correction($parent, Psc_School_Year::year_key_for_date($dates[0]), $children, psc_services(), $diff_added, $diff_removed);
         }
 
-        Psc_Mailer::send_admin_correction($parent, $trimestre, $children, $reg_map, psc_services(), $diff_added, $diff_removed);
-
-        self::redirect_to_inscriptions($parent_id, $trimestre_id, 'saved');
+        self::redirect_to_inscriptions($parent_id, $mois, 'saved');
     }
 
-    private static function redirect_to_inscriptions($parent_id, $trimestre_id, $msg) {
+    private static function redirect_to_inscriptions($parent_id, $mois, $msg) {
         wp_safe_redirect(add_query_arg(array(
             'page'         => 'psc_inscriptions',
             'parent_id'    => $parent_id,
-            'trimestre_id' => $trimestre_id,
+            'mois'         => $mois,
             'psc_msg'      => $msg,
         ), admin_url('admin.php')));
         exit;
     }
 
+    /**
+     * Export CSV des présences déclarées : mois de l'année scolaire (toutes
+     * familles), via la source de vérité unique. La mairie vise l'export
+     * des effectifs prévisionnels par jour et par service — ce fichier est
+     * la base révisable ; l'export dédié prestataire (commande cantine)
+     * vit dans Psc_Supplier_Orders.
+     */
     public static function handle_export_csv() {
         if (!psc_user_can_manage()) {
             wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         }
         check_admin_referer('psc_export_csv');
 
-        global $wpdb;
-        $trimestre_id = psc_get_int('trimestre_id');
-        if (!$trimestre_id) {
-            wp_die(esc_html__('Trimestre invalide.', 'periscolaire-registration'));
+        $mois = sanitize_text_field(wp_unslash($_GET['mois'] ?? ''));
+        if (!preg_match('/^\d{4}-\d{2}$/', $mois)) {
+            wp_die(esc_html__('Mois invalide.', 'periscolaire-registration'));
         }
 
-        $year_id = (int) $wpdb->get_var($wpdb->prepare(
-            'SELECT school_year_id FROM ' . psc_table('trimestres') . ' WHERE id = %d', $trimestre_id
-        ));
+        global $wpdb;
+        $dates = Psc_School_Year::school_days_in_month($mois);
+        if (!$dates) {
+            wp_die(esc_html__('Aucun jour d\'école ce mois-ci.', 'periscolaire-registration'));
+        }
 
-        $t_reg = psc_table('registrations');
         $t_child = psc_table('children');
         $t_cy = psc_table('child_school_years');
-        $data = $wpdb->get_results($wpdb->prepare(
-            "SELECT r.jour_date, r.service, c.nom, c.prenom, cy.classe, p.email AS parent_email
-             FROM $t_reg r
-             JOIN $t_child c ON c.id = r.child_id
-             LEFT JOIN $t_cy cy ON cy.child_id = c.id AND cy.school_year_id = %d
+        $year_id = Psc_School_Years::active_id();
+        $children = $wpdb->get_results(
+            "SELECT c.*, cy.classe, p.email AS parent_email
+             FROM $t_child c
+             LEFT JOIN $t_cy cy ON cy.child_id = c.id AND cy.school_year_id = $year_id
              LEFT JOIN " . psc_table('parents') . " p ON p.id = c.parent_id
-             WHERE r.trimestre_id = %d ORDER BY c.nom, r.jour_date", $year_id, $trimestre_id
-        ));
+             WHERE c.statut = 'actif' AND p.active = 1
+             ORDER BY c.nom, c.prenom"
+        );
+        if (!$children) {
+            wp_die(esc_html__('Aucun enfant actif.', 'periscolaire-registration'));
+        }
 
-        $filename = 'inscriptions-periscolaire-' . $trimestre_id . '-' . gmdate('Ymd') . '.csv';
+        $child_ids = array_map(function ($c) { return (int) $c->id; }, $children);
+        $declared = Psc_Planning::declared_map($child_ids, $dates);
+
+        $filename = 'inscriptions-periscolaire-' . $mois . '-' . gmdate('Ymd') . '.csv';
 
         nocache_headers();
         header('Content-Type: text/csv; charset=utf-8');
@@ -227,18 +222,22 @@ class Psc_Admin_Inscriptions extends Psc_Admin_Base {
             __('Jour', 'periscolaire-registration'),
             __('Service', 'periscolaire-registration'),
         ), ';');
-        foreach ($data as $row) {
-            // psc_csv_escape() neutralise les formules Excel : les noms
-            // proviennent d'une saisie parent, donc de données non fiables.
-            fputcsv($out, array(
-                psc_csv_escape($row->nom),
-                psc_csv_escape($row->prenom),
-                psc_csv_escape($row->classe),
-                psc_csv_escape($row->parent_email),
-                $row->jour_date,
-                psc_day_label($row->jour_date),
-                $row->service,
-            ), ';');
+        foreach ($children as $row) {
+            foreach ($dates as $date) {
+                foreach (psc_billing_services(isset($declared[$row->id][$date]) ? $declared[$row->id][$date] : array()) as $svc) {
+                    // psc_csv_escape() neutralise les formules Excel : les noms
+                    // proviennent d'une saisie parent, donc de données non fiables.
+                    fputcsv($out, array(
+                        psc_csv_escape($row->nom),
+                        psc_csv_escape($row->prenom),
+                        psc_csv_escape($row->classe),
+                        psc_csv_escape($row->parent_email),
+                        $date,
+                        psc_day_label($date),
+                        $svc,
+                    ), ';');
+                }
+            }
         }
         fclose($out);
         exit;

@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '3.9.0';
+    const DB_VERSION = '4.0.0';
     const ROLES_VERSION = '1.0.0';
 
     public static function activate() {
@@ -12,6 +12,10 @@ class Psc_Installer {
         update_option('psc_db_version', self::DB_VERSION);
         self::sync_roles();
         update_option('psc_roles_version', self::ROLES_VERSION);
+        // Configuration du planning de l'année en cours (dates, fériés) :
+        // une installation neuve doit pouvoir afficher son planning sans
+        // attendre une intervention de la mairie.
+        Psc_School_Year::ensure_default();
     }
 
     /**
@@ -77,6 +81,9 @@ class Psc_Installer {
             }
             if ($current && version_compare($current, '3.8.0', '<')) {
                 self::migrate_3_8_0();
+            }
+            if ($current && version_compare($current, '4.0.0', '<')) {
+                self::migrate_4_0_0();
             }
 
             // Deuxième passe dbDelta, après les migrations. Celles-ci
@@ -236,15 +243,80 @@ class Psc_Installer {
     }
 
     /**
+     * Passage au modèle « année scolaire + rythme & exceptions » (v4.0) :
+     *
+     *  - nouvelles tables psc_school_year (configuration administrable :
+     *    dates, plages de vacances JSON, verrou), psc_holidays (jours fériés
+     *    à exclure, pré-remplis), psc_pattern (rythme habituel, ≤ 16 lignes
+     *    par enfant et par année) et psc_exception (écarts ponctuels,
+     *    value true = ajout, false = retrait) ;
+     *  - les jours d'école sont CALCULÉS (lundi, mardi, jeudi, vendredi,
+     *    moins vacances et fériés) : la table calendar_days — une ligne par
+     *    jour ET par trimestre — n'a plus d'usage ;
+     *  - colonne children.food_allergies (TEXT, nullable) : champ libre
+     *    strictement alimentaire, migration à NULL pour l'existant ;
+     *  - migration idempotente des inscriptions historiques vers
+     *    psc_pattern + psc_exception (Psc_Planning::migrate_from_registrations,
+     *    seuil ≥ 60 %) ;
+     *  - l'ancienne table wp_psc_registrations est conservée en lecture
+     *    seule le temps d'un cycle de facturation (aucune écriture n'y
+     *    passe plus) ; la vérification bloquante est
+     *    Psc_Planning::verify_against_registrations() via
+     *    bin/verify-planning-migration.php.
+     *
+     * Les tables trimestres / calendar_days sont DÉTACHÉES mais conservées :
+     * elles portent l'historique des inscriptions et la FK
+     * registrations.trimestre_id empêche leur suppression tant que l'ancienne
+     * table existe. Un nettoyage (DROP des trois tables) pourra être proposé
+     * après un cycle de facturation sans anomalies.
+     */
+    private static function migrate_4_0_0() {
+        global $wpdb;
+
+        // 1) Colonne allergies alimentaires (nullable : migration à NULL
+        //    pour l'existant — rien à backporter).
+        $t_child = psc_table('children');
+        $has_allergies = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+             AND TABLE_NAME = '{$t_child}' AND COLUMN_NAME = 'food_allergies'"
+        );
+        if (!$has_allergies) {
+            $wpdb->suppress_errors(true);
+            $wpdb->query("ALTER TABLE {$t_child} ADD COLUMN food_allergies TEXT NULL");
+            $wpdb->suppress_errors(false);
+        }
+
+        // 2) Configuration de l'année scolaire du planning (et fériés) :
+        //    garantit au moins l'année courante avant la migration.
+        Psc_School_Year::ensure_default();
+
+        // 3) Migration des inscriptions historiques vers rythme + exceptions.
+        Psc_Planning::migrate_from_registrations();
+
+        // 4) L'année d'inscription (dossier) courante doit exister : les
+        //    installations créées avant v3.0 en ont déjà une via
+        //    migrate_3_0_0 ; les installations neuves passent par
+        //    create_tables() + la même dérivation.
+        $t_years = psc_table('school_years');
+        if (!(int) $wpdb->get_var("SELECT COUNT(*) FROM {$t_years}")) {
+            $y = psc_rentree_year();
+            $wpdb->insert($t_years, array(
+                'label'      => $y . '-' . ($y + 1),
+                'date_debut' => sprintf('%d-09-01', $y),
+                'date_fin'   => sprintf('%d-07-06', $y + 1),
+                'statut'     => 'active',
+                'created_at' => current_time('mysql'),
+            ), array('%s', '%s', '%s', '%s', '%s'));
+        }
+    }
+
+    /**
      * Liens entre tables, et ce que la base doit faire quand la ligne
      * référencée disparaît.
      *
      * L'action déclarée reproduit exactement ce que le code applicatif fait
      * déjà : la contrainte est un filet, pas une nouvelle règle métier.
-     * D'où le SET NULL sur trimestres.school_year_id — supprimer une année
-     * scolaire détache ses trimestres au lieu de les effacer
-     * (Psc_School_Years::delete()), et une cascade détruirait ici des
-     * données que le code prend soin de conserver.
      *
      * L'ordre compte : les enfants orphelins sont retirés avant les lignes
      * qui les référencent, pour que le nettoyage se propage de proche en
@@ -253,14 +325,16 @@ class Psc_Installer {
     private static function foreign_key_map() {
         return array(
             array('children',           'parent_id',      'parents',      'CASCADE'),
+            // Ancienne table conservée en lecture seule le temps d'un cycle
+            // de facturation : la cascade enfant continue de purger son
+            // historique à la suppression d'un enfant.
             array('registrations',      'child_id',       'children',     'CASCADE'),
             array('child_school_years', 'child_id',       'children',     'CASCADE'),
             array('pickup_persons',     'child_id',       'children',     'CASCADE'),
             array('pickup_history',     'child_id',       'children',     'CASCADE'),
-            array('registrations',      'trimestre_id',   'trimestres',   'CASCADE'),
-            array('calendar_days',      'trimestre_id',   'trimestres',   'CASCADE'),
+            array('pattern',            'child_id',       'children',     'CASCADE'),
+            array('exception',          'child_id',       'children',     'CASCADE'),
             array('child_school_years', 'school_year_id', 'school_years', 'CASCADE'),
-            array('trimestres',         'school_year_id', 'school_years', 'SET NULL'),
         );
     }
 
@@ -692,7 +766,7 @@ class Psc_Installer {
             $debut = $bounds && $bounds->debut ? $bounds->debut : current_time('Y-m-d');
             $fin   = $bounds && $bounds->fin   ? $bounds->fin   : gmdate('Y-m-d', strtotime($debut . ' +1 year'));
             $rentree_year = (int) date('Y', strtotime($debut));
-            $has_active_trimestre = (bool) Psc_Trimestres::active();
+            $has_active_trimestre = (bool) $wpdb->get_var("SELECT COUNT(*) FROM {$t_trim} WHERE active = 1");
 
             $wpdb->insert($t_years, array(
                 'label'      => $rentree_year . '-' . ($rentree_year + 1),
@@ -791,11 +865,8 @@ class Psc_Installer {
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         $charset_collate = $wpdb->get_charset_collate();
 
-        $t_trim  = psc_table('trimestres');
         $t_parent = psc_table('parents');
         $t_child = psc_table('children');
-        $t_days  = psc_table('calendar_days');
-        $t_reg   = psc_table('registrations');
         $t_req   = psc_table('requests');
         $t_inv   = psc_table('invoices');
         $t_menu  = psc_table('menus');
@@ -807,6 +878,16 @@ class Psc_Installer {
         $t_pkhist = psc_table('pickup_history');
         $t_att    = psc_table('attendance');
         $t_svc    = psc_table('service_closures');
+        // v4.0 — année scolaire + rythme & exceptions. Les anciennes tables
+        // trimestres / calendar_days / registrations ne sont plus DÉFINIES :
+        // dbDelta ne les recrée pas sur une installation neuve, et les
+        // met à jour sans les supprimer sur une installation existante
+        // (l'ancienne table des inscriptions reste en lecture seule le
+        // temps d'un cycle de facturation, cf. migrate_4_0_0()).
+        $t_sy   = psc_table('school_year');
+        $t_hol  = psc_table('holidays');
+        $t_pat  = psc_table('pattern');
+        $t_exc  = psc_table('exception');
 
         $sql = "CREATE TABLE $t_years (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -819,16 +900,51 @@ class Psc_Installer {
             KEY statut (statut)
         ) $charset_collate;
 
-CREATE TABLE $t_trim (
+CREATE TABLE $t_sy (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            school_year_id BIGINT UNSIGNED NULL,
-            label VARCHAR(191) NOT NULL,
-            date_debut DATE NOT NULL,
-            date_fin DATE NOT NULL,
-            active TINYINT(1) NOT NULL DEFAULT 0,
+            year_key VARCHAR(9) NOT NULL,
+            date_start DATE NOT NULL,
+            date_end DATE NOT NULL,
+            vacation_ranges LONGTEXT NULL,
+            lock_hours SMALLINT UNSIGNED NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
-            KEY active (active),
-            KEY school_year_id (school_year_id)
+            UNIQUE KEY year_key (year_key)
+        ) $charset_collate;
+
+CREATE TABLE $t_hol (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            year_key VARCHAR(9) NOT NULL,
+            jour_date DATE NOT NULL,
+            label VARCHAR(191) NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY year_date (year_key, jour_date)
+        ) $charset_collate;
+
+CREATE TABLE $t_pat (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            child_id BIGINT UNSIGNED NOT NULL,
+            school_year VARCHAR(9) NOT NULL,
+            weekday TINYINT UNSIGNED NOT NULL,
+            service_code VARCHAR(10) NOT NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY child_year_day_service (child_id, school_year, weekday, service_code),
+            KEY school_year (school_year)
+        ) $charset_collate;
+
+CREATE TABLE $t_exc (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            child_id BIGINT UNSIGNED NOT NULL,
+            jour_date DATE NOT NULL,
+            service_code VARCHAR(10) NOT NULL,
+            `value` TINYINT(1) NOT NULL DEFAULT 1,
+            created_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY child_date_service (child_id, jour_date, service_code),
+            KEY jour_date (jour_date)
         ) $charset_collate;
 
 CREATE TABLE $t_parent (
@@ -877,6 +993,7 @@ CREATE TABLE $t_child (
             date_naissance DATE NULL,
             sans_porc TINYINT(1) NOT NULL DEFAULT 0,
             vegan TINYINT(1) NOT NULL DEFAULT 0,
+            food_allergies TEXT NULL,
             statut VARCHAR(20) NOT NULL DEFAULT 'actif',
             created_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
@@ -898,31 +1015,6 @@ CREATE TABLE $t_cy (
             PRIMARY KEY  (id),
             UNIQUE KEY child_year (child_id, school_year_id),
             KEY school_year_id (school_year_id)
-        ) $charset_collate;
-
-CREATE TABLE $t_days (
-            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            trimestre_id BIGINT UNSIGNED NOT NULL,
-            jour_date DATE NOT NULL,
-            is_open TINYINT(1) NOT NULL DEFAULT 1,
-            label VARCHAR(100) NULL,
-            PRIMARY KEY  (id),
-            UNIQUE KEY trim_date (trimestre_id, jour_date),
-            KEY trim_open (trimestre_id, is_open),
-            KEY jour_date (jour_date)
-        ) $charset_collate;
-
-CREATE TABLE $t_reg (
-            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            child_id BIGINT UNSIGNED NOT NULL,
-            trimestre_id BIGINT UNSIGNED NOT NULL,
-            jour_date DATE NOT NULL,
-            service VARCHAR(10) NOT NULL,
-            updated_at DATETIME NOT NULL,
-            PRIMARY KEY  (id),
-            UNIQUE KEY child_date_service (child_id, jour_date, service),
-            KEY trim_child (trimestre_id, child_id),
-            KEY jour_date (jour_date)
         ) $charset_collate;
 
 CREATE TABLE $t_req (
@@ -1073,56 +1165,5 @@ CREATE TABLE $t_svc (
         ) $charset_collate;";
 
         dbDelta($sql);
-    }
-
-    /**
-     * Génère les lignes de calendrier pour un trimestre : ouvert par défaut,
-     * fermé automatiquement les week-ends et jours fériés.
-     *
-     * Les dates sont validées en amont par l'appelant, mais on revalide ici :
-     * cette méthode est publique et pourrait être appelée depuis ailleurs.
-     */
-    public static function generate_calendar_days($trimestre_id, $date_debut, $date_fin) {
-        global $wpdb;
-
-        $trimestre_id = absint($trimestre_id);
-        $date_debut = psc_valid_date($date_debut);
-        $date_fin = psc_valid_date($date_fin);
-        if (!$trimestre_id || !$date_debut || !$date_fin) return false;
-
-        $t_days = psc_table('calendar_days');
-
-        $start = new DateTime($date_debut);
-        $end = new DateTime($date_fin);
-        $end->modify('+1 day');
-        $period = new DatePeriod($start, new DateInterval('P1D'), $end);
-
-        $count = 0;
-        foreach ($period as $d) {
-            if (++$count > psc_max_trimestre_days()) break;
-
-            $date_str = $d->format('Y-m-d');
-            $is_open = 1;
-            $label = null;
-            if (psc_is_weekend($date_str)) {
-                $is_open = 0;
-                $label = 'Week-end';
-            } elseif (psc_is_wednesday($date_str)) {
-                $is_open = 0;
-                $label = 'Mercredi';
-            } elseif (psc_is_school_vacation($date_str)) {
-                $is_open = 0;
-                $label = psc_school_vacation_label($date_str);
-            } elseif (psc_is_holiday($date_str)) {
-                $is_open = 0;
-                $label = 'Férié';
-            }
-            $wpdb->query($wpdb->prepare(
-                "INSERT INTO $t_days (trimestre_id, jour_date, is_open, label) VALUES (%d, %s, %d, %s)
-                 ON DUPLICATE KEY UPDATE is_open = VALUES(is_open), label = VALUES(label)",
-                $trimestre_id, $date_str, $is_open, $label
-            ));
-        }
-        return true;
     }
 }

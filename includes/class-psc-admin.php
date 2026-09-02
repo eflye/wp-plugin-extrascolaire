@@ -22,7 +22,6 @@ class Psc_Admin extends Psc_Admin_Base {
         add_action('admin_notices', array(__CLASS__, 'notice_db_constraints'));
 
         foreach (array(
-            'Psc_Admin_Trimestres',
             'Psc_Admin_School_Years',
             'Psc_Admin_Familles',
             'Psc_Admin_Inscriptions',
@@ -37,7 +36,7 @@ class Psc_Admin extends Psc_Admin_Base {
 
     /**
      * Regroupement du menu (du plus quotidien au plus occasionnel) :
-     * Tableau de bord, Calendrier en cours + Trimestres, Cantine, Demandes
+     * Tableau de bord, Calendrier en cours, Cantine, Demandes
      * & suivi, Familles, Facturation, Configuration, puis Années scolaires
      * — reléguée juste avant Réglages car utilisée seulement ~1 fois par an
      * (création/activation d'année, passage de classe), loin des écrans
@@ -63,8 +62,6 @@ class Psc_Admin extends Psc_Admin_Base {
         // contrôler sa position dans le sous-menu (juste sous le tableau
         // de bord, c'est l'écran le plus consulté au quotidien).
         add_submenu_page('psc_dashboard', __('Calendrier scolaire en cours', 'periscolaire-registration'), __('Calendrier scolaire en cours', 'periscolaire-registration'), $cap, 'psc_school_calendar_v2', array('Psc_Admin_Calendar_V2', 'page_calendar_v2'));
-
-        add_submenu_page('psc_dashboard', __('Trimestres', 'periscolaire-registration'), __('Trimestres', 'periscolaire-registration'), $cap, 'psc_trimestres', array('Psc_Admin_Trimestres', 'page_trimestres'));
 
         // Cantine
         add_submenu_page('psc_dashboard', __('Menus cantine', 'periscolaire-registration'), __('Menus cantine', 'periscolaire-registration'), $cap, 'psc_menus', array('Psc_Admin_Cantine', 'page_menus'));
@@ -272,9 +269,9 @@ class Psc_Admin extends Psc_Admin_Base {
      */
     protected static function dashboard_stats() {
         global $wpdb;
-        $trimestre = Psc_Trimestres::active();
+        $annee = Psc_School_Year::active();
         return array(
-            'trimestre'        => $trimestre,
+            'annee'            => $annee,
             'familles_actives' => (int) $wpdb->get_var('SELECT COUNT(*) FROM ' . psc_table('parents') . ' WHERE active = 1'),
             'enfants_actifs'   => (int) $wpdb->get_var("SELECT COUNT(*) FROM " . psc_table('children') . " WHERE statut = 'actif'"),
         );
@@ -284,7 +281,7 @@ class Psc_Admin extends Psc_Admin_Base {
      * Actions concrètes à faire dans les jours/semaines à venir, dérivées
      * de données déjà existantes (aucune nouvelle table) : demandes en
      * attente, menu et commande fournisseur de la semaine prochaine pas
-     * encore envoyés, trimestre actif proche de sa fin ou absent. Chaque
+     * encore envoyés, année scolaire proche de sa fin ou absente. Chaque
      * entrée : array('label'=>, 'done'=>bool, 'url'=>).
      */
     protected static function dashboard_todos() {
@@ -337,22 +334,22 @@ class Psc_Admin extends Psc_Admin_Base {
             'url'  => admin_url('admin.php?page=psc_supplier_orders&semaine_debut=' . $next_week),
         );
 
-        $trimestre = Psc_Trimestres::active();
-        if (!$trimestre) {
+        $annee = Psc_School_Year::active();
+        if (!$annee) {
             $todos[] = array(
-                'label' => __('Aucun trimestre actif — créez-en un pour ouvrir les inscriptions', 'periscolaire-registration'),
+                'label' => __('Aucune année scolaire configurée — définissez dates, vacances et fériés pour ouvrir le planning', 'periscolaire-registration'),
                 'done'  => false,
-                'url'   => admin_url('admin.php?page=psc_trimestres'),
+                'url'   => admin_url('admin.php?page=psc_school_years'),
             );
         } else {
-            $days_left = (int) floor((strtotime($trimestre->date_fin) - strtotime(current_time('Y-m-d'))) / DAY_IN_SECONDS);
-            if ($days_left <= 14) {
+            $days_left = (int) floor((strtotime($annee->date_end) - strtotime(current_time('Y-m-d'))) / DAY_IN_SECONDS);
+            if ($days_left <= 30) {
                 $todos[] = array(
                     'label' => $days_left >= 0
-                        ? sprintf(__('Le trimestre actif se termine dans %d jour(s) — pensez à préparer le suivant', 'periscolaire-registration'), $days_left)
-                        : __('Le trimestre actif est terminé — pensez à en activer un nouveau', 'periscolaire-registration'),
+                        ? sprintf(__('L\'année scolaire se termine dans %d jour(s) — préparez la suivante (dates, vacances, fériés)', 'periscolaire-registration'), $days_left)
+                        : __('L\'année scolaire est terminée — configurez la suivante', 'periscolaire-registration'),
                     'done' => false,
-                    'url'  => admin_url('admin.php?page=psc_trimestres'),
+                    'url'  => admin_url('admin.php?page=psc_school_years'),
                 );
             }
         }

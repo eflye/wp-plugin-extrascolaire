@@ -28,6 +28,11 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         $hours = psc_post_int('lock_hours', 48);
         update_option('psc_lock_hours', max(0, min(720, $hours)));
 
+        // Variante de l'écran Planning exposée aux familles (les deux sont
+        // livrées en parallèle ; retirer l'écran non retenu sans redéploiement).
+        $variant = psc_post('planning_variant', 'both');
+        update_option('psc_planning_variant', in_array($variant, array('both', '1', '2'), true) ? $variant : 'both');
+
         update_option('psc_notify_mairie', isset($_POST['notify_mairie']) ? 1 : 0);
         update_option('psc_auto_approve_requests', isset($_POST['auto_approve_requests']) ? 1 : 0);
 

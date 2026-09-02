@@ -61,7 +61,11 @@ class Psc_Supplier_Orders {
     /**
      * Calcule la grille classe x jour de repas de cantine pour la semaine
      * donnée (n'importe quelle date de la semaine, ramenée au lundi). Ne
-     * compte que la prestation Cantine (CANT), enfants et familles actifs.
+     * compte que la prestation Cantine (CANT), enfants et familles actifs,
+     * via la source de vérité unique (psc_is_declared). Les enfants qui
+     * apportent leur repas (allergie alimentaire déclarée) sont exclus du
+     * comptage — contrepartie du « pas de menu différencié » : sans cette
+     * exclusion, la commune paie des repas non consommés.
      *
      * Retourne un tableau structuré (semaine_debut, jours réels, classes,
      * comptages, totaux) ou un WP_Error si la semaine est invalide.
@@ -73,7 +77,6 @@ class Psc_Supplier_Orders {
         }
 
         global $wpdb;
-        $t_reg   = psc_table('registrations');
         $t_child = psc_table('children');
         $t_par   = psc_table('parents');
         $t_cy    = psc_table('child_school_years');
@@ -95,40 +98,41 @@ class Psc_Supplier_Orders {
         $counts = array();
         foreach ($classes as $c) $counts[$c] = array_fill_keys($jours, 0);
 
-        // Une seule requête groupée par jour ET par classe : la boucle
-        // d'origine interrogeait la base une fois par jour ouvert de la
-        // semaine — 4-5 requêtes à chaque affichage de l'écran et à
-        // chaque envoi hebdomadaire, ~60 par trimestre. Le regroupement
-        // sur les deux dimensions rend le comptage à coût constant,
-        // quelle que soit la longueur de la période commandée. La garde
-        // sur $jours_dates n'est pas décorative : une semaine entièrement
-        // en vacances produirait un IN () vide, refusé par MySQL.
+        // Toutes les déclarations de la semaine en un lot, puis décompte
+        // par classe côté PHP : les règles de facturation (couverture par
+        // le forfait, allergies alimentaires) ne sont pas exprimables en
+        // une requête SQL — elles vivent dans la résolution.
         if ($year_id && !empty($jours_dates)) {
-            $ph_dates = implode(',', array_fill(0, count($jours_dates), '%s'));
-            $rows = $wpdb->get_results($wpdb->prepare(
-                "SELECT r.jour_date, cy.classe, COUNT(*) AS n
-                 FROM $t_reg r
-                 JOIN $t_child c ON c.id = r.child_id
+            $children = $wpdb->get_results($wpdb->prepare(
+                "SELECT c.id, cy.classe, c.food_allergies
+                 FROM $t_child c
                  JOIN $t_par p ON p.id = c.parent_id
                  JOIN $t_cy cy ON cy.child_id = c.id AND cy.school_year_id = %d
-                 WHERE r.jour_date IN ($ph_dates) AND r.service = 'CANT'
-                   AND c.statut = 'actif' AND p.active = 1
-                 GROUP BY r.jour_date, cy.classe",
-                array_merge(array($year_id), array_values($jours_dates))
+                 WHERE c.statut = 'actif' AND p.active = 1
+                   AND cy.classe IS NOT NULL",
+                $year_id
             ));
-            foreach ($rows as $row) {
-                $classe = (string) $row->classe;
-                if (!isset($counts[$classe])) {
-                    // Classe présente en base mais absente de known_classes()
-                    // (cas limite, ex. valeur historique hors liste actuelle).
-                    $counts[$classe] = array_fill_keys($jours, 0);
-                    $classes[] = $classe;
-                }
-                // Restitue le libellé du jour depuis sa date : deux jours
-                // d'une même semaine ne partagent jamais la même date.
-                $jour = array_search($row->jour_date, $jours_dates, true);
-                if ($jour !== false) {
-                    $counts[$classe][$jour] = (int) $row->n;
+            if ($children) {
+                $child_ids = array_map(function ($c) { return (int) $c->id; }, $children);
+                $declared = Psc_Planning::declared_map($child_ids, array_values($jours_dates));
+
+                foreach ($children as $child) {
+                    $classe = (string) $child->classe;
+                    if (!isset($counts[$classe])) {
+                        // Classe présente en base mais absente de known_classes()
+                        // (cas limite, ex. valeur historique hors liste actuelle).
+                        $counts[$classe] = array_fill_keys($jours, 0);
+                        $classes[] = $classe;
+                    }
+                    // Allergie alimentaire déclarée : l'enfant apporte son
+                    // repas fourni par la famille — aucun repas à commander.
+                    if (trim((string) $child->food_allergies) !== '') continue;
+
+                    foreach ($jours_dates as $date) {
+                        if (!empty($declared[$child->id][$date]['CANT'])) {
+                            $counts[$classe][array_search($date, $jours_dates, true)]++;
+                        }
+                    }
                 }
             }
         }
@@ -216,8 +220,9 @@ class Psc_Supplier_Orders {
      * ------------------------------------------------------------------ */
 
     /**
-     * Inscriptions Cantine (avec enfant + famille) pour une classe et un
-     * jour donnés — utilisé pour avertir l'admin avant annulation.
+     * Enfants de la classe déclarés à la cantine pour un jour donné
+     * (source de vérité unique : psc_is_declared) — utilisé pour avertir
+     * l'admin avant annulation.
      */
     public static function cantine_registrations_for_class_day($date, $classe) {
         $date = psc_valid_date($date);
@@ -227,30 +232,42 @@ class Psc_Supplier_Orders {
         if (!$year_id) return array();
 
         global $wpdb;
-        $t_reg   = psc_table('registrations');
         $t_child = psc_table('children');
         $t_par   = psc_table('parents');
         $t_cy    = psc_table('child_school_years');
 
-        return $wpdb->get_results($wpdb->prepare(
-            "SELECT r.id AS reg_id, c.id AS child_id, c.nom AS child_nom, c.prenom AS child_prenom,
+        $children = $wpdb->get_results($wpdb->prepare(
+            "SELECT c.id AS child_id, c.nom AS child_nom, c.prenom AS child_prenom,
                     p.id AS parent_id, p.email, p.nom AS parent_nom
-             FROM $t_reg r
-             JOIN $t_child c ON c.id = r.child_id
+             FROM $t_child c
              JOIN $t_par p ON p.id = c.parent_id
              JOIN $t_cy cy ON cy.child_id = c.id AND cy.school_year_id = %d
-             WHERE r.jour_date = %s AND r.service = 'CANT' AND cy.classe = %s
+             WHERE cy.classe = %s
                AND c.statut = 'actif' AND p.active = 1
              ORDER BY p.email, c.nom",
-            $year_id, $date, $classe
+            $year_id, $classe
         ));
+        if (!$children) return array();
+
+        $out = array();
+        foreach ($children as $child) {
+            // Un enfant au forfait n'a jamais eu de ligne CANT dans l'ancien
+            // modèle et n'est pas annulé par cette action : le forfait est
+            // indivisible (sa gestion passe par le calendrier scolaire).
+            if (Psc_Planning::is_declared((int) $child->child_id, $date, psc_forfait_code())) continue;
+            if (!Psc_Planning::is_declared((int) $child->child_id, $date, 'CANT')) continue;
+            $out[] = $child;
+        }
+        return $out;
     }
 
     /**
-     * Annule la cantine pour toute une classe un jour donné : supprime
-     * les inscriptions concernées (elles ne seront jamais facturées) et
-     * notifie chaque famille par e-mail avec le motif indiqué. Renvoie le
-     * nombre d'inscriptions supprimées, ou WP_Error si la date est invalide.
+     * Annule la cantine pour toute une classe un jour donné : écrit une
+     * exception de RETRAIT pour chaque enfant concerné (elles ne seront
+     * jamais facturées) et notifie chaque famille par e-mail avec le motif
+     * indiqué. La mairie n'est pas soumise au verrou de 48 h — elle annule
+     * au dernier moment. Renvoie le nombre d'enfants concernés, ou
+     * WP_Error si la date est invalide.
      */
     public static function cancel_class_meals($date, $classe, $reason) {
         $date = psc_valid_date($date);
@@ -279,11 +296,11 @@ class Psc_Supplier_Orders {
             $by_family[$r->parent_id]['items'][] = $r;
         }
 
-        global $wpdb;
-        $t_reg = psc_table('registrations');
-        $ids   = wp_list_pluck($rows, 'reg_id');
-        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
-        $wpdb->query($wpdb->prepare("DELETE FROM $t_reg WHERE id IN ($placeholders)", $ids));
+        // Une exception de retrait par (enfant, date) : la résolution
+        // repasse à false, la facturation et les listes s'ajustent seules.
+        foreach ($rows as $r) {
+            Psc_Planning::toggle_exception((int) $r->child_id, $date, 'CANT', false, true);
+        }
 
         $classe_labels = Psc_School_Years::classe_options();
         $classe_label  = ($classe === '') ? __('Non renseignée', 'periscolaire-registration') : ($classe_labels[$classe] ?? $classe);

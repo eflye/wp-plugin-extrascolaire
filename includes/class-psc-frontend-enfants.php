@@ -15,9 +15,19 @@ class Psc_Frontend_Enfants extends Psc_Frontend_Base {
         add_action('admin_post_psc_parent_add_child', array(__CLASS__, 'handle_parent_add_child'));
     }
 
+    /** Allergies alimentaires saisies (TEXT nullable, max 1000 car.) : null si vide. */
+    protected static function food_allergies_post($key) {
+        $raw = isset($_POST[$key]) ? wp_unslash($_POST[$key]) : '';
+        if (!is_string($raw)) return null;
+        $clean = sanitize_textarea_field($raw);
+        $clean = trim(mb_substr($clean, 0, 1000));
+        return $clean !== '' ? $clean : null;
+    }
+
     /**
      * Correction par le parent d'une faute de frappe sur l'état civil
-     * (prénom / nom / date de naissance) d'un enfant déjà onboardé. La
+     * (prénom / nom / date de naissance) d'un enfant déjà onboardé, et des
+     * allergies alimentaires (champ libre, strictement alimentaire). La
      * classe (désormais par année scolaire, cf. wp_psc_child_school_years)
      * et le statut actif/sorti ne sont plus modifiables par la famille :
      * la classe se pose à l'inscription / au passage d'année, le statut
@@ -41,10 +51,12 @@ class Psc_Frontend_Enfants extends Psc_Frontend_Base {
 
         global $wpdb;
         $t_child = psc_table('children');
-        $owned = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $t_child WHERE id = %d AND parent_id = %d", $child_id, $parent->id
+        $existing = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $t_child WHERE id = %d AND parent_id = %d", $child_id, $parent->id
         ));
-        if (!$owned) self::parent_form_redirect('invalid');
+        if (!$existing) self::parent_form_redirect('invalid');
+
+        $allergies = self::food_allergies_post('food_allergies');
 
         $wpdb->update(
             $t_child,
@@ -52,11 +64,23 @@ class Psc_Frontend_Enfants extends Psc_Frontend_Base {
                 'prenom'         => mb_substr($prenom, 0, 190),
                 'nom'            => mb_substr($nom, 0, 190),
                 'date_naissance' => $naissance ?: null,
+                'food_allergies' => $allergies,
             ),
             array('id' => $child_id),
-            array('%s', '%s', '%s'),
+            array('%s', '%s', '%s', '%s'),
             array('%d')
         );
+
+        // Alerte mairie : à l'enregistrement d'un food_allergies non vide
+        // (nouveau ou modifié), notifier le service périscolaire pour
+        // déclencher la prise de contact PAI. Sans ce déclencheur, la
+        // promesse faite au parent ("la mairie vous contactera") n'est
+        // tenue par personne.
+        $previous = trim((string) $existing->food_allergies);
+        if ($allergies !== null && $allergies !== $previous) {
+            Psc_Mailer::notify_food_allergy($parent, $child_id, $allergies, $previous);
+        }
+
         self::parent_form_redirect('child_updated');
     }
 
@@ -74,6 +98,15 @@ class Psc_Frontend_Enfants extends Psc_Frontend_Base {
         if ($prenom === '' || $nom === '') self::parent_form_redirect('child_invalid');
         if ($naissance && !psc_valid_child_birthdate($naissance)) {
             self::parent_form_redirect('child_bad_birthdate');
+        }
+
+        // Case « Cet enfant a une allergie alimentaire » cochée : le champ
+        // libre devient requis — une allergie déclarée sans description
+        // n'est pas exploitable par la restauration. Décochée : NULL.
+        $has_allergy = isset($_POST['new_food_allergy']) ? 1 : 0;
+        $allergies = $has_allergy ? self::food_allergies_post('new_food_allergies') : null;
+        if ($has_allergy && $allergies === null) {
+            self::parent_form_redirect('child_allergy_required');
         }
 
         // Le justificatif d'assurance scolaire est obligatoire dès la
@@ -107,13 +140,18 @@ class Psc_Frontend_Enfants extends Psc_Frontend_Base {
             'date_naissance' => $naissance ?: null,
             'sans_porc'      => $sans_porc,
             'vegan'          => $vegan,
+            'food_allergies' => $allergies,
             'statut'         => 'actif',
             'created_at'     => current_time('mysql'),
-        ), array('%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s'));
+        ), array('%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s'));
         $child_id = (int) $wpdb->insert_id;
 
         Psc_School_Years::enroll($child_id, $year_id, $classe, 'inscrit', current_time('mysql'));
         Psc_Assurances::store_upload($child_id, $_FILES['new_assurance_file']);
+
+        if ($allergies !== null) {
+            Psc_Mailer::notify_food_allergy($parent, $child_id, $allergies, null);
+        }
 
         self::parent_form_redirect('child_added');
     }

@@ -13,8 +13,9 @@
     <?php esc_html_e("Source : calendrier scolaire du ministère de l'Éducation nationale
     (", 'periscolaire-registration'); ?><a href="https://www.education.gouv.fr/les-dates-des-vacances-scolaires-9079" target="_blank" rel="noopener noreferrer"><?php esc_html_e('education.gouv.fr/vacances', 'periscolaire-registration'); ?></a><?php esc_html_e(").
     Ne remplace ", 'periscolaire-registration'); ?><strong><?php esc_html_e('jamais', 'periscolaire-registration'); ?></strong><?php esc_html_e(" une correction manuelle déjà faite (jour ou service fermé à la main) — seules les
-    fermetures importées automatiquement sont rafraîchies. Un trimestre déjà créé n'est pas régénéré par ce
-    rechargement ; seul un trimestre créé après bénéficiera des nouvelles dates.", 'periscolaire-registration'); ?>
+    fermetures importées automatiquement sont rafraîchies. Ce calendrier sert de repli aux plages de
+    vacances : si la mairie configure ses propres plages (bloc « Planning — année scolaire courante »
+    ci-dessus), elles prennent le relais et ce calendrier ne ferme plus que les fermetures manuelles.", 'periscolaire-registration'); ?>
 </p>
 <?php if ($imported_at): ?>
 <p><em><?php esc_html_e('Dernier chargement :', 'periscolaire-registration'); ?> <?php echo esc_html(date_i18n('d/m/Y H:i', strtotime($imported_at))); ?></em></p>

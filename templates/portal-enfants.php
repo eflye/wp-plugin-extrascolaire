@@ -4,14 +4,14 @@
 
 <?php if (!empty($all_children)): ?>
 <div class="psc-portal-table-scroll">
-<table class="psc-portal-table" data-testid="portal-children-table">
+<table class="psc-portal-table psc-portal-table--children" data-testid="portal-children-table">
   <colgroup>
-    <col style="width:13%"><col style="width:22%"><col style="width:10%"><col style="width:12%">
-    <col style="width:15%"><col style="width:10%"><col style="width:18%">
+    <col style="width:12%"><col style="width:16%"><col style="width:9%"><col style="width:11%">
+    <col style="width:12%"><col style="width:17%"><col style="width:8%"><col style="width:15%">
   </colgroup>
   <thead>
     <tr>
-      <th><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Classe', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Naissance', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Régime', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Actif', 'periscolaire-registration'); ?></th><th></th>
+      <th><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Classe', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Naissance', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Régime', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Allergies alimentaires', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Actif', 'periscolaire-registration'); ?></th><th></th>
     </tr>
   </thead>
   <tbody>
@@ -31,6 +31,14 @@
         ?>
         <?php if ($psc_diet): ?>
           <span class="psc-badge"><?php echo esc_html(implode(', ', $psc_diet)); ?></span>
+        <?php else: ?>
+          <span class="psc-portal-muted">—</span>
+        <?php endif; ?>
+      </td>
+      <td data-label="<?php esc_attr_e('Allergies alimentaires', 'periscolaire-registration'); ?>">
+        <?php $psc_allergies = trim((string) $c->food_allergies); ?>
+        <?php if ($psc_allergies !== ''): ?>
+          <div style="max-width:220px;line-height:1.45;font-size:13px;"><?php echo esc_html($psc_allergies); ?></div>
         <?php else: ?>
           <span class="psc-portal-muted">—</span>
         <?php endif; ?>
@@ -68,6 +76,12 @@
       <label class="psc-portal-field-label" for="psc-child-edit-naissance" style="margin-top:16px;"><?php esc_html_e('Date de naissance', 'periscolaire-registration'); ?></label>
       <input type="date" id="psc-child-edit-naissance" name="naissance" max="<?php echo esc_attr(psc_child_birthdate_max()); ?>" class="psc-portal-field-underline">
 
+      <label class="psc-portal-field-label" for="psc-child-edit-allergies" style="margin-top:16px;display:block;"><?php esc_html_e('Allergies alimentaires', 'periscolaire-registration'); ?></label>
+      <textarea id="psc-child-edit-allergies" name="food_allergies" rows="2" maxlength="1000"
+                placeholder="<?php esc_attr_e('Aliments à exclure des repas, réaction en cas d\'ingestion, conduite à tenir.', 'periscolaire-registration'); ?>"
+                style="width:100%;resize:vertical;border:1px solid rgba(36,64,92,0.3);background:#fff;font-size:13px;padding:8px;"></textarea>
+      <p class="psc-portal-field-help" style="font-size:11px;color:#8B8279;margin:6px 0 0;"><?php esc_html_e("Strictement alimentaire. La mairie vous contactera si un PAI (projet d'accueil individualisé) doit être mis en place. Aucun menu différencié n'est proposé : l'enfant déjeune à la cantine avec son propre repas fourni par la famille.", 'periscolaire-registration'); ?></p>
+
       <div class="psc-portal-modal-actions">
         <button type="button" class="psc-portal-btn-outline-ink" data-child-edit-close><?php esc_html_e('Annuler', 'periscolaire-registration'); ?></button>
         <button type="submit" class="psc-portal-btn-gold" data-testid="child-edit-submit"><?php esc_html_e('Enregistrer', 'periscolaire-registration'); ?></button>
@@ -82,6 +96,7 @@
           'prenom'    => $c->prenom,
           'nom'       => $c->nom,
           'naissance' => $c->date_naissance,
+          'allergies' => trim((string) $c->food_allergies),
       );
   }
   echo wp_json_encode($psc_child_edit_data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
@@ -207,7 +222,36 @@ if ($psc_active_year) {
           <label><input type="checkbox" name="new_vegan" value="1"> <?php esc_html_e('Sans viande', 'periscolaire-registration'); ?></label>
         </div>
       </div>
+      <div style="grid-column: 1 / -1;">
+        <label><input type="checkbox" id="psc-new-food-allergy-toggle" name="new_food_allergy" value="1"> <strong style="font-weight:600;"><?php esc_html_e('Cet enfant a une allergie alimentaire', 'periscolaire-registration'); ?></strong></label>
+        <div id="psc-new-food-allergy-field" hidden style="margin-top:10px;">
+          <textarea id="psc-new-food-allergies" name="new_food_allergies" rows="2" maxlength="1000"
+                    placeholder="<?php esc_attr_e('Aliments à exclure des repas, réaction en cas d\'ingestion, conduite à tenir.', 'periscolaire-registration'); ?>"
+                    style="width:100%;resize:vertical;border:1px solid rgba(36,64,92,0.3);background:#fff;font-size:13px;padding:8px;"></textarea>
+          <p class="psc-portal-field-help" style="font-size:11px;color:#8B8279;margin:6px 0 0;">
+            <?php esc_html_e("Strictement alimentaire. La mairie vous contactera si un PAI (projet d'accueil individualisé) doit être mis en place. Aucun menu différencié n'est proposé : l'enfant déjeune à la cantine avec son propre repas fourni par la famille.", 'periscolaire-registration'); ?>
+          </p>
+        </div>
+      </div>
     </div>
     <button type="submit" class="psc-portal-btn-gold"><?php esc_html_e('Ajouter', 'periscolaire-registration'); ?></button>
   </form>
 </div>
+<script>
+(function () {
+    'use strict';
+    var toggle = document.getElementById('psc-new-food-allergy-toggle');
+    var field = document.getElementById('psc-new-food-allergy-field');
+    var textarea = document.getElementById('psc-new-food-allergies');
+    if (!toggle || !field) return;
+    toggle.addEventListener('change', function () {
+        field.hidden = !toggle.checked;
+        if (!toggle.checked) textarea.value = '';
+        else textarea.required = true;
+    });
+    var form = toggle.closest('form');
+    form.addEventListener('submit', function (e) {
+        if (!toggle.checked) textarea.disabled = true;
+    });
+})();
+</script>

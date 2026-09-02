@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Périscolaire - Inscriptions
  * Description: Formulaire d'inscription en ligne aux services périscolaires (garderie matin, cantine, garderie soir, forfait) avec backoffice de centralisation pour la mairie. Remplace le fichier calendrier rempli à la main.
- * Version: 4.38.1
+ * Version: 5.0.0
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: Mairie
@@ -13,7 +13,7 @@
 // Empêche l'exécution directe du fichier via son URL.
 if (!defined('ABSPATH')) exit;
 
-define('PSC_VERSION', '4.38.1');
+define('PSC_VERSION', '5.0.0');
 define('PSC_PATH', plugin_dir_path(__FILE__));
 define('PSC_URL', plugin_dir_url(__FILE__));
 define('PSC_FILE', __FILE__);
@@ -29,7 +29,6 @@ require_once PSC_PATH . 'includes/class-psc-email-templates.php';
 // une classe par domaine métier. Psc_Admin::init() déclare les siennes.
 require_once PSC_PATH . 'includes/class-psc-admin-base.php';
 require_once PSC_PATH . 'includes/class-psc-admin.php';
-require_once PSC_PATH . 'includes/class-psc-admin-trimestres.php';
 require_once PSC_PATH . 'includes/class-psc-admin-school-years.php';
 require_once PSC_PATH . 'includes/class-psc-admin-familles.php';
 require_once PSC_PATH . 'includes/class-psc-admin-inscriptions.php';
@@ -43,7 +42,8 @@ require_once PSC_PATH . 'includes/class-psc-menus.php';
 require_once PSC_PATH . 'includes/class-psc-supplier-orders.php';
 require_once PSC_PATH . 'includes/class-psc-school-calendar.php';
 require_once PSC_PATH . 'includes/class-psc-admin-calendar-v2.php';
-require_once PSC_PATH . 'includes/class-psc-trimestres.php';
+require_once PSC_PATH . 'includes/class-psc-school-year.php';
+require_once PSC_PATH . 'includes/class-psc-planning.php';
 require_once PSC_PATH . 'includes/class-psc-school-years.php';
 require_once PSC_PATH . 'includes/class-psc-pickup-persons.php';
 // Portail famille : même modèle que l'administration — un socle commun,

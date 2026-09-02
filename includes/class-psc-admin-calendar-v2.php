@@ -51,10 +51,13 @@ class Psc_Admin_Calendar_V2 {
                 'close_service'         => __('Fermer %s', 'periscolaire-registration'),
                 'close_date'            => __('Fermer le %s', 'periscolaire-registration'),
                 'close_service_date'    => __('Fermer %s le %s ?', 'periscolaire-registration'),
-                'preview_day'           => __('Supprimera %s inscription(s) déjà déclarée(s) par %s famille(s). Ces prestations ne seront pas facturées, et chaque famille recevra un e-mail.', 'periscolaire-registration'),
-                'no_registrations'      => __('Aucune inscription existante ce jour-là.', 'periscolaire-registration'),
-                'preview_service_direct' => __('%s inscription(s) directe(s) de %s seront supprimées (%s famille(s), non facturées).', 'periscolaire-registration'),
-                'preview_service_forf'  => __('%s enfant(s) en forfait journée (%s famille(s)) seront basculés vers les 2 autres prestations ce jour-là.', 'periscolaire-registration'),
+                // Le planning étant calculé (rythme + exceptions), rien
+                // n'est supprimé en base : la fermeture soustrait le jour
+                // au calcul — non facturé, absent des listes.
+                'preview_day'           => __('%s déclaration(s) de %s famille(s) passeront à « non déclaré » ce jour-là. Ces prestations ne seront pas facturées, et chaque famille recevra un e-mail.', 'periscolaire-registration'),
+                'no_registrations'      => __('Aucune déclaration ce jour-là.', 'periscolaire-registration'),
+                'preview_service_direct' => __('%s déclaration(s) de %s passeront à « non déclaré » (%s famille(s), non facturées).', 'periscolaire-registration'),
+                'preview_service_forf'  => __('%s enfant(s) en forfait journée (%s famille(s)) seront déclassés vers les prestations restantes ce jour-là.', 'periscolaire-registration'),
             ),
         ));
     }
@@ -129,84 +132,24 @@ class Psc_Admin_Calendar_V2 {
     }
 
     /**
-     * Trimestre couvrant $date, en priorisant le trimestre actif en cas de
-     * chevauchement.
-     *
-     * Résolu en mémoire à partir des trimestres de la période, chargés en
-     * une fois par build_days() : la grille en interroge trente-cinq, et
-     * les poser un par un revenait à autant d'allers-retours pour une table
-     * qui compte quelques lignes. L'ordre de la liste porte la priorité
-     * (actif d'abord), comme le faisait le ORDER BY.
+     * Catégorisation intégrée à build_days() : week-end > mercredi >
+     * vacances (configurées ou importées) > férié > fermeture manuelle —
+     * cf. Psc_School_Year::day_status(), qui porte maintenant la règle.
      */
-    private static function trimestre_for_date($date, array $trimestres) {
-        foreach ($trimestres as $t) {
-            if ($t->date_debut <= $date && $t->date_fin >= $date) {
-                return $t;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Catégorise un jour intrinsèquement fermé (recalcule plutôt que de
-     * parser le texte libre de calendar_days.label, qui peut être un motif
-     * manuel quelconque) : week-end > mercredi > vacances/fermeture
-     * manuelle > férié — même ordre de priorité que
-     * Psc_Installer::generate_calendar_days(). Ne dépend d'aucun trimestre
-     * ni de calendar_days : calculée uniquement à partir de la date et de
-     * wp_psc_school_calendar, donc utilisable même pour un jour qui
-     * n'appartient encore à aucun trimestre créé (vacances/week-ends visibles
-     * dans la grille avant même l'ouverture du trimestre correspondant).
-     * Retourne null si aucune de ces raisons ne s'applique (jour d'école
-     * ordinaire potentiel).
-     *
-     * $school_calendar est la portion de wp_psc_school_calendar couvrant la
-     * grille, indexée par date. Elle remplace trois requêtes par jour —
-     * is_closed(), la lecture de `source`, puis label() — qui lisaient
-     * chacune la même ligne.
-     */
-    private static function classify_closed_day($date, array $school_calendar) {
-        if (psc_is_weekend($date)) {
-            return array('category' => 'weekend', 'label' => __('Week-end', 'periscolaire-registration'));
-        }
-        if (psc_is_wednesday($date)) {
-            return array('category' => 'wednesday', 'label' => __('Mercredi', 'periscolaire-registration'));
-        }
-
-        $row = isset($school_calendar[$date]) ? $school_calendar[$date] : null;
-        if ($row && $row->is_closed) {
-            return array(
-                'category' => $row->source === 'manual' ? 'manual' : 'vacation',
-                'label'    => $row->label ?: ($row->source === 'manual' ? __('Fermeture manuelle', 'periscolaire-registration') : __('Vacances', 'periscolaire-registration')),
-            );
-        }
-
-        if (psc_is_holiday($date)) {
-            return array('category' => 'holiday', 'label' => __('Férié', 'periscolaire-registration'));
-        }
-        return null;
-    }
 
     /**
      * Construit les données de chaque jour de la grille : statut du jour
-     * (hors trimestre / fermé avec sa catégorie / ouvert), et pour un jour
-     * ouvert, le statut de chacune des 3 prestations (fermée ou non,
-     * nombre d'inscriptions).
+     * (hors année scolaire / fermé avec sa catégorie / ouvert), et pour un
+     * jour ouvert, le statut de chacune des prestations (fermée ou non,
+     * effectif déclaré). Les jours d'école sont CALCULÉS (lundi, mardi,
+     * jeudi, vendredi, moins vacances et fériés) — plus aucune ligne de
+     * calendrier stockée ; les effectifs viennent de la source de vérité
+     * unique (psc_is_declared), en un lot pour toute la grille.
      */
     private static function build_days(array $dates) {
         global $wpdb;
         $start = $dates[0];
         $end   = end($dates);
-
-        $t_reg = psc_table('registrations');
-        $reg_rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT jour_date, service, COUNT(*) AS n FROM $t_reg WHERE jour_date BETWEEN %s AND %s GROUP BY jour_date, service",
-            $start, $end
-        ));
-        $reg_counts = array();
-        foreach ($reg_rows as $r) {
-            $reg_counts[$r->jour_date][$r->service] = (int) $r->n;
-        }
 
         $t_svc = psc_table('service_closures');
         $closure_rows = $wpdb->get_results($wpdb->prepare(
@@ -218,8 +161,8 @@ class Psc_Admin_Calendar_V2 {
             $closures[$r->jour_date][$r->service] = $r->label;
         }
 
-        // Calendrier scolaire de la période (vacances, fermetures
-        // manuelles) : lu en une fois plutôt que trois fois par jour.
+        // Calendrier scolaire de la période (vacances importées, fermetures
+        // manuelles) : lu en une fois, pour les libellés affichés.
         $t_cal = psc_table('school_calendar');
         $cal_rows = $wpdb->get_results($wpdb->prepare(
             "SELECT jour_date, is_closed, source, label FROM $t_cal WHERE jour_date BETWEEN %s AND %s",
@@ -230,68 +173,63 @@ class Psc_Admin_Calendar_V2 {
             $school_calendar[$r->jour_date] = $r;
         }
 
-        // Trimestres chevauchant la grille. Le tri porte la priorité
-        // appliquée ensuite en mémoire : actif d'abord, puis le plus récent.
-        $t_trim = psc_table('trimestres');
-        $trimestres = $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM $t_trim WHERE date_debut <= %s AND date_fin >= %s
-             ORDER BY active DESC, date_debut DESC",
-            $end, $start
-        ));
+        // Effectifs déclarés de la période : un seul lot de résolution.
+        $children = $wpdb->get_results(
+            "SELECT id FROM " . psc_table('children') . " WHERE statut = 'actif'"
+        );
+        $child_ids = $children ? array_map(function ($c) { return (int) $c->id; }, $children) : array();
+        $declared = $child_ids ? Psc_Planning::declared_map($child_ids, $dates) : array();
+        $forf = psc_forfait_code();
 
-        // Jours de calendrier de la période, tous trimestres confondus.
-        $t_days = psc_table('calendar_days');
-        $day_rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM $t_days WHERE jour_date BETWEEN %s AND %s",
-            $start, $end
-        ));
-        $calendar_days = array();
-        foreach ($day_rows as $r) {
-            $calendar_days[$r->trimestre_id . '|' . $r->jour_date] = $r;
+        $counts = array();
+        foreach ($dates as $date) {
+            $counts[$date] = array('GM' => 0, 'CANT' => 0, 'GS' => 0, 'FORF' => 0);
+            foreach ($child_ids as $cid) {
+                $day = isset($declared[$cid][$date]) ? $declared[$cid][$date] : array();
+                foreach (psc_billing_services($day) as $svc) {
+                    $counts[$date][$svc] = ($counts[$date][$svc] ?? 0) + 1;
+                }
+            }
         }
 
         $days = array();
 
         foreach ($dates as $date) {
-            // Week-end, mercredi, vacances, jour férié ou fermeture manuelle
-            // déjà enregistrée : affiché comme tel même si aucun trimestre
-            // ne couvre encore cette date (l'admin voit les vacances/week-ends
-            // à venir sans attendre la création du trimestre correspondant).
-            $info = self::classify_closed_day($date, $school_calendar);
-            if ($info !== null) {
+            // Hors année scolaire (été, années non configurées) : aucune
+            // déclaration possible, affiché comme tel.
+            $in_year = false;
+            foreach (Psc_School_Year::all() as $y) {
+                if ($date >= $y->date_start && $date <= $y->date_end) { $in_year = true; break; }
+            }
+            if (!$in_year) {
+                $days[$date] = array('date' => $date, 'status' => 'out_of_term');
+                continue;
+            }
+
+            // Week-end, mercredi, vacances (configurées ou importées), jour
+            // férié ou fermeture manuelle : affiché comme tel.
+            $status = Psc_School_Year::day_status($date);
+            if ($status !== 'school') {
+                $label = '';
+                $category = $status;
+                if ($status === 'weekend') {
+                    $label = __('Week-end', 'periscolaire-registration');
+                } elseif ($status === 'wednesday') {
+                    $label = __('Mercredi', 'periscolaire-registration');
+                } elseif ($status === 'holiday') {
+                    $label = __('Férié', 'periscolaire-registration');
+                } elseif ($status === 'vacation') {
+                    $label = __('Vacances', 'periscolaire-registration');
+                } elseif ($status === 'closed') {
+                    // Libellé de la fermeture manuelle, si elle en porte un.
+                    $row = isset($school_calendar[$date]) ? $school_calendar[$date] : null;
+                    $label = $row && $row->label ? $row->label : __('Fermeture exceptionnelle', 'periscolaire-registration');
+                }
                 $days[$date] = array(
                     'date'     => $date,
                     'status'   => 'closed_day',
-                    'category' => $info['category'],
-                    'label'    => $info['label'],
-                );
-                continue;
-            }
-
-            $trimestre = self::trimestre_for_date($date, $trimestres);
-            if (!$trimestre) {
-                $days[$date] = array('date' => $date, 'status' => 'out_of_term');
-                continue;
-            }
-
-            $key = $trimestre->id . '|' . $date;
-            $cal = isset($calendar_days[$key]) ? $calendar_days[$key] : null;
-            if (!$cal) {
-                $days[$date] = array('date' => $date, 'status' => 'out_of_term');
-                continue;
-            }
-
-            if (!$cal->is_open) {
-                // Filet de sécurité : jour fermé dans calendar_days sans
-                // raison détectée par classify_closed_day() (ne devrait pas
-                // arriver en pratique, generate_calendar_days() suit les
-                // mêmes règles), on retombe sur le libellé stocké.
-                $days[$date] = array(
-                    'date'         => $date,
-                    'status'       => 'closed_day',
-                    'category'     => 'manual',
-                    'label'        => $cal->label ?: __('Fermé', 'periscolaire-registration'),
-                    'trimestre_id' => $trimestre->id,
+                    'category' => $category,
+                    'label'    => $label,
                 );
                 continue;
             }
@@ -301,16 +239,15 @@ class Psc_Admin_Calendar_V2 {
                 $services[$code] = array(
                     'closed' => isset($closures[$date][$code]),
                     'label'  => isset($closures[$date][$code]) ? $closures[$date][$code] : null,
-                    'count'  => isset($reg_counts[$date][$code]) ? $reg_counts[$date][$code] : 0,
+                    'count'  => $counts[$date][$code],
                 );
             }
 
             $days[$date] = array(
-                'date'         => $date,
-                'status'       => 'open',
-                'services'     => $services,
-                'forf_count'   => isset($reg_counts[$date]['FORF']) ? $reg_counts[$date]['FORF'] : 0,
-                'trimestre_id' => $trimestre->id,
+                'date'       => $date,
+                'status'     => 'open',
+                'services'   => $services,
+                'forf_count' => $counts[$date][$forf],
             );
         }
 

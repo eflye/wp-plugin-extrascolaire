@@ -2,7 +2,7 @@
 if (!defined('ABSPATH')) exit;
 
 /**
- * Années scolaires : chapeautent les trimestres, historisent la classe et
+ * Années scolaires : historisent la classe et
  * le statut d'un enfant année par année (table wp_psc_child_school_years,
  * qui fusionne l'ancienne child_assurances — un enfant + une année porte à
  * la fois sa classe, son statut d'inscription, l'acceptation du règlement
@@ -44,7 +44,7 @@ class Psc_School_Years {
      * date_fin), ou l'année active à défaut. Utilisée par la commande
      * fournisseur : elle raisonne sur "la semaine demandée", pas
      * forcément la semaine en cours ni l'année active du site (mêmes
-     * scripts de seed E2E que pour les trimestres, isolés sans jamais
+     * scripts de seed E2E, isolés sans jamais
      * toucher à l'année active réelle).
      */
     public static function for_date($date) {
@@ -114,13 +114,10 @@ class Psc_School_Years {
     /**
      * Supprime une année scolaire. Jamais l'année active (casserait
      * active_id() partout ailleurs dans le plugin) : il faut d'abord en
-     * activer une autre. Les trimestres qui la référencent ne sont pas
-     * supprimés (ils portent inscriptions, présences, menus — bien plus
-     * qu'un simple regroupement par année) : seul leur rattachement
-     * (school_year_id, nullable) est détaché. Les lignes enfant × année
-     * (classe, statut, justificatif d'assurance de cette année-là) sont en
-     * revanche bien à cette année précise et sont purgées avec leur
-     * fichier, même principe que Psc_Admin::purge_child().
+     * activer une autre. Les lignes enfant × année (classe, statut,
+     * justificatif d'assurance de cette année-là) sont bien à cette année
+     * précise et sont purgées avec leur fichier, même principe que
+     * Psc_Admin::purge_child().
      */
     public static function delete($id) {
         global $wpdb;
@@ -145,14 +142,12 @@ class Psc_School_Years {
         }
         $wpdb->delete($t_cy, array('school_year_id' => $id), array('%d'));
 
-        $wpdb->update(psc_table('trimestres'), array('school_year_id' => null), array('school_year_id' => $id), array('%s'), array('%d'));
-
         $wpdb->delete($t_years, array('id' => $id), array('%d'));
 
         return true;
     }
 
-    /** Une seule année active à la fois — même principe que les trimestres. */
+    /** Une seule année active à la fois. */
     public static function activate($id) {
         global $wpdb;
         $id = absint($id);

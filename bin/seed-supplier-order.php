@@ -52,11 +52,10 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     }
 
     $config = array(
-        // wp_psc_school_years.label est VARCHAR(20) : contrairement au
-        // trimestre (VARCHAR(191)), un libellé trop long fait échouer
-        // silencieusement l'INSERT sous le sql_mode strict de MySQL 8.
+        // wp_psc_school_years.label est VARCHAR(20) : un libellé trop long
+        // fait échouer silencieusement l'INSERT sous le sql_mode strict de
+        // MySQL 8.
         'school_year_label' => 'Année E2E — cmd',
-        'trimestre_label' => 'Trimestre E2E — commande fournisseur',
         'parent_email'    => 'fournisseur.e2e@example.test',
         'parent_nom'      => 'E2E',
         'enfants'         => array(
@@ -70,8 +69,6 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     $t_child  = psc_table('children');
     $t_years  = psc_table('school_years');
     $t_cy     = psc_table('child_school_years');
-    $t_trim   = psc_table('trimestres');
-    $t_reg    = psc_table('registrations');
     $t_sup    = psc_table('supplier_orders');
 
     /* ---------------------------------------------------------------- */
@@ -88,18 +85,12 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
             "SELECT id FROM $t_child WHERE parent_id = %d", $old_parent_id
         ));
         if ($child_ids) {
-            $placeholders = implode(',', array_fill(0, count($child_ids), '%d'));
-            $wpdb->query($wpdb->prepare("DELETE FROM $t_reg WHERE child_id IN ($placeholders)", $child_ids));
+            foreach ($child_ids as $cid) {
+                Psc_Planning::delete_for_child((int) $cid);
+            }
         }
         $wpdb->delete($t_child, array('parent_id' => $old_parent_id), array('%d'));
         $wpdb->delete($t_parent, array('id' => $old_parent_id), array('%d'));
-    }
-
-    $old_trim_ids = $wpdb->get_col($wpdb->prepare(
-        "SELECT id FROM $t_trim WHERE label = %s", $config['trimestre_label']
-    ));
-    foreach ($old_trim_ids as $trim_id) {
-        $wpdb->delete($t_trim, array('id' => $trim_id), array('%d'));
     }
 
     $old_year_ids = $wpdb->get_col($wpdb->prepare(
@@ -118,12 +109,11 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     /* Recréation                                                        */
     /* ---------------------------------------------------------------- */
 
-    // Année scolaire et trimestre "figurants", ni l'une ni l'autre jamais
-    // activés : Psc_Supplier_Orders résout désormais l'année à partir de
-    // la semaine demandée (Psc_School_Years::for_date()), pas de l'année
-    // active du site — un couple année/trimestre non actifs mais dont les
-    // dates couvrent la semaine cible suffit, sans jamais toucher à ce qui
-    // est actif pour de vrai sur le site.
+    // Année scolaire "figurante", jamais activée : Psc_Supplier_Orders
+    // résout l'année à partir de la semaine demandée
+    // (Psc_School_Years::for_date()) — une année archivée dont les dates
+    // couvrent la semaine cible suffit, sans jamais toucher à ce qui est
+    // actif pour de vrai sur le site.
     $years_inserted = $wpdb->insert($t_years, array(
         'label'      => $config['school_year_label'],
         'date_debut' => $jours['lundi'],
@@ -135,15 +125,6 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
         WP_CLI::error('Création de l\'année scolaire figurante : ' . $wpdb->last_error);
     }
     $school_year_id = (int) $wpdb->insert_id;
-
-    $wpdb->insert($t_trim, array(
-        'label'          => $config['trimestre_label'],
-        'school_year_id' => $school_year_id,
-        'date_debut'     => $jours['lundi'],
-        'date_fin'       => $jours['vendredi'],
-        'active'         => 0,
-    ), array('%s', '%d', '%s', '%s', '%d'));
-    $trimestre_id = (int) $wpdb->insert_id;
 
     // onboarding_seen_at fixé à la création : cette spec ne teste pas la
     // popin de découverte, qui bloquerait sinon les clics Playwright sur
@@ -180,7 +161,9 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
 
     // Aline (CP) : Cantine lundi + mardi, et une Garderie Matin lundi
     // (ne doit JAMAIS compter dans le total repas). Baptiste (CE2) :
-    // Cantine jeudi seulement.
+    // Cantine jeudi seulement. Les déclarations sont écrites en exceptions
+    // ponctuelles (mairie, hors verrou) — la résolution psc_is_declared
+    // est la même que celle de la commande.
     $regs = array(
         array($aline_id,    $jours['lundi'],  'CANT'),
         array($aline_id,    $jours['lundi'],  'GM'),
@@ -188,13 +171,7 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
         array($baptiste_id, $jours['jeudi'],  'CANT'),
     );
     foreach ($regs as list($child_id, $date, $service)) {
-        $wpdb->insert($t_reg, array(
-            'child_id'     => $child_id,
-            'trimestre_id' => $trimestre_id,
-            'jour_date'    => $date,
-            'service'      => $service,
-            'updated_at'   => current_time('mysql'),
-        ), array('%d', '%d', '%s', '%s', '%s'));
+        Psc_Planning::toggle_exception($child_id, $date, $service, true, true);
     }
 
     /* ---------------------------------------------------------------- */
@@ -213,7 +190,7 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     );
 
     WP_CLI::log('');
-    WP_CLI::log("Trimestre (figurant) ... {$config['trimestre_label']} (id $trimestre_id)");
+    WP_CLI::log("Année scolaire (figurante) ... {$config['school_year_label']} (id $school_year_id)");
     WP_CLI::log("Semaine cible .......... $semaine_debut");
     foreach ($jours as $jour => $date) {
         WP_CLI::log("  $jour ................ $date");
@@ -228,7 +205,7 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     WP_CLI::log(wp_json_encode(array(
         'semaine_debut' => $semaine_debut,
         'jours'         => $jours,
-        'trimestre_id'  => $trimestre_id,
+        'year_id'       => $school_year_id,
         'parent_id'     => $parent_id,
         'child_ids'     => $child_ids,
         'expected'      => $expected,

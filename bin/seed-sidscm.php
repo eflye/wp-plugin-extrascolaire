@@ -17,11 +17,10 @@
  *   - une famille de test (parent + deux enfants actifs, noms et e-mail
  *     dédiés pour ne jamais croiser les autres seeds), purgée puis
  *     recréée à chaque run ;
- *   - un trimestre couvrant la semaine réellement en cours (recréé à
- *     chaque run : ses dates doivent suivre le calendrier) et des
- *     inscriptions GM + CANT + GS pour Nina, GS seul pour Marco, sur
- *     TOUS les jours ouverts de la semaine — psc_open_days(), le même
- *     calcul que l'écran, exclut déjà vacances, fériés et fermetures.
+ *   - des PATTERNS de rythme (v4) pour la semaine réellement en cours :
+ *     Nina GM + CANT + GS, Marco GS seul, chaque lundi/mardi/jeudi/
+ *     vendredi de l'année — psc_open_days(), le même calcul que l'écran,
+ *     exclut déjà vacances, fériés et fermetures.
  *
  * Aucune ligne de pointage (wp_psc_attendance) n'est créée ici : les
  * enfants sont « présents par défaut » tant qu'ils n'ont jamais été
@@ -48,7 +47,6 @@ WP_CLI::add_command('seed-sidscm', function () {
         'access_code'     => 'E2E-SIDSCM-42',
         'page_slug'       => 'acces-intervenants-e2e',
         'page_title'      => 'Accès intervenants (e2e)',
-        'trim_label'      => 'E2E SIDSCM',
     );
 
     /* ---------------------------------------------------------------- */
@@ -57,24 +55,18 @@ WP_CLI::add_command('seed-sidscm', function () {
 
     $t_parent = psc_table('parents');
     $t_child  = psc_table('children');
-    $t_reg    = psc_table('registrations');
     $t_att    = psc_table('attendance');
-    $t_trim   = psc_table('trimestres');
 
     $parent_id = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM $t_parent WHERE email = %s", $config['parent_email']));
     if ($parent_id) {
         $child_ids = $wpdb->get_col($wpdb->prepare("SELECT id FROM $t_child WHERE parent_id = %d", $parent_id));
         foreach ((array) $child_ids as $cid) {
             $wpdb->delete($t_att, array('child_id' => (int) $cid), array('%d'));
-            $wpdb->delete($t_reg, array('child_id' => (int) $cid), array('%d'));
+            Psc_Planning::delete_for_child((int) $cid);
         }
         $wpdb->delete($t_child, array('parent_id' => $parent_id), array('%d'));
         $wpdb->delete($t_parent, array('id' => $parent_id), array('%d'));
     }
-    // Le trimestre d'un run antérieur : ses dates ne correspondent plus à
-    // la semaine courante. La cascade (FK registrations.trimestre_id)
-    // emporte ses inscriptions — uniquement les nôtres.
-    $wpdb->query($wpdb->prepare("DELETE FROM $t_trim WHERE label = %s", $config['trim_label']));
 
     /* ---------------------------------------------------------------- */
     /* Code d'accès + page du shortcode                                   */
@@ -127,43 +119,31 @@ WP_CLI::add_command('seed-sidscm', function () {
     $enfant_b_id = $make_child($config['enfant_b_prenom']);
 
     /* ---------------------------------------------------------------- */
-    /* Trimestre + inscriptions de la semaine courante                    */
+    /* Configuration de l'année + rythmes de la semaine courante          */
     /* ---------------------------------------------------------------- */
 
-    $monday = psc_week_start(current_time('Y-m-d'));
+    Psc_School_Year::ensure_default();
+    $year = Psc_School_Year::active();
+    if (!$year) {
+        WP_CLI::error("Aucune configuration d'année scolaire — le scénario SIDSCM n'a pas de terrain.");
+    }
+
     // Le même calcul que Psc_Sidscm::ajax_data() : la seed et l'écran
     // voient toujours les mêmes jours, vacances/fériés compris.
+    $monday = psc_week_start(current_time('Y-m-d'));
     $open_days = psc_open_days($monday);
     if (empty($open_days)) {
         WP_CLI::error("Semaine sans jour ouvert (vacances, calendrier non chargé ?) — le scénario SIDSCM n'a pas de terrain.");
     }
 
-    $wpdb->insert($t_trim, array(
-        'label'      => $config['trim_label'],
-        'date_debut' => $monday,
-        'date_fin'   => end($open_days),
-        'active'     => 0,
-    ), array('%s', '%s', '%s', '%d'));
-    $trim_id = (int) $wpdb->insert_id;
-
-    foreach ($open_days as $jour => $date) {
+    // Nina : GM + CANT + GS tous les jours de semaine ; Marco : GS seul.
+    foreach (array(1, 2, 4, 5) as $weekday) {
         foreach (array('GM', 'CANT', 'GS') as $service) {
-            $wpdb->insert($t_reg, array(
-                'child_id'      => $enfant_a_id,
-                'trimestre_id'  => $trim_id,
-                'jour_date'     => $date,
-                'service'       => $service,
-                'updated_at'    => current_time('mysql'),
-            ), array('%d', '%d', '%s', '%s', '%s'));
+            Psc_Planning::toggle_pattern($enfant_a_id, $year->year_key, $weekday, $service, true);
         }
-        $wpdb->insert($t_reg, array(
-            'child_id'      => $enfant_b_id,
-            'trimestre_id'  => $trim_id,
-            'jour_date'     => $date,
-            'service'       => 'GS',
-            'updated_at'    => current_time('mysql'),
-        ), array('%d', '%d', '%s', '%s', '%s'));
+        Psc_Planning::toggle_pattern($enfant_b_id, $year->year_key, $weekday, 'GS', true);
     }
+    Psc_Planning::flush_cache();
 
     /* ---------------------------------------------------------------- */
     /* Sortie                                                             */
@@ -172,6 +152,7 @@ WP_CLI::add_command('seed-sidscm', function () {
     WP_CLI::log('');
     WP_CLI::log("Page SIDSCM ............. $page_url");
     WP_CLI::log("Code d'accès ............ {$config['access_code']}");
+    WP_CLI::log("Année scolaire .......... {$year->year_key}");
     WP_CLI::log("Enfants ................. {$config['enfant_a_prenom']} (id $enfant_a_id), {$config['enfant_b_prenom']} (id $enfant_b_id)");
     WP_CLI::log('Jours ouverts ...........' . wp_json_encode($open_days));
 

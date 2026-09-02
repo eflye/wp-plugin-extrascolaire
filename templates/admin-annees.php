@@ -25,8 +25,98 @@ $psc_notices = array(
     'cancelled'           => array('error', __('Fermeture annulée.', 'periscolaire-registration')),
     'confirm_needed'      => array('error', __('Confirmation nécessaire : des inscriptions existent déjà sur cette période.', 'periscolaire-registration')),
     'invalid_date'        => array('error', __('Date(s) invalide(s).', 'periscolaire-registration')),
+    'year_config_saved'   => array('success', __('Configuration du planning enregistrée.', 'periscolaire-registration')),
+    'year_config_invalid' => array('error', __('Configuration invalide : vérifiez les dates (la fin doit suivre le début).', 'periscolaire-registration')),
+    'year_invalid'        => array('error', __('Aucune année scolaire courante.', 'periscolaire-registration')),
 );
 psc_admin_notice_map($psc_notices, $psc_msg); ?>
+
+<?php
+/* ------------------------------------------------------------------
+   Configuration du planning de l'année scolaire courante : bornes,
+   plages de vacances, jours fériés à exclure, verrou. Les jours
+   d'école sont calculés (lundi, mardi, jeudi, vendredi, moins
+   vacances et fériés) — jamais stockés.
+------------------------------------------------------------------ */
+if ($planning_year):
+?>
+<div class="psc-box" id="psc-planning-year-config">
+<h2><?php esc_html_e('Planning — année scolaire courante', 'periscolaire-registration'); ?> (<?php echo esc_html($planning_year->year_key); ?>)</h2>
+<p class="description"><?php printf(esc_html__('%d jour(s) d\'école calculés sur cette période (lundi, mardi, jeudi et vendredi, moins vacances et fériés).', 'periscolaire-registration'), (int) $planning_school_days); ?></p>
+
+<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+<?php wp_nonce_field('psc_save_school_year_config'); ?>
+<input type="hidden" name="action" value="psc_save_school_year_config">
+
+<table class="form-table">
+<tr>
+<th><label for="psc-sy-start"><?php esc_html_e('Début de l\'année', 'periscolaire-registration'); ?></label></th>
+<td><input id="psc-sy-start" type="date" name="date_start" value="<?php echo esc_attr($planning_year->date_start); ?>" required></td>
+</tr>
+<tr>
+<th><label for="psc-sy-end"><?php esc_html_e('Fin de l\'année', 'periscolaire-registration'); ?></label></th>
+<td><input id="psc-sy-end" type="date" name="date_end" value="<?php echo esc_attr($planning_year->date_end); ?>" required></td>
+</tr>
+<tr>
+<th><label for="psc-sy-lock"><?php esc_html_e('Préavis de modification', 'periscolaire-registration'); ?></label></th>
+<td>
+<input id="psc-sy-lock" type="number" name="lock_hours" min="0" max="720" value="<?php echo esc_attr((int) $planning_year->lock_hours); ?>" class="small-text"> <?php esc_html_e('heures', 'periscolaire-registration'); ?>
+<p class="description"><?php esc_html_e('S\'applique aux deux écritures : une exception à moins de 48 h est refusée côté serveur, et un changement de rythme ne repropage jamais sur les jours déjà verrouillés.', 'periscolaire-registration'); ?></p>
+</td>
+</tr>
+</table>
+
+<h3><?php esc_html_e('Plages de vacances', 'periscolaire-registration'); ?></h3>
+<p class="description"><?php esc_html_e('Six plages possibles (Toussaint, Noël, hiver, printemps, ponts...). Laissez tout vide pour utiliser le calendrier scolaire officiel importé ci-dessous.', 'periscolaire-registration'); ?></p>
+<table class="widefat striped" style="max-width:560px;">
+<thead><tr><th><?php esc_html_e('Début', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Fin (incluse)', 'periscolaire-registration'); ?></th></tr></thead>
+<tbody>
+<?php for ($i = 0; $i < 6; $i++): $r = isset($planning_ranges[$i]) ? $planning_ranges[$i] : array('', ''); ?>
+<tr>
+<td><input type="date" name="vacation_start[<?php echo esc_attr($i); ?>]" value="<?php echo esc_attr($r[0]); ?>"></td>
+<td><input type="date" name="vacation_end[<?php echo esc_attr($i); ?>]" value="<?php echo esc_attr($r[1]); ?>"></td>
+</tr>
+<?php endfor; ?>
+</tbody>
+</table>
+
+<p><?php submit_button(__('Enregistrer la configuration du planning', 'periscolaire-registration'), 'primary', 'submit', false); ?></p>
+</form>
+
+<h3><?php esc_html_e('Jours fériés à exclure', 'periscolaire-registration'); ?></h3>
+<p class="description"><?php esc_html_e('Pré-remplis avec les fériés métropole : retirez ou complétez (ponts, fêtes locales). Un jour retiré redevient un jour d\'école.', 'periscolaire-registration'); ?></p>
+<table class="widefat striped" style="max-width:560px;">
+<thead><tr><th><?php esc_html_e('Date', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Libellé', 'periscolaire-registration'); ?></th><th></th></tr></thead>
+<tbody>
+<?php foreach ($planning_holidays as $h => $h_label): ?>
+<tr>
+<td><?php echo esc_html(psc_day_label($h) . ' ' . date_i18n('d/m/Y', strtotime($h))); ?></td>
+<td><?php echo esc_html($h_label !== null && $h_label !== '' ? $h_label : __('Férié', 'periscolaire-registration')); ?></td>
+<td>
+<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('<?php echo esc_attr(__('Retirer ce jour des jours fériés ? Il redevient un jour d\'école.', 'periscolaire-registration')); ?>');">
+<?php wp_nonce_field('psc_remove_school_holiday'); ?>
+<input type="hidden" name="action" value="psc_remove_school_holiday">
+<input type="hidden" name="jour_date" value="<?php echo esc_attr($h); ?>">
+<?php submit_button(__('Retirer', 'periscolaire-registration'), 'small', 'submit', false); ?>
+</form>
+</td>
+</tr>
+<?php endforeach; ?>
+<?php if (!$planning_holidays): ?>
+<tr><td colspan="3"><?php esc_html_e('Aucun jour férié enregistré : les fériés métropole calculés serviront de repli.', 'periscolaire-registration'); ?></td></tr>
+<?php endif; ?>
+</tbody>
+</table>
+
+<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin-top:10px;">
+<?php wp_nonce_field('psc_add_school_holiday'); ?>
+<input type="hidden" name="action" value="psc_add_school_holiday">
+<input type="date" name="jour_date" required>
+<input type="text" name="label" placeholder="<?php esc_attr_e('Libellé (facultatif)', 'periscolaire-registration'); ?>">
+<?php submit_button(__('Ajouter un jour férié', 'periscolaire-registration'), 'secondary', 'submit', false); ?>
+</form>
+</div>
+<?php endif; ?>
 
 <?php include PSC_PATH . 'templates/partials/import-school-calendar.php'; ?>
 
@@ -181,7 +271,7 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 <?php wp_nonce_field('psc_delete_school_year'); ?>
 <input type="hidden" name="action" value="psc_delete_school_year">
 <input type="hidden" name="id" value="<?php echo esc_attr($y->id); ?>">
-<button class="button" onclick="return confirm('<?php echo esc_js(__("Supprimer définitivement l'année", 'periscolaire-registration')); ?> <?php echo esc_js($y->label); ?> <?php echo esc_js(__("? Les inscriptions des enfants pour cette année (classe, justificatif d'assurance) seront supprimées. Les trimestres qui lui sont rattachés seront conservés, seulement détachés de cette année.", 'periscolaire-registration')); ?>');" data-testid="year-delete-<?php echo esc_attr($y->id); ?>"><?php esc_html_e('Supprimer', 'periscolaire-registration'); ?></button>
+<button class="button" onclick="return confirm('<?php echo esc_js(__("Supprimer définitivement l'année", 'periscolaire-registration')); ?> <?php echo esc_js($y->label); ?> <?php echo esc_js(__("? Les inscriptions des enfants pour cette année (classe, justificatif d'assurance) seront supprimées.", 'periscolaire-registration')); ?>');" data-testid="year-delete-<?php echo esc_attr($y->id); ?>"><?php esc_html_e('Supprimer', 'periscolaire-registration'); ?></button>
 </form>
 <?php endif; ?>
 </td>

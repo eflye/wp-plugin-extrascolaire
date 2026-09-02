@@ -24,6 +24,11 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
         add_action('admin_post_psc_close_school_day', array(__CLASS__, 'handle_close_school_day'));
         add_action('admin_post_psc_cancel_school_day_close', array(__CLASS__, 'handle_cancel_school_day_close'));
         add_action('admin_post_psc_open_school_day', array(__CLASS__, 'handle_open_school_day'));
+        // Configuration du planning de l'année scolaire (dates, plages de
+        // vacances, verrou) et jours fériés à exclure.
+        add_action('admin_post_psc_save_school_year_config', array(__CLASS__, 'handle_save_school_year_config'));
+        add_action('admin_post_psc_add_school_holiday', array(__CLASS__, 'handle_add_school_holiday'));
+        add_action('admin_post_psc_remove_school_holiday', array(__CLASS__, 'handle_remove_school_holiday'));
     }
 
     public static function handle_add_school_year() {
@@ -115,8 +120,86 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
         self::redirect('psc_school_years', 'promotion_cancelled');
     }
 
-    public static function page_school_years() {
-        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+    /* ------------------------------------------------------------------
+     * Configuration du planning de l'année scolaire
+     * ------------------------------------------------------------------ */
+
+    /**
+     * Enregistre la configuration de l'année scolaire courante : bornes
+     * (date_start / date_end), plages de vacances (6 lignes de paires
+     * date, les vides ignorées) et délai de modification propre à l'année.
+     * Les plages vides = repli sur le calendrier scolaire officiel importé.
+     */
+    public static function handle_save_school_year_config() {
+        self::guard('psc_save_school_year_config');
+
+        Psc_School_Year::ensure_default();
+        $year = Psc_School_Year::active();
+        if (!$year) self::redirect('psc_school_years', 'year_invalid');
+
+        $start = isset($_POST['date_start']) ? sanitize_text_field(wp_unslash($_POST['date_start'])) : '';
+        $end   = isset($_POST['date_end']) ? sanitize_text_field(wp_unslash($_POST['date_end'])) : '';
+        $lock  = psc_post_int('lock_hours', psc_lock_hours());
+
+        // 6 lignes de plages possibles (rarement plus de 4 : Toussaint,
+        // Noël, hiver, printemps, ponts) ; les paires incomplètes sont
+        // ignorées, pas d'erreur bloquante pour une ligne vide.
+        $ranges = array();
+        if (isset($_POST['vacation_start']) && is_array($_POST['vacation_start'])) {
+            $starts = wp_unslash($_POST['vacation_start']);
+            $ends   = isset($_POST['vacation_end']) && is_array($_POST['vacation_end']) ? wp_unslash($_POST['vacation_end']) : array();
+            for ($i = 0; $i < 6; $i++) {
+                $s = isset($starts[$i]) ? sanitize_text_field((string) $starts[$i]) : '';
+                $e = isset($ends[$i]) ? sanitize_text_field((string) $ends[$i]) : '';
+                if ($s === '' && $e === '') continue;
+                $ranges[] = array($s, $e);
+            }
+        }
+
+        $result = Psc_School_Year::save($year->year_key, $start, $end, wp_json_encode($ranges), $lock);
+        if (is_wp_error($result)) {
+            self::redirect('psc_school_years', 'year_config_invalid');
+        }
+
+        // Les vacances peuvent couvrir des jours déclarés : la résolution
+        // recalcule, mais les caches par requête doivent être vidés.
+        Psc_School_Year::flush_cache();
+        Psc_Planning::flush_cache();
+
+        self::redirect('psc_school_years', 'year_config_saved');
+    }
+
+    /** Ajoute un jour férié (ou pont) à exclure pour l'année courante. */
+    public static function handle_add_school_holiday() {
+        self::guard('psc_add_school_holiday');
+
+        Psc_School_Year::ensure_default();
+        $year = Psc_School_Year::active();
+        if (!$year) self::redirect('psc_school_years', 'year_invalid');
+
+        $date = isset($_POST['jour_date']) ? sanitize_text_field(wp_unslash($_POST['jour_date'])) : '';
+        $label = isset($_POST['label']) ? sanitize_text_field(wp_unslash($_POST['label'])) : '';
+        if (!psc_valid_date($date)) self::redirect('psc_school_years', 'year_config_invalid');
+
+        Psc_School_Year::add_holiday($year->year_key, $date, $label);
+        Psc_Planning::flush_cache();
+        self::redirect('psc_school_years', 'year_config_saved');
+    }
+
+    /** Retire un jour férié de l'année courante (le jour redevient scolaire). */
+    public static function handle_remove_school_holiday() {
+        self::guard('psc_remove_school_holiday');
+
+        $year = Psc_School_Year::active();
+        if (!$year) self::redirect('psc_school_years', 'year_invalid');
+
+        $date = isset($_POST['jour_date']) ? sanitize_text_field(wp_unslash($_POST['jour_date'])) : '';
+        Psc_School_Year::remove_holiday($year->year_key, $date);
+        Psc_Planning::flush_cache();
+        self::redirect('psc_school_years', 'year_config_saved');
+    }
+
+    public static function page_school_years() {        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         $years = Psc_School_Years::all();
 
         $existing_ranges = array();
@@ -144,6 +227,16 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
         if (in_array($psc_msg, array('imported', 'uploaded'), true)) {
             $groups = self::group_closed_days(Psc_School_Calendar::all());
         }
+
+        // Configuration du planning de l'année en cours (dates, vacances,
+        // fériés) — l'unité du portail famille.
+        Psc_School_Year::ensure_default();
+        $planning_year = Psc_School_Year::active();
+        $planning_holidays = $planning_year ? Psc_School_Year::holidays_with_labels($planning_year->year_key) : array();
+        $planning_ranges = $planning_year ? Psc_School_Year::vacation_ranges($planning_year->year_key) : array();
+        $planning_school_days = $planning_year
+            ? count(Psc_School_Year::school_days($planning_year->date_start, $planning_year->date_end))
+            : 0;
 
         include PSC_PATH . 'templates/admin-annees.php';
     }
@@ -230,7 +323,7 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
             self::redirect('psc_school_years', 'invalid_date');
         }
         $span = (strtotime($date_fin) - strtotime($date_debut)) / DAY_IN_SECONDS;
-        if ($span > psc_max_trimestre_days()) {
+        if ($span > psc_max_school_days()) {
             self::redirect('psc_school_years', 'invalid_date');
         }
 

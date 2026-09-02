@@ -47,6 +47,24 @@ require __DIR__ . '/../../includes/helpers/crypto.php';
 require __DIR__ . '/../../includes/helpers/banking.php';
 require __DIR__ . '/../../includes/helpers/request.php';
 
+// Le résolveur du planning (helpers/planning.php) dépend de helpers/services.php
+// pour les codes de prestation — qui eux-mêmes utilisent trois fonctions
+// WordPress de base. Des stubs minimaux suffisent (aucune base, aucun
+// filtre réellement abonné dans ces helpers) : même mécanique que wp_salt()
+// ci-dessus.
+if (!function_exists('__')) {
+    function __($text, $domain = null) { return $text; }
+}
+if (!function_exists('get_option')) {
+    function get_option($name, $default = false) { return $default; }
+}
+if (!function_exists('apply_filters')) {
+    function apply_filters($tag, $value) { return $value; }
+}
+
+require __DIR__ . '/../../includes/helpers/services.php';
+require __DIR__ . '/../../includes/helpers/planning.php';
+
 $failures = array();
 $checks   = 0;
 
@@ -187,6 +205,81 @@ $assert('naissance adulte : 18 ans aujourd\'hui', psc_valid_adult_birthdate($a18
 $assert('naissance adulte : 17 ans -> false', psc_valid_adult_birthdate($a18_plus1), false);
 $assert('naissance adulte : né avant 2000 (pas de plancher d\'année)', psc_valid_adult_birthdate('1976-03-15'), '1976-03-15');
 $assert('naissance adulte : dans le futur -> false', psc_valid_adult_birthdate(date('Y-m-d', strtotime('+1 year'))), false);
+
+/* ---------------------------------------------------------------- */
+/* planning.php — résolution « rythme + exceptions » (psc_is_declared) */
+/* ---------------------------------------------------------------- */
+/* Les règles PURES du modèle de déclaration (v4) — la partie WordPress
+   (lectures en base, verrous, migration) est couverte par
+   bin/verify-planning-migration.php et les specs E2E. Ici : la source de
+   vérité elle-même, qui arbitre facturation, listes intervenants et
+   effectifs cantine. */
+
+$forf = psc_forfait_code(); // 'FORF'
+
+// 1. Pattern seul : « cet enfant mange à la cantine tous les mardis ».
+$assert('résolution : pattern seul -> déclaré', psc_resolve_declaration(false, true, null, false, null, true, true, true), true);
+$assert('résolution : pas de pattern -> non déclaré', psc_resolve_declaration(false, false, null, false, null, true, true, true), false);
+
+// 2-3. Exception sur le triplet : elle gagne, quelle que soit sa valeur.
+$assert('résolution : ajout exceptionnel sans pattern -> déclaré', psc_resolve_declaration(false, false, true, false, null, true, true, true), true);
+$assert('résolution : retrait exceptionnel malgré pattern -> non déclaré', psc_resolve_declaration(false, true, false, false, null, true, true, true), false);
+$assert('résolution : ajout exceptionnel malgré pattern (redondant, jamais écrit) -> déclaré', psc_resolve_declaration(false, true, true, false, null, true, true, true), true);
+
+// 4. Hors jour d'école (vacances, férié, mercredi, week-end, fermeture
+//    manuelle) : TOUJOURS false, quelle que soit la donnée stockée.
+$assert('résolution : jour fermé (vacances/férié/mercredi) -> false même avec pattern', psc_resolve_declaration(false, true, null, false, null, false, true, true), false);
+$assert('résolution : jour fermé -> false même avec exception d\'ajout', psc_resolve_declaration(false, false, true, false, null, false, true, true), false);
+$assert('résolution : jour fermé -> false même pour le forfait', psc_resolve_declaration(true, false, null, true, null, false, true, true), false);
+
+// 5. Prestation fermée un jour d'école : jamais déclarée (l'ancien
+//    modèle supprimait les lignes ; ici la fermeture est soustraite).
+$assert('résolution : prestation fermée -> false malgré pattern', psc_resolve_declaration(false, true, null, false, null, true, false, true), false);
+
+// 6. Forfait : couvre les prestations élémentaires ; s'il perd une
+//    composante (fermée), il n'est pas réalisable — et la composante
+//    fermée ne se déclare pas, les autres restent couvertes par le
+//    forfait (équivalent calculé de l'ancienne conversion FORF -> unités).
+$assert('résolution : forfait déclaré sans pattern unitaire -> unité couverte', psc_resolve_declaration(false, false, null, true, null, true, true, true), true);
+$assert('résolution : forfait réalisé -> forfait déclaré', psc_resolve_declaration(true, false, null, true, null, true, true, true), true);
+$assert('résolution : une composante fermée -> forfait non réalisé', psc_resolve_declaration(true, false, null, true, null, true, true, false), false);
+$assert('résolution : une composante fermée -> les AUTRES restent couvertes', psc_resolve_declaration(false, false, null, true, null, true, true, false), true);
+$assert('résolution : retrait exceptionnel du forfait -> non déclaré', psc_resolve_declaration(true, false, null, true, false, true, true, true), false);
+
+// 7. Invariant d'écriture : jamais d'exception dont la valeur égale le
+//    rythme. Un parent qui coche puis décoche un jour doit provoquer la
+//    SUPPRESSION de la ligne, pas sa mise à jour — sinon la table se
+//    remplit de bruit et un futur changement de rythme ne se propage
+//    plus à ce jour. Bascule d'un jour deux fois : aucune ligne résiduelle.
+$assert('invariant : cocher sans pattern -> exception posée', psc_exception_write_decision(false, false, false, true), 'upsert');
+$assert('invariant : décocher (retour au rythme) -> exception supprimée', psc_exception_write_decision(false, false, false, false), 'delete');
+// Sans exception au départ, une exception n'a jamais à exister : le double
+// clic (posée puis supprimée) laisse la table inchangée.
+$decisions = array(
+    psc_exception_write_decision(false, false, false, true),  // clic 1 : upsert
+    psc_exception_write_decision(false, false, false, false), // clic 2 : delete
+);
+$assert('invariant : cocher puis décocher -> plus aucune ligne d\'exception', $decisions === array('upsert', 'delete'), true);
+
+// 8. Changement de pattern : les jours verrouillés conservent leur état.
+//    Le jour verrouillé était déclaré (pattern on) ; le parent passe le
+//    pattern off — l'état effectif d'avant (true) doit être matérialisé
+//    en exception figée : l'écriture cible reste un UPSERT (jamais un
+//    delete), sans quoi le mardi déjà transmis à la cantine disparaîtrait.
+$assert('verrou : jour verrouillé déclaré, pattern passe à off -> exception figée posée', psc_exception_write_decision(false, false, false, true), 'upsert');
+$assert('verrou : jour verrouillé non déclaré, pattern passe à on -> exception figée posée (valeur false)', psc_exception_write_decision(false, true, false, false), 'upsert');
+
+// 9. Couverture par le forfait dans l'invariant : cocher une prestation
+//    élémentaire sur un jour déjà couvert par un pattern de forfait est
+//    un no-op (la base de comparaison inclut la couverture).
+$assert('invariant : cocher une unité déjà couverte par le forfait -> delete (no-op)', psc_exception_write_decision(false, false, true, true), 'delete');
+$assert('invariant : décocher une unité couverte par le forfait -> retrait écrit', psc_exception_write_decision(false, false, true, false), 'upsert');
+
+// 10. Facturation : un forfait déclaré (et réalisable) est facturé à lui
+//     seul, jamais cumulé avec ses composantes.
+$assert('facturation : forfait seul', psc_billing_services(array('FORF' => true, 'GM' => false, 'CANT' => false, 'GS' => false)), array('FORF'));
+$assert('facturation : unités sans forfait', psc_billing_services(array('FORF' => false, 'GM' => true, 'CANT' => false, 'GS' => true)), array('GM', 'GS'));
+$assert('facturation : rien de déclaré', psc_billing_services(array('FORF' => false, 'GM' => false, 'CANT' => false, 'GS' => false)), array());
 
 /* ---------------------------------------------------------------- */
 

@@ -324,6 +324,28 @@ body.psc-sidscm-active main.site-main .entry-content {
     padding: 5px 12px;
     white-space: nowrap;
 }
+/* Allergie alimentaire : usage critique de la liste cantine — lisible
+   sans déplier, en priorité sur la ligne (#9E4A4A = alerte, charte v2). */
+.psc-sidscm-row-allergy {
+    color: #9E4A4A;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.4;
+    max-width: 260px;
+    white-space: normal;
+    text-align: left;
+}
+/* L'enfant apporte son repas fourni par la famille : l'encadrant ne doit
+   pas le compter dans les couverts (aucun menu différencié n'est proposé). */
+.psc-sidscm-row-brings-meal {
+    background: #9E4A4A;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 4px 10px;
+    white-space: nowrap;
+}
 .psc-sidscm-row-departure {
     display: flex;
     align-items: center;

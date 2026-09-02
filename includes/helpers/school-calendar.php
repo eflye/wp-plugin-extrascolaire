@@ -24,8 +24,7 @@ function psc_school_vacation_label($date_str) {
 
 /**
  * Un jour est-il un jour d'école (donc de service périscolaire/cantine
- * potentiel) ? Ne dépend d'aucun trimestre en base : utilisable même avant
- * la création d'un trimestre (ex : widget menu public).
+ * potentiel) ? Ne dépend d'aucune configuration en base (ex : widget menu public).
  */
 function psc_is_school_day($date_str) {
     if (psc_is_weekend($date_str) || psc_is_wednesday($date_str)) return false;

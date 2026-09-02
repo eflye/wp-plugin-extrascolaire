@@ -152,35 +152,103 @@ class Psc_Mailer {
     /* Récapitulatif planning                                               */
     /* ------------------------------------------------------------------ */
 
-    public static function send_recap($parent, $trimestre, $children, $reg_map, $services, $diff_added = array(), $diff_removed = array()) {
+    /**
+     * « Valider et recevoir mon planning » : récapitulatif ANNUEL.
+     * Contenu : rythme habituel de chaque enfant (la grille posée pour
+     * l'année), écarts à venir (exceptions) et estimation annuelle — la
+     * facturation étant mensuelle, l'estimation annuelle reste indicative.
+     */
+    public static function send_recap($parent, $year, $children, $summary, $patterns, $upcoming, $services) {
         $site    = self::site_name();
-        $subject = Psc_Email_Templates::subject('recap', array('site' => $site, 'trimestre' => $trimestre->label));
-        $intro   = Psc_Email_Templates::body_html('recap', array('site' => $site, 'trimestre' => $trimestre->label));
+        $subject = Psc_Email_Templates::subject('recap', array('site' => $site, 'annee' => $year->year_key));
+        $intro   = Psc_Email_Templates::body_html('recap', array('site' => $site, 'annee' => $year->year_key));
+        $year_key = $year->year_key;
 
-        $body = self::h2(__('Confirmation de votre planning', 'periscolaire-registration'));
+        $body = self::h2(__('Votre planning — année scolaire ', 'periscolaire-registration') . esc_html($year_key));
         $body .= '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 12px;">' . $intro . '</p>';
 
-        // Bloc diff uniquement s'il y a des changements depuis le dernier récap
-        if (!empty($diff_added) || !empty($diff_removed)) {
-            $child_index = array();
-            foreach ($children as $c) $child_index[(int) $c->id] = $c;
-            $body .= self::h2(__('Modifications depuis votre dernier récapitulatif', 'periscolaire-registration'));
-            $body .= self::_build_diff_table($diff_added, $diff_removed, $child_index, $services);
+        $jours = array(1 => __('Lundi', 'periscolaire-registration'), 2 => __('Mardi', 'periscolaire-registration'), 4 => __('Jeudi', 'periscolaire-registration'), 5 => __('Vendredi', 'periscolaire-registration'));
+
+        foreach ($children as $child) {
+            $cid = (int) $child->id;
+            $child_classe = Psc_School_Years::classe_for($cid);
+            $child_label = esc_html(mb_strtoupper($child->prenom . ' ' . $child->nom, 'UTF-8'))
+                . ($child_classe ? ' <span style="color:#8B8279;font-weight:normal;font-size:13px;">(' . esc_html($child_classe) . ')</span>' : '');
+
+            $body .= '<div style="margin:24px 0;">';
+            $body .= '<h3 style="font-size:15px;font-family:Georgia,\'Times New Roman\',serif;font-weight:bold;color:#24405C;margin:0 0 10px;padding:8px 12px;background-color:#F5E7DC;">' . $child_label . '</h3>';
+
+            // Rythme habituel.
+            $pats = isset($patterns[$cid][$year_key]) ? $patterns[$cid][$year_key] : array();
+            $has_pattern = false;
+            $rhythm_rows = '';
+            foreach ($jours as $wd => $jour_label) {
+                $labels = array();
+                foreach (psc_allowed_services() as $code) {
+                    if (!empty($pats[$wd][$code])) $labels[] = $services[$code]['label'];
+                }
+                if (!$labels) continue;
+                $has_pattern = true;
+                $rhythm_rows .= '<tr>'
+                    . '<td style="padding:6px 10px;border:1px solid #E5DCC3;white-space:nowrap;">' . esc_html($jour_label) . '</td>'
+                    . '<td style="padding:6px 10px;border:1px solid #E5DCC3;">' . esc_html(implode(', ', $labels)) . '</td>'
+                    . '</tr>';
+            }
+
+            $body .= '<p style="font-size:13px;font-weight:bold;color:#1A1A1A;margin:0 0 6px;">' . esc_html(__('Rythme habituel', 'periscolaire-registration')) . '</p>';
+            if ($has_pattern) {
+                $body .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:12px;font-size:13px;">'
+                    . '<thead><tr>'
+                    . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Jour', 'periscolaire-registration') . '</th>'
+                    . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Prestations', 'periscolaire-registration') . '</th>'
+                    . '</tr></thead><tbody>' . $rhythm_rows . '</tbody></table>';
+            } else {
+                $body .= '<p style="color:#8B8279;font-size:13px;font-style:italic;margin:0 0 12px;">' . __('Aucun rythme habituel déclaré : chaque jour est déclaré à l\'unité.', 'periscolaire-registration') . '</p>';
+            }
+
+            // Écarts à venir pour cet enfant.
+            $child_exceptions = isset($upcoming[$cid]) ? $upcoming[$cid] : array();
+            $body .= '<p style="font-size:13px;font-weight:bold;color:#1A1A1A;margin:0 0 6px;">' . esc_html(__('Écarts à venir', 'periscolaire-registration')) . '</p>';
+            if ($child_exceptions) {
+                $exc_rows = '';
+                foreach ($child_exceptions as $exc) {
+                    $svc_lbl = isset($services[$exc['service']]) ? $services[$exc['service']]['label'] : $exc['service'];
+                    $type = $exc['value'] ? __('Ajout exceptionnel', 'periscolaire-registration') : __('Retrait exceptionnel', 'periscolaire-registration');
+                    $exc_rows .= '<tr>'
+                        . '<td style="padding:6px 10px;border:1px solid #E5DCC3;white-space:nowrap;">' . esc_html(psc_day_label($exc['date']) . ' ' . date_i18n('d/m/Y', strtotime($exc['date']))) . '</td>'
+                        . '<td style="padding:6px 10px;border:1px solid #E5DCC3;">' . esc_html($svc_lbl) . '</td>'
+                        . '<td style="padding:6px 10px;border:1px solid #E5DCC3;">' . esc_html($type) . '</td>'
+                        . '</tr>';
+                }
+                $body .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:12px;font-size:13px;">'
+                    . '<thead><tr>'
+                    . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Date', 'periscolaire-registration') . '</th>'
+                    . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Prestation', 'periscolaire-registration') . '</th>'
+                    . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Type', 'periscolaire-registration') . '</th>'
+                    . '</tr></thead><tbody>' . $exc_rows . '</tbody></table>';
+            } else {
+                $body .= '<p style="color:#8B8279;font-size:13px;font-style:italic;margin:0 0 12px;">' . __('Aucun écart à venir : les mois à venir suivent le rythme habituel.', 'periscolaire-registration') . '</p>';
+            }
+
+            // Estimation annuelle de cet enfant.
+            $year_child = isset($summary['year']['per_child'][$cid]) ? $summary['year']['per_child'][$cid] : array('days' => 0, 'amount' => 0.0);
+            $body .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:13px;margin-bottom:8px;">'
+                . '<tr style="border-top:2px solid #24405C;">'
+                . '<td style="padding:7px 10px;font-weight:bold;color:#24405C;">' . esc_html(__('Estimation annuelle', 'periscolaire-registration')) . ' — ' . (int) $year_child['days'] . ' ' . esc_html(_n('jour', 'jours', (int) $year_child['days'], 'periscolaire-registration')) . '</td>'
+                . '<td style="padding:7px 10px;font-weight:bold;color:#24405C;text-align:right;">' . number_format((float) $year_child['amount'], 2, ',', ' ') . ' €</td>'
+                . '</tr></table>';
+            $body .= '</div>';
         }
 
-        $tables = self::_build_planning_tables($children, $reg_map, $services, 'months');
-        $body  .= $tables['html'];
-
-        if ($tables['has_any'] && count($children) > 1) {
-            $body .= '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0;"><tr><td style="background-color:#24405C;padding:14px 20px;">'
-                   . '<p style="margin:0;color:#ffffff;font-size:16px;font-weight:bold;">'
-                   . __('Montant indicatif total : ', 'periscolaire-registration') . number_format($tables['grand_total'], 2, ',', ' ') . ' €'
-                   . '</p></td></tr></table>';
-        }
+        // Total famille.
+        $body .= '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0;"><tr><td style="background-color:#24405C;padding:14px 20px;">'
+            . '<p style="margin:0;color:#ffffff;font-size:16px;font-weight:bold;">'
+            . __('Estimation annuelle de la famille : ', 'periscolaire-registration') . number_format((float) $summary['year']['amount'], 2, ',', ' ') . ' €'
+            . '</p></td></tr></table>';
 
         $body .= self::warning_box(
             __('Ce montant est donné <strong>à titre indicatif</strong>. ', 'periscolaire-registration')
-            . __('La facturation définitive est établie par la mairie.', 'periscolaire-registration')
+            . __('La facturation définitive est établie par la mairie, mois par mois, d\'après les déclarations effectives.', 'periscolaire-registration')
         );
 
         if (psc_lock_hours() > 0) {
@@ -214,35 +282,63 @@ class Psc_Mailer {
         return $sent;
     }
 
-    public static function send_admin_correction($parent, $trimestre, $children, $reg_map, $services, $diff_added = array(), $diff_removed = array()) {
+    /**
+     * Correction apportée par la mairie : tableau des modifications, le
+     * reste de l'année suit le rythme habituel déjà en place.
+     */
+    public static function send_admin_correction($parent, $year_key, $children, $services, $diff_added = array(), $diff_removed = array()) {
         $site    = self::site_name();
-        $subject = sprintf(__('[%s] Votre planning périscolaire a été mis à jour — %s', 'periscolaire-registration'), $site, $trimestre->label);
+        $subject = sprintf(__('[%s] Votre planning périscolaire a été mis à jour — %s', 'periscolaire-registration'), $site, $year_key);
 
         $child_index = array();
         foreach ($children as $c) $child_index[(int) $c->id] = $c;
 
         $body  = self::h2(__('Modifications apportées par la mairie', 'periscolaire-registration'));
         $body .= self::_build_diff_table($diff_added, $diff_removed, $child_index, $services);
-
-        $body .= self::h2(__('Récapitulatif complet — ', 'periscolaire-registration') . esc_html($trimestre->label));
-
-        $tables = self::_build_planning_tables($children, $reg_map, $services, 'totals');
-        $body  .= $tables['html'];
-
-        if ($tables['has_any'] && count($children) > 1) {
-            $body .= '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0;"><tr><td style="background-color:#24405C;padding:14px 20px;">'
-                   . '<p style="margin:0;color:#ffffff;font-size:16px;font-weight:bold;">'
-                   . __('Montant indicatif total : ', 'periscolaire-registration') . number_format($tables['grand_total'], 2, ',', ' ') . ' €'
-                   . '</p></td></tr></table>';
-        }
-
-        $body .= self::warning_box(
-            __('Ce montant est donné <strong>à titre indicatif</strong>. ', 'periscolaire-registration')
-            . __('La facturation définitive est établie par la mairie.', 'periscolaire-registration')
-        );
+        $body .= self::p(__('Le reste de l\'année suit le rythme habituel déjà déclaré. Vous pouvez consulter votre planning complet depuis votre espace famille.', 'periscolaire-registration'));
         $body .= self::btn(self::form_page_url(), __('Consulter mon planning', 'periscolaire-registration'));
 
         return self::send($parent->email, $subject, self::layout($body, $subject));
+    }
+
+    /**
+     * Alerte mairie : une allergie alimentaire vient d'être enregistrée
+     * (ajout d'enfant, édition, ou approbation d'une demande d'inscription).
+     * Déclenche la prise de contact PAI promise à la famille.
+     * $previous : valeur précédente (null si aucune) — l'alerte part sur un
+     * contenu nouveau ou modifié, jamais sur une saisie inchangée.
+     */
+    public static function notify_food_allergy($parent, $child_id, $allergies, $previous = null) {
+        $site = self::site_name();
+
+        $child = null;
+        global $wpdb;
+        $child = $wpdb->get_row($wpdb->prepare(
+            'SELECT * FROM ' . psc_table('children') . ' WHERE id = %d', (int) $child_id
+        ));
+        $child_name = $child ? trim($child->prenom . ' ' . $child->nom) : ('#' . (int) $child_id);
+
+        $subject = Psc_Email_Templates::subject('food_allergy', array('site' => $site, 'child' => $child_name));
+        $intro   = Psc_Email_Templates::body_html('food_allergy', array('site' => $site, 'child' => $child_name));
+
+        $body = self::h2(__('Allergie alimentaire déclarée', 'periscolaire-registration'));
+        $body .= '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 12px;">' . $intro . '</p>';
+        $body .= self::info_box(
+            '<strong>' . esc_html(__('Enfant :', 'periscolaire-registration')) . '</strong> ' . esc_html($child_name) . '<br>'
+            . '<strong>' . esc_html(__('Famille :', 'periscolaire-registration')) . '</strong> ' . esc_html(trim($parent->prenom . ' ' . $parent->nom)) . ' — ' . esc_html($parent->email) . '<br>'
+            . '<strong>' . esc_html(__('Classe :', 'periscolaire-registration')) . '</strong> ' . esc_html($child ? Psc_School_Years::classe_for($child->id) : '—') . '<br>'
+            . '<strong>' . esc_html(__('Description saisie :', 'periscolaire-registration')) . '</strong><br>' . nl2br(esc_html($allergies))
+        );
+        if ($previous !== null && $previous !== '') {
+            $body .= self::p(__('Description précédemment enregistrée : ', 'periscolaire-registration') . '« ' . $previous . ' »');
+        }
+        $body .= self::warning_box(
+            __('Rappel de la promesse de service : ', 'periscolaire-registration')
+            . __('la mairie prend l\'initiative du contact, et aucun menu différencié n\'est proposé — l\'enfant déjeune à la cantine avec son propre repas fourni par la famille.', 'periscolaire-registration')
+        );
+        $body .= self::btn(admin_url('admin.php?page=psc_children'), __('Ouvrir la fiche enfant', 'periscolaire-registration'));
+
+        return self::send(psc_mairie_email(), $subject, self::layout($body, $subject));
     }
 
     /**
@@ -296,154 +392,6 @@ class Psc_Mailer {
         }
 
         return $html . '</tbody></table>';
-    }
-
-    /**
-     * Construit les tableaux de planning par enfant.
-     *
-     * $mode :
-     *   'days'   — tableau jour par jour (récap classique)
-     *   'months' — récap par mois avec comptes par prestation (récap parent)
-     *   'totals' — totaux uniquement, sans détail par jour/mois (correction admin)
-     */
-    private static function _build_planning_tables($children, $reg_map, $services, $mode = 'days') {
-        $grand_total = 0.0;
-        $has_any     = false;
-        $html        = '';
-
-        foreach ($children as $child) {
-            $child_classe = Psc_School_Years::classe_for($child->id);
-            // Le prénom et le nom sont saisis par la famille : ils doivent
-            // être échappés comme la classe juste à côté l'était déjà.
-            // On met en majuscules AVANT d'échapper, sinon la bascule
-            // s'appliquerait aux entités produites par l'échappement.
-            // mb_strtoupper, et non strtoupper, qui laisserait les
-            // caractères accentués en minuscules.
-            $child_label = esc_html(mb_strtoupper($child->prenom . ' ' . $child->nom, 'UTF-8'))
-                . ($child_classe ? ' <span style="color:#8B8279;font-weight:normal;font-size:13px;">(' . esc_html($child_classe) . ')</span>' : '');
-
-            $html .= '<div style="margin:24px 0;">';
-            $html .= '<h3 style="font-size:15px;font-family:Georgia,\'Times New Roman\',serif;font-weight:bold;color:#24405C;margin:0 0 10px;padding:8px 12px;'
-                   . 'background-color:#F5E7DC;">' . $child_label . '</h3>';
-
-            $dates = array();
-            foreach ($reg_map as $key => $v) {
-                list($cid, $date, $service) = explode('|', $key);
-                if ((int) $cid !== (int) $child->id) continue;
-                $dates[$date][] = $service;
-            }
-            ksort($dates);
-
-            if (empty($dates)) {
-                $html .= '<p style="color:#8B8279;font-size:14px;font-style:italic;margin:0;">' . __('Aucune inscription enregistrée.', 'periscolaire-registration') . '</p>';
-                $html .= '</div>';
-                continue;
-            }
-
-            $has_any     = true;
-            $child_total = 0.0;
-            $counts      = array_fill_keys(psc_allowed_services(), 0);
-
-            foreach ($dates as $date => $servs) {
-                foreach (psc_allowed_services() as $code) {
-                    if (!in_array($code, $servs, true)) continue;
-                    $counts[$code]++;
-                    $child_total += (float) $services[$code]['price'];
-                }
-            }
-
-            if ($mode === 'days') {
-                $html .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:12px;font-size:13px;">';
-                $html .= '<thead><tr>'
-                       . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Date', 'periscolaire-registration') . '</th>'
-                       . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Jour', 'periscolaire-registration') . '</th>'
-                       . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Prestations', 'periscolaire-registration') . '</th>'
-                       . '</tr></thead><tbody>';
-                $alt = false;
-                foreach ($dates as $date => $servs) {
-                    $labels = array();
-                    foreach (psc_allowed_services() as $code) {
-                        if (in_array($code, $servs, true)) $labels[] = $services[$code]['label'];
-                    }
-                    $bg    = $alt ? '#FAF6F1' : '#ffffff';
-                    $html .= '<tr style="background:' . $bg . ';">'
-                           . '<td style="padding:6px 10px;border:1px solid #E5DCC3;white-space:nowrap;">' . date_i18n('d/m/Y', strtotime($date)) . '</td>'
-                           . '<td style="padding:6px 10px;border:1px solid #E5DCC3;white-space:nowrap;">' . esc_html(psc_day_label($date)) . '</td>'
-                           . '<td style="padding:6px 10px;border:1px solid #E5DCC3;">' . esc_html(implode(', ', $labels)) . '</td>'
-                           . '</tr>';
-                    $alt = !$alt;
-                }
-                $html .= '</tbody></table>';
-            }
-
-            if ($mode === 'months') {
-                // Regrouper par mois
-                $by_month = array();
-                foreach ($dates as $date => $servs) {
-                    $by_month[substr($date, 0, 7)][$date] = $servs;
-                }
-
-                foreach ($by_month as $ym => $month_dates) {
-                    $month_label  = ucfirst(date_i18n('F Y', strtotime($ym . '-01')));
-                    $month_counts = array_fill_keys(psc_allowed_services(), 0);
-                    $month_total  = 0.0;
-
-                    foreach ($month_dates as $servs) {
-                        foreach (psc_allowed_services() as $code) {
-                            if (!in_array($code, $servs, true)) continue;
-                            $month_counts[$code]++;
-                            $month_total += (float) $services[$code]['price'];
-                        }
-                    }
-
-                    $html .= '<p style="font-size:13px;font-weight:bold;color:#1A1A1A;margin:12px 0 4px;'
-                           . 'border-bottom:1px solid #E5DCC3;padding-bottom:4px;">' . esc_html($month_label) . '</p>';
-                    $html .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:13px;margin-bottom:4px;">';
-
-                    foreach (psc_allowed_services() as $code) {
-                        if ($month_counts[$code] === 0) continue;
-                        $st    = $month_counts[$code] * (float) $services[$code]['price'];
-                        $html .= '<tr>'
-                               . '<td style="padding:3px 10px 3px 16px;color:#1A1A1A;">' . esc_html($services[$code]['label']) . '</td>'
-                               . '<td style="padding:3px 10px;color:#1A1A1A;text-align:center;width:50px;">' . $month_counts[$code] . __(' j.', 'periscolaire-registration') . '</td>'
-                               . '<td style="padding:3px 10px;color:#1A1A1A;text-align:right;width:70px;">' . number_format($services[$code]['price'], 2, ',', ' ') . ' €</td>'
-                               . '<td style="padding:3px 10px;color:#1A1A1A;text-align:right;font-weight:bold;width:80px;">' . number_format($st, 2, ',', ' ') . ' €</td>'
-                               . '</tr>';
-                    }
-
-                    $html .= '<tr style="border-top:1px solid #E5DCC3;">'
-                           . '<td colspan="3" style="padding:4px 10px 4px 16px;color:#1A1A1A;font-style:italic;">' . __('Sous-total ', 'periscolaire-registration') . esc_html($month_label) . '</td>'
-                           . '<td style="padding:4px 10px;color:#1A1A1A;text-align:right;font-weight:bold;">' . number_format($month_total, 2, ',', ' ') . ' €</td>'
-                           . '</tr>';
-                    $html .= '</table>';
-                }
-            }
-
-            // Ligne totaux par enfant (tous modes)
-            $html .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:13px;margin-bottom:8px;' . ($mode === 'totals' ? '' : 'margin-top:8px;') . '">';
-            if ($mode === 'totals') {
-                foreach (psc_allowed_services() as $code) {
-                    if ($counts[$code] === 0) continue;
-                    $st    = $counts[$code] * (float) $services[$code]['price'];
-                    $html .= '<tr>'
-                           . '<td style="padding:4px 10px;color:#1A1A1A;">' . esc_html($services[$code]['label']) . '</td>'
-                           . '<td style="padding:4px 10px;color:#1A1A1A;text-align:center;">' . $counts[$code] . __(' j.', 'periscolaire-registration') . '</td>'
-                           . '<td style="padding:4px 10px;color:#1A1A1A;text-align:right;">' . number_format($services[$code]['price'], 2, ',', ' ') . ' €</td>'
-                           . '<td style="padding:4px 10px;color:#1A1A1A;text-align:right;font-weight:bold;">' . number_format($st, 2, ',', ' ') . ' €</td>'
-                           . '</tr>';
-                }
-            }
-            $html .= '<tr style="border-top:2px solid #24405C;">'
-                   . '<td colspan="3" style="padding:7px 10px;font-weight:bold;color:#24405C;">' . __('Montant indicatif', 'periscolaire-registration') . '</td>'
-                   . '<td style="padding:7px 10px;font-weight:bold;color:#24405C;text-align:right;">' . number_format($child_total, 2, ',', ' ') . ' €</td>'
-                   . '</tr>';
-            $html .= '</table>';
-            $html .= '</div>';
-
-            $grand_total += $child_total;
-        }
-
-        return array('html' => $html, 'grand_total' => $grand_total, 'has_any' => $has_any);
     }
 
     /* ------------------------------------------------------------------ */
@@ -552,6 +500,15 @@ class Psc_Mailer {
         $body .= '<td style="padding:7px 10px;border:1px solid #E5DCC3;text-align:center;font-weight:bold;color:#24405C;">' . (int) $data['total'] . '</td>';
         $body .= '</tr>';
         $body .= '</tbody></table>';
+
+        // Les enfants porteurs d'une allergie alimentaire déjeunent avec
+        // leur propre repas fourni par la famille : ils restent sur la
+        // liste de présence (SIDSCM) mais ne sont pas comptés dans la
+        // commande — ils n'y sont déjà plus comptés (cf.
+        // Psc_Supplier_Orders::compute_counts).
+        $body .= self::info_box(
+            __('Rappel : les enfants porteurs d\'une allergie alimentaire apportent leur repas fourni par la famille — ils ne sont pas comptés dans ces effectifs, mais figurent sur les listes de présence avec la mention « apporte son repas ».', 'periscolaire-registration')
+        );
 
         $html = self::layout($body, $subject);
         $sent = self::send($supplier_email, $subject, $html);
@@ -772,9 +729,13 @@ class Psc_Mailer {
             $badges = array();
             if (!empty($c['sans_porc'])) $badges[] = __('sans porc', 'periscolaire-registration');
             if (!empty($c['vegan']))     $badges[] = __('sans viande', 'periscolaire-registration');
+            // Allergie alimentaire déclarée : alerte PAI dans le même mail
+            // — le service doit prendre contact, la promesse est faite au
+            // parent dès la demande.
+            if (!empty($c['food_allergies'])) $badges[] = __('ALLERGIE ALIMENTAIRE : ', 'periscolaire-registration') . $c['food_allergies'];
             $children_list .= '<li style="color:#1A1A1A;font-size:14px;margin-bottom:4px;">'
                 . esc_html($c['prenom'] . ' ' . $c['nom'])
-                . ($c['classe'] ? ' <span style="color:#8B8279;">(' . esc_html($c['classe']) . ')</span>' : '')
+                . (!empty($c['classe']) ? ' <span style="color:#8B8279;">(' . esc_html($c['classe']) . ')</span>' : '')
                 . ($badges ? ' <span style="color:#8B8279;">— ' . esc_html(implode(', ', $badges)) . '</span>' : '')
                 . '</li>';
         }

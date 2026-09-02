@@ -2,86 +2,66 @@
 if (!defined('ABSPATH')) exit;
 
 /**
- * Calendrier déclaré par la famille : cases cochées à l'unité ou par lot,
- * récapitulatif par e-mail, annulation depuis le tableau de bord.
+ * Écrans Planning (variantes 1 et 2) : enregistrement automatique par AJAX,
+ * sans bouton « Enregistrer ». Les deux variantes lisent et écrivent LE MÊME
+ * modèle (rythme habituel + exceptions) — une saisie faite dans l'une se
+ * retrouve dans l'autre, aucune synchronisation.
+ *
+ * Points d'entrée :
+ *  - psc_toggle_exception            {child_id, date, service_code}  — le serveur
+ *    calcule l'état effectif et écrit ou SUPPRIME selon l'invariant
+ *    (jamais d'exception dont la valeur égale le rythme) ;
+ *  - psc_toggle_exception_bulk       {child_id, service_code, dates} — bouton
+ *    « Tout / Retirer » par colonne (Planning - 1, portée mois affiché) ;
+ *  - psc_toggle_pattern              {child_id, weekday, service_code} —
+ *    une case cochée = une ligne de psc_pattern, valable jusqu'en juillet ;
+ *  - psc_apply_pattern_to_siblings   {source_child_id} — copie du rythme ;
+ *  - psc_reset_month_exceptions      {child_id, year, month} — « revenir
+ *    au rythme » pour le mois affiché de l'enfant actif ;
+ *  - psc_load_month                  {child_id, year, month} — jours du mois
+ *    avec état effectif + origine (pattern | exception | none) + verrou ;
+ *  - psc_confirm                     — « Valider et recevoir mon planning » :
+ *    récapitulatif ANNUEL par e-mail.
+ *
+ * Sécurité : chaque appel porte le nonce WordPress (psc_front) ET le jeton
+ * propre à la famille (psc_verify_parent_nonce) ; le serveur vérifie que
+ * l'enfant appartient au foyer connecté sur les SEPT points d'entrée. Le
+ * verrou de 48 h est revérifié côté serveur sur chaque écriture.
+ *
+ * Chaque réponse d'écriture renvoie l'état complet du planning (psc_load_month
+ * + frise + récapitulatifs) : le client re-rend sans recharger la page.
  *
  * Les parents ne sont PAS des utilisateurs WordPress : les actions AJAX
- * doivent donc être exposées en "nopriv". L'autorisation est vérifiée dans
- * chaque handler via la session du plugin.
+ * sont donc exposées en "nopriv". L'autorisation est vérifiée dans chaque
+ * handler via la session du plugin.
  */
 class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
 
     public static function init() {
-        add_action('wp_ajax_nopriv_psc_toggle', array(__CLASS__, 'ajax_toggle'));
-        add_action('wp_ajax_psc_toggle', array(__CLASS__, 'ajax_toggle'));
-        add_action('wp_ajax_nopriv_psc_toggle_bulk', array(__CLASS__, 'ajax_toggle_bulk'));
-        add_action('wp_ajax_psc_toggle_bulk', array(__CLASS__, 'ajax_toggle_bulk'));
-        add_action('wp_ajax_nopriv_psc_confirm', array(__CLASS__, 'ajax_confirm'));
-        add_action('wp_ajax_psc_confirm', array(__CLASS__, 'ajax_confirm'));
+        foreach (array(
+            'psc_toggle_exception',
+            'psc_toggle_exception_bulk',
+            'psc_toggle_pattern',
+            'psc_apply_pattern_to_siblings',
+            'psc_reset_month_exceptions',
+            'psc_load_month',
+            'psc_confirm',
+        ) as $action) {
+            add_action('wp_ajax_nopriv_' . $action, array(__CLASS__, 'ajax_' . substr($action, 4)));
+            add_action('wp_ajax_' . $action, array(__CLASS__, 'ajax_' . substr($action, 4)));
+        }
 
         // "Annulation prestations" : popin du tableau de bord, POST classique.
         add_action('admin_post_nopriv_psc_cancel_absence', array(__CLASS__, 'handle_cancel_absence'));
         add_action('admin_post_psc_cancel_absence', array(__CLASS__, 'handle_cancel_absence'));
     }
 
-    /**
-     * Cette prestation est-elle fermée ce jour-là par la mairie ?
-     *
-     * Le forfait est indivisible : il est bloqué dès qu'une seule de ses
-     * composantes l'est, puisqu'on ne peut pas en facturer une partie.
-     */
-    protected static function service_closed_on($date, $service) {
-        $closed = Psc_School_Calendar::closed_services_for_date($date);
+    /* ================================================================
+     * SOCHE COMMUN DES APPELS AJAX
+     * ================================================================ */
 
-        return $service === psc_forfait_code()
-            ? (bool) array_intersect($closed, psc_unit_services())
-            : in_array($service, $closed, true);
-    }
-
-    /**
-     * Écrit ou retire une présence déclarée, en maintenant l'exclusivité
-     * entre le forfait et ses composantes.
-     *
-     * Ne décide de rien : les contrôles (appartenance de l'enfant, jour
-     * ouvert, délai de prévenance, prestation fermée) restent à la charge
-     * de l'appelant, qui seul sait comment signaler un refus — en JSON
-     * pour une case cochée à l'unité, en passant au jour suivant pour un
-     * envoi par lot.
-     *
-     * Cette routine existait en double, à vingt lignes identiques sur
-     * vingt-huit, l'invariant du forfait compris. Corriger un défaut dans
-     * l'une sans l'autre était une erreur silencieuse et probable.
-     */
-    protected static function apply_registration($child_id, $trimestre_id, $date, $service, $checked) {
-        global $wpdb;
-        $t_reg = psc_table('registrations');
-
-        if (!$checked) {
-            $wpdb->delete(
-                $t_reg,
-                array('child_id' => $child_id, 'jour_date' => $date, 'service' => $service),
-                array('%d', '%s', '%s')
-            );
-            return;
-        }
-
-        $wpdb->query($wpdb->prepare(
-            "INSERT INTO $t_reg (child_id, trimestre_id, jour_date, service, updated_at)
-             VALUES (%d, %d, %s, %s, %s)
-             ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at)",
-            $child_id, $trimestre_id, $date, $service, current_time('mysql')
-        ));
-
-        foreach (psc_conflicting_services($service) as $svc) {
-            $wpdb->delete(
-                $t_reg,
-                array('child_id' => $child_id, 'jour_date' => $date, 'service' => $svc),
-                array('%d', '%s', '%s')
-            );
-        }
-    }
-
-    public static function ajax_toggle() {
+    /** Session famille + double nonce (WordPress + jeton propre au foyer). */
+    protected static function ajax_parent() {
         check_ajax_referer('psc_front', 'nonce');
 
         $parent = Psc_Parents::current();
@@ -93,59 +73,176 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         if (!psc_verify_parent_nonce('psc_front', $parent->id, psc_post('parent_nonce'))) {
             wp_send_json_error(array('code' => 'auth'), 403);
         }
+        return $parent;
+    }
 
-        global $wpdb;
-
-        $child_id = psc_post_int('child_id');
-        $service  = psc_post('service');
-        $date     = psc_valid_date(psc_post('date'));
-        $checked  = psc_post('checked') === '1';
-
-        if (!$child_id || !$date) {
-            wp_send_json_error(array('code' => 'invalid'), 400);
+    /** Année scolaire configurée, ou erreur 403 (planning fermé). */
+    protected static function ajax_year() {
+        Psc_School_Year::ensure_default();
+        $year = Psc_School_Year::active();
+        if (!$year) {
+            wp_send_json_error(array('code' => 'closed'), 403);
         }
-        if (!psc_is_valid_service($service)) {
-            wp_send_json_error(array('code' => 'service'), 400);
-        }
+        return $year;
+    }
 
-        // L'enfant doit appartenir au parent de la session en cours.
-        $t_child = psc_table('children');
-        $child = $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_child WHERE id = %d", $child_id));
+    /**
+     * Enfant appartenant au foyer, actif, avec assurance à jour pour les
+     * AJOUTS (un retrait n'est jamais bloqué par l'assurance — pas de
+     * blocage rétroactif).
+     */
+    protected static function ajax_owned_child($parent, $child_id, $allow_add = true) {
+        $child = self::owned_child($child_id, $parent->id);
         if (!$child) {
             wp_send_json_error(array('code' => 'notfound'), 404);
         }
-        if ((int) $child->parent_id !== (int) $parent->id) {
-            wp_send_json_error(array('code' => 'forbidden'), 403);
+        if ($child->statut !== 'actif') {
+            wp_send_json_error(array('code' => 'notfound'), 404);
         }
-
-        // L'assurance scolaire de l'année en cours ne bloque que l'AJOUT
-        // d'un jour : un enfant déjà déclaré peut toujours être décoché
-        // même sans document à jour (pas de blocage rétroactif).
-        if ($checked && !Psc_Assurances::has_valid($child_id)) {
+        if ($allow_add && !Psc_Assurances::has_valid((int) $child->id)) {
             wp_send_json_error(array(
                 'code'    => 'assurance_missing',
                 'message' => __('L\'assurance scolaire de cet enfant n\'a pas été fournie pour l\'année en cours. Ajoutez-la depuis « Mes enfants » pour pouvoir déclarer des jours.', 'periscolaire-registration'),
             ), 403);
         }
+        return $child;
+    }
 
-        $trimestre = Psc_Trimestres::active();
-        if (!$trimestre) {
-            wp_send_json_error(array('code' => 'closed'), 403);
+    /* ================================================================
+     * ÉTAT DU PLANNING — charge utile commune à toutes les réponses
+     * ================================================================ */
+
+    /**
+     * État complet pour re-rendre l'écran sans recharger la page :
+     * cases du mois affiché (état effectif + origine + verrou), rythme de
+     * chaque enfant, frise (compteurs par mois — une requête groupée),
+     * récapitulatif fratrie du mois et estimation annuelle.
+     */
+    protected static function planning_state($parent, $child_id, $ym) {
+        $children = self::children_of($parent->id, true);
+        $year = Psc_School_Year::active();
+        $child_ids = array_map(function ($c) { return (int) $c->id; }, $children);
+
+        $summary  = Psc_Planning::year_summary($children, $year->year_key);
+        $patterns = Psc_Planning::load_patterns($child_ids);
+        $cells    = Psc_Planning::month_state($child_id, $ym);
+
+        $exceptions_count = 0;
+        foreach ($cells['cells'] as $date => $day) {
+            if ($day['locked']) continue;
+            foreach ($day['services'] as $svc) {
+                if ($svc['origin'] === 'exception') $exceptions_count++;
+            }
         }
 
-        $t_days = psc_table('calendar_days');
-        $day = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $t_days WHERE trimestre_id = %d AND jour_date = %s AND is_open = 1",
-            $trimestre->id, $date
-        ));
-        if (!$day) {
-            wp_send_json_error(array('code' => 'day_closed'), 403);
+        $per_child = array();
+        foreach ($child_ids as $cid) {
+            $m = isset($summary['months'][$ym]['per_child'][$cid]) ? $summary['months'][$ym]['per_child'][$cid] : array('days' => 0, 'amount' => 0.0);
+            $y = isset($summary['year']['per_child'][$cid]) ? $summary['year']['per_child'][$cid] : array('days' => 0, 'amount' => 0.0);
+            $per_child[$cid] = array(
+                'month_days'   => (int) $m['days'],
+                'month_amount' => round((float) $m['amount'], 2),
+                'year_days'    => (int) $y['days'],
+                'year_amount'  => round((float) $y['amount'], 2),
+            );
         }
 
-        // Délai de prévenance : vérifié CÔTÉ SERVEUR. Désactiver la case
-        // dans le navigateur ne suffit pas, un utilisateur peut réactiver
-        // le champ ou rejouer la requête.
-        if (psc_is_locked($date)) {
+        $frieze = array();
+        foreach ($summary['months'] as $key => $row) {
+            $frieze[$key] = (int) $row['days'];
+        }
+
+        $child = null;
+        $children_list = array();
+        foreach ($children as $c) {
+            $children_list[] = array(
+                'id'     => (int) $c->id,
+                'name'   => trim($c->prenom . ' ' . $c->nom),
+                'prenom' => $c->prenom,
+                'classe' => Psc_School_Years::classe_for($c->id),
+            );
+            if ((int) $c->id === (int) $child_id) { $child = $c; }
+        }
+
+        return array(
+            'year_key'         => $year->year_key,
+            'month'            => $ym,
+            'month_label'      => self::month_label($year, $ym),
+            'dates'            => $cells['dates'],
+            'cells'            => $cells['cells'],
+            // Cases « explicites » multi-enfants : l'écran Planning - 1 les
+            // applique telles quelles (une case cochée = une ligne stockée).
+            'explicit'         => Psc_Planning::month_explicit_map($child_ids, $ym),
+            'patterns'         => isset($patterns[$child_id]) ? $patterns[$child_id] : array(),
+            'all_patterns'     => $patterns,
+            'children_list'    => $children_list,
+            'frieze'           => $frieze,
+            'per_child'        => $per_child,
+            'month_days'       => isset($summary['months'][$ym]) ? (int) $summary['months'][$ym]['days'] : 0,
+            'month_amount'     => isset($summary['months'][$ym]) ? round((float) $summary['months'][$ym]['amount'], 2) : 0.0,
+            'year_days'        => (int) $summary['year']['days'],
+            'year_amount'      => round((float) $summary['year']['amount'], 2),
+            'exceptions_count' => $exceptions_count,
+            'active_child'     => $child ? array(
+                'id'     => (int) $child->id,
+                'name'   => trim($child->prenom . ' ' . $child->nom),
+                'classe' => Psc_School_Years::classe_for($child->id),
+            ) : null,
+        );
+    }
+
+    /** Mois demandé (YYYY-MM), restreint à l'année scolaire active. */
+    protected static function ajax_month($year) {
+        $requested = psc_post('month');
+        $months = wp_list_pluck(Psc_School_Year::months($year->year_key), 'key');
+        if (preg_match('/^\d{4}-\d{2}$/', $requested) && in_array($requested, $months, true)) {
+            return $requested;
+        }
+        // Mois courant s'il est dans l'année, sinon le premier.
+        $today = current_time('Y-m');
+        return in_array($today, $months, true) ? $today : $months[0];
+    }
+
+    /** Libellé lisible d'un mois de l'année ('Septembre 2026'). */
+    protected static function month_label($year, $ym) {
+        foreach (Psc_School_Year::months($year->year_key) as $m) {
+            if ($m['key'] === $ym) return $m['label'];
+        }
+        return $ym;
+    }
+
+    /* ================================================================
+     * ENDPOINTS
+     * ================================================================ */
+
+    /**
+     * Un clic sur une case du planning (variantes 1 et 2, zone exceptions).
+     * Le serveur calcule l'état effectif : cocher ce qui est déjà effectif
+     * ou décocher ce qui ne l'est pas provoque la SUPPRESSION de toute
+     * exception résiduelle (invariant) — cliquer deux fois un même jour ne
+     * laisse aucune ligne.
+     */
+    public static function ajax_toggle_exception() {
+        $parent = self::ajax_parent();
+        $year   = self::ajax_year();
+
+        $child_id = psc_post_int('child_id');
+        $date     = psc_valid_date(psc_post('date'));
+        $service  = psc_post('service_code');
+        $checked  = psc_post('checked') === '1';
+
+        if (!$child_id || !$date || !psc_is_valid_service($service)) {
+            wp_send_json_error(array('code' => 'invalid'), 400);
+        }
+        if ($date < $year->date_start || $date > $year->date_end) {
+            wp_send_json_error(array('code' => 'invalid'), 400);
+        }
+
+        $child = self::ajax_owned_child($parent, $child_id, $checked);
+
+        $result = Psc_Planning::toggle_exception($child_id, $date, $service, $checked);
+
+        if ($result['status'] === 'locked') {
             wp_send_json_error(array(
                 'code'    => 'locked',
                 'message' => sprintf(
@@ -154,55 +251,35 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
                 ),
             ), 403);
         }
-
-        // Fermeture par prestation (calendrier scolaire v2) : vérifiée
-        // CÔTÉ SERVEUR, comme le délai de prévenance ci-dessus — griser la
-        // case dans le navigateur ne suffit pas. Un enfant déjà déclaré
-        // peut toujours être décoché (pas de blocage rétroactif), donc ce
-        // contrôle ne s'applique qu'à une nouvelle déclaration ($checked).
-        if ($checked && self::service_closed_on($date, $service)) {
-            wp_send_json_error(array(
-                'code'    => 'service_closed',
-                'message' => __('Cette prestation est fermée ce jour-là. Contactez la mairie.', 'periscolaire-registration'),
-            ), 403);
+        if ($result['status'] === 'day_closed') {
+            wp_send_json_error(array('code' => 'day_closed'), 403);
+        }
+        if (!in_array($result['status'], array('added', 'removed'), true)) {
+            wp_send_json_error(array('code' => 'invalid'), 400);
         }
 
-        self::apply_registration($child_id, $trimestre->id, $date, $service, $checked);
-
-        wp_send_json_success();
+        wp_send_json_success(array(
+            'status' => $result['status'],
+            'state'  => self::planning_state($parent, $child_id, substr($date, 0, 7)),
+        ));
     }
 
     /**
-     * Bouton "Tout" par colonne de service (Planning cantine & garderie) : coche ou
-     * décoche en une fois tous les jours déclarables d'un mois pour un
-     * enfant/service donnés. Reçoit la liste exacte des dates depuis le
-     * client (celles rendues comme déclarables — non verrouillées — au
-     * chargement de la page), mais revalide chacune côté serveur (jour
-     * ouvert, non verrouillé) plutôt que de faire confiance à cette liste :
-     * son état a pu changer depuis le rendu de la page. Les dates rejetées
-     * sont ignorées silencieusement plutôt que d'échouer tout le lot — même
-     * principe de résilience que handle_cancel_absence(). Ne réutilise pas
-     * ajax_toggle() (même logique dupliquée par date) pour ne rien changer
-     * au comportement déjà en place du pointage case par case.
+     * Bouton « Tout / Retirer » par colonne de service (Planning - 1) :
+     * écrit les exceptions d'un lot de dates reçues du client (celles rendues
+     * non verrouillées au chargement), mais revalide chacune côté serveur —
+     * jour d'école, non verrouillé, prestation ouverte — plutôt que de faire
+     * confiance à cette liste, dont l'état a pu changer depuis le rendu de
+     * la page. Les dates rejetées sont ignorées silencieusement plutôt que
+     * d'échouer tout le lot.
      */
-    public static function ajax_toggle_bulk() {
-        check_ajax_referer('psc_front', 'nonce');
+    public static function ajax_toggle_exception_bulk() {
+        $parent = self::ajax_parent();
+        $year   = self::ajax_year();
 
-        $parent = Psc_Parents::current();
-        if (!$parent) {
-            wp_send_json_error(array('code' => 'auth'), 403);
-        }
-        // Jeton propre à cette famille : le nonce ci-dessus ne distingue pas
-        // les visiteurs non connectés entre eux (cf. psc_parent_nonce()).
-        if (!psc_verify_parent_nonce('psc_front', $parent->id, psc_post('parent_nonce'))) {
-            wp_send_json_error(array('code' => 'auth'), 403);
-        }
-
-        global $wpdb;
-
-        $child_id  = psc_post_int('child_id');
-        $service   = psc_post('service');
-        $checked   = psc_post('checked') === '1';
+        $child_id = psc_post_int('child_id');
+        $service  = psc_post('service_code');
+        $checked  = psc_post('checked') === '1';
         $raw_dates = isset($_POST['dates']) ? wp_unslash($_POST['dates']) : '';
         $raw_dates = is_array($raw_dates) ? $raw_dates : explode(',', (string) $raw_dates);
 
@@ -213,75 +290,145 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         $dates = array();
         foreach ($raw_dates as $raw) {
             $d = psc_valid_date($raw);
-            if ($d) $dates[$d] = $d; // dédoublonnage
+            if ($d && $d >= $year->date_start && $d <= $year->date_end) {
+                $dates[$d] = $d; // dédoublonnage
+            }
         }
         if (empty($dates)) {
             wp_send_json_error(array('code' => 'invalid'), 400);
         }
 
-        $t_child = psc_table('children');
-        $child = $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_child WHERE id = %d", $child_id));
-        if (!$child) {
-            wp_send_json_error(array('code' => 'notfound'), 404);
-        }
-        if ((int) $child->parent_id !== (int) $parent->id) {
-            wp_send_json_error(array('code' => 'forbidden'), 403);
-        }
+        $child = self::ajax_owned_child($parent, $child_id, $checked);
 
-        if ($checked && !Psc_Assurances::has_valid($child_id)) {
-            wp_send_json_error(array(
-                'code'    => 'assurance_missing',
-                'message' => __('L\'assurance scolaire de cet enfant n\'a pas été fournie pour l\'année en cours. Ajoutez-la depuis « Mes enfants » pour pouvoir déclarer des jours.', 'periscolaire-registration'),
-            ), 403);
-        }
+        $applied = Psc_Planning::toggle_exception_bulk($child_id, $dates, $service, $checked);
 
-        $trimestre = Psc_Trimestres::active();
-        if (!$trimestre) {
-            wp_send_json_error(array('code' => 'closed'), 403);
-        }
-
-        $t_days = psc_table('calendar_days');
-        $t_reg  = psc_table('registrations');
-        $applied = array();
-
-        foreach ($dates as $date) {
-            $day = $wpdb->get_row($wpdb->prepare(
-                "SELECT id FROM $t_days WHERE trimestre_id = %d AND jour_date = %s AND is_open = 1",
-                $trimestre->id, $date
-            ));
-            if (!$day) continue;
-
-            // Délai de prévenance revérifié par date : l'état a pu changer
-            // depuis le chargement de la page, on ignore silencieusement
-            // plutôt que d'échouer tout le lot.
-            if (psc_is_locked($date)) continue;
-
-            // Fermeture par prestation (calendrier scolaire v2), même
-            // revérification par date que le délai ci-dessus. Un jour
-            // refusé est ignoré silencieusement plutôt que d'échouer tout
-            // le lot — c'est la seule différence avec la case à l'unité.
-            if ($checked && self::service_closed_on($date, $service)) continue;
-
-            self::apply_registration($child_id, $trimestre->id, $date, $service, $checked);
-
-            $applied[] = $date;
-        }
-
-        wp_send_json_success(array('dates' => $applied));
+        wp_send_json_success(array(
+            'applied' => $applied,
+            'state'   => self::planning_state($parent, $child_id, substr($dates[0], 0, 7)),
+        ));
     }
 
-    public static function ajax_confirm() {
-        check_ajax_referer('psc_front', 'nonce');
+    /**
+     * Un clic sur la grille du rythme habituel (Planning - 2, étape 1) :
+     * une case cochée = une ligne de psc_pattern, valable jusqu'en juillet.
+     * Psc_Planning::toggle_pattern gèle les jours verrouillés concernés et
+     * purge les exceptions devenues du bruit.
+     */
+    public static function ajax_toggle_pattern() {
+        $parent = self::ajax_parent();
+        $year   = self::ajax_year();
 
-        $parent = Psc_Parents::current();
-        if (!$parent) {
-            wp_send_json_error(array('code' => 'auth'), 403);
+        $child_id = psc_post_int('child_id');
+        $weekday  = psc_post_int('weekday');
+        $service  = psc_post('service_code');
+        $checked  = psc_post('checked') === '1';
+
+        if (!$child_id || !psc_is_valid_service($service)) {
+            wp_send_json_error(array('code' => 'invalid'), 400);
         }
-        // Jeton propre à cette famille : le nonce ci-dessus ne distingue pas
-        // les visiteurs non connectés entre eux (cf. psc_parent_nonce()).
-        if (!psc_verify_parent_nonce('psc_front', $parent->id, psc_post('parent_nonce'))) {
-            wp_send_json_error(array('code' => 'auth'), 403);
+
+        $child = self::ajax_owned_child($parent, $child_id, $checked);
+
+        $result = Psc_Planning::toggle_pattern($child_id, $year->year_key, $weekday, $service, $checked);
+
+        if ($result['status'] === 'invalid') {
+            wp_send_json_error(array('code' => 'invalid'), 400);
         }
+
+        wp_send_json_success(array(
+            'status'  => $result['status'],
+            'frozen'  => isset($result['frozen']) ? (int) $result['frozen'] : 0,
+            'purged'  => isset($result['purged']) ? (int) $result['purged'] : 0,
+            'state'   => self::planning_state($parent, $child_id, self::ajax_month($year)),
+        ));
+    }
+
+    /**
+     * « Appliquer ce rythme à toute la fratrie » : le levier principal des
+     * familles nombreuses — 4 enfants au même rythme se déclarent en ~6
+     * clics. Les exceptions individuelles préexistantes sont conservées ;
+     * les jours verrouillés dont l'état change sont figés.
+     */
+    public static function ajax_apply_pattern_to_siblings() {
+        $parent = self::ajax_parent();
+        $year   = self::ajax_year();
+
+        $source_child_id = psc_post_int('source_child_id');
+        if (!$source_child_id) {
+            wp_send_json_error(array('code' => 'invalid'), 400);
+        }
+
+        $source = self::ajax_owned_child($parent, $source_child_id, true);
+
+        $children = self::children_of($parent->id, true);
+        $target_ids = array();
+        foreach ($children as $c) {
+            if ((int) $c->id !== (int) $source->id) $target_ids[] = (int) $c->id;
+        }
+        if (empty($target_ids)) {
+            wp_send_json_error(array('code' => 'nochild'), 400);
+        }
+
+        $results = Psc_Planning::apply_pattern_to_siblings($source->id, $target_ids);
+
+        wp_send_json_success(array(
+            'results' => $results,
+            'state'   => self::planning_state($parent, (int) $source->id, self::ajax_month($year)),
+        ));
+    }
+
+    /**
+     * « N exception(s) ce mois-ci — revenir au rythme » : purge les
+     * exceptions du mois affiché pour l'enfant actif (jours non verrouillés).
+     */
+    public static function ajax_reset_month_exceptions() {
+        $parent = self::ajax_parent();
+        $year   = self::ajax_year();
+
+        $child_id = psc_post_int('child_id');
+        $ym       = self::ajax_month($year);
+        if (!$child_id) {
+            wp_send_json_error(array('code' => 'invalid'), 400);
+        }
+
+        self::ajax_owned_child($parent, $child_id, false);
+
+        $deleted = Psc_Planning::reset_month_exceptions($child_id, $ym);
+
+        wp_send_json_success(array(
+            'deleted' => (int) $deleted,
+            'state'   => self::planning_state($parent, $child_id, $ym),
+        ));
+    }
+
+    /**
+     * Chargement du mois affiché (navigation ← →, onglets enfants) :
+     * jours du mois avec état effectif + origine, jamais l'année entière.
+     */
+    public static function ajax_load_month() {
+        $parent = self::ajax_parent();
+        $year   = self::ajax_year();
+
+        $child_id = psc_post_int('child_id');
+        if (!$child_id) {
+            wp_send_json_error(array('code' => 'invalid'), 400);
+        }
+        self::ajax_owned_child($parent, $child_id, false);
+
+        $ym = self::ajax_month($year);
+
+        wp_send_json_success(array(
+            'state' => self::planning_state($parent, $child_id, $ym),
+        ));
+    }
+
+    /**
+     * « Valider et recevoir mon planning » : envoie un récapitulatif ANNUEL
+     * — rythme par enfant + exceptions à venir + estimation annuelle.
+     */
+    public static function ajax_confirm() {
+        $parent = self::ajax_parent();
+        $year   = self::ajax_year();
 
         // Évite l'envoi répété de récapitulatifs (clics multiples).
         if (!psc_rate_limit('recap_' . $parent->id, 5, 10 * MINUTE_IN_SECONDS)) {
@@ -291,29 +438,17 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
             ), 429);
         }
 
-        $trimestre = Psc_Trimestres::active();
-        if (!$trimestre) {
-            wp_send_json_error(array('code' => 'closed'), 403);
-        }
-
-        $children = self::children_of($parent->id);
+        $children = self::children_of($parent->id, true);
         if (empty($children)) {
             wp_send_json_error(array('code' => 'nochild'), 400);
         }
 
-        $reg_map = self::reg_map($trimestre->id, $children);
+        $child_ids = array_map(function ($c) { return (int) $c->id; }, $children);
+        $summary   = Psc_Planning::year_summary($children, $year->year_key);
+        $patterns  = Psc_Planning::load_patterns($child_ids);
+        $upcoming  = Psc_Planning::upcoming_exceptions($child_ids, current_time('Y-m-d'));
 
-        // Calcul du diff par rapport au dernier récapitulatif envoyé
-        $snapshot_key = 'psc_recap_snap_' . $parent->id . '_' . $trimestre->id;
-        $prev_map     = get_transient($snapshot_key);
-        if (!is_array($prev_map)) $prev_map = array();
-
-        $diff_added   = array_keys(array_diff_key($reg_map, $prev_map));
-        $diff_removed = array_keys(array_diff_key($prev_map, $reg_map));
-
-        set_transient($snapshot_key, $reg_map, 180 * DAY_IN_SECONDS);
-
-        $sent = Psc_Mailer::send_recap($parent, $trimestre, $children, $reg_map, psc_services(), $diff_added, $diff_removed);
+        $sent = Psc_Mailer::send_recap($parent, $year, $children, $summary, $patterns, $upcoming, psc_services());
 
         if (!$sent) {
             wp_send_json_error(array(
@@ -328,20 +463,19 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
     }
 
     /**
-     * "Annulation prestations" depuis le tableau de bord : annule, pour un
-     * enfant donné, une sélection de prestations individuelles (pas
-     * forcément toute une journée). $_POST['items'] est un tableau de
-     * chaînes "YYYY-MM-DD|SERVICE" (une par case cochée) — cf.
-     * Psc_Frontend::absence_candidates() pour la construction de la liste
-     * proposée et
-     * assets/js/portal.js pour le remplissage du formulaire. Un forfait
-     * (FORF) est indivisible : les 3 lignes GM/CANT/GS qui le représentent
-     * dans l'UI portent toutes service=FORF, donc cocher n'importe laquelle
-     * (ou plusieurs) revient à annuler le même unique forfait — dédoublonné
-     * ci-dessous par date+service avant toute suppression. Même ordre de
-     * vérification que ajax_toggle() par prestation : appartenance de
-     * l'enfant, trimestre actif, jour ouvert, délai de préavis
-     * (psc_lock_hours) non dépassé — une prestation qui ne passe plus ces
+     * "Annulation prestations" depuis le tableau de bord : signale, pour un
+     * enfant donné, une sélection de prestations à venir. Dans le nouveau
+     * modèle, annuler = écrire une exception de RETRAIT (value false) pour
+     * chaque (date, service) — la mairie est notifiée par e-mail, la
+     * résolution fait le reste (non facturé, absent des listes). $_POST['items']
+     * est un tableau de chaînes "YYYY-MM-DD|SERVICE" — cf.
+     * Psc_Frontend::absence_candidates() pour la construction de la liste.
+     * Un forfait (FORF) est indivisible : les 3 lignes GM/CANT/GS qui le
+     * représentent dans l'UI portent service=FORF, donc cocher n'importe
+     * laquelle (ou plusieurs) revient à annuler le même forfait —
+     * dédoublonné ci-dessous par date+service. Même ordre de vérification
+     * que l'écriture unitaire : appartenance de l'enfant, jour d'école,
+     * délai de préavis non dépassé — une prestation qui ne passe pas ces
      * contrôles (entre le chargement de la popin et la soumission) est
      * silencieusement ignorée plutôt que de faire échouer tout le lot.
      */
@@ -349,7 +483,6 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         $parent = self::authed_parent('psc_cancel_absence');
         if (!$parent) self::parent_form_redirect('auth');
 
-        global $wpdb;
         $child_id  = psc_post_int('child_id');
         $raw_items = isset($_POST['items']) && is_array($_POST['items']) ? wp_unslash($_POST['items']) : array();
 
@@ -364,45 +497,28 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         }
         if (!$child_id || !$pairs) self::parent_form_redirect('absence_invalid');
 
-        $t_child = psc_table('children');
-        $owned = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $t_child WHERE id = %d AND parent_id = %d", $child_id, $parent->id
-        ));
-        if (!$owned) self::parent_form_redirect('absence_invalid');
-
-        $trimestre = Psc_Trimestres::active();
-        if (!$trimestre) self::parent_form_redirect('absence_invalid');
-
-        $t_days = psc_table('calendar_days');
-        $t_reg  = psc_table('registrations');
+        $child = self::owned_child($child_id, $parent->id);
+        if (!$child) self::parent_form_redirect('absence_invalid');
 
         $cancelled_by_date = array(); // date => [services annulés]
         foreach ($pairs as $pair) {
             $date    = $pair['date'];
             $service = $pair['service'];
 
-            $day = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM $t_days WHERE trimestre_id = %d AND jour_date = %s AND is_open = 1",
-                $trimestre->id, $date
-            ));
-            if (!$day || psc_is_locked($date)) continue;
+            if (!Psc_School_Year::is_school_day($date)) continue;
+            if (psc_is_locked($date)) continue;
 
-            $exists = $wpdb->get_var($wpdb->prepare(
-                "SELECT id FROM $t_reg WHERE child_id = %d AND jour_date = %s AND service = %s",
-                $child_id, $date, $service
-            ));
-            if (!$exists) continue; // déjà annulé entre-temps
+            // Déjà effectivement non déclaré ? Rien à écrire.
+            if (!Psc_Planning::is_declared($child_id, $date, $service)) continue;
 
-            $wpdb->delete($t_reg,
-                array('child_id' => $child_id, 'jour_date' => $date, 'service' => $service),
-                array('%d', '%s', '%s')
-            );
-            $cancelled_by_date[$date][] = $service;
+            $r = Psc_Planning::toggle_exception($child_id, $date, $service, false);
+            if ($r['status'] === 'added') {
+                $cancelled_by_date[$date][] = $service;
+            }
         }
 
         if (!$cancelled_by_date) self::parent_form_redirect('absence_invalid');
 
-        $child = $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_child WHERE id = %d", $child_id));
         foreach ($cancelled_by_date as $date => $services) {
             Psc_Mailer::notify_absence_cancelled($parent, $child, $date, $services);
         }

@@ -4,14 +4,14 @@
 
 <div class="psc-dash-stats">
     <div class="psc-dash-card">
-        <span class="psc-dash-card-label"><?php esc_html_e('Trimestre actif', 'periscolaire-registration'); ?></span>
-        <?php if ($stats['trimestre']): ?>
-        <span class="psc-dash-card-value"><?php echo esc_html($stats['trimestre']->label); ?></span>
+        <span class="psc-dash-card-label"><?php esc_html_e('Année scolaire', 'periscolaire-registration'); ?></span>
+        <?php if ($stats['annee']): ?>
+        <span class="psc-dash-card-value"><?php echo esc_html($stats['annee']->year_key); ?></span>
         <span class="psc-dash-card-sub">
-            <?php esc_html_e("jusqu'au", 'periscolaire-registration'); ?> <?php echo esc_html(date_i18n('d/m/Y', strtotime($stats['trimestre']->date_fin))); ?>
+            <?php echo esc_html(date_i18n('d/m/Y', strtotime($stats['annee']->date_start))); ?> → <?php echo esc_html(date_i18n('d/m/Y', strtotime($stats['annee']->date_end))); ?>
         </span>
         <?php else: ?>
-        <span class="psc-dash-card-value psc-dash-card-empty"><?php esc_html_e('Aucun', 'periscolaire-registration'); ?></span>
+        <span class="psc-dash-card-value psc-dash-card-empty"><?php esc_html_e('Aucune', 'periscolaire-registration'); ?></span>
         <?php endif; ?>
     </div>
     <div class="psc-dash-card">

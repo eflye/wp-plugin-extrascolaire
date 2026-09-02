@@ -27,13 +27,32 @@ function psc_now_ts() {
 
 /**
  * Délai minimal, en heures, avant le jour concerné, en deçà duquel un
- * parent ne peut plus modifier son planning. Par défaut 48 h.
+ * parent ne peut plus modifier son planning. La valeur vit dans la
+ * configuration de l'année scolaire (psc_school_year.lock_hours) — 48 h
+ * par défaut, repli sur l'option historique psc_lock_hours si aucune
+ * année n'est configurée.
+ *
+ * Le verrou s'applique aux DEUX écritures du modèle : une exception à
+ * moins de 48 h est refusée côté serveur, et un changement de pattern ne
+ * repropage jamais sur les jours déjà verrouillés (ils sont matérialisés
+ * en exceptions figées à la sauvegarde du pattern).
  */
 function psc_lock_hours() {
-    $h = (int) get_option('psc_lock_hours', 48);
+    static $cache = null;
+    if ($cache !== null) return $cache;
+
+    $h = null;
+    $year = class_exists('Psc_School_Year') ? Psc_School_Year::active() : null;
+    if ($year && $year->lock_hours !== null) {
+        $h = (int) $year->lock_hours;
+    }
+    if ($h === null) {
+        $h = (int) get_option('psc_lock_hours', 48);
+    }
     if ($h < 0) $h = 0;
     if ($h > 720) $h = 720; // 30 jours max
-    return $h;
+    $cache = $h;
+    return $cache;
 }
 
 /**

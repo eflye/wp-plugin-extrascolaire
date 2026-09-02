@@ -4,20 +4,38 @@ if (!defined('ABSPATH')) exit;
 class Psc_Invoices {
 
     /**
-     * Retourne les mois (YYYY-MM) pour lesquels des inscriptions existent.
+     * Mois facturables : ceux de l'année scolaire (le planning étant
+     * calculé — rythme + exceptions —, tout mois scolaire est facturable,
+     * qu'une famille ait ou non déclaré ce mois-là) plus ceux pour
+     * lesquels une facture existe déjà (historique). Triés du plus récent.
      */
     public static function months_with_data() {
+        $months = array();
+
+        foreach (Psc_School_Year::all() as $year) {
+            $cursor = new DateTime($year->date_start);
+            $end = new DateTime($year->date_end);
+            $guard = 0;
+            while ($cursor <= $end && $guard++ < 24) {
+                $months[$cursor->format('Y-m')] = true;
+                $cursor->modify('first day of next month');
+            }
+        }
+
         global $wpdb;
-        return $wpdb->get_col(
-            "SELECT DISTINCT DATE_FORMAT(jour_date, '%Y-%m') AS mois
-             FROM " . psc_table('registrations') . "
-             ORDER BY mois DESC"
-        );
+        $rows = $wpdb->get_col('SELECT DISTINCT mois FROM ' . psc_table('invoices'));
+        if ($rows) {
+            foreach ($rows as $m) $months[$m] = true;
+        }
+
+        $months = array_keys($months);
+        sort($months);
+        return array_reverse($months);
     }
 
     /**
      * Génère les factures PDF pour toutes les familles actives ayant des
-     * inscriptions sur le mois donné. Retourne le nombre de factures créées.
+     * déclarations sur le mois donné. Retourne le nombre de factures créées.
      */
     public static function generate_month($mois) {
         global $wpdb;
@@ -26,29 +44,49 @@ class Psc_Invoices {
             return new WP_Error('invalid_month', __('Format de mois invalide.', 'periscolaire-registration'));
         }
 
-        // Un mois en cours peut encore recevoir des inscriptions/annulations
+        // Un mois en cours peut encore recevoir des modifications
         // jusqu'à son dernier jour : générer la facture avant qu'il soit
         // terminé risquerait de la rendre incomplète ou incorrecte.
         if ($mois >= current_time('Y-m')) {
             return new WP_Error('month_not_finished', __('Ce mois n\'est pas encore terminé : les factures ne peuvent pas encore être générées.', 'periscolaire-registration'));
         }
 
-        $t_reg   = psc_table('registrations');
-        $t_child = psc_table('children');
-        $t_par   = psc_table('parents');
+        // Toutes les déclarations du mois, en un lot : les déclarations
+        // viennent de la source de vérité unique (psc_is_declared /
+        // Psc_Planning::declared_map) — jamais de l'ancienne table.
+        $dates = Psc_School_Year::school_days_in_month($mois);
+        if (!$dates) return 0;
 
-        $parent_ids = $wpdb->get_col($wpdb->prepare(
-            "SELECT DISTINCT p.id
-             FROM $t_reg r
-             JOIN $t_child c ON c.id = r.child_id
-             JOIN $t_par   p ON p.id = c.parent_id
-             WHERE DATE_FORMAT(r.jour_date, '%%Y-%%m') = %s
-               AND p.active = 1",
-            $mois
-        ));
+        $t_child = psc_table('children');
+        $children = $wpdb->get_results(
+            "SELECT c.id, c.parent_id FROM $t_child c
+             JOIN " . psc_table('parents') . " p ON p.id = c.parent_id
+             WHERE c.statut = 'actif' AND p.active = 1"
+        );
+        if (!$children) return 0;
+
+        $child_ids = array();
+        $child_parent = array();
+        foreach ($children as $c) {
+            $child_ids[] = (int) $c->id;
+            $child_parent[(int) $c->id] = (int) $c->parent_id;
+        }
+
+        $declared = Psc_Planning::declared_map($child_ids, $dates);
+        $forf = psc_forfait_code();
+
+        $parent_ids = array();
+        foreach ($child_ids as $cid) {
+            foreach ($dates as $date) {
+                $day = isset($declared[$cid][$date]) ? $declared[$cid][$date] : array();
+                if (!in_array(true, $day, true)) continue;
+                $parent_ids[$child_parent[$cid]] = true;
+                break;
+            }
+        }
 
         $count = 0;
-        foreach ($parent_ids as $parent_id) {
+        foreach (array_keys($parent_ids) as $parent_id) {
             $result = self::generate_one((int) $parent_id, $mois);
             if (!is_wp_error($result)) {
                 $count++;
@@ -73,7 +111,6 @@ class Psc_Invoices {
             return new WP_Error('no_parent', __('Famille introuvable.', 'periscolaire-registration'));
         }
 
-        $t_reg   = psc_table('registrations');
         $t_child = psc_table('children');
 
         // All children of this parent (shown in PDF even with 0 registrations)
@@ -85,26 +122,30 @@ class Psc_Invoices {
             return new WP_Error('no_children', __('Aucun enfant pour cette famille.', 'periscolaire-registration'));
         }
 
-        // Registrations for this month: service + child_id
-        $regs = $wpdb->get_results($wpdb->prepare(
-            "SELECT r.service, c.id AS child_id
-             FROM $t_reg r
-             JOIN $t_child c ON c.id = r.child_id
-             WHERE c.parent_id = %d
-               AND DATE_FORMAT(r.jour_date, '%%Y-%%m') = %s",
-            $parent_id, $mois
-        ));
-        if (empty($regs)) {
-            return new WP_Error('no_data', __('Aucune inscription ce mois-ci.', 'periscolaire-registration'));
-        }
+        // Déclarations du mois, source de vérité unique : psc_is_declared
+        // (rythme habituel + exceptions, jours d'école calculés). Un forfait
+        // déclaré est compté à lui seul ; quand une composante est fermée,
+        // le forfait retombe sur les prestations restantes (psc_billing_services).
+        $child_ids = array_map(function ($c) { return (int) $c->id; }, $children);
+        $dates = Psc_School_Year::school_days_in_month($mois);
+        $declared = $dates ? Psc_Planning::declared_map($child_ids, $dates) : array();
 
         // Build grid[service_code][child_id] = count
         $grid = array();
-        foreach ($regs as $r) {
-            if (!isset($grid[$r->service])) {
-                $grid[$r->service] = array();
+        $has_data = false;
+        foreach ($declared as $cid => $by_date) {
+            foreach ($by_date as $day) {
+                foreach (psc_billing_services($day) as $svc) {
+                    if (!isset($grid[$svc])) {
+                        $grid[$svc] = array();
+                    }
+                    $grid[$svc][$cid] = ($grid[$svc][$cid] ?? 0) + 1;
+                    $has_data = true;
+                }
             }
-            $grid[$r->service][$r->child_id] = ($grid[$r->service][$r->child_id] ?? 0) + 1;
+        }
+        if (!$has_data) {
+            return new WP_Error('no_data', __('Aucune inscription ce mois-ci.', 'periscolaire-registration'));
         }
 
         $services = psc_services();

@@ -160,6 +160,52 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 'phone_pattern_title'   => __('Format attendu : 06 12 34 56 78 ou +33 6 12 34 56 78.', 'periscolaire-registration'),
                 'postcode_pattern_title' => __('Format attendu : 5 chiffres.', 'periscolaire-registration'),
                 'child_birthdate_max'   => psc_child_birthdate_max(),
+                // Écran Planning - 2 (planning-2.js) : libellés d'état et
+                // confirmations côté client.
+                'day_0'          => __('Dimanche', 'periscolaire-registration'),
+                'day_1'          => __('Lundi', 'periscolaire-registration'),
+                'day_2'          => __('Mardi', 'periscolaire-registration'),
+                'day_3'          => __('Mercredi', 'periscolaire-registration'),
+                'day_4'          => __('Jeudi', 'periscolaire-registration'),
+                'day_5'          => __('Vendredi', 'periscolaire-registration'),
+                'day_6'          => __('Samedi', 'periscolaire-registration'),
+                'day_short_0'    => __('Dim.', 'periscolaire-registration'),
+                'day_short_1'    => __('Lun.', 'periscolaire-registration'),
+                'day_short_2'    => __('Mar.', 'periscolaire-registration'),
+                'day_short_3'    => __('Mer.', 'periscolaire-registration'),
+                'day_short_4'    => __('Jeu.', 'periscolaire-registration'),
+                'day_short_5'    => __('Ven.', 'periscolaire-registration'),
+                'day_short_6'    => __('Sam.', 'periscolaire-registration'),
+                'exc_all'        => __('Tout', 'periscolaire-registration'),
+                'exc_none'       => __('Aucun', 'periscolaire-registration'),
+                'exc_bar_month'  => __('ce mois', 'periscolaire-registration'),
+                'recap_year_suffix' => __("sur l'année", 'periscolaire-registration'),
+                'locked_title'   => __('Verrouillé (délai de modification dépassé)', 'periscolaire-registration'),
+                'modifiable_until' => psc_lock_message(current_time('Y-m-d')),
+                'exc_state_pattern' => __('Rythme habituel', 'periscolaire-registration'),
+                'exc_state_add'     => __('Ajout exceptionnel', 'periscolaire-registration'),
+                'exc_state_remove'  => __('Retiré ce jour-là', 'periscolaire-registration'),
+                'exc_state_none'    => __('Non déclaré', 'periscolaire-registration'),
+                'exc_state_locked'  => __('Verrouillé (délai de modification dépassé)', 'periscolaire-registration'),
+                'exc_reset_link'    => __('%s exception(s) ce mois-ci — revenir au rythme', 'periscolaire-registration'),
+                'exc_reset_confirm' => __("Retirer toutes les exceptions de ce mois-ci et revenir au rythme habituel ? Les jours déjà verrouillés ne sont pas touchés.", 'periscolaire-registration'),
+                'exc_reset_done'    => __('%s exception(s) retirée(s) : ce mois-ci suit de nouveau le rythme habituel.', 'periscolaire-registration'),
+                'apply_siblings_confirm' => __("Appliquer ce rythme à toute la fratrie ? Le rythme habituel des autres enfants sera remplacé (leurs exceptions personnelles sont conservées).", 'periscolaire-registration'),
+                'apply_siblings_done'    => __('Rythme appliqué à toute la fratrie.', 'periscolaire-registration'),
+                'apply_siblings_empty'   => __('Cochez d\'abord au moins une case du rythme habituel.', 'periscolaire-registration'),
+                'frozen_days'       => __('%s jour(s) déjà transmis à la cantine ont été figés : leur état ne change pas.', 'periscolaire-registration'),
+                'recap_month'       => __('Mois : %1$s jour(s) · %2$s €', 'periscolaire-registration'),
+                'recap_year'        => __('Année : %1$s jour(s) · %2$s €', 'periscolaire-registration'),
+                // Wizard invité (guest.js) : allergies + rythme habituel.
+                'allergy_toggle'     => __('Cet enfant a une allergie alimentaire', 'periscolaire-registration'),
+                'allergy_placeholder' => __('Aliments à exclure des repas, réaction en cas d\'ingestion, conduite à tenir.', 'periscolaire-registration'),
+                'allergy_help'       => __("Strictement alimentaire. La mairie vous contactera si un PAI (projet d'accueil individualisé) doit être mis en place. Aucun menu différencié n'est proposé : l'enfant déjeune à la cantine avec son propre repas fourni par la famille.", 'periscolaire-registration'),
+                'rhythm_label'       => __('Rythme habituel prévu (facultatif — modifiable toute l\'année depuis votre espace)', 'periscolaire-registration'),
+                'rhythm_help'        => __("Le mercredi n'est pas un jour de service. Ces choix préremplissent votre planning pour toute l'année scolaire : vous pourrez l'ajuster à tout moment.", 'periscolaire-registration'),
+                'rhythm_GM'          => psc_service_short_labels()['GM'],
+                'rhythm_CANT'        => psc_service_short_labels()['CANT'],
+                'rhythm_GS'          => psc_service_short_labels()['GS'],
+                'rhythm_FORF'        => psc_service_short_labels()['FORF'],
             ),
         ));
 
@@ -175,38 +221,44 @@ class Psc_Frontend extends Psc_Frontend_Base {
             // modales de portal.js et le tour de découverte.
             wp_enqueue_script('psc-dialog', PSC_URL . 'assets/js/psc-dialog.js', array(), PSC_VERSION, true);
             wp_enqueue_script('psc-portal', PSC_URL . 'assets/js/portal.js', array('psc-ajax', 'psc-dialog'), PSC_VERSION, true);
+            // Écran Planning - 2 (rythme + exceptions) : re-rendu des zones
+            // après chaque écriture AJAX, navigation mois et onglets enfants.
+            wp_enqueue_script('psc-planning-2', PSC_URL . 'assets/js/planning-2.js', array('psc-ajax'), PSC_VERSION, true);
         } else {
             wp_enqueue_script('psc-guest', PSC_URL . 'assets/js/guest.js', array(), PSC_VERSION, true);
         }
     }
 
-    /**
-     * Construit la table des prestations fermées individuellement (calendrier
-     * scolaire v2) pour une liste de jours. Clé : date|service — même
-     * principe que reg_map(), mais sans dimension enfant (une fermeture de
-     * prestation s'applique à toute la structure, pas à un enfant en particulier).
-     */
-    protected static function service_closures_map($days) {
-        if (empty($days)) return array();
-        global $wpdb;
-
-        $dates = wp_list_pluck($days, 'jour_date');
-        $placeholders = implode(',', array_fill(0, count($dates), '%s'));
-        $t = psc_table('service_closures');
-
-        $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT jour_date, service FROM $t WHERE jour_date IN ($placeholders)",
-            $dates
-        ));
-
-        $map = array();
-        foreach ($rows as $r) {
-            $map[$r->jour_date . '|' . $r->service] = 1;
-        }
-        return $map;
-    }
-
     /* ---------------- Espace famille v2 ("Family Portal") ---------------- */
+
+    /**
+     * Onglet Planning : les deux variantes (Planning - 1 « saisie jour par
+     * jour », Planning - 2 « rythme + exceptions ») lisent et écrivent LE
+     * MÊME modèle — une saisie faite dans l'une se retrouve dans l'autre,
+     * aucune synchronisation. Le réglage psc_planning_variant (Réglages)
+     * limite l'exposition à une seule variante sans redéploiement ; un
+     * onglet unique s'appelle alors simplement « Planning ».
+     */
+    protected static function planning_tab_defs() {
+        $variants = psc_planning_variants();
+        $single   = psc_planning_single_variant();
+        $icon     = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="5" width="17" height="15" rx="1"/><path d="M3.5 9.5h17"/><path d="M8 3v3M16 3v3"/></svg>';
+
+        $defs = array();
+        if (in_array('cantine', $variants, true)) {
+            $defs['cantine'] = array(
+                'label' => $single ? __('Planning', 'periscolaire-registration') : __('Planning - 1', 'periscolaire-registration'),
+                'icon'  => $icon,
+            );
+        }
+        if (in_array('cantine2', $variants, true)) {
+            $defs['cantine2'] = array(
+                'label' => $single ? __('Planning', 'periscolaire-registration') : __('Planning - 2', 'periscolaire-registration'),
+                'icon'  => $icon,
+            );
+        }
+        return $defs;
+    }
 
     protected static function portal_tab_defs() {
         $tabs = array(
@@ -214,34 +266,31 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 'label' => __('Tableau de bord', 'periscolaire-registration'),
                 'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9h13v-9"/><path d="M10 19v-6h4v6"/></svg>',
             ),
-            'cantine' => array(
-                'label' => __('Planning', 'periscolaire-registration'),
-                'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="5" width="17" height="15" rx="1"/><path d="M3.5 9.5h17"/><path d="M8 3v3M16 3v3"/></svg>',
-            ),
-            'menu' => array(
-                'label' => __('Menu de la semaine', 'periscolaire-registration'),
-                'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3v8a2 2 0 0 0 4 0V3M6 6h4"/><path d="M14 3c-1.2 1.3-1.2 6 0 8M14 3v18M17 3v6a2 2 0 0 0 2 2v10"/></svg>',
-            ),
-            'enfants' => array(
-                'label' => __('Mes enfants', 'periscolaire-registration'),
-                'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="7" r="3.2"/><path d="M5 20c0-3.5 3.2-6 7-6s7 2.5 7 6"/></svg>',
-            ),
-            'habilitations' => array(
-                'label' => __('Habilitations', 'periscolaire-registration'),
-                'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l7 3v5c0 4.6-3 7.6-7 9-4-1.4-7-4.4-7-9V6l7-3Z"/><path d="M9 11.5l2 2 4-4"/></svg>',
-            ),
-            'factures' => array(
-                'label' => __('Mes factures', 'periscolaire-registration'),
-                'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2Z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>',
-            ),
-            'profil' => array(
-                'label' => __('Mon profil', 'periscolaire-registration'),
-                'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-4 3.1-7 7-7s7 3 7 7"/></svg>',
-            ),
-            'documents' => array(
-                'label' => __('Documents', 'periscolaire-registration'),
-                'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>',
-            ),
+        );
+        $tabs = array_merge($tabs, self::planning_tab_defs());
+        $tabs['menu'] = array(
+            'label' => __('Menu de la semaine', 'periscolaire-registration'),
+            'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3v8a2 2 0 0 0 4 0V3M6 6h4"/><path d="M14 3c-1.2 1.3-1.2 6 0 8M14 3v18M17 3v6a2 2 0 0 0 2 2v10"/></svg>',
+        );
+        $tabs['enfants'] = array(
+            'label' => __('Mes enfants', 'periscolaire-registration'),
+            'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="7" r="3.2"/><path d="M5 20c0-3.5 3.2-6 7-6s7 2.5 7 6"/></svg>',
+        );
+        $tabs['habilitations'] = array(
+            'label' => __('Habilitations', 'periscolaire-registration'),
+            'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l7 3v5c0 4.6-3 7.6-7 9-4-1.4-7-4.4-7-9V6l7-3Z"/><path d="M9 11.5l2 2 4-4"/></svg>',
+        );
+        $tabs['factures'] = array(
+            'label' => __('Mes factures', 'periscolaire-registration'),
+            'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2Z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>',
+        );
+        $tabs['profil'] = array(
+            'label' => __('Mon profil', 'periscolaire-registration'),
+            'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-4 3.1-7 7-7s7 3 7 7"/></svg>',
+        );
+        $tabs['documents'] = array(
+            'label' => __('Documents', 'periscolaire-registration'),
+            'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>',
         );
         // Onglet supplémentaire, visible seulement pendant la fenêtre de
         // réinscription ouverte par la mairie (Réglages) — pas une gestion
@@ -267,6 +316,13 @@ class Psc_Frontend extends Psc_Frontend_Base {
         $known = array_keys(self::portal_tab_defs());
         $requested = isset($_GET['psc_tab']) ? sanitize_key(wp_unslash($_GET['psc_tab'])) : '';
         $tab = in_array($requested, $known, true) ? $requested : 'dashboard';
+
+        // Un onglet Planning demandé mais non exposé (réglage variante) :
+        // retombe sur le premier onglet Planning disponible, sinon dashboard.
+        if (in_array($tab, array('cantine', 'cantine2'), true) && !in_array($tab, $known, true)) {
+            $planning = array_intersect(array('cantine', 'cantine2'), $known);
+            $tab = $planning ? reset($planning) : 'dashboard';
+        }
 
         if (in_array($psc_msg, array(
             'child_updated', 'child_added', 'child_invalid', 'child_limit', 'child_bad_birthdate',
@@ -314,38 +370,32 @@ class Psc_Frontend extends Psc_Frontend_Base {
     }
 
     /**
-     * Statistiques du tableau de bord : cumul période (tous enfants
-     * actifs confondus), prochaine facture non envoyée, menu de la
-     * semaine réelle en cours, résumé par enfant.
+     * Statistiques du tableau de bord : cumul ANNÉE scolaire (tous enfants
+     * actifs confondus — plus aucune notion de trimestre), prochaine facture
+     * non envoyée, menu de la semaine réelle en cours, résumé par enfant.
+     * Les déclarations viennent de Psc_Planning::year_summary() (source de
+     * vérité unique, un lot de requêtes).
      */
-    protected static function dashboard_data($parent, $children, $days_by_month, $reg_map, $services, $invoices) {
-        $days_count = 0;
-        $amount = 0.0;
+    protected static function dashboard_data($parent, $children, $year_summary, $invoices) {
+        $year = $year_summary['year'];
+        $days_count = $year['days'];
+        $amount = $year['amount'];
         $children_summaries = array();
 
         foreach ($children as $child) {
-            $child_days = 0;
-            $child_amount = 0.0;
-            foreach ($days_by_month as $days) {
-                foreach ($days as $d) {
-                    $has_reg = false;
-                    foreach (psc_allowed_services() as $s) {
-                        if (isset($reg_map[$child->id . '|' . $d->jour_date . '|' . $s])) {
-                            $has_reg = true;
-                            $child_amount += (float) $services[$s]['price'];
-                        }
-                    }
-                    if ($has_reg) $child_days++;
-                }
-            }
-            $days_count += $child_days;
-            $amount += $child_amount;
+            $cid = (int) $child->id;
+            $child_days = isset($year['per_child'][$cid]) ? $year['per_child'][$cid]['days'] : 0;
+            $child_amount = isset($year['per_child'][$cid]) ? $year['per_child'][$cid]['amount'] : 0.0;
 
             $diet_bits = array();
             if ((int) $child->sans_porc) $diet_bits[] = __('Sans porc', 'periscolaire-registration');
             if ((int) $child->vegan) $diet_bits[] = __('Sans viande', 'periscolaire-registration');
             $meta = Psc_School_Years::classe_for($child->id);
             if ($diet_bits) $meta .= ($meta !== '' ? ' · ' : '') . implode(', ', $diet_bits);
+            $allergies = trim((string) $child->food_allergies);
+            if ($allergies !== '') {
+                $meta .= ($meta !== '' ? ' · ' : '') . __('Allergies alimentaires', 'periscolaire-registration');
+            }
             if ($meta === '') $meta = '—';
 
             $children_summaries[] = array(
@@ -383,47 +433,50 @@ class Psc_Frontend extends Psc_Frontend_Base {
     }
 
     /**
-     * Prestations à venir, non verrouillées, déjà cochées pour chaque
-     * enfant — sert à peupler la popin "Annulation prestations" du tableau
-     * de bord. Un forfait journée (FORF) couvre GM+CANT+GS pour un prix
-     * unique et indivisible : il est listé comme 3 prestations séparées
-     * pour la lisibilité, mais les 3 pointent vers la même inscription —
-     * en cocher une seule annule le forfait en entier (cf.
-     * Psc_Frontend_Inscriptions::handle_cancel_absence(), qui dédoublonne
-     * par date+service). Un enfant sans prestation annulable n'apparaît
-     * pas dans le résultat.
+     * Prestations à venir, non verrouillées, déclarées pour chaque enfant —
+     * sert à peupler la popin "Annulation prestations" du tableau de bord.
+     * Les déclarations viennent de la carte de résolution (psc_is_declared)
+     * : un forfait journée (FORF) couvre GM+CANT+GS pour un prix unique et
+     * indivisible — il est listé comme 3 prestations séparées pour la
+     * lisibilité, mais les 3 pointent vers la même exception — en cocher
+     * une seule annule le forfait en entier. Un enfant sans prestation
+     * annulable n'apparaît pas dans le résultat.
      */
-    protected static function absence_candidates($children) {
-        global $wpdb;
-        $t_reg  = psc_table('registrations');
-        $t_days = psc_table('calendar_days');
+    protected static function absence_candidates($children, $declared) {
         $today  = current_time('Y-m-d');
         $svc_labels = psc_services();
 
         $out = array();
         foreach ($children as $child) {
-            $rows = $wpdb->get_results($wpdb->prepare(
-                "SELECT r.jour_date, r.service FROM $t_reg r
-                 INNER JOIN $t_days d ON d.jour_date = r.jour_date AND d.is_open = 1
-                 WHERE r.child_id = %d AND r.jour_date >= %s
-                 ORDER BY r.jour_date ASC",
-                $child->id, $today
-            ));
+            $dates = isset($declared[(int) $child->id]) ? $declared[(int) $child->id] : array();
+            ksort($dates);
             $items = array();
-            foreach ($rows as $row) {
-                if (psc_is_locked($row->jour_date)) continue;
-                $day_label = psc_day_label($row->jour_date) . ' ' . date_i18n('d/m/Y', strtotime($row->jour_date));
-                // Un forfait se lit comme les trois prestations qu'il couvre :
-                // la famille les voit détaillées, mais c'est bien le forfait
-                // entier qui sera annulé (cf. 'service' ci-dessous).
-                $sub_services = $row->service === psc_forfait_code()
-                    ? psc_unit_services()
-                    : array($row->service);
-                foreach ($sub_services as $sub) {
+            foreach ($dates as $date => $services_map) {
+                if ($date < $today) continue;
+                if (psc_is_locked($date)) continue;
+                if (!Psc_School_Year::is_school_day($date)) continue;
+
+                $day_label = psc_day_label($date) . ' ' . date_i18n('d/m/Y', strtotime($date));
+                $forf = psc_forfait_code();
+                if (!empty($services_map[$forf])) {
+                    // Un forfait se lit comme les trois prestations qu'il couvre :
+                    // la famille les voit détaillées, mais c'est bien le forfait
+                    // entier qui sera annulé (cf. 'service' ci-dessous).
+                    foreach (psc_unit_services() as $sub) {
+                        $items[] = array(
+                            'date'    => $date,
+                            'service' => $forf, // valeur réellement annulée (FORF)
+                            'label'   => $day_label . ' — ' . ($svc_labels[$sub]['label'] ?? $sub),
+                        );
+                    }
+                    continue;
+                }
+                foreach (psc_unit_services() as $svc) {
+                    if (empty($services_map[$svc])) continue;
                     $items[] = array(
-                        'date'    => $row->jour_date,
-                        'service' => $row->service, // valeur réellement annulée (FORF si forfait)
-                        'label'   => $day_label . ' — ' . ($svc_labels[$sub]['label'] ?? $sub),
+                        'date'    => $date,
+                        'service' => $svc,
+                        'label'   => $day_label . ' — ' . ($svc_labels[$svc]['label'] ?? $svc),
                     );
                 }
             }
@@ -494,35 +547,51 @@ class Psc_Frontend extends Psc_Frontend_Base {
             return ob_get_clean();
         }
 
-        $trimestre    = Psc_Trimestres::active();
+        // Ceinture de sécurité : la configuration du planning de l'année
+        // en cours doit exister (dates, fériés) même si la mairie n'a rien
+        // fait depuis la mise à jour.
+        Psc_School_Year::ensure_default();
+
         $all_children = self::children_of($parent->id);               // pour la section "Mes enfants"
-        $children     = self::children_of($parent->id, true);         // uniquement actifs → calendrier
-        $days_by_month = array();
-        $reg_map = array();
-        $service_closures_map = array();
-
-        if ($trimestre) {
-            global $wpdb;
-            $t_days = psc_table('calendar_days');
-            $days = $wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM $t_days WHERE trimestre_id = %d AND is_open = 1 ORDER BY jour_date",
-                $trimestre->id
-            ));
-            foreach ($days as $d) {
-                $days_by_month[date_i18n('F Y', strtotime($d->jour_date))][] = $d;
-            }
-            $reg_map = self::reg_map($trimestre->id, $children);
-            $service_closures_map = self::service_closures_map($days);
-        }
-
+        $children     = self::children_of($parent->id, true);         // uniquement actifs → planning
         $services = psc_services();
         $invoices = Psc_Invoices::get_for_parent($parent->id);
+
+        // Année scolaire et mois affiché (navigation ← →, ?psc_mois=YYYY-MM).
+        $psc_year = Psc_School_Year::active();
+        $psc_months = Psc_School_Year::months();
+        $psc_month_keys = wp_list_pluck($psc_months, 'key');
+        $psc_month_key = '';
+        foreach ($psc_months as $m) {
+            $t = current_time('Y-m');
+            if ($m['key'] === $t) { $psc_month_key = $m['key']; break; }
+        }
+        if (!$psc_month_key && $psc_month_keys) {
+            // Hors période scolaire (été) : premier mois de l'année.
+            $psc_month_key = $psc_month_keys[0];
+        }
+        $requested_month = isset($_GET['psc_mois']) ? sanitize_text_field(wp_unslash($_GET['psc_mois'])) : '';
+        if (preg_match('/^\d{4}-\d{2}$/', $requested_month) && in_array($requested_month, $psc_month_keys, true)) {
+            $psc_month_key = $requested_month;
+        }
+        $psc_month_index = array_search($psc_month_key, $psc_month_keys, true);
+        $psc_prev_month  = $psc_month_index > 0 ? $psc_month_keys[$psc_month_index - 1] : null;
+        $psc_next_month  = $psc_month_index !== false && $psc_month_index < count($psc_month_keys) - 1 ? $psc_month_keys[$psc_month_index + 1] : null;
+        $psc_month_label = '';
+        foreach ($psc_months as $m) {
+            if ($m['key'] === $psc_month_key) { $psc_month_label = $m['label']; break; }
+        }
+
+        // Année scolaire : récap fratrie + estimation (frise, cartes,
+        // tableau de bord) — un seul lot de résolutions.
+        $psc_year_summary = Psc_Planning::year_summary($children);
+        $psc_planning_variant = null;
+        $psc_planning_data = null;
 
         $active_tab       = self::resolve_active_tab($psc_msg);
         $psc_portal_tabs  = self::portal_tabs_data();
         $psc_portal_menu  = Psc_Frontend_Menus::portal_menu_data();
-        $psc_portal_dashboard = self::dashboard_data($parent, $children, $days_by_month, $reg_map, $services, $invoices);
-        $psc_portal_absence_days = self::absence_candidates($children);
+        $psc_portal_dashboard = self::dashboard_data($parent, $children, $psc_year_summary, $invoices);
         $psc_assurance_map = Psc_Assurances::map_for($all_children);
 
         // Uniquement les enfants actifs : un enfant sorti disparaît du
@@ -532,6 +601,60 @@ class Psc_Frontend extends Psc_Frontend_Base {
         foreach ($children as $child) {
             $psc_pickup_map[$child->id] = Psc_Pickup_Persons::for_child($child->id);
         }
+
+        // Données propres aux écrans Planning : les deux variantes exposées
+        // sont rendues dans le DOM (la navigation d'onglets bascule
+        // localement, cf. portal.js) — seul le mois affiché est rendu, jamais
+        // l'année entière.
+        if (in_array($active_tab, array('cantine', 'cantine2'), true) || !empty($psc_portal_tabs['cantine'])) {
+            $child_ids = array_map(function ($c) { return (int) $c->id; }, $children);
+            $month_dates = Psc_School_Year::school_days_in_month($psc_month_key);
+            Psc_School_Calendar::preload_closed($month_dates);
+            $psc_declared = Psc_Planning::declared_map($child_ids, $month_dates);
+
+            $psc_planning_variant = null;
+            $psc_planning_data = array(
+                'month_dates' => $month_dates,
+                'declared'    => $psc_declared,
+                // Cases « explicites » de la variante 1 : une case cochée =
+                // une ligne stockée (pattern ou exception), le forfait ne
+                // couvrant que sa propre colonne.
+                'explicit'    => Psc_Planning::month_explicit_map($child_ids, $psc_month_key),
+                'active_child' => 0,
+                'patterns'    => array(),
+                'cells'       => array('dates' => array(), 'cells' => array()),
+            );
+
+            // Popin "Annulation prestations" du tableau de bord : les
+            // déclarations à venir (non verrouillées), calculées sur le
+            // reste de l'année scolaire.
+            $psc_planning_data['year_declared'] = Psc_Planning::declared_map(
+                $child_ids,
+                Psc_School_Year::school_days(current_time('Y-m-d'), $psc_year->date_end)
+            );
+        }
+
+        // Écran Planning - 2 (rythme + exceptions) : enfant affiché (onglets).
+        if ($active_tab === 'cantine2') {
+            // Enfant affiché (onglets) : ?psc_child= ou le premier.
+            $requested_child = isset($_GET['psc_child']) ? absint($_GET['psc_child']) : 0;
+            foreach ($children as $c) {
+                if ((int) $c->id === $requested_child) { $psc_planning_data['active_child'] = $requested_child; break; }
+            }
+            if (!$psc_planning_data['active_child'] && $children) {
+                $psc_planning_data['active_child'] = (int) $children[0]->id;
+            }
+
+            $psc_planning_data['patterns'] = Psc_Planning::load_patterns(array_map(function ($c) { return (int) $c->id; }, $children));
+            $psc_planning_data['cells'] = $psc_planning_data['active_child']
+                ? Psc_Planning::month_state($psc_planning_data['active_child'], $psc_month_key)
+                : array('dates' => array(), 'cells' => array());
+        }
+
+        $psc_portal_absence_days = $children ? self::absence_candidates(
+            $children,
+            isset($psc_planning_data['year_declared']) ? $psc_planning_data['year_declared'] : array()
+        ) : array();
 
         $psc_portal_reinscription = null;
         if (isset($psc_portal_tabs['reinscription'])) {

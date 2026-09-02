@@ -31,7 +31,22 @@ psc_admin_notice_map(array(
 <td>
   <input id="psc-lock" type="number" name="lock_hours" min="0" max="720" step="1"
          value="<?php echo esc_attr(psc_lock_hours()); ?>" class="small-text"> <?php esc_html_e('heures', 'periscolaire-registration'); ?>
-  <p class="description"><?php esc_html_e('48 heures par défaut. Mettre 0 pour désactiver totalement le verrouillage.', 'periscolaire-registration'); ?></p>
+  <p class="description"><?php esc_html_e('48 heures par défaut. Mettre 0 pour désactiver totalement le verrouillage. Ce délai peut aussi être ajusté par année scolaire (Périscolaire > Années scolaires).', 'periscolaire-registration'); ?></p>
+</td>
+</tr>
+</table>
+
+<h2><?php esc_html_e('Écran Planning des familles', 'periscolaire-registration'); ?></h2>
+<p><?php esc_html_e('Deux variantes sont livrées en parallèle pour que la mairie tranche sur pièces : Planning - 1 (saisie jour par jour) et Planning - 2 (rythme habituel + exceptions). Les deux écrans lisent et écrivent le même modèle — une saisie faite dans l\'un se retrouve dans l\'autre. Une fois l\'écran non retenu choisi, exposez-le seul ici : le retrait se fait sans redéploiement.', 'periscolaire-registration'); ?></p>
+<table class="form-table">
+<tr>
+<th><label for="psc-planning-variant"><?php esc_html_e('Variante exposée', 'periscolaire-registration'); ?></label></th>
+<td>
+  <select id="psc-planning-variant" name="planning_variant">
+    <option value="both" <?php selected(get_option('psc_planning_variant', 'both'), 'both'); ?>><?php esc_html_e('Les deux (Planning - 1 et Planning - 2)', 'periscolaire-registration'); ?></option>
+    <option value="1" <?php selected(get_option('psc_planning_variant', 'both'), '1'); ?>><?php esc_html_e('Planning - 1 seulement (saisie jour par jour)', 'periscolaire-registration'); ?></option>
+    <option value="2" <?php selected(get_option('psc_planning_variant', 'both'), '2'); ?>><?php esc_html_e('Planning - 2 seulement (rythme + exceptions)', 'periscolaire-registration'); ?></option>
+  </select>
 </td>
 </tr>
 </table>

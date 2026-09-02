@@ -35,10 +35,17 @@ class Psc_Email_Templates {
             ),
             'recap' => array(
                 'label'   => __('Récapitulatif du planning', 'periscolaire-registration'),
-                'subject' => __('[{{site}}] Confirmation de votre planning périscolaire — {{trimestre}}', 'periscolaire-registration'),
-                'body'    => __("Voici le récapitulatif de vos inscriptions pour : {{trimestre}}", 'periscolaire-registration'),
-                'vars'    => array('{{site}}', '{{trimestre}}'),
-                'note'    => __('Le tableau des inscriptions, les sous-totaux et le lien de modification sont ajoutés automatiquement.', 'periscolaire-registration'),
+                'subject' => __('[{{site}}] Votre planning périscolaire — {{annee}}', 'periscolaire-registration'),
+                'body'    => __("Voici le récapitulatif de vos déclarations pour l'année scolaire : {{annee}}.", 'periscolaire-registration'),
+                'vars'    => array('{{site}}', '{{annee}}'),
+                'note'    => __('Le rythme habituel de chaque enfant, les écarts à venir, l\'estimation annuelle et le lien de modification sont ajoutés automatiquement.', 'periscolaire-registration'),
+            ),
+            'food_allergy' => array(
+                'label'   => __('Alerte mairie — allergies alimentaires (PAI)', 'periscolaire-registration'),
+                'subject' => __('[{{site}}] Allergie alimentaire déclarée — {{child}}', 'periscolaire-registration'),
+                'body'    => __("Une allergie alimentaire a été déclarée pour {{child}}. Conformément à l'engagement fait à la famille, le service périscolaire la contactera si un PAI (projet d'accueil individualisé) doit être mis en place.", 'periscolaire-registration'),
+                'vars'    => array('{{site}}', '{{child}}'),
+                'note'    => __('La description saisie par la famille et les coordonnées de contact sont ajoutées automatiquement.', 'periscolaire-registration'),
             ),
             'request_verify' => array(
                 'label'   => __('Vérification de demande d\'inscription', 'periscolaire-registration'),

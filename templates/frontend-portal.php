@@ -18,8 +18,8 @@
       </div>
 
       <div class="psc-onboarding-step" data-step="2">
-        <p class="psc-portal-modal-title"><?php esc_html_e('Cantine & Garderie', 'periscolaire-registration'); ?></p>
-        <p class="psc-onboarding-text"><?php esc_html_e('Cochez les jours de garderie matin, cantine et garderie soir directement dans le calendrier : chaque case est enregistrée immédiatement, sans bouton « Envoyer » à chercher. Vous pouvez aussi annuler rapidement une prestation depuis le tableau de bord si un jour ne convient plus.', 'periscolaire-registration'); ?></p>
+        <p class="psc-portal-modal-title"><?php esc_html_e('Planning', 'periscolaire-registration'); ?></p>
+        <p class="psc-portal-text"><?php esc_html_e('Déclarez le rythme habituel de vos enfants pour toute l\'année scolaire, puis ajustez jour par jour quand un imprévu survient : chaque case est enregistrée immédiatement, sans bouton « Envoyer » à chercher. Vous pouvez aussi annuler rapidement une prestation depuis le tableau de bord si un jour ne convient plus.', 'periscolaire-registration'); ?></p>
       </div>
 
       <div class="psc-onboarding-step" data-step="3">
@@ -85,6 +85,7 @@
         'welcome'           => array('ok',  __('Vous êtes connecté.', 'periscolaire-registration')),
         'child_updated'     => array('ok',  __("Informations de l'enfant mises à jour.", 'periscolaire-registration')),
         'child_added'       => array('ok',  __('Enfant ajouté à votre compte.', 'periscolaire-registration')),
+        'child_allergy_required' => array('err', __("La case « cet enfant a une allergie alimentaire » est cochée : merci de décrire l'allergie (aliments à exclure, réaction, conduite à tenir).", 'periscolaire-registration')),
         'child_invalid'     => array('err', __('Merci de renseigner le prénom et le nom.', 'periscolaire-registration')),
         'child_limit'       => array('err', __("Nombre maximum d'enfants atteint.", 'periscolaire-registration')),
         'child_bad_birthdate' => array('err', __('La date de naissance est incohérente : jamais dans le futur, et au moins 3 ans au 1er septembre de l\'année en cours.', 'periscolaire-registration')),
@@ -160,8 +161,14 @@
     </section>
 
     <section class="psc-portal-section<?php echo $active_tab === 'cantine' ? ' is-active' : ''; ?>" data-portal-section="cantine" data-testid="portal-section-cantine">
-      <?php include PSC_PATH . 'templates/portal-cantine.php'; ?>
+      <?php include PSC_PATH . 'templates/portal-planning-1.php'; ?>
     </section>
+
+    <?php if (isset($psc_portal_tabs['cantine2'])): ?>
+    <section class="psc-portal-section<?php echo $active_tab === 'cantine2' ? ' is-active' : ''; ?>" data-portal-section="cantine2" data-testid="portal-section-cantine2">
+      <?php include PSC_PATH . 'templates/portal-planning-2.php'; ?>
+    </section>
+    <?php endif; ?>
 
     <section class="psc-portal-section<?php echo $active_tab === 'menu' ? ' is-active' : ''; ?>" data-portal-section="menu" data-testid="portal-section-menu">
       <?php include PSC_PATH . 'templates/portal-menu.php'; ?>

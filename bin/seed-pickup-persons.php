@@ -42,7 +42,6 @@ WP_CLI::add_command('seed-pickup-persons', function ($args, $assoc_args) {
     global $wpdb;
     $t_parent = psc_table('parents');
     $t_child  = psc_table('children');
-    $t_reg    = psc_table('registrations');
     $t_cy     = psc_table('child_school_years');
     $t_pickup = psc_table('pickup_persons');
     $t_pkhist = psc_table('pickup_history');
@@ -60,7 +59,9 @@ WP_CLI::add_command('seed-pickup-persons', function ($args, $assoc_args) {
             $child_ids = $wpdb->get_col($wpdb->prepare("SELECT id FROM $t_child WHERE parent_id = %d", $old_parent_id));
             if ($child_ids) {
                 $ph = implode(',', array_fill(0, count($child_ids), '%d'));
-                $wpdb->query($wpdb->prepare("DELETE FROM $t_reg WHERE child_id IN ($ph)", $child_ids));
+                foreach ($child_ids as $cid) {
+                    Psc_Planning::delete_for_child((int) $cid);
+                }
                 $wpdb->query($wpdb->prepare("DELETE FROM $t_cy WHERE child_id IN ($ph)", $child_ids));
                 $wpdb->query($wpdb->prepare("DELETE FROM $t_pkhist WHERE child_id IN ($ph)", $child_ids));
                 $wpdb->query($wpdb->prepare("DELETE FROM $t_pickup WHERE child_id IN ($ph)", $child_ids));

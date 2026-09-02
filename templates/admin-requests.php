@@ -88,7 +88,7 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 
       <h4><?php esc_html_e('Enfant(s) déclaré(s) — corrigez si nécessaire', 'periscolaire-registration'); ?></h4>
       <table class="widefat striped">
-        <thead><tr><th><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Classe', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Naissance', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Régime cantine', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Assurance', 'periscolaire-registration'); ?></th></tr></thead>
+        <thead><tr><th><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Classe', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Naissance', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Régime cantine', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Allergies alimentaires', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Assurance', 'periscolaire-registration'); ?></th></tr></thead>
         <tbody>
         <?php for ($i = 0; $i < Psc_Requests::MAX_CHILDREN; $i++):
             $c = isset($req_children[$i]) ? $req_children[$i] : null;
@@ -107,6 +107,14 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
             <td class="psc-diet-options">
               <label><input type="checkbox" name="child_sans_porc_<?php echo (int) $i; ?>" value="1" <?php checked($c && !empty($c['sans_porc'])); ?>> <?php esc_html_e('Sans porc', 'periscolaire-registration'); ?></label>
               <label><input type="checkbox" name="child_vegan_<?php echo (int) $i; ?>" value="1" <?php checked($c && !empty($c['vegan'])); ?>> <?php esc_html_e('Sans viande', 'periscolaire-registration'); ?></label>
+            </td>
+            <td>
+              <?php if ($c && !empty($c['food_allergies'])): ?>
+                <div style="max-width:220px;line-height:1.45;color:#9E4A4A;font-weight:600;"><?php echo esc_html($c['food_allergies']); ?></div>
+                <p class="description" style="margin:4px 0 0;max-width:220px;"><?php esc_html_e("La mairie contactera la famille si un PAI doit être mis en place. Aucun menu différencié : l'enfant apporte son repas.", 'periscolaire-registration'); ?></p>
+              <?php else: ?>
+                <span style="color:#b32d2e">—</span>
+              <?php endif; ?>
             </td>
             <td>
               <?php if ($c && !empty($c['assurance_rel_path'])): ?>

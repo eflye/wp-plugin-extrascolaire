@@ -48,6 +48,7 @@ module.exports = [
                 clearTimeout: 'readonly',
                 setInterval: 'readonly',
                 clearInterval: 'readonly',
+                AbortController: 'readonly',
                 // Objets de configuration injectés par wp_localize_script()
                 // au chargement des écrans (PSC_* est le préfixe de
                 // l'extension) : le contrat entre l'enqueue PHP et le JS.

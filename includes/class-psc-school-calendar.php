@@ -58,6 +58,52 @@ class Psc_School_Calendar {
         self::$closed_cache = array();
     }
 
+    /**
+     * Fermeture MANUELLE posée par la mairie (source 'manual') : formation
+     * des enseignants, fermeture exceptionnelle… Toujours soustraite des
+     * jours d'école, même quand la mairie configure ses propres plages de
+     * vacances (une fermeture exceptionnelle n'est pas une vacation).
+     * Utilisée par Psc_School_Year::day_status() — cf. la règle 1 de
+     * psc_is_declared() : hors jour d'école, toujours false.
+     */
+    public static function is_manually_closed($date_str) {
+        global $wpdb;
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT is_closed FROM " . psc_table('school_calendar') . " WHERE jour_date = %s AND source = 'manual'",
+            $date_str
+        ));
+        return $row ? (bool) $row->is_closed : false;
+    }
+
+    /**
+     * Précharge l'état fermé/ouvert d'une liste de dates en UNE requête.
+     * Les résolutions en lot (carte de déclaration d'un mois, facturation,
+     * effectifs) balayent des centaines de dates : sans préchargement,
+     * is_closed() ferait autant de requêtes que de dates. Remplit le même
+     * cache que is_closed() ; les lectures suivantes n'interrogent plus la base.
+     */
+    public static function preload_closed($dates) {
+        $dates = array_values(array_unique(array_filter((array) $dates)));
+        if (!$dates) return;
+        global $wpdb;
+        $t = psc_table('school_calendar');
+        $placeholders = implode(',', array_fill(0, count($dates), '%s'));
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT jour_date, is_closed FROM $t WHERE jour_date IN ($placeholders)",
+            $dates
+        ));
+        $found = array();
+        if ($rows) {
+            foreach ($rows as $r) {
+                self::$closed_cache[$r->jour_date] = (bool) $r->is_closed;
+                $found[$r->jour_date] = true;
+            }
+        }
+        foreach ($dates as $d) {
+            if (!isset($found[$d])) self::$closed_cache[$d] = false; // aucune ligne = jour non marqué
+        }
+    }
+
     public static function label($date_str) {
         global $wpdb;
         $row = $wpdb->get_row($wpdb->prepare(
@@ -278,88 +324,147 @@ class Psc_School_Calendar {
      * ------------------------------------------------------------------ */
 
     /**
-     * Familles ayant une inscription déclarée à cette date — utilisé pour
-     * avertir l'admin avant une fermeture manuelle (elle supprime ces
-     * inscriptions et notifie les familles).
+     * Familles ayant une déclaration effective à cette date — utilisé pour
+     * avertir l'admin avant une fermeture manuelle et notifier les familles.
+     * Passe par la source de vérité unique (psc_is_declared) : le planning
+     * étant calculé (rythme + exceptions), il n'y a plus rien à supprimer
+     * en base quand un jour ferme — la résolution retourne false de
+     *'elle-même, la facturation ne compte pas le jour.
      */
     public static function affected_families($date_str) {
         global $wpdb;
-        $t_reg   = psc_table('registrations');
         $t_child = psc_table('children');
         $t_par   = psc_table('parents');
 
-        $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT r.id, r.service, c.nom AS child_nom, c.prenom AS child_prenom, p.id AS parent_id, p.email, p.nom AS parent_nom
-             FROM $t_reg r
-             JOIN $t_child c ON c.id = r.child_id
+        $children = $wpdb->get_results(
+            "SELECT c.id, c.nom AS child_nom, c.prenom AS child_prenom, c.parent_id,
+                    p.email, p.nom AS parent_nom
+             FROM $t_child c
              JOIN $t_par p ON p.id = c.parent_id
-             WHERE r.jour_date = %s
-             ORDER BY p.email, c.nom",
-            $date_str
-        ));
+             WHERE c.statut = 'actif' AND p.active = 1
+             ORDER BY p.email, c.nom"
+        );
+        if (!$children) {
+            return array('registrations' => 0, 'families' => array());
+        }
+
+        $child_ids = wp_list_pluck($children, 'id');
+        $map = Psc_Planning::declared_map($child_ids, array($date_str));
 
         $by_family = array();
-        foreach ($rows as $r) {
-            if (!isset($by_family[$r->parent_id])) {
-                $by_family[$r->parent_id] = array(
-                    'email' => $r->email,
-                    'nom'   => $r->parent_nom,
+        $count = 0;
+        foreach ($children as $c) {
+            $services = array();
+            foreach (psc_allowed_services() as $svc) {
+                if (!empty($map[$c->id][$date_str][$svc])) {
+                    $services[] = $svc;
+                }
+            }
+            if (!$services) continue;
+
+            $count += count($services);
+            $pid = (int) $c->parent_id;
+            if (!isset($by_family[$pid])) {
+                $by_family[$pid] = array(
+                    'email' => $c->email,
+                    'nom'   => $c->parent_nom,
                     'items' => array(),
                 );
             }
-            $by_family[$r->parent_id]['items'][] = $r;
+            foreach ($services as $svc) {
+                $by_family[$pid]['items'][] = (object) array(
+                    'child_id' => (int) $c->id,
+                    'child_nom' => $c->child_nom,
+                    'child_prenom' => $c->child_prenom,
+                    'service' => $svc,
+                );
+            }
         }
 
         return array(
-            'registrations' => count($rows),
+            'registrations' => $count,
             'families'      => $by_family,
         );
     }
 
     /**
-     * Familles ayant une inscription déclarée sur une plage de dates —
+     * Familles ayant une déclaration effective sur une plage de dates —
      * même usage que affected_families() mais pour une fermeture de
      * plusieurs jours d'un coup (vacances, fermeture exceptionnelle...).
+     * Source de vérité unique : les déclarations viennent de la résolution
+     * (psc_is_declared), calculée en un lot pour toute la plage.
      */
     public static function affected_families_range($date_debut, $date_fin) {
         global $wpdb;
-        $t_reg   = psc_table('registrations');
         $t_child = psc_table('children');
         $t_par   = psc_table('parents');
 
-        $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT r.id, r.service, r.jour_date, c.nom AS child_nom, c.prenom AS child_prenom, p.id AS parent_id, p.email, p.nom AS parent_nom
-             FROM $t_reg r
-             JOIN $t_child c ON c.id = r.child_id
+        $children = $wpdb->get_results(
+            "SELECT c.id, c.nom AS child_nom, c.prenom AS child_prenom, c.parent_id,
+                    p.email, p.nom AS parent_nom
+             FROM $t_child c
              JOIN $t_par p ON p.id = c.parent_id
-             WHERE r.jour_date BETWEEN %s AND %s
-             ORDER BY p.email, r.jour_date, c.nom",
-            $date_debut, $date_fin
-        ));
+             WHERE c.statut = 'actif' AND p.active = 1
+             ORDER BY p.email, c.nom"
+        );
+        if (!$children) {
+            return array('registrations' => 0, 'families' => array());
+        }
+
+        $dates = Psc_School_Year::school_days($date_debut, $date_fin);
+        if (!$dates) {
+            return array('registrations' => 0, 'families' => array());
+        }
+
+        $child_ids = wp_list_pluck($children, 'id');
+        $map = Psc_Planning::declared_map($child_ids, $dates);
 
         $by_family = array();
-        foreach ($rows as $r) {
-            if (!isset($by_family[$r->parent_id])) {
-                $by_family[$r->parent_id] = array(
-                    'email' => $r->email,
-                    'nom'   => $r->parent_nom,
-                    'items' => array(),
-                );
+        $count = 0;
+        foreach ($children as $c) {
+            foreach ($dates as $date) {
+                $services = array();
+                foreach (psc_allowed_services() as $svc) {
+                    if (!empty($map[$c->id][$date][$svc])) {
+                        $services[] = $svc;
+                    }
+                }
+                if (!$services) continue;
+
+                $count += count($services);
+                $pid = (int) $c->parent_id;
+                if (!isset($by_family[$pid])) {
+                    $by_family[$pid] = array(
+                        'email' => $c->email,
+                        'nom'   => $c->parent_nom,
+                        'items' => array(),
+                    );
+                }
+                foreach ($services as $svc) {
+                    $by_family[$pid]['items'][] = (object) array(
+                        'child_id' => (int) $c->id,
+                        'child_nom' => $c->child_nom,
+                        'child_prenom' => $c->child_prenom,
+                        'jour_date' => $date,
+                        'service' => $svc,
+                    );
+                }
             }
-            $by_family[$r->parent_id]['items'][] = $r;
         }
 
         return array(
-            'registrations' => count($rows),
+            'registrations' => $count,
             'families'      => $by_family,
         );
     }
 
     /**
      * Ferme manuellement un jour : marque le jour dans le calendrier
-     * scolaire ET dans tous les trimestres qui le couvrent, supprime les
-     * inscriptions déjà déclarées ce jour-là (elles ne doivent pas être
-     * facturées) et notifie les familles concernées par e-mail.
+     * scolaire et notifie les familles qui avaient une déclaration
+     * effective ce jour-là. Le planning étant calculé (rythme + exceptions),
+     * il n'y a plus rien à supprimer en base : psc_is_declared() retourne
+     * false pour un jour fermé, la facturation et les listes s'ajustent
+     * d'elles-mêmes.
      */
     public static function close_day($date_str, $label) {
         $date_str = psc_valid_date($date_str);
@@ -378,26 +483,22 @@ class Psc_School_Calendar {
             $date_str, $label, $now, $now
         ));
 
-        self::apply_to_calendar_days($date_str, 0, $label);
-
         if (!empty($affected['families'])) {
             foreach ($affected['families'] as $fam) {
                 Psc_Mailer::send_day_closed($fam, $date_str, $label);
             }
-            $t_reg = psc_table('registrations');
-            $wpdb->query($wpdb->prepare("DELETE FROM $t_reg WHERE jour_date = %s", $date_str));
         }
 
         self::flush_closed_cache();
+        Psc_School_Year::flush_cache();
         return $affected;
     }
 
     /**
      * Ferme manuellement une plage de dates (vacances scolaires, fermeture
      * exceptionnelle...), en appliquant close_day() jour par jour : chaque
-     * jour est marqué fermé dans le calendrier scolaire et dans tous les
-     * trimestres qui le couvrent, les inscriptions déjà déclarées sont
-     * supprimées et les familles concernées notifiées par e-mail.
+     * jour est marqué fermé dans le calendrier scolaire et les familles
+     * qui avaient une déclaration effective sont notifiées par e-mail.
      */
     public static function close_range($date_debut, $date_fin, $label) {
         $date_debut = psc_valid_date($date_debut);
@@ -413,7 +514,7 @@ class Psc_School_Calendar {
 
         $count = 0;
         foreach ($period as $d) {
-            if (++$count > psc_max_trimestre_days()) break;
+            if (++$count > psc_max_school_days()) break;
             self::close_day($d->format('Y-m-d'), $label);
         }
         return $count;
@@ -434,23 +535,9 @@ class Psc_School_Calendar {
             $date_str, $now, $now
         ));
 
-        // Ne réouvre le calendrier des trimestres que si ce n'est ni un
-        // week-end, ni un mercredi, ni un jour férié.
-        if (!psc_is_weekend($date_str) && !psc_is_wednesday($date_str) && !psc_is_holiday($date_str)) {
-            self::apply_to_calendar_days($date_str, 1, null);
-        }
-
         self::flush_closed_cache();
+        Psc_School_Year::flush_cache();
         return true;
-    }
-
-    private static function apply_to_calendar_days($date_str, $is_open, $label) {
-        global $wpdb;
-        $t_days = psc_table('calendar_days');
-        $wpdb->query($wpdb->prepare(
-            "UPDATE $t_days SET is_open = %d, label = %s WHERE jour_date = %s",
-            $is_open, $label, $date_str
-        ));
     }
 
     /* ------------------------------------------------------------------
@@ -495,47 +582,65 @@ class Psc_School_Calendar {
 
     private static function families_by_service($date_str, $service) {
         global $wpdb;
-        $t_reg   = psc_table('registrations');
         $t_child = psc_table('children');
         $t_par   = psc_table('parents');
 
-        $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT r.id, r.child_id, r.trimestre_id, r.service, c.nom AS child_nom, c.prenom AS child_prenom, p.id AS parent_id, p.email, p.nom AS parent_nom
-             FROM $t_reg r
-             JOIN $t_child c ON c.id = r.child_id
+        $children = $wpdb->get_results(
+            "SELECT c.id, c.nom AS child_nom, c.prenom AS child_prenom, c.parent_id,
+                    p.email, p.nom AS parent_nom
+             FROM $t_child c
              JOIN $t_par p ON p.id = c.parent_id
-             WHERE r.jour_date = %s AND r.service = %s
-             ORDER BY p.email, c.nom",
-            $date_str, $service
-        ));
+             WHERE c.statut = 'actif' AND p.active = 1
+             ORDER BY p.email, c.nom"
+        );
+        if (!$children) {
+            return array('registrations' => 0, 'families' => array());
+        }
+
+        $child_ids = wp_list_pluck($children, 'id');
+        $map = Psc_Planning::declared_map($child_ids, array($date_str));
 
         $by_family = array();
-        foreach ($rows as $r) {
-            if (!isset($by_family[$r->parent_id])) {
-                $by_family[$r->parent_id] = array(
-                    'email' => $r->email,
-                    'nom'   => $r->parent_nom,
+        $count = 0;
+        foreach ($children as $c) {
+            if (empty($map[$c->id][$date_str][$service])) continue;
+
+            $count++;
+            $pid = (int) $c->parent_id;
+            if (!isset($by_family[$pid])) {
+                $by_family[$pid] = array(
+                    'email' => $c->email,
+                    'nom'   => $c->parent_nom,
                     'items' => array(),
                 );
             }
-            $by_family[$r->parent_id]['items'][] = $r;
+            $by_family[$pid]['items'][] = (object) array(
+                'child_id' => (int) $c->id,
+                'child_nom' => $c->child_nom,
+                'child_prenom' => $c->child_prenom,
+                'service' => $service,
+            );
         }
 
         return array(
-            'registrations' => count($rows),
+            'registrations' => $count,
             'families'      => $by_family,
         );
     }
 
     /**
      * Ferme une seule prestation (GM/CANT/GS) pour un jour donné,
-     * indépendamment du reste de la journée : supprime les inscriptions
-     * directes de cette prestation (non facturées, familles notifiées) et
-     * convertit chaque inscription en Forfait journée vers les prestations
-     * restantes — le forfait n'est jamais facturé "moins un service"
-     * (class-psc-invoices.php facture registrations.service tel quel), donc
-     * le convertir en inscriptions individuelles au moment de la fermeture
-     * est la seule façon de refléter correctement la fermeture en facturation.
+     * indépendamment du reste de la journée : enregistre la fermeture
+     * (service_closures) et notifie les familles concernées.
+     *
+     * Le planning étant calculé, il n'y a plus rien à supprimer ni à
+     * convertir en base : psc_is_declared() retourne false pour la
+     * prestation fermée, et un forfait qui perd une de ses composantes
+     * n'est jamais facturé « moins un service » — il retombe de lui-même
+     * sur les prestations restantes (la règle de facturation compte les
+     * prestations élémentaires déclarées du jour quand le forfait n'est
+     * plus réalisable). Les familles au forfait reçoivent l'e-mail de
+     * déclassement ci-dessous, inchangé.
      */
     public static function close_service($date_str, $service, $label) {
         $date_str = psc_valid_date($date_str);
@@ -559,16 +664,11 @@ class Psc_School_Calendar {
 
         $services      = psc_services();
         $service_label = isset($services[$service]) ? $services[$service]['label'] : $service;
-        $t_reg         = psc_table('registrations');
 
         if (!empty($affected['direct']['families'])) {
             foreach ($affected['direct']['families'] as $fam) {
                 Psc_Mailer::send_service_closed($fam, $date_str, $service_label, $label);
             }
-            $wpdb->query($wpdb->prepare(
-                "DELETE FROM $t_reg WHERE jour_date = %s AND service = %s",
-                $date_str, $service
-            ));
         }
 
         if (!empty($affected['forf']['families'])) {
@@ -581,19 +681,6 @@ class Psc_School_Calendar {
             }
 
             foreach ($affected['forf']['families'] as $fam) {
-                foreach ($fam['items'] as $item) {
-                    $wpdb->query($wpdb->prepare(
-                        "DELETE FROM $t_reg WHERE id = %d",
-                        $item->id
-                    ));
-                    foreach ($remaining as $code) {
-                        $wpdb->query($wpdb->prepare(
-                            "INSERT INTO $t_reg (child_id, trimestre_id, jour_date, service, updated_at)
-                             VALUES (%d, %d, %s, %s, %s)",
-                            $item->child_id, $item->trimestre_id, $date_str, $code, $now
-                        ));
-                    }
-                }
                 Psc_Mailer::send_forfait_downgraded($fam, $date_str, $service_label, $remaining_labels);
             }
         }

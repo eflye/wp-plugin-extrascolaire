@@ -340,6 +340,35 @@ class Psc_Requests {
                 );
             }
 
+            // Allergies alimentaires : la case précède le champ — cochée,
+            // le champ libre est requis (une allergie déclarée sans
+            // description n'est pas exploitable par la restauration).
+            $has_allergy = !empty($_POST['child_has_allergy_' . $i]);
+            $allergies = null;
+            if ($has_allergy) {
+                $raw_allergies = isset($_POST['child_food_allergies_' . $i]) ? wp_unslash($_POST['child_food_allergies_' . $i]) : '';
+                $raw_allergies = is_string($raw_allergies) ? trim(sanitize_textarea_field($raw_allergies)) : '';
+                if ($raw_allergies === '') {
+                    wp_safe_redirect(add_query_arg('psc_msg', 'child_allergy_required', $back));
+                    exit;
+                }
+                $allergies = mb_substr($raw_allergies, 0, 1000);
+            }
+
+            // Rythme habituel prévu : {weekday => [service, …]}, arbitré au
+            // profit du forfait quand coché (FORF remplace les composantes).
+            $rhythm = array();
+            foreach (array(1, 2, 4, 5) as $wd) {
+                $svcs = array();
+                foreach (psc_allowed_services() as $svc) {
+                    if (!empty($_POST['child_rhythm_' . $i . '_' . $wd . '_' . $svc])) $svcs[] = $svc;
+                }
+                if (in_array(psc_forfait_code(), $svcs, true)) {
+                    $svcs = array(psc_forfait_code());
+                }
+                if ($svcs) $rhythm[$wd] = $svcs;
+            }
+
             $children[] = array(
                 'nom'                  => mb_substr($cn, 0, 190),
                 'prenom'               => mb_substr($cp, 0, 190),
@@ -347,6 +376,8 @@ class Psc_Requests {
                 'date_naissance'       => $cb ?: '',
                 'sans_porc'            => isset($_POST['child_sans_porc_' . $i]) ? 1 : 0,
                 'vegan'                => isset($_POST['child_vegan_' . $i]) ? 1 : 0,
+                'food_allergies'       => $allergies,
+                'rythme'               => $rhythm,
                 'personnes_autorisees' => $pickup_persons,
             );
             $assurance_uploads[count($children) - 1] = $file;
@@ -733,9 +764,10 @@ class Psc_Requests {
                 'date_naissance' => !empty($c['date_naissance']) ? $c['date_naissance'] : null,
                 'sans_porc'      => !empty($c['sans_porc']) ? 1 : 0,
                 'vegan'          => !empty($c['vegan']) ? 1 : 0,
+                'food_allergies' => !empty($c['food_allergies']) ? $c['food_allergies'] : null,
                 'statut'         => 'actif',
                 'created_at'     => current_time('mysql'),
-            ), array('%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s'));
+            ), array('%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s'));
             if (false === $inserted) {
                 return $rollback(__('Création de l\'enfant impossible.', 'periscolaire-registration'));
             }
@@ -744,6 +776,24 @@ class Psc_Requests {
             if ($active_year_id) {
                 if (!Psc_School_Years::enroll($child_id, $active_year_id, $c['classe'], 'inscrit', $req->reglement_accepted_at ?? current_time('mysql'))) {
                     return $rollback(__('Inscription de l\'enfant impossible.', 'periscolaire-registration'));
+                }
+            }
+
+            // Rythme habituel prévu à l'inscription : la famille arrive avec
+            // une année pré-remplie. Le pattern est posé sur l'année scolaire
+            // courante (dates du planning) ; les families ajustent ensuite.
+            if (!empty($c['rythme']) && is_array($c['rythme'])) {
+                Psc_Planning::seed_patterns_from_wizard($child_id, $c['rythme']);
+            }
+
+            // Allergie alimentaire déclarée à l'inscription : le service
+            // périscolaire doit déclencher la prise de contact PAI.
+            if (!empty($c['food_allergies'])) {
+                $parent_row = $wpdb->get_row($wpdb->prepare(
+                    'SELECT * FROM ' . psc_table('parents') . ' WHERE id = %d', $parent_id
+                ));
+                if ($parent_row) {
+                    Psc_Mailer::notify_food_allergy($parent_row, $child_id, $c['food_allergies'], null);
                 }
             }
 

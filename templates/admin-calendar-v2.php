@@ -38,7 +38,7 @@
 <div class="psc-cal2-legend">
     <span><span class="psc-cal2-legend-swatch" style="background:#f4faf3;border:1px solid #b8dfb8;"></span><?php esc_html_e('Ouvert', 'periscolaire-registration'); ?></span>
     <span><span class="psc-cal2-legend-swatch" style="background:#fdf2f2;border:1px solid #f0b8b8;"></span><?php esc_html_e('Fermé (jour)', 'periscolaire-registration'); ?></span>
-    <span><span class="psc-cal2-legend-swatch" style="background:#f6f7f7;border:1px solid #dcdcde;"></span><?php esc_html_e('Hors trimestre', 'periscolaire-registration'); ?></span>
+    <span><span class="psc-cal2-legend-swatch" style="background:#f6f7f7;border:1px solid #dcdcde;"></span><?php esc_html_e('Hors année scolaire', 'periscolaire-registration'); ?></span>
     <span><span class="psc-cal2-legend-swatch" style="background:#d63638;"></span><?php esc_html_e('Prestation fermée', 'periscolaire-registration'); ?></span>
     <span><?php esc_html_e('Cliquez sur un jour pour le fermer/réouvrir, en tout ou en partie.', 'periscolaire-registration'); ?></span>
 </div>
@@ -61,7 +61,7 @@
         <div class="psc-cal2-daynum"><?php echo (int) substr($date, 8, 2); ?></div>
 
         <?php if ($d['status'] === 'out_of_term'): ?>
-            <span class="psc-cal2-badge psc-cal2-badge--muted"><?php esc_html_e('Hors trimestre', 'periscolaire-registration'); ?></span>
+            <span class="psc-cal2-badge psc-cal2-badge--muted"><?php esc_html_e('Hors année scolaire', 'periscolaire-registration'); ?></span>
         <?php elseif ($d['status'] === 'closed_day'): ?>
             <span class="psc-cal2-badge psc-cal2-badge--closed"><?php echo esc_html($d['label']); ?></span>
         <?php else: ?>

@@ -96,7 +96,10 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         }
 
         $wpdb->delete(psc_table('attendance'), array('child_id' => $child_id), array('%d'));
-        $wpdb->delete(psc_table('registrations'), array('child_id' => $child_id), array('%d'));
+        // Planning (v4) : rythme habituel + exceptions. L'historique de
+        // l'ancienne table des inscriptions suit via la cascade enfant
+        // (cf. Psc_Installer::foreign_key_map()).
+        Psc_Planning::delete_for_child($child_id);
         $wpdb->delete(psc_table('child_school_years'), array('child_id' => $child_id), array('%d'));
         // RGPD : les coordonnées de tiers (personnes autorisées) suivent la
         // même durée de conservation que la fiche enfant, historique compris

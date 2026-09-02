@@ -162,6 +162,30 @@
         var firstSelect = list.querySelector('select');
         var classeOptionsHTML = firstSelect ? firstSelect.innerHTML : '';
 
+        // Allergies alimentaires : la case précède le champ. Décochée :
+        // le champ est masqué et désactivé (food_allergies à NULL).
+        // Cochée : champ libre requis — une allergie déclarée sans
+        // description n'est pas exploitable par la restauration.
+        function wireAllergyToggle(scope) {
+            scope.querySelectorAll('.psc-child-allergy-toggle').forEach(function (cb) {
+                cb.addEventListener('change', function () {
+                    var idx = cb.dataset.toggle;
+                    var field = list.querySelector('.psc-child-allergy-field[data-field="' + idx + '"]');
+                    var textarea = field ? field.querySelector('textarea') : null;
+                    if (!field || !textarea) return;
+                    field.hidden = !cb.checked;
+                    textarea.required = cb.checked;
+                    if (!cb.checked) {
+                        textarea.value = '';
+                        textarea.disabled = true;
+                    } else {
+                        textarea.disabled = false;
+                    }
+                });
+            });
+        }
+        wireAllergyToggle(list);
+
         function updateRemoveButtons() {
             var rows = list.querySelectorAll('.psc-wizard-child-row');
             rows.forEach(function (row) {
@@ -194,6 +218,19 @@
             var idx = next++;
             var n = list.children.length + 1;
 
+            var rhythmHead = '';
+            ['GM', 'CANT', 'GS', 'FORF'].forEach(function (code) {
+                rhythmHead += '<th style="padding:4px 10px;font-size:11px;letter-spacing:0.08em;color:#4E6C8D;text-transform:uppercase;">' + t('rhythm_' + code) + '</th>';
+            });
+            var rhythmRows = '';
+            [[1, t('day_1')], [2, t('day_2')], [4, t('day_4')], [5, t('day_5')]].forEach(function (j) {
+                var cells = '';
+                ['GM', 'CANT', 'GS', 'FORF'].forEach(function (code) {
+                    cells += '<td style="text-align:center;padding:4px;"><input type="checkbox" class="psc-rhythm-check" name="child_rhythm_' + idx + '_' + j[0] + '_' + code + '" value="1" aria-label="' + j[1] + ' ' + t('rhythm_' + code) + '"></td>';
+                });
+                rhythmRows += '<tr><th style="padding:4px 10px;text-align:left;font-weight:600;color:#24405C;">' + j[1] + '</th>' + cells + '</tr>';
+            });
+
             var row = document.createElement('div');
             row.className = 'psc-wizard-child-row';
             row.dataset.index = idx;
@@ -213,6 +250,18 @@
                 '<label class="psc-wizard-diet-check"><input type="checkbox" name="child_sans_porc_' + idx + '" value="1"> ' + t('diet_pork') + '</label>' +
                 '<label class="psc-wizard-diet-check"><input type="checkbox" name="child_vegan_' + idx + '" value="1"> ' + t('diet_meat') + '</label>' +
                 '</div></div>' +
+                '<div class="psc-wizard-allergy-cell" style="grid-column: 1 / -1;">' +
+                '<label class="psc-wizard-diet-check" style="font-weight:600;"><input type="checkbox" class="psc-child-allergy-toggle" data-toggle="' + idx + '" name="child_has_allergy_' + idx + '" value="1"> ' + t('allergy_toggle') + '</label>' +
+                '<div class="psc-child-allergy-field" data-field="' + idx + '" hidden>' +
+                '<textarea name="child_food_allergies_' + idx + '" rows="2" maxlength="1000" placeholder="' + t('allergy_placeholder') + '" style="width:100%;resize:vertical;border:1px solid rgba(36,64,92,0.3);background:#fff;font-size:13px;padding:8px;"></textarea>' +
+                '<p class="psc-child-allergy-help" style="font-size:11px;color:#8B8279;margin:6px 0 0;">' + t('allergy_help') + '</p>' +
+                '</div></div>' +
+                '<div class="psc-wizard-rhythm-cell" style="grid-column: 1 / -1;">' +
+                '<div class="psc-portal-field-label">' + t('rhythm_label') + '</div>' +
+                '<table class="psc-wizard-rhythm" style="border-collapse:collapse;font-size:13px;"><thead><tr><th></th>' + rhythmHead +
+                '</tr></thead><tbody>' + rhythmRows + '</tbody></table>' +
+                '<p style="font-size:11px;color:#8B8279;margin:6px 0 0;">' + t('rhythm_help') + '</p>' +
+                '</div>' +
                 '<div class="psc-wizard-pickup-block">' +
                 '<p class="psc-wizard-pickup-title">' + t('pickup_title') + '</p>' +
                 '<div class="psc-wizard-pickup-list" data-pickup-list></div>' +
@@ -222,6 +271,7 @@
 
             list.appendChild(row);
             wireRemove(row);
+            wireAllergyToggle(row);
             updateRemoveButtons();
             updateAddBtn();
             row.querySelector('input[type="text"]').focus();

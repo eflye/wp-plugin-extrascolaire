@@ -21,6 +21,7 @@ foreach (array(
     'request',
     'dates',
     'school-calendar',
+    'planning',
     'lock',
     'services',
     'banking',

@@ -34,49 +34,82 @@
         setTimeout(function () { span.remove(); }, 7000);
     }
 
-    function recomputeMonthSummary(monthBlock) {
-        var summaryEl = monthBlock.querySelector('[data-month-summary]');
-        if (!summaryEl) return;
-
-        var daysWithReg = {};
-        var total = 0;
-        monthBlock.querySelectorAll('.psc-check').forEach(function (cb) {
-            if (!cb.checked) return;
-            daysWithReg[cb.dataset.date] = true;
-            total += parseFloat(cb.dataset.price) || 0;
-        });
-
-        var count = Object.keys(daysWithReg).length;
-        if (count > 0) {
-            summaryEl.textContent = count + ' ' + (count > 1 ? MESSAGES.days : MESSAGES.day) + ' · ' +
-                total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-            summaryEl.classList.add('psc-month-summary-active');
-            summaryEl.classList.remove('psc-month-summary-empty');
-        } else {
-            summaryEl.textContent = MESSAGES.summary_none;
-            summaryEl.classList.remove('psc-month-summary-active');
-            summaryEl.classList.add('psc-month-summary-empty');
-        }
-    }
-
-    // Total période par enfant (espace famille v2) : somme sur tous les
-    // mois de ce bloc enfant, pas seulement le mois affecté par le clic.
-    // Absent des anciennes pages (pas de [data-child-total]) : no-op.
+    // Total du mois par enfant (espace famille v2) : somme des jours du
+    // tableau affiché (un seul mois est rendu à la fois).
     function recomputeChildTotal(childBlock) {
         var totalEl = childBlock.querySelector('[data-child-total]');
         if (!totalEl) return;
 
         var daysWithReg = {};
         var total = 0;
-        childBlock.querySelectorAll('.psc-check').forEach(function (cb) {
-            if (!cb.checked) return;
-            daysWithReg[cb.dataset.date] = true;
-            total += parseFloat(cb.dataset.price) || 0;
+        childBlock.querySelectorAll('tbody tr').forEach(function (row) {
+            var forf = row.querySelector('.psc-check[data-service="FORF"]');
+            if (forf && forf.checked) {
+                daysWithReg[forf.dataset.date] = true;
+                total += parseFloat(forf.dataset.price) || 0;
+                return;
+            }
+            row.querySelectorAll('.psc-check').forEach(function (cb) {
+                if (cb.dataset.service === 'FORF' || !cb.checked) return;
+                daysWithReg[cb.dataset.date] = true;
+                total += parseFloat(cb.dataset.price) || 0;
+            });
         });
 
         var count = Object.keys(daysWithReg).length;
         totalEl.textContent = count + ' ' + (count > 1 ? MESSAGES.days : MESSAGES.day) + ' · ' +
             total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+    }
+
+    // Bandeau récapitulatif fratrie (au-dessus des tableaux) : jours +
+    // montant du mois affiché, tous enfants confondus.
+    function recomputeSiblingBanner() {
+        var banner = document.getElementById('psc-sibling-banner');
+        if (!banner) return;
+        var valueEl = banner.querySelector('[data-sibling-total]');
+        if (!valueEl) return;
+
+        var daysWithReg = {};
+        var total = 0;
+        document.querySelectorAll('.psc-portal-child-block').forEach(function (childBlock) {
+            childBlock.querySelectorAll('tbody tr').forEach(function (row) {
+                var forf = row.querySelector('.psc-check[data-service="FORF"]');
+                if (forf && forf.checked) {
+                    daysWithReg[childBlock.dataset.childId + '|' + forf.dataset.date] = true;
+                    total += parseFloat(forf.dataset.price) || 0;
+                    return;
+                }
+                row.querySelectorAll('.psc-check').forEach(function (cb) {
+                    if (cb.dataset.service === 'FORF' || !cb.checked) return;
+                    daysWithReg[childBlock.dataset.childId + '|' + cb.dataset.date] = true;
+                    total += parseFloat(cb.dataset.price) || 0;
+                });
+            });
+        });
+
+        var count = Object.keys(daysWithReg).length;
+        valueEl.textContent = count + ' ' + (count > 1 ? MESSAGES.days : MESSAGES.day) + ' · ' +
+            total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+    }
+
+    // La réponse du serveur porte l'état « explicite » de toutes les cases
+    // du mois affiché (une case cochée = une ligne stockée) : on réaligne
+    // le DOM sur son verdict — l'invariant côté serveur peut avoir retiré
+    // une exception résiduelle, et les verrous évoluent avec le temps.
+    function applyExplicitState(state) {
+        var explicit = state && state.explicit;
+        if (!explicit) return;
+        Object.keys(explicit).forEach(function (childId) {
+            Object.keys(explicit[childId]).forEach(function (date) {
+                Object.keys(explicit[childId][date]).forEach(function (service) {
+                    var cell = explicit[childId][date][service];
+                    var cb = document.querySelector('.psc-check[data-child="' + childId + '"][data-date="' + date + '"][data-service="' + service + '"]');
+                    if (!cb) return;
+                    cb.checked = !!cell.explicit;
+                    cb.disabled = !!cell.locked || !!cell.closed;
+                });
+            });
+        });
     }
 
     /* ---------- Boutons "Tout" par colonne de service ---------- */
@@ -137,40 +170,33 @@
 
         var willCheck  = !btn.classList.contains('psc-tout-btn-all');
         var table      = btn.closest('table');
-        var monthBlock = btn.closest('.psc-month-block');
         var childBlock = btn.closest('.psc-portal-child-block');
 
         btn.disabled = true;
 
-        // Application optimiste : les cases déjà désactivées (assurance
-        // manquante sur un jour encore non déclaré) ne sont pas touchées,
-        // le serveur les rejettera de toute façon.
+        // Application optimiste : les cases déjà désactivées (verrou, prestation
+        // fermée, assurance manquante) ne sont pas touchées, le serveur les
+        // rejettera de toute façon.
         var previousChecked = {};
         dates.forEach(function (d) {
             var cb = targets[d];
             previousChecked[d] = cb.checked;
-            if (!cb.disabled) {
-                cb.checked = willCheck;
-                // Forfait <-> prestations individuelles mutuellement
-                // exclusifs : appliquer tout de suite (comme onToggle())
-                // pour ne pas surcompter le total le temps de la requête.
-                if (btn.dataset.service === 'FORF') applyForfaitUI(cb, willCheck);
-            }
+            if (!cb.disabled) cb.checked = willCheck;
         });
 
-        if (monthBlock) recomputeMonthSummary(monthBlock);
         if (childBlock) recomputeChildTotal(childBlock);
+        recomputeSiblingBanner();
         if (table) recomputeToutButtonsIn(table);
 
         post({
-            action: 'psc_toggle_bulk',
+            action: 'psc_toggle_exception_bulk',
             child_id: btn.dataset.child,
-            service: btn.dataset.service,
+            service_code: btn.dataset.service,
             checked: willCheck ? '1' : '0',
             dates: dates.join(',')
         }).then(function (res) {
             if (res && res.success) {
-                var applied = (res.data && res.data.dates) || [];
+                var applied = (res.data && res.data.applied) || [];
                 var appliedSet = {};
                 applied.forEach(function (d) { appliedSet[d] = true; });
 
@@ -178,40 +204,12 @@
                 // chargement de la page et le clic, etc.) : reviennent à
                 // leur état précédent plutôt que de mentir sur l'écran.
                 dates.forEach(function (d) {
-                    if (appliedSet[d]) return;
-                    targets[d].checked = previousChecked[d];
-                });
-                dates.forEach(function (d) {
-                    if (!appliedSet[d]) return;
-                    var cb = targets[d];
-                    // La case peut avoir été rendue désactivée par un
-                    // forfait déjà présent ce jour-là (page chargée avant
-                    // ce lot) : le serveur vient de trancher, on réaligne
-                    // l'affichage sur son verdict plutôt que de laisser une
-                    // case cochée/décochée obsolète.
-                    cb.disabled = false;
-                    cb.checked = willCheck;
-                    if (btn.dataset.service === 'FORF') {
-                        applyForfaitUI(cb, willCheck);
-                    } else if (willCheck) {
-                        // Une prestation individuelle exclut le forfait sur
-                        // ce jour (mutuellement exclusifs côté serveur) :
-                        // décocher le forfait de la ligne et réactiver les
-                        // autres cases qu'il avait désactivées.
-                        var row = cb.closest('tr');
-                        var forf = row && row.querySelector('.psc-check[data-service="FORF"]');
-                        if (forf && forf.checked) {
-                            forf.checked = false;
-                            applyForfaitUI(forf, false);
-                            cb.checked = true; // réactivé par applyForfaitUI(forf, false), re-cocher
-                        }
-                    }
-                    var cell = cb.closest('td');
-                    if (!cell) return;
-                    cell.classList.add('psc-ok');
-                    setTimeout(function () { cell.classList.remove('psc-ok'); }, 700);
+                    if (!appliedSet[d]) targets[d].checked = previousChecked[d];
                 });
 
+                // L'état complet du mois (cases explicites, verrous) est
+                // réaligné sur la réponse du serveur.
+                applyExplicitState(res.data && res.data.state);
                 window.PSC_DATA_STALE = true;
             } else {
                 dates.forEach(function (d) { targets[d].checked = previousChecked[d]; });
@@ -219,66 +217,52 @@
             }
 
             btn.disabled = false;
-            if (monthBlock) recomputeMonthSummary(monthBlock);
             if (childBlock) recomputeChildTotal(childBlock);
+            recomputeSiblingBanner();
             if (table) recomputeToutButtonsIn(table);
         }).catch(function () {
             dates.forEach(function (d) { targets[d].checked = previousChecked[d]; });
             btn.disabled = false;
-            if (monthBlock) recomputeMonthSummary(monthBlock);
             if (childBlock) recomputeChildTotal(childBlock);
+            recomputeSiblingBanner();
             if (table) recomputeToutButtonsIn(table);
             btnNotice(btn, MESSAGES.network);
-        });
-    }
-
-    function applyForfaitUI(forf, isChecked) {
-        var row = forf.closest('tr');
-        if (!row) return;
-        row.querySelectorAll('.psc-check').forEach(function (c) {
-            if (c === forf) return;
-            if (isChecked) {
-                c.checked = false;
-                c.disabled = true;
-            } else if (!row.classList.contains('psc-row-locked')) {
-                c.disabled = false;
-            }
         });
     }
 
     function onToggle(cb) {
         cb.disabled = true;
 
-        var isForf = cb.dataset.service === 'FORF';
         var willBeChecked = cb.checked;
-        var monthBlock = cb.closest('.psc-month-block');
         var childBlock = cb.closest('.psc-portal-child-block');
         var table = cb.closest('table');
 
-        // Pour FORF : appliquer le changement d'UI immédiatement, sans attendre l'AJAX.
-        // On collecte d'abord les cases cochées à décocher côté serveur.
+        // Cascade UI : le forfait et les prestations élémentaires restent
+        // mutuellement exclusifs à l'affichage d'un jour. Cocher l'un décoche
+        // les autres (le serveur écrit un retrait exceptionnel pour ce jour
+        // seulement — le rythme de la semaine n'est pas touché).
         var siblingsToUncheck = [];
-        if (isForf) {
-            if (willBeChecked) {
-                var row = cb.closest('tr');
-                if (row) {
-                    row.querySelectorAll('.psc-check').forEach(function (c) {
-                        if (c !== cb && c.checked && !c.disabled) siblingsToUncheck.push(c);
-                    });
-                }
+        if (willBeChecked) {
+            var row = cb.closest('tr');
+            if (row) {
+                row.querySelectorAll('.psc-check').forEach(function (c) {
+                    if (c !== cb && c.checked && !c.disabled && !psc_is_locked_date(c.dataset.date)) {
+                        siblingsToUncheck.push(c);
+                    }
+                });
             }
-            applyForfaitUI(cb, willBeChecked);
+            siblingsToUncheck.forEach(function (sib) { sib.checked = false; });
         }
 
-        if (monthBlock) recomputeMonthSummary(monthBlock);
         if (childBlock) recomputeChildTotal(childBlock);
+        recomputeSiblingBanner();
         if (table) recomputeToutButtonsIn(table);
 
         post({
-            action: 'psc_toggle',
+            action: 'psc_toggle_exception',
             child_id: cb.dataset.child,
             date: cb.dataset.date,
-            service: cb.dataset.service,
+            service_code: cb.dataset.service,
             checked: willBeChecked ? '1' : '0'
         }).then(function (res) {
             if (res && res.success) {
@@ -294,25 +278,25 @@
                 // changement d'onglet plutôt qu'une bascule client instantanée.
                 window.PSC_DATA_STALE = true;
 
-                if (isForf && willBeChecked) {
-                    siblingsToUncheck.forEach(function (sib) {
-                        post({
-                            action: 'psc_toggle',
-                            child_id: sib.dataset.child,
-                            date: sib.dataset.date,
-                            service: sib.dataset.service,
-                            checked: '0'
-                        });
+                applyExplicitState(res.data && res.data.state);
+
+                siblingsToUncheck.forEach(function (sib) {
+                    post({
+                        action: 'psc_toggle_exception',
+                        child_id: sib.dataset.child,
+                        date: sib.dataset.date,
+                        service_code: sib.dataset.service,
+                        checked: '0'
                     });
-                }
+                });
                 return;
             }
 
             // Erreur : annuler le changement d'UI
             cb.checked = !willBeChecked;
-            if (isForf) applyForfaitUI(cb, !willBeChecked);
-            if (monthBlock) recomputeMonthSummary(monthBlock);
+            siblingsToUncheck.forEach(function (sib) { sib.checked = true; });
             if (childBlock) recomputeChildTotal(childBlock);
+            recomputeSiblingBanner();
             if (table) recomputeToutButtonsIn(table);
 
             var code = res && res.data && res.data.code;
@@ -320,7 +304,7 @@
             // Si le serveur signale un verrou ou une assurance manquante, la
             // case reste désactivée : la situation a pu changer pendant que
             // la page était ouverte (délai expiré, ou document retiré).
-            if (code === 'locked' || code === 'assurance_missing' || code === 'service_closed') {
+            if (code === 'locked' || code === 'assurance_missing' || code === 'day_closed') {
                 cb.closest('tr').classList.add('psc-row-locked');
             } else {
                 cb.disabled = false;
@@ -329,12 +313,17 @@
         }).catch(function () {
             cb.disabled = false;
             cb.checked = !willBeChecked;
-            if (isForf) applyForfaitUI(cb, !willBeChecked);
-            if (monthBlock) recomputeMonthSummary(monthBlock);
+            siblingsToUncheck.forEach(function (sib) { sib.checked = true; });
             if (childBlock) recomputeChildTotal(childBlock);
+            recomputeSiblingBanner();
             if (table) recomputeToutButtonsIn(table);
             cellNotice(cb, MESSAGES.network);
         });
+    }
+
+    function psc_is_locked_date(date) {
+        var cell = document.querySelector('.psc-check[data-date="' + date + '"]');
+        return !!(cell && cell.closest('tr') && cell.closest('tr').classList.contains('psc-row-locked'));
     }
 
     /* ---------- Bouton de confirmation ---------- */
@@ -449,14 +438,6 @@
         initToast();
         initScrollSave();
 
-        // Écouteur FORF indépendant : applique l'UI immédiatement, avant toute logique AJAX.
-        document.querySelectorAll('.psc-check[data-service="FORF"]').forEach(function (forf) {
-            if (forf.checked) applyForfaitUI(forf, true);
-            forf.addEventListener('change', function () {
-                applyForfaitUI(forf, forf.checked);
-            });
-        });
-
         document.querySelectorAll('.psc-check').forEach(function (cb) {
             cb.addEventListener('change', function () { onToggle(cb); });
         });
@@ -470,5 +451,7 @@
         if (btn && feedback) {
             btn.addEventListener('click', function () { onConfirm(btn, feedback); });
         }
+
+        recomputeSiblingBanner();
     });
 })();

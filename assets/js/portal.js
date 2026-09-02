@@ -199,6 +199,7 @@
         var prenomField = document.getElementById('psc-child-edit-prenom');
         var nomField = document.getElementById('psc-child-edit-nom');
         var naissanceField = document.getElementById('psc-child-edit-naissance');
+        var allergiesField = document.getElementById('psc-child-edit-allergies');
 
         function open(childId) {
             var c = data[childId];
@@ -207,6 +208,7 @@
             prenomField.value = c.prenom || '';
             nomField.value = c.nom || '';
             naissanceField.value = c.naissance || '';
+            if (allergiesField) allergiesField.value = c.allergies || '';
             window.PscDialog.open(overlay, { focus: '#psc-child-edit-prenom' });
         }
         function close() { window.PscDialog.close(overlay); }

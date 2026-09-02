@@ -65,7 +65,7 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 <label><input type="checkbox" name="show_sortis" value="1" <?php checked($show_sortis); ?> onchange="this.form.submit()"> <?php esc_html_e('Afficher les enfants sortis', 'periscolaire-registration'); ?></label>
 </form>
 <table class="widefat striped">
-<thead><tr><th><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Classe', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Naissance', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Régime cantine', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Famille', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Assurance', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Action', 'periscolaire-registration'); ?></th></tr></thead>
+<thead><tr><th><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Classe', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Naissance', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Régime cantine', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Allergies alimentaires', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Famille', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Assurance', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Action', 'periscolaire-registration'); ?></th></tr></thead>
 <tbody>
 <?php if (empty($children)): ?>
 <tr><td colspan="9"><?php esc_html_e('Aucun enfant enregistré', 'periscolaire-registration'); ?><?php echo $selected_year_id ? ' ' . esc_html__('pour cette année', 'periscolaire-registration') : ' ' . esc_html__(" (créez d'abord une année scolaire)", 'periscolaire-registration'); ?>.</td></tr>
@@ -83,6 +83,7 @@ if ((int) $c->vegan) $diet[] = __('Sans viande', 'periscolaire-registration');
 echo $diet ? esc_html(implode(' · ', $diet)) : '—';
 ?>
 </td>
+<td><?php echo trim((string) $c->food_allergies) !== '' ? '<div style="max-width:220px;line-height:1.45;color:#9E4A4A;">' . esc_html($c->food_allergies) . '</div>' : '—'; ?></td>
 <td><?php echo $c->statut === 'actif' ? '<span class="psc-active">' . esc_html__('Actif', 'periscolaire-registration') . '</span>' : '<em>' . esc_html__('Sorti', 'periscolaire-registration') . '</em>'; ?></td>
 <td><?php echo $c->parent_email ? esc_html($c->parent_nom ?: $c->parent_email) : '<em>' . esc_html__('famille supprimée', 'periscolaire-registration') . '</em>'; ?></td>
 <td>

@@ -139,6 +139,7 @@ class Psc_Sidscm {
                 'no_authorised' => __('Aucune personne autorisée renseignée.', 'periscolaire-registration'),
                 'week'          => __('semaine', 'periscolaire-registration'),
                 'child'         => __('Enfant', 'periscolaire-registration'),
+                'brings_meal'   => __('Apporte son repas — à ne pas compter dans les couverts', 'periscolaire-registration'),
             ),
         ));
     }
@@ -202,19 +203,13 @@ class Psc_Sidscm {
     }
 
     /**
-     * L'enfant est-il attendu à ce service ce jour-là ? Même règle que
-     * l'affichage (ajax_data) : une inscription à ce service à cette
-     * date, ou un forfait (FORF) qui couvre GM, CANT et GS d'un même coup
-     * — jamais une ligne d'attendance seule, qui ne prouve rien.
+     * L'enfant est-il attendu à ce service ce jour-là ? Source de vérité
+     * unique (psc_is_declared) : la même fonction que la facturation et
+     * les exports mairie — le forfait qui couvre GM/CANT/GS, les
+     * exceptions de retrait et les fermetures y sont déjà arbitrés.
      */
     protected static function is_expected($child_id, $date, $service) {
-        global $wpdb;
-        $t_reg = psc_table('registrations');
-        return (bool) $wpdb->get_var($wpdb->prepare(
-            "SELECT 1 FROM $t_reg
-             WHERE child_id = %d AND jour_date = %s AND service IN (%s, 'FORF')",
-            $child_id, $date, $service
-        ));
+        return Psc_Planning::is_declared($child_id, $date, $service);
     }
 
     public static function ajax_unlock() {
@@ -287,16 +282,9 @@ class Psc_Sidscm {
         $ph_child = implode(',', array_fill(0, count($child_ids), '%d'));
         $ph_date  = implode(',', array_fill(0, count($dates), '%s'));
 
-        $t_reg = psc_table('registrations');
-        $regs = $wpdb->get_results($wpdb->prepare(
-            "SELECT child_id, jour_date, service FROM $t_reg
-             WHERE child_id IN ($ph_child) AND jour_date IN ($ph_date)",
-            array_merge($child_ids, $dates)
-        ));
-        $reg_map = array();
-        foreach ($regs as $r) {
-            $reg_map[$r->child_id . '|' . $r->jour_date . '|' . $r->service] = true;
-        }
+        // Déclarations de la semaine en un lot : source de vérité unique
+        // (psc_is_declared), jamais l'ancienne table.
+        $declared = Psc_Planning::declared_map($child_ids, $dates);
 
         $t_att = psc_table('attendance');
         $att_rows = $wpdb->get_results($wpdb->prepare(
@@ -316,12 +304,11 @@ class Psc_Sidscm {
             }
         }
 
-        // Un forfait (FORF) couvre GM+CANT+GS d'un même coup : une ligne
-        // service=FORF vaut inscription pour les trois, jamais stockée sous
-        // les trois codes séparément (cf. ajax_toggle() de Psc_Frontend_Inscriptions).
-        $expected = function ($child_id, $date, $service) use ($reg_map) {
-            return isset($reg_map[$child_id . '|' . $date . '|' . $service])
-                || isset($reg_map[$child_id . '|' . $date . '|FORF']);
+        // Source de vérité unique : la résolution (psc_is_declared) arbitre
+        // déjà forfait (couvre GM+CANT+GS), exceptions de retrait et
+        // fermetures de prestation.
+        $expected = function ($child_id, $date, $service) use ($declared) {
+            return !empty($declared[$child_id][$date][$service]);
         };
 
         $out_children = array();
@@ -367,12 +354,21 @@ class Psc_Sidscm {
                 }, Psc_Pickup_Persons::authorized_for_child($c->id));
             }
 
+            $allergies = trim((string) $c->food_allergies);
+
             $out_children[] = array(
                 'id'         => (int) $c->id,
                 'prenom'     => $c->prenom,
                 'nom'        => $c->nom,
                 'classe'     => $classe,
                 'diet'       => $diet_bits ? implode(', ', $diet_bits) : null,
+                // Allergie alimentaire : usage critique de la liste cantine,
+                // en priorité et lisible sans déplier (#9E4A4A, cf. sidscm.js).
+                'allergies'  => $allergies !== '' ? $allergies : null,
+                // L'enfant apporte son repas fourni par la famille :
+                // l'encadrant ne doit pas le compter dans les couverts
+                // (aucun menu différencié n'est proposé).
+                'brings_meal' => $allergies !== '',
                 'GM'         => $per_service['GM'],
                 'CANT'       => $per_service['CANT'],
                 'GS'         => $per_service['GS'],
