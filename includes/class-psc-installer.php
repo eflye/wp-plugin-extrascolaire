@@ -878,12 +878,7 @@ class Psc_Installer {
         $t_pkhist = psc_table('pickup_history');
         $t_att    = psc_table('attendance');
         $t_svc    = psc_table('service_closures');
-        // v4.0 — année scolaire + rythme & exceptions. Les anciennes tables
-        // trimestres / calendar_days / registrations ne sont plus DÉFINIES :
-        // dbDelta ne les recrée pas sur une installation neuve, et les
-        // met à jour sans les supprimer sur une installation existante
-        // (l'ancienne table des inscriptions reste en lecture seule le
-        // temps d'un cycle de facturation, cf. migrate_4_0_0()).
+        // v4.0 — année scolaire + rythme & exceptions.
         $t_sy   = psc_table('school_year');
         $t_hol  = psc_table('holidays');
         $t_pat  = psc_table('pattern');
@@ -1164,6 +1159,70 @@ CREATE TABLE $t_svc (
             UNIQUE KEY jour_date_service (jour_date, service)
         ) $charset_collate;";
 
+        // Tables LÉGACY (trimestres, calendar_days, registrations) : leur
+        // définition ne concerne que les MONTÉES DE VERSION antérieures à
+        // 4.0 — dbDelta doit alors compléter les schémas hérités (ajout de
+        // school_year_id sur trimestres, etc.) pour que migrate_3_0_0 et
+        // suivantes trouvent leurs colonnes, exactement comme avant. Sur
+        // une installation neuve (aucune version connue) elles ne sont plus
+        // créées : rien n'écrit plus dedans. Sur une installation mise à
+        // jour, elles sont conservées en lecture seule le temps d'un cycle
+        // de facturation (cf. migrate_4_0_0()).
+        if (self::upgrade_includes_legacy_tables()) {
+            $t_trim = psc_table('trimestres');
+            $t_days = psc_table('calendar_days');
+            $t_reg  = psc_table('registrations');
+
+            $sql .= "CREATE TABLE $t_trim (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            school_year_id BIGINT UNSIGNED NULL,
+            label VARCHAR(191) NOT NULL,
+            date_debut DATE NOT NULL,
+            date_fin DATE NOT NULL,
+            active TINYINT(1) NOT NULL DEFAULT 0,
+            PRIMARY KEY  (id),
+            KEY active (active),
+            KEY school_year_id (school_year_id)
+        ) $charset_collate;
+
+CREATE TABLE $t_days (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            trimestre_id BIGINT UNSIGNED NOT NULL,
+            jour_date DATE NOT NULL,
+            is_open TINYINT(1) NOT NULL DEFAULT 1,
+            label VARCHAR(100) NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY trim_date (trimestre_id, jour_date),
+            KEY trim_open (trimestre_id, is_open),
+            KEY jour_date (jour_date)
+        ) $charset_collate;
+
+CREATE TABLE $t_reg (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            child_id BIGINT UNSIGNED NOT NULL,
+            trimestre_id BIGINT UNSIGNED NOT NULL,
+            jour_date DATE NOT NULL,
+            service VARCHAR(10) NOT NULL,
+            updated_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY child_date_service (child_id, jour_date, service),
+            KEY trim_child (trimestre_id, child_id),
+            KEY jour_date (jour_date)
+        ) $charset_collate;";
+        }
+
         dbDelta($sql);
+    }
+
+    /**
+     * Une montée de version depuis un schéma antérieur à 4.0 est-elle en
+     * cours ? La version en base est lue AVANT que maybe_upgrade() ne la
+     * mette à jour : les deux passes dbDelta d'une montée voient donc la
+     * même réponse, et une installation neuve (option vide) n'obtient
+     * jamais les tables legacy.
+     */
+    private static function upgrade_includes_legacy_tables() {
+        $current = get_option('psc_db_version');
+        return $current !== '' && $current !== false && version_compare((string) $current, '4.0.0', '<');
     }
 }

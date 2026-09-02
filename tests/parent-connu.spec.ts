@@ -69,25 +69,24 @@ test('parent déjà connu — de la connexion au récapitulatif', async ({ page,
   const childIndex = seed.enfants[0].index;
 
   const testid = {
-    monthToggle: (m: string) => `month-toggle-${childIndex}-${m}`,
-    monthSummary: (m: string) => `month-summary-${childIndex}-${m}`,
-    calendarTable: (m: string) => `calendar-table-${childIndex}-${m}`,
+    childTotal: () => `child-total-${childIndex}`,
+    calendarTable: () => `calendar-table-${childIndex}`,
     dayRow: (d: string) => `day-row-${childIndex}-${d}`,
     cell: (d: string, s: string) => `cell-${childIndex}-${d}-${s}`,
     check: (d: string, s: string) => `check-${childIndex}-${d}-${s}`,
   };
 
   /**
-   * Lit l'état réel affiché ("Aucun jour déclaré" ou "N jour(s) · X €")
-   * plutôt que de supposer un mois vide au départ : le profil demo
-   * pré-coche délibérément quelques jours (bin/seed-journey.php), donc le
-   * seul état fiable est celui constaté avant/après chaque action.
+   * Lit l'état réel affiché ("N jour(s) · X €") plutôt que de supposer un
+   * planning vide au départ : le profil demo pré-coche délibérément
+   * quelques jours (bin/seed-journey.php), donc le seul état fiable est
+   * celui constaté avant/après chaque action. Depuis la v5, un seul mois
+   * est rendu à la fois : le total par enfant porte sur CE mois-là.
    */
-  async function readMonthSummary(testId: string): Promise<{ days: number; total: number }> {
-    const text = (await page.getByTestId(testId).innerText()).replace(/\s+/g, ' ').trim();
-    if (text.includes('Aucun jour déclaré')) return { days: 0, total: 0 };
+  async function readChildTotal(): Promise<{ days: number; total: number }> {
+    const text = (await page.getByTestId(testid.childTotal()).innerText()).replace(/\s+/g, ' ').trim();
     const m = text.match(/(\d+)\s*jours?\s*·\s*([\d,.]+)\s*€/);
-    if (!m) throw new Error(`Résumé de mois illisible pour ${testId} : "${text}"`);
+    if (!m) throw new Error(`Total enfant illisible (${testid.childTotal()}) : "${text}"`);
     return { days: parseInt(m[1], 10), total: parseFloat(m[2].replace(',', '.')) };
   }
 
@@ -269,23 +268,26 @@ test('parent déjà connu — de la connexion au récapitulatif', async ({ page,
     }
   );
 
-  /* ---------------- 06-ouverture-du-mois ---------------- */
+  /* ---------------- 06-ouverture-du-mois (v5 planning annuel) ---------------- */
+  // Depuis la v5, le planning porte sur l'année scolaire et ne rend que le
+  // mois affiché : on ouvre le mois de open_day par l'URL (?psc_mois=), la
+  // navigation mois par mois étant rendue côté serveur.
   const openMonth = monthKeyOf(openDay);
   let summaryBeforeToggle = { days: 0, total: 0 };
   await playScene(
     '06-ouverture-du-mois',
     4_000,
-    testid.calendarTable(openMonth),
-    'Un calendrier par enfant, mois par mois',
+    testid.calendarTable(),
+    'Un planning par enfant, mois par mois, sur toute l\u2019année scolaire',
     async () => {
-      await page.getByTestId(testid.monthToggle(openMonth)).click();
-      await expect(page.getByTestId(testid.calendarTable(openMonth))).toBeVisible();
+      await page.goto(`${appPage()}?psc_tab=cantine&psc_mois=${openMonth}`);
+      await expect(page.getByTestId(testid.calendarTable())).toBeVisible();
       await expect(page.getByTestId(testid.dayRow(openDay))).toBeVisible();
-      // Pas d'hypothèse "Aucun jour déclaré" : le profil demo pré-coche
+      // Pas d'hypothèse "planning vide" : le profil demo pré-coche
       // délibérément des jours proches qui peuvent tomber dans le même
       // mois qu'open_day (bin/seed-journey.php). 07/08 vérifient un delta
       // par rapport à cet état réel, jamais un total absolu.
-      summaryBeforeToggle = await readMonthSummary(testid.monthSummary(openMonth));
+      summaryBeforeToggle = await readChildTotal();
     }
   );
 
@@ -304,7 +306,7 @@ test('parent déjà connu — de la connexion au récapitulatif', async ({ page,
       await toggleCant; // jamais l'animation .psc-ok, cf. journeys/parent-connu.md #07
 
       await expect(page.getByTestId(testid.check(openDay, 'CANT'))).toBeChecked();
-      summaryAfterCant = await readMonthSummary(testid.monthSummary(openMonth));
+      summaryAfterCant = await readChildTotal();
       // open_day n'était pas encore déclaré avant cette étape (distinct par
       // construction des jours proches pré-cochés par le seed demo — cf.
       // règle open_day dans journeys/parent-connu.md) : un nouveau jour
@@ -318,7 +320,7 @@ test('parent déjà connu — de la connexion au récapitulatif', async ({ page,
   await playScene(
     '08-cocher-garderie-matin',
     4_000,
-    testid.monthSummary(openMonth),
+    testid.childTotal(),
     'Le total du mois se met à jour en direct',
     async () => {
       const toggleGm = page.waitForResponse(
@@ -328,7 +330,7 @@ test('parent déjà connu — de la connexion au récapitulatif', async ({ page,
       await toggleGm;
 
       await expect(page.getByTestId(testid.check(openDay, 'GM'))).toBeChecked();
-      const summaryAfterGm = await readMonthSummary(testid.monthSummary(openMonth));
+      const summaryAfterGm = await readChildTotal();
       // Même jour que l'étape 07 : le nombre de jours ne change pas, seul
       // le montant augmente (cumul des deux prestations sur open_day).
       expect(summaryAfterGm.days).toBe(summaryAfterCant.days);
@@ -388,7 +390,7 @@ test('parent déjà connu — de la connexion au récapitulatif', async ({ page,
     }
   );
 
-  /* ---------------- 11-verification-email-recap ---------------- */
+  /* ---------------- 11-verification-email-recap (v5 : récapitulatif annuel) ---------------- */
   await playScene(
     '11-verification-email-recap',
     5_000,
@@ -397,24 +399,25 @@ test('parent déjà connu — de la connexion au récapitulatif', async ({ page,
     async () => {
       const recapMail = await findLatestMessage(
         seed.parent_email,
-        'Confirmation de votre planning périscolaire'
+        'Votre planning périscolaire'
       );
       const openDayLabel = dayLabelFr(openDay);
 
-      // Pas d'assertion sur un total absolu ici : en profil demo, le total
-      // du mois inclut aussi les jours pré-cochés par le seed. Le delta
-      // CANT+GM est déjà vérifié en direct sur le DOM aux étapes 07/08 ;
-      // ce qui reste à prouver, c'est que ces deux ajouts sont bien listés
-      // comme nouveaux dans le bloc de diff de l'e-mail.
-      expect(recapMail.HTML, "ligne du jour ouvert absente du récapitulatif").toContain(openDayLabel);
+      // Le récapitulatif est ANNUEL (v5) : rythme par enfant, écarts à
+      // venir et estimation. Les deux jours cochés aux étapes 07/08 sont
+      // des exceptions sur un planning sans rythme habituel : ils doivent
+      // y figurer comme ajouts exceptionnels, datés.
+      expect(recapMail.HTML, 'année scolaire absente du récapitulatif').toContain('année scolaire');
+      expect(recapMail.HTML, 'section « écarts à venir » absente').toContain('Écarts à venir');
+      expect(recapMail.HTML, 'ligne du jour ouvert absente du récapitulatif').toContain(openDayLabel);
       expect(recapMail.HTML).toContain('Cantine');
       expect(recapMail.HTML).toContain('Garderie Matin');
+      const additionCount = (recapMail.HTML.match(/Ajout exceptionnel/g) ?? []).length;
       expect(
-        recapMail.HTML,
-        'bloc de modifications absent — le transient psc_recap_snap_* a-t-il bien été purgé avant ce run (bloc env de journeys/parent-connu.md) ?'
-      ).toContain('Modifications depuis votre dernier récapitulatif');
-      const additionCount = (recapMail.HTML.match(/\+ Ajout/g) ?? []).length;
-      expect(additionCount, 'deux ajouts attendus : Cantine et Garderie Matin sur le jour ouvert').toBeGreaterThanOrEqual(2);
+        additionCount,
+        'deux ajouts exceptionnels attendus : Cantine et Garderie Matin sur le jour ouvert'
+      ).toBeGreaterThanOrEqual(2);
+      expect(recapMail.HTML, 'estimation annuelle absente').toContain('Estimation annuelle');
     }
   );
 

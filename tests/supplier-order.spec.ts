@@ -52,7 +52,7 @@ type Jour = 'lundi' | 'mardi' | 'jeudi' | 'vendredi';
 interface SeedResult {
   semaine_debut: string;
   jours: Record<Jour, string>;
-  trimestre_id: number;
+  year_id: number;
   parent_id: number;
   child_ids: number[];
   expected: {
@@ -214,16 +214,17 @@ test('annulation de la cantine pour une classe (sortie scolaire)', async ({ page
   await expect(page.getByTestId('cantine-pending-warning')).toContainText('Aline Test');
   await expect(page.getByTestId('cantine-pending-warning')).toContainText(reason);
 
-  // Rien n'a encore été supprimé : les deux inscriptions du lundi de CP
-  // (Cantine + Garderie Matin, le piège du seed) doivent toujours exister.
+  // Rien n'a encore été supprimé : les deux déclarations du lundi de CP
+  // (Cantine + Garderie Matin, le piège du seed) doivent toujours être
+  // effectives. Depuis la v5, les déclarations vivent dans le modèle
+  // rythme + exceptions : on passe par la résolution (psc_is_declared),
+  // jamais par une table en direct.
   const beforeConfirm = wpCliEval(
-    `global $wpdb; echo (int) $wpdb->get_var($wpdb->prepare(
-      "SELECT COUNT(*) FROM {$wpdb->prefix}psc_registrations WHERE jour_date = %s", '${jours.lundi}'
-    ));`
+    `echo (int) count(Psc_Supplier_Orders::cantine_registrations_for_class_day('${jours.lundi}', 'CP'));`
   );
-  expect(beforeConfirm).toBe('2');
+  expect(beforeConfirm).toBe('1');
 
-  /* ---------------- Confirmation : suppression ciblée + e-mail ---------------- */
+  /* ---------------- Confirmation : exceptions de retrait + e-mail ---------------- */
   await page.getByTestId('cantine-confirm-button').click();
 
   await expect(page.getByTestId('notice-cantine_cancelled')).toBeVisible();
@@ -231,11 +232,18 @@ test('annulation de la cantine pour une classe (sortie scolaire)', async ({ page
 
   // La Garderie Matin du même jour doit survivre : seule la Cantine a été
   // retirée (Psc_Supplier_Orders::cantine_registrations_for_class_day()
-  // filtre strictement service = 'CANT').
+  // filtre strictement la prestation CANT).
   const remainingServices = wpCliEval(
-    `global $wpdb; echo implode(',', $wpdb->get_col($wpdb->prepare(
-      "SELECT service FROM {$wpdb->prefix}psc_registrations WHERE jour_date = %s", '${jours.lundi}'
-    )));`
+    `global $wpdb;
+     $child_id = (int) $wpdb->get_var(
+       "SELECT id FROM {$wpdb->prefix}psc_children WHERE prenom = 'Aline' AND nom = 'Test'"
+     );
+     $declared = Psc_Planning::declared_map(array($child_id), array('${jours.lundi}'));
+     $services = array();
+     foreach (psc_unit_services() as $svc) {
+       if (!empty($declared[$child_id]['${jours.lundi}'][$svc])) $services[] = $svc;
+     }
+     echo implode(',', $services);`
   );
   expect(remainingServices).toBe('GM');
 

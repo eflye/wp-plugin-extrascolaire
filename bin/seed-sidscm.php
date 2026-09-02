@@ -126,9 +126,7 @@ WP_CLI::add_command('seed-sidscm', function () {
     $year = Psc_School_Year::active();
     if (!$year) {
         WP_CLI::error("Aucune configuration d'année scolaire — le scénario SIDSCM n'a pas de terrain.");
-    }
-
-    // Le même calcul que Psc_Sidscm::ajax_data() : la seed et l'écran
+    }    // Le même calcul que Psc_Sidscm::ajax_data() : la seed et l'écran
     // voient toujours les mêmes jours, vacances/fériés compris.
     $monday = psc_week_start(current_time('Y-m-d'));
     $open_days = psc_open_days($monday);
@@ -136,12 +134,19 @@ WP_CLI::add_command('seed-sidscm', function () {
         WP_CLI::error("Semaine sans jour ouvert (vacances, calendrier non chargé ?) — le scénario SIDSCM n'a pas de terrain.");
     }
 
-    // Nina : GM + CANT + GS tous les jours de semaine ; Marco : GS seul.
-    foreach (array(1, 2, 4, 5) as $weekday) {
+    // Déclarations explicites de la semaine courante — l'ancien seed
+    // écrivait une ligne d'inscription par jour ouvert, le scénario attend
+    // Nina GM+CANT+GS et Marco GS sur TOUS les jours ouverts, passés
+    // compris (lundi/mardi déjà verrouillés). Une seed par PATTERN serait
+    // faux ici : la sauvegarde d'un rythme fige les jours verrouillés dans
+    // leur état d'avant (non déclaré) — le pointage perdrait deux jours.
+    // La seed écrit donc des exceptions AJOUT par jour ouvert, en passant
+    // le verrou (elle agit pour la mairie, qui n'y est jamais soumise).
+    foreach ($open_days as $date) {
         foreach (array('GM', 'CANT', 'GS') as $service) {
-            Psc_Planning::toggle_pattern($enfant_a_id, $year->year_key, $weekday, $service, true);
+            Psc_Planning::toggle_exception($enfant_a_id, $date, $service, true, true);
         }
-        Psc_Planning::toggle_pattern($enfant_b_id, $year->year_key, $weekday, 'GS', true);
+        Psc_Planning::toggle_exception($enfant_b_id, $date, 'GS', true, true);
     }
     Psc_Planning::flush_cache();
 

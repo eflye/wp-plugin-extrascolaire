@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.0.0
+Stable tag: 5.0.1
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,24 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.0.1 =
+* Correction : cliquer « Planning - 2 » depuis le menu affichait « Aucun
+  enfant n'est encore rattaché » alors que le foyer en a — la section était
+  rendue à chaque chargement (la navigation d'onglets bascule localement,
+  sans recharger la page) mais ses données n'étaient peuplées que lorsque
+  l'onglet était actif. Les deux écrans Planning (et leurs sections) sont
+  désormais peuplés dès que leur variante est exposée.
+* Correction : sur Planning - 1, cocher Cantine puis Garderie Matin
+  retirait la Cantine (cascade de l'ancien modèle appliquée à tort entre
+  prestations compatibles) — la mutualisation ne concerne que le forfait,
+  qui recouvre les trois prestations.
+* Correction : les totaux du bandeau fratrie et de l'enfant suivaient
+  désormais l'état serveur après chaque enregistrement (réalignement suite
+  au réaffichage des cases).
+* Tests : scénarios E2E et seeds mis à jour au modèle v5 (parcours parent,
+  SIDSCM — la seed déclare explicitement la semaine courante, commande
+  fournisseur — vérifications via la résolution, plus l'ancienne table).
 
 = 5.0.0 =
 * NOUVEAU MODÈLE — Fin du trimestre : tout le portail passe à l'année scolaire

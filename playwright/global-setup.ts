@@ -41,8 +41,8 @@ export interface SeedResult {
   profile: 'test' | 'demo';
   parent_email: string;
   parent_id: number;
-  trimestre_id: number;
-  trimestre_label: string;
+  /** Clé de l'année scolaire du planning (v5 : plus de trimestre). */
+  year_key: string;
   enfants: Array<{ index: number; prenom: string; nom: string; classe: string }>;
   open_day: string | null;
   locked_day: string | null;

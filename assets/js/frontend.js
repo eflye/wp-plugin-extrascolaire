@@ -237,18 +237,28 @@
         var childBlock = cb.closest('.psc-portal-child-block');
         var table = cb.closest('table');
 
-        // Cascade UI : le forfait et les prestations élémentaires restent
-        // mutuellement exclusifs à l'affichage d'un jour. Cocher l'un décoche
-        // les autres (le serveur écrit un retrait exceptionnel pour ce jour
-        // seulement — le rythme de la semaine n'est pas touché).
+        // Cascade UI — exclusivité FORFAIT uniquement. La cantine, la
+        // garderie matin et la garderie soir sont compatibles entre elles
+        // (un enfant peut déjeuner ET aller à la garderie le même jour) :
+        // cocher l'une ne touche pas aux autres. Seul le forfait, qui les
+        // recouvre toutes les trois, est exclusif :
+        //  - cocher FORF décoche les prestations élémentaires du jour ;
+        //  - cocher une prestation élémentaire alors que FORF est coché
+        //    décoche le forfait — même sémantique que l'ancien modèle,
+        //    qui supprimait la ligne forfait au profit des unités.
+        // Chaque case décochée part en exception de retrait pour CE jour
+        // seulement : le rythme de la semaine n'est pas touché.
         var siblingsToUncheck = [];
         if (willBeChecked) {
+            var isForf = cb.dataset.service === 'FORF';
             var row = cb.closest('tr');
             if (row) {
                 row.querySelectorAll('.psc-check').forEach(function (c) {
-                    if (c !== cb && c.checked && !c.disabled && !psc_is_locked_date(c.dataset.date)) {
-                        siblingsToUncheck.push(c);
-                    }
+                    if (c === cb || !c.checked || c.disabled) return;
+                    var sibIsForf = c.dataset.service === 'FORF';
+                    if (isForf === sibIsForf) return; // même famille : compatible
+                    if (psc_is_locked_date(c.dataset.date)) return;
+                    siblingsToUncheck.push(c);
                 });
             }
             siblingsToUncheck.forEach(function (sib) { sib.checked = false; });
@@ -280,6 +290,12 @@
 
                 applyExplicitState(res.data && res.data.state);
 
+                // Totals après réalignement serveur : l'état explicite peut
+                // différer de l'optimiste (invariant, cascade).
+                if (childBlock) recomputeChildTotal(childBlock);
+                recomputeSiblingBanner();
+                if (table) recomputeToutButtonsIn(table);
+
                 siblingsToUncheck.forEach(function (sib) {
                     post({
                         action: 'psc_toggle_exception',
@@ -287,6 +303,15 @@
                         date: sib.dataset.date,
                         service_code: sib.dataset.service,
                         checked: '0'
+                    }).then(function (res2) {
+                        // La réponse de la cascade porte l'état du mois : on
+                        // réaligne, sinon la case cascade reste visuellement
+                        // cochée alors que le serveur l'a retirée.
+                        if (res2 && res2.success) {
+                            applyExplicitState(res2.data && res2.data.state);
+                            if (childBlock) recomputeChildTotal(childBlock);
+                            recomputeSiblingBanner();
+                        }
                     });
                 });
                 return;

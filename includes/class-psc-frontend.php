@@ -602,11 +602,12 @@ class Psc_Frontend extends Psc_Frontend_Base {
             $psc_pickup_map[$child->id] = Psc_Pickup_Persons::for_child($child->id);
         }
 
-        // Données propres aux écrans Planning : les deux variantes exposées
-        // sont rendues dans le DOM (la navigation d'onglets bascule
-        // localement, cf. portal.js) — seul le mois affiché est rendu, jamais
+        // Données propres aux écrans Planning : chaque variante exposée est
+        // rendue dans le DOM — pas seulement l'onglet actif — car la
+        // navigation d'onglets bascule l'affichage localement (portal.js)
+        // SANS recharger la page. Seul le mois affiché est rendu, jamais
         // l'année entière.
-        if (in_array($active_tab, array('cantine', 'cantine2'), true) || !empty($psc_portal_tabs['cantine'])) {
+        if (!empty($psc_portal_tabs['cantine'])) {
             $child_ids = array_map(function ($c) { return (int) $c->id; }, $children);
             $month_dates = Psc_School_Year::school_days_in_month($psc_month_key);
             Psc_School_Calendar::preload_closed($month_dates);
@@ -635,7 +636,12 @@ class Psc_Frontend extends Psc_Frontend_Base {
         }
 
         // Écran Planning - 2 (rythme + exceptions) : enfant affiché (onglets).
-        if ($active_tab === 'cantine2') {
+        // La section est rendue dans le DOM dès que la variante est exposée —
+        // pas seulement quand l'onglet est actif : le clic sur « Planning - 2 »
+        // du menu bascule localement (portal.js) SANS recharger la page, une
+        // section rendue vide y afficherait « Aucun enfant… » alors que le
+        // foyer en a. Même raisonnement que le bloc ci-dessus.
+        if (!empty($psc_portal_tabs['cantine2']) && !empty($children)) {
             // Enfant affiché (onglets) : ?psc_child= ou le premier.
             $requested_child = isset($_GET['psc_child']) ? absint($_GET['psc_child']) : 0;
             foreach ($children as $c) {

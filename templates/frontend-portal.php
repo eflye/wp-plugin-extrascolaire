@@ -160,13 +160,27 @@
       <?php include PSC_PATH . 'templates/portal-dashboard.php'; ?>
     </section>
 
+    <?php if (isset($psc_portal_tabs['cantine'])): ?>
     <section class="psc-portal-section<?php echo $active_tab === 'cantine' ? ' is-active' : ''; ?>" data-portal-section="cantine" data-testid="portal-section-cantine">
-      <?php include PSC_PATH . 'templates/portal-planning-1.php'; ?>
+      <?php
+      // Rendue seulement si la variante 1 est exposée : la bascule d'onglets
+      // étant locale (portal.js), une section absente du DOM n'est jamais
+      // atteignable — et le menu ne propose pas l'onglet (portal_tab_defs).
+      include PSC_PATH . 'templates/portal-planning-1.php';
+      ?>
     </section>
+    <?php endif; ?>
 
     <?php if (isset($psc_portal_tabs['cantine2'])): ?>
     <section class="psc-portal-section<?php echo $active_tab === 'cantine2' ? ' is-active' : ''; ?>" data-portal-section="cantine2" data-testid="portal-section-cantine2">
-      <?php include PSC_PATH . 'templates/portal-planning-2.php'; ?>
+      <?php
+      // Comme pour la section « cantine » : rendue dès que la variante est
+      // exposée, même inactive — le clic menu bascule l'affichage côté
+      // client sans recharger la page (portal.js). Le template gère lui-même
+      // le cas « aucun enfant » ; les données sont peuplées par
+      // Psc_Frontend::shortcode() (cf. bloc $psc_planning_data['active_child']).
+      include PSC_PATH . 'templates/portal-planning-2.php';
+      ?>
     </section>
     <?php endif; ?>
 
