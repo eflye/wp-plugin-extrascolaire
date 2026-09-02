@@ -332,9 +332,10 @@
         }).then(function (res) {
             if (res && res.success) {
                 window.PSC_DATA_STALE = true;
-                if (res.data.frozen > 0) {
-                    flashNote(t('frozen_days', res.data.frozen));
-                }
+                // Le figeage des jours verrouillés (frozen > 0) est un
+                // comportement attendu, pas une anomalie : ces jours sont
+                // de toute façon grisés comme non modifiables — pas de
+                // message, une notice ici n'aurait jamais été comprise.
                 applyState(res.data.state);
             } else {
                 btn.disabled = false;

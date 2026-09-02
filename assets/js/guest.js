@@ -218,19 +218,6 @@
             var idx = next++;
             var n = list.children.length + 1;
 
-            var rhythmHead = '';
-            ['GM', 'CANT', 'GS', 'FORF'].forEach(function (code) {
-                rhythmHead += '<th style="padding:4px 10px;font-size:11px;letter-spacing:0.08em;color:#4E6C8D;text-transform:uppercase;">' + t('rhythm_' + code) + '</th>';
-            });
-            var rhythmRows = '';
-            [[1, t('day_1')], [2, t('day_2')], [4, t('day_4')], [5, t('day_5')]].forEach(function (j) {
-                var cells = '';
-                ['GM', 'CANT', 'GS', 'FORF'].forEach(function (code) {
-                    cells += '<td style="text-align:center;padding:4px;"><input type="checkbox" class="psc-rhythm-check" name="child_rhythm_' + idx + '_' + j[0] + '_' + code + '" value="1" aria-label="' + j[1] + ' ' + t('rhythm_' + code) + '"></td>';
-                });
-                rhythmRows += '<tr><th style="padding:4px 10px;text-align:left;font-weight:600;color:#24405C;">' + j[1] + '</th>' + cells + '</tr>';
-            });
-
             var row = document.createElement('div');
             row.className = 'psc-wizard-child-row';
             row.dataset.index = idx;
@@ -256,12 +243,6 @@
                 '<textarea name="child_food_allergies_' + idx + '" rows="2" maxlength="1000" placeholder="' + t('allergy_placeholder') + '" style="width:100%;resize:vertical;border:1px solid rgba(36,64,92,0.3);background:#fff;font-size:13px;padding:8px;"></textarea>' +
                 '<p class="psc-child-allergy-help" style="font-size:11px;color:#8B8279;margin:6px 0 0;">' + t('allergy_help') + '</p>' +
                 '</div></div>' +
-                '<div class="psc-wizard-rhythm-cell" style="grid-column: 1 / -1;">' +
-                '<div class="psc-portal-field-label">' + t('rhythm_label') + '</div>' +
-                '<table class="psc-wizard-rhythm" style="border-collapse:collapse;font-size:13px;"><thead><tr><th></th>' + rhythmHead +
-                '</tr></thead><tbody>' + rhythmRows + '</tbody></table>' +
-                '<p style="font-size:11px;color:#8B8279;margin:6px 0 0;">' + t('rhythm_help') + '</p>' +
-                '</div>' +
                 '<div class="psc-wizard-pickup-block">' +
                 '<p class="psc-wizard-pickup-title">' + t('pickup_title') + '</p>' +
                 '<div class="psc-wizard-pickup-list" data-pickup-list></div>' +
@@ -538,17 +519,20 @@
             // requis caché la déadlockerait.
             adresse.type = isAuto ? 'hidden' : 'text';
             adresse.required = !isAuto;
-            cp.type = isAuto ? 'hidden' : 'text';
-            cp.required = !isAuto;
-            ville.type = isAuto ? 'hidden' : 'text';
-            ville.required = !isAuto;
 
-            // Les libellés CP / ville restent dans leurs cellules de la
-            // grille : on masque les cellules entières.
-            [cp, ville].forEach(function (input) {
-                var cell = input.closest('div');
-                if (cell) cell.hidden = isAuto;
-            });
+            // Code postal et ville restent TOUJOURS visibles : la sélection
+            // d'une ligne d'autocomplétion les remplit sous les yeux de la
+            // famille (lecture seule en mode auto — ils sont déduits de la
+            // ligne retenue ; pour les corriger, basculer en saisie
+            // manuelle). Lecture seule plutôt que hidden : un champ masqué
+            // rempli en silence donne l'impression que la completion
+            // « ne remplit rien ».
+            cp.readOnly = isAuto;
+            cp.required = !isAuto;
+            cp.classList.toggle('is-autofilled', isAuto);
+            ville.readOnly = isAuto;
+            ville.required = !isAuto;
+            ville.classList.toggle('is-autofilled', isAuto);
 
             if (isAuto) {
                 label.setAttribute('for', 'psc-req-adresse-search');

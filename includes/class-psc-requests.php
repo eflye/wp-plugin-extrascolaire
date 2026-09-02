@@ -355,20 +355,6 @@ class Psc_Requests {
                 $allergies = mb_substr($raw_allergies, 0, 1000);
             }
 
-            // Rythme habituel prévu : {weekday => [service, …]}, arbitré au
-            // profit du forfait quand coché (FORF remplace les composantes).
-            $rhythm = array();
-            foreach (array(1, 2, 4, 5) as $wd) {
-                $svcs = array();
-                foreach (psc_allowed_services() as $svc) {
-                    if (!empty($_POST['child_rhythm_' . $i . '_' . $wd . '_' . $svc])) $svcs[] = $svc;
-                }
-                if (in_array(psc_forfait_code(), $svcs, true)) {
-                    $svcs = array(psc_forfait_code());
-                }
-                if ($svcs) $rhythm[$wd] = $svcs;
-            }
-
             $children[] = array(
                 'nom'                  => mb_substr($cn, 0, 190),
                 'prenom'               => mb_substr($cp, 0, 190),
@@ -377,7 +363,6 @@ class Psc_Requests {
                 'sans_porc'            => isset($_POST['child_sans_porc_' . $i]) ? 1 : 0,
                 'vegan'                => isset($_POST['child_vegan_' . $i]) ? 1 : 0,
                 'food_allergies'       => $allergies,
-                'rythme'               => $rhythm,
                 'personnes_autorisees' => $pickup_persons,
             );
             $assurance_uploads[count($children) - 1] = $file;
@@ -777,13 +762,6 @@ class Psc_Requests {
                 if (!Psc_School_Years::enroll($child_id, $active_year_id, $c['classe'], 'inscrit', $req->reglement_accepted_at ?? current_time('mysql'))) {
                     return $rollback(__('Inscription de l\'enfant impossible.', 'periscolaire-registration'));
                 }
-            }
-
-            // Rythme habituel prévu à l'inscription : la famille arrive avec
-            // une année pré-remplie. Le pattern est posé sur l'année scolaire
-            // courante (dates du planning) ; les families ajustent ensuite.
-            if (!empty($c['rythme']) && is_array($c['rythme'])) {
-                Psc_Planning::seed_patterns_from_wizard($child_id, $c['rythme']);
             }
 
             // Allergie alimentaire déclarée à l'inscription : le service

@@ -1087,34 +1087,6 @@ class Psc_Planning {
     }
 
     /**
-     * Pose le rythme prévu à l'inscription (wizard invité) : la famille
-     * arrive avec une année pré-remplie. $rythme = [weekday => [service,…]]
-     * tel que collecté par Psc_Requests::handle_submit() — le forfait,
-     * quand coché, remplace déjà les composantes. Aucune exception : les
-     * jours non couverts ne sont simplement pas déclarés.
-     */
-    public static function seed_patterns_from_wizard($child_id, $rythme) {
-        $child_id = (int) $child_id;
-        if (!$child_id || !is_array($rythme)) return 0;
-
-        Psc_School_Year::ensure_default();
-        $year = Psc_School_Year::active();
-        if (!$year) return 0;
-
-        $count = 0;
-        foreach (self::WEEKDAYS as $weekday) {
-            if (empty($rythme[$weekday]) || !is_array($rythme[$weekday])) continue;
-            foreach ($rythme[$weekday] as $svc) {
-                if (!psc_is_valid_service($svc)) continue;
-                $r = self::toggle_pattern($child_id, $year->year_key, $weekday, $svc, true);
-                if ($r['status'] === 'ok') $count++;
-            }
-        }
-        self::flush_cache();
-        return $count;
-    }
-
-    /**
      * Garantit une configuration psc_school_year pour une clé donnée :
      * créée par dérivation (bornes du dossier d'inscription homonyme,
      * sinon 1er septembre → 6 juillet) et fériés pré-remplis. La migration

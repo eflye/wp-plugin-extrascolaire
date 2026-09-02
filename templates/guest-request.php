@@ -170,35 +170,6 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
             </div>
           </div>
 
-          <div class="psc-wizard-rhythm-cell" style="grid-column: 1 / -1;">
-            <div class="psc-portal-field-label"><?php esc_html_e('Rythme habituel prévu (facultatif — modifiable toute l\'année depuis votre espace)', 'periscolaire-registration'); ?></div>
-            <table class="psc-wizard-rhythm" style="border-collapse:collapse;font-size:13px;">
-              <thead><tr>
-                <th></th>
-                <?php foreach (psc_service_short_labels() as $code => $short): ?>
-                <th style="padding:4px 10px;font-size:11px;letter-spacing:0.08em;color:#4E6C8D;text-transform:uppercase;" title="<?php echo esc_attr(psc_services()[$code]['label']); ?>"><?php echo esc_html($short); ?></th>
-                <?php endforeach; ?>
-              </tr></thead>
-              <tbody>
-                <?php
-                $psc_wizard_jours = array(1 => 'Lundi', 2 => 'Mardi', 4 => 'Jeudi', 5 => 'Vendredi');
-                foreach ($psc_wizard_jours as $wd => $jour):
-                ?>
-                <tr>
-                  <th style="padding:4px 10px;text-align:left;font-weight:600;color:#24405C;"><?php echo esc_html($jour); ?></th>
-                  <?php foreach (psc_service_short_labels() as $code => $short): ?>
-                  <td style="text-align:center;padding:4px;">
-                    <input type="checkbox" class="psc-rhythm-check" name="child_rhythm_0_<?php echo esc_attr($wd); ?>_<?php echo esc_attr($code); ?>" value="1" data-rhythm-day="<?php echo esc_attr($wd); ?>"
-                           aria-label="<?php echo esc_attr($jour . ' — ' . psc_services()[$code]['label']); ?>">
-                  </td>
-                  <?php endforeach; ?>
-                </tr>
-                <?php endforeach; ?>
-              </tbody>
-            </table>
-            <p style="font-size:11px;color:#8B8279;margin:6px 0 0;"><?php esc_html_e('Le mercredi n\'est pas un jour de service. Ces choix préremplissent votre planning pour toute l\'année scolaire : vous pourrez l\'ajuster à tout moment.', 'periscolaire-registration'); ?></p>
-          </div>
-
           <div class="psc-wizard-pickup-block">
             <p class="psc-wizard-pickup-title"><?php esc_html_e('Personnes autorisées à récupérer cet enfant en fin de garderie du soir (facultatif)', 'periscolaire-registration'); ?></p>
             <div class="psc-wizard-pickup-list" data-pickup-list></div>

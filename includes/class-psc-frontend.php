@@ -193,19 +193,12 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 'apply_siblings_confirm' => __("Appliquer ce rythme à toute la fratrie ? Le rythme habituel des autres enfants sera remplacé (leurs exceptions personnelles sont conservées).", 'periscolaire-registration'),
                 'apply_siblings_done'    => __('Rythme appliqué à toute la fratrie.', 'periscolaire-registration'),
                 'apply_siblings_empty'   => __('Cochez d\'abord au moins une case du rythme habituel.', 'periscolaire-registration'),
-                'frozen_days'       => __('%s jour(s) déjà transmis à la cantine ont été figés : leur état ne change pas.', 'periscolaire-registration'),
                 'recap_month'       => __('Mois : %1$s jour(s) · %2$s €', 'periscolaire-registration'),
                 'recap_year'        => __('Année : %1$s jour(s) · %2$s €', 'periscolaire-registration'),
                 // Wizard invité (guest.js) : allergies + rythme habituel.
                 'allergy_toggle'     => __('Cet enfant a une allergie alimentaire', 'periscolaire-registration'),
                 'allergy_placeholder' => __('Aliments à exclure des repas, réaction en cas d\'ingestion, conduite à tenir.', 'periscolaire-registration'),
                 'allergy_help'       => __("Strictement alimentaire. La mairie vous contactera si un PAI (projet d'accueil individualisé) doit être mis en place. Aucun menu différencié n'est proposé : l'enfant déjeune à la cantine avec son propre repas fourni par la famille.", 'periscolaire-registration'),
-                'rhythm_label'       => __('Rythme habituel prévu (facultatif — modifiable toute l\'année depuis votre espace)', 'periscolaire-registration'),
-                'rhythm_help'        => __("Le mercredi n'est pas un jour de service. Ces choix préremplissent votre planning pour toute l'année scolaire : vous pourrez l'ajuster à tout moment.", 'periscolaire-registration'),
-                'rhythm_GM'          => psc_service_short_labels()['GM'],
-                'rhythm_CANT'        => psc_service_short_labels()['CANT'],
-                'rhythm_GS'          => psc_service_short_labels()['GS'],
-                'rhythm_FORF'        => psc_service_short_labels()['FORF'],
             ),
         ));
 

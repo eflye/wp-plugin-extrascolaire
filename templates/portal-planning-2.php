@@ -192,10 +192,14 @@ $psc_active_year = $psc_year_summary['year']['per_child'][$psc_active_child_id] 
           <?php endforeach; ?>
         </tbody>
       </table>
+      <?php if (count($children) > 1): ?>
+      <?php /* La copie n'a de sens qu'à partir de deux enfants : famille
+               mono-enfant, pas de bouton (et pas de feedback orphelin). */ ?>
       <button type="button" class="psc-apply-siblings" id="psc-apply-siblings" data-testid="apply-siblings">
         <?php esc_html_e('Appliquer ce rythme à toute la fratrie', 'periscolaire-registration'); ?>
       </button>
       <p class="psc-apply-siblings-feedback" id="psc-apply-siblings-feedback" role="status" aria-live="polite"></p>
+      <?php endif; ?>
     </div>
 
     <?php /* d. Étape 2 — exceptions du mois (panneau droit) */ ?>

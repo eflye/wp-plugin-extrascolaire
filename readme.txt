@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.0.2
+Stable tag: 5.0.3
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,23 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.0.3 =
+* Inscription initiale : le bloc « Rythme habituel prévu » disparaît de
+  l'étape Enfants — le rythme se déclare depuis l'espace famille, où il est
+  modifiable toute l'année (et une saisie à l'inscription aurait figé des
+  choix encore approximatifs au moment de la demande).
+* Autocomplétion d'adresse : la sélection d'une ligne remplit désormais des
+  champs code postal et ville VISIBLES (lecture seule en mode recherche —
+  ils sont déduits de la ligne retenue ; la bascule vers la saisie
+  manuelle les rend éditables). Ils étaient remplis mais masqués, donnant
+  l'impression que la completion « ne remplissait rien ».
+* Planning - 2 : le message « N jour(s) déjà transmis à la cantine ont été
+  figés » disparaît — le figeage des jours verrouillés est un comportement
+  attendu (ces jours sont grisés comme non modifiables), une notice ici
+  n'était jamais comprise.
+* Planning - 2 : « Appliquer ce rythme à toute la fratrie » n'apparaît que
+  si la famille compte au moins deux enfants.
 
 = 5.0.2 =
 * Correction — Planning - 2 fonctionnel : la grille du rythme ne se mettait

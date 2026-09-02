@@ -656,3 +656,12 @@ span.psc-diet-options { flex-direction: row; gap: 12px; }
         animation-duration: 0.01ms;
     }
 }
+
+/* Autocomplétion d'adresse : en mode auto, code postal et ville sont
+   remplis depuis la ligne sélectionnée de la Base Adresse Nationale —
+   lecture seule, signalée par le fond papier (modifiables via la bascule
+   de saisie manuelle). */
+.psc-portal-field-underline[readonly].is-autofilled {
+    background: var(--psc-paper, #F5E7DC);
+    cursor: default;
+}
