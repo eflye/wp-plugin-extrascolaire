@@ -139,6 +139,19 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
             $ym = self::default_month($year);
         }
 
+        // Précharge le calendrier scolaire en 2 requêtes (fermetures
+        // importées/manuelles) sur l'année ÉTENDUE aux bornes de ses mois :
+        // août 2026 et juillet 2027 débordent de date_start/date_end, et
+        // chaque débordement relançait ses propres lectures mois par mois.
+        if ($year) {
+            $psc_year_months = Psc_School_Year::months($year->year_key);
+            if ($psc_year_months) {
+                $psc_first = reset($psc_year_months)['key'] . '-01';
+                $psc_last  = gmdate('Y-m-t', strtotime(end($psc_year_months)['key'] . '-01'));
+                Psc_School_Year::school_days($psc_first, $psc_last);
+            }
+        }
+
         $summary  = Psc_Planning::year_summary($children, $year->year_key);
         $patterns = Psc_Planning::load_patterns($child_ids);
         $cells    = Psc_Planning::month_state($child_id, $ym);

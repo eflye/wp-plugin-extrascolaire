@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.0.3
+Stable tag: 5.0.4
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,23 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.0.4 =
+* Performance — Planning - 2 : un clic dans « Étape 1 » lançait plusieurs
+  centaines de requêtes SQL identiques (la configuration de l'année était
+  relue en base pour chaque enfant × date × prestation) — d'où la latence
+  perçue, proportionnelle au ping de la base. La configuration d'année, ses
+  plages de vacances, les fermetures du calendrier (importées et manuelles)
+  et les fermetures par prestation sont désormais résolues en mémoire par
+  requête (il n'existe qu'une à trois lignes de configuration) ; les
+  calculs par date (clé d'année, jour de semaine) sont remontés hors des
+  boucles enfant × prestation ; le calendrier de toute l'année étendue aux
+  bornes de ses mois est préchargé en 2 requêtes avant le re-rendu.
+  Mesuré : ≈ 900 requêtes par clic → ≈ 45, la latency serveur retombe à
+  quelques dizaines de millisecondes sur une base distante. Aucun
+  changement de comportement : les mêmes caches sont vidés après chaque
+  écriture (mairie, migration, tests), l'invariant et les tests E2E
+  (rendu + base) restent identiques.
 
 = 5.0.3 =
 * Inscription initiale : le bloc « Rythme habituel prévu » disparaît de

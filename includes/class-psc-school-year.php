@@ -34,52 +34,62 @@ class Psc_School_Year {
     private static $vacation_cache = array();
     private static $holiday_cache = array();
 
+    /**
+     * Cache par requête des LECTURES de configuration. La résolution du
+     * planning interroge la clé d'année (donc la configuration) pour CHAQUE
+     * (enfant × date × prestation) : sans ce cache, un simple clic dans la
+     * grille lançait plusieurs centaines de requêtes identiques — la table
+     * compte une à trois lignes, tout tient en mémoire.
+     */
+    private static $all_cache = null;
+    private static $vacation_decoded = array();
+    private static $school_days_month_cache = array();
+
     /* ---------------- Lectures ---------------- */
 
     public static function all() {
-        global $wpdb;
-        $rows = $wpdb->get_results('SELECT * FROM ' . psc_table('school_year') . ' ORDER BY date_start DESC');
-        return is_array($rows) ? $rows : array();
+        if (self::$all_cache === null) {
+            global $wpdb;
+            $rows = $wpdb->get_results('SELECT * FROM ' . psc_table('school_year') . ' ORDER BY date_start DESC');
+            self::$all_cache = is_array($rows) ? $rows : array();
+        }
+        return self::$all_cache;
     }
 
     /** Configuration d'une année par sa clé ('2026-2027'), ou null. */
     public static function get($year_key) {
-        global $wpdb;
         $year_key = self::sanitize_key($year_key);
         if ($year_key === '') return null;
-        return $wpdb->get_row($wpdb->prepare(
-            'SELECT * FROM ' . psc_table('school_year') . ' WHERE year_key = %s', $year_key
-        ));
+        foreach (self::all() as $row) {
+            if ($row->year_key === $year_key) return $row;
+        }
+        return null;
     }
 
     /**
      * Configuration de l'année courante : celle qui couvre aujourd'hui,
      * sinon la plus récente (été compris — une famille qui déclare son
      * rythme en juillet pour la rentrée doit retomber sur la bonne année).
+     * Résolue depuis le cache all() : même sémantique que les requêtes
+     * d'origine (couvrante d'abord, sinon la plus récente par date_start).
      */
     public static function active() {
-        global $wpdb;
         $today = current_time('Y-m-d');
-        $row = $wpdb->get_row($wpdb->prepare(
-            'SELECT * FROM ' . psc_table('school_year') . ' WHERE date_start <= %s AND date_end >= %s ORDER BY date_start DESC LIMIT 1',
-            $today, $today
-        ));
-        if ($row) return $row;
-        return $wpdb->get_row(
-            'SELECT * FROM ' . psc_table('school_year') . ' ORDER BY date_start DESC LIMIT 1'
-        );
+        $rows = self::all();
+        foreach ($rows as $row) {
+            if ($row->date_start <= $today && $row->date_end >= $today) return $row;
+        }
+        return $rows ? $rows[0] : null;
     }
 
     /** Configuration couvrant une date (date_start <= date <= date_end), sinon l'année active. */
     public static function for_date($date) {
-        global $wpdb;
         $date = psc_valid_date($date);
         if (!$date) return self::active();
-        $row = $wpdb->get_row($wpdb->prepare(
-            'SELECT * FROM ' . psc_table('school_year') . ' WHERE date_start <= %s AND date_end >= %s ORDER BY date_start DESC LIMIT 1',
-            $date, $date
-        ));
-        return $row ?: self::active();
+        foreach (self::all() as $row) {
+            if ($row->date_start <= $date && $row->date_end >= $date) return $row;
+        }
+        return self::active();
     }
 
     /**
@@ -121,20 +131,30 @@ class Psc_School_Year {
     public static function vacation_ranges($year_key = null) {
         $row = $year_key !== null ? self::get($year_key) : self::active();
         if (!$row) return array();
-        $raw = trim((string) $row->vacation_ranges);
-        if ($raw === '' || $raw === '[]' || $raw === 'null') return array();
-        $decoded = json_decode($raw, true);
-        if (!is_array($decoded)) return array();
 
+        // Décodage une seule fois par année et par requête : is_vacation()
+        // est appelé pour chaque date de chaque résolution.
+        if (isset(self::$vacation_decoded[$row->year_key])) {
+            return self::$vacation_decoded[$row->year_key];
+        }
+
+        $raw = trim((string) $row->vacation_ranges);
         $ranges = array();
-        foreach ($decoded as $r) {
-            if (!is_array($r) || count($r) < 2) continue;
-            $start = psc_valid_date($r[0]);
-            $end   = psc_valid_date($r[1]);
-            if ($start && $end && strtotime($end) >= strtotime($start)) {
-                $ranges[] = array($start, $end);
+        if ($raw !== '' && $raw !== '[]' && $raw !== 'null') {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                foreach ($decoded as $r) {
+                    if (!is_array($r) || count($r) < 2) continue;
+                    $start = psc_valid_date($r[0]);
+                    $end   = psc_valid_date($r[1]);
+                    if ($start && $end && strtotime($end) >= strtotime($start)) {
+                        $ranges[] = array($start, $end);
+                    }
+                }
             }
         }
+
+        self::$vacation_decoded[$row->year_key] = $ranges;
         return $ranges;
     }
 
@@ -247,24 +267,33 @@ class Psc_School_Year {
         $date_end   = psc_valid_date($date_end);
         if (!$date_start || !$date_end || strtotime($date_end) < strtotime($date_start)) return array();
 
-        $days = array();
+        // Liste d'abord, PRÉCHARGE ensuite (fermetures importées/manuelles en
+        // 2 requêtes pour toute la plage), puis filtre : sans préchargement,
+        // chaque date interrogeait le calendrier deux fois — des centaines
+        // de requêtes par résolution (frise, récapitulatifs, clics).
+        $all = array();
         $cursor = new DateTime($date_start);
         $end = new DateTime($date_end);
         $guard = 0;
         while ($cursor <= $end && $guard++ < psc_max_school_days()) {
-            $d = $cursor->format('Y-m-d');
-            if (self::is_school_day($d)) $days[] = $d;
+            $all[] = $cursor->format('Y-m-d');
             $cursor->modify('+1 day');
         }
-        return $days;
+        Psc_School_Calendar::preload_closed($all);
+        Psc_School_Calendar::preload_manual_closed($all);
+
+        return array_values(array_filter($all, array(__CLASS__, 'is_school_day')));
     }
 
-    /** Jours d'école d'un mois (YYYY-MM), triés. */
+    /** Jours d'école d'un mois (YYYY-MM), triés — une seule résolution par mois et par requête (frise, récapitulatifs). */
     public static function school_days_in_month($ym) {
         if (!preg_match('/^\d{4}-\d{2}$/', $ym)) return array();
+        if (isset(self::$school_days_month_cache[$ym])) return self::$school_days_month_cache[$ym];
         $start = $ym . '-01';
         $end = gmdate('Y-m-t', strtotime($start));
-        return self::school_days($start, $end);
+        $days = self::school_days($start, $end);
+        self::$school_days_month_cache[$ym] = $days;
+        return $days;
     }
 
     /**
@@ -306,7 +335,10 @@ class Psc_School_Year {
     public static function flush_cache() {
         self::$day_cache = array();
         self::$vacation_cache = array();
+        self::$vacation_decoded = array();
         self::$holiday_cache = array();
+        self::$all_cache = null;
+        self::$school_days_month_cache = array();
     }
 
     /* ---------------- Écritures (écran mairie) ---------------- */

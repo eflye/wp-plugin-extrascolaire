@@ -66,13 +66,52 @@ class Psc_School_Calendar {
      * Utilisée par Psc_School_Year::day_status() — cf. la règle 1 de
      * psc_is_declared() : hors jour d'école, toujours false.
      */
-    public static function is_manually_closed($date_str) {
+    /**
+     * Cache par requête des fermetures manuelles + préchargement en une
+     * requête (preload_manual_closed). day_status() est appelé pour chaque
+     * date de chaque résolution : une requête par date était le premier
+     * poste de lenteur du planning (cf. Psc_School_Year::school_days()).
+     */
+    private static $manual_cache = array();
+
+    /** Précharge l'état « fermé manuellement » d'une liste de dates en UNE requête. */
+    public static function preload_manual_closed($dates) {
+        $dates = array_values(array_unique(array_filter((array) $dates)));
+        if (!$dates) return;
         global $wpdb;
-        $row = $wpdb->get_row($wpdb->prepare(
-            "SELECT is_closed FROM " . psc_table('school_calendar') . " WHERE jour_date = %s AND source = 'manual'",
-            $date_str
+        $missing = array_values(array_filter($dates, function ($d) {
+            return !array_key_exists($d, self::$manual_cache);
+        }));
+        if (!$missing) return;
+
+        $t = psc_table('school_calendar');
+        $placeholders = implode(',', array_fill(0, count($missing), '%s'));
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT jour_date, is_closed FROM $t WHERE source = 'manual' AND jour_date IN ($placeholders)",
+            $missing
         ));
-        return $row ? (bool) $row->is_closed : false;
+        $found = array();
+        if ($rows) {
+            foreach ($rows as $r) {
+                self::$manual_cache[$r->jour_date] = (bool) $r->is_closed;
+                $found[$r->jour_date] = true;
+            }
+        }
+        foreach ($missing as $d) {
+            if (!isset($found[$d])) self::$manual_cache[$d] = false;
+        }
+    }
+
+    public static function is_manually_closed($date_str) {
+        if (!array_key_exists($date_str, self::$manual_cache)) {
+            global $wpdb;
+            $row = $wpdb->get_row($wpdb->prepare(
+                "SELECT is_closed FROM " . psc_table('school_calendar') . " WHERE jour_date = %s AND source = 'manual'",
+                $date_str
+            ));
+            self::$manual_cache[$date_str] = $row ? (bool) $row->is_closed : false;
+        }
+        return self::$manual_cache[$date_str];
     }
 
     /**

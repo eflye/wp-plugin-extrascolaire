@@ -32,6 +32,14 @@ class Psc_Planning {
     /** Cache par requête de la lecture unitaire (is_declared). */
     private static $single_cache = array();
 
+    /**
+     * Cache par requête des fermetures PAR PRESTATION (service_closures),
+     * clé = date. open_map() est appelé par chaque résolution (declared_map,
+     * month_state, month_explicit_map) sur des plages qui se recouvrent :
+     * sans ce cache, les mêmes lignes relisaient trois fois par clic.
+     */
+    private static $svc_closed_cache = array();
+
     /** Cache par requête des jours d'école d'un (jour de semaine, année). */
     private static $weekday_days_cache = array();
 
@@ -189,12 +197,23 @@ class Psc_Planning {
         $exceptions = self::load_exceptions($child_ids, $dates);
         $open_map   = self::open_map($dates);
 
+        // Calculs par DATE une seule fois (clé d'année et jour de semaine) :
+        // les boucles ci-dessous parcourent enfant × date × prestation, les
+        // refaire par triplet revenait à interroger la configuration d'année
+        // plusieurs centaines de fois par clic (cf. caches Psc_School_Year).
+        $year_keys = array();
+        $weekdays  = array();
+        foreach ($dates as $date) {
+            $year_keys[$date] = Psc_School_Year::year_key_for_date($date);
+            $weekdays[$date]  = (int) date('N', strtotime($date));
+        }
+
         $map = array();
         foreach ($child_ids as $cid) {
             foreach ($dates as $date) {
                 $open = $open_map[$date];
-                $weekday = (int) date('N', strtotime($date));
-                $year_key = Psc_School_Year::year_key_for_date($date);
+                $weekday = $weekdays[$date];
+                $year_key = $year_keys[$date];
                 $pats = isset($patterns[$cid][$year_key][$weekday]) ? $patterns[$cid][$year_key][$weekday] : array();
                 $exc  = isset($exceptions[$cid][$date]) ? $exceptions[$cid][$date] : array();
                 $forf_exc = array_key_exists($forf, $exc) ? (bool) $exc[$forf] : null;
@@ -216,7 +235,7 @@ class Psc_Planning {
         return $map;
     }
 
-    /** Fermetures (jour entier + prestations) d'une liste de dates, en 2 requêtes. */
+    /** Fermetures (jour entier + prestations) d'une liste de dates, en 2 requêtes au plus par requête PHP. */
     protected static function open_map($dates) {
         global $wpdb;
         $map = array();
@@ -227,17 +246,29 @@ class Psc_Planning {
 
         // Fermeture manuelle du jour entier.
         Psc_School_Calendar::preload_closed($dates);
-        // Fermeture par prestation.
-        $t_svc = psc_table('service_closures');
-        $placeholders = implode(',', array_fill(0, count($dates), '%s'));
-        $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT jour_date, service FROM $t_svc WHERE jour_date IN ($placeholders)",
-            $dates
-        ));
-        $closed_services = array();
-        if ($rows) {
-            foreach ($rows as $r) $closed_services[$r->jour_date][$r->service] = true;
+        // Fermeture par prestation : les passages successifs (declared_map,
+        // month_state, month_explicit_map) se recouvrent largement — seules
+        // les dates jamais vues déclenchent la requête.
+        $missing = array_values(array_filter($dates, function ($d) {
+            return !array_key_exists($d, self::$svc_closed_cache);
+        }));
+        if ($missing) {
+            $t_svc = psc_table('service_closures');
+            $placeholders = implode(',', array_fill(0, count($missing), '%s'));
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT jour_date, service FROM $t_svc WHERE jour_date IN ($placeholders)",
+                $missing
+            ));
+            if ($rows) {
+                foreach ($rows as $r) {
+                    self::$svc_closed_cache[$r->jour_date][$r->service] = true;
+                }
+            }
+            foreach ($missing as $d) {
+                if (!isset(self::$svc_closed_cache[$d])) self::$svc_closed_cache[$d] = array();
+            }
         }
+        $closed_services = self::$svc_closed_cache;
 
         foreach ($dates as $d) {
             $day_open = Psc_School_Year::is_school_day($d);
@@ -1208,5 +1239,6 @@ class Psc_Planning {
 
     public static function flush_cache() {
         self::$single_cache = array();
+        self::$svc_closed_cache = array();
     }
 }
