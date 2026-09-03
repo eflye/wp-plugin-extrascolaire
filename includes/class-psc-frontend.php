@@ -252,7 +252,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
         }
         if (in_array('cantine2', $variants, true)) {
             $defs['cantine2'] = array(
-                'label' => $single ? __('Planning', 'periscolaire-registration') : __('Planning - 2', 'periscolaire-registration'),
+                'label' => __('Planning', 'periscolaire-registration'),
                 'icon'  => $icon,
                 'menu'  => true,
             );

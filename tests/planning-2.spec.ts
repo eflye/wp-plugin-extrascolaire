@@ -145,17 +145,23 @@ test.describe('Planning - 2 : rythme + exceptions (fonctionnel, base vérifiée)
     await expect(page.getByTestId('exception-grid')).toBeVisible();
   });
 
-  test('menu : Planning - 1 sans lien de menu, Planning - 2 atteignable via sa bascule', async ({ page }) => {
-    // Le menu ne propose que Planning - 2 : le lien Planning - 1 a été
-    // retiré de la navigation (la bascule de Planning - 2 et l'URL
-    // directe restent les points d'entrée).
+  test('menu : Planning - 1 sans lien de menu, Planning - 2 atteignable par URL', async ({ page }) => {
+    // Le menu ne propose que Planning : le lien Planning - 1 a été retiré
+    // de la navigation (l'écran reste atteignable par son URL directe,
+    // et la bascule de Planning - 1 mène vers Planning).
     await page.goto(`${APP_BASE}/?psc_tab=cantine2`);
     await expect(page.getByTestId('portal-nav-cantine2')).toBeVisible();
     await expect(page.getByTestId('portal-nav-cantine')).toHaveCount(0);
 
-    // La bascule de Planning - 2 mène bien à Planning - 1.
-    await page.getByTestId('planning-switch-link').click();
+    // Planning - 1 reste atteignable par son URL directe.
+    await page.goto(`${APP_BASE}/?psc_tab=cantine`);
     await expect(page.getByTestId('cantine-title')).toBeVisible();
+
+    // Et Planning ne propose plus de bascule : plus de référence à
+    // « Planning - 2 » nulle part sur l'écran.
+    await page.goto(`${APP_BASE}/?psc_tab=cantine2`);
+    await expect(page.getByTestId('cantine2-title')).toBeVisible();
+    await expect(page.getByTestId('planning-switch-2')).toHaveCount(0);
   });
 
   test('grille du rythme : cocher puis décocher ne laisse AUCUNE ligne (base)', async ({ page }) => {

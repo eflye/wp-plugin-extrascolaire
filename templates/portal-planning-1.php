@@ -29,7 +29,7 @@ $psc_next_url = $psc_next_month ? add_query_arg(array('psc_tab' => 'cantine', 'p
 <?php if ($psc_show_both): ?>
 <nav class="psc-planning-switch" data-testid="planning-switch" aria-label="<?php esc_attr_e('Variante d\'écran', 'periscolaire-registration'); ?>">
   <span class="psc-planning-switch-current"><?php echo psc_planning_single_variant() ? esc_html__('Planning', 'periscolaire-registration') : esc_html__('Planning - 1 · saisie jour par jour', 'periscolaire-registration'); ?></span>
-  <a href="<?php echo esc_url($psc_switch_url); ?>" class="psc-planning-switch-link"><?php esc_html_e('Basculer vers Planning - 2 (rythme + exceptions)', 'periscolaire-registration'); ?></a>
+  <a href="<?php echo esc_url($psc_switch_url); ?>" class="psc-planning-switch-link"><?php esc_html_e('Basculer vers Planning (rythme + exceptions)', 'periscolaire-registration'); ?></a>
 </nav>
 <?php endif; ?>
 

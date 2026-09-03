@@ -31,7 +31,6 @@ $psc_services   = $services;
 $psc_short      = psc_service_short_labels();
 
 $psc_nav_base = remove_query_arg(array('psc_msg', 'psc_child'));
-$psc_switch_url = add_query_arg('psc_tab', 'cantine', $psc_nav_base);
 
 // Charge utile initiale du JS (re-rendus après chaque écriture AJAX).
 $psc_v2_boot = array(
@@ -77,13 +76,6 @@ $psc_active_year = $psc_year_summary['year']['per_child'][$psc_active_child_id] 
 ?>
 <div class="psc-portal-eyebrow"><?php esc_html_e('Inscriptions', 'periscolaire-registration'); ?></div>
 <h1 class="psc-portal-h1" data-testid="cantine2-title"><?php esc_html_e('Planning cantine & garderie', 'periscolaire-registration'); ?></h1>
-
-<?php if ($psc_show_both): ?>
-<nav class="psc-planning-switch" data-testid="planning-switch-2" aria-label="<?php esc_attr_e('Variante d\'écran', 'periscolaire-registration'); ?>">
-  <span class="psc-planning-switch-current"><?php echo psc_planning_single_variant() ? esc_html__('Planning', 'periscolaire-registration') : esc_html__('Planning - 2 · rythme + exceptions', 'periscolaire-registration'); ?></span>
-  <a href="<?php echo esc_url($psc_switch_url); ?>" class="psc-planning-switch-link" data-testid="planning-switch-link"><?php esc_html_e('Basculer vers Planning - 1 (saisie jour par jour)', 'periscolaire-registration'); ?></a>
-</nav>
-<?php endif; ?>
 
 <?php if (!$psc_year): ?>
 
