@@ -193,7 +193,19 @@ jobs:
       - name: Scénarios
         env:
           PSC_CONTAINER_ENGINE: docker
-        run: npm run test:e2e
+        # La sortie du list reporter contient le nom et l'erreur de chaque
+        # scénario en échec : on la répète en fin de step pour la rendre
+        # immédiatement lisible sans déplier le log.
+        run: |
+          npm run test:e2e 2>&1 | tee /tmp/e2e-output.log
+          exit ${PIPESTATUS[0]}
+      - name: Résumé des échecs
+        if: failure()
+        run: |
+          echo "=== Scénarios en échec ==="
+          grep -E "✘|[0-9]+ (failed|did not run)" /tmp/e2e-output.log || echo "aucun motif d'échec détecté"
+          echo "=== Erreurs détectées ==="
+          grep -E "Error:|TimeoutError" /tmp/e2e-output.log | head -20 || true
 
       - name: Journaux WordPress en cas d'échec
         if: failure()
@@ -206,3 +218,6 @@ jobs:
           name: playwright-resultats
           path: .playwright/
           retention-days: 7
+          # .playwright est un dossier caché : v4 l'exclut par défaut, ce qui
+          # produisait « No files were found » au lieu des traces.
+          include-hidden-files: true
