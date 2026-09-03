@@ -81,7 +81,7 @@ $psc_active_year = $psc_year_summary['year']['per_child'][$psc_active_child_id] 
 <?php if ($psc_show_both): ?>
 <nav class="psc-planning-switch" data-testid="planning-switch-2" aria-label="<?php esc_attr_e('Variante d\'écran', 'periscolaire-registration'); ?>">
   <span class="psc-planning-switch-current"><?php echo psc_planning_single_variant() ? esc_html__('Planning', 'periscolaire-registration') : esc_html__('Planning - 2 · rythme + exceptions', 'periscolaire-registration'); ?></span>
-  <a href="<?php echo esc_url($psc_switch_url); ?>" class="psc-planning-switch-link"><?php esc_html_e('Basculer vers Planning - 1 (saisie jour par jour)', 'periscolaire-registration'); ?></a>
+  <a href="<?php echo esc_url($psc_switch_url); ?>" class="psc-planning-switch-link" data-testid="planning-switch-link"><?php esc_html_e('Basculer vers Planning - 1 (saisie jour par jour)', 'periscolaire-registration'); ?></a>
 </nav>
 <?php endif; ?>
 

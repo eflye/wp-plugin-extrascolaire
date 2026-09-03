@@ -58,6 +58,7 @@
 
     <nav class="psc-portal-nav" data-testid="portal-nav">
       <?php foreach ($psc_portal_tabs as $tab_key => $tab): ?>
+      <?php if (isset($tab['menu']) && $tab['menu'] === false) continue; // onglet sans lien de menu (Planning - 1) ?>
       <a href="<?php echo esc_url($tab['url']); ?>"
          class="psc-portal-nav-btn<?php echo $tab_key === $active_tab ? ' is-active' : ''; ?>"
          data-portal-tab="<?php echo esc_attr($tab_key); ?>"

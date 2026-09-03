@@ -231,6 +231,11 @@ class Psc_Frontend extends Psc_Frontend_Base {
      * aucune synchronisation. Le réglage psc_planning_variant (Réglages)
      * limite l'exposition à une seule variante sans redéploiement ; un
      * onglet unique s'appelle alors simplement « Planning ».
+     *
+     * Quand les DEUX variantes sont exposées, Planning - 1 n'a pas de lien
+     * dans le menu (cantine2 porte la navigation) : l'écran reste accessible
+     * via la bascule de Planning - 2 et son URL directe. d'où le drapeau
+     * 'menu' consommé par portal_tabs_data()/frontend-portal.php.
      */
     protected static function planning_tab_defs() {
         $variants = psc_planning_variants();
@@ -242,12 +247,14 @@ class Psc_Frontend extends Psc_Frontend_Base {
             $defs['cantine'] = array(
                 'label' => $single ? __('Planning', 'periscolaire-registration') : __('Planning - 1', 'periscolaire-registration'),
                 'icon'  => $icon,
+                'menu'  => $single,
             );
         }
         if (in_array('cantine2', $variants, true)) {
             $defs['cantine2'] = array(
                 'label' => $single ? __('Planning', 'periscolaire-registration') : __('Planning - 2', 'periscolaire-registration'),
                 'icon'  => $icon,
+                'menu'  => true,
             );
         }
         return $defs;
@@ -357,6 +364,11 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 'label' => $def['label'],
                 'icon'  => $def['icon'],
                 'url'   => add_query_arg('psc_tab', $key, $base),
+                // Les onglets sans lien de menu (Planning - 1 quand les deux
+                // variantes sont exposées) restent rendus et atteignables
+                // (bascule de Planning - 2, URL directe) — la sidebar, elle,
+                // saute les entrées marquées menu = false.
+                'menu'  => $def['menu'] ?? true,
             );
         }
         return $tabs;

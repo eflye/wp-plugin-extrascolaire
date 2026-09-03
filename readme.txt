@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.0.9
+Stable tag: 5.1.0
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,14 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.1.0 =
+* Portail — le menu ne propose plus le lien « Planning - 1 » quand les
+  deux variantes sont exposées : « Planning - 2 » porte la navigation,
+  et Planning - 1 reste accessible via sa bascule depuis Planning - 2
+  et son URL directe (?psc_tab=cantine). Variante seule : le lien
+  « Planning » revient dans le menu comme avant. Le lien « Déclarer un
+  jour » du tableau de bord pointe toujours Planning - 1.
 
 = 5.0.9 =
 * Tests — le scénario « commande fournisseur » codait en dur le nom du

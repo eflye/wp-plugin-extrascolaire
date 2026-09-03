@@ -259,12 +259,16 @@ test('parent déjà connu — de la connexion au récapitulatif', async ({ page,
   await playScene(
     '05b-ouverture-onglet-planning',
     3_000,
-    'portal-nav-cantine',
-    "Le calendrier se trouve dans l'onglet Planning",
+    'overlay',
+    "Le planning se trouve dans l'onglet Planning",
     async () => {
-      await page.getByTestId('portal-nav-cantine').click();
+      // Planning - 1 n'a plus de lien dans le menu (Planning - 2 porte la
+      // navigation) : l'onglet s'ouvre par son URL directe.
+      await page.goto(`${appPage()}?psc_tab=cantine`);
       await expect(page.getByTestId('portal-section-cantine')).toBeVisible();
-      await expect(page.getByTestId('portal-nav-cantine')).toHaveClass(/is-active/);
+      // Le menu ne propose que Planning - 2 : le lien Planning - 1 a bien
+      // disparu de la sidebar.
+      await expect(page.getByTestId('portal-nav-cantine')).toHaveCount(0);
     }
   );
 

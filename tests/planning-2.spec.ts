@@ -145,6 +145,19 @@ test.describe('Planning - 2 : rythme + exceptions (fonctionnel, base vérifiée)
     await expect(page.getByTestId('exception-grid')).toBeVisible();
   });
 
+  test('menu : Planning - 1 sans lien de menu, Planning - 2 atteignable via sa bascule', async ({ page }) => {
+    // Le menu ne propose que Planning - 2 : le lien Planning - 1 a été
+    // retiré de la navigation (la bascule de Planning - 2 et l'URL
+    // directe restent les points d'entrée).
+    await page.goto(`${APP_BASE}/?psc_tab=cantine2`);
+    await expect(page.getByTestId('portal-nav-cantine2')).toBeVisible();
+    await expect(page.getByTestId('portal-nav-cantine')).toHaveCount(0);
+
+    // La bascule de Planning - 2 mène bien à Planning - 1.
+    await page.getByTestId('planning-switch-link').click();
+    await expect(page.getByTestId('cantine-title')).toBeVisible();
+  });
+
   test('grille du rythme : cocher puis décocher ne laisse AUCUNE ligne (base)', async ({ page }) => {
     // État seed : Alice a CANT lun, mar, jeu, ven (4 lignes — pas de
     // mercredi), rien d'autre.
