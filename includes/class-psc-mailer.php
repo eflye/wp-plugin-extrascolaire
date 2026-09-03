@@ -454,6 +454,23 @@ class Psc_Mailer {
      * configurable portent l'intitulé.
      */
     public static function send_supplier_order($supplier_email, $data) {
+        $built = self::build_supplier_order($data);
+        $sent  = self::send($supplier_email, $built['subject'], $built['html']);
+
+        return array(
+            'sent'    => (bool) $sent,
+            'subject' => $built['subject'],
+            'html'    => $built['html'],
+        );
+    }
+
+    /**
+     * Construit le sujet et le HTML de l'e-mail « Commande fournisseur »
+     * SANS l'envoyer : utilisé à la fois par l'envoi et par l'aperçu
+     * backoffice (le bouton « Envoyer au fournisseur » affiche d'abord
+     * l'e-mail qui va partir).
+     */
+    public static function build_supplier_order($data) {
         $site          = self::site_name();
         $semaine_label = date_i18n('d/m/Y', strtotime($data['semaine_debut']));
 
@@ -480,9 +497,7 @@ class Psc_Mailer {
         include PSC_PATH . 'templates/email/supplier-order.php';
         $html = ob_get_clean();
 
-        $sent = self::send($supplier_email, $subject, $html);
-
-        return array('sent' => (bool) $sent, 'subject' => $subject, 'html' => $html);
+        return array('subject' => $subject, 'html' => $html);
     }
 
     public static function send_day_closed($fam, $date_str, $label) {

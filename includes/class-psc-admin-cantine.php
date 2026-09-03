@@ -174,6 +174,10 @@ class Psc_Admin_Cantine extends Psc_Admin_Base {
         $semaine_debut = psc_week_start($requested) ?: psc_next_open_week(gmdate('Y-m-d', strtotime('+7 days')));
 
         $preview = Psc_Supplier_Orders::compute_counts($semaine_debut);
+        // Rendu de l'e-mail qui partira : affiché dans la popin de
+        // confirmation avant tout envoi (le backoffice visualise ce que le
+        // fournisseur recevra). Aucun envoi à ce stade.
+        $email_preview = is_wp_error($preview) ? null : Psc_Mailer::build_supplier_order($preview);
         $recent  = Psc_Supplier_Orders::recent(20);
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         $cantine_n = psc_get_int('n');

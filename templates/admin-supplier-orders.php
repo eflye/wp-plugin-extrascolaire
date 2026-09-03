@@ -80,15 +80,64 @@ psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
 </table>
 <p class="description"><?php esc_html_e("Goûters servis à la garderie du soir. Les enfants porteurs d'une allergie alimentaire apportent le leur : ils ne sont pas comptés.", 'periscolaire-registration'); ?></p>
 
-<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin-top:16px;">
-    <?php wp_nonce_field('psc_send_supplier_order'); ?>
-    <input type="hidden" name="action" value="psc_send_supplier_order">
-    <input type="hidden" name="semaine_debut" value="<?php echo esc_attr($preview['semaine_debut']); ?>">
-    <button type="submit" class="button button-primary" data-testid="supplier-send-button"
-            onclick="return confirm('<?php echo esc_js(__('Envoyer la commande de', 'periscolaire-registration')); ?> <?php echo (int) $preview['total']; ?> <?php echo esc_js(__('repas et', 'periscolaire-registration')); ?> <?php echo (int) $preview['total_gouters']; ?> <?php echo esc_js(__('goûters au fournisseur ?', 'periscolaire-registration')); ?>');">
-        &#9993; <?php esc_html_e('Envoyer au fournisseur (', 'periscolaire-registration'); ?><?php echo (int) $preview['total']; ?> <?php esc_html_e('repas +', 'periscolaire-registration'); ?> <?php echo (int) $preview['total_gouters']; ?> <?php esc_html_e('goûters)', 'periscolaire-registration'); ?>
-    </button>
-</form>
+<button type="button" class="button button-primary" data-testid="supplier-send-button" id="psc-sup-send-open">
+    &#9993; <?php esc_html_e('Envoyer au fournisseur (', 'periscolaire-registration'); ?><?php echo (int) $preview['total']; ?> <?php esc_html_e('repas +', 'periscolaire-registration'); ?> <?php echo (int) $preview['total_gouters']; ?> <?php esc_html_e('goûters)', 'periscolaire-registration'); ?>
+</button>
+
+<?php /* Popin de confirmation : la mairie visualise l'e-mail exact qui
+   partira (rendu autonome, identique à l'archivé) avant de confirmer. */ ?>
+<div id="psc-sup-send-modal" class="psc-sup-modal-overlay" hidden data-testid="supplier-send-modal">
+    <div class="psc-sup-modal" role="dialog" aria-modal="true" aria-labelledby="psc-sup-send-title" tabindex="-1">
+        <h2 id="psc-sup-send-title"><?php esc_html_e('Confirmer l’envoi au fournisseur', 'periscolaire-registration'); ?></h2>
+        <p class="description">
+            <?php esc_html_e('Voici l’e-mail qui sera envoyé à', 'periscolaire-registration'); ?>
+            <strong><?php echo esc_html(get_option('psc_supplier_email', '')); ?></strong>.
+            <?php esc_html_e('Vérifiez les quantités, puis confirmez.', 'periscolaire-registration'); ?>
+        </p>
+        <p style="margin:8px 0 0;">
+            <strong><?php esc_html_e('Sujet :', 'periscolaire-registration'); ?></strong>
+            <span data-testid="supplier-modal-subject"><?php echo esc_html($email_preview ? $email_preview['subject'] : ''); ?></span>
+        </p>
+        <iframe title="<?php esc_attr_e('Aperçu de l’e-mail qui sera envoyé', 'periscolaire-registration'); ?>"
+                data-testid="supplier-modal-iframe"
+                srcdoc="<?php echo esc_attr($email_preview ? $email_preview['html'] : ''); ?>"
+                style="width:100%;height:420px;border:1px solid #dcdcde;margin-top:8px;background:#fff;"></iframe>
+        <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;">
+            <button type="button" class="button" data-testid="supplier-modal-cancel" id="psc-sup-send-cancel"><?php esc_html_e('Retour', 'periscolaire-registration'); ?></button>
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin:0;">
+                <?php wp_nonce_field('psc_send_supplier_order'); ?>
+                <input type="hidden" name="action" value="psc_send_supplier_order">
+                <input type="hidden" name="semaine_debut" value="<?php echo esc_attr($preview['semaine_debut']); ?>">
+                <button type="submit" class="button button-primary" data-testid="supplier-modal-confirm"><?php esc_html_e('Confirmer l’envoi', 'periscolaire-registration'); ?></button>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    var openBtn = document.getElementById('psc-sup-send-open');
+    var modal = document.getElementById('psc-sup-send-modal');
+    if (!openBtn || !modal) return;
+    var cancelBtn = document.getElementById('psc-sup-send-cancel');
+
+    function open() {
+        modal.hidden = false;
+        var confirmBtn = modal.querySelector('[data-testid="supplier-modal-confirm"]');
+        if (confirmBtn) confirmBtn.focus();
+    }
+    function close() {
+        modal.hidden = true;
+        openBtn.focus();
+    }
+
+    openBtn.addEventListener('click', open);
+    if (cancelBtn) cancelBtn.addEventListener('click', close);
+    modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !modal.hidden) close();
+    });
+})();
+</script>
 <?php endif; ?>
 </div>
 <?php endif; ?>

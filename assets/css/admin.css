@@ -121,3 +121,28 @@
     margin-top: 6px;
     padding-top: 8px;
 }
+
+/* Popin « Confirmer l'envoi » de la commande fournisseur : l'e-mail qui
+   partira est rendu dans une iframe (le rendu autonome est auto-contenu,
+   fond sable inclus) avant toute soumission. */
+.psc-sup-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 26, 26, 0.55);
+    z-index: 100000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 16px;
+    overflow-y: auto;
+}
+.psc-sup-modal {
+    background: #fff;
+    width: 680px;
+    max-width: 100%;
+    padding: 20px 24px 24px;
+    border-radius: 4px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+.psc-sup-modal h2 { margin: 0 0 8px; }
+.psc-sup-modal-overlay[hidden] { display: none; }

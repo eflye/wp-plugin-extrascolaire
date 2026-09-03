@@ -140,9 +140,27 @@ test.describe.serial('Commande fournisseur (backoffice)', () => {
     await expect(page.getByTestId('supplier-total-midi')).toHaveText(String(expected.totaux.midi));
     await expect(page.getByTestId('supplier-total-gouter')).toHaveText(String(expected.totaux.gouter));
 
-    /* ---------------- 3. Envoi (confirm() natif accepté automatiquement) ---------------- */
-    page.once('dialog', (dialog) => dialog.accept());
+    /* ---------------- 3. Envoi : popin de visualisation puis confirmation ---------------- */
     await page.getByTestId('supplier-send-button').click();
+
+    // La popin montre l'e-mail EXACT qui partira (sujet + rendu autonome),
+    // rendu dans une iframe srcdoc.
+    const modal = page.getByTestId('supplier-send-modal');
+    await expect(modal).toBeVisible();
+    await expect(page.getByTestId('supplier-modal-subject')).toContainText(`${expected.total} repas`);
+    const previewFrame = page.frameLocator('[data-testid="supplier-modal-iframe"]');
+    await expect(previewFrame.locator('body')).toContainText(`Total semaine ${expected.totaux.standard} ${expected.totaux.sans_porc} ${expected.totaux.vegetarien} ${expected.totaux.midi} ${expected.totaux.gouter}`);
+    await expect(previewFrame.locator('body')).toContainText('Végétarien');
+
+    // « Retour » referme sans envoyer : aucune commande, aucun mail.
+    await page.getByTestId('supplier-modal-cancel').click();
+    await expect(modal).toBeHidden();
+    await expect(page.getByTestId('supplier-history-table')).toBeHidden();
+
+    // Réouverture puis confirmation : l'e-mail part.
+    await page.getByTestId('supplier-send-button').click();
+    await expect(modal).toBeVisible();
+    await page.getByTestId('supplier-modal-confirm').click();
 
     await expect(page.getByTestId('notice-sent')).toBeVisible();
     await expect(page.getByTestId('notice-sent')).toContainText('Commande envoyée au fournisseur');
@@ -217,8 +235,9 @@ test.describe.serial('Commande fournisseur (backoffice)', () => {
     await expect(page.locator('.notice-success')).toBeVisible();
 
     await page.goto(`${ADMIN_BASE}/admin.php?page=psc_supplier_orders&semaine_debut=${data.semaine_debut}`);
-    page.once('dialog', (dialog) => dialog.accept());
     await page.getByTestId('supplier-send-button').click();
+    await expect(page.getByTestId('supplier-send-modal')).toBeVisible();
+    await page.getByTestId('supplier-modal-confirm').click();
     await expect(page.getByTestId('notice-sent')).toBeVisible();
 
     const mail = await findLatestMessage(SUPPLIER_EMAIL, 'Commande cantine');
@@ -232,8 +251,9 @@ test.describe.serial('Commande fournisseur (backoffice)', () => {
     await expect(page.locator('.notice-success, .updated').first()).toBeVisible();
 
     await page.goto(`${ADMIN_BASE}/admin.php?page=psc_supplier_orders&semaine_debut=${data.semaine_debut}`);
-    page.once('dialog', (dialog) => dialog.accept());
     await page.getByTestId('supplier-send-button').click();
+    await expect(page.getByTestId('supplier-send-modal')).toBeVisible();
+    await page.getByTestId('supplier-modal-confirm').click();
     await expect(page.getByTestId('notice-sent')).toBeVisible();
 
     const mail2 = await findLatestMessage(SUPPLIER_EMAIL, 'Commande cantine');
