@@ -21,7 +21,7 @@ psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
 
 <div class="psc-box">
 <p>
-    <?php esc_html_e("Nombre de repas de cantine par classe, pour la semaine choisie. L'envoi au fournisseur est toujours manuel — aucun envoi automatique ni planifié.", 'periscolaire-registration'); ?>
+    <?php esc_html_e("Nombre de repas de cantine et de goûters (garderie du soir) par classe, pour la semaine choisie. L'envoi au fournisseur est toujours manuel — aucun envoi automatique ni planifié.", 'periscolaire-registration'); ?>
 </p>
 <form method="get" style="display:flex;align-items:center;gap:10px;">
     <input type="hidden" name="page" value="psc_supplier_orders">
@@ -81,13 +81,56 @@ psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
 </table>
 <?php endif; ?>
 
+<?php /* Goûters : servis aux enfants attendus à la garderie du soir
+   (cf. Psc_Supplier_Orders::gouter_services()), allergies exclues
+   comme pour les repas. */ ?>
+<?php if (!empty($preview['gouters'])): ?>
+<h3 style="margin:18px 0 8px;"><?php esc_html_e('Goûters', 'periscolaire-registration'); ?></h3>
+<table class="widefat striped psc-recap" data-testid="supplier-gouters-table">
+<thead>
+<tr>
+    <th><?php esc_html_e('Classe', 'periscolaire-registration'); ?></th>
+    <?php foreach (array_keys($preview['jours']) as $jour): ?>
+    <th style="text-align:center"><?php echo esc_html(Psc_Supplier_Orders::jour_labels()[$jour]); ?><br><small><?php echo esc_html(date_i18n('d/m', strtotime($preview['jours'][$jour]))); ?></small></th>
+    <?php endforeach; ?>
+    <th style="text-align:center"><?php esc_html_e('Total', 'periscolaire-registration'); ?></th>
+</tr>
+</thead>
+<tbody>
+<?php foreach ($preview['classes'] as $code => $label): ?>
+<tr data-testid="supplier-gout-row-<?php echo esc_attr($code ?: 'none'); ?>">
+    <td><strong><?php echo esc_html($label); ?></strong></td>
+    <?php foreach (array_keys($preview['jours']) as $jour): ?>
+    <td style="text-align:center" data-testid="supplier-gout-cell-<?php echo esc_attr($code ?: 'none'); ?>-<?php echo esc_attr($jour); ?>">
+        <?php $g = $preview['gouters'][$code][$jour] ?? 0; echo $g > 0 ? (int) $g : '—'; ?>
+    </td>
+    <?php endforeach; ?>
+    <td style="text-align:center" data-testid="supplier-gout-total-classe-<?php echo esc_attr($code ?: 'none'); ?>">
+        <strong><?php echo (int) $preview['gouters_classe'][$code]; ?></strong>
+    </td>
+</tr>
+<?php endforeach; ?>
+</tbody>
+<tfoot>
+<tr>
+    <th><?php esc_html_e('TOTAL', 'periscolaire-registration'); ?></th>
+    <?php foreach (array_keys($preview['jours']) as $jour): ?>
+    <th style="text-align:center" data-testid="supplier-gout-total-jour-<?php echo esc_attr($jour); ?>"><?php echo (int) $preview['gouters_jour'][$jour]; ?></th>
+    <?php endforeach; ?>
+    <th style="text-align:center" data-testid="supplier-gout-total-general"><?php echo (int) $preview['total_gouters']; ?></th>
+</tr>
+</tfoot>
+</table>
+<p class="description"><?php esc_html_e("Goûters servis à la garderie du soir. Les enfants porteurs d'une allergie alimentaire apportent le leur : ils ne sont pas comptés.", 'periscolaire-registration'); ?></p>
+<?php endif; ?>
+
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin-top:16px;">
     <?php wp_nonce_field('psc_send_supplier_order'); ?>
     <input type="hidden" name="action" value="psc_send_supplier_order">
     <input type="hidden" name="semaine_debut" value="<?php echo esc_attr($preview['semaine_debut']); ?>">
     <button type="submit" class="button button-primary" data-testid="supplier-send-button"
-            onclick="return confirm('<?php echo esc_js(__('Envoyer la commande de', 'periscolaire-registration')); ?> <?php echo (int) $preview['total']; ?> <?php echo esc_js(__('repas au fournisseur ?', 'periscolaire-registration')); ?>');">
-        &#9993; <?php esc_html_e('Envoyer au fournisseur (', 'periscolaire-registration'); ?><?php echo (int) $preview['total']; ?> <?php esc_html_e('repas)', 'periscolaire-registration'); ?>
+            onclick="return confirm('<?php echo esc_js(__('Envoyer la commande de', 'periscolaire-registration')); ?> <?php echo (int) $preview['total']; ?> <?php echo esc_js(__('repas et', 'periscolaire-registration')); ?> <?php echo (int) ($preview['total_gouters'] ?? 0); ?> <?php echo esc_js(__('goûters au fournisseur ?', 'periscolaire-registration')); ?>');">
+        &#9993; <?php esc_html_e('Envoyer au fournisseur (', 'periscolaire-registration'); ?><?php echo (int) $preview['total']; ?> <?php esc_html_e('repas +', 'periscolaire-registration'); ?> <?php echo (int) ($preview['total_gouters'] ?? 0); ?> <?php esc_html_e('goûters)', 'periscolaire-registration'); ?>
     </button>
 </form>
 <?php endif; ?>

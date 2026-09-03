@@ -159,16 +159,19 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     }
     list($aline_id, $baptiste_id) = $child_ids;
 
-    // Aline (CP) : Cantine lundi + mardi, et une Garderie Matin lundi
-    // (ne doit JAMAIS compter dans le total repas). Baptiste (CE2) :
-    // Cantine jeudi seulement. Les déclarations sont écrites en exceptions
-    // ponctuelles (mairie, hors verrou) — la résolution psc_is_declared
-    // est la même que celle de la commande.
+    // Aline (CP) : Cantine lundi + mardi, Garderie Matin lundi (ne doit
+    // JAMAIS compter dans le total repas), Garderie Soir lundi (goûter).
+    // Baptiste (CE2) : Cantine jeudi et Garderie Soir jeudi (goûter).
+    // Les déclarations sont écrites en exceptions ponctuelles (mairie,
+    // hors verrou) — la résolution psc_is_declared est la même que celle
+    // de la commande.
     $regs = array(
         array($aline_id,    $jours['lundi'],  'CANT'),
         array($aline_id,    $jours['lundi'],  'GM'),
         array($aline_id,    $jours['mardi'],  'CANT'),
+        array($aline_id,    $jours['lundi'],  'GS'),
         array($baptiste_id, $jours['jeudi'],  'CANT'),
+        array($baptiste_id, $jours['jeudi'],  'GS'),
     );
     foreach ($regs as list($child_id, $date, $service)) {
         Psc_Planning::toggle_exception($child_id, $date, $service, true, true);
@@ -187,6 +190,14 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
         'totaux_jour'   => array('lundi' => 1, 'mardi' => 1, 'jeudi' => 1, 'vendredi' => 0),
         'totaux_classe' => array('CP' => 2, 'CE2' => 1),
         'total'         => 3,
+        // Goûters (garderie du soir) : Aline lundi, Baptiste jeudi.
+        'gouters'       => array(
+            'CP'  => array('lundi' => 1, 'mardi' => 0, 'jeudi' => 0, 'vendredi' => 0),
+            'CE2' => array('lundi' => 0, 'mardi' => 0, 'jeudi' => 1, 'vendredi' => 0),
+        ),
+        'gouters_jour'   => array('lundi' => 1, 'mardi' => 0, 'jeudi' => 1, 'vendredi' => 0),
+        'gouters_classe' => array('CP' => 1, 'CE2' => 1),
+        'total_gouters'  => 2,
     );
 
     WP_CLI::log('');

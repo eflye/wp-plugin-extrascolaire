@@ -76,11 +76,11 @@ class Psc_Email_Templates {
                 'note'    => __('Le détail des repas jour par jour est ajouté automatiquement.', 'periscolaire-registration'),
             ),
             'supplier_order' => array(
-                'label'   => __('Commande fournisseur (cantine)', 'periscolaire-registration'),
-                'subject' => __('[{{site}}] Commande cantine — semaine du {{semaine}} ({{total}} repas)', 'periscolaire-registration'),
-                'body'    => __("Merci de bien vouloir prévoir {{total}} repas pour la semaine du {{semaine}}, selon le détail par classe ci-dessous.", 'periscolaire-registration'),
-                'vars'    => array('{{site}}', '{{semaine}}', '{{total}}'),
-                'note'    => __('Le tableau du nombre de repas par classe et par jour est ajouté automatiquement.', 'periscolaire-registration'),
+                'label'   => __('Commande fournisseur (cantine & goûters)', 'periscolaire-registration'),
+                'subject' => __('[{{site}}] Commande cantine & goûters — semaine du {{semaine}} ({{total}} repas)', 'periscolaire-registration'),
+                'body'    => __("Merci de bien vouloir prévoir {{total}} repas et {{gouters}} goûters pour la semaine du {{semaine}}, selon le détail par classe ci-dessous.", 'periscolaire-registration'),
+                'vars'    => array('{{site}}', '{{semaine}}', '{{total}}', '{{gouters}}'),
+                'note'    => __('Les tableaux du nombre de repas et de goûters par classe et par jour sont ajoutés automatiquement.', 'periscolaire-registration'),
             ),
             'invoice' => array(
                 'label'   => __('Envoi de facture', 'periscolaire-registration'),

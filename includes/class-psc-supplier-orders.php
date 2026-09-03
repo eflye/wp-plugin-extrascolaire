@@ -26,6 +26,18 @@ class Psc_Supplier_Orders {
     }
 
     /**
+     * Prestations qui ouvrent droit au goûter, par enfant et par jour.
+     * Le goûter est servi à la garderie du soir — un enfant attendu ce
+     * jour-là (déclaration directe ou forfait réalisable, cf.
+     * psc_is_declared) en reçoit un. Filtrable : une structure qui sert
+     * aussi (ou seulement) un goûter le matin ajuste la liste ici, sans
+     * toucher au reste du comptage.
+     */
+    public static function gouter_services() {
+        return (array) apply_filters('psc_gouter_services', array('GS'));
+    }
+
+    /**
      * Codes de classe ayant au moins un enfant actif (famille active
      * comprise), dans l'ordre pédagogique de Psc_School_Years::classe_options().
      * Une classe non renseignée ('') est ajoutée en dernier, si des
@@ -98,6 +110,11 @@ class Psc_Supplier_Orders {
         $counts = array();
         foreach ($classes as $c) $counts[$c] = array_fill_keys($jours, 0);
 
+        // Goûters : même structure (classe × jour). Servis aux enfants
+        // attendus à la garderie du soir (cf. gouter_services()).
+        $gouters       = $counts;
+        $total_gouters = 0;
+
         // Toutes les déclarations de la semaine en un lot, puis décompte
         // par classe côté PHP : les règles de facturation (couverture par
         // le forfait, allergies alimentaires) ne sont pas exprimables en
@@ -122,15 +139,24 @@ class Psc_Supplier_Orders {
                         // Classe présente en base mais absente de known_classes()
                         // (cas limite, ex. valeur historique hors liste actuelle).
                         $counts[$classe] = array_fill_keys($jours, 0);
+                        $gouters[$classe] = array_fill_keys($jours, 0);
                         $classes[] = $classe;
                     }
                     // Allergie alimentaire déclarée : l'enfant apporte son
-                    // repas fourni par la famille — aucun repas à commander.
+                    // repas ET son goûter fournis par la famille — rien à
+                    // commander pour lui.
                     if (trim((string) $child->food_allergies) !== '') continue;
 
-                    foreach ($jours_dates as $date) {
-                        if (!empty($declared[$child->id][$date]['CANT'])) {
-                            $counts[$classe][array_search($date, $jours_dates, true)]++;
+                    foreach ($jours_dates as $jour => $date) {
+                        $day = isset($declared[$child->id][$date]) ? $declared[$child->id][$date] : array();
+                        if (!empty($day['CANT'])) {
+                            $counts[$classe][$jour]++;
+                        }
+                        foreach (self::gouter_services() as $svc) {
+                            if (!empty($day[$svc])) {
+                                $gouters[$classe][$jour]++;
+                                break; // un seul goûter par enfant et par jour
+                            }
                         }
                     }
                 }
@@ -148,6 +174,18 @@ class Psc_Supplier_Orders {
             }
         }
 
+        // Totaux goûters, mêmes dimensions que les repas.
+        $gouters_jour   = array_fill_keys($jours, 0);
+        $gouters_classe = array();
+        $total_gouters  = 0;
+        foreach ($gouters as $classe => $par_jour) {
+            $gouters_classe[$classe] = array_sum($par_jour);
+            $total_gouters += $gouters_classe[$classe];
+            foreach ($par_jour as $jour => $n) {
+                $gouters_jour[$jour] += $n;
+            }
+        }
+
         $classes_out = array();
         foreach ($classes as $c) {
             $classes_out[$c] = ($c === '') ? __('Non renseignée', 'periscolaire-registration') : ($classes_labels[$c] ?? $c);
@@ -161,6 +199,10 @@ class Psc_Supplier_Orders {
             'totaux_jour'   => $totaux_jour,
             'totaux_classe' => $totaux_classe,
             'total'         => $total,
+            'gouters'       => $gouters,
+            'gouters_jour'  => $gouters_jour,
+            'gouters_classe' => $gouters_classe,
+            'total_gouters' => $total_gouters,
         );
     }
 

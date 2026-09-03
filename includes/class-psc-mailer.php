@@ -452,14 +452,16 @@ class Psc_Mailer {
             'site'    => $site,
             'semaine' => $semaine_label,
             'total'   => $data['total'],
+            'gouters' => isset($data['total_gouters']) ? (int) $data['total_gouters'] : 0,
         ));
         $intro = Psc_Email_Templates::body_html('supplier_order', array(
             'site'    => $site,
             'semaine' => $semaine_label,
             'total'   => $data['total'],
+            'gouters' => isset($data['total_gouters']) ? (int) $data['total_gouters'] : 0,
         ));
 
-        $body = self::h2(__('Commande cantine — semaine du ', 'periscolaire-registration') . $semaine_label)
+        $body = self::h2(__('Commande cantine & goûters — semaine du ', 'periscolaire-registration') . $semaine_label)
             . '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 20px;">' . $intro . '</p>';
 
         // Seuls les jours d'école réellement ouverts cette semaine-là
@@ -467,47 +469,77 @@ class Psc_Mailer {
         $all_labels = Psc_Supplier_Orders::jour_labels();
         $jours      = array_keys($data['jours']);
 
-        $body .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:13px;margin:16px 0;">';
-        $body .= '<thead><tr>'
-            . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Classe', 'periscolaire-registration') . '</th>';
-        foreach ($jours as $jour) {
-            $body .= '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:center;border:1px solid #E5DCC3;">'
-                . esc_html($all_labels[$jour]) . '<br><small>' . esc_html(date_i18n('d/m', strtotime($data['jours'][$jour]))) . '</small></th>';
+        // Une table par ARTICLE commandé (repas, puis goûters), même grille
+        // classe × jour — le fournisseur prépare les deux livraisons
+        // côte à côte. Les clés manquantes (commandes archivées avant les
+        // goûters) rendent une table absente, jamais une erreur.
+        $articles = array(
+            array(
+                'titre'     => __('Repas', 'periscolaire-registration'),
+                'counts'    => $data['counts'],
+                'jour'      => $data['totaux_jour'],
+                'classe'    => $data['totaux_classe'],
+                'total'     => $data['total'],
+                'testid'    => 'repas',
+            ),
+        );
+        if (isset($data['gouters'])) {
+            $articles[] = array(
+                'titre'     => __('Goûters', 'periscolaire-registration'),
+                'counts'    => $data['gouters'],
+                'jour'      => $data['gouters_jour'],
+                'classe'    => $data['gouters_classe'],
+                'total'     => $data['total_gouters'],
+                'testid'    => 'gouters',
+            );
         }
-        $body .= '<th style="background-color:#E5DCC3;color:#24405C;padding:7px 10px;text-align:center;border:1px solid #E5DCC3;">' . __('Total', 'periscolaire-registration') . '</th>';
-        $body .= '</tr></thead><tbody>';
 
-        if (empty($data['classes'])) {
-            $body .= '<tr><td colspan="' . (count($jours) + 2) . '" style="padding:10px;color:#8B8279;font-style:italic;border:1px solid #E5DCC3;">' . __('Aucun repas de cantine déclaré cette semaine.', 'periscolaire-registration') . '</td></tr>';
-        }
-
-        foreach ($data['classes'] as $code => $label) {
-            $body .= '<tr>'
-                . '<td style="padding:6px 10px;border:1px solid #E5DCC3;font-weight:bold;">' . esc_html($label) . '</td>';
+        foreach ($articles as $article) {
+            $body .= '<h3 style="color:#24405C;font-family:Georgia,\'Times New Roman\',serif;font-size:15px;'
+                . 'margin:18px 0 0;">' . esc_html($article['titre']) . '</h3>';
+            $body .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:13px;margin:8px 0 16px;">';
+            $body .= '<thead><tr>'
+                . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Classe', 'periscolaire-registration') . '</th>';
             foreach ($jours as $jour) {
-                $n = $data['counts'][$code][$jour] ?? 0;
-                $body .= '<td style="padding:6px 10px;border:1px solid #E5DCC3;text-align:center;">' . ($n > 0 ? $n : '—') . '</td>';
+                $body .= '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:center;border:1px solid #E5DCC3;">'
+                    . esc_html($all_labels[$jour]) . '<br><small>' . esc_html(date_i18n('d/m', strtotime($data['jours'][$jour]))) . '</small></th>';
             }
-            $body .= '<td style="padding:6px 10px;border:1px solid #E5DCC3;text-align:center;font-weight:bold;">' . (int) $data['totaux_classe'][$code] . '</td>';
+            $body .= '<th style="background-color:#E5DCC3;color:#24405C;padding:7px 10px;text-align:center;border:1px solid #E5DCC3;">' . __('Total', 'periscolaire-registration') . '</th>';
+            $body .= '</tr></thead><tbody>';
+
+            $body .= '<tr><td colspan="' . (count($jours) + 2) . '" style="padding:6px 10px;color:#8B8279;font-style:italic;border:1px solid #E5DCC3;">'
+                . ($article['total'] > 0
+                    ? __('Enfants concernés : les cases « — » signifient aucun pour cette classe et ce jour.', 'periscolaire-registration')
+                    : __('Aucun déclaré cette semaine.', 'periscolaire-registration'))
+                . '</td></tr>';
+
+            foreach ($data['classes'] as $code => $label) {
+                $body .= '<tr>'
+                    . '<td style="padding:6px 10px;border:1px solid #E5DCC3;font-weight:bold;">' . esc_html($label) . '</td>';
+                foreach ($jours as $jour) {
+                    $n = $article['counts'][$code][$jour] ?? 0;
+                    $body .= '<td style="padding:6px 10px;border:1px solid #E5DCC3;text-align:center;">' . ($n > 0 ? $n : '—') . '</td>';
+                }
+                $body .= '<td style="padding:6px 10px;border:1px solid #E5DCC3;text-align:center;font-weight:bold;">' . (int) $article['classe'][$code] . '</td>';
+                $body .= '</tr>';
+            }
+
+            $body .= '<tr style="background-color:#F5E7DC;">'
+                . '<td style="padding:7px 10px;border:1px solid #E5DCC3;font-weight:bold;">' . esc_html(mb_strtoupper($article['titre'], 'UTF-8')) . '</td>';
+            foreach ($jours as $jour) {
+                $body .= '<td style="padding:7px 10px;border:1px solid #E5DCC3;text-align:center;font-weight:bold;">' . (int) $article['jour'][$jour] . '</td>';
+            }
+            $body .= '<td style="padding:7px 10px;border:1px solid #E5DCC3;text-align:center;font-weight:bold;color:#24405C;">' . (int) $article['total'] . '</td>';
             $body .= '</tr>';
+            $body .= '</tbody></table>';
         }
 
-        $body .= '<tr style="background-color:#F5E7DC;">'
-            . '<td style="padding:7px 10px;border:1px solid #E5DCC3;font-weight:bold;">' . __('TOTAL', 'periscolaire-registration') . '</td>';
-        foreach ($jours as $jour) {
-            $body .= '<td style="padding:7px 10px;border:1px solid #E5DCC3;text-align:center;font-weight:bold;">' . (int) $data['totaux_jour'][$jour] . '</td>';
-        }
-        $body .= '<td style="padding:7px 10px;border:1px solid #E5DCC3;text-align:center;font-weight:bold;color:#24405C;">' . (int) $data['total'] . '</td>';
-        $body .= '</tr>';
-        $body .= '</tbody></table>';
-
-        // Les enfants porteurs d'une allergie alimentaire déjeunent avec
-        // leur propre repas fourni par la famille : ils restent sur la
-        // liste de présence (SIDSCM) mais ne sont pas comptés dans la
-        // commande — ils n'y sont déjà plus comptés (cf.
-        // Psc_Supplier_Orders::compute_counts).
+        // Les enfants porteurs d'une allergie alimentaire apportent leur
+        // repas et leur goûter fournis par la famille : ils restent sur la
+        // liste de présence (SIDSCM) mais ne sont comptés dans aucune
+        // commande (cf. Psc_Supplier_Orders::compute_counts).
         $body .= self::info_box(
-            __('Rappel : les enfants porteurs d\'une allergie alimentaire apportent leur repas fourni par la famille — ils ne sont pas comptés dans ces effectifs, mais figurent sur les listes de présence avec la mention « apporte son repas ».', 'periscolaire-registration')
+            __('Rappel : les enfants porteurs d\'une allergie alimentaire apportent leur repas et leur goûter fournis par la famille — ils ne sont comptés dans aucun de ces effectifs, mais figurent sur les listes de présence avec la mention « apporte son repas ».', 'periscolaire-registration')
         );
 
         $html = self::layout($body, $subject);

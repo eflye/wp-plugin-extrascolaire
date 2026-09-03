@@ -168,6 +168,10 @@ test('configuration, calcul par classe, envoi et historique', async ({ page }) =
   for (const classe of Object.keys(expected.classes)) {
     expect(mail.HTML, `classe ${classe} absente du corps de l'e-mail`).toContain(classe);
   }
+  // La commande porte aussi les goûters (garderie du soir) : table
+  // dédiée + total annoncé dans le corps.
+  expect(mail.HTML, "table goûters absente du corps de l'e-mail").toContain('Goûters');
+  expect(mail.HTML).toContain(String(expected.total_gouters));
   // Le piège du seed (Garderie Matin le même jour que la première Cantine
   // de la classe CP) ne doit jamais faire gonfler un total.
   //
@@ -245,7 +249,7 @@ test('annulation de la cantine pour une classe (sortie scolaire)', async ({ page
      }
      echo implode(',', $services);`
   );
-  expect(remainingServices).toBe('GM');
+  expect(remainingServices).toBe('GM,GS');
 
   const mail = await findLatestMessage(PARENT_EMAIL, 'Cantine annulée');
   expect(mail.Subject).toContain('CP');

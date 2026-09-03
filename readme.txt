@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.0.4
+Stable tag: 5.0.5
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,19 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.0.5 =
+* Commande fournisseur : l'e-mail emporte désormais aussi les GOÛTERS —
+  une seconde grille classe × jour sous celle des repas, servie aux
+  enfants attendus à la garderie du soir (déclaration directe ou forfait
+  réalisable, cf. filtre psc_gouter_services). Les enfants porteurs d'une
+  allergie alimentaire apportent aussi leur goûter : exclus des deux
+  comptages, maintenus sur les listes de présence. L'aperçu backoffice,
+  le bouton d'envoi (X repas + Y goûters) et l'e-mail archivé suivent ;
+  le gabarit « Commande fournisseur » gagne la variable {{gouters}}.
+* Suite E2E commande fournisseur : jeu de données étendu (garderie du
+  soir pour les deux enfants) et assertions goûters (aperçu, e-mail,
+  historique).
 
 = 5.0.4 =
 * Performance — Planning - 2 : un clic dans « Étape 1 » lançait plusieurs
