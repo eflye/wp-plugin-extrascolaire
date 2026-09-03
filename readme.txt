@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.0.7
+Stable tag: 5.0.8
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,14 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.0.8 =
+* Tests — commande fournisseur : le scénario du pied de mail n'asserte plus
+  le nom du site ({{site}} interpolé avec le titre de l'installation, qui
+  diffère entre la CI et le poste de développement) mais des variables
+  déterministes ; le seed réinitialise le modèle « Commande fournisseur »
+  avant chaque exécution — la personnalisation laissée par une exécution
+  précédente ne pollue plus l'assertion du pied par défaut.
 
 = 5.0.7 =
 * Backoffice — commande fournisseur : le bouton « Envoyer au fournisseur »

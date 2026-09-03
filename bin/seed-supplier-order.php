@@ -136,6 +136,13 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     // ce même spec, pour la même semaine cible.
     $wpdb->delete($t_sup, array('semaine_debut' => $semaine_debut), array('%s'));
 
+    // Le pied de mail configurable du modèle « Commande fournisseur » est
+    // modifié par le scénario E2E : on repart du défaut à chaque seed, sans
+    // toucher aux personnalisations des AUTRES modèles.
+    if (class_exists('Psc_Email_Templates')) {
+        Psc_Email_Templates::reset('supplier_order');
+    }
+
     /* ---------------------------------------------------------------- */
     /* Recréation                                                        */
     /* ---------------------------------------------------------------- */

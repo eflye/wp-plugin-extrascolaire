@@ -220,9 +220,11 @@ test.describe.serial('Commande fournisseur (backoffice)', () => {
     await loginAsAdmin(page);
 
     /* ---------------- 1. Personnaliser le pied avec des variables ---------------- */
+    // Sans {{site}} : l'assertion ne doit pas dépendre du titre du site,
+    // qui diffère entre l'installation de CI et le poste de développement.
     await page.goto(`${ADMIN_BASE}/admin.php?page=psc_email_templates`);
     const footerField = page.locator('#tpl_supplier_order_footer');
-    await footerField.fill('Service périscolaire — {{site}} — semaine du {{semaine}} : {{gouters}} goûters.');
+    await footerField.fill('Pied de test — semaine du {{semaine}} : {{gouters}} goûters, {{standard}} repas standard.');
     // Deux boutons identiques existent (un dans un bloc replié) : le dernier
     // est celui du formulaire principal, toujours visible.
     await page.getByRole('button', { name: 'Enregistrer tous les modèles' }).last().click();
@@ -242,7 +244,9 @@ test.describe.serial('Commande fournisseur (backoffice)', () => {
 
     const mail = await findLatestMessage(SUPPLIER_EMAIL, 'Commande cantine');
     const text = emailText(mail.HTML);
-    expect(text).toContain(`Service périscolaire — Montgeroult - Courcelles — semaine du ${data.semaine_debut.split('-').reverse().join('/')} : ${data.expected.total_gouters} goûters.`);
+    expect(text).toContain(`Pied de test — semaine du ${data.semaine_debut.split('-').reverse().join('/')} : ${data.expected.total_gouters} goûters, ${data.expected.total_standard} repas standard.`);
+    // Toutes les variables ont été interpolées (aucun {{ }} résiduel).
+    expect(text).not.toContain('{{');
 
     /* ---------------- 3. Pied vide : le bloc ET son filet disparaissent ---------------- */
     await page.goto(`${ADMIN_BASE}/admin.php?page=psc_email_templates`);
@@ -258,7 +262,7 @@ test.describe.serial('Commande fournisseur (backoffice)', () => {
 
     const mail2 = await findLatestMessage(SUPPLIER_EMAIL, 'Commande cantine');
     const text2 = emailText(mail2.HTML);
-    expect(text2).not.toContain('Service périscolaire — Montgeroult Courcelles');
+    expect(text2).not.toContain('Pied de test');
     // Aucun filet orphelin : le HTML ne contient plus la bordure du pied
     // (border-top EDEAE4 suivie du padding du pied) après la table.
     const afterTable = mail2.HTML.slice(mail2.HTML.lastIndexOf('Total semaine'));
