@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.1.1
+Stable tag: 5.1.2
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,16 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.1.2 =
+* Tableau de bord : « Déclarer un jour » pointe vers l'écran Planning
+  (rythme + exceptions) — l'entrée de menu des familles ; et le libellé de
+  la première carte devient « Année scolaire » (les totaux sont annuels
+  depuis la v5).
+* Espace famille — correctif d'affichage : sur la carte « Accès rapide »
+  (fond or), les liens passaient en orange au survol (règle a:hover du
+  thème) et « Ajouter un enfant » devenait illisible — le texte reste
+  noir au survol, avec un fond blanc comme repère sur le bouton contour.
 
 = 5.1.1 =
 * Portail — l'écran « Planning » (rythme + exceptions) s'appelle

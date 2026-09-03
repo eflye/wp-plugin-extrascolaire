@@ -398,6 +398,15 @@ a.psc-portal-switch-link:focus-visible {
 .psc-portal-card--gold .psc-portal-btn-ink,
 .psc-portal-card--gold .psc-portal-btn-outline-ink { width: 100%; margin-bottom: 8px; }
 .psc-portal-card--gold .psc-portal-btn-outline-ink { margin-bottom: 0; }
+/* Sur la carte or, le survol des liens reste NOIR : le thème impose
+   a:hover { color: or } sur tout le portail — un lien orange sur cette
+   carte orange devenait illisible au survol. Le bouton encre garde sa
+   crame, le bouton contour passe en fond blanc comme repère. */
+.psc-portal-card--gold a.psc-portal-btn-ink:hover { color: var(--psc-cream); }
+.psc-portal-card--gold a.psc-portal-btn-outline-ink:hover {
+    color: var(--psc-ink);
+    background: rgba(255, 255, 255, 0.85);
+}
 
 .psc-portal-dash-menu {
     background: var(--psc-paper);

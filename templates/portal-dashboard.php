@@ -5,7 +5,7 @@
 
 <div class="psc-portal-cards">
   <div class="psc-portal-card">
-    <div class="psc-portal-card-label"><?php esc_html_e('Cette période', 'periscolaire-registration'); ?></div>
+    <div class="psc-portal-card-label"><?php esc_html_e('Année scolaire', 'periscolaire-registration'); ?></div>
     <div class="psc-portal-card-value" data-testid="dashboard-days"><?php echo esc_html($psc_portal_dashboard['days_label']); ?></div>
     <div class="psc-portal-card-sub"><?php echo esc_html($psc_portal_dashboard['amount_label']); ?> <?php esc_html_e('€ déclarés', 'periscolaire-registration'); ?></div>
   </div>
@@ -21,7 +21,13 @@
   </div>
   <div class="psc-portal-card psc-portal-card--gold">
     <div class="psc-portal-card-label"><?php esc_html_e('Accès rapide', 'periscolaire-registration'); ?></div>
-    <a href="<?php echo esc_url($psc_portal_tabs['cantine']['url']); ?>" class="psc-portal-btn-ink" data-portal-tab-link="cantine" style="display:block;text-align:center;text-decoration:none;"><?php esc_html_e('Déclarer un jour', 'periscolaire-registration'); ?></a>
+    <?php
+    // « Déclarer un jour » pointe vers l'écran Planning exposé aux
+    // familles : Planning (rythme + exceptions) dès que cette variante
+    // existe, sinon l'ancienne saisie jour par jour.
+    $psc_dash_planning = isset($psc_portal_tabs['cantine2']) ? 'cantine2' : 'cantine';
+    ?>
+    <a href="<?php echo esc_url($psc_portal_tabs[$psc_dash_planning]['url']); ?>" class="psc-portal-btn-ink" data-portal-tab-link="<?php echo esc_attr($psc_dash_planning); ?>" style="display:block;text-align:center;text-decoration:none;"><?php esc_html_e('Déclarer un jour', 'periscolaire-registration'); ?></a>
     <a href="<?php echo esc_url($psc_portal_tabs['enfants']['url']); ?>" class="psc-portal-btn-outline-ink" data-portal-tab-link="enfants" style="display:block;text-align:center;text-decoration:none;"><?php esc_html_e('Ajouter un enfant', 'periscolaire-registration'); ?></a>
     <button type="button" id="psc-absence-trigger" class="psc-portal-btn-outline-ink" data-testid="absence-trigger" style="width:100%;"><?php esc_html_e('Annulation prestations', 'periscolaire-registration'); ?></button>
   </div>
