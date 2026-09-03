@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.0.8
+Stable tag: 5.0.9
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,18 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.0.9 =
+* Tests — le scénario « commande fournisseur » codait en dur le nom du
+  conteneur Docker au lieu de lire PSC_WP_CONTAINER (posé par le workflow
+  après identification du conteneur) : sur CI, le projet compose s'appelle
+  différemment du poste de développement, et TOUTE la commande de seed
+  échouait (« no such container »), faisant échouer le scénario et son
+  suivant. Comme les autres specs, le nom vient désormais de
+  l'environnement avec repli local.
+* CI — diagnostic : les artefacts E2E sont de nouveau téléchargeables
+  (upload-artifact@v4 exclut par défaut les dossiers cachés comme
+  .playwright/) et un résumé liste les scénarios en échec en fin de step.
 
 = 5.0.8 =
 * Tests — commande fournisseur : le scénario du pied de mail n'asserte plus

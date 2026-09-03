@@ -25,8 +25,12 @@ import { findLatestMessage } from '../helpers/mailpit';
 
 const APP_BASE = 'http://localhost:8080';
 const ADMIN_BASE = `${APP_BASE}/wp-admin`;
+// Le nom du conteneur vient de l'environnement CI (PSC_WP_CONTAINER, posé
+// par le workflow après `docker compose ps`) : sur CI le projet compose ne
+// s'appelle pas forcément comme le dépôt — le nom en dur faisait échouer
+// TOUTE la commande de seed (« no such container »), d'où les runs rouges.
 const ENGINE = process.env.PSC_CONTAINER_ENGINE ?? 'podman';
-const CONTAINER = 'plugin-extrascolaire-wordpress-1';
+const CONTAINER = process.env.PSC_WP_CONTAINER ?? 'plugin-extrascolaire-wordpress-1';
 const CONTAINER_WP_CLI = '/usr/local/bin/wp-cli.phar';
 const CONTAINER_PLUGIN_PATH = '/var/www/html/wp-content/plugins/periscolaire-registration';
 const ADMIN_USER = 'admin';
