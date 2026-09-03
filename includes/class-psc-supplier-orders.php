@@ -38,49 +38,29 @@ class Psc_Supplier_Orders {
     }
 
     /**
-     * Codes de classe ayant au moins un enfant actif (famille active
-     * comprise), dans l'ordre pédagogique de Psc_School_Years::classe_options().
-     * Une classe non renseignée ('') est ajoutée en dernier, si des
-     * enfants actifs sont dans ce cas.
-     */
-    protected static function known_classes($year_id) {
-        global $wpdb;
-        if (!$year_id) return array();
-
-        $t_child = psc_table('children');
-        $t_par   = psc_table('parents');
-        $t_cy    = psc_table('child_school_years');
-        $existing = $wpdb->get_col($wpdb->prepare(
-            "SELECT DISTINCT cy.classe FROM $t_child c
-             JOIN $t_par p ON p.id = c.parent_id
-             JOIN $t_cy cy ON cy.child_id = c.id AND cy.school_year_id = %d
-             WHERE c.statut = 'actif' AND p.active = 1",
-            $year_id
-        ));
-        $existing = array_map('strval', $existing);
-
-        $ordered = array();
-        foreach (Psc_School_Years::classe_options() as $code => $label) {
-            if ($code === '') continue;
-            if (in_array($code, $existing, true)) $ordered[] = $code;
-        }
-        if (in_array('', $existing, true)) {
-            $ordered[] = '';
-        }
-        return $ordered;
-    }
-
-    /**
-     * Calcule la grille classe x jour de repas de cantine pour la semaine
-     * donnée (n'importe quelle date de la semaine, ramenée au lundi). Ne
-     * compte que la prestation Cantine (CANT), enfants et familles actifs,
-     * via la source de vérité unique (psc_is_declared). Les enfants qui
-     * apportent leur repas (allergie alimentaire déclarée) sont exclus du
-     * comptage — contrepartie du « pas de menu différencié » : sans cette
-     * exclusion, la commune paie des repas non consommés.
+     * Calcule les quantités à commander pour la semaine donnée (n'importe
+     * quelle date de la semaine, ramenée au lundi), via la source de vérité
+     * unique (psc_is_declared). Une ligne par jour de service, ventilation
+     * par régime :
      *
-     * Retourne un tableau structuré (semaine_debut, jours réels, classes,
-     * comptages, totaux) ou un WP_Error si la semaine est invalide.
+     *   - sans régime particulier → Standard ;
+     *   - régime « sans porc » → Sans porc ;
+     *   - régime « sans viande » (colonne vegan, libellé côté famille) →
+     *     Végétarien — le vocabulaire du fournisseur s'applique à la
+     *     génération ;
+     *   - food_allergies renseigné → compté dans AUCUNE colonne repas ni
+     *     goûter : l'enfant apporte les siens, mais reste sur les listes
+     *     de présence avec la mention « apporte son repas ».
+     *
+     * Les trois régimes sont mutuellement exclusifs : chaque enfant inscrit
+     * au déjeuner compte pour exactement un des trois, Total midi = somme
+     * des trois. Le goûter suit la garderie du soir (gouter_services()).
+     * Seuls les jours d'école ouverts figurent en ligne — un jour férié
+     * n'est pas une ligne, et un jour sans inscrit affiche 0 (une
+     * information de commande, pas un tiret).
+     *
+     * Plus aucun découpage par classe : le fournisseur livre pour
+     * l'établissement.
      */
     public static function compute_counts($semaine_debut) {
         $semaine = psc_week_start($semaine_debut);
@@ -91,70 +71,52 @@ class Psc_Supplier_Orders {
         global $wpdb;
         $t_child = psc_table('children');
         $t_par   = psc_table('parents');
-        $t_cy    = psc_table('child_school_years');
-        // Résolue depuis la semaine demandée (pas l'année active du site) :
-        // la commande fournisseur peut porter sur une semaine passée ou à
-        // venir, potentiellement hors de l'année scolaire en cours.
-        $year = Psc_School_Years::for_date($semaine);
-        $year_id = $year ? (int) $year->id : 0;
-
-        $classes_labels = Psc_School_Years::classe_options();
-        $classes = self::known_classes($year_id);
 
         // Seuls les jours d'école réellement ouverts (vacances, jours fériés
-        // et fermetures ponctuelles exclus) : pas de colonne à commander
-        // pour un jour sans cantine.
+        // et fermetures ponctuelles exclus) : pas de ligne à commander pour
+        // un jour sans service.
         $jours_dates = psc_open_days($semaine);
         $jours       = array_keys($jours_dates);
 
-        $counts = array();
-        foreach ($classes as $c) $counts[$c] = array_fill_keys($jours, 0);
+        $rows = array();
+        foreach ($jours as $j) {
+            $rows[$j] = array('standard' => 0, 'sans_porc' => 0, 'vegetarien' => 0, 'midi' => 0, 'gouter' => 0);
+        }
 
-        // Goûters : même structure (classe × jour). Servis aux enfants
-        // attendus à la garderie du soir (cf. gouter_services()).
-        $gouters       = $counts;
-        $total_gouters = 0;
-
-        // Toutes les déclarations de la semaine en un lot, puis décompte
-        // par classe côté PHP : les règles de facturation (couverture par
-        // le forfait, allergies alimentaires) ne sont pas exprimables en
-        // une requête SQL — elles vivent dans la résolution.
-        if ($year_id && !empty($jours_dates)) {
-            $children = $wpdb->get_results($wpdb->prepare(
-                "SELECT c.id, cy.classe, c.food_allergies
+        if (!empty($jours_dates)) {
+            $children = $wpdb->get_results(
+                "SELECT c.id, c.sans_porc, c.vegan, c.food_allergies
                  FROM $t_child c
                  JOIN $t_par p ON p.id = c.parent_id
-                 JOIN $t_cy cy ON cy.child_id = c.id AND cy.school_year_id = %d
-                 WHERE c.statut = 'actif' AND p.active = 1
-                   AND cy.classe IS NOT NULL",
-                $year_id
-            ));
+                 WHERE c.statut = 'actif' AND p.active = 1"
+            );
             if ($children) {
                 $child_ids = array_map(function ($c) { return (int) $c->id; }, $children);
                 $declared = Psc_Planning::declared_map($child_ids, array_values($jours_dates));
 
                 foreach ($children as $child) {
-                    $classe = (string) $child->classe;
-                    if (!isset($counts[$classe])) {
-                        // Classe présente en base mais absente de known_classes()
-                        // (cas limite, ex. valeur historique hors liste actuelle).
-                        $counts[$classe] = array_fill_keys($jours, 0);
-                        $gouters[$classe] = array_fill_keys($jours, 0);
-                        $classes[] = $classe;
-                    }
                     // Allergie alimentaire déclarée : l'enfant apporte son
-                    // repas ET son goûter fournis par la famille — rien à
-                    // commander pour lui.
+                    // repas ET son goûter fournis par la famille — compté
+                    // dans aucune colonne.
                     if (trim((string) $child->food_allergies) !== '') continue;
+
+                    // Les trois régimes sont mutuellement exclusifs. Sans
+                    // viande (vegan) est la restriction la plus large : elle
+                    // l'emporte si un jeu de données incohérent cumule les
+                    // deux cases.
+                    $kind = ((int) $child->vegan === 1)
+                        ? 'vegetarien'
+                        : (((int) $child->sans_porc === 1) ? 'sans_porc' : 'standard');
 
                     foreach ($jours_dates as $jour => $date) {
                         $day = isset($declared[$child->id][$date]) ? $declared[$child->id][$date] : array();
                         if (!empty($day['CANT'])) {
-                            $counts[$classe][$jour]++;
+                            $rows[$jour][$kind]++;
+                            $rows[$jour]['midi']++;
                         }
                         foreach (self::gouter_services() as $svc) {
                             if (!empty($day[$svc])) {
-                                $gouters[$classe][$jour]++;
+                                $rows[$jour]['gouter']++;
                                 break; // un seul goûter par enfant et par jour
                             }
                         }
@@ -163,46 +125,22 @@ class Psc_Supplier_Orders {
             }
         }
 
-        $totaux_jour   = array_fill_keys($jours, 0);
-        $totaux_classe = array();
-        $total         = 0;
-        foreach ($counts as $classe => $par_jour) {
-            $totaux_classe[$classe] = array_sum($par_jour);
-            $total += $totaux_classe[$classe];
-            foreach ($par_jour as $jour => $n) {
-                $totaux_jour[$jour] += $n;
-            }
-        }
-
-        // Totaux goûters, mêmes dimensions que les repas.
-        $gouters_jour   = array_fill_keys($jours, 0);
-        $gouters_classe = array();
-        $total_gouters  = 0;
-        foreach ($gouters as $classe => $par_jour) {
-            $gouters_classe[$classe] = array_sum($par_jour);
-            $total_gouters += $gouters_classe[$classe];
-            foreach ($par_jour as $jour => $n) {
-                $gouters_jour[$jour] += $n;
-            }
-        }
-
-        $classes_out = array();
-        foreach ($classes as $c) {
-            $classes_out[$c] = ($c === '') ? __('Non renseignée', 'periscolaire-registration') : ($classes_labels[$c] ?? $c);
+        // Total semaine, colonne par colonne.
+        $totaux = array('standard' => 0, 'sans_porc' => 0, 'vegetarien' => 0, 'midi' => 0, 'gouter' => 0);
+        foreach ($rows as $row) {
+            foreach ($totaux as $k => $v) $totaux[$k] += $row[$k];
         }
 
         return array(
-            'semaine_debut' => $semaine,
-            'jours'         => $jours_dates,
-            'classes'       => $classes_out,
-            'counts'        => $counts,
-            'totaux_jour'   => $totaux_jour,
-            'totaux_classe' => $totaux_classe,
-            'total'         => $total,
-            'gouters'       => $gouters,
-            'gouters_jour'  => $gouters_jour,
-            'gouters_classe' => $gouters_classe,
-            'total_gouters' => $total_gouters,
+            'semaine_debut'   => $semaine,
+            'jours'           => $jours_dates,
+            'rows'            => $rows,
+            'totaux'          => $totaux,
+            'total'           => $totaux['midi'],
+            'total_standard'  => $totaux['standard'],
+            'total_sans_porc' => $totaux['sans_porc'],
+            'total_vegetarien' => $totaux['vegetarien'],
+            'total_gouters'   => $totaux['gouter'],
         );
     }
 

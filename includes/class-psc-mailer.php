@@ -444,121 +444,47 @@ class Psc_Mailer {
      * et le corps sont renvoyés même en cas d'échec d'envoi, pour
      * permettre à l'appelant de diagnostiquer sans reconstruire l'e-mail.
      */
+    /**
+     * E-mail « Commande fournisseur » — rendu autonome (maquette Email
+     * Commande Fournisseur.dc.html) : carte blanche 600px, un seul tableau
+     * une ligne par jour de service, ventilation par régime sous un chapeau
+     * « Repas de midi », Total midi accentué, goûters détachés, total
+     * semaine, pied de mail configurable. Plus de bandeau, de blocs à fond
+     * blush ni de titre dupliquant l'objet : l'objet et le corps
+     * configurable portent l'intitulé.
+     */
     public static function send_supplier_order($supplier_email, $data) {
         $site          = self::site_name();
         $semaine_label = date_i18n('d/m/Y', strtotime($data['semaine_debut']));
 
-        $subject = Psc_Email_Templates::subject('supplier_order', array(
-            'site'    => $site,
-            'semaine' => $semaine_label,
-            'total'   => $data['total'],
-            'gouters' => isset($data['total_gouters']) ? (int) $data['total_gouters'] : 0,
-        ));
-        $intro = Psc_Email_Templates::body_html('supplier_order', array(
-            'site'    => $site,
-            'semaine' => $semaine_label,
-            'total'   => $data['total'],
-            'gouters' => isset($data['total_gouters']) ? (int) $data['total_gouters'] : 0,
-        ));
-
-        $body = self::h2(__('Commande cantine & goûters — semaine du ', 'periscolaire-registration') . $semaine_label)
-            . '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 20px;">' . $intro . '</p>';
-
-        // Seuls les jours d'école réellement ouverts cette semaine-là
-        // figurent dans $data['jours'] (Psc_Supplier_Orders::compute_counts).
-        $all_labels = Psc_Supplier_Orders::jour_labels();
-        $jours      = array_keys($data['jours']);
-
-        // Une table par ARTICLE commandé (repas, puis goûters), même grille
-        // classe × jour — le fournisseur prépare les deux livraisons
-        // côte à côte. Les clés manquantes (commandes archivées avant les
-        // goûters) rendent une table absente, jamais une erreur.
-        $articles = array(
-            array(
-                'titre'     => __('Repas', 'periscolaire-registration'),
-                'counts'    => $data['counts'],
-                'jour'      => $data['totaux_jour'],
-                'classe'    => $data['totaux_classe'],
-                'total'     => $data['total'],
-                'testid'    => 'repas',
-            ),
-        );
-        if (isset($data['gouters'])) {
-            $articles[] = array(
-                'titre'     => __('Goûters', 'periscolaire-registration'),
-                'counts'    => $data['gouters'],
-                'jour'      => $data['gouters_jour'],
-                'classe'    => $data['gouters_classe'],
-                'total'     => $data['total_gouters'],
-                'testid'    => 'gouters',
-            );
-        }
-
-        foreach ($articles as $article) {
-            $body .= '<h3 style="color:#24405C;font-family:Georgia,\'Times New Roman\',serif;font-size:15px;'
-                . 'margin:18px 0 0;">' . esc_html($article['titre']) . '</h3>';
-            $body .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:13px;margin:8px 0 16px;">';
-            $body .= '<thead><tr>'
-                . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Classe', 'periscolaire-registration') . '</th>';
-            foreach ($jours as $jour) {
-                $body .= '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:center;border:1px solid #E5DCC3;">'
-                    . esc_html($all_labels[$jour]) . '<br><small>' . esc_html(date_i18n('d/m', strtotime($data['jours'][$jour]))) . '</small></th>';
-            }
-            $body .= '<th style="background-color:#E5DCC3;color:#24405C;padding:7px 10px;text-align:center;border:1px solid #E5DCC3;">' . __('Total', 'periscolaire-registration') . '</th>';
-            $body .= '</tr></thead><tbody>';
-
-            $body .= '<tr><td colspan="' . (count($jours) + 2) . '" style="padding:6px 10px;color:#8B8279;font-style:italic;border:1px solid #E5DCC3;">'
-                . ($article['total'] > 0
-                    ? __('Enfants concernés : les cases « — » signifient aucun pour cette classe et ce jour.', 'periscolaire-registration')
-                    : __('Aucun déclaré cette semaine.', 'periscolaire-registration'))
-                . '</td></tr>';
-
-            foreach ($data['classes'] as $code => $label) {
-                $body .= '<tr>'
-                    . '<td style="padding:6px 10px;border:1px solid #E5DCC3;font-weight:bold;">' . esc_html($label) . '</td>';
-                foreach ($jours as $jour) {
-                    $n = $article['counts'][$code][$jour] ?? 0;
-                    $body .= '<td style="padding:6px 10px;border:1px solid #E5DCC3;text-align:center;">' . ($n > 0 ? $n : '—') . '</td>';
-                }
-                $body .= '<td style="padding:6px 10px;border:1px solid #E5DCC3;text-align:center;font-weight:bold;">' . (int) $article['classe'][$code] . '</td>';
-                $body .= '</tr>';
-            }
-
-            $body .= '<tr style="background-color:#F5E7DC;">'
-                . '<td style="padding:7px 10px;border:1px solid #E5DCC3;font-weight:bold;">' . esc_html(mb_strtoupper($article['titre'], 'UTF-8')) . '</td>';
-            foreach ($jours as $jour) {
-                $body .= '<td style="padding:7px 10px;border:1px solid #E5DCC3;text-align:center;font-weight:bold;">' . (int) $article['jour'][$jour] . '</td>';
-            }
-            $body .= '<td style="padding:7px 10px;border:1px solid #E5DCC3;text-align:center;font-weight:bold;color:#24405C;">' . (int) $article['total'] . '</td>';
-            $body .= '</tr>';
-            $body .= '</tbody></table>';
-        }
-
-        // Les enfants porteurs d'une allergie alimentaire apportent leur
-        // repas et leur goûter fournis par la famille : ils restent sur la
-        // liste de présence (SIDSCM) mais ne sont comptés dans aucune
-        // commande (cf. Psc_Supplier_Orders::compute_counts).
-        $body .= self::info_box(
-            __('Rappel : les enfants porteurs d\'une allergie alimentaire apportent leur repas et leur goûter fournis par la famille — ils ne sont comptés dans aucun de ces effectifs, mais figurent sur les listes de présence avec la mention « apporte son repas ».', 'periscolaire-registration')
+        $vars = array(
+            'site'       => $site,
+            'semaine'    => $semaine_label,
+            'total'      => (int) $data['total'],
+            'gouters'    => (int) ($data['total_gouters'] ?? 0),
+            'standard'   => (int) ($data['total_standard'] ?? 0),
+            'sans_porc'  => (int) ($data['total_sans_porc'] ?? 0),
+            'vegetarien' => (int) ($data['total_vegetarien'] ?? 0),
         );
 
-        $html = self::layout($body, $subject);
+        $subject = Psc_Email_Templates::subject('supplier_order', $vars);
+        $intro   = Psc_Email_Templates::body_html('supplier_order', $vars);
+        $footer  = Psc_Email_Templates::footer_html('supplier_order', $vars);
+
+        $site_name = $site;
+        $rows      = $data['rows'];
+        $jours     = $data['jours'];
+        $totaux    = $data['totaux'];
+
+        ob_start();
+        include PSC_PATH . 'templates/email/supplier-order.php';
+        $html = ob_get_clean();
+
         $sent = self::send($supplier_email, $subject, $html);
 
         return array('sent' => (bool) $sent, 'subject' => $subject, 'html' => $html);
     }
 
-    /* ------------------------------------------------------------------ */
-    /* Fermeture d'un jour (calendrier scolaire)                            */
-    /* ------------------------------------------------------------------ */
-
-    /**
-     * Prévient une famille que des inscriptions qu'elle avait déclarées
-     * ont été retirées parce que le jour concerné vient d'être fermé
-     * (vacances scolaires, formation des enseignants, fermeture
-     * exceptionnelle...). $fam : array('email'=>, 'nom'=>, 'items'=>
-     * [objets avec service, child_nom, child_prenom]).
-     */
     public static function send_day_closed($fam, $date_str, $label) {
         $site      = self::site_name();
         $date_lbl  = psc_day_label($date_str) . ' ' . date_i18n('d/m/Y', strtotime($date_str));

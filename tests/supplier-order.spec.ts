@@ -1,27 +1,22 @@
 /**
- * Commande fournisseur (cantine) — parcours administrateur.
+ * Commande fournisseur — e-mail de quantités (refonte).
  *
- * Contrairement à parent-connu.spec.ts, ce parcours ne concerne que le
- * backoffice (aucune famille impliquée) : pas d'habillage vidéo, un seul
- * profil, une seed dédiée (bin/seed-supplier-order.php) plutôt que
- * journeys/parent-connu.md. Exclu du profil "demo" (cf. playwright.config.ts).
+ * Un seul tableau, une ligne par jour de service, ventilation par régime
+ * (Standard / Sans porc / Végétarien — les trois mutuellement exclusifs,
+ * Total midi = somme des trois), Goûters détachés, ligne Total semaine.
+ * Plus aucun découpage par classe : le fournisseur livre pour
+ * l'établissement. Les zéros s'affichent — un zéro est une information de
+ * commande, un tiret est une ambiguïté.
  *
- * Couverture :
- *   1. L'adresse e-mail fournisseur se configure depuis Réglages (UI réelle,
- *      pas une écriture directe en base).
- *   2. L'aperçu par classe x jour est calculé correctement à partir des
- *      inscriptions Cantine (CANT) — et ignore les autres prestations (le
- *      seed inclut une inscription Garderie Matin comme piège).
- *   3. L'envoi déclenche un e-mail réellement reçu par le fournisseur
- *      (vérifié via l'API Mailpit, jamais l'UI), avec le bon sujet et le
- *      bon contenu.
- *   4. L'envoi crée une entrée d'historique consultable, avec le contenu
- *      exact de l'e-mail envoyé et l'horodatage.
- *   5. Annulation de la cantine pour une classe entière (sortie
- *      scolaire...) : écran d'avertissement avant toute suppression,
- *      confirmation explicite requise, e-mail à la famille avec le motif
- *      — et seule l'inscription Cantine du piège du seed est supprimée,
- *      jamais la Garderie Matin du même jour.
+ * Cas couverts par le jeu de données du seed :
+ *   Aline    standard (CANT lun+mar, GM lun hors comptage, GS lun → goûter)
+ *   Baptiste sans porc (CANT jeu, GS jeu → goûter)
+ *   Chloé    sans viande → Végétarien (CANT mar)
+ *   Théo     allergies alimentaires → compté dans AUCUNE colonne
+ *
+ * Le pied de mail est configurable (Modèles e-mails) : le test vérifie le
+ * défaut rendu, puis la personnalisation (variables interpolées) et le
+ * pied vide (aucun filet résiduel).
  */
 
 import { test, expect, type Page } from '@playwright/test';
@@ -30,18 +25,15 @@ import { findLatestMessage } from '../helpers/mailpit';
 
 const APP_BASE = 'http://localhost:8080';
 const ADMIN_BASE = `${APP_BASE}/wp-admin`;
-
 const ENGINE = process.env.PSC_CONTAINER_ENGINE ?? 'podman';
-const CONTAINER = process.env.PSC_WP_CONTAINER ?? 'plugin-extrascolaire-wordpress-1';
+const CONTAINER = 'plugin-extrascolaire-wordpress-1';
 const CONTAINER_WP_CLI = '/usr/local/bin/wp-cli.phar';
-const CONTAINER_WP_PATH = '/var/www/html';
-const CONTAINER_PLUGIN_PATH = `${CONTAINER_WP_PATH}/wp-content/plugins/periscolaire-registration`;
+const CONTAINER_PLUGIN_PATH = '/var/www/html/wp-content/plugins/periscolaire-registration';
+const ADMIN_USER = 'admin';
+const ADMIN_PASS = 'admin';
 
-const ADMIN_USER = process.env.PSC_WP_ADMIN_USER ?? 'admin';
-const ADMIN_PASS = process.env.PSC_WP_ADMIN_PASS ?? 'admin';
-
-// Domaine .test (RFC 2606) : jamais routable, adresse dédiée au spec pour
-// ne pas polluer/dépendre d'une adresse fournisseur réelle déjà configurée.
+// Adresse dédiée à ce spec : ne pas polluer/dépendre d'une adresse
+// fournisseur réelle déjà configurée.
 const SUPPLIER_EMAIL = 'e2e-fournisseur@example.test';
 
 // bin/seed-supplier-order.php : adresse fixe de la famille de test.
@@ -56,59 +48,44 @@ interface SeedResult {
   parent_id: number;
   child_ids: number[];
   expected: {
-    classes: Record<string, string>;
-    counts: Record<string, Record<Jour, number>>;
-    totaux_jour: Record<Jour, number>;
-    totaux_classe: Record<string, number>;
+    rows: Record<Jour, { standard: number; sans_porc: number; vegetarien: number; midi: number; gouter: number }>;
+    totaux: { standard: number; sans_porc: number; vegetarien: number; midi: number; gouter: number };
     total: number;
+    total_standard: number;
+    total_sans_porc: number;
+    total_vegetarien: number;
+    total_gouters: number;
   };
 }
 
-/**
- * Exécute bin/seed-supplier-order.php dans le conteneur via WP-CLI et
- * parse sa dernière ligne JSON — même contrat que playwright/global-setup.ts
- * (le seed est LA source de vérité, jamais réimplémenté côté Node).
- */
 function seed(): SeedResult {
   const output = execFileSync(
     ENGINE,
     [
-      'exec',
-      CONTAINER,
-      'php',
-      CONTAINER_WP_CLI,
+      'exec', CONTAINER, 'php', CONTAINER_WP_CLI,
       `--require=${CONTAINER_PLUGIN_PATH}/bin/seed-supplier-order.php`,
       'seed-supplier-order',
-      `--path=${CONTAINER_WP_PATH}`,
+      '--path=/var/www/html',
       '--allow-root',
     ],
     { encoding: 'utf8' }
   );
-
   const jsonLine = output
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean)
     .reverse()
     .find((l) => l.startsWith('{') && l.endsWith('}'));
-
   if (!jsonLine) {
     throw new Error(`seed-supplier-order : aucune ligne JSON dans la sortie WP-CLI.\n--- sortie ---\n${output}`);
   }
   return JSON.parse(jsonLine) as SeedResult;
 }
 
-/**
- * Requête WP-CLI eval en lecture seule, pour vérifier un invariant côté
- * base indépendamment de ce que l'UI affiche (ex : la Garderie Matin du
- * piège du seed n'a pas été supprimée par erreur en même temps que la
- * Cantine — un bug corrélé au comptage UI ne serait pas détecté par une
- * simple lecture de la page).
- */
 function wpCliEval(php: string): string {
   return execFileSync(
     ENGINE,
-    ['exec', CONTAINER, 'php', CONTAINER_WP_CLI, 'eval', php, `--path=${CONTAINER_WP_PATH}`, '--allow-root'],
+    ['exec', CONTAINER, 'php', CONTAINER_WP_CLI, 'eval', php, '--path=/var/www/html', '--allow-root'],
     { encoding: 'utf8' }
   ).trim();
 }
@@ -121,149 +98,156 @@ async function loginAsAdmin(page: Page): Promise<void> {
   await expect(page.locator('#wpadminbar')).toBeVisible();
 }
 
+/** Texte brut du HTML de l'e-mail : la ventilation se vérifie sur le texte. */
+function emailText(html: string): string {
+  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+}
+
 // serial : les deux tests partagent la même identité de seed (adresse
 // e-mail fixe du parent) — seed() purge-et-recrée à chaque appel, une
 // exécution en parallèle des deux tests provoquerait une course entre la
 // purge de l'un et la lecture de l'autre.
 test.describe.serial('Commande fournisseur (backoffice)', () => {
 
-test('configuration, calcul par classe, envoi et historique', async ({ page }) => {
-  const data = seed();
-  const { semaine_debut, expected } = data;
+  test('configuration, quantités par jour et régime, envoi et historique', async ({ page }) => {
+    const data = seed();
+    const { semaine_debut, expected } = data;
 
-  await loginAsAdmin(page);
+    await loginAsAdmin(page);
 
-  /* ---------------- 1. Réglages : e-mail fournisseur configurable ---------------- */
-  await page.goto(`${ADMIN_BASE}/admin.php?page=psc_settings`);
-  await page.locator('#psc-supplier-mail').fill(SUPPLIER_EMAIL);
-  await page.getByRole('button', { name: 'Enregistrer' }).click();
-  await expect(page.locator('.notice-success')).toBeVisible();
-  await expect(page.locator('#psc-supplier-mail')).toHaveValue(SUPPLIER_EMAIL);
+    /* ---------------- 1. Réglages : e-mail fournisseur configurable ---------------- */
+    await page.goto(`${ADMIN_BASE}/admin.php?page=psc_settings`);
+    await page.locator('#psc-supplier-mail').fill(SUPPLIER_EMAIL);
+    await page.getByRole('button', { name: 'Enregistrer' }).click();
+    await expect(page.locator('.notice-success')).toBeVisible();
+    await expect(page.locator('#psc-supplier-mail')).toHaveValue(SUPPLIER_EMAIL);
 
-  /* ---------------- 2. Aperçu : calcul par classe x jour ---------------- */
-  await page.goto(`${ADMIN_BASE}/admin.php?page=psc_supplier_orders&semaine_debut=${semaine_debut}`);
+    /* ---------------- 2. Aperçu : une ligne par jour, ventilation par régime ---------------- */
+    await page.goto(`${ADMIN_BASE}/admin.php?page=psc_supplier_orders&semaine_debut=${semaine_debut}`);
 
-  for (const [classe, parJour] of Object.entries(expected.counts)) {
-    for (const [jour, n] of Object.entries(parJour)) {
-      await expect(page.getByTestId(`supplier-cell-${classe}-${jour}`)).toHaveText(n > 0 ? String(n) : '—');
+    // Les zéros s'affichent : un zéro est une information de commande,
+    // un tiret est une ambiguïté.
+    const COLS = ['standard', 'sansporc', 'vegetarien', 'midi', 'gouter'] as const;
+    const KEYS = { standard: 'standard', sansporc: 'sans_porc', vegetarien: 'vegetarien', midi: 'midi', gouter: 'gouter' } as const;
+    for (const [jour, row] of Object.entries(expected.rows)) {
+      for (const col of COLS) {
+        await expect(page.getByTestId(`supplier-cell-${jour}-${col}`)).toHaveText(String(row[KEYS[col]]));
+      }
     }
-    await expect(page.getByTestId(`supplier-total-classe-${classe}`)).toHaveText(String(expected.totaux_classe[classe]));
-  }
-  for (const [jour, n] of Object.entries(expected.totaux_jour)) {
-    await expect(page.getByTestId(`supplier-total-jour-${jour}`)).toHaveText(String(n));
-  }
-  await expect(page.getByTestId('supplier-total-general')).toHaveText(String(expected.total));
+    await expect(page.getByTestId('supplier-total-standard')).toHaveText(String(expected.totaux.standard));
+    await expect(page.getByTestId('supplier-total-sansporc')).toHaveText(String(expected.totaux.sans_porc));
+    await expect(page.getByTestId('supplier-total-vegetarien')).toHaveText(String(expected.totaux.vegetarien));
+    await expect(page.getByTestId('supplier-total-midi')).toHaveText(String(expected.totaux.midi));
+    await expect(page.getByTestId('supplier-total-gouter')).toHaveText(String(expected.totaux.gouter));
 
-  /* ---------------- 3. Envoi (confirm() natif accepté automatiquement) ---------------- */
-  page.once('dialog', (dialog) => dialog.accept());
-  await page.getByTestId('supplier-send-button').click();
+    /* ---------------- 3. Envoi (confirm() natif accepté automatiquement) ---------------- */
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.getByTestId('supplier-send-button').click();
 
-  await expect(page.getByTestId('notice-sent')).toBeVisible();
-  await expect(page.getByTestId('notice-sent')).toContainText('Commande envoyée au fournisseur');
+    await expect(page.getByTestId('notice-sent')).toBeVisible();
+    await expect(page.getByTestId('notice-sent')).toContainText('Commande envoyée au fournisseur');
 
-  /* ---------------- Vérification e-mail — API Mailpit, jamais l'UI ---------------- */
-  const mail = await findLatestMessage(SUPPLIER_EMAIL, 'Commande cantine');
-  expect(mail.Subject).toContain(`${expected.total} repas`);
-  expect(mail.Text).toContain(String(expected.total));
-  for (const classe of Object.keys(expected.classes)) {
-    expect(mail.HTML, `classe ${classe} absente du corps de l'e-mail`).toContain(classe);
-  }
-  // La commande porte aussi les goûters (garderie du soir) : table
-  // dédiée + total annoncé dans le corps.
-  expect(mail.HTML, "table goûters absente du corps de l'e-mail").toContain('Goûters');
-  expect(mail.HTML).toContain(String(expected.total_gouters));
-  // Le piège du seed (Garderie Matin le même jour que la première Cantine
-  // de la classe CP) ne doit jamais faire gonfler un total.
-  //
-  // Vérifié sur le sujet, qui porte le nombre suivi de « repas », et non par
-  // recherche du chiffre nu dans le corps : celui-ci contient les dates de la
-  // semaine, si bien que l'assertion échouait dès que l'une d'elles contenait
-  // le chiffre cherché — « 24/11 » pour un total attendu de 3. Elle dépendait
-  // donc de la semaine sur laquelle tombait le jeu de données, c'est-à-dire de
-  // la date d'exécution.
-  expect(mail.Subject).not.toContain(`${expected.total + 1} repas`);
+    /* ---------------- Vérification e-mail — API Mailpit, jamais l'UI ---------------- */
+    const mail = await findLatestMessage(SUPPLIER_EMAIL, 'Commande cantine');
+    expect(mail.Subject).toContain(`${expected.total} repas`);
 
-  /* ---------------- 4. Historique : entrée + contenu exact archivé ---------------- */
-  await page.reload();
-  const historyRow = page.locator('[data-testid^="supplier-history-row-"]').first();
-  await expect(historyRow).toBeVisible();
-  await expect(historyRow.locator('[data-testid^="supplier-history-total-"]')).toHaveText(String(expected.total));
-  await expect(historyRow.locator('[data-testid^="supplier-history-email-"]')).toHaveText(SUPPLIER_EMAIL);
+    const text = emailText(mail.HTML);
 
-  await historyRow.locator('summary').click();
-  await expect(historyRow.locator('[data-testid^="supplier-history-subject-"]')).toContainText(`${expected.total} repas`);
-  const frame = page.frameLocator('[data-testid^="supplier-history-iframe-"]').first();
-  await expect(frame.locator('body')).toContainText(`${expected.total} repas`);
-  for (const classe of Object.keys(expected.classes)) {
-    await expect(frame.locator('body')).toContainText(classe);
-  }
-});
+    // Ventilation par régime, jour par jour : Standard / Sans porc /
+    // Végétarien / Total midi / Goûters. Un enfant « sans viande »
+    // apparaît en Végétarien, jamais en Standard ; l'enfant allergique
+    // n'est compté dans aucune colonne.
+    for (const [jour, row] of Object.entries(expected.rows)) {
+      // Le libellé du mail porte le jour + la date grise (d/m) : "Lundi 27/08 1 0 0 1 1".
+      const dayLabel = jour.charAt(0).toUpperCase() + jour.slice(1);
+      const date = data.jours[jour as Jour].split('-').slice(1).reverse().join('/');
+      const rowText = `${dayLabel} ${date} ${row.standard} ${row.sans_porc} ${row.vegetarien} ${row.midi} ${row.gouter}`;
+      expect(text, `ligne du ${jour} incorrecte : "${rowText}" attendu`).toContain(rowText);
+    }
 
-test('annulation de la cantine pour une classe (sortie scolaire)', async ({ page }) => {
-  const data = seed();
-  const { jours } = data;
-  const reason = 'Sortie scolaire à la ferme pédagogique (e2e)';
+    // Total midi de chaque ligne = somme des trois régimes (découle des
+    // valeurs ci-dessus) ; total semaine = somme des lignes.
+    // Ligne Total semaine : le libellé tient lieu de première colonne, puis
+    // les cinq totaux dans l'ordre des colonnes (Total midi = somme des
+    // trois régimes).
+    expect(text).toContain(`Total semaine ${expected.totaux.standard} ${expected.totaux.sans_porc} ${expected.totaux.vegetarien} ${expected.totaux.midi} ${expected.totaux.gouter}`);
 
-  await loginAsAdmin(page);
-  await page.goto(`${ADMIN_BASE}/admin.php?page=psc_supplier_orders`);
+    // Le piège du seed (Garderie Matin le même jour que la première Cantine)
+    // ne doit jamais faire gonfler un total : vérifié sur le sujet, qui porte
+    // le nombre suivi de « repas ».
+    expect(mail.Subject).not.toContain(`${expected.total + 1} repas`);
 
-  /* ---------------- Premier passage : rien n'est supprimé, avertissement seul ---------------- */
-  await page.getByTestId('cantine-date-input').fill(jours.lundi);
-  await page.getByTestId('cantine-classe-select').selectOption('CP');
-  await page.getByTestId('cantine-reason-input').fill(reason);
-  await page.getByTestId('cantine-cancel-submit').click();
+    // Le pied de mail configurable par défaut est rendu.
+    expect(text).toContain('Service périscolaire — Montgeroult Courcelles');
 
-  await expect(page.getByTestId('notice-cantine_confirm_needed')).toBeVisible();
-  await expect(page.getByTestId('cantine-pending-warning')).toContainText('1 inscription(s)');
-  await expect(page.getByTestId('cantine-pending-warning')).toContainText('Aline Test');
-  await expect(page.getByTestId('cantine-pending-warning')).toContainText(reason);
+    /* ---------------- 4. Historique : entrée + contenu exact archivé ---------------- */
+    await page.reload();
+    const historyRow = page.locator('[data-testid^="supplier-history-row-"]').first();
+    await expect(historyRow).toBeVisible();
+    await expect(historyRow.locator('[data-testid^="supplier-history-total-"]')).toHaveText(String(expected.total));
+    await expect(historyRow.locator('[data-testid^="supplier-history-email-"]')).toHaveText(SUPPLIER_EMAIL);
 
-  // Rien n'a encore été supprimé : les deux déclarations du lundi de CP
-  // (Cantine + Garderie Matin, le piège du seed) doivent toujours être
-  // effectives. Depuis la v5, les déclarations vivent dans le modèle
-  // rythme + exceptions : on passe par la résolution (psc_is_declared),
-  // jamais par une table en direct.
-  const beforeConfirm = wpCliEval(
-    `echo (int) count(Psc_Supplier_Orders::cantine_registrations_for_class_day('${jours.lundi}', 'CP'));`
-  );
-  expect(beforeConfirm).toBe('1');
+    await historyRow.locator('summary').click();
+    await expect(historyRow.locator('[data-testid^="supplier-history-subject-"]')).toContainText(`${expected.total} repas`);
+    const frame = page.frameLocator('[data-testid^="supplier-history-iframe-"]').first();
+    // Le contenu archivé est le rendu autonome : ligne Total semaine
+    // complète (ventilation par régime + goûters).
+    await expect(frame.locator('body')).toContainText(`Total semaine ${expected.totaux.standard} ${expected.totaux.sans_porc} ${expected.totaux.vegetarien} ${expected.totaux.midi} ${expected.totaux.gouter}`);
+    await expect(frame.locator('body')).toContainText('Végétarien');
+  });
 
-  /* ---------------- Confirmation : exceptions de retrait + e-mail ---------------- */
-  await page.getByTestId('cantine-confirm-button').click();
+  test('pied de mail configurable : variables interpolées, vide → aucun filet résiduel', async ({ page }) => {
+    const data = seed();
 
-  await expect(page.getByTestId('notice-cantine_cancelled')).toBeVisible();
-  await expect(page.getByTestId('notice-cantine_cancelled')).toContainText('1 inscription(s) supprimée(s)');
+    await loginAsAdmin(page);
 
-  // La Garderie Matin du même jour doit survivre : seule la Cantine a été
-  // retirée (Psc_Supplier_Orders::cantine_registrations_for_class_day()
-  // filtre strictement la prestation CANT).
-  const remainingServices = wpCliEval(
-    `global $wpdb;
-     $child_id = (int) $wpdb->get_var(
-       "SELECT id FROM {$wpdb->prefix}psc_children WHERE prenom = 'Aline' AND nom = 'Test'"
-     );
-     $declared = Psc_Planning::declared_map(array($child_id), array('${jours.lundi}'));
-     $services = array();
-     foreach (psc_unit_services() as $svc) {
-       if (!empty($declared[$child_id]['${jours.lundi}'][$svc])) $services[] = $svc;
-     }
-     echo implode(',', $services);`
-  );
-  expect(remainingServices).toBe('GM,GS');
+    /* ---------------- 1. Personnaliser le pied avec des variables ---------------- */
+    await page.goto(`${ADMIN_BASE}/admin.php?page=psc_email_templates`);
+    const footerField = page.locator('#tpl_supplier_order_footer');
+    await footerField.fill('Service périscolaire — {{site}} — semaine du {{semaine}} : {{gouters}} goûters.');
+    // Deux boutons identiques existent (un dans un bloc replié) : le dernier
+    // est celui du formulaire principal, toujours visible.
+    await page.getByRole('button', { name: 'Enregistrer tous les modèles' }).last().click();
+    await expect(page.locator('.notice-success, .updated').first()).toBeVisible();
 
-  const mail = await findLatestMessage(PARENT_EMAIL, 'Cantine annulée');
-  expect(mail.Subject).toContain('CP');
-  expect(mail.Text).toContain(reason);
-  expect(mail.Text).toContain('Aline Test');
-  expect(mail.Text).not.toContain('Baptiste'); // seul l'enfant concerné doit apparaître
+    /* ---------------- 2. Envoyer : le pied interpole les variables ---------------- */
+    await page.goto(`${ADMIN_BASE}/admin.php?page=psc_settings`);
+    await page.locator('#psc-supplier-mail').fill(SUPPLIER_EMAIL);
+    await page.getByRole('button', { name: 'Enregistrer' }).click();
+    await expect(page.locator('.notice-success')).toBeVisible();
 
-  /* ---------------- Redéclencher sur le même jour : plus rien à annuler ---------------- */
-  await page.goto(`${ADMIN_BASE}/admin.php?page=psc_supplier_orders`);
-  await page.getByTestId('cantine-date-input').fill(jours.lundi);
-  await page.getByTestId('cantine-classe-select').selectOption('CP');
-  await page.getByTestId('cantine-reason-input').fill(reason);
-  await page.getByTestId('cantine-cancel-submit').click();
-  await expect(page.getByTestId('notice-cantine_none')).toBeVisible();
-});
+    await page.goto(`${ADMIN_BASE}/admin.php?page=psc_supplier_orders&semaine_debut=${data.semaine_debut}`);
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.getByTestId('supplier-send-button').click();
+    await expect(page.getByTestId('notice-sent')).toBeVisible();
 
+    const mail = await findLatestMessage(SUPPLIER_EMAIL, 'Commande cantine');
+    const text = emailText(mail.HTML);
+    expect(text).toContain(`Service périscolaire — Montgeroult - Courcelles — semaine du ${data.semaine_debut.split('-').reverse().join('/')} : ${data.expected.total_gouters} goûters.`);
+
+    /* ---------------- 3. Pied vide : le bloc ET son filet disparaissent ---------------- */
+    await page.goto(`${ADMIN_BASE}/admin.php?page=psc_email_templates`);
+    await page.locator('#tpl_supplier_order_footer').fill('');
+    await page.getByRole('button', { name: 'Enregistrer tous les modèles' }).last().click();
+    await expect(page.locator('.notice-success, .updated').first()).toBeVisible();
+
+    await page.goto(`${ADMIN_BASE}/admin.php?page=psc_supplier_orders&semaine_debut=${data.semaine_debut}`);
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.getByTestId('supplier-send-button').click();
+    await expect(page.getByTestId('notice-sent')).toBeVisible();
+
+    const mail2 = await findLatestMessage(SUPPLIER_EMAIL, 'Commande cantine');
+    const text2 = emailText(mail2.HTML);
+    expect(text2).not.toContain('Service périscolaire — Montgeroult Courcelles');
+    // Aucun filet orphelin : le HTML ne contient plus la bordure du pied
+    // (border-top EDEAE4 suivie du padding du pied) après la table.
+    const afterTable = mail2.HTML.slice(mail2.HTML.lastIndexOf('Total semaine'));
+    expect(afterTable).not.toContain('border-top:1px solid #EDEAE4;padding-top:14px');
+
+    /* ---------------- 4. Retour au pied par défaut ---------------- */
+    await page.goto(`${ADMIN_BASE}/admin.php?page=psc_email_templates`);
+    await page.locator('#tpl_supplier_order_footer').fill('Service périscolaire — Montgeroult Courcelles');
+    await page.getByRole('button', { name: 'Enregistrer tous les modèles' }).last().click();
+    await expect(page.locator('.notice-success, .updated').first()).toBeVisible();
+  });
 });

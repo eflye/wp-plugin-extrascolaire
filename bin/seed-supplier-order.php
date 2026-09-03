@@ -14,16 +14,20 @@
  * "figurant" scopé par label suffit à satisfaire la contrainte NOT NULL
  * de wp_psc_registrations.trimestre_id).
  *
- * Semaine cible : le lundi tombant 90 jours après aujourd'hui, ramené au
- * lundi de sa semaine — toujours dans le futur quel que soit le jour
- * d'exécution, et assez loin des fenêtres de trimestre de
- * bin/seed-journey.php (-14/+60 jours max) pour ne jamais chevaucher ses
- * données.
+ * Semaine cible : le premier lundi de septembre à TROIS rentrées d'écart
+ * (année scolaire future sans AUCUN pattern d'aucune famille de test —
+ * les rythmes des autres seeds vivent dans les années courantes) — la
+ * semaine n'est donc déclarée que par CE seed, quelle que soit la
+ * pollution du site de développement. Les jours fériés de la semaine sont
+ * évités par balayage : les attendus sont calculés depuis les jours
+ * réellement ouverts.
  *
- * Deux enfants, classes distinctes, inscriptions Cantine (CANT) sur des
- * jours différents de la semaine cible + une inscription Garderie Matin
- * (GM) volontairement mêlée : sert à vérifier que le calcul ne compte
- * bien QUE la cantine, pas les autres prestations.
+ * Quatre enfants couvrant la ventilation de l'e-mail : standard, sans
+ * porc, végétarien (libellé famille « sans viande »), et un enfant
+ * allergique (apporte son repas ET son goûter — compté dans aucune
+ * colonne). Une inscription Garderie Matin volontairement mêlée vérifie
+ * que le calcul ne compte bien QUE la cantine (et le goûter GS), pas les
+ * autres prestations.
  */
 
 if (!defined('WP_CLI') || !WP_CLI) {
@@ -39,12 +43,33 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     $tz    = wp_timezone();
     $today = new DateTime('today', $tz);
 
-    $target = (clone $today)->modify('+90 days');
-    $dow    = (int) $target->format('N'); // 1 (lundi) .. 7 (dimanche)
+    // Première semaine de septembre à trois rentrées d'écart : aucune
+    // famille de test n'a de pattern dans cette année scolaire future, la
+    // semaine n'est déclarée que par ce seed. Balayage semaine par semaine
+    // jusqu'à trouver 4 jours ouverts (un lundi de septembre peut tomber
+    // sur un pont, jamais sur une plage de vacances entière).
+    $rentree = psc_rentree_year() + 3;
+    $target  = new DateTime($rentree . '-09-01', $tz);
+    $dow     = (int) $target->format('N'); // 1 (lundi) .. 7 (dimanche)
     if ($dow > 1) {
-        $target->modify('-' . ($dow - 1) . ' days');
+        $target->modify('-' . ($dow - 1) . ' days'); // lundi de la semaine du 1er septembre
     }
     $semaine_debut = $target->format('Y-m-d');
+    while (count(psc_open_days($semaine_debut)) < 4) {
+        $target->modify('+7 days');
+        $semaine_debut = $target->format('Y-m-d');
+    }
+
+    // Configuration du planning ISOLANTE : sans elle, une date sans année
+    // couvrante retombe sur l'année ACTIVE (year_key_for_date) et les
+    // patterns des autres familles de test s'appliqueraient à cette
+    // semaine lointaine. La config ci-dessous capte ces dates dans une
+    // année 'Y-Y+1' où personne d'autre n'a de rythme.
+    $y = (int) substr($semaine_debut, 0, 4);
+    $planning_key = ((int) substr($semaine_debut, 5, 2) >= 7)
+        ? $y . '-' . ($y + 1)
+        : ($y - 1) . '-' . $y;
+    Psc_School_Year::save($planning_key, $semaine_debut, gmdate('Y-m-d', strtotime($semaine_debut . ' +6 days')), '[]', psc_lock_hours());
 
     $jours = array();
     foreach (Psc_Supplier_Orders::JOUR_OFFSETS as $jour => $offset) {
@@ -58,9 +83,15 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
         'school_year_label' => 'Année E2E — cmd',
         'parent_email'    => 'fournisseur.e2e@example.test',
         'parent_nom'      => 'E2E',
+        // Quatre profils qui couvrent toute la ventilation de l'e-mail :
+        // standard, sans porc, végétarien (libellé famille « sans viande »),
+        // et un enfant allergique (apporte son repas ET son goûter — compté
+        // dans aucune colonne).
         'enfants'         => array(
-            array('prenom' => 'Aline',    'nom' => 'Test', 'classe' => 'CP'),
-            array('prenom' => 'Baptiste', 'nom' => 'Test', 'classe' => 'CE2'),
+            array('prenom' => 'Aline',    'nom' => 'Test', 'classe' => 'CP',  'sans_porc' => 0, 'vegan' => 0, 'allergies' => ''),
+            array('prenom' => 'Baptiste', 'nom' => 'Test', 'classe' => 'CE2', 'sans_porc' => 1, 'vegan' => 0, 'allergies' => ''),
+            array('prenom' => 'Chloé',    'nom' => 'Test', 'classe' => 'CP',  'sans_porc' => 0, 'vegan' => 1, 'allergies' => ''),
+            array('prenom' => 'Théo',     'nom' => 'Test', 'classe' => 'CE2', 'sans_porc' => 0, 'vegan' => 0, 'allergies' => 'Arachides — réaction allergique grave, conduit à contacter le 15'),
         ),
     );
 
@@ -140,12 +171,15 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     $child_ids = array();
     foreach ($config['enfants'] as $c) {
         $wpdb->insert($t_child, array(
-            'parent_id'  => $parent_id,
-            'nom'        => $c['nom'],
-            'prenom'     => $c['prenom'],
-            'statut'     => 'actif',
-            'created_at' => current_time('mysql'),
-        ), array('%d', '%s', '%s', '%s', '%s'));
+            'parent_id'      => $parent_id,
+            'nom'            => $c['nom'],
+            'prenom'         => $c['prenom'],
+            'sans_porc'      => (int) $c['sans_porc'],
+            'vegan'          => (int) $c['vegan'],
+            'food_allergies' => $c['allergies'] !== '' ? $c['allergies'] : null,
+            'statut'         => 'actif',
+            'created_at'     => current_time('mysql'),
+        ), array('%d', '%s', '%s', '%d', '%d', '%s', '%s'));
         $child_id = (int) $wpdb->insert_id;
         $child_ids[] = $child_id;
 
@@ -157,14 +191,15 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
             'date_inscription' => current_time('mysql'),
         ), array('%d', '%d', '%s', '%s', '%s'));
     }
-    list($aline_id, $baptiste_id) = $child_ids;
+    list($aline_id, $baptiste_id, $chloe_id, $theo_id) = $child_ids;
 
-    // Aline (CP) : Cantine lundi + mardi, Garderie Matin lundi (ne doit
-    // JAMAIS compter dans le total repas), Garderie Soir lundi (goûter).
-    // Baptiste (CE2) : Cantine jeudi et Garderie Soir jeudi (goûter).
-    // Les déclarations sont écrites en exceptions ponctuelles (mairie,
-    // hors verrou) — la résolution psc_is_declared est la même que celle
-    // de la commande.
+    // Déclarations (exceptions ponctuelles posées par la mairie, hors
+    // verrou — la résolution psc_is_declared est la même que celle de la
+    // commande) :
+    //   Aline    (standard)     : CANT lun + mar, GM lun (hors total), GS lun (goûter)
+    //   Baptiste (sans porc)    : CANT jeu, GS jeu (goûter)
+    //   Chloé    (végétarien)   : CANT mar
+    //   Théo     (allergique)   : CANT lun, GS lun — compté nulle part
     $regs = array(
         array($aline_id,    $jours['lundi'],  'CANT'),
         array($aline_id,    $jours['lundi'],  'GM'),
@@ -172,6 +207,9 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
         array($aline_id,    $jours['lundi'],  'GS'),
         array($baptiste_id, $jours['jeudi'],  'CANT'),
         array($baptiste_id, $jours['jeudi'],  'GS'),
+        array($chloe_id,    $jours['mardi'],  'CANT'),
+        array($theo_id,     $jours['lundi'],  'CANT'),
+        array($theo_id,     $jours['lundi'],  'GS'),
     );
     foreach ($regs as list($child_id, $date, $service)) {
         Psc_Planning::toggle_exception($child_id, $date, $service, true, true);
@@ -181,23 +219,48 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     /* Sortie                                                             */
     /* ---------------------------------------------------------------- */
 
+    // Attendus calculés depuis les jours réellement ouverts de la semaine
+    // (un jour férié disparaît de la liste) et les déclarations ci-dessus :
+    //   Aline (standard)  : CANT lun + mar, GM lun (hors comptage), GS lun (goûter)
+    //   Baptiste (sans porc) : CANT jeu, GS jeu (goûter)
+    //   Chloé (végétarienne) : CANT mar
+    //   Théo (allergique)    : CANT lun, GS lun — compté dans aucune colonne
+    $kind_by_child = array(
+        $aline_id    => 'standard',
+        $baptiste_id => 'sans_porc',
+        $chloe_id    => 'vegetarien',
+        // $theo_id : allergique, volontairement absent de la ventilation
+    );
+    $expected_rows = array();
+    foreach ($jours as $jour => $date) {
+        $expected_rows[$jour] = array('standard' => 0, 'sans_porc' => 0, 'vegetarien' => 0, 'midi' => 0, 'gouter' => 0);
+    }
+    foreach ($regs as list($child_id, $date, $service)) {
+        $jour = array_search($date, $jours, true);
+        if ($jour === false) continue;
+        // L'enfant allergique n'entre dans AUCUNE colonne (ni repas ni goûter).
+        if (!isset($kind_by_child[$child_id])) continue;
+        if ($service === 'CANT') {
+            $expected_rows[$jour][$kind_by_child[$child_id]]++;
+            $expected_rows[$jour]['midi']++;
+        }
+        if ($service === 'GS') {
+            $expected_rows[$jour]['gouter']++;
+        }
+    }
+    $expected_totaux = array('standard' => 0, 'sans_porc' => 0, 'vegetarien' => 0, 'midi' => 0, 'gouter' => 0);
+    foreach ($expected_rows as $row) {
+        foreach ($expected_totaux as $k => $v) $expected_totaux[$k] += $row[$k];
+    }
+
     $expected = array(
-        'classes' => array('CP' => 'CP', 'CE2' => 'CE2'),
-        'counts'  => array(
-            'CP'  => array('lundi' => 1, 'mardi' => 1, 'jeudi' => 0, 'vendredi' => 0),
-            'CE2' => array('lundi' => 0, 'mardi' => 0, 'jeudi' => 1, 'vendredi' => 0),
-        ),
-        'totaux_jour'   => array('lundi' => 1, 'mardi' => 1, 'jeudi' => 1, 'vendredi' => 0),
-        'totaux_classe' => array('CP' => 2, 'CE2' => 1),
-        'total'         => 3,
-        // Goûters (garderie du soir) : Aline lundi, Baptiste jeudi.
-        'gouters'       => array(
-            'CP'  => array('lundi' => 1, 'mardi' => 0, 'jeudi' => 0, 'vendredi' => 0),
-            'CE2' => array('lundi' => 0, 'mardi' => 0, 'jeudi' => 1, 'vendredi' => 0),
-        ),
-        'gouters_jour'   => array('lundi' => 1, 'mardi' => 0, 'jeudi' => 1, 'vendredi' => 0),
-        'gouters_classe' => array('CP' => 1, 'CE2' => 1),
-        'total_gouters'  => 2,
+        'rows'  => $expected_rows,
+        'totaux'          => $expected_totaux,
+        'total'           => $expected_totaux['midi'],
+        'total_standard'  => $expected_totaux['standard'],
+        'total_sans_porc' => $expected_totaux['sans_porc'],
+        'total_vegetarien' => $expected_totaux['vegetarien'],
+        'total_gouters'   => $expected_totaux['gouter'],
     );
 
     WP_CLI::log('');

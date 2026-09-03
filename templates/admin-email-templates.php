@@ -88,6 +88,28 @@ psc_admin_notice_map(array(
                     </p>
                 </td>
             </tr>
+            <?php if (!empty($tpl['has_footer'])): ?>
+            <tr>
+                <th style="padding:8px 0;vertical-align:top;"><label for="tpl_<?php echo esc_attr($key); ?>_footer"><?php esc_html_e('Pied de mail', 'periscolaire-registration'); ?></label></th>
+                <td style="padding:8px 0;">
+                    <textarea id="tpl_<?php echo esc_attr($key); ?>_footer"
+                              name="templates[<?php echo esc_attr($key); ?>][footer]"
+                              rows="3"
+                              class="large-text psc-tpl-footer"
+                    ><?php echo esc_textarea($tpl['footer'] ?? ''); ?></textarea>
+                    <p class="description" style="margin-top:6px;">
+                        <?php esc_html_e('Rendu sous le tableau, séparé par un filet. Vide : le bloc et son filet ne sont pas rendus.', 'periscolaire-registration'); ?><br>
+                        <?php esc_html_e('Variables disponibles :', 'periscolaire-registration'); ?>
+                        <?php foreach ($tpl['vars'] as $var): ?>
+                        <code class="psc-var-chip"
+                              data-target="tpl_<?php echo esc_attr($key); ?>_footer"
+                              title="<?php esc_attr_e('Cliquer pour insérer', 'periscolaire-registration'); ?>"
+                              style="cursor:pointer;"><?php echo esc_html($var); ?></code>
+                        <?php endforeach; ?>
+                    </p>
+                </td>
+            </tr>
+            <?php endif; ?>
         </table>
     </div>
     <?php endforeach; ?>

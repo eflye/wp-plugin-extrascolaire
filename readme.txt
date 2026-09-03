@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.0.5
+Stable tag: 5.0.6
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,26 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.0.6 =
+* Refonte de l'e-mail de commande fournisseur (maquette Email Commande
+  Fournisseur.dc) : un seul tableau, une ligne par jour de service,
+  ventilation par régime — Standard / Sans porc / Végétarien (les trois
+  mutuellement exclusifs, chaque enfant inscrit au déjeuner compte pour
+  un seul) — chapeau « Repas de midi » couvrant les quatre colonnes,
+  Total midi accentué, goûters détachés, ligne Total semaine. Plus aucun
+  découpage par classe : le fournisseur livre pour l'établissement. Les
+  jours sans inscrit affichent 0, pas un tiret.
+* Mise en forme e-mail allégée : carte blanche 600px sur fond sable,
+  CSS inline, tableaux imbriqués, attributs align — Outlook Windows,
+  Gmail web et Apple Mail. Le libellé « sans viande » (famille) devient
+  « Végétarien » à la génération (vocabulaire fournisseur).
+* Pied de mail configurable sur le modèle « Commande fournisseur » :
+  nouveau champ dans Modèles e-mails, variables {{site}} {{semaine}}
+  {{total}} {{gouters}} {{standard}} {{sans_porc}} {{vegetarien}},
+  vide → le bloc et son filet ne sont pas rendus.
+* Variables du sujet et du corps enrichies : {{standard}}, {{sans_porc}},
+  {{vegetarien}} rejoignent {{site}} {{semaine}} {{total}} {{gouters}}.
 
 = 5.0.5 =
 * Commande fournisseur : l'e-mail emporte désormais aussi les GOÛTERS —

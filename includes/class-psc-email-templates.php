@@ -78,9 +78,13 @@ class Psc_Email_Templates {
             'supplier_order' => array(
                 'label'   => __('Commande fournisseur (cantine & goûters)', 'periscolaire-registration'),
                 'subject' => __('[{{site}}] Commande cantine & goûters — semaine du {{semaine}} ({{total}} repas)', 'periscolaire-registration'),
-                'body'    => __("Merci de bien vouloir prévoir {{total}} repas et {{gouters}} goûters pour la semaine du {{semaine}}, selon le détail par classe ci-dessous.", 'periscolaire-registration'),
-                'vars'    => array('{{site}}', '{{semaine}}', '{{total}}', '{{gouters}}'),
-                'note'    => __('Les tableaux du nombre de repas et de goûters par classe et par jour sont ajoutés automatiquement.', 'periscolaire-registration'),
+                'body'    => __("Merci de prévoir les quantités suivantes, par jour de service. Chaque enfant inscrit au déjeuner compte pour un seul des trois types de repas.", 'periscolaire-registration'),
+                'vars'    => array('{{site}}', '{{semaine}}', '{{total}}', '{{gouters}}', '{{standard}}', '{{sans_porc}}', '{{vegetarien}}'),
+                'note'    => __('Le tableau des quantités par jour est ajouté automatiquement.', 'periscolaire-registration'),
+                // Pied de mail propre à cette commande (rendu sous le
+                // tableau, séparé par un filet). Vide → aucun bloc rendu.
+                'has_footer' => true,
+                'footer'  => __('Service périscolaire — Montgeroult Courcelles', 'periscolaire-registration'),
             ),
             'invoice' => array(
                 'label'   => __('Envoi de facture', 'periscolaire-registration'),
@@ -107,6 +111,14 @@ class Psc_Email_Templates {
             }
             if (!empty($saved[$key]['body'])) {
                 $tpl['body'] = $saved[$key]['body'];
+            }
+            if (!empty($tpl['has_footer'])) {
+                // Pied de mail : '' (vide personnalisé) est un état valide —
+                // il supprime le bloc du rendu. Seule l'ABSENCE d'entrée
+                // retombe sur le défaut.
+                if (isset($saved[$key]['footer']) && is_string($saved[$key]['footer'])) {
+                    $tpl['footer'] = $saved[$key]['footer'];
+                }
             }
             $tpl['customized'] = !empty($saved[$key]);
         }
@@ -143,6 +155,21 @@ class Psc_Email_Templates {
     }
 
     /**
+     * Retourne le pied de mail interpolé (modèles qui en déclarent un),
+     * converti en HTML — ou '' si le champ est vide : aucun bloc rendu,
+     * pas de filet orphelin.
+     */
+    public static function footer_html($key, $vars = array()) {
+        $tpl = self::get($key);
+        if (!$tpl || empty($tpl['has_footer'])) {
+            return '';
+        }
+        $text = isset($tpl['footer']) ? self::interpolate((string) $tpl['footer'], $vars) : '';
+        $text = trim($text);
+        return $text !== '' ? nl2br(esc_html($text)) : '';
+    }
+
+    /**
      * Sauvegarde tous les modèles envoyés depuis le formulaire admin.
      */
     public static function save(array $input) {
@@ -161,6 +188,22 @@ class Psc_Email_Templates {
             // Ne stocker que si différent du défaut (évite de polluer l'option).
             if ($subject !== $def['subject'] || $body !== $def['body']) {
                 $clean[$key] = compact('subject', 'body');
+            }
+
+            // Pied de mail (modèles qui en déclarent un) : '' est une valeur
+            // personnalisée valide (supprime le bloc du rendu) — on la
+            // stocke telle quelle, même vide, dès qu'elle diffère du défaut.
+            if (!empty($def['has_footer'])) {
+                $footer = isset($input[$key]['footer'])
+                    ? sanitize_textarea_field(wp_unslash($input[$key]['footer']))
+                    : (isset($def['footer']) ? $def['footer'] : '');
+                $footer_def = isset($def['footer']) ? $def['footer'] : '';
+                if (!isset($clean[$key])) {
+                    $clean[$key] = compact('subject', 'body');
+                }
+                if ($footer !== $footer_def) {
+                    $clean[$key]['footer'] = $footer;
+                }
             }
         }
         update_option(self::OPTION, $clean);
