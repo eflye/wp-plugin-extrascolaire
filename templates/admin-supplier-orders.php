@@ -58,7 +58,7 @@ psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
 <tbody>
 <?php foreach ($preview['rows'] as $jour => $row): ?>
 <tr data-testid="supplier-row-<?php echo esc_attr($jour); ?>">
-    <td><strong><?php echo esc_html(psc_day_label($jour)); ?></strong> <?php echo esc_html(date_i18n('d/m', strtotime($preview['jours'][$jour]))); ?></td>
+    <td><strong><?php echo esc_html(ucfirst($jour)); ?></strong> <?php echo esc_html(date_i18n('d/m', strtotime($preview['jours'][$jour]))); ?></td>
     <td style="text-align:center" data-testid="supplier-cell-<?php echo esc_attr($jour); ?>-standard"><?php echo (int) $row['standard']; ?></td>
     <td style="text-align:center" data-testid="supplier-cell-<?php echo esc_attr($jour); ?>-sansporc"><?php echo (int) $row['sans_porc']; ?></td>
     <td style="text-align:center" data-testid="supplier-cell-<?php echo esc_attr($jour); ?>-vegetarien"><?php echo (int) $row['vegetarien']; ?></td>
