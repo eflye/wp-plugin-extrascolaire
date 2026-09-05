@@ -287,6 +287,11 @@ complet, commit par commit, reste dans le dépôt git.
   prestations (colonne « S. repas » du Planning) ; la commande fournisseur
   ne la compte dans aucune colonne repas, et la liste intervenants de la
   cantine affiche l'enfant avec la mention « Midi sans repas ».
+* Enfants (backoffice) — case « Cantine sans repas » : la mairie peut
+  flaguer un enfant une fois pour toutes ; ses déclarations de cantine
+  valent alors « midi sans repas » (facturation au tarif MSR, aucun repas
+  commandé au fournisseur, mention sur la liste intervenants), sans
+  toucher aux déclarations de la famille. Retirable à tout moment.
 * Réglages — le bloc « Écran Planning des familles » disparaît : les deux
   variantes de planning restent exposées comme par défaut, le réglage
   n'avait plus d'effet utile.

@@ -72,6 +72,12 @@ class Psc_Planning {
         $exc      = isset($excs[$child_id][$date]) ? $excs[$child_id][$date] : array();
         $open     = self::day_open($date);
 
+        // Enfant « cantine sans repas » : ses déclarations de cantine valent
+        // midi sans repas (cf. psc_cantine_sans_repas_convert()).
+        if (self::cantine_sans_repas_flag($child_id)) {
+            list($pats, $exc) = psc_cantine_sans_repas_convert($pats, $exc);
+        }
+
         $value = psc_resolve_declaration(
             $service_code === psc_forfait_code(),
             !empty($pats[$service_code]),
@@ -221,6 +227,7 @@ class Psc_Planning {
         $patterns   = self::load_patterns($child_ids);
         $exceptions = self::load_exceptions($child_ids, $dates);
         $open_map   = self::open_map($dates);
+        $csr_flags  = self::cantine_sans_repas_flags($child_ids);
 
         // Calculs par DATE une seule fois (clé d'année et jour de semaine) :
         // les boucles ci-dessous parcourent enfant × date × prestation, les
@@ -242,6 +249,13 @@ class Psc_Planning {
                 $pats = isset($patterns[$cid][$year_key][$weekday]) ? $patterns[$cid][$year_key][$weekday] : array();
                 $exc  = isset($exceptions[$cid][$date]) ? $exceptions[$cid][$date] : array();
                 $forf_exc = array_key_exists($forf, $exc) ? (bool) $exc[$forf] : null;
+
+                // Enfant « cantine sans repas » : cantine convertie en MSR
+                // (cf. psc_cantine_sans_repas_convert()).
+                if (!empty($csr_flags[$cid])) {
+                    list($pats, $exc) = psc_cantine_sans_repas_convert($pats, $exc);
+                    $forf_exc = array_key_exists($forf, $exc) ? (bool) $exc[$forf] : null;
+                }
 
                 foreach ($services as $svc) {
                     $map[$cid][$date][$svc] = psc_resolve_declaration(
@@ -1296,5 +1310,54 @@ class Psc_Planning {
     public static function flush_cache() {
         self::$single_cache = array();
         self::$svc_closed_cache = array();
+        self::$csr_flag_cache = array();
+    }
+
+    /**
+     * Cache par requête des enfants flagués « cantine sans repas »
+     * (children.cantine_sans_repas) — un booléen par enfant, lu en une
+     * requête pour les résolutions en masse (declared_map).
+     */
+    private static $csr_flag_cache = array();
+
+    /** Enfant flagué « cantine sans repas » ? (lut et mis en cache) */
+    protected static function cantine_sans_repas_flag($child_id) {
+        $child_id = (int) $child_id;
+        if (!$child_id) return false;
+        $flags = self::cantine_sans_repas_flags(array($child_id));
+        return !empty($flags[$child_id]);
+    }
+
+    /**
+     * Flags « cantine sans repas » d'une liste d'enfants, en UNE requête.
+     * Colonne absente (base pas encore migrée) : tout le monde est
+     * non-flagué — la lecture ne doit jamais casser la résolution.
+     */
+    protected static function cantine_sans_repas_flags(array $child_ids) {
+        $child_ids = array_values(array_unique(array_filter(array_map('intval', $child_ids))));
+        $missing = array();
+        foreach ($child_ids as $cid) {
+            if (!array_key_exists($cid, self::$csr_flag_cache)) $missing[] = $cid;
+        }
+        if ($missing) {
+            global $wpdb;
+            $t_child = psc_table('children');
+            foreach ($missing as $cid) self::$csr_flag_cache[$cid] = false;
+            $placeholders = implode(',', array_fill(0, count($missing), '%d'));
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT id, cantine_sans_repas FROM $t_child WHERE id IN ($placeholders)",
+                $missing
+            ));
+            if (is_array($rows)) {
+                foreach ($rows as $r) {
+                    self::$csr_flag_cache[(int) $r->id] = (int) $r->cantine_sans_repas === 1;
+                }
+            }
+        }
+        $out = array();
+        foreach ($child_ids as $cid) {
+            $out[$cid] = !empty(self::$csr_flag_cache[$cid]);
+        }
+        return $out;
     }
 }

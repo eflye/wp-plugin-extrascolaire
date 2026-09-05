@@ -324,6 +324,33 @@ $assert('conflits : GS -> FORF seul', psc_conflicting_services('GS'), array('FOR
 $assert('couverture forfait : MSR non couvert', psc_forfait_covers('MSR'), false);
 $assert('couverture forfait : CANT couvert', psc_forfait_covers('CANT'), true);
 
+// 10quater. Enfant flagué « cantine sans repas » (children.cantine_sans_repas,
+//          posée par la mairie) : ses déclarations de cantine valent MSR à la
+//          résolution — facturation MSR, aucun repas compté, présent au créneau.
+$conv = psc_cantine_sans_repas_convert(
+    array('CANT' => true, 'MSR' => false, 'FORF' => false, 'GM' => true),
+    array('CANT' => null, 'MSR' => null)
+);
+$assert('flag : le pattern cantine devient un pattern MSR', $conv[0]['MSR'], true);
+$assert('flag : le pattern cantine est neutralisé', $conv[0]['CANT'], false);
+$assert('flag : les garderies ne changent pas', $conv[0]['GM'], true);
+$assert('flag : le forfait ne change pas', $conv[0]['FORF'], false);
+
+$conv = psc_cantine_sans_repas_convert(array('CANT' => true), array('CANT' => true));
+$assert('flag : exception d\'ajout de cantine -> MSR ajouté', $conv[1]['MSR'], true);
+
+$conv = psc_cantine_sans_repas_convert(array('CANT' => true), array('CANT' => false));
+$assert('flag : retrait exceptionnel de cantine -> MSR retiré (absence figée)', $conv[1]['MSR'], false);
+
+$conv = psc_cantine_sans_repas_convert(array('MSR' => true), array('MSR' => true));
+$assert('flag : exception MSR propre conservée', $conv[1]['MSR'], true);
+
+$conv = psc_cantine_sans_repas_convert(array(), array('CANT' => false, 'MSR' => true));
+$assert('flag : ajout MSR gagne sur un retrait cantine', $conv[1]['MSR'], true);
+
+$conv = psc_cantine_sans_repas_convert(array(), array());
+$assert('flag : rien de déclaré -> rien de converti', $conv[0]['MSR'], false);
+
 // 10. Facturation : un forfait déclaré (et réalisable) est facturé à lui
 //     seul, jamais cumulé avec ses composantes ; MSR se facture à part.
 $assert('facturation : forfait seul', psc_billing_services(array('FORF' => true, 'GM' => false, 'CANT' => false, 'GS' => false, 'MSR' => false)), array('FORF'));

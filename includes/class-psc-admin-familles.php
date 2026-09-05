@@ -12,6 +12,7 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         add_action('admin_post_psc_delete_family', array(__CLASS__, 'handle_delete_family'));
         add_action('admin_post_psc_mark_child_sorti', array(__CLASS__, 'handle_mark_child_sorti'));
         add_action('admin_post_psc_mark_child_actif', array(__CLASS__, 'handle_mark_child_actif'));
+        add_action('admin_post_psc_toggle_cantine_sans_repas', array(__CLASS__, 'handle_toggle_cantine_sans_repas'));
         add_action('admin_post_psc_add_parent', array(__CLASS__, 'handle_add_parent'));
         add_action('admin_post_psc_toggle_parent', array(__CLASS__, 'handle_toggle_parent'));
         add_action('admin_post_psc_send_link', array(__CLASS__, 'handle_send_link'));
@@ -153,6 +154,41 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         self::guard('psc_mark_child_sorti');
         if (!Psc_School_Years::mark_sorti(psc_post_int('id'))) self::redirect('psc_children', 'invalid');
         self::redirect('psc_children', 'marked_sorti');
+    }
+
+    /**
+     * Bascule du flag « cantine sans repas » d'un enfant (décision de la
+     * mairie, posée sur la fiche) : ses déclarations de cantine valent
+     * ensuite « midi sans repas » — facturation au tarif MSR, aucun repas
+     * commandé au fournisseur, mention sur la liste intervenants. Aucune
+     * écriture dans le planning de la famille : la conversion se fait à la
+     * résolution (psc_cantine_sans_repas_convert()).
+     */
+    public static function handle_toggle_cantine_sans_repas() {
+        self::guard('psc_toggle_cantine_sans_repas');
+        global $wpdb;
+
+        $child_id = psc_post_int('id');
+        $t_child  = psc_table('children');
+        $current  = $child_id ? (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT cantine_sans_repas FROM $t_child WHERE id = %d", $child_id
+        )) : 0;
+
+        // get_var renvoie null si l'enfant n'existe pas : current vaut 0,
+        // le basculement écrirait 1 sur une ligne absente — on refuse.
+        if (!$child_id || $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_child WHERE id = %d", $child_id)) == 0) {
+            self::redirect('psc_children', 'invalid');
+        }
+
+        $wpdb->update($t_child,
+            array('cantine_sans_repas' => $current ? 0 : 1),
+            array('id' => $child_id),
+            array('%d'),
+            array('%d')
+        );
+        Psc_Planning::flush_cache();
+
+        self::redirect('psc_children', $current ? 'csr_off' : 'csr_on');
     }
 
     public static function handle_mark_child_actif() {

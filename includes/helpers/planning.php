@@ -159,6 +159,50 @@ function psc_exception_write_decision($is_forfait, $pattern, $forf_pattern, $tar
 }
 
 /**
+ * Enfant flagué « cantine sans repas » (colonne children.cantine_sans_repas,
+ * posée par la mairie sur la fiche enfant) : chacune de ses déclarations de
+ * cantine vaut « midi sans repas » — facturation au tarif MSR, aucun repas
+ * compté côté fournisseur, présent sur le créneau côté intervenants. La
+ * conversion s'applique à la RÉSOLUTION (is_declared / declared_map) :
+ * facturation, comptages et listes la voient ; les écrans de saisie des
+ * familles (month_state, month_explicit_map) restent fidèles à ce que la
+ * famille a déclaré — le flag est une décision de la mairie, pas une
+ * écriture dans ses données.
+ *
+ * Les données CANT alimentent MSR (pattern OU exception d'ajout — une
+ * exception de retrait fige l'absence), les données CANT elles-mêmes sont
+ * neutralisées, le forfait et les garderies ne changent pas : un enfant
+ * au forfait reste facturé au forfait, son midi y est compris.
+ *
+ * @param array $pats {service_code => bool} patterns du jour.
+ * @param array $exc  {service_code => bool|null} exceptions de la date.
+ * @return array [$pats, $exc] convertis.
+ */
+function psc_cantine_sans_repas_convert(array $pats, array $exc) {
+    $msr = psc_midi_sans_repas_code();
+    $cant_exc = array_key_exists('CANT', $exc) ? $exc['CANT'] : null;
+    $msr_exc  = array_key_exists($msr, $exc) ? $exc[$msr] : null;
+
+    // Une exception d'ajout (true) gagne sur un retrait (false), qui gagne
+    // sur l'absence d'exception (null) — même précédence que l'arbitrage
+    // du créneau dans psc_resolve_declaration().
+    if ($cant_exc === true || $msr_exc === true) {
+        $merged_exc = true;
+    } elseif ($cant_exc === false || $msr_exc === false) {
+        $merged_exc = false;
+    } else {
+        $merged_exc = null;
+    }
+
+    $pats[$msr]  = !empty($pats[$msr]) || !empty($pats['CANT']);
+    $exc[$msr]   = $merged_exc;
+    $pats['CANT'] = false;
+    $exc['CANT']  = false;
+
+    return array($pats, $exc);
+}
+
+/**
  * SOURCE DE VÉRITÉ UNIQUE — l'état déclaré d'un triplet (enfant, date,
  * prestation). Facturation, listes intervenants, effectifs cantine, exports
  * mairie : tout passe par ici. Aucun code ne lit psc_pattern ou

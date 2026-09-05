@@ -8,6 +8,8 @@ $psc_notices = array(
     'deleted'      => array('success', __('Enfant supprimé, ainsi que ses inscriptions.', 'periscolaire-registration')),
     'marked_sorti' => array('success', __('Enfant marqué sorti.', 'periscolaire-registration')),
     'marked_actif' => array('success', __('Enfant marqué actif.', 'periscolaire-registration')),
+    'csr_on'       => array('success', __('Cantine sans repas activée : ses déclarations de cantine valent « midi sans repas » (tarif MSR, aucun repas commandé).', 'periscolaire-registration')),
+    'csr_off'      => array('success', __('Cantine sans repas retirée : les déclarations de cantine de cet enfant comptent à nouveau comme des repas.', 'periscolaire-registration')),
     'nouser'       => array('error', __("Famille introuvable. Enregistrez-la d'abord dans l'onglet « Familles ».", 'periscolaire-registration')),
     'invalid'      => array('error', __('Merci de choisir une famille et de renseigner le nom et le prénom.', 'periscolaire-registration')),
     'child_bad_birthdate' => array('error', __('Date de naissance incohérente : jamais dans le futur, et au moins 3 ans au 1er septembre de l\'année en cours.', 'periscolaire-registration')),
@@ -65,10 +67,10 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 <label><input type="checkbox" name="show_sortis" value="1" <?php checked($show_sortis); ?> onchange="this.form.submit()"> <?php esc_html_e('Afficher les enfants sortis', 'periscolaire-registration'); ?></label>
 </form>
 <table class="widefat striped">
-<thead><tr><th><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Classe', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Naissance', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Régime cantine', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Allergies alimentaires', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Famille', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Assurance', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Action', 'periscolaire-registration'); ?></th></tr></thead>
+<thead><tr><th><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Classe', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Naissance', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Régime cantine', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Allergies alimentaires', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Cantine', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Famille', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Assurance', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Action', 'periscolaire-registration'); ?></th></tr></thead>
 <tbody>
 <?php if (empty($children)): ?>
-<tr><td colspan="9"><?php esc_html_e('Aucun enfant enregistré', 'periscolaire-registration'); ?><?php echo $selected_year_id ? ' ' . esc_html__('pour cette année', 'periscolaire-registration') : ' ' . esc_html__(" (créez d'abord une année scolaire)", 'periscolaire-registration'); ?>.</td></tr>
+<tr><td colspan="11"><?php esc_html_e('Aucun enfant enregistré', 'periscolaire-registration'); ?><?php echo $selected_year_id ? ' ' . esc_html__('pour cette année', 'periscolaire-registration') : ' ' . esc_html__(" (créez d'abord une année scolaire)", 'periscolaire-registration'); ?>.</td></tr>
 <?php else: foreach ($children as $c): ?>
 <tr>
 <td><?php echo esc_html($c->nom); ?></td>
@@ -84,6 +86,21 @@ echo $diet ? esc_html(implode(' · ', $diet)) : '—';
 ?>
 </td>
 <td><?php echo trim((string) $c->food_allergies) !== '' ? '<div style="max-width:220px;line-height:1.45;color:#9E4A4A;">' . esc_html($c->food_allergies) . '</div>' : '—'; ?></td>
+<td style="white-space:nowrap">
+<?php if ((int) $c->cantine_sans_repas): ?>
+  <strong style="color:#9E4A4A;"><?php esc_html_e('Sans repas', 'periscolaire-registration'); ?></strong>
+<?php else: ?>
+  <span style="color:#666;"><?php esc_html_e('Repas cantine', 'periscolaire-registration'); ?></span>
+<?php endif; ?>
+<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline;margin-left:6px;">
+<?php wp_nonce_field('psc_toggle_cantine_sans_repas'); ?>
+<input type="hidden" name="action" value="psc_toggle_cantine_sans_repas">
+<input type="hidden" name="id" value="<?php echo esc_attr($c->id); ?>">
+<button class="button button-small" title="<?php echo esc_attr(__('Sans effet sur les déclarations de la famille : sa cantine est simplement comptée et facturée comme « midi sans repas ».', 'periscolaire-registration')); ?>">
+  <?php echo (int) $c->cantine_sans_repas ? esc_html__('Rétablir les repas', 'periscolaire-registration') : esc_html__('Cantine sans repas', 'periscolaire-registration'); ?>
+</button>
+</form>
+</td>
 <td><?php echo $c->statut === 'actif' ? '<span class="psc-active">' . esc_html__('Actif', 'periscolaire-registration') . '</span>' : '<em>' . esc_html__('Sorti', 'periscolaire-registration') . '</em>'; ?></td>
 <td><?php echo $c->parent_email ? esc_html($c->parent_nom ?: $c->parent_email) : '<em>' . esc_html__('famille supprimée', 'periscolaire-registration') . '</em>'; ?></td>
 <td>
