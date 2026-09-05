@@ -73,37 +73,49 @@ WP_CLI::add_command('seed-planning-2', function () {
         WP_CLI::error("Aucune configuration d'année scolaire — le scénario Planning - 2 n'a pas de terrain.");
     }
 
-    // Premier mois comptant au moins DEUX jours d'école non verrouillés à
-    // venir : le mois courant peut être hors période (août) ou entièrement
-    // passé — le scénario a besoin de deux dates cliquables, jamais
-    // d'hypothèse sur la date d'exécution.
+    // Premier mois offrant, parmi les jours d'école non verrouillés à venir :
+    //  - un LUNDI (pattern_date) — le cas durci de Chloé ne pose son rythme
+    //    que sur le lundi ; le retrait doit viser un jour porté par CE
+    //    rythme, quel que soit le calendrier réel d'exécution ;
+    //  - un jour d'école POSTÉRIEUR (free_date).
+    // Le mois courant peut être hors période (août) ou entièrement passé —
+    // le scénario a besoin de deux dates cliquables, jamais d'hypothèse sur
+    // la date d'exécution.
     $today = current_time('Y-m-d');
     $month_key = '';
-    $days = array();
+    $pattern_date = null; // jour d'école non verrouillé porté par le rythme (lundi)
+    $free_date    = null; // jour d'école non verrouillé sans déclaration
+
     foreach (Psc_School_Year::months($year->year_key) as $m) {
         $days = Psc_School_Year::school_days_in_month($m['key']);
         $future = array_values(array_filter($days, function ($d) use ($today) {
             return !psc_is_locked($d) && $d >= $today;
         }));
-        if (count($future) >= 2) {
-            $month_key = $m['key'];
-            break;
+        if (count($future) < 2) continue;
+
+        $pattern_date = null;
+        foreach ($future as $d) {
+            if ((int) date('N', strtotime($d)) === 1) {
+                $pattern_date = $d;
+                break;
+            }
         }
+        if ($pattern_date === null) continue;
+
+        $free_date = null;
+        foreach ($future as $d) {
+            if ($d > $pattern_date) {
+                $free_date = $d;
+                break;
+            }
+        }
+        if ($free_date === null) continue;
+
+        $month_key = $m['key'];
+        break;
     }
     if ($month_key === '') {
-        WP_CLI::error("Aucun mois exploitable dans l'année scolaire (moins de deux jours d'école non verrouillés).");
-    }
-
-    $pattern_date = null; // jour d'école non verrouillé porté par le rythme d'Alice
-    $free_date    = null; // jour d'école non verrouillé sans déclaration
-
-    foreach ($days as $d) {
-        if (psc_is_locked($d) || $d < $today) continue;
-        if ($pattern_date === null) $pattern_date = $d;
-        elseif ($free_date === null) $free_date = $d;
-    }
-    if (!$pattern_date || !$free_date) {
-        WP_CLI::error("Pas assez de jours d'école non verrouillés dans $month_key.");
+        WP_CLI::error("Aucun mois exploitable dans l'année scolaire (pas de lundi ni de jour d'école non verrouillés à venir).");
     }
 
     /* ---------------------------------------------------------------- */

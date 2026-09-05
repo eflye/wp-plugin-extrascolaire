@@ -275,11 +275,62 @@ $assert('verrou : jour verrouillé non déclaré, pattern passe à on -> excepti
 $assert('invariant : cocher une unité déjà couverte par le forfait -> delete (no-op)', psc_exception_write_decision(false, false, true, true), 'delete');
 $assert('invariant : décocher une unité couverte par le forfait -> retrait écrit', psc_exception_write_decision(false, false, true, false), 'upsert');
 
+// 10bis. Créneau du midi — arbitrage cantine (CANT) contre « midi sans
+//        repas » (MSR). Le slot porte les données des DEUX services du
+//        créneau ; la prestation résolue est identifiée par 'request'.
+$slot_cant = array('request' => 'CANT', 'cant_pattern' => false, 'cant_exception' => null, 'msr_pattern' => false, 'msr_exception' => null);
+$slot_msr  = array('request' => 'MSR',  'cant_pattern' => false, 'cant_exception' => null, 'msr_pattern' => false, 'msr_exception' => null);
+
+// MSR suit son propre rythme, SANS repli forfait : le forfait couvre le
+// déjeuner à la cantine, jamais l'inverse.
+$assert('midi : pattern MSR -> déclaré', psc_resolve_declaration(false, true, null, false, null, true, true, true, $slot_msr + array('msr_pattern' => true)), true);
+$assert('midi : forfait au rythme mais pas de MSR -> MSR non déclaré (pas de repli forfait)', psc_resolve_declaration(false, false, null, true, null, true, true, true, $slot_msr), false);
+$assert('midi : MSR ajouté exceptionnellement -> déclaré', psc_resolve_declaration(false, false, true, false, null, true, true, true, $slot_msr), true);
+$assert('midi : MSR retiré exceptionnellement malgré pattern -> non déclaré', psc_resolve_declaration(false, true, false, false, null, true, true, true, $slot_msr), false);
+
+// Un MSR actif masque la cantine (rythme ET repli forfait).
+$assert('midi : pattern MSR masque le pattern cantine', psc_resolve_declaration(false, true, null, false, null, true, true, true, array_merge($slot_cant, array('msr_pattern' => true))), false);
+$assert('midi : pattern MSR masque aussi la couverture forfait de la cantine', psc_resolve_declaration(false, false, null, true, null, true, true, true, array_merge($slot_cant, array('msr_pattern' => true))), false);
+$assert('midi : MSR retiré exceptionnellement -> le pattern cantine réapparaît', psc_resolve_declaration(false, true, null, false, null, true, true, true, array_merge($slot_cant, array('msr_pattern' => true, 'msr_exception' => false))), true);
+$assert('midi : exception MSR posée sur un pattern cantine -> MSR gagne', psc_resolve_declaration(false, true, true, false, null, true, true, true, array_merge($slot_msr, array('cant_pattern' => true))), true);
+
+// Une cantine active masque le pattern MSR ; l'exception CANT gagne sur le
+// pattern MSR.
+$assert('midi : pattern cantine masque le pattern MSR', psc_resolve_declaration(false, true, null, false, null, true, true, true, array_merge($slot_msr, array('cant_pattern' => true))), false);
+$assert('midi : exception cantine posée sur un pattern MSR -> cantine gagne', psc_resolve_declaration(false, true, true, false, null, true, true, true, array_merge($slot_cant, array('msr_pattern' => true))), true);
+$assert('midi : exception cantine (ajout) masque le pattern MSR côté MSR', psc_resolve_declaration(false, true, null, false, null, true, true, true, array_merge($slot_msr, array('cant_exception' => true))), false);
+$assert('midi : exception cantine (retrait) laisse le pattern MSR s\'appliquer', psc_resolve_declaration(false, true, null, false, null, true, true, true, array_merge($slot_msr, array('cant_exception' => false))), true);
+
+// Les garderies ne sont pas touchées par l'arbitrage du midi.
+$assert('midi : garderie soir indépendante du MSR', psc_resolve_declaration(false, true, null, false, null, true, true, true, array('request' => 'GS', 'msr_pattern' => true)), true);
+
+// Décision d'écriture : la base tient compte de l'autre service du créneau.
+$assert('midi décision : cocher MSR sans pattern -> exception posée', psc_exception_write_decision(false, false, false, true, $slot_msr), 'upsert');
+$assert('midi décision : cocher MSR alors que la cantine est au rythme -> exception posée (elle masquera la cantine)', psc_exception_write_decision(false, false, false, true, array_merge($slot_msr, array('cant_pattern' => true))), 'upsert');
+$assert('midi décision : décocher MSR au rythme -> retrait écrit (il doit contrer le pattern)', psc_exception_write_decision(false, true, false, false, $slot_msr), 'upsert');
+$assert('midi décision : décocher MSR couvert par la cantine -> suppression (no-op)', psc_exception_write_decision(false, false, false, false, array_merge($slot_msr, array('cant_pattern' => true))), 'delete');
+$assert('midi décision : cocher CANT au rythme -> suppression', psc_exception_write_decision(false, true, false, true, $slot_cant), 'delete');
+$assert('midi décision : cocher CANT masquée par un pattern MSR -> exception posée (elle gagne)', psc_exception_write_decision(false, false, false, true, array_merge($slot_cant, array('msr_pattern' => true))), 'upsert');
+$assert('midi décision : décocher CANT masquée par un pattern MSR -> suppression (déjà masquée)', psc_exception_write_decision(false, false, false, false, array_merge($slot_cant, array('msr_pattern' => true))), 'delete');
+$assert('midi décision : forfait au rythme, décocher CANT sans MSR -> exception posée (retrait du repli)', psc_exception_write_decision(false, false, true, false, $slot_cant), 'upsert');
+$assert('midi décision : forfait au rythme + pattern MSR, décocher CANT -> suppression (déjà masquée)', psc_exception_write_decision(false, false, true, false, array_merge($slot_cant, array('msr_pattern' => true))), 'delete');
+
+// 10ter. Conflits déclarés par prestation (cascade UI + purges serveur).
+$assert('conflits : FORF -> unités + MSR', psc_conflicting_services('FORF'), array('GM', 'CANT', 'GS', 'MSR'));
+$assert('conflits : CANT -> FORF + MSR', psc_conflicting_services('CANT'), array('FORF', 'MSR'));
+$assert('conflits : MSR -> CANT + FORF', psc_conflicting_services('MSR'), array('CANT', 'FORF'));
+$assert('conflits : GM -> FORF seul', psc_conflicting_services('GM'), array('FORF'));
+$assert('conflits : GS -> FORF seul', psc_conflicting_services('GS'), array('FORF'));
+$assert('couverture forfait : MSR non couvert', psc_forfait_covers('MSR'), false);
+$assert('couverture forfait : CANT couvert', psc_forfait_covers('CANT'), true);
+
 // 10. Facturation : un forfait déclaré (et réalisable) est facturé à lui
-//     seul, jamais cumulé avec ses composantes.
-$assert('facturation : forfait seul', psc_billing_services(array('FORF' => true, 'GM' => false, 'CANT' => false, 'GS' => false)), array('FORF'));
-$assert('facturation : unités sans forfait', psc_billing_services(array('FORF' => false, 'GM' => true, 'CANT' => false, 'GS' => true)), array('GM', 'GS'));
-$assert('facturation : rien de déclaré', psc_billing_services(array('FORF' => false, 'GM' => false, 'CANT' => false, 'GS' => false)), array());
+//     seul, jamais cumulé avec ses composantes ; MSR se facture à part.
+$assert('facturation : forfait seul', psc_billing_services(array('FORF' => true, 'GM' => false, 'CANT' => false, 'GS' => false, 'MSR' => false)), array('FORF'));
+$assert('facturation : unités sans forfait', psc_billing_services(array('FORF' => false, 'GM' => true, 'CANT' => false, 'GS' => true, 'MSR' => false)), array('GM', 'GS'));
+$assert('facturation : rien de déclaré', psc_billing_services(array('FORF' => false, 'GM' => false, 'CANT' => false, 'GS' => false, 'MSR' => false)), array());
+$assert('facturation : MSR facturé à part', psc_billing_services(array('FORF' => false, 'GM' => false, 'CANT' => false, 'GS' => false, 'MSR' => true)), array('MSR'));
+$assert('facturation : MSR + garderies cumulés', psc_billing_services(array('FORF' => false, 'GM' => true, 'CANT' => false, 'GS' => true, 'MSR' => true)), array('GM', 'GS', 'MSR'));
 
 /* ---------------------------------------------------------------- */
 

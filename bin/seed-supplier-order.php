@@ -205,7 +205,7 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     // commande) :
     //   Aline    (standard)     : CANT lun + mar, GM lun (hors total), GS lun (goûter)
     //   Baptiste (sans porc)    : CANT jeu, GS jeu (goûter)
-    //   Chloé    (végétarien)   : CANT mar
+    //   Chloé    (végétarien)   : CANT mar, MSR jeu (midi sans repas, jamais compté)
     //   Théo     (allergique)   : CANT lun, GS lun — compté nulle part
     $regs = array(
         array($aline_id,    $jours['lundi'],  'CANT'),
@@ -215,6 +215,7 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
         array($baptiste_id, $jours['jeudi'],  'CANT'),
         array($baptiste_id, $jours['jeudi'],  'GS'),
         array($chloe_id,    $jours['mardi'],  'CANT'),
+        array($chloe_id,    $jours['jeudi'],  'MSR'),
         array($theo_id,     $jours['lundi'],  'CANT'),
         array($theo_id,     $jours['lundi'],  'GS'),
     );
@@ -230,7 +231,7 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     // (un jour férié disparaît de la liste) et les déclarations ci-dessus :
     //   Aline (standard)  : CANT lun + mar, GM lun (hors comptage), GS lun (goûter)
     //   Baptiste (sans porc) : CANT jeu, GS jeu (goûter)
-    //   Chloé (végétarienne) : CANT mar
+    //   Chloé (végétarienne) : CANT mar ; MSR jeu (midi sans repas) — jamais compté
     //   Théo (allergique)    : CANT lun, GS lun — compté dans aucune colonne
     $kind_by_child = array(
         $aline_id    => 'standard',

@@ -237,26 +237,27 @@
         var childBlock = cb.closest('.psc-portal-child-block');
         var table = cb.closest('table');
 
-        // Cascade UI — exclusivité FORFAIT uniquement. La cantine, la
-        // garderie matin et la garderie soir sont compatibles entre elles
-        // (un enfant peut déjeuner ET aller à la garderie le même jour) :
-        // cocher l'une ne touche pas aux autres. Seul le forfait, qui les
-        // recouvre toutes les trois, est exclusif :
-        //  - cocher FORF décoche les prestations élémentaires du jour ;
-        //  - cocher une prestation élémentaire alors que FORF est coché
-        //    décoche le forfait — même sémantique que l'ancien modèle,
-        //    qui supprimait la ligne forfait au profit des unités.
+        // Cascade UI — exclusivités du créneau. La garderie matin, la
+        // garderie soir (et « midi sans repas ») sont compatibles entre
+        // elles ; seules deux prétentions sur le même créneau s'excluent :
+        //  - le forfait (matin + cantine + soir) contre toute prestation
+        //    individuelle, y compris « midi sans repas » ;
+        //  - la cantine contre « midi sans repas » : un même midi, l'enfant
+        //    déjeune à la cantine ou y est sans repas, jamais les deux.
         // Chaque case décochée part en exception de retrait pour CE jour
         // seulement : le rythme de la semaine n'est pas touché.
+        function pscConflicts(a, b) {
+            if (a === b) return false;
+            if (a === 'FORF' || b === 'FORF') return true;
+            return (a === 'CANT' && b === 'MSR') || (a === 'MSR' && b === 'CANT');
+        }
         var siblingsToUncheck = [];
         if (willBeChecked) {
-            var isForf = cb.dataset.service === 'FORF';
             var row = cb.closest('tr');
             if (row) {
                 row.querySelectorAll('.psc-check').forEach(function (c) {
                     if (c === cb || !c.checked || c.disabled) return;
-                    var sibIsForf = c.dataset.service === 'FORF';
-                    if (isForf === sibIsForf) return; // même famille : compatible
+                    if (!pscConflicts(cb.dataset.service, c.dataset.service)) return; // compatible
                     if (psc_is_locked_date(c.dataset.date)) return;
                     siblingsToUncheck.push(c);
                 });

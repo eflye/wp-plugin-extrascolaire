@@ -244,6 +244,11 @@
             var bringsMealHtml = (svc === 'CANT' && c.brings_meal)
                 ? '<span class="psc-sidscm-row-brings-meal">' + t('brings_meal') + '</span>'
                 : '';
+            // « Midi sans repas » : l'enfant est présent sur le créneau mais
+            // n'y déjeune pas — même consigne d'affichage que le repas apporté.
+            var noMealHtml = (svc === 'CANT' && (c.MSR || []).indexOf(day) !== -1)
+                ? '<span class="psc-sidscm-row-brings-meal">' + t('no_meal') + '</span>'
+                : '';
             var departureHtml = '';
             if (svc === 'GS') {
                 var departureVal = state.departures[key] || '';
@@ -267,7 +272,7 @@
                 (present ? ' checked' : '') + ' data-testid="sidscm-check-' + c.id + '">' +
                 '<span class="psc-sidscm-row-name">' + escapeHtml(c.prenom) + ' ' + escapeHtml(c.nom) + '</span>' +
                 '<span class="psc-sidscm-row-classe">' + escapeHtml(c.classe || '') + '</span>' +
-                '</label>' + allergyHtml + bringsMealHtml + dietHtml + departureHtml + authToggleHtml +
+                '</label>' + allergyHtml + bringsMealHtml + noMealHtml + dietHtml + departureHtml + authToggleHtml +
                 '</div>' + (expanded ? renderAuthPanel(c) : '');
         }).join('');
 
@@ -350,9 +355,12 @@
             var bringsMealHtml = (svc === 'CANT' && c.brings_meal)
                 ? '<span class="psc-sidscm-row-brings-meal">' + t('brings_meal') + '</span>'
                 : '';
+            var noMealWeekHtml = (svc === 'CANT' && (c.MSR || []).length)
+                ? '<span class="psc-sidscm-row-brings-meal">' + t('no_meal') + '</span>'
+                : '';
             return '<tr><td class="psc-sidscm-table-child-cell">' + escapeHtml(c.prenom) + ' ' + escapeHtml(c.nom) +
                 ' <span class="psc-sidscm-table-child-classe">(' + escapeHtml(c.classe || '') + ')</span>' +
-                allergyHtml + bringsMealHtml +
+                allergyHtml + bringsMealHtml + noMealWeekHtml +
                 authWeekBtn(c) + '</td>' +
                 marksHtml + '</tr>';
         }).join('');

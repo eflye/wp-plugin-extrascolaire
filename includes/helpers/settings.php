@@ -84,10 +84,11 @@ function psc_mairie_email() {
  * Retour : tableau des slugs d'onglet exposés ('cantine', 'cantine2').
  */
 function psc_planning_variants() {
-    $setting = get_option('psc_planning_variant', 'both');
-    if ($setting === '1') return array('cantine');
-    if ($setting === '2') return array('cantine2');
-    return array('cantine', 'cantine2');
+    // Décision de CODE, plus de réglage admin : les deux variantes sont
+    // livrées et exposées, « Planning - 1 » sans lien de menu (Planning - 2
+    // porte la navigation). Filtrable pour restreindre à une seule
+    // variante ('cantine' ou 'cantine2') sans toucher à la base.
+    return (array) apply_filters('psc_planning_variants', array('cantine', 'cantine2'));
 }
 
 /** Un seul écran Planning exposé ? (le libellé d'onglet redevient « Planning ») */

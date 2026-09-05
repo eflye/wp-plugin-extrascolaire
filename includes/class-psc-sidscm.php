@@ -140,6 +140,7 @@ class Psc_Sidscm {
                 'week'          => __('semaine', 'periscolaire-registration'),
                 'child'         => __('Enfant', 'periscolaire-registration'),
                 'brings_meal'   => __('Apporte son repas — à ne pas compter dans les couverts', 'periscolaire-registration'),
+                'no_meal'       => __('Midi sans repas — à ne pas compter dans les couverts', 'periscolaire-registration'),
             ),
         ));
     }
@@ -321,7 +322,8 @@ class Psc_Sidscm {
 
             $per_service = array();
             $has_any = false;
-            foreach (psc_unit_services() as $svc) {
+            foreach (psc_allowed_services() as $svc) {
+                if ($svc === psc_forfait_code()) continue;
                 $jours = array();
                 foreach ($open_days as $jour => $date) {
                     if ($expected($c->id, $date, $svc)) {
@@ -370,7 +372,11 @@ class Psc_Sidscm {
                 // (aucun menu différencié n'est proposé).
                 'brings_meal' => $allergies !== '',
                 'GM'         => $per_service['GM'],
-                'CANT'       => $per_service['CANT'],
+                // Liste cantine : un enfant « midi sans repas » est présent
+                // sur le créneau du midi — il y figure ; la liste MSR (jours
+                // où il n'a PAS de repas) sert au badge de la ligne.
+                'CANT'       => array_values(array_unique(array_merge($per_service['CANT'], $per_service['MSR']))),
+                'MSR'        => $per_service['MSR'],
                 'GS'         => $per_service['GS'],
                 'authorized' => $authorized,
             );

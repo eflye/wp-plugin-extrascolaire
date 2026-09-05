@@ -301,7 +301,12 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
             $service === $forf,
             !empty($pats[$service]),
             !empty($pats[$forf]),
-            (bool) $checked
+            (bool) $checked,
+            array(
+                'request'      => $service,
+                'cant_pattern' => !empty($pats['CANT']),
+                'msr_pattern'  => !empty($pats[psc_midi_sans_repas_code()]),
+            )
         );
         $is_net_add = ($decision === 'upsert' && $checked);
 

@@ -17,6 +17,16 @@
  *     forfait journée (FORF), qui recouvre exactement les prestations
  *     élémentaires — un enfant au forfait est attendu matin, cantine et soir.
  *
+ * Cas du créneau du midi : la cantine (CANT) et « Midi sans repas » (MSR)
+ * s'excluent. Quand les deux sont actives au même endroit (pattern ou
+ * exception d'ajout), l'exception explicite gagne sur le pattern de
+ * l'autre ; à défaut, la cantine l'emporte sur MSR (service historique).
+ * Un MSR actif masque le rythme ET le repli forfait de la cantine — le
+ * forfait ne couvre pas MSR, et un enfant « midi sans repas » ne déjeune
+ * pas à la cantine même si son rythme le dit. Inversement, une cantine
+ * active masque le pattern MSR. MSR n'a JAMAIS de repli forfait : déclarer
+ * le forfait ne rend pas l'enfant « midi sans repas ».
+ *
  * Tout le reste du plugin passe par psc_is_declared() : facturation, listes
  * intervenants, effectifs cantine, exports mairie. Aucun code ne lit
  * psc_pattern ou psc_exception directement (hormis l'écran de bascule vers
@@ -47,9 +57,14 @@ if (!defined('ABSPATH')) exit;
  * @param bool $forf_open      Toutes les prestations élémentaires sont
  *                             ouvertes ce jour-là (condition de réalisabilité
  *                             du forfait, qui est indivisible).
+ * @param array $slot          Données du créneau du midi, pour l'arbitrage
+ *                             CANT/MSR : 'request' (code résolu), et pour
+ *                             l'autre service du créneau 'cant_pattern',
+ *                             'cant_exception', 'msr_pattern',
+ *                             'msr_exception'. Vide hors créneau du midi.
  * @return bool
  */
-function psc_resolve_declaration($is_forfait, $pattern, $exception, $forf_pattern, $forf_exception, $day_open, $service_open = true, $forf_open = true) {
+function psc_resolve_declaration($is_forfait, $pattern, $exception, $forf_pattern, $forf_exception, $day_open, $service_open = true, $forf_open = true, array $slot = array()) {
     if (!$day_open) return false;
 
     $forf_effectif = $forf_exception !== null ? (bool) $forf_exception : (bool) $forf_pattern;
@@ -65,6 +80,31 @@ function psc_resolve_declaration($is_forfait, $pattern, $exception, $forf_patter
     // soit la donnée stockée (l'ancien modèle supprimait les lignes ; ici
     // la fermeture est soustraite au calcul).
     if (!$service_open) return false;
+
+    // Arbitrage du créneau du midi : cantine contre « midi sans repas ».
+    // L'exception de CE triplet reste maîtresse (règle 2) ; sinon l'activité
+    // effective de l'autre service du créneau masque le rythme et le repli.
+    $request = isset($slot['request']) ? (string) $slot['request'] : '';
+    if ($request === 'CANT' || $request === 'MSR') {
+        if ($exception !== null) {
+            return (bool) $exception;
+        }
+        $cant_exc = array_key_exists('cant_exception', $slot) && $slot['cant_exception'] !== null
+            ? (bool) $slot['cant_exception'] : null;
+        $msr_exc  = array_key_exists('msr_exception', $slot) && $slot['msr_exception'] !== null
+            ? (bool) $slot['msr_exception'] : null;
+        $cant_active = $cant_exc !== null ? $cant_exc : !empty($slot['cant_pattern']);
+        $msr_active  = $msr_exc !== null ? $msr_exc : !empty($slot['msr_pattern']);
+
+        if ($request === 'CANT') {
+            if ($msr_active) return false;
+            return $pattern ? true : $forf_effectif;
+        }
+        // MSR : l'enfant est là sans repas. Jamais de repli forfait — le
+        // forfait couvre le déjeuner à la cantine, pas l'inverse.
+        if ($cant_active) return false;
+        return (bool) $pattern;
+    }
 
     // L'exception de CE triplet gagne, quelle que soit sa valeur : un retrait
     // exceptionnel reste vrai même si le forfait couvre la prestation.
@@ -90,18 +130,30 @@ function psc_resolve_declaration($is_forfait, $pattern, $exception, $forf_patter
  *
  * La base de comparaison est l'état qui prévaudrait SANS l'exception : le
  * pattern de la prestation, ou la couverture par le forfait si la prestation
- * n'a pas de pattern propre.
+ * n'a pas de pattern propre. Sur le créneau du midi, l'autre service (CANT
+ * ou MSR) actif au rythme masque la base — un enfant « midi sans repas »
+ * n'a pas de cantine à décocher.
  *
  * @param bool $is_forfait   Écrit-on l'exception du forfait lui-même ?
  * @param bool $pattern      Pattern du (jour de semaine, prestation).
  * @param bool $forf_pattern Pattern FORF du jour de semaine.
  * @param bool $target       État visé par le clic.
+ * @param array $slot        Créneau du midi : 'request' (code visé),
+ *                           'cant_pattern', 'msr_pattern' — mêmes clés que
+ *                           psc_resolve_declaration(), patterns seulement.
  * @return string 'delete' (retirer toute exception du triplet) | 'upsert' (poser/actualiser avec $target)
  */
-function psc_exception_write_decision($is_forfait, $pattern, $forf_pattern, $target) {
-    $base = $is_forfait
-        ? (bool) $forf_pattern
-        : ((bool) $pattern ? true : (bool) $forf_pattern);
+function psc_exception_write_decision($is_forfait, $pattern, $forf_pattern, $target, $slot = array()) {
+    $request = isset($slot['request']) ? (string) $slot['request'] : '';
+    if ($request === 'MSR') {
+        $base = !empty($slot['cant_pattern']) ? false : (bool) $pattern;
+    } elseif ($request === 'CANT') {
+        $base = !empty($slot['msr_pattern']) ? false : ((bool) $pattern ? true : (bool) $forf_pattern);
+    } else {
+        $base = $is_forfait
+            ? (bool) $forf_pattern
+            : ((bool) $pattern ? true : (bool) $forf_pattern);
+    }
 
     return ((bool) $target === $base) ? 'delete' : 'upsert';
 }
@@ -129,12 +181,14 @@ function psc_is_declared($child_id, $date, $service_code) {
  */
 function psc_billing_services(array $declared) {
     $forf = psc_forfait_code();
-    if (!empty($declared[$forf])) {
-        return array($forf);
-    }
     $out = array();
+    if (!empty($declared[$forf])) {
+        $out[] = $forf;
+    }
     foreach (psc_unit_services() as $svc) {
         if (!empty($declared[$svc])) $out[] = $svc;
     }
+    $msr = psc_midi_sans_repas_code();
+    if (!empty($declared[$msr])) $out[] = $msr;
     return $out;
 }

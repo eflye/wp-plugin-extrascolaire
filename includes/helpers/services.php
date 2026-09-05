@@ -31,12 +31,34 @@ function psc_forfait_code() {
 }
 
 /**
- * Prestations qu'un enregistrement peut porter : les élémentaires, plus le
- * forfait. Dérivée, pour que l'ajout d'une prestation à la liste ci-dessus
- * se propage sans qu'on ait à y penser.
+ * Code de « Midi sans repas » : l'enfant est présent sur le créneau du midi
+ * mais n'y déjeune pas à la cantine (repas apporté par la famille). Ce n'est
+ * NI une composante du forfait (le forfait inclut le repas de la cantine),
+ * NI un service de restauration : la commande fournisseur ne le compte pas.
+ * Il entre en conflit avec la cantine (un même midi, l'un ou l'autre) et
+ * avec le forfait (qui couvre la cantine).
+ */
+function psc_midi_sans_repas_code() {
+    return 'MSR';
+}
+
+/**
+ * Prestations qu'un enregistrement peut porter : les élémentaires, le
+ * forfait et « Midi sans repas ». Dérivée, pour que l'ajout d'une
+ * prestation à la liste ci-dessus se propage sans qu'on ait à y penser.
  */
 function psc_allowed_services() {
-    return array_merge(psc_unit_services(), array(psc_forfait_code()));
+    return array_merge(psc_unit_services(), array(psc_forfait_code(), psc_midi_sans_repas_code()));
+}
+
+/**
+ * Le forfait journée couvre-t-il cette prestation ? Seules les
+ * élémentaires le sont — « Midi sans repas » n'y entre pas : un enfant au
+ * forfait déjeune à la cantine, il ne peut pas être simultanément « midi
+ * sans repas ».
+ */
+function psc_forfait_covers($service) {
+    return in_array($service, psc_unit_services(), true);
 }
 
 /**
@@ -60,11 +82,20 @@ function psc_is_valid_service($service) {
  * jour. Le forfait et ses composantes s'excluent mutuellement : déclarer le
  * forfait retire les prestations individuelles, et déclarer une prestation
  * individuelle retire le forfait. Sans quoi la journée serait comptée deux
- * fois.
+ * fois. « Midi sans repas » s'exclut de la cantine (un même midi, l'enfant
+ * déjeune à la cantine ou y est sans repas) et du forfait, qui couvre la
+ * cantine — mais reste compatible avec les garderies matin et soir.
  */
 function psc_conflicting_services($service) {
+    $msr = psc_midi_sans_repas_code();
     if ($service === psc_forfait_code()) {
-        return psc_unit_services();
+        return array_merge(psc_unit_services(), array($msr));
+    }
+    if ($service === $msr) {
+        return array('CANT', psc_forfait_code());
+    }
+    if ($service === 'CANT') {
+        return array(psc_forfait_code(), $msr);
     }
     if (in_array($service, psc_unit_services(), true)) {
         return array(psc_forfait_code());
@@ -98,6 +129,7 @@ function psc_service_short_labels() {
         'CANT' => __('Cant.', 'periscolaire-registration'),
         'GS'   => __('G.S.', 'periscolaire-registration'),
         'FORF' => __('Forf.', 'periscolaire-registration'),
+        'MSR'  => __('S. repas', 'periscolaire-registration'),
     );
 }
 
@@ -110,6 +142,7 @@ function psc_services() {
         'CANT' => array('label' => __('Cantine', 'periscolaire-registration'), 'price' => 5.80),
         'GS'   => array('label' => __('Garderie Soir', 'periscolaire-registration'), 'price' => 4.70),
         'FORF' => array('label' => __('Forfait journée', 'periscolaire-registration'), 'price' => 11.70),
+        'MSR'  => array('label' => __('Midi sans repas', 'periscolaire-registration'), 'price' => 1.00),
     );
     $saved = get_option('psc_service_prices', array());
     if (is_array($saved)) {

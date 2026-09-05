@@ -228,9 +228,9 @@ class Psc_Frontend extends Psc_Frontend_Base {
      * Onglet Planning : les deux variantes (Planning - 1 « saisie jour par
      * jour », Planning - 2 « rythme + exceptions ») lisent et écrivent LE
      * MÊME modèle — une saisie faite dans l'une se retrouve dans l'autre,
-     * aucune synchronisation. Le réglage psc_planning_variant (Réglages)
-     * limite l'exposition à une seule variante sans redéploiement ; un
-     * onglet unique s'appelle alors simplement « Planning ».
+     * aucune synchronisation. L'exposition est décidée dans le code
+     * (filtre psc_planning_variants) ; un onglet unique s'appellerait
+     * simplement « Planning ».
      *
      * Quand les DEUX variantes sont exposées, Planning - 1 n'a pas de lien
      * dans le menu (cantine2 porte la navigation) : l'écran reste accessible
@@ -476,7 +476,8 @@ class Psc_Frontend extends Psc_Frontend_Base {
                     }
                     continue;
                 }
-                foreach (psc_unit_services() as $svc) {
+                foreach (psc_allowed_services() as $svc) {
+                    if ($svc === psc_forfait_code()) continue; // traité ci-dessus, détaillé en unités
                     if (empty($services_map[$svc])) continue;
                     $items[] = array(
                         'date'    => $date,

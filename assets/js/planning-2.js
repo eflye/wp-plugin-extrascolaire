@@ -3,7 +3,7 @@
 
     var boot = null;
     var DAY_ABBR = { 1: 'day_short_1', 2: 'day_short_2', 3: 'day_short_3', 4: 'day_short_4', 5: 'day_short_5', 6: 'day_short_6', 0: 'day_short_0' };
-    var SERVICES = ['GM', 'CANT', 'GS', 'FORF'];
+    var SERVICES = ['GM', 'CANT', 'GS', 'FORF', 'MSR'];
 
     // Chaînes traduites côté serveur (PSC.i18n, cf. Psc_Frontend::assets()).
     function t(key) {
