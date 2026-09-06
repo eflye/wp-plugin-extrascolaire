@@ -79,6 +79,9 @@ if (!function_exists('update_option')) {
 }
 require __DIR__ . '/../../includes/helpers/session.php';
 
+// Export ODS (OpenDocument) — fonctions XML pures.
+require __DIR__ . '/../../includes/helpers/ods.php';
+
 $failures = array();
 $checks   = 0;
 
@@ -437,6 +440,27 @@ $assert('session : bump sur id invalide -> aucun effet', psc_session_epoch(0), 0
 psc_bump_session_epoch(42);
 $assert('session : les bumps du foyer A n\'affectent pas le foyer B', psc_session_epoch(43), 0);
 unset($GLOBALS['psc_test_options']);
+
+/* ---------------------------------------------------------------- */
+/* ods.php — classeur OpenDocument (export prélèvements SEPA)         */
+/* ---------------------------------------------------------------- */
+$assert('ods : mimetype OpenDocument Spreadsheet', psc_ods_mimetype(), 'application/vnd.oasis.opendocument.spreadsheet');
+$assert('ods : manifeste liste content.xml', strpos(psc_ods_manifest_xml(), 'content.xml') !== false, true);
+
+$xml = psc_ods_content_xml('Prélèvements', array('Titulaire', 'Montant (€)'), array(
+    array("Famille D'Argent", array('float' => 58.5)),
+    array('Ligne <spéciale> & "quotée"', null),
+    array('Sur deux lignes', ''),
+));
+
+$assert('ods : cellule numérique typée avec 2 décimales', strpos($xml, 'office:value-type="float" office:value="58.50"') !== false, true);
+$assert('ods : apostrophe échappée (ENT_XML1/ENT_QUOTES)', strpos($xml, 'Famille D&apos;Argent') !== false, true);
+$assert('ods : chevrons et esperluette échappés', strpos($xml, 'Ligne &lt;spéciale&gt; &amp; &quot;quotée&quot;') !== false, true);
+$assert('ods : cellule vide -> table:table-cell nue', strpos($xml, '<table:table-cell/>') !== false, true);
+$assert('ods : nom de feuille échappé', strpos($xml, 'table:name="Prélèvements"') !== false, true);
+$assert('ods : racine document-content présente', strpos($xml, '<office:document-content') !== false, true);
+$xml_lb = psc_ods_content_xml('Feuille', array('H'), array(array("ligne1\nligne2")));
+$assert('ods : retour à la ligne -> text:line-break', strpos($xml_lb, '<text:line-break/>') !== false, true);
 
 /* ---------------------------------------------------------------- */
 

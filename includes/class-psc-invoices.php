@@ -44,12 +44,10 @@ class Psc_Invoices {
             return new WP_Error('invalid_month', __('Format de mois invalide.', 'periscolaire-registration'));
         }
 
-        // Un mois en cours peut encore recevoir des modifications
-        // jusqu'à son dernier jour : générer la facture avant qu'il soit
-        // terminé risquerait de la rendre incomplète ou incorrecte.
-        if ($mois >= current_time('Y-m')) {
-            return new WP_Error('month_not_finished', __('Ce mois n\'est pas encore terminé : les factures ne peuvent pas encore être générées.', 'periscolaire-registration'));
-        }
+        // Génération possible pour N'IMPORTE QUEL mois, passé ou futur :
+        // les montants viennent de la résolution du planning (rythmes +
+        // exceptions), déjà disponible pour les mois à venir — la mairie
+        // facture quand elle le décide, la régénération corrige.
 
         // Toutes les déclarations du mois, en un lot : les déclarations
         // viennent de la source de vérité unique (psc_is_declared /
@@ -57,11 +55,15 @@ class Psc_Invoices {
         $dates = Psc_School_Year::school_days_in_month($mois);
         if (!$dates) return 0;
 
+        // Sélection par déclarations réelles du mois, pas par statut
+        // actuel : un enfant sorti depuis reste facturé sur son mois
+        // passé, un enfant inscrit mais sans déclaration ce mois-là n'a
+        // rien à facturer. Les familles désactivées ne reçoivent rien.
         $t_child = psc_table('children');
         $children = $wpdb->get_results(
             "SELECT c.id, c.parent_id FROM $t_child c
              JOIN " . psc_table('parents') . " p ON p.id = c.parent_id
-             WHERE c.statut = 'actif' AND p.active = 1"
+             WHERE p.active = 1"
         );
         if (!$children) return 0;
 
@@ -97,7 +99,8 @@ class Psc_Invoices {
 
     /**
      * Génère (ou regénère) la facture PDF d'une famille pour un mois donné.
-     * Regénérer réinitialise la date d'envoi.
+     * La génération et l'envoi sont décorrelés : régénérer remplace le
+     * calcul et le PDF mais conserve le statut d'envoi existant.
      * Retourne l'ID de la facture en base, ou WP_Error.
      */
     public static function generate_one($parent_id, $mois) {
@@ -170,8 +173,11 @@ class Psc_Invoices {
         ));
 
         if ($existing) {
+            // La génération et l'envoi sont DÉCORRÉLÉS : régénérer remplace
+            // le total et le PDF mais ne touche pas au statut d'envoi — la
+            // mairie décide seule de renvoyer (bouton Renvoyer).
             $wpdb->query($wpdb->prepare(
-                "UPDATE $t_inv SET total = %f, created_at = %s, sent_at = NULL WHERE id = %d",
+                "UPDATE $t_inv SET total = %f, created_at = %s WHERE id = %d",
                 $total, current_time('mysql'), $existing
             ));
             $invoice_id = (int) $existing;
@@ -203,6 +209,188 @@ class Psc_Invoices {
         $wpdb->update($t_inv, array('pdf_path' => $rel_path), array('id' => $invoice_id), array('%s'), array('%d'));
 
         return $invoice_id;
+    }
+
+    /**
+     * Supprime TOUTES les factures d'un mois : lignes en base et PDF du
+     * répertoire privé correspondant. Sans restriction de statut — la
+     * génération étant libre et décorrelée de l'envoi, c'est la mairie
+     * qui décide d'effacer un mois entier (y compris déjà envoyé) pour
+     * le repartir propre ; le confirm côté interface est le seul garde-fou,
+     * côté serveur c'est la capacité psc_manage qui protège.
+     *
+     * @param string $mois 'Y-m'
+     * @return int|WP_Error Nombre de factures supprimées.
+     */
+    public static function delete_month($mois) {
+        global $wpdb;
+
+        if (!preg_match('/^\d{4}-\d{2}$/', $mois)) {
+            return new WP_Error('invalid_month', __('Format de mois invalide.', 'periscolaire-registration'));
+        }
+
+        $t_inv = psc_table('invoices');
+
+        // PDF à effacer, lus AVANT la suppression des lignes.
+        $paths = $wpdb->get_col($wpdb->prepare(
+            "SELECT pdf_path FROM $t_inv WHERE mois = %s AND pdf_path IS NOT NULL AND pdf_path <> ''",
+            $mois
+        ));
+
+        $deleted = (int) $wpdb->query($wpdb->prepare(
+            "DELETE FROM $t_inv WHERE mois = %s",
+            $mois
+        ));
+
+        foreach ($paths as $rel) {
+            $abs = psc_private_path($rel);
+            if ($abs && file_exists($abs)) {
+                @unlink($abs); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+            }
+        }
+        // Le répertoire du mois, désormais vide, disparaît.
+        $dir = psc_private_path('periscolaire/factures/' . $mois);
+        if ($dir && is_dir($dir)) {
+            @rmdir($dir); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * Familles en prélèvement SEPA pour un mois, avec le montant de leur
+     * facture : matière de l'export .ods du backoffice (la mairie saisit
+     * les prélèvements une à une dans son outil bancaire — ce fichier lui
+     * donne tout ce qu'il faut, une ligne par famille).
+     *
+     * Exige que les factures du mois soient générées : le montant vient
+     * de la facture, pas d'un recalcul parallèle — la famille reçoit un
+     * PDF et la banque un prélèvement du MÊME montant.
+     *
+     * @param string $mois 'Y-m'
+     * @return array<int, array<string,mixed>>|WP_Error Liste vide si aucun
+     *                          prélèvement ; WP_Error 'not_generated' si le
+     *                          mois n'a pas été généré.
+     */
+    public static function sepa_rows($mois) {
+        global $wpdb;
+
+        if (!preg_match('/^\d{4}-\d{2}$/', $mois)) {
+            return new WP_Error('invalid_month', __('Format de mois invalide.', 'periscolaire-registration'));
+        }
+
+        $t_inv = psc_table('invoices');
+        $t_par = psc_table('parents');
+
+        $generated = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $t_inv WHERE mois = %s", $mois
+        ));
+        if (!$generated) {
+            return new WP_Error('not_generated', __('Générez d\'abord les factures du mois.', 'periscolaire-registration'));
+        }
+
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT i.id AS invoice_id, i.total, i.created_at,
+                    p.nom, p.prenom, p.email, p.sepa_iban, p.sepa_bic,
+                    p.sepa_titulaire, p.sepa_adresse, p.sepa_code_postal,
+                    p.sepa_ville, p.sepa_mandate_ref
+             FROM $t_inv i
+             JOIN $t_par p ON p.id = i.parent_id
+             WHERE i.mois = %s AND p.payment_mode = 'prelevement' AND p.active = 1
+             ORDER BY p.nom, p.prenom",
+            $mois
+        ));
+        if (!$rows) return array();
+
+        $out = array();
+        foreach ($rows as $r) {
+            // IBAN déchiffré : la banque a besoin du numéro complet. Une
+            // clé de chiffrement tournée rend le déchiffrement impossible :
+            // la cellule porte une mention visible, jamais un IBAN vide
+            // qui passerait inaperçu dans un lot de prélèvements.
+            $iban = psc_decrypt($r->sepa_iban);
+            $out[] = array(
+                'invoice_id'   => (int) $r->invoice_id,
+                'titulaire'    => trim((string) $r->sepa_titulaire) !== '' ? $r->sepa_titulaire : trim($r->prenom . ' ' . $r->nom),
+                'email'        => $r->email,
+                'iban'         => $iban !== null ? $iban : __('ILLISIBLE — ressaisir (clé de chiffrement changée)', 'periscolaire-registration'),
+                'bic'          => (string) $r->sepa_bic,
+                'adresse'      => (string) $r->sepa_adresse,
+                'code_postal'  => (string) $r->sepa_code_postal,
+                'ville'        => (string) $r->sepa_ville,
+                'mandate_ref'  => (string) $r->sepa_mandate_ref,
+                'invoice_ref'  => 'FC-' . str_replace('-', '', $mois) . '-' . (int) $r->invoice_id,
+                'mois_label'   => self::month_label($mois),
+                'montant'      => (float) $r->total,
+            );
+        }
+        return $out;
+    }
+
+    /**
+     * Construit le classeur .ods des prélèvements du mois dans le fichier
+     * temporaire donné — ZIP ODF minimal : mimetype non compressé en
+     * première entrée, manifeste, contenu. Ouvrable nativement dans
+     * LibreOffice Calc (cible) et Excel.
+     *
+     * @param string $target Chemin du fichier .ods à écrire.
+     * @param array  $rows   Retour de sepa_rows().
+     * @return true|WP_Error
+     */
+    public static function build_sepa_ods($target, array $rows) {
+        $headers = array(
+            __('Titulaire du compte', 'periscolaire-registration'),
+            __('E-mail', 'periscolaire-registration'),
+            __('IBAN', 'periscolaire-registration'),
+            __('BIC', 'periscolaire-registration'),
+            __('Adresse', 'periscolaire-registration'),
+            __('Code postal', 'periscolaire-registration'),
+            __('Ville', 'periscolaire-registration'),
+            __('Référence mandat SEPA', 'periscolaire-registration'),
+            __('N° facture', 'periscolaire-registration'),
+            __('Mois', 'periscolaire-registration'),
+            __('Montant à prélever (€)', 'periscolaire-registration'),
+            __('Objet du prélèvement', 'periscolaire-registration'),
+        );
+
+        $data = array();
+        foreach ($rows as $r) {
+            $data[] = array(
+                $r['titulaire'],
+                $r['email'],
+                $r['iban'],
+                $r['bic'],
+                $r['adresse'],
+                $r['code_postal'],
+                $r['ville'],
+                $r['mandate_ref'],
+                $r['invoice_ref'],
+                $r['mois_label'],
+                array('float' => $r['montant']),
+                __('Périscolaire — ', 'periscolaire-registration') . $r['mois_label'],
+            );
+        }
+
+        if (!class_exists('ZipArchive')) {
+            return new WP_Error('no_zip', __('L\'extension PHP ZipArchive est requise pour générer l\'export.', 'periscolaire-registration'));
+        }
+
+        $zip = new ZipArchive();
+        if ($zip->open($target, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            return new WP_Error('zip_fail', __('Création du fichier d\'export impossible.', 'periscolaire-registration'));
+        }
+        $zip->addFromString('mimetype', psc_ods_mimetype());
+        if (method_exists($zip, 'setCompressionIndex')) {
+            $zip->setCompressionIndex(0, ZipArchive::CM_STORE); // mimetype non compressé (convention ODF)
+        }
+        $zip->addFromString('META-INF/manifest.xml', psc_ods_manifest_xml());
+        $zip->addFromString('content.xml', psc_ods_content_xml(
+            __('Prélèvements', 'periscolaire-registration'),
+            $headers,
+            $data
+        ));
+        $zip->close();
+        return true;
     }
 
     /**

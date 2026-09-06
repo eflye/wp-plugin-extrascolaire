@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.4.3
+Stable tag: 5.5.0
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,27 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.5.0 =
+* Facturation libre : les factures se génèrent quand la mairie le décide,
+  pour N'IMPORTE QUEL mois — passé, courant ou futur (les montants futurs
+  viennent des rythmes et exceptions déjà déclarés). Sélection par
+  déclarations réelles du mois : un enfant sorti depuis reste facturé sur
+  son mois passé, une famille sans déclaration n'a rien à facturer.
+* Nouvelle suppression du mois : toutes les factures d'un mois (lignes et
+  PDF du répertoire privé) s'effacent en un clic confirmé, y compris les
+  déjà envoyées — la régénération repart de zéro.
+* Génération et envoi décorréliés : régénérer une facture remplace son
+  calcul et son PDF sans toucher à son statut d'envoi ; seul l'envoi (ou
+  le renvoi) met la date à jour.
+* Nouvel export prélèvements (SEPA) : fichier .ods (OpenDocument, natif
+  LibreOffice, lisible dans Excel) construit en PHP pur sans dépendance —
+  une ligne par famille en prélèvement avec IBAN déchiffré, BIC,
+  titulaire, adresse, référence de mandat, numéro de facture, montant du
+  mois et objet du prélèvement. Fichier téléchargé à la demande, jamais
+  stocké, téléchargement journalisé ; un IBAN illisible (clé de
+  chiffrement tournée) apparaît en clair dans la ligne comme « à
+  ressaisir ».
 
 = 5.4.3 =
 * Sécurité — révocation réelle des accès familles (P1 de l'audit) :

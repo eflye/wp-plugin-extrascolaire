@@ -7,7 +7,10 @@ $psc_notices = array(
     'generated'   => array('updated', __('Factures générées avec succès.', 'periscolaire-registration')),
     'gen_zero'    => array('warning', __('Aucune inscription trouvée pour ce mois.', 'periscolaire-registration')),
     'gen_error'   => array('error', __('Erreur lors de la génération.', 'periscolaire-registration')),
-    'month_not_finished' => array('error', __("Ce mois n'est pas encore terminé : impossible de générer les factures.", 'periscolaire-registration')),
+    'deleted'     => array('updated', __('Factures du mois supprimées (fichiers inclus).', 'periscolaire-registration')),
+    'sepa_need_generate' => array('warning', __('Générez d\'abord les factures du mois : l\'export des prélèvements reprend leur montant.', 'periscolaire-registration')),
+    'sepa_none'   => array('warning', __('Aucune famille en prélèvement (avec facture) pour ce mois.', 'periscolaire-registration')),
+    'sepa_failed' => array('error', __('Création du fichier d\'export impossible.', 'periscolaire-registration')),
     'sent'        => array('updated', __('Facture envoyée par e-mail.', 'periscolaire-registration')),
     'sent_all'    => array('updated', __('Toutes les factures ont été envoyées.', 'periscolaire-registration')),
     'mail_failed' => array('error', __("L'envoi du mail a échoué. Vérifiez la configuration e-mail.", 'periscolaire-registration')),
@@ -36,17 +39,33 @@ psc_admin_notice_map($psc_notices, $psc_msg);
         </label>
     </form>
 
-    <?php if ($selected_mois && $selected_mois < current_time('Y-m')): ?>
+    <?php if ($selected_mois): ?>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline;">
         <input type="hidden" name="action" value="psc_generate_invoices">
         <input type="hidden" name="mois" value="<?php echo esc_attr($selected_mois); ?>">
         <?php wp_nonce_field('psc_generate_invoices'); ?>
-        <button type="submit" class="button button-primary">
+        <button type="submit" class="button button-primary"
+                onclick="return confirm('<?php echo esc_js(__('Générer ou régénérer les factures de', 'periscolaire-registration')); ?> <?php echo esc_js(Psc_Invoices::month_label($selected_mois)); ?> <?php echo esc_js(__('? Les PDF existants seront remplacés ; le statut d\'envoi est conservé.', 'periscolaire-registration')); ?>');">
             &#8635; <?php esc_html_e('Générer / Regénérer les factures de', 'periscolaire-registration'); ?> <?php echo esc_html(Psc_Invoices::month_label($selected_mois)); ?>
         </button>
     </form>
-    <?php elseif ($selected_mois): ?>
-    <em><?php esc_html_e("Ce mois n'est pas encore terminé : les factures ne peuvent être générées qu'une fois le mois écoulé.", 'periscolaire-registration'); ?></em>
+    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline;">
+        <input type="hidden" name="action" value="psc_delete_invoices">
+        <input type="hidden" name="mois" value="<?php echo esc_attr($selected_mois); ?>">
+        <?php wp_nonce_field('psc_delete_invoices'); ?>
+        <button type="submit" class="button"
+                onclick="return confirm('<?php echo esc_js(__('Supprimer TOUTES les factures de', 'periscolaire-registration')); ?> <?php echo esc_js(Psc_Invoices::month_label($selected_mois)); ?> <?php echo esc_js(__('? Les fichiers PDF sont effacés, y compris celles déjà envoyées. Action irréversible.', 'periscolaire-registration')); ?>');">
+            &#10005; <?php esc_html_e('Supprimer les factures du mois', 'periscolaire-registration'); ?>
+        </button>
+    </form>
+    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline;">
+        <input type="hidden" name="action" value="psc_download_sepa">
+        <input type="hidden" name="mois" value="<?php echo esc_attr($selected_mois); ?>">
+        <?php wp_nonce_field('psc_download_sepa'); ?>
+        <button type="submit" class="button button-secondary" title="<?php echo esc_attr(__('Familles en prélèvement : IBAN, référence de mandat et montant de leur facture du mois (fichier .ods, ouvrable dans LibreOffice).', 'periscolaire-registration')); ?>">
+            &#8659; <?php esc_html_e('Export prélèvements (SEPA, .ods)', 'periscolaire-registration'); ?>
+        </button>
+    </form>
     <?php endif; ?>
 </div>
 
@@ -128,9 +147,9 @@ psc_admin_notice_map($psc_notices, $psc_msg);
 </tfoot>
 </table>
 
-<?php elseif ($selected_mois && $selected_mois < current_time('Y-m')): ?>
+<?php elseif ($selected_mois): ?>
 <p><?php esc_html_e('Aucune facture générée pour', 'periscolaire-registration'); ?> <?php echo esc_html(Psc_Invoices::month_label($selected_mois)); ?>.
-<?php esc_html_e('Cliquez sur « Générer » pour créer les factures à partir des inscriptions.', 'periscolaire-registration'); ?></p>
+<?php esc_html_e('Cliquez sur « Générer » pour créer les factures à partir des inscriptions du mois (déclarations réelles, mêmes futures).', 'periscolaire-registration'); ?></p>
 <?php endif; ?>
 <?php endif; ?>
 </div>

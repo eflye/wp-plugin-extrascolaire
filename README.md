@@ -2,7 +2,7 @@
 
 Plugin WordPress de gestion des services périscolaires municipaux : inscriptions des familles, planning annuel, garderies, cantine, midi sans repas, menus, commande fournisseur, pointage et facturation.
 
-**Version documentée : 5.2.0 — schéma de données 4.2.0 — 5 septembre 2026.** WordPress 5.8 minimum, PHP 7.4 minimum. L’environnement de développement local utilise **Podman**.
+**Version documentée : 5.5.0 — schéma de données 4.2.0 — 6 septembre 2026.** WordPress 5.8 minimum, PHP 7.4 minimum. L’environnement de développement local utilise **Podman**.
 
 Les familles utilisent un espace dédié sans compte WordPress. La mairie administre le service depuis le menu **Périscolaire**. Les intervenants disposent d’un écran de présence protégé par code. Aucun paiement en ligne ni émission de prélèvement bancaire n’est intégré.
 
@@ -23,6 +23,9 @@ Les familles utilisent un espace dédié sans compte WordPress. La mairie admini
 - [Points ouverts / à valider](#points-ouverts--à-valider)
 
 ## Fonctionnalités récentes
+
+- **5.5.0** : facturation libre — génération quand la mairie le veut, pour n'importe quel mois (passé, courant, futur), suppression du mois et régénération sans toucher au statut d'envoi ; export prélèvements SEPA du mois en fichier .ods (une ligne par famille : IBAN déchiffré, mandat, montant).
+- **5.4.2 et 5.4.3** : allergies conservées sur tout le parcours d'approbation (écran mairie, approbation manuelle et automatique) et rapprochement contrôlé des demandes déjà approuvées ; présence du midi pointable pour les enfants sans repas (déclaration MSR, flag mairie, forfait flégué) ; sécurité — révocation durable des accès familles (époques de session), chiffrement bancaire sans repli en clair, anti-cache `no-store`.
 
 - **5.2.0** : prestation « Midi sans repas » (MSR), indicateur mairie « Cantine sans repas » sur la fiche enfant, suppression du réglage de variante Planning.
 - **5.1 à 5.1.2** : seul le planning avec rythme et exceptions figure au menu, sous le nom **Planning** ; le raccourci « Déclarer un jour » y conduit. L’ancien écran jour par jour reste disponible par URL de compatibilité.
@@ -59,7 +62,7 @@ Une option de **validation automatique**, désactivée par défaut, ouvre direct
 
 ### Connexion sans mot de passe
 
-Un lien reçu par e-mail ouvre l’espace famille : validité de 30 minutes par défaut, session de 12 heures. Le lien reste réutilisable durant sa validité pour supporter les passerelles de messagerie qui préouvrent les liens. La déconnexion révoque la session concernée.
+Un lien reçu par e-mail ouvre l’espace famille : validité de 30 minutes par défaut, session de 12 heures. Le lien reste réutilisable durant sa validité pour supporter les passerelles de messagerie qui préouvrent les liens. La déconnexion révoque la session concernée ; un événement sensible (retrait ou remplacement du second parent, changement d’adresse du titulaire) révoque durablement TOUTES les sessions du foyer et le lien encore valable.
 
 Le second parent peut se connecter avec sa propre adresse au même foyer et exercer les mêmes actions. Une adresse déjà utilisée par un autre foyer est refusée. Désactiver une famille en mairie coupe son accès, même avec une session ouverte.
 
@@ -160,9 +163,11 @@ L’e-mail fournisseur présente un tableau par jour : **Standard / Sans porc / 
 
 ### Facturation
 
-Facturation **mensuelle après la fin du mois**, à partir des déclarations effectives et non du pointage SIDSCM. Génération d’un PDF par famille, détail par enfant et prestation, puis envoi individuel ou groupé. Les fichiers sont protégés et téléchargeables depuis l’espace famille.
+Facturation **libre** : la mairie génère les factures quand elle le décide, pour n'importe quel mois (passé, courant ou futur — les montants futurs viennent des rythmes et exceptions déjà déclarés). Un PDF par famille, détail par enfant et prestation, puis envoi individuel ou groupé. Un mois entier (lignes et PDF) se supprime en un clic confirmé pour être régénéré ; la génération et l'envoi sont décorréliés — régénérer conserve le statut d'envoi, seul l'envoi (ou renvoi) met la date à jour. Les fichiers sont protégés et téléchargeables depuis l'espace famille.
 
-Le forfait n’est pas facturé en plus de ses composantes. MSR possède son propre tarif. Les montants du planning restent des estimations ; les règlements sont traités hors plugin.
+Pour les familles en prélèvement, un **export SEPA du mois** (.ods OpenDocument, ouvrable dans LibreOffice) livre une ligne par famille : IBAN déchiffré, BIC, titulaire, adresse, référence de mandat, numéro de facture, montant du mois et objet du prélèvement. Le fichier est construit à la demande, jamais stocké, et son téléchargement est journalisé.
+
+Le forfait n'est pas facturé en plus de ses composantes. MSR possède son propre tarif ; le flag mairie « Cantine sans repas » bascule le forfait au tarif FSR. Les montants du planning restent des estimations ; les règlements sont traités hors plugin.
 
 ### Modèles e-mails et réglages
 
@@ -248,6 +253,9 @@ Le préfixe `wp_` ci-dessous dépend de l’installation WordPress.
 - Protection contre l'injection de formules CSV sur l'export.
 - Sessions familles signées côté serveur (cookie `HttpOnly`, `SameSite=Lax`, `Secure` en HTTPS) — aucun mot de passe stocké.
 - **La déconnexion invalide réellement la session.** Un cookie signé se vérifie sans rien consulter : le supprimer du navigateur n'en retire qu'une copie, et quiconque en détient une autre — poste partagé, profil synchronisé — pourrait s'en servir jusqu'à son expiration. Chaque session porte donc un identifiant propre, ajouté à une courte liste de révocation à la déconnexion. La liste ne grossit pas : chaque entrée s'efface en même temps que la session qu'elle invalide. L'identifiant étant propre à la session et non au foyer, un parent qui se déconnecte ne déconnecte pas l'autre — le compte est partagé entre les deux.
+- **La révocation des accès est durable, pas dépendante d'un cache.** Un registre d'époques de session vit en base : chaque cookie porte l'époque de son ouverture, et tout événement sensible (retrait ou remplacement du second parent, changement d'adresse du titulaire) incrémente le compteur du foyer — toutes les sessions antérieures meurent instantanément, même copiées ailleurs, même si un cache externe évince une révocation individuelle, et le lien de connexion encore valable est effacé. Les cookies antérieurs à ce mécanisme restent acceptés en époque 0, dans la limite de leur durée de 12 h.
+- **Aucun IBAN n'est jamais écrit en clair.** Sans primitive de chiffrement disponible, ou si le chiffrement échoue, l'enregistrement est REFUSÉ avec un message lisible (famille, demande publique) plutôt que d'écrire l'IBAN lisible en base ; la migration historique laisse les lignes en l'état et retente, idempotente.
+- **Aucun intermédiaire ne conserve les pages du plugin.** Le portail authentifie hors WordPress et des URL portent des jetons : tout le rendu (portail famille, espace intervenants, wizard public) émet `Cache-Control: no-store, no-cache, must-revalidate, private` — un cache d'extension, un CDN ou un proxy ne peut plus servir le HTML d'une famille à une autre.
 - **IBAN validé par clé de contrôle réelle** (mod-97, ISO 7064), BIC validé par format ; rejet côté serveur indépendant de la validation du navigateur.
 - IBAN affiché **masqué** dans les listes du backoffice (seuls le pays et les 4 derniers caractères apparaissent) ; il n'apparaît en clair que dans le formulaire de modification d'une famille, où la mairie en a besoin pour saisir le prélèvement dans son outil bancaire.
 - **IBAN chiffré au repos** (XSalsa20-Poly1305 via libsodium, repli AES-256-GCM) : une copie de la base — sauvegarde égarée, export SQL — ne livre aucune coordonnée bancaire exploitable. La clé vit dans `wp-config.php`, jamais en base. L'IBAN est également **effacé de la demande d'inscription dès son approbation**, puisqu'il a été reporté sur la fiche famille : il n'existe plus qu'à un seul endroit.

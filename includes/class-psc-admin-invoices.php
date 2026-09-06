@@ -11,6 +11,87 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
         add_action('admin_post_psc_send_invoice', array(__CLASS__, 'handle_send_invoice'));
         add_action('admin_post_psc_send_all_invoices', array(__CLASS__, 'handle_send_all_invoices'));
         add_action('admin_post_psc_download_invoice', array(__CLASS__, 'handle_download_invoice'));
+        add_action('admin_post_psc_delete_invoices', array(__CLASS__, 'handle_delete_invoices'));
+        add_action('admin_post_psc_download_sepa', array(__CLASS__, 'handle_download_sepa'));
+    }
+
+    /**
+     * Supprime toutes les factures d'un mois (lignes et PDF) — la mairie
+     * efface un mois pour le regénérer quand elle veut, y compris un mois
+     * déjà envoyé. La confirmation navigateur est le garde-fou côté UI.
+     */
+    public static function handle_delete_invoices() {
+        self::guard('psc_delete_invoices');
+
+        $mois = isset($_POST['mois']) ? sanitize_text_field(wp_unslash($_POST['mois'])) : '';
+        $result = Psc_Invoices::delete_month($mois);
+        if (is_wp_error($result)) {
+            self::redirect('psc_factures', 'invalid');
+        }
+
+        wp_safe_redirect(add_query_arg(
+            array('page' => 'psc_factures', 'mois' => $mois, 'psc_msg' => 'deleted'),
+            admin_url('admin.php')
+        ));
+        exit;
+    }
+
+    /**
+     * Export .ods des prélèvements SEPA du mois : une ligne par famille en
+     * prélèvement, montant de sa facture, IBAN déchiffré, référence de
+     * mandat — tout ce qu'il faut pour saisir les prélèvements dans
+     * l'outil bancaire de la mairie. Le fichier est construit à la volée,
+     * jamais stocké ; le téléchargement est journalisé (données bancaires).
+     */
+    public static function handle_download_sepa() {
+        self::guard('psc_download_sepa');
+
+        $mois = isset($_POST['mois']) ? sanitize_text_field(wp_unslash($_POST['mois'])) : '';
+        if (!preg_match('/^\d{4}-\d{2}$/', $mois)) {
+            self::redirect('psc_factures', 'invalid');
+        }
+
+        $rows = Psc_Invoices::sepa_rows($mois);
+        if (is_wp_error($rows)) {
+            // Le mois est préservé dans la redirection : retomber sur le
+            // premier mois de la liste (2029-09 avec les seeds) ferait
+            // croire à la mairie que c'est celui qu'elle a exporté.
+            wp_safe_redirect(add_query_arg(
+                array('page' => 'psc_factures', 'mois' => $mois, 'psc_msg' => $rows->get_error_code() === 'not_generated' ? 'sepa_need_generate' : 'invalid'),
+                admin_url('admin.php')
+            ));
+            exit;
+        }
+        if (!$rows) {
+            wp_safe_redirect(add_query_arg(
+                array('page' => 'psc_factures', 'mois' => $mois, 'psc_msg' => 'sepa_none'),
+                admin_url('admin.php')
+            ));
+            exit;
+        }
+
+        $tmp = tempnam(get_temp_dir(), 'psc-sepa-');
+        if (!$tmp) {
+            self::redirect('psc_factures', 'sepa_failed');
+        }
+        $built = Psc_Invoices::build_sepa_ods($tmp, $rows);
+        if (is_wp_error($built)) {
+            @unlink($tmp); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+            self::redirect('psc_factures', 'sepa_failed');
+        }
+
+        // Journalisation : mêmes règles que les autres lectures du
+        // répertoire privé — ce fichier contient des IBAN en clair.
+        psc_log_download('prelevements', 'periscolaire/factures/' . $mois . '/prelevements-' . $mois . '.ods');
+
+        $filename = 'prelevements-' . $mois . '.ods';
+        nocache_headers();
+        header('Content-Type: application/vnd.oasis.opendocument.spreadsheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . (string) filesize($tmp));
+        readfile($tmp);
+        @unlink($tmp); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        exit;
     }
 
     public static function handle_generate_invoices() {
@@ -23,8 +104,7 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
 
         $count = Psc_Invoices::generate_month($mois);
         if (is_wp_error($count)) {
-            $code = $count->get_error_code();
-            self::redirect('psc_factures', $code === 'month_not_finished' ? 'month_not_finished' : 'gen_error');
+            self::redirect('psc_factures', 'gen_error');
         }
 
         wp_safe_redirect(add_query_arg(

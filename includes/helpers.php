@@ -29,6 +29,7 @@ foreach (array(
     'session',
     'throttle',
     'files',
+    'ods',
     'settings',
     'admin-ui',
 ) as $psc_helper) {
