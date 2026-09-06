@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.5.1
+Stable tag: 5.5.2
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,11 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.5.2 =
+* Facture PDF : suppression de la mention nominative « Cantine sans repas »
+  au-dessus du tableau. Les prestations et tarifs du tableau sont conservés.
+* Test de non-régression sur le contenu du PDF.
 
 = 5.5.1 =
 * Facture PDF : un type de prestation sans aucune occurrence du mois ne

@@ -218,6 +218,7 @@ test.describe('Planning - 2 : rythme + exceptions (fonctionnel, base vérifiée)
         .map((match) => { try { return inflateSync(Buffer.from(match[1], 'latin1')).toString('latin1'); } catch { return ''; } }).join(' ');
       expect(text).toContain('Forfait sans repas cantine');
       expect(text).toContain('Cantine sans repas');
+      expect(text).not.toMatch(/[-—]\s*Cantine sans repas/);
     } finally {
       wpCliEval(`global $wpdb; $wpdb->update(psc_table('children'), array('cantine_sans_repas'=>0), array('id'=>${data.alice_id}));`);
     }

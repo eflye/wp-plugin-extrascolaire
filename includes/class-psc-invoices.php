@@ -793,14 +793,6 @@ class Psc_Invoices {
         $pdf->Cell($pw, 5, self::enc($month_label), 0, 1, 'L');
         $pdf->Ln(5);
 
-        // Statut explicite, une seule fois par enfant, avec retour à la ligne
-        // pour ne pas tronquer les noms longs dans les cellules du tableau.
-        foreach ($children as $child) {
-            if (empty($child->cantine_sans_repas)) continue;
-            $pdf->SetFont('Helvetica', 'I', 9);
-            $pdf->MultiCell($pw, 5, self::enc($child->nom . ' ' . $child->prenom . ' — ' . __('Cantine sans repas', 'periscolaire-registration')), 0, 'L');
-        }
-
         // ---- TABLEAU ----
         // Colonnes : nom (large) | tarif par prestation | nombre de prestations | total
         $cw = array(91, 28, 28, 23); // somme = 170
