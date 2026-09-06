@@ -228,6 +228,12 @@ function psc_billing_services(array $declared) {
     $out = array();
     if (!empty($declared[$forf])) {
         $out[] = $forf;
+        // Avec repas, les unités résolues décrivent les présences couvertes
+        // par le forfait, pas des prestations à facturer en supplément.
+        // Le traitement des journées sans repas reste indépendant.
+        if (!empty($declared['CANT']) && empty($declared[psc_midi_sans_repas_code()])) {
+            return $out;
+        }
     }
     foreach (psc_unit_services() as $svc) {
         if (!empty($declared[$svc])) $out[] = $svc;

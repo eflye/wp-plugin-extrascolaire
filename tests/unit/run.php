@@ -354,6 +354,23 @@ $assert('flag : rien de déclaré -> rien de converti', $conv[0]['MSR'], false);
 // 10. Facturation : un forfait déclaré (et réalisable) est facturé à lui
 //     seul, jamais cumulé avec ses composantes ; MSR se facture à part.
 $assert('facturation : forfait seul', psc_billing_services(array('FORF' => true, 'GM' => false, 'CANT' => false, 'GS' => false, 'MSR' => false)), array('FORF'));
+// Le résolveur rend aussi les unités couvertes présentes pour les listes
+// intervenants : elles ne doivent pas devenir des lignes facturées en plus.
+$forfait_repas = array();
+foreach (psc_allowed_services() as $svc) {
+    $forfait_repas[$svc] = psc_resolve_declaration(
+        $svc === 'FORF', $svc === 'FORF', null, true, null, true, true, true,
+        array('request' => $svc)
+    );
+}
+$assert('forfait repas : les trois présences sont couvertes', array($forfait_repas['GM'], $forfait_repas['CANT'], $forfait_repas['GS']), array(true, true, true));
+$assert('facturation : forfait repas résolu sans cumul des unités', psc_billing_services($forfait_repas), array('FORF'));
+$forfait_total = 0.0;
+foreach (psc_billing_services($forfait_repas) as $svc) {
+    $forfait_total += psc_services()[$svc]['price'];
+}
+$assert('facturation : forfait repas à 11,70 euros', round($forfait_total, 2), 11.70);
+$assert('facturation : forfait irréalisable, seules les unités restantes', psc_billing_services(array('FORF' => false, 'GM' => true, 'CANT' => true, 'GS' => false, 'MSR' => false)), array('GM', 'CANT'));
 $assert('facturation : unités sans forfait', psc_billing_services(array('FORF' => false, 'GM' => true, 'CANT' => false, 'GS' => true, 'MSR' => false)), array('GM', 'GS'));
 $assert('facturation : rien de déclaré', psc_billing_services(array('FORF' => false, 'GM' => false, 'CANT' => false, 'GS' => false, 'MSR' => false)), array());
 $assert('facturation : MSR facturé à part', psc_billing_services(array('FORF' => false, 'GM' => false, 'CANT' => false, 'GS' => false, 'MSR' => true)), array('MSR'));

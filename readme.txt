@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.2.0
+Stable tag: 5.2.1
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,12 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.2.1 =
+* Correction du forfait avec repas : les prestations couvertes (garderie
+  matin, cantine et garderie soir) ne sont plus facturées en supplément
+  du forfait. Le traitement des journées sans repas reste inchangé.
+* Test de régression sur la résolution du forfait et son montant.
 
 = 5.2.0 =
 * Nouvelle prestation « Midi sans repas » : l'enfant est présent sur le
