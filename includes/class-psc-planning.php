@@ -406,7 +406,7 @@ class Psc_Planning {
                     'origin'   => $origin,
                     'exception_value' => $exc,
                     'locked'   => $locked,
-                    'closed'   => $svc === $forf ? !$open['forf_open'] : !$open['services'][$svc],
+                    'closed'   => ($svc === 'CANT' && self::cantine_sans_repas_flag($child_id)) || ($svc === $forf ? !$open['forf_open'] : !$open['services'][$svc]),
                     'price'    => (float) psc_services()[$svc]['price'],
                 );
             }
@@ -663,7 +663,7 @@ class Psc_Planning {
                         'explicit' => (bool) $explicit,
                         'declared' => (bool) $declared,
                         'locked'   => psc_is_locked($date),
-                        'closed'   => $svc === $forf ? !$open['forf_open'] : !$open['services'][$svc],
+                        'closed'   => ($svc === 'CANT' && self::cantine_sans_repas_flag($cid)) || ($svc === $forf ? !$open['forf_open'] : !$open['services'][$svc]),
                     );
                 }
             }
@@ -689,6 +689,10 @@ class Psc_Planning {
         $child_id = (int) $child_id;
         $date = psc_valid_date($date);
         if (!$child_id || !$date || !psc_is_valid_service($service_code)) {
+            return array('status' => 'invalid');
+        }
+
+        if ($on && $service_code === 'CANT' && self::cantine_sans_repas_flag($child_id)) {
             return array('status' => 'invalid');
         }
 
@@ -787,6 +791,9 @@ class Psc_Planning {
         $weekday  = (int) $weekday;
         $on = (bool) $on;
         if (!$child_id || $year_key === '' || !in_array($weekday, self::WEEKDAYS, true) || !psc_is_valid_service($service_code)) {
+            return array('status' => 'invalid');
+        }
+        if ($on && $service_code === 'CANT' && self::cantine_sans_repas_flag($child_id)) {
             return array('status' => 'invalid');
         }
         if (!Psc_School_Year::get($year_key)) {
@@ -940,6 +947,10 @@ class Psc_Planning {
             foreach (self::WEEKDAYS as $weekday) {
                 foreach (psc_allowed_services() as $svc) {
                     $want = !empty($source[$weekday][$svc]);
+                    if (self::cantine_sans_repas_flag($tid)) {
+                        if ($svc === 'CANT') $want = false;
+                        if ($svc === psc_midi_sans_repas_code()) $want = $want || !empty($source[$weekday]['CANT']);
+                    }
                     $r = self::toggle_pattern($tid, $year_key, $weekday, $svc, $want);
                     if ($r['status'] === 'ok') {
                         if ($want) $copied++;

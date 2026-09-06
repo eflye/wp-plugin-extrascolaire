@@ -30,7 +30,8 @@ class Psc_Admin_Cantine extends Psc_Admin_Base {
             $jours[$jour] = isset($_POST[$jour]) ? wp_unslash($_POST[$jour]) : '';
         }
 
-        $result = Psc_Menus::save($id, $semaine, $jours);
+        $origin = isset($_POST['origine_viande']) && is_string($_POST['origine_viande']) ? wp_unslash($_POST['origine_viande']) : null;
+        $result = Psc_Menus::save($id, $semaine, $jours, $origin);
         if (is_wp_error($result)) {
             self::redirect('psc_menus', 'invalid');
         }

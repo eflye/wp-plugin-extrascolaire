@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.2.0';
+    const DB_VERSION = '4.3.0';
     const ROLES_VERSION = '1.0.0';
 
     public static function activate() {
@@ -1070,6 +1070,7 @@ CREATE TABLE $t_menu (
             mardi TEXT NULL,
             jeudi TEXT NULL,
             vendredi TEXT NULL,
+            origine_viande TEXT NULL,
             sent_at DATETIME NULL,
             created_at DATETIME NOT NULL,
             updated_at DATETIME NOT NULL,

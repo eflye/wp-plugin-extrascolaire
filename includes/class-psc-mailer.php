@@ -425,6 +425,12 @@ class Psc_Mailer {
                 . '</tr>';
         }
         $body .= '</table>';
+        $origin = Psc_Menus::meat_origin($menu);
+        if ($has_content && $origin !== '') {
+            $body .= '<div style="border-left:3px solid #E08A5F;background:#FAF6F1;padding:12px 16px;margin:16px 0;color:#24405C;">'
+                . '<h3 style="margin:0 0 6px;font-size:14px;">' . esc_html__('Origine de la viande', 'periscolaire-registration') . '</h3>'
+                . '<p style="margin:0;font-size:13px;line-height:1.6;">' . nl2br(esc_html($origin)) . '</p></div>';
+        }
         if (!$has_content) {
             $body .= '<p style="color:#8B8279;font-size:14px;font-style:italic;">' . __('Menu non encore renseigné pour cette semaine.', 'periscolaire-registration') . '</p>';
         }

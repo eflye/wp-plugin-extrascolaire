@@ -16,6 +16,15 @@ class Psc_Menus {
     /** Décalage en jours depuis le lundi de la semaine. */
     const JOUR_OFFSETS = array('lundi' => 0, 'mardi' => 1, 'jeudi' => 3, 'vendredi' => 4);
 
+    public static function default_meat_origin() {
+        return __('Les viandes de bœuf, volaille, porc et de veau qui vous sont servies sont issues d’animaux nés, élevés et abattus en France et pouvant être issue de l’agriculture biologique.', 'periscolaire-registration');
+    }
+
+    /** Une valeur vide enregistrée masque volontairement la mention. */
+    public static function meat_origin($menu) {
+        return $menu && isset($menu->origine_viande) ? trim((string) $menu->origine_viande) : '';
+    }
+
     public static function jour_labels() {
         return array(
             'lundi'     => __('Lundi', 'periscolaire-registration'),
@@ -64,7 +73,7 @@ class Psc_Menus {
      *
      * Renvoie l'id du menu, ou un WP_Error si la semaine est invalide.
      */
-    public static function save($id, $semaine_debut, array $jours) {
+    public static function save($id, $semaine_debut, array $jours, $origine_viande = null) {
         global $wpdb;
         $t = psc_table('menus');
 
@@ -91,6 +100,12 @@ class Psc_Menus {
             $id = (int) $existing->id;
         }
         $id = absint($id);
+        // Les anciens appelants qui ne transmettent pas le champ conservent
+        // la valeur existante. Le formulaire transmet toujours sa valeur.
+        if ($origine_viande !== null) {
+            $data['origine_viande'] = mb_substr(sanitize_textarea_field($origine_viande), 0, 2000);
+            $format[] = '%s';
+        }
 
         if ($id) {
             $wpdb->update($t, $data, array('id' => $id), $format, array('%d'));

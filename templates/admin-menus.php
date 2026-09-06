@@ -47,6 +47,13 @@ psc_admin_notice_map($psc_notices, $psc_msg);
     </td>
 </tr>
 <?php endforeach; ?>
+<tr>
+    <th><label for="psc-menu-origine-viande"><?php esc_html_e('Origine de la viande', 'periscolaire-registration'); ?></label></th>
+    <td>
+        <textarea id="psc-menu-origine-viande" name="origine_viande" rows="4" class="large-text" maxlength="2000"><?php echo esc_textarea($editing && isset($editing->origine_viande) ? $editing->origine_viande : Psc_Menus::default_meat_origin()); ?></textarea>
+        <p class="description"><?php esc_html_e('Mention affichée sous le menu de cette semaine et dans son e-mail. Laissez vide pour ne pas l’afficher.', 'periscolaire-registration'); ?></p>
+    </td>
+</tr>
 </table>
 <?php submit_button($editing ? __('Enregistrer les modifications', 'periscolaire-registration') : __('Enregistrer le menu', 'periscolaire-registration')); ?>
 </form>

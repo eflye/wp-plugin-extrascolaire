@@ -114,6 +114,7 @@ class Psc_Frontend_Menus extends Psc_Frontend_Base {
             'has_content'     => !empty($days),
             'no_school_week'  => !self::week_has_school_day($menu_week),
             'days'            => $days,
+            'origine_viande'  => Psc_Menus::meat_origin(Psc_Menus::get_by_week($menu_week)),
             'prev_url'        => add_query_arg(array_merge($extra_args, array('psc_semaine' => $prev_week)), $base),
             'next_url'        => add_query_arg(array_merge($extra_args, array('psc_semaine' => $next_week)), $base),
             'reset_url'       => $extra_args ? add_query_arg($extra_args, $base) : $base,

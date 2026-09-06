@@ -21,6 +21,12 @@
   </tr>
   <?php endforeach; ?>
 </table>
+<?php if (!empty($psc_portal_menu['origine_viande'])): ?>
+<aside class="psc-menu-origin" data-testid="menu-meat-origin">
+  <h3><?php esc_html_e('Origine de la viande', 'periscolaire-registration'); ?></h3>
+  <p><?php echo nl2br(esc_html($psc_portal_menu['origine_viande'])); ?></p>
+</aside>
+<?php endif; ?>
 <?php elseif ($psc_portal_menu['no_school_week']): ?>
 <p class="psc-portal-menu-empty" data-testid="portal-menu-no-school"><?php esc_html_e("Pas d'école cette semaine (vacances scolaires) : pas de périscolaire ni de cantine.", 'periscolaire-registration'); ?></p>
 <?php else: ?>

@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.3.0
+Stable tag: 5.4.0
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,18 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.4.0 =
+* Menus : champ « Origine de la viande » prérempli dans le backoffice,
+  modifiable par semaine. La mention figure sous le menu public, dans
+  le portail et dans l'e-mail ; une valeur vide la masque.
+* Schéma 4.3.0 : ajout de la colonne origine_viande aux menus.
+  Les anciens menus restent inchangés avant leur enregistrement.
+* Enfants marqués « Cantine sans repas » : sélection Cantine désactivée
+  dans le planning, ajouts refusés côté serveur, y compris en lot.
+  La copie du rythme à la fratrie adapte Cantine en Cantine sans repas
+  pour les enfants concernés. Le libellé de la prestation est harmonisé.
+* Tests navigateur et intégration du champ menu, avec e-mails interceptés.
 
 = 5.3.0 =
 * Nouveau tarif « Forfait sans repas cantine » : 9 € par défaut, modifiable

@@ -176,6 +176,7 @@ $psc_active_year = $psc_year_summary['year']['per_child'][$psc_active_child_id] 
                       class="psc-pat-btn<?php echo $on ? ' is-on' : ''; ?>"
                       data-weekday="<?php echo esc_attr($wd); ?>"
                       data-service="<?php echo esc_attr($code); ?>"
+                      <?php disabled($code === 'CANT' && $psc_active_sans_repas); ?>
                       data-testid="pattern-<?php echo esc_attr($wd); ?>-<?php echo esc_attr($code); ?>"
                       aria-pressed="<?php echo $on ? 'true' : 'false'; ?>"
                       aria-label="<?php echo esc_attr($jour_label . ' — ' . $psc_services[$code]['label'] . ' — ' . $psc_active_name); ?>">

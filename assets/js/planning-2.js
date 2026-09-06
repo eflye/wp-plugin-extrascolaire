@@ -77,7 +77,8 @@
             btn.classList.toggle('is-on', on);
             btn.setAttribute('aria-pressed', on ? 'true' : 'false');
             btn.textContent = on ? '✓' : '';
-            btn.disabled = false;
+            var active = activeChildMeta();
+            btn.disabled = svc === 'CANT' && !!(active && active.cantine_sans_repas);
         });
         var child = activeChildMeta();
         if (child) grid.dataset.child = String(child.id);

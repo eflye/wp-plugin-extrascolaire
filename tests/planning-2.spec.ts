@@ -152,8 +152,22 @@ test.describe('Planning - 2 : rythme + exceptions (fonctionnel, base vérifiée)
     try {
       await page.reload();
       await expect(page.getByTestId('planning-sans-repas')).toBeVisible();
+      await expect(page.getByTestId('pattern-2-CANT')).toBeDisabled();
+      await expect(page.getByTestId('pattern-2-MSR')).toBeEnabled();
+      await expect(page.getByTestId(`exc-${data.free_date}-CANT`)).toBeDisabled();
+      const blocked = JSON.parse(wpCliEval(`echo json_encode(array(
+        Psc_Planning::toggle_pattern(${data.alice_id}, '${data.year_key}', 2, 'CANT', true)['status'],
+        Psc_Planning::toggle_exception(${data.alice_id}, '${data.free_date}', 'CANT', true)['status'],
+        Psc_Planning::toggle_exception_bulk(${data.alice_id}, array('${data.free_date}'), 'CANT', true)
+      ));`));
+      expect(blocked).toEqual(['invalid', 'invalid', []]);
+      await page.getByTestId('pattern-2-MSR').click();
+      await expect(page.getByTestId('pattern-2-MSR')).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.getByTestId('pattern-2-CANT')).toBeDisabled();
+
       await page.getByTestId(`child-tab-${data.bob_id}`).click();
       await expect(page.getByTestId('planning-sans-repas')).toBeHidden();
+      await expect(page.getByTestId('pattern-2-CANT')).toBeEnabled();
       await page.getByTestId(`child-tab-${data.alice_id}`).click();
       await expect(page.getByTestId('planning-sans-repas')).toBeVisible();
       await page.goto(`${APP_BASE}/?psc_tab=enfants`);

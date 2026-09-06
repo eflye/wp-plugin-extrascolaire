@@ -142,7 +142,7 @@ function psc_services() {
         'CANT' => array('label' => __('Cantine', 'periscolaire-registration'), 'price' => 5.80),
         'GS'   => array('label' => __('Garderie Soir', 'periscolaire-registration'), 'price' => 4.70),
         'FORF' => array('label' => __('Forfait journée', 'periscolaire-registration'), 'price' => 11.70),
-        'MSR'  => array('label' => __('Midi sans repas', 'periscolaire-registration'), 'price' => 1.00),
+        'MSR'  => array('label' => __('Cantine sans repas', 'periscolaire-registration'), 'price' => 1.00),
     );
     $saved = get_option('psc_service_prices', array());
     if (is_array($saved)) {
