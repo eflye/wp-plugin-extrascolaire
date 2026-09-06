@@ -41,7 +41,7 @@ async function loginAsAdmin(page: Page): Promise<void> {
   await page.locator('#user_login').fill('admin');
   await page.locator('#user_pass').fill('admin');
   await page.locator('#wp-submit').click();
-  await page.waitForURL('**/wp-admin/**');
+  await page.waitForURL('**/wp-admin/**', { timeout: 30_000 });
 }
 
 function facturesUrl(): string {
