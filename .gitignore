@@ -52,3 +52,10 @@ wp-cli.local.yml
 # Artefacts vidéo/planche-contact générés localement (non versionnés)
 /demo-*.mp4
 /planche*.png
+
+# Livrables et documents de travail hors dépôt
+claude-export.zip
+claude-export/
+rapport-audit-*.html
+/*.zip
+theme/Archive/Archive.zip
