@@ -101,8 +101,15 @@ function psc_resolve_declaration($is_forfait, $pattern, $exception, $forf_patter
             return $pattern ? true : $forf_effectif;
         }
         // MSR : l'enfant est là sans repas. Jamais de repli forfait — le
-        // forfait couvre le déjeuner à la cantine, pas l'inverse.
+        // forfait couvre le déjeuner à la cantine, pas l'inverse. SEULE
+        // exception : l'enfant flagué « cantine sans repas » par la mairie
+        // (slot 'msr_forf_repli') — son forfait devient un forfait SANS
+        // repas (facturé FSR), son créneau du midi est une présence sans
+        // repas décrite par MSR, pas par la cantine.
         if ($cant_active) return false;
+        if (!empty($slot['msr_forf_repli'])) {
+            return $pattern ? true : $forf_effectif;
+        }
         return (bool) $pattern;
     }
 
@@ -196,7 +203,17 @@ function psc_cantine_sans_repas_convert(array $pats, array $exc) {
     }
 
     $pats[$msr]  = !empty($pats[$msr]) || !empty($pats['CANT']);
-    $exc[$msr]   = $merged_exc;
+    // Clé POSÉE seulement pour une exception explicite : un null (pas
+    // d'exception) doit rester une ABSENCE de clé, sinon le site d'appel
+    // la transformerait en retrait (bool) null = false et tuerait le repli
+    // forfait du midi sans repas. CANT, elle, est explicitement false :
+    // sa neutralisation ne doit jamais laisser le repli forfait redéclarer
+    // un repas de cantine.
+    if ($merged_exc !== null) {
+        $exc[$msr] = $merged_exc;
+    } else {
+        unset($exc[$msr]);
+    }
     $pats['CANT'] = false;
     $exc['CANT']  = false;
 

@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.4.1
+Stable tag: 5.4.2
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,22 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.4.2 =
+* Inscriptions publiques — les allergies ne sont plus perdues à la
+  validation : la relecture d'une demande (écran mairie et approbation
+  automatique) restitue désormais l'allergie déclarée, la fiche enfant
+  la porte, l'alerte PAI part et les listes intervenants/commande
+  fournisseur en tiennent compte.
+* Demandes d'inscription — rapprochement contrôlé : les demandes déjà
+  approuvées dont la fiche enfant est restée sans allergie sont listées
+  sur l'écran mairie ; un report en un clic complète les fiches vides
+  (jamais une fiche déjà renseignée) et déclenche le rappel PAI.
+* Espace intervenants — un enfant présent à midi sans repas (déclaration
+  MSR ou flag mairie « cantine sans repas », y compris au forfait) est
+  désormais pointable sur l'onglet cantine : la présence est affichée
+  ET acceptée par le contrôle serveur ; le forfait d'un enfant flégué
+  décrit son midi comme « sans repas » (facturation FSR inchangée).
 
 = 5.4.1 =
 * Planning cantine2 : pour les enfants « Cantine sans repas », la colonne

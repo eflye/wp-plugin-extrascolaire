@@ -10,8 +10,36 @@ $psc_notices = array(
     'invalid'    => array('error', __('Demande introuvable ou déjà traitée.', 'periscolaire-registration')),
     'need_child' => array('error', __('Indiquez au moins un enfant (nom et prénom) avant de valider.', 'periscolaire-registration')),
     'child_bad_birthdate' => array('error', __('Date de naissance incohérente : jamais dans le futur, et au moins 3 ans au 1er septembre de l\'année en cours.', 'periscolaire-registration')),
+    'allergies_reconciled' => array('success', __('Allergies reportées sur les fiches enfants manquantes ; la mairie reçoit le rappel PAI pour chaque enfant complété.', 'periscolaire-registration')),
+    'allergies_nothing' => array('warning', __('Aucune fiche à compléter : déjà à jour, ou correspondance nom/prénom introuvable.', 'periscolaire-registration')),
 );
 psc_admin_notice_map($psc_notices, $psc_msg); ?>
+
+<?php if (!empty($psc_allergies_gaps)): ?>
+<div class="psc-box" style="border-left:4px solid #9E4A4A;">
+  <h2 style="margin-top:0;"><?php esc_html_e('Allergies non reportées sur les fiches enfants', 'periscolaire-registration'); ?></h2>
+  <p>
+    <?php esc_html_e("Des demandes déjà validées portent une allergie alimentaire que la fiche enfant créée ne mentionne pas (défaut corrigé depuis). Le report complète les fiches restées vides et déclenche le rappel PAI ; il ne touche jamais une fiche déjà renseignée.", 'periscolaire-registration'); ?>
+  </p>
+  <?php foreach ($psc_allergies_gaps as $gap): ?>
+    <div style="margin:10px 0;padding:8px 12px;background:#fff;border:1px solid #dcdcde;">
+      <strong><?php echo esc_html($gap['request']->email); ?></strong>
+      <?php foreach ($gap['children'] as $c): ?>
+        <div>
+          <?php echo esc_html($c['prenom'] . ' ' . $c['nom']); ?> —
+          <span style="color:#9E4A4A;"><?php echo esc_html($c['allergies']); ?></span>
+        </div>
+      <?php endforeach; ?>
+      <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin-top:8px;">
+        <?php wp_nonce_field('psc_reconcile_request_allergies'); ?>
+        <input type="hidden" name="action" value="psc_reconcile_request_allergies">
+        <input type="hidden" name="id" value="<?php echo esc_attr($gap['request']->id); ?>">
+        <button class="button button-small"><?php esc_html_e('Reporter les allergies sur les fiches', 'periscolaire-registration'); ?></button>
+      </form>
+    </div>
+  <?php endforeach; ?>
+</div>
+<?php endif; ?>
 
 <div class="psc-box">
 <p>

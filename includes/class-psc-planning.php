@@ -74,7 +74,8 @@ class Psc_Planning {
 
         // Enfant « cantine sans repas » : ses déclarations de cantine valent
         // midi sans repas (cf. psc_cantine_sans_repas_convert()).
-        if (self::cantine_sans_repas_flag($child_id)) {
+        $csr = self::cantine_sans_repas_flag($child_id);
+        if ($csr) {
             list($pats, $exc) = psc_cantine_sans_repas_convert($pats, $exc);
         }
 
@@ -87,7 +88,7 @@ class Psc_Planning {
             $open['day_open'],
             $service_code === psc_forfait_code() ? true : $open['services'][$service_code],
             $open['forf_open'],
-            self::midi_slot($service_code, $pats, $exc)
+            self::midi_slot($service_code, $pats, $exc, $csr)
         );
 
         self::$single_cache[$key] = $value;
@@ -125,9 +126,11 @@ class Psc_Planning {
     /**
      * Données du créneau du midi (pattern + exception de CANT et de MSR)
      * pour l'arbitrage du résolveur — cf. psc_resolve_declaration().
-     * Vide pour toute prestation hors créneau du midi.
+     * Vide pour toute prestation hors créneau du midi. $cantine_sans_repas
+     * (flag mairie) autorise le repli forfait du MSR : le midi d'un forfait
+     * sans repas est une présence sans repas.
      */
-    protected static function midi_slot($service_code, array $pats, array $exc) {
+    protected static function midi_slot($service_code, array $pats, array $exc, $cantine_sans_repas = false) {
         $msr = psc_midi_sans_repas_code();
         if ($service_code !== 'CANT' && $service_code !== $msr) {
             return array();
@@ -138,6 +141,7 @@ class Psc_Planning {
             'cant_exception' => array_key_exists('CANT', $exc) ? (bool) $exc['CANT'] : null,
             'msr_pattern'    => !empty($pats[$msr]),
             'msr_exception'  => array_key_exists($msr, $exc) ? (bool) $exc[$msr] : null,
+            'msr_forf_repli' => (bool) $cantine_sans_repas,
         );
     }
 
@@ -267,7 +271,7 @@ class Psc_Planning {
                         $open['day_open'],
                         $svc === $forf ? true : $open['services'][$svc],
                         $open['forf_open'],
-                        self::midi_slot($svc, $pats, $exc)
+                        self::midi_slot($svc, $pats, $exc, !empty($csr_flags[$cid]))
                     );
                 }
             }

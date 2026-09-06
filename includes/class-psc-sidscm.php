@@ -198,7 +198,17 @@ class Psc_Sidscm {
         if (!in_array($date, array_values(psc_open_days($monday)), true)) {
             wp_send_json_error(array('code' => 'not_open'), 400);
         }
-        if (!self::is_expected($child_id, $date, $service)) {
+        $expected = self::is_expected($child_id, $date, $service);
+        if (!$expected && $service === 'CANT') {
+            // Présence au créneau du midi SANS repas (MSR — enfant flagué
+            // « cantine sans repas » ou déclaration explicite) : la liste
+            // de l'onglet cantine la fusionne déjà (cf. le payload) ; le
+            // pointage part avec la clé CANT du créneau, elle doit donc
+            // être acceptée, sinon une présence affichée est impossible
+            // à pointer.
+            $expected = Psc_Planning::is_declared($child_id, $date, psc_midi_sans_repas_code());
+        }
+        if (!$expected) {
             wp_send_json_error(array('code' => 'not_expected'), 400);
         }
     }

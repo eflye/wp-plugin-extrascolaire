@@ -1,0 +1,235 @@
+/**
+ * P0-01 — Les allergies déclarées à l'inscription publique doivent suivre
+ * TOUT le parcours d'approbation :
+ *  1. la demande publique stocke l'allergie (children_json) ;
+ *  2. la relecture (children_of) la restitue — l'écran de validation
+ *     mairie l'affiche, l'édition des autres champs ne l'efface pas ;
+ *  3. l'approbation MANUELLE crée la fiche avec l'allergie et déclenche
+ *     le rappel PAI ;
+ *  4. l'approbation AUTOMATIQUE (confirmation d'adresse par le parent)
+ *     fait de même ;
+ *  5. le rapprochement contrôlé complète les fiches des demandes
+ *     approuvées AVANT le correctif, sans jamais écraser une fiche déjà
+ *     renseignée.
+ *
+ * Chaque vérification coute la base (wp-cli) au rendu : le rendu peut
+ * mentir, pas la table psc_children.
+ */
+
+import { test, expect, type Page } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
+import { readFormPageUrl } from '../playwright/seed-result';
+import { findLatestMessage } from '../helpers/mailpit';
+
+const APP_BASE = 'http://localhost:8080';
+const ENGINE = process.env.PSC_CONTAINER_ENGINE ?? 'podman';
+const CONTAINER = process.env.PSC_WP_CONTAINER ?? 'plugin-extrascolaire-wordpress-1';
+const CONTAINER_WP_CLI = '/usr/local/bin/wp-cli.phar';
+
+const ALLERGIES = 'Arachides — PAI requis (E2E)';
+const PDF_BYTES = Buffer.from(
+  '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n',
+  'utf8'
+);
+
+function wpCli(args: string[]): string {
+  return execFileSync(
+    ENGINE,
+    ['exec', CONTAINER, 'php', CONTAINER_WP_CLI, ...args, '--path=/var/www/html', '--allow-root'],
+    { encoding: 'utf8' }
+  ).trim();
+}
+
+function wpCliEval(php: string): string {
+  return wpCli(['eval', php]);
+}
+
+function childAllergies(email: string, prenom: string): string {
+  const out = wpCliEval(
+    `global $wpdb;
+     $p = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}psc_parents WHERE email = %s", '${email}'));
+     echo (string) $wpdb->get_var($wpdb->prepare("SELECT IFNULL(food_allergies,'') FROM {$wpdb->prefix}psc_children WHERE parent_id = %d AND prenom = %s", $p, '${prenom}'));`
+  );
+  return out.split('\n').filter(Boolean).reverse().find((l) => !l.startsWith('Warning')) ?? '';
+}
+
+/** Destinataire des alertes PAI : la mairie (option, à défaut admin_email). */
+function mairieEmail(): string {
+  return wpCliEval(
+    `echo (string) psc_mairie_email();`
+  );
+}
+
+async function loginAsAdmin(page: Page): Promise<void> {
+  await page.goto(`${APP_BASE}/wp-login.php`);
+  await page.locator('#user_login').fill('admin');
+  await page.locator('#user_pass').fill('admin');
+  await page.locator('#wp-submit').click();
+  await page.waitForURL('**/wp-admin/**');
+}
+
+/**
+ * Remplit et envoie le wizard public avec UN enfant, allergy facultative.
+ */
+async function submitRequest(page: Page, email: string, prenom: string, allergies: string | null) {
+  await page.goto(readFormPageUrl());
+
+  // Étape 0 — coordonnées. L'adresse passe par la saisie manuelle : le
+  // mode par défaut (autocomplétion BAN) masque le champ réel derrière
+  // une recherche réseau, hors de propos pour ce test.
+  await page.locator('#psc-req-email').fill(email);
+  await page.locator('#psc-req-prenom').fill('Famille');
+  await page.locator('#psc-req-nom').fill('TestDemande');
+  await page.locator('#psc-req-tel').fill('06 12 34 56 78');
+  await page.getByTestId('address-toggle').click();
+  await page.locator('#psc-req-adresse').fill('1 rue de la Mairie');
+  await page.locator('#psc-req-cp').fill('95830');
+  await page.locator('#psc-req-ville').fill('Montgeroult');
+  await page.getByTestId('wizard-next').click();
+
+  // Étape 1 — l'enfant (+ allergie déclarée le cas échéant).
+  await page.locator('#psc-cp-0').fill(prenom);
+  await page.locator('#psc-cn-0').fill('TestDemande');
+  await page.locator('#psc-cc-0').selectOption({ label: 'CP' });
+  await page.locator('#psc-cb-0').fill('2020-03-01');
+  await page.locator('#psc-ca-0').setInputFiles({
+    name: 'assurance.pdf',
+    mimeType: 'application/pdf',
+    buffer: PDF_BYTES,
+  });
+  if (allergies !== null) {
+    await page.locator('input[name="child_has_allergy_0"]').check();
+    await page.locator('textarea[name="child_food_allergies_0"]').fill(allergies);
+  }
+  await page.getByTestId('wizard-next').click();
+
+  // Étape 2 — paiement « autre » par défaut ; étape 3 — règlement à
+  // approuver avant l'envoi.
+  await page.getByTestId('wizard-next').click();
+  await page.locator('input[name="reglement_accepted"]').check();
+  await page.getByTestId('wizard-submit').click();
+  await expect(page.getByTestId('notice-request_sent')).toBeVisible();
+}
+
+async function verifyLink(email: string, page: Page) {
+  const mail = await findLatestMessage(email, 'Confirmez votre demande');
+  const match = mail.Text.match(/https?:\/\/\S*psc_vtoken=[0-9a-f]+/);
+  expect(match, 'lien de confirmation introuvable dans le mail').toBeTruthy();
+  await page.goto(match![0]);
+}
+
+test.describe('P0-01 — allergies et approbation des demandes', () => {
+  test.beforeEach(async () => {
+    // Parcours par défaut : approbation manuelle par la mairie.
+    wpCli(['option', 'update', 'psc_auto_approve_requests', '0']);
+    // Purge des exécutions précédentes de CE spec (les demandes
+    // approuvées restent 90 jours en base et alourdiraient les écrans).
+    wpCliEval(
+      `global $wpdb;
+       foreach (array('demande-manuelle.e2e+', 'demande-auto.e2e+', 'demande-rap-proch.e2e+') as $prefix) {
+         $like = $prefix . '%@example.test';
+         $wpdb->query($wpdb->prepare("DELETE r FROM {$wpdb->prefix}psc_requests r WHERE r.email LIKE %s", $like));
+         $ids = $wpdb->get_col($wpdb->prepare("SELECT id FROM {$wpdb->prefix}psc_parents WHERE email LIKE %s", $like));
+         foreach ((array) $ids as $id) { $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}psc_parents WHERE id = %d", $id)); }
+       }`
+    );
+  });
+
+  test('approbation manuelle : allergie affichée, conservation malgré la correction mairie, alerte PAI', async ({ page }) => {
+    const email = `demande-manuelle.e2e+${Date.now()}@example.test`;
+    page.on('dialog', (d) => d.accept());
+
+    await submitRequest(page, email, 'Zoé', ALLERGIES);
+    await verifyLink(email, page);
+
+    // Écran mairie : l'allergie est affichée (le décodeur la restitue).
+    await loginAsAdmin(page);
+    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_requests`);
+    const box = page.locator(`.psc-request:has-text("${email}")`);
+    await expect(box).toBeVisible();
+    await expect(box.locator(`text=${ALLERGIES}`)).toBeVisible();
+
+    // La mairie corrige le prénom : l'allergie doit suivre (re-dérivée
+    // de la demande par index, jamais écrasée par l'édition).
+    await box.locator('input[name="child_prenom_0"]').fill('Zoé-Corrigée');
+    await box.locator('button:has-text("Valider et donner l\'accès")').click();
+    // La notice admin de cet écran ne porte pas de testid : texte du bandeau.
+    await expect(page.locator('.notice-success:has-text("Demande validée")')).toBeVisible();
+
+    // Fiche enfant : prénom corrigé ET allergie conservée.
+    const stored = childAllergies(email, 'Zoé-Corrigée');
+    expect(stored).toContain('Arachides');
+
+    // Alerte PAI envoyée à la MAIRIE pour l'enfant complété.
+    const pai = await findLatestMessage(mairieEmail(), 'Allergie alimentaire déclarée');
+    expect(pai.Subject).toContain('Zoé-Corrigée');
+  });
+
+  test('approbation automatique : fiche créée avec allergie et alerte PAI', async ({ page }) => {
+    const email = `demande-auto.e2e+${Date.now()}@example.test`;
+    wpCli(['option', 'update', 'psc_auto_approve_requests', '1']);
+
+    await submitRequest(page, email, 'Léo', ALLERGIES);
+    await verifyLink(email, page);
+
+    // Auto-approbation : le parent arrive directement dans son espace.
+    await expect(page.getByTestId('notice-welcome')).toBeVisible();
+
+    const stored = childAllergies(email, 'Léo');
+    expect(stored).toContain('Arachides');
+
+    const pai = await findLatestMessage(mairieEmail(), 'Allergie alimentaire déclarée');
+    expect(pai.Subject).toContain('Léo');
+  });
+
+  test('rapprochement contrôlé : les demandes déjà approuvées complètent les fiches vides', async ({ page }) => {
+    const email = `demande-rap-proch.e2e+${Date.now()}@example.test`;
+
+    // Simule l'état d'avant correctif : demande approuvée dont la fiche
+    // enfant (créée sans allergie) existe, children_json intact.
+    wpCliEval(
+      `global $wpdb;
+       $wpdb->query('START TRANSACTION');
+       $wpdb->insert($wpdb->prefix.'psc_parents', array('email' => '${email}', 'nom' => 'Rapproch', 'active' => 1, 'created_at' => current_time('mysql')), array('%s','%s','%d','%s'));
+       $pid = (int) $wpdb->insert_id;
+       $wpdb->insert($wpdb->prefix.'psc_children', array('parent_id' => $pid, 'nom' => 'Rapproch', 'prenom' => 'Mila', 'statut' => 'actif', 'created_at' => current_time('mysql')), array('%d','%s','%s','%s','%s'));
+       $cid = (int) $wpdb->insert_id;
+       $json = json_encode(array(array('nom' => 'Rapproch', 'prenom' => 'Mila', 'classe' => 'CP', 'date_naissance' => '2020-03-01', 'sans_porc' => 0, 'vegan' => 0, 'food_allergies' => '${ALLERGIES}', 'personnes_autorisees' => array())));
+       $wpdb->insert($wpdb->prefix.'psc_requests', array('email' => '${email}', 'children_json' => $json, 'status' => 'approved', 'verified' => 1, 'decided_at' => current_time('mysql'), 'created_at' => current_time('mysql')), array('%s','%s','%s','%d','%s','%s'));
+       $wpdb->query('COMMIT');
+       echo (string) $cid;`
+    );
+
+    await loginAsAdmin(page);
+    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_requests`);
+
+    // La section de rapprochement liste la demande et l'enfant concerné.
+    // (L'e-mail apparaît aussi dans l'historique « Traitées » et dans les
+    // autres blocs de rapprochement : on cible le bloc qui porte le
+    // bouton de report ET l'e-mail de CE test.)
+    const gapSection = page.locator('.psc-box').filter({ hasText: 'Allergies non reportées' });
+    const reportButton = page.locator('button:has-text("Reporter les allergies sur les fiches")');
+    const gapBlock = gapSection
+      .locator('div')
+      .filter({ has: reportButton })
+      .filter({ hasText: email })
+      .last();
+    await expect(gapBlock).toBeVisible();
+    await expect(gapBlock).toContainText('Arachides');
+    await gapBlock.locator('button:has-text("Reporter les allergies sur les fiches")').click();
+    // Notice admin sans testid sur cet écran : texte du bandeau.
+    await expect(page.locator('.notice-success:has-text("Allergies reportées")')).toBeVisible();
+
+    // La fiche est complétée, l'alerte PAI partie ; un second passage
+    // n'a plus rien à faire (idempotent).
+    expect(childAllergies(email, 'Mila')).toContain('Arachides');
+    await findLatestMessage(mairieEmail(), 'Allergie alimentaire déclarée');
+    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_requests`);
+    await expect(
+      page
+        .locator('.psc-box')
+        .filter({ hasText: 'Allergies non reportées' })
+        .filter({ hasText: email })
+    ).toHaveCount(0);
+  });
+});

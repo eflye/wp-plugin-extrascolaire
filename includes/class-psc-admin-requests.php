@@ -27,6 +27,11 @@ class Psc_Admin_Requests extends Psc_Admin_Base {
              ORDER BY r.decided_at DESC LIMIT 100"
         );
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
+        // Demandes approuvées dont les allergies déclarées n'ont pas été
+        // reportées sur les fiches enfants (défaut du décodeur corrigé par
+        // ailleurs) : proposition de rapprochement contrôlé, cf.
+        // Psc_Requests::allergies_to_reconcile().
+        $psc_allergies_gaps = Psc_Requests::allergies_to_reconcile();
         include PSC_PATH . 'templates/admin-requests.php';
     }
 

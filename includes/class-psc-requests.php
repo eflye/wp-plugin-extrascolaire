@@ -28,6 +28,7 @@ class Psc_Requests {
         add_action('admin_post_psc_approve_request', array(__CLASS__, 'handle_approve'));
         add_action('admin_post_psc_reject_request', array(__CLASS__, 'handle_reject'));
         add_action('admin_post_psc_delete_request', array(__CLASS__, 'handle_delete'));
+        add_action('admin_post_psc_reconcile_request_allergies', array(__CLASS__, 'handle_reconcile_allergies'));
 
         // Purge automatique des demandes anciennes (RGPD : on ne conserve
         // pas indéfiniment les données de familles jamais inscrites).
@@ -133,6 +134,14 @@ class Psc_Requests {
                 'date_naissance'               => $naissance ?: '',
                 'sans_porc'                    => !empty($c['sans_porc']) ? 1 : 0,
                 'vegan'                        => !empty($c['vegan']) ? 1 : 0,
+                // Allergie alimentaire : information sanitaire déclarée à
+                // l'étape publique (handle_submit) et REVALIDÉE ici — le
+                // contenu stocké n'est jamais cru (même principe que les
+                // autres champs). Omettre cette clé faisait perdre
+                // l'allergie à chaque relecture de la demande : ni l'écran
+                // de validation mairie, ni l'approbation (fiche enfant,
+                // alerte PAI, listes intervenants) ne la voyaient plus.
+                'food_allergies'               => self::revalidate_allergies($c['food_allergies'] ?? ''),
                 'assurance_rel_path'           => isset($c['assurance_rel_path']) ? sanitize_text_field($c['assurance_rel_path']) : '',
                 'assurance_original_filename'  => isset($c['assurance_original_filename']) ? sanitize_text_field($c['assurance_original_filename']) : '',
                 'personnes_autorisees'         => self::pickup_persons_of($c),
@@ -140,6 +149,17 @@ class Psc_Requests {
             if (count($out) >= self::MAX_CHILDREN) break;
         }
         return $out;
+    }
+
+    /**
+     * Revalide une description d'allergie issue d'une source stockée
+     * (children_json) — même pipeline que la saisie publique : nettoyage,
+     * troncature à la longueur acceptée à l'inscription. Une valeur vide
+     * reste vide (enfant sans allergie déclarée).
+     */
+    protected static function revalidate_allergies($raw) {
+        $raw = is_string($raw) ? trim(sanitize_textarea_field($raw)) : '';
+        return $raw === '' ? '' : mb_substr($raw, 0, 1000);
     }
 
     /**
@@ -631,7 +651,10 @@ class Psc_Requests {
                 'assurance_original_filename'  => $req_children[$i]['assurance_original_filename'] ?? '',
                 // Comme le justificatif d'assurance : jamais re-lu depuis un
                 // champ POST (ce formulaire n'en propose pas l'édition),
-                // toujours re-dérivé de la demande d'origine par index.
+                // toujours re-dérivé de la demande d'origine par index —
+                // sinon l'édition mairie des autres champs effacerait
+                // l'allergie déclarée par la famille.
+                'food_allergies'               => $req_children[$i]['food_allergies'] ?? '',
                 'personnes_autorisees'         => $req_children[$i]['personnes_autorisees'] ?? array(),
             );
         }
@@ -648,6 +671,132 @@ class Psc_Requests {
         }
 
         Psc_Admin::redirect_public('psc_requests', 'approved');
+    }
+
+    /**
+     * Rapprochement contrôlé des demandes APPROUVÉES encore conservées :
+     * avant le correctif du décodeur, les allergies déclarées dans
+     * children_json étaient perdues à la relecture — les enfants créés à
+     * l'approbation (manuelle ou automatique) ont pu sortir sans leur
+     * information sanitaire, sans alerte PAI ni mention sur les listes.
+     *
+     * Retourne les demandes approuvées dont au moins un enfant déclaré
+     * avec allergie correspond à une fiche enfant SANS allergie
+     * renseignée : appariement par famille (e-mail) puis par nom + prénom,
+     * jamais d'écrasement — une fiche qui porte déjà une allergie (saisie
+     * plus récente par la famille ou la mairie) est laissée telle quelle.
+     * Format : [ ['request' => WP_Post-like, 'children' => [
+     *            ['child_id'=>…, 'prenom'=>…, 'nom'=>…, 'allergies'=>…], … ]], … ]
+     */
+    public static function allergies_to_reconcile() {
+        global $wpdb;
+        $t_req  = psc_table('requests');
+        $t_par  = psc_table('parents');
+        $t_chil = psc_table('children');
+
+        $requests = $wpdb->get_results(
+            "SELECT r.* FROM $t_req r
+             INNER JOIN $t_par p ON p.email = r.email
+             WHERE r.status = 'approved'
+             ORDER BY r.decided_at DESC
+             LIMIT 100"
+        );
+        if (!$requests) return array();
+
+        $out = array();
+        foreach ($requests as $req) {
+            $parent_id = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM $t_par WHERE email = %s", $req->email
+            ));
+            if (!$parent_id) continue;
+
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT id, prenom, nom, food_allergies FROM $t_chil WHERE parent_id = %d ORDER BY id",
+                $parent_id
+            ));
+            if (!$rows) continue;
+
+            $fill = array();
+            foreach (self::children_of($req) as $declared) {
+                if (($declared['food_allergies'] ?? '') === '') continue;
+                foreach ($rows as $row) {
+                    // Appariement exact (collation insensible à la casse
+                    // et aux accents) ; une fiche portant déjà une allergie
+                    // n'est jamais touchée — la donnée la plus récente
+                    // reste maîtresse.
+                    if ($row->nom === $declared['nom'] && $row->prenom === $declared['prenom']) {
+                        if (trim((string) $row->food_allergies) === '') {
+                            $fill[] = array(
+                                'child_id'  => (int) $row->id,
+                                'prenom'    => $row->prenom,
+                                'nom'       => $row->nom,
+                                'allergies' => $declared['food_allergies'],
+                            );
+                        }
+                        break;
+                    }
+                }
+            }
+            if ($fill) {
+                $out[] = array('request' => $req, 'children' => $fill);
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Report effectif des allergies d'une demande approuvée sur les fiches
+     * enfants : complète UNIQUEMENT les fiches restées vides, envoie
+     * l'alerte PAI pour chaque enfant complété (elle n'est jamais partie :
+     * l'approbation d'origine n'a pas vu l'allergie), ne touche ni les
+     * fiches déjà renseignées ni les enfants sans correspondance.
+     */
+    public static function handle_reconcile_allergies() {
+        if (!psc_user_can_manage()) {
+            wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        }
+        check_admin_referer('psc_reconcile_request_allergies');
+
+        global $wpdb;
+        $req = self::get(psc_post_int('id'));
+        if (!$req || $req->status !== 'approved') {
+            Psc_Admin::redirect_public('psc_requests', 'invalid');
+        }
+
+        $parent_row = $wpdb->get_row($wpdb->prepare(
+            'SELECT * FROM ' . psc_table('parents') . ' WHERE email = %s', $req->email
+        ));
+        if (!$parent_row) {
+            Psc_Admin::redirect_public('psc_requests', 'invalid');
+        }
+
+        // Recalcul du rapprochement au moment de l'écriture : l'état a pu
+        // changer depuis l'affichage (famille ou mairie entre-temps).
+        $filled = 0;
+        foreach (self::allergies_to_reconcile() as $item) {
+            if ((int) $item['request']->id !== (int) $req->id) continue;
+            foreach ($item['children'] as $f) {
+                // Re-vérifie la fiche au moment d'écrire : $wpdb->update ne
+                // sait pas exprimer « food_allergies IS NULL » dans son
+                // WHERE, et la famille a pu compléter la fiche entre-temps.
+                $current = $wpdb->get_var($wpdb->prepare(
+                    'SELECT food_allergies FROM ' . psc_table('children') . ' WHERE id = %d', $f['child_id']
+                ));
+                if (trim((string) $current) !== '') continue;
+                $updated = $wpdb->update(
+                    psc_table('children'),
+                    array('food_allergies' => $f['allergies']),
+                    array('id' => $f['child_id']),
+                    array('%s'),
+                    array('%d')
+                );
+                if (false === $updated) continue; // échec SQL : rien reporté
+                $filled++;
+                Psc_Mailer::notify_food_allergy($parent_row, $f['child_id'], $f['allergies'], null);
+            }
+        }
+
+        Psc_Admin::redirect_public('psc_requests', $filled ? 'allergies_reconciled' : 'allergies_nothing');
     }
 
     /**

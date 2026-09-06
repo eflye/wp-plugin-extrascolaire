@@ -351,6 +351,27 @@ $assert('flag : ajout MSR gagne sur un retrait cantine', $conv[1]['MSR'], true);
 $conv = psc_cantine_sans_repas_convert(array(), array());
 $assert('flag : rien de déclaré -> rien de converti', $conv[0]['MSR'], false);
 
+// 10quinquies. Forfait + flag « cantine sans repas » : le midi du forfait
+//          est une présence SANS repas (slot 'msr_forf_repli') — présence
+//          décrite par MSR, cantine neutralisée, forfait inchangé.
+list($fp, $fe) = psc_cantine_sans_repas_convert(array('FORF' => true), array());
+$slot_repli = array('request' => 'MSR', 'cant_pattern' => false, 'cant_exception' => null, 'msr_pattern' => false, 'msr_exception' => null, 'msr_forf_repli' => true);
+$slot_cant_repli = $slot_repli;
+$slot_cant_repli['request'] = 'CANT';
+
+$assert('flag forfait : MSR déclaré (repli forfait du midi sans repas)', psc_resolve_declaration(false, !empty($fp['MSR']), $fe['MSR'] ?? null, true, null, true, true, true, $slot_repli), true);
+$assert('flag forfait : cantine non déclarée', psc_resolve_declaration(false, !empty($fp['CANT']), $fe['CANT'] ?? null, true, null, true, true, true, $slot_cant_repli), false);
+$assert('flag forfait : garderie matin couverte par le forfait', psc_resolve_declaration(false, false, null, true, null, true, true, true), true);
+$assert('flag forfait : facturation FSR (forfait sans repas)', psc_billing_services(array('FORF' => true, 'GM' => true, 'CANT' => false, 'GS' => true, 'MSR' => true), true), array('FSR'));
+
+// Retrait du midi respecté malgré le repli : l'exception de retrait (false)
+// fige l'absence du jour, même pour un enfant au forfait flégué.
+list($fp2, $fe2) = psc_cantine_sans_repas_convert(array('FORF' => true), array('MSR' => false));
+$assert('flag forfait : retrait MSR respecté malgré le repli', psc_resolve_declaration(false, !empty($fp2['MSR']), $fe2['MSR'], true, null, true, true, true, $slot_repli), false);
+
+// Sans le flag, le forfait n'implique jamais MSR (règle générale inchangée).
+$assert('sans flag : pas de repli forfait vers MSR', psc_resolve_declaration(false, false, null, true, null, true, true, true, array('request' => 'MSR', 'cant_pattern' => false, 'cant_exception' => null, 'msr_pattern' => false, 'msr_exception' => null, 'msr_forf_repli' => false)), false);
+
 // 10. Facturation : un forfait déclaré (et réalisable) est facturé à lui
 //     seul, jamais cumulé avec ses composantes ; MSR se facture à part.
 $assert('facturation : forfait seul', psc_billing_services(array('FORF' => true, 'GM' => false, 'CANT' => false, 'GS' => false, 'MSR' => false)), array('FORF'));
