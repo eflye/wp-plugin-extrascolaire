@@ -154,3 +154,14 @@ function psc_services() {
     }
     return $defaults;
 }
+
+/** Tarifs facturables : FSR est une variante du forfait, pas une case du planning. */
+function psc_billing_tariffs() {
+    $services = psc_services();
+    $saved = get_option('psc_service_prices', array());
+    $services['FSR'] = array(
+        'label' => __('Forfait sans repas cantine', 'periscolaire-registration'),
+        'price' => isset($saved['FSR']) ? max(0, (float) $saved['FSR']) : 9.00,
+    );
+    return $services;
+}

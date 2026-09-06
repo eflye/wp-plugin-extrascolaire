@@ -53,6 +53,7 @@ foreach ($children as $c) {
         'id'     => $cid,
         'name'   => trim($c->prenom . ' ' . $c->nom),
         'prenom' => $c->prenom,
+        'cantine_sans_repas' => !empty($c->cantine_sans_repas),
         'classe' => Psc_School_Years::classe_for($cid),
     );
 }
@@ -67,8 +68,9 @@ if (isset($psc_year_summary['months'][$psc_month_key]['per_child'])) {
     }
 }
 $psc_active_name = '';
+$psc_active_sans_repas = false;
 foreach ($children as $c) {
-    if ((int) $c->id === $psc_active_child_id) { $psc_active_name = $c->prenom; break; }
+    if ((int) $c->id === $psc_active_child_id) { $psc_active_name = $c->prenom; $psc_active_sans_repas = !empty($c->cantine_sans_repas); break; }
 }
 $psc_active_classe = Psc_School_Years::classe_for($psc_active_child_id);
 $psc_active_month = $psc_year_summary['months'][$psc_month_key]['per_child'][$psc_active_child_id] ?? array('days' => 0, 'amount' => 0.0);
@@ -143,6 +145,7 @@ $psc_active_year = $psc_year_summary['year']['per_child'][$psc_active_child_id] 
     <?php endforeach; ?>
   </div>
 
+  <p class="psc-badge psc-planning-sans-repas" data-testid="planning-sans-repas" role="status"<?php echo $psc_active_sans_repas ? '' : ' hidden'; ?>><?php esc_html_e('Cantine sans repas', 'periscolaire-registration'); ?></p>
   <div class="psc-planning-panels">
     <?php /* c. Étape 1 — rythme habituel (panneau gauche) */ ?>
     <div class="psc-planning-panel" data-testid="panel-rythme">

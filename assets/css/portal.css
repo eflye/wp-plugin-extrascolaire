@@ -2123,3 +2123,6 @@ button.psc-exc-locked[aria-pressed="false"] { background: transparent; border-co
     .psc-frieze-btn { min-width: 56px; }
     .psc-exc-bar { flex-wrap: wrap; }
 }
+
+/* Le badge hérite de display:inline-block ; respecter son état masqué. */
+.psc-planning-sans-repas[hidden] { display: none; }

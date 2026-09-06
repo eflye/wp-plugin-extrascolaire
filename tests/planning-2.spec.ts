@@ -145,6 +145,57 @@ test.describe('Planning - 2 : rythme + exceptions (fonctionnel, base vérifiée)
     await expect(page.getByTestId('exception-grid')).toBeVisible();
   });
 
+  test('forfait sans repas : tarif, résumés, badges et facture', async ({ page }) => {
+    wpCliEval(`global $wpdb;
+      $wpdb->update(psc_table('children'), array('cantine_sans_repas'=>1), array('id'=>${data.alice_id}));
+      Psc_Planning::toggle_pattern(${data.alice_id}, '${data.year_key}', 1, 'FORF', true);`);
+    try {
+      await page.reload();
+      await expect(page.getByTestId('planning-sans-repas')).toBeVisible();
+      await page.getByTestId(`child-tab-${data.bob_id}`).click();
+      await expect(page.getByTestId('planning-sans-repas')).toBeHidden();
+      await page.getByTestId(`child-tab-${data.alice_id}`).click();
+      await expect(page.getByTestId('planning-sans-repas')).toBeVisible();
+      await page.goto(`${APP_BASE}/?psc_tab=enfants`);
+      await expect(page.getByTestId(`portal-child-row-${data.alice_id}`)).toContainText('Cantine sans repas');
+      await expect(page.getByTestId(`portal-child-row-${data.bob_id}`)).not.toContainText('Cantine sans repas');
+
+      const result = JSON.parse(wpCliEval(`global $wpdb;
+        $child = $wpdb->get_row($wpdb->prepare('SELECT * FROM '.psc_table('children').' WHERE id=%d', ${data.alice_id}));
+        $tariffs = psc_billing_tariffs();
+        $dates = Psc_School_Year::school_days_in_month('${data.month}');
+        $map = Psc_Planning::declared_map(array($child->id), $dates);
+        $grid = array(); $amount = 0; $fsr = 0;
+        foreach ($map[$child->id] as $day) {
+          foreach (psc_billing_services($day, true) as $svc) {
+            $grid[$svc][$child->id] = ($grid[$svc][$child->id] ?? 0) + 1;
+            $amount += $tariffs[$svc]['price'];
+            if ($svc === 'FSR') $fsr++;
+          }
+        }
+        $summary = Psc_Planning::year_summary(array($child), '${data.year_key}');
+        $pdf = tempnam(sys_get_temp_dir(), 'psc-fsr-test-');
+        try {
+          $method = new ReflectionMethod('Psc_Invoices', 'build_pdf');
+          $method->setAccessible(true);
+          $method->invoke(null, (object) array('nom'=>'Famille test', 'email'=>'test@example.invalid'), '${data.month}', array($child), $grid, $tariffs, $pdf, 999);
+          echo json_encode(array('amount'=>round($amount,2), 'summary'=>round($summary['months']['${data.month}']['amount'],2), 'fsr'=>$fsr, 'price'=>$tariffs['FSR']['price'], 'pdf'=>base64_encode(file_get_contents($pdf))));
+        } finally { unlink($pdf); }
+      `));
+      expect(result.fsr).toBeGreaterThan(0);
+      expect(result.amount).toBe(result.summary);
+      expect(result.price).toBe(9);
+      const pdf = Buffer.from(result.pdf, 'base64').toString('latin1');
+      const { inflateSync } = await import('node:zlib');
+      const text = [...pdf.matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g)]
+        .map((match) => { try { return inflateSync(Buffer.from(match[1], 'latin1')).toString('latin1'); } catch { return ''; } }).join(' ');
+      expect(text).toContain('Forfait sans repas cantine');
+      expect(text).toContain('Cantine sans repas');
+    } finally {
+      wpCliEval(`global $wpdb; $wpdb->update(psc_table('children'), array('cantine_sans_repas'=>0), array('id'=>${data.alice_id}));`);
+    }
+  });
+
   test('menu : Planning - 1 sans lien de menu, Planning - 2 atteignable par URL', async ({ page }) => {
     // Le menu ne propose que Planning : le lien Planning - 1 a été retiré
     // de la navigation (l'écran reste atteignable par son URL directe,

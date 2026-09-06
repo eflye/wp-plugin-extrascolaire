@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.2.1
+Stable tag: 5.3.0
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,17 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.3.0 =
+* Nouveau tarif « Forfait sans repas cantine » : 9 € par défaut, modifiable
+  dans les Réglages avec les autres tarifs. Il s'applique automatiquement
+  lorsqu'un enfant marqué « Cantine sans repas » déclare un forfait,
+  sans cumul avec les prestations couvertes.
+* Les estimations mensuelles et annuelles et les nouvelles factures
+  utilisent ce tarif. Le PDF précise le statut « Cantine sans repas ».
+* Le statut apparaît dans Mes enfants et sur l'enfant actif du Planning,
+  y compris après un changement d'onglet enfant.
+* Tests unitaires et scénario navigateur avec vérification du PDF.
 
 = 5.2.1 =
 * Correction du forfait avec repas : les prestations couvertes (garderie

@@ -249,6 +249,10 @@
 
     function applyState(state) {
         if (!state) return;
+        if (state.children_list) boot.children = state.children_list;
+        var child = activeChildMeta();
+        var status = document.querySelector('[data-testid="planning-sans-repas"]');
+        if (status) status.hidden = !(child && child.cantine_sans_repas);
         renderExceptionTable(state);
         renderPatternGrid(state.patterns || (state.all_patterns || {})[boot.active_child]);
         renderFrieze(state.frieze);

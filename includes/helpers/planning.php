@@ -172,7 +172,8 @@ function psc_exception_write_decision($is_forfait, $pattern, $forf_pattern, $tar
  * Les données CANT alimentent MSR (pattern OU exception d'ajout — une
  * exception de retrait fige l'absence), les données CANT elles-mêmes sont
  * neutralisées, le forfait et les garderies ne changent pas : un enfant
- * au forfait reste facturé au forfait, son midi y est compris.
+ * au forfait reste déclaré au forfait, son midi y est compris. La
+ * tarification applique ensuite FSR lorsque le flag mairie est actif.
  *
  * @param array $pats {service_code => bool} patterns du jour.
  * @param array $exc  {service_code => bool|null} exceptions de la date.
@@ -222,8 +223,12 @@ function psc_is_declared($child_id, $date, $service_code) {
  * résolution — est facturé à lui seul, jamais cumulé avec ses composantes :
  * quand une composante est fermée, le forfait retombe sur les prestations
  * restantes (équivalent calculé de l'ancienne conversion FORF → unités).
+ * Le flag enfant sélectionne le tarif FSR pour un forfait sans repas.
  */
-function psc_billing_services(array $declared) {
+function psc_billing_services(array $declared, $cantine_sans_repas = false) {
+    if ($cantine_sans_repas && !empty($declared[psc_forfait_code()])) {
+        return array('FSR');
+    }
     $forf = psc_forfait_code();
     $out = array();
     if (!empty($declared[$forf])) {

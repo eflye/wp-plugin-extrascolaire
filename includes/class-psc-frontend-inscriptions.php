@@ -188,6 +188,7 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
                 'id'     => (int) $c->id,
                 'name'   => trim($c->prenom . ' ' . $c->nom),
                 'prenom' => $c->prenom,
+                'cantine_sans_repas' => !empty($c->cantine_sans_repas),
                 'classe' => Psc_School_Years::classe_for($c->id),
             );
             if ((int) $c->id === (int) $child_id) { $child = $c; }

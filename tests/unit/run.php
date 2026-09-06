@@ -56,7 +56,7 @@ if (!function_exists('__')) {
     function __($text, $domain = null) { return $text; }
 }
 if (!function_exists('get_option')) {
-    function get_option($name, $default = false) { return $default; }
+    function get_option($name, $default = false) { return $GLOBALS['psc_test_options'][$name] ?? $default; }
 }
 if (!function_exists('apply_filters')) {
     function apply_filters($tag, $value) { return $value; }
@@ -375,6 +375,17 @@ $assert('facturation : unités sans forfait', psc_billing_services(array('FORF' 
 $assert('facturation : rien de déclaré', psc_billing_services(array('FORF' => false, 'GM' => false, 'CANT' => false, 'GS' => false, 'MSR' => false)), array());
 $assert('facturation : MSR facturé à part', psc_billing_services(array('FORF' => false, 'GM' => false, 'CANT' => false, 'GS' => false, 'MSR' => true)), array('MSR'));
 $assert('facturation : MSR + garderies cumulés', psc_billing_services(array('FORF' => false, 'GM' => true, 'CANT' => false, 'GS' => true, 'MSR' => true)), array('GM', 'GS', 'MSR'));
+
+// Tarif dérivé du forfait pour les enfants signalés par la mairie.
+$assert('FSR : tarif par défaut', psc_billing_tariffs()['FSR']['price'], 9.0);
+$assert('FSR : pas de nouvelle case déclarable', psc_is_valid_service('FSR'), false);
+$assert('FSR : forfait enfant flagué, sans cumul', psc_billing_services($forfait_repas, true), array('FSR'));
+$assert('FSR : forfait enfant non flagué inchangé', psc_billing_services($forfait_repas, false), array('FORF'));
+$assert('FSR : midi seul reste MSR', psc_billing_services(array('MSR' => true), true), array('MSR'));
+$assert('FSR : forfait non réalisable, facturation des unités', psc_billing_services(array('FORF' => false, 'GM' => true, 'MSR' => true), true), array('GM', 'MSR'));
+$GLOBALS['psc_test_options']['psc_service_prices'] = array('FSR' => 8.50);
+$assert('FSR : tarif mairie personnalisé', psc_billing_tariffs()['FSR']['price'], 8.5);
+unset($GLOBALS['psc_test_options']);
 
 /* ---------------------------------------------------------------- */
 

@@ -17,7 +17,7 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         self::guard('psc_save_settings');
 
         $prices = array();
-        foreach (psc_allowed_services() as $code) {
+        foreach (array_keys(psc_billing_tariffs()) as $code) {
             $raw = isset($_POST['price_' . $code]) ? wp_unslash($_POST['price_' . $code]) : '0';
             $val = floatval(str_replace(',', '.', sanitize_text_field($raw)));
             $prices[$code] = max(0, min(1000, $val));
@@ -95,7 +95,7 @@ class Psc_Admin_Config extends Psc_Admin_Base {
 
     public static function page_settings() {
         if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
-        $services = psc_services();
+        $services = psc_billing_tariffs();
         $psc_classe_progression = Psc_School_Years::classe_progression();
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         include PSC_PATH . 'templates/admin-settings.php';

@@ -468,7 +468,9 @@ class Psc_Planning {
         $months = array_values(array_filter((array) $months, function ($m) {
             return is_string($m) && preg_match('/^\d{4}-\d{2}$/', $m);
         }));
-        $services = psc_services();
+        $services = psc_billing_tariffs();
+        $billing_flags = array();
+        foreach ($children as $child) $billing_flags[(int) $child->id] = !empty($child->cantine_sans_repas);
         $forf = psc_forfait_code();
 
         $per_child = array();
@@ -501,7 +503,7 @@ class Psc_Planning {
                     // déclaré se facture seul, « midi sans repas » se facture
                     // à part des unités comme du forfait.
                     $declared_day = isset($map[$cid][$date]) ? $map[$cid][$date] : array();
-                    $billed = psc_billing_services($declared_day);
+                    $billed = psc_billing_services($declared_day, !empty($billing_flags[$cid]));
                     $day_amount = 0.0;
                     foreach ($billed as $svc) {
                         $day_amount += (float) $services[$svc]['price'];
@@ -542,7 +544,9 @@ class Psc_Planning {
      *  'year'       => ['days' => n, 'amount' => f, 'per_child' => [cid => ['days','amount']]]
      */
     public static function year_summary($children, $year_key = null) {
-        $services = psc_services();
+        $services = psc_billing_tariffs();
+        $billing_flags = array();
+        foreach ($children as $child) $billing_flags[(int) $child->id] = !empty($child->cantine_sans_repas);
         $forf = psc_forfait_code();
 
         $year = $year_key !== null ? Psc_School_Year::get($year_key) : Psc_School_Year::active();
@@ -587,7 +591,7 @@ class Psc_Planning {
                     if (!in_array(true, $declared, true)) continue;
 
                     $day_amount = 0.0;
-                    $billed = psc_billing_services($declared);
+                    $billed = psc_billing_services($declared, !empty($billing_flags[$cid]));
                     foreach ($billed as $svc) {
                         $day_amount += (float) $services[$svc]['price'];
                     }

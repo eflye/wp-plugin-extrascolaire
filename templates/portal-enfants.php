@@ -26,6 +26,7 @@
       <td data-label="<?php esc_attr_e('Régime', 'periscolaire-registration'); ?>">
         <?php
           $psc_diet = array();
+          if (!empty($c->cantine_sans_repas)) $psc_diet[] = __('Cantine sans repas', 'periscolaire-registration');
           if ((int) $c->sans_porc === 1) $psc_diet[] = __('Sans porc', 'periscolaire-registration');
           if ((int) $c->vegan === 1) $psc_diet[] = __('Sans viande', 'periscolaire-registration');
         ?>

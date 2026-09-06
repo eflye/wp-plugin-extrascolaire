@@ -131,11 +131,13 @@ class Psc_Invoices {
         $declared = $dates ? Psc_Planning::declared_map($child_ids, $dates) : array();
 
         // Build grid[service_code][child_id] = count
+        $flags = array();
+        foreach ($children as $child) $flags[(int) $child->id] = !empty($child->cantine_sans_repas);
         $grid = array();
         $has_data = false;
         foreach ($declared as $cid => $by_date) {
             foreach ($by_date as $day) {
-                foreach (psc_billing_services($day) as $svc) {
+                foreach (psc_billing_services($day, !empty($flags[$cid])) as $svc) {
                     if (!isset($grid[$svc])) {
                         $grid[$svc] = array();
                     }
@@ -148,7 +150,7 @@ class Psc_Invoices {
             return new WP_Error('no_data', __('Aucune inscription ce mois-ci.', 'periscolaire-registration'));
         }
 
-        $services = psc_services();
+        $services = psc_billing_tariffs();
 
         // Compute total from grid
         $total = 0.0;
@@ -446,7 +448,7 @@ class Psc_Invoices {
      * @param string   $mois       YYYY-MM
      * @param object[] $children   All children of this parent
      * @param array    $grid       $grid[service_code][child_id] = count
-     * @param array    $services   psc_services() output
+     * @param array    $services   psc_billing_tariffs() output
      * @param string   $path       Absolute filesystem path for the PDF
      * @param int      $invoice_id Used to build the invoice number YY-MM-NNN
      * @return true|WP_Error
@@ -574,6 +576,14 @@ class Psc_Invoices {
         $pdf->Cell($pw, 5, self::enc($month_label), 0, 1, 'L');
         $pdf->Ln(5);
 
+        // Statut explicite, une seule fois par enfant, avec retour à la ligne
+        // pour ne pas tronquer les noms longs dans les cellules du tableau.
+        foreach ($children as $child) {
+            if (empty($child->cantine_sans_repas)) continue;
+            $pdf->SetFont('Helvetica', 'I', 9);
+            $pdf->MultiCell($pw, 5, self::enc($child->nom . ' ' . $child->prenom . ' — ' . __('Cantine sans repas', 'periscolaire-registration')), 0, 'L');
+        }
+
         // ---- TABLEAU ----
         // Colonnes : nom (large) | tarif par prestation | nombre de prestations | total
         $cw = array(91, 28, 28, 23); // somme = 170
@@ -600,6 +610,7 @@ class Psc_Invoices {
         $row_h       = 6;
 
         foreach ($services as $code => $svc) {
+            if ($code === 'FSR' && empty($grid[$code])) continue;
             $price = (float) $svc['price'];
 
             // Ligne service : #E4E4E4
