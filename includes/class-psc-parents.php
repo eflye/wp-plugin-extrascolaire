@@ -446,7 +446,7 @@ class Psc_Parents {
      * familles à la mise à jour, pour une fenêtre qui se referme seule en
      * moins de douze heures. Ils ne sont simplement pas révocables.
      *
-     * @return array{parent_id:string,expires:int,sid:string}|null
+     * @return array{parent_id:string,expires:int,sid:string,epoch:int}|null
      */
     protected static function read_session_cookie() {
         $name = psc_session_cookie_name();
