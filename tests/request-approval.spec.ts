@@ -69,9 +69,10 @@ async function loginAsAdmin(page: Page): Promise<void> {
 }
 
 /**
- * Remplit et envoie le wizard public avec UN enfant, allergy facultative.
+ * Remplit et envoie le wizard public avec UN enfant, allergy facultative
+ * et second parent facultatif.
  */
-async function submitRequest(page: Page, email: string, prenom: string, allergies: string | null) {
+async function submitRequest(page: Page, email: string, prenom: string, allergies: string | null, secondEmail?: string) {
   await page.goto(readFormPageUrl());
 
   // Étape 0 — coordonnées. L'adresse passe par la saisie manuelle : le
@@ -85,6 +86,11 @@ async function submitRequest(page: Page, email: string, prenom: string, allergie
   await page.locator('#psc-req-adresse').fill('1 rue de la Mairie');
   await page.locator('#psc-req-cp').fill('95830');
   await page.locator('#psc-req-ville').fill('Montgeroult');
+  if (secondEmail) {
+    await page.getByTestId('add-second-parent-button').click();
+    await page.locator('#psc-sp-prenom').fill('Second');
+    await page.locator('#psc-sp-email').fill(secondEmail);
+  }
   await page.getByTestId('wizard-next').click();
 
   // Étape 1 — l'enfant (+ allergie déclarée le cas échéant).
@@ -126,13 +132,20 @@ test.describe('P0-01 — allergies et approbation des demandes', () => {
     // approuvées restent 90 jours en base et alourdiraient les écrans).
     wpCliEval(
       `global $wpdb;
-       foreach (array('demande-manuelle.e2e+', 'demande-auto.e2e+', 'demande-rap-proch.e2e+') as $prefix) {
+       foreach (array('demande-manuelle.e2e+', 'demande-auto.e2e+', 'demande-rap-proch.e2e+', 'demande-revoc.e2e+') as $prefix) {
          $like = $prefix . '%@example.test';
          $wpdb->query($wpdb->prepare("DELETE r FROM {$wpdb->prefix}psc_requests r WHERE r.email LIKE %s", $like));
          $ids = $wpdb->get_col($wpdb->prepare("SELECT id FROM {$wpdb->prefix}psc_parents WHERE email LIKE %s", $like));
          foreach ((array) $ids as $id) { $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}psc_parents WHERE id = %d", $id)); }
        }`
     );
+  });
+
+  test.afterEach(async () => {
+    // Les tests qui activent l'approbation automatique doivent rendre
+    // l'option : un spec suivant qui soumet une demande s'attend à la
+    // trouver EN ATTENTE côté mairie, jamais approuvée à sa place.
+    wpCli(['option', 'update', 'psc_auto_approve_requests', '0']);
   });
 
   test('approbation manuelle : allergie affichée, conservation malgré la correction mairie, alerte PAI', async ({ page }) => {
@@ -180,6 +193,70 @@ test.describe('P0-01 — allergies et approbation des demandes', () => {
 
     const pai = await findLatestMessage(mairieEmail(), 'Allergie alimentaire déclarée');
     expect(pai.Subject).toContain('Léo');
+  });
+
+  test('révocation durable : retrait du second parent tue sessions et lien en attente', async ({ browser }) => {
+    const email = `demande-revoc.e2e+${Date.now()}@example.test`;
+    const second = `second-${email}`;
+    wpCli(['option', 'update', 'psc_auto_approve_requests', '1']);
+
+    // Famille créée avec second parent ; le parent titulaire est connecté
+    // par l'approbation automatique (session ouverte).
+    const page = await browser.newContext().then((c) => c.newPage());
+    await submitRequest(page, email, 'Iris', null, second);
+    await verifyLink(email, page);
+    await expect(page.getByTestId('notice-welcome')).toBeVisible();
+
+    // Un lien de connexion pour le SECOND parent, capturé AVANT le
+    // retrait — il doit devenir inutilisable.
+    const page2 = await browser.newContext().then((c) => c.newPage());
+    await page2.goto(readFormPageUrl());
+    await page2.getByTestId('login-email-input').fill(second);
+    await page2.getByTestId('login-submit-button').click();
+    const linkMail = await findLatestMessage(second, 'Votre lien d\'accès');
+    const linkMatch = linkMail.Text.match(/https?:\/\/\S*psc_token=[0-9a-f]+/);
+    expect(linkMatch, 'lien du second parent introuvable').toBeTruthy();
+
+    // Retrait du second parent depuis « Mon profil » (session titulaire).
+    const formUrl = readFormPageUrl();
+    const tabUrl = formUrl + (formUrl.includes('?') ? '&' : '?') + 'psc_tab=profil';
+    await page.goto(tabUrl);
+    // Popin de première connexion : « Passer » soumet un formulaire et
+    // redirige — on revient au profil, désormais sans popin.
+    const skip = page.getByTestId('onboarding-skip');
+    if (await skip.isVisible().catch(() => false)) {
+      await skip.click();
+      await page.waitForLoadState('load');
+      await page.goto(tabUrl);
+    }
+    await expect(page.getByTestId('profil-second-parent-block')).toBeVisible();
+    page.on('dialog', (d) => d.accept());
+    await page.getByTestId('profil-remove-second-parent').click();
+
+    // La session OUVERTE du titulaire meurt sur le champ (bump d'époque) :
+    // le portail retombe sur la vue invité — plus aucune donnée famille.
+    await page.goto(readFormPageUrl());
+    await expect(page.getByTestId('login-card')).toBeVisible();
+
+    // Le lien capturé du second parent est refusé : vue invité, jamais le
+    // portail.
+    await page2.goto(linkMatch![0]);
+    await expect(page2.getByTestId('login-card')).toBeVisible();
+
+    // Et le lien ne rouvre rien : l'époque du foyer a changé même pour un
+    // cookie fraîchement forgé depuis l'ancien jeton.
+    expect(await wpCliEval(
+      `global $wpdb;
+       $e = '${email}';
+       echo (string) $wpdb->get_var($wpdb->prepare("SELECT token_hash IS NULL FROM {$wpdb->prefix}psc_parents WHERE email = %s", $e));`
+    ).trim().split('\n').pop()).toBe('1');
+  });
+
+  test('en-têtes : aucune page du plugin ne doit être conservée par un intermédiaire', async ({ request }) => {
+    // P1-03 — le portail authentifie hors WordPress et des URL portent
+    // des jetons : un cache partagé ne doit jamais stocker ce rendu.
+    const resp = await request.get(readFormPageUrl());
+    expect((resp.headers()['cache-control'] ?? '')).toContain('no-store');
   });
 
   test('rapprochement contrôlé : les demandes déjà approuvées complètent les fiches vides', async ({ page }) => {

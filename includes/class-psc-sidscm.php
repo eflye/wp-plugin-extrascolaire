@@ -104,6 +104,17 @@ class Psc_Sidscm {
     }
 
     public static function shortcode($atts) {
+        // Listes nominatives + allergies + coordonnées de tiers : mêmes
+        // en-têtes anti-intermédiaires que le portail famille (cf.
+        // Psc_Frontend::shortcode()), et le code d'accès passe dans le
+        // rendu initial.
+        if (!headers_sent()) {
+            header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0', true);
+            header('Pragma: no-cache', true);
+            header('Expires: Wed, 11 Jan 1984 05:00:00 GMT', true);
+        }
+        nocache_headers();
+
         ob_start();
         include PSC_PATH . 'templates/sidscm.php';
         return ob_get_clean();

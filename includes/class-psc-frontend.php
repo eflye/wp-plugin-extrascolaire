@@ -541,6 +541,25 @@ class Psc_Frontend extends Psc_Frontend_Base {
     /* ---------------- Affichage ---------------- */
 
     public static function shortcode($atts) {
+        // AUCUN intermédiaire ne doit conserver ces pages : le portail
+        // authentifie un visiteur hors comptes WordPress (cookie
+        // psc_session) et des URL portant des jetons (liens de connexion)
+        // traversent le rendu invité. Un cache partagé — extension de
+        // cache WordPress, CDN, proxy d'hébergeur — qui traiterait ce
+        // cookie comme un marqueur anonyme pourrait servir le HTML d'une
+        // famille à une autre. `no-store` interdit aussi la conservation
+        // par le navigateur (retour arrière, instantanés de session) ;
+        // `private` interdit la mise en cache partagée même si un cache
+        // ignorait no-store. Émis au point d'entrée du rendu, avant tout
+        // octet de sortie — et toujours, vue connectée comme vue invité :
+        // le wizard public porte aussi des acceptations (SEPA, règlement).
+        if (!headers_sent()) {
+            header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0', true);
+            header('Pragma: no-cache', true);
+            header('Expires: Wed, 11 Jan 1984 05:00:00 GMT', true);
+        }
+        nocache_headers();
+
         ob_start();
 
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';

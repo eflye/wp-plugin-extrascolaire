@@ -47,6 +47,43 @@ function psc_session_is_revoked($sid) {
     return $sid !== '' && get_transient(psc_session_revoked_key($sid)) !== false;
 }
 
+/**
+ * ÉPOQUE DE SESSION d'un foyer — registre de révocation PERSISTANT.
+ *
+ * La révocation individuelle (transients ci-dessus) couvre la
+ * déconnexion, mais elle a deux angles morts : un cache externe peut
+ * évincer le transient avant son terme, et les événements sensibles
+ * (retrait du second parent, changement d'adresse du titulaire) exigent
+ * d'invalider TOUTES les sessions ouvertes du foyer et le lien commun
+ * encore valable — pas une session en particulier.
+ *
+ * L'époque est un simple compteur par foyer (option, donc en base) :
+ * chaque cookie de session porte l'époque de son ouverture, et toute
+ * lecture compare à l'époque courante. Un incrément invalide
+ * instantanément et de façon durable chaque cookie antérieur, même sans
+ * cache, même copié ailleurs. Les sessions ouvertes APRÈS l'incrément
+ * restent valides (elles portent la nouvelle époque).
+ *
+ * Les cookies antérieurs à ce mécanisme (sans époque, payload à 4 champs)
+ * valent époque 0 : ils restent acceptés jusqu'au premier incrément du
+ * foyer — fenêtre de migration limitée au TTL d'une session (12 h).
+ */
+function psc_session_epoch($parent_id) {
+    $map = get_option('psc_session_epoch', array());
+    if (!is_array($map)) return 0;
+    return isset($map[(int) $parent_id]) ? (int) $map[(int) $parent_id] : 0;
+}
+
+/** Invalide durablement toutes les sessions ouvertes du foyer. */
+function psc_bump_session_epoch($parent_id) {
+    $parent_id = (int) $parent_id;
+    if (!$parent_id) return;
+    $map = get_option('psc_session_epoch', array());
+    if (!is_array($map)) $map = array();
+    $map[$parent_id] = psc_session_epoch($parent_id) + 1;
+    update_option('psc_session_epoch', $map, false);
+}
+
 /** Durée de validité d'un lien de connexion envoyé par e-mail (réglable, Réglages > Demandes d'inscription). */
 function psc_login_link_ttl() {
     $minutes = (int) get_option('psc_login_link_ttl_minutes', 30);

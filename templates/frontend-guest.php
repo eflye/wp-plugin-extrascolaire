@@ -30,6 +30,7 @@
         'bad_iban'                => array('err', __('L\'IBAN saisi n\'est pas valide. Vérifiez sa saisie.', 'periscolaire-registration')),
         'bad_bic'                 => array('err', __('Le BIC saisi n\'est pas valide. Vérifiez sa saisie.', 'periscolaire-registration')),
         'bad_code_postal'         => array('err', __('Le code postal saisi n\'est pas valide. Vérifiez sa saisie.', 'periscolaire-registration')),
+        'crypto_unavailable'      => array('err', __('Le chiffrement de vos coordonnées bancaires est momentanément indisponible sur le serveur : votre demande n\'a pas été envoyée, aucune donnée n\'a été enregistrée. Réessayez plus tard ou contactez la mairie.', 'periscolaire-registration')),
         'second_parent_bad_email'   => array('err', __('L\'adresse e-mail du second parent n\'est pas valide.', 'periscolaire-registration')),
         'second_parent_bad_phone'   => array('err', __('Le numéro de téléphone du second parent n\'est pas valide.', 'periscolaire-registration')),
         'second_parent_email_taken' => array('err', __('Cette adresse e-mail est déjà utilisée par un autre foyer.', 'periscolaire-registration')),
@@ -47,7 +48,7 @@
         'need_child', 'child_incomplete', 'child_bad_birthdate', 'pickup_person_incomplete',
         'assurance_required', 'assurance_too_large', 'assurance_invalid_type',
         'reglement_required', 'sepa_reglement_required',
-        'sepa_missing', 'bad_iban', 'bad_bic', 'bad_code_postal',
+        'sepa_missing', 'bad_iban', 'bad_bic', 'bad_code_postal', 'crypto_unavailable',
         'second_parent_bad_email', 'second_parent_bad_phone', 'second_parent_email_taken',
     );
     if (!empty($psc_msg) && isset($psc_notices[$psc_msg]) && !in_array($psc_msg, $psc_wizard_messages, true)):

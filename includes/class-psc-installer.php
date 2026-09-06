@@ -226,9 +226,16 @@ class Psc_Installer {
             );
             foreach ($rows as $row) {
                 if (strpos((string) $row->sepa_iban, 'psc1:') === 0) continue; // déjà chiffré
+                // Chiffrement impossible (primitives indisponibles) : on
+                // laisse la ligne EN L'ÉTAT — la donnée existait déjà en
+                // clair, la migration ne doit ni l'écraser avec un
+                // WP_Error ni la faire disparaître. Relancer la migration
+                // (prochain chargement) réessaiera.
+                $enc = psc_encrypt($row->sepa_iban);
+                if (is_wp_error($enc)) continue;
                 $wpdb->update(
                     $table,
-                    array('sepa_iban' => psc_encrypt($row->sepa_iban)),
+                    array('sepa_iban' => $enc),
                     array('id' => $row->id),
                     array('%s'),
                     array('%d')

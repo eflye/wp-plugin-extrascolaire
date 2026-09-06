@@ -35,6 +35,16 @@ function psc_encryption_key() {
  * chiffrée n'est jamais re-chiffrée, ce qui évite toute une classe de bugs
  * quand une donnée transite d'une table à l'autre) et permet de reconnaître
  * les valeurs héritées restées en clair.
+ *
+ * ÉCHEC EXPLICITE : sans primitive disponible, ou si le chiffrement
+ * OpenSSL échoue, un WP_Error est renvoyé et la donnée n'est JAMAIS
+ * écrite en clair — l'appelant doit refuser l'enregistrement (réessayable
+ * une fois l'hébergement réparé) plutôt que de stocker un IBAN lisible
+ * dans la base. Un chiffrement qui échoue en silence est pire qu'un
+ * enregistrement refusé : la famille croit être protégée.
+ *
+ * @return string|WP_Error La valeur chiffrée, ou WP_Error('psc_crypto_unavailable')
+ *                        / WP_Error('psc_crypto_failed').
  */
 function psc_encrypt($value) {
     if ($value === null || $value === '') return $value;
@@ -53,11 +63,13 @@ function psc_encrypt($value) {
         $iv     = random_bytes(12);
         $tag    = '';
         $cipher = openssl_encrypt($value, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
-        if ($cipher === false) return $value;
+        if ($cipher === false) {
+            return new WP_Error('psc_crypto_failed', __('Le chiffrement des données bancaires a échoué : enregistrement refusé.', 'periscolaire-registration'));
+        }
         return 'psc1:' . base64_encode($iv . $tag . $cipher);
     }
 
-    return $value; // aucune primitive disponible : ne jamais perdre la donnée
+    return new WP_Error('psc_crypto_unavailable', __('Aucune primitive de chiffrement disponible sur le serveur : enregistrement refusé. Contactez l\'hébergeur (extension sodium ou OpenSSL requise).', 'periscolaire-registration'));
 }
 
 /**

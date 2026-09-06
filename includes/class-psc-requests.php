@@ -445,6 +445,14 @@ class Psc_Requests {
         }
 
         $token = bin2hex(random_bytes(32));
+        // Chiffrement AVANT insertion : sans primitive disponible (ou en
+        // cas d'échec), la demande est refusée avec un message lisible
+        // plutôt que d'enregistrer l'IBAN en clair (cf. psc_encrypt()).
+        $sepa_iban_enc = psc_encrypt($sepa_iban);
+        if (is_wp_error($sepa_iban_enc)) {
+            wp_safe_redirect(add_query_arg('psc_msg', 'crypto_unavailable', $back));
+            exit;
+        }
         $data = array(
             'email'                      => $email,
             'nom'                        => mb_substr($nom, 0, 190),
@@ -462,7 +470,7 @@ class Psc_Requests {
             'reglement_accepted_at'      => current_time('mysql'),
             'payment_mode'               => $payment_mode,
             'sepa_reglement_accepted_at' => $sepa_reglement_accepted_at,
-            'sepa_iban'                  => psc_encrypt($sepa_iban),
+            'sepa_iban'                  => $sepa_iban_enc,
             'sepa_bic'                   => $sepa_bic,
             'sepa_titulaire'             => mb_substr($sepa_titulaire, 0, 190) ?: null,
             'sepa_adresse'               => mb_substr($sepa_adresse, 0, 255) ?: null,

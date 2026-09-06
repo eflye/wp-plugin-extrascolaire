@@ -1,0 +1,73 @@
+{
+    "scenario": "Forfait seul au rythme",
+    "resolved": {
+        "GM": true,
+        "CANT": true,
+        "GS": true,
+        "FORF": true,
+        "MSR": false
+    },
+    "billing": [
+        "FORF",
+        "GM",
+        "CANT",
+        "GS"
+    ],
+    "amount": 24.049999999999997
+}
+{
+    "scenario": "Forfait + indicateur mairie cantine sans repas",
+    "resolved": {
+        "GM": true,
+        "CANT": false,
+        "GS": true,
+        "FORF": true,
+        "MSR": false
+    },
+    "billing": [
+        "FORF",
+        "GM",
+        "GS"
+    ],
+    "amount": 18.25
+}
+{
+    "scenario": "Retrait exceptionnel GM sur rythme forfait",
+    "resolved": {
+        "GM": false,
+        "CANT": true,
+        "GS": true,
+        "FORF": true,
+        "MSR": false
+    },
+    "billing": [
+        "FORF",
+        "CANT",
+        "GS"
+    ],
+    "amount": 22.2
+}
+{
+    "scenario": "Ajout exceptionnel MSR sur rythme forfait",
+    "resolved": {
+        "GM": true,
+        "CANT": false,
+        "GS": true,
+        "FORF": true,
+        "MSR": true
+    },
+    "billing": [
+        "FORF",
+        "GM",
+        "GS",
+        "MSR"
+    ],
+    "amount": 19.25
+}
+{"scenario":"Annuler GM couvert par exception FORF, sans rythme","decision":"delete"}
+{
+    "scenario": "Verrou 48h, mardi 8 septembre, samedi 5 à 23h Paris",
+    "deadline_local": "2026-09-06T00:00:00+02:00",
+    "expected_locked": false,
+    "actual_locked": true
+}

@@ -78,6 +78,11 @@ class Psc_Frontend_Profil extends Psc_Frontend_Base {
         $parent = self::authed_parent('psc_parent_update_second_parent');
         if (!$parent) self::parent_form_redirect('auth');
 
+        // Compare AVANT l'écriture : un remplacement du second parent est
+        // un changement d'identité d'accès — l'ancien titulaire de
+        // l'adresse perd sessions ouvertes et lien encore valable.
+        $previous_email = trim((string) $parent->second_parent_email);
+
         $result = Psc_Parents::update($parent->id, array(
             'second_parent_prenom'    => psc_post('second_parent_prenom'),
             'second_parent_nom'       => psc_post('second_parent_nom'),
@@ -91,6 +96,10 @@ class Psc_Frontend_Profil extends Psc_Frontend_Base {
                 'psc_bad_second_parent_phone'    => 'second_parent_bad_phone',
             );
             self::parent_form_redirect($codes[$result->get_error_code()] ?? 'second_parent_bad_phone');
+        }
+
+        if (trim((string) psc_post('second_parent_email')) !== $previous_email) {
+            Psc_Parents::revoke_access((int) $parent->id);
         }
 
         self::parent_form_redirect('second_parent_updated');
@@ -111,6 +120,11 @@ class Psc_Frontend_Profil extends Psc_Frontend_Base {
             'second_parent_email'     => '',
             'second_parent_telephone' => '',
         ));
+
+        // Changement d'identité d'accès : la personne retirée peut détenir
+        // une session ouverte ou le lien commun encore valable — elles
+        // meurent immédiatement (et durablement), pas « jusqu'à 12 h ».
+        Psc_Parents::revoke_access((int) $parent->id);
 
         self::parent_form_redirect('second_parent_removed');
     }

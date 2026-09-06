@@ -2,7 +2,7 @@
 
 **Date : 6 septembre 2026 — Extension v5.4.1 — Référence : `39e657a`.**
 
-**Statut : liste à lire et à arbitrer. Aucune correction, migration, modification de configuration ou mise en production n’a été entreprise pendant cet audit.** Ce document est le seul livrable ajouté au dépôt. Les modifications du README et les anciens rapports déjà présents ne font pas partie de cet audit.
+**Statut : liste arbitrée et en cours de traitement.** Traité en v5.4.2 (P0-01 allergies + rapprochement, P0-02 présence midi) et v5.4.3 (P1-03 anti-cache, P1-05 révocation durable des sessions, P1-12 chiffrement fail-closed). Les cases cochées portent la preuve de test correspondante (E2E ou sonde) ; les tickets d’hébergement et DPO restent ouverts.
 
 ## Périmètre et limites
 
@@ -67,9 +67,9 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 ## P0 — Fiabilité de l’accueil des enfants
 
-### P0-01 — Préserver les allergies lors de l’approbation des inscriptions
+### P0-01 — TRAITÉ (v5.4.2/v5.4.3) — Préserver les allergies lors de l’approbation des inscriptions
 
-- [ ] **Corriger le transfert des allergies, puis examiner les demandes déjà approuvées concernées.**
+- [x] **Corriger le transfert des allergies, puis examiner les demandes déjà approuvées concernées.**
 
 **Preuve : reproduit.** `includes/class-psc-requests.php:365` stocke `food_allergies`, mais `children_of():116` ne restitue pas cette clé. `handle_approve():593` ne la recopie pas non plus dans les enfants édités. `approve_request():673` attend pourtant cette valeur pour créer la fiche et déclencher l’alerte PAI. Une demande fictive contenant « arachide » ressort du décodeur sans allergie. Les parcours manuel et automatique sont concernés.
 
@@ -79,9 +79,9 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** inscription publique avec allergie → validation manuelle ET automatique → fiche, alerte, liste SIDSCM et exclusions fournisseur cohérentes ; test d’une correction faite par la mairie et d’une demande sans allergie. **Responsable : développement + métier ; taille M.**
 
-### P0-02 — Garantir la présence et le pointage du midi pour les enfants sans repas
+### P0-02 — TRAITÉ (v5.4.2/v5.4.3) — Garantir la présence et le pointage du midi pour les enfants sans repas
 
-- [ ] **Aligner forfait sans repas, liste du midi et contrôle serveur du pointage.**
+- [x] **Aligner forfait sans repas, liste du midi et contrôle serveur du pointage.**
 
 **Preuve : reproduit pour la résolution, constaté dans le code pour le pointage.** `includes/helpers/planning.php:182` convertit CANT en MSR, mais ne donne pas de repli MSR à un forfait seul. Avec `FORF=true` et le flag sans repas, le résultat est `GM=true, CANT=false, GS=true, FORF=true, MSR=false`, alors que la facturation renvoie `FSR`. Dans `includes/class-psc-sidscm.php`, la liste CANT fusionne CANT et MSR, mais `is_expected():212` et `ajax_toggle():394` contrôlent seulement la prestation CANT envoyée pour le midi : une présence MSR peut donc être visible mais impossible à pointer.
 
@@ -113,9 +113,9 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** un éditeur de contenus sans mission périscolaire n’accède pas aux dossiers ; le rôle facturation ne consulte pas automatiquement les allergies ; tests de refus sur les URL et endpoints. **Développement + administrateur WordPress ; M.**
 
-### P1-03 — Empêcher la mise en cache partagée des pages familles
+### P1-03 — TRAITÉ (v5.4.2/v5.4.3) — Empêcher la mise en cache partagée des pages familles
 
-- [ ] **Protéger explicitement le portail et les URL portant des jetons contre le cache.**
+- [x] **Protéger explicitement le portail et les URL portant des jetons contre le cache.**
 
 **Constaté / risque conditionnel :** le portail authentifie un visiteur hors comptes WordPress (`class-psc-parents.php`) ; `class-psc-frontend.php` ne pose pas de politique explicite `no-store` ni d’exclusion de cache. Les téléchargements, eux, appellent `nocache_headers()`. Un cache WordPress/CDN qui considère `psc_session` comme un cookie anonyme peut mélanger des pages de familles. Aucune fuite entre familles n’a été testée ou constatée sur le serveur distant.
 
@@ -133,9 +133,9 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** un fichier témoin non sensible placé dans chaque emplacement concerné est inaccessible anonymement ; les documents restent téléchargeables après contrôle d’appartenance. **Hébergeur + développement ; M.**
 
-### P1-05 — Révoquer réellement les accès des familles et du second parent
+### P1-05 — TRAITÉ (v5.4.2/v5.4.3) — Révoquer réellement les accès des familles et du second parent
 
-- [ ] **Associer les sessions à une identité d’accès et à un état de révocation durable.**
+- [x] **Associer les sessions à une identité d’accès et à un état de révocation durable.**
 
 **Constaté :** `class-psc-parents.php` ouvre une session signée au niveau du foyer ; changer l’e-mail ou retirer le second parent (`class-psc-frontend-profil.php`) ne révoque pas les sessions déjà ouvertes ni le lien commun encore valable. Un accès retiré peut donc subsister jusqu’à 12 h par défaut. `includes/helpers/session.php` conserve la révocation individuelle dans un transient, susceptible d’être évincé avant son expiration en présence d’un cache externe. Les anciens cookies sans identifiant restent acceptés par le code.
 
@@ -203,9 +203,9 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** reconstitution d’un incident fictif, auteurs identifiables, journal protégé et rétention appliquée, consultation elle-même limitée. Référence : [CNIL — tracer les opérations](https://www.cnil.fr/fr/securite-tracer-les-operations). **Développement + exploitation + DPO ; M/L.**
 
-### P1-12 — Interdire le repli bancaire silencieux en clair
+### P1-12 — TRAITÉ (v5.4.2/v5.4.3) — Interdire le repli bancaire silencieux en clair
 
-- [ ] **Faire échouer explicitement un enregistrement bancaire si le chiffrement est indisponible.**
+- [x] **Faire échouer explicitement un enregistrement bancaire si le chiffrement est indisponible.**
 
 **Constaté :** `includes/helpers/crypto.php:39` renvoie l’IBAN initial si aucune primitive n’existe ou si OpenSSL échoue. Le chiffrement fonctionne sur le laptop avec sodium ; aucune défaillance du serveur distant n’est établie. Sans clé dédiée, la clé est dérivée des sels WordPress : leur rotation peut rendre les données illisibles.
 

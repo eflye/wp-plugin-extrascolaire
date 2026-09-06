@@ -286,6 +286,11 @@ class Psc_Parents {
             array('%d')
         );
 
+        // Changement d'identité d'accès : l'ancienne adresse peut encore
+        // détenir un lien de connexion valable, et les sessions ouvertes
+        // survivent au changement sans cela. Révocation durable.
+        self::revoke_access((int) $parent->id);
+
         wp_safe_redirect(add_query_arg('psc_msg', 'email_changed', $redirect));
         exit;
     }
@@ -330,8 +335,13 @@ class Psc_Parents {
         // est partagé entre les deux parents, qui se retrouveraient
         // déconnectés l'un l'autre.
         $sid = bin2hex(random_bytes(9));
-        $payload = $parent_id . '|' . $expires . '|' . $sid;
-        $value = $payload . '|' . psc_sign($payload);
+        // Époque de session au moment de l'ouverture : toute invalidation
+        // durable du foyer (retrait du second parent, changement d'adresse
+        // du titulaire) incrémente ce compteur et rend ce cookie mort,
+        // quelle que soit la copie qui en subsiste (cf. psc_bump_session_epoch()).
+        $epoch   = psc_session_epoch($parent_id);
+        $payload = $parent_id . '|' . $expires . '|' . $sid . '|' . $epoch;
+        $value   = $payload . '|' . psc_sign($payload);
 
         setcookie(
             psc_session_cookie_name(),
@@ -386,9 +396,40 @@ class Psc_Parents {
         $session = self::read_session_cookie();
         if (!$session) return null;
         if (psc_session_is_revoked($session['sid'])) return null;
+        // Époque de session : un foyer dont l'accès a été durablement
+        // invalidé (retrait du second parent, changement d'adresse du
+        // titulaire) rejette tout cookie ouvert avant l'événement — même
+        // copié ailleurs, même si un cache externe a évincé la révocation
+        // individuelle (cf. psc_bump_session_epoch()).
+        if ($session['epoch'] !== psc_session_epoch($session['parent_id'])) return null;
 
         $cache = self::get_by_id($session['parent_id']);
         return $cache;
+    }
+
+    /**
+     * Révocation DURABLE de l'accès d'un foyer : toutes les sessions
+     * ouvertes meurent (bump d'époque) et le lien de connexion encore
+     * valable est effacé — l'événement déclencheur est un changement
+     * d'identité d'accès (retrait ou remplacement du second parent,
+     * changement d'adresse du titulaire), jamais une simple navigation.
+     *
+     * @param int $parent_id
+     */
+    public static function revoke_access($parent_id) {
+        global $wpdb;
+        $parent_id = (int) $parent_id;
+        if (!$parent_id) return;
+
+        psc_bump_session_epoch($parent_id);
+
+        $wpdb->update(
+            psc_table('parents'),
+            array('token_hash' => null, 'token_expires' => null),
+            array('id' => $parent_id),
+            array('%s', '%s'),
+            array('%d')
+        );
     }
 
     /**
@@ -414,13 +455,23 @@ class Psc_Parents {
         $raw   = sanitize_text_field(wp_unslash($_COOKIE[$name]));
         $parts = explode('|', $raw);
 
-        if (count($parts) === 4) {
+        if (count($parts) === 5) {
+            // Format courant : pid|expires|sid|epoch|signature.
+            list($pid, $expires, $sid, $epoch, $sig) = $parts;
+            $payload = $pid . '|' . $expires . '|' . $sid . '|' . $epoch;
+        } elseif (count($parts) === 4) {
+            // Cookies antérieurs à l'époque de session (sans époque, sans
+            // révocation durable) : époque 0. Ils restent acceptés le
+            // temps qu'ils s'éteignent d'eux-mêmes (12 h) ou jusqu'au
+            // premier incrément du foyer — cf. psc_session_epoch().
             list($pid, $expires, $sid, $sig) = $parts;
             $payload = $pid . '|' . $expires . '|' . $sid;
+            $epoch   = '0';
         } elseif (count($parts) === 3) {
             list($pid, $expires, $sig) = $parts;
             $payload = $pid . '|' . $expires;
             $sid     = '';
+            $epoch   = '0';
         } else {
             return null;
         }
@@ -428,7 +479,12 @@ class Psc_Parents {
         if (!hash_equals(psc_sign($payload), $sig)) return null;
         if ((int) $expires < time()) return null;
 
-        return array('parent_id' => $pid, 'expires' => (int) $expires, 'sid' => $sid);
+        return array(
+            'parent_id' => $pid,
+            'expires'   => (int) $expires,
+            'sid'       => $sid,
+            'epoch'     => (int) $epoch,
+        );
     }
 
     public static function handle_logout() {
@@ -453,6 +509,14 @@ class Psc_Parents {
 
         $payment_mode = ($extra['payment_mode'] ?? '') === 'prelevement' ? 'prelevement' : 'autre';
 
+        // Chiffrement AVANT toute écriture : une indisponibilité des
+        // primitives refuse la création plutôt que d'enregistrer l'IBAN
+        // en clair (cf. psc_encrypt()).
+        $sepa_iban_enc = psc_encrypt($extra['sepa_iban'] ?? null);
+        if (is_wp_error($sepa_iban_enc)) {
+            return $sepa_iban_enc;
+        }
+
         $data = array(
             'email'                      => $email,
             'nom'                        => mb_substr(sanitize_text_field($nom), 0, 190),
@@ -462,7 +526,7 @@ class Psc_Parents {
             'ville'                      => mb_substr(sanitize_text_field($extra['ville'] ?? ''), 0, 100),
             'active'                     => 1,
             'payment_mode'               => $payment_mode,
-            'sepa_iban'                  => psc_encrypt($extra['sepa_iban'] ?? null),
+            'sepa_iban'                  => $sepa_iban_enc,
             'sepa_bic'                   => $extra['sepa_bic'] ?? null,
             'sepa_titulaire'             => mb_substr(sanitize_text_field($extra['sepa_titulaire'] ?? ''), 0, 190) ?: null,
             'sepa_adresse'               => mb_substr(sanitize_text_field($extra['sepa_adresse'] ?? ''), 0, 255) ?: null,
@@ -533,7 +597,10 @@ class Psc_Parents {
         if (array_key_exists('sepa_iban', $data)) {
             $iban = !empty($data['sepa_iban']) ? psc_valid_iban($data['sepa_iban']) : null;
             if (!empty($data['sepa_iban']) && !$iban) return new WP_Error('psc_bad_iban', __('IBAN invalide.', 'periscolaire-registration'));
-            $set['sepa_iban'] = psc_encrypt($iban);
+            // Échec de chiffrement = enregistrement refusé (jamais en clair).
+            $iban_enc = psc_encrypt($iban);
+            if (is_wp_error($iban_enc)) return $iban_enc;
+            $set['sepa_iban'] = $iban_enc;
             $formats[] = '%s';
         }
         if (array_key_exists('sepa_bic', $data)) {

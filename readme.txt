@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.4.2
+Stable tag: 5.4.3
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,23 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.4.3 =
+* Sécurité — révocation réelle des accès familles (P1 de l'audit) :
+  retrait ou remplacement du second parent, changement d'adresse du
+  titulaire — chaque événement tue immédiatement et durablement toutes
+  les sessions ouvertes du foyer et le lien de connexion encore valable
+  (registre d'époques de session en base, plus dépendant des transients
+  évinçables). Les cookies antérieurs restent acceptés jusqu'au premier
+  événement, dans la limite de leur durée de 12 h.
+* Sécurité — coordonnées bancaires : sans primitive de chiffrement
+  disponible, ou si le chiffrement échoue, l'enregistrement est refusé
+  avec un message lisible au lieu d'écrire l'IBAN en clair (famille,
+  demande publique, migration).
+* Confidentialité — les pages du plugin (portail famille, espace
+  intervenants, wizard public) émettent Cache-Control: no-store : aucun
+  cache partagé (extension, CDN, proxy) ne doit conserver un rendu qui
+  authentifie hors WordPress ou porte des jetons.
 
 = 5.4.2 =
 * Inscriptions publiques — les allergies ne sont plus perdues à la

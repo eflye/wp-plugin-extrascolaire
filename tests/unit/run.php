@@ -65,6 +65,20 @@ if (!function_exists('apply_filters')) {
 require __DIR__ . '/../../includes/helpers/services.php';
 require __DIR__ . '/../../includes/helpers/planning.php';
 
+// Sessions familles : époques de révocation (P1-05). session.php n'écrit
+// que via get_option/update_option — le stub ci-dessus tient le même
+// registre, les durées WordPress sont définies localement.
+if (!defined('MINUTE_IN_SECONDS')) define('MINUTE_IN_SECONDS', 60);
+if (!defined('HOUR_IN_SECONDS')) define('HOUR_IN_SECONDS', 3600);
+if (!defined('DAY_IN_SECONDS')) define('DAY_IN_SECONDS', 86400);
+if (!function_exists('update_option')) {
+    function update_option($name, $value, $autoload = null) {
+        $GLOBALS['psc_test_options'][$name] = $value;
+        return true;
+    }
+}
+require __DIR__ . '/../../includes/helpers/session.php';
+
 $failures = array();
 $checks   = 0;
 
@@ -406,6 +420,22 @@ $assert('FSR : midi seul reste MSR', psc_billing_services(array('MSR' => true), 
 $assert('FSR : forfait non réalisable, facturation des unités', psc_billing_services(array('FORF' => false, 'GM' => true, 'MSR' => true), true), array('GM', 'MSR'));
 $GLOBALS['psc_test_options']['psc_service_prices'] = array('FSR' => 8.50);
 $assert('FSR : tarif mairie personnalisé', psc_billing_tariffs()['FSR']['price'], 8.5);
+unset($GLOBALS['psc_test_options']);
+
+/* ---------------------------------------------------------------- */
+/* session.php — époques de session (révocation persistante, P1-05)   */
+/* ---------------------------------------------------------------- */
+$GLOBALS['psc_test_options'] = array();
+$assert('session : époque initiale à 0 pour un foyer inconnu', psc_session_epoch(42), 0);
+psc_bump_session_epoch(42);
+$assert('session : premier bump -> époque 1', psc_session_epoch(42), 1);
+psc_bump_session_epoch(42);
+$assert('session : second bump -> époque 2 (cumul)', psc_session_epoch(42), 2);
+$assert('session : un autre foyer reste à 0', psc_session_epoch(43), 0);
+psc_bump_session_epoch(0);
+$assert('session : bump sur id invalide -> aucun effet', psc_session_epoch(0), 0);
+psc_bump_session_epoch(42);
+$assert('session : les bumps du foyer A n\'affectent pas le foyer B', psc_session_epoch(43), 0);
 unset($GLOBALS['psc_test_options']);
 
 /* ---------------------------------------------------------------- */
