@@ -592,6 +592,21 @@ class Psc_Invoices {
         return number_format((float) $amount, 2, ',', ' ') . ' ' . chr(128);
     }
 
+    /**
+     * Dimensions dessinées d'un logo en mm, d'après sa boîte maximale :
+     * pont vers psc_logo_fit_dimensions() qui n'a besoin que du ratio de
+     * l'image source (pixels). Une image indéchiffrable tombe sur la boîte
+     * entière — bornée par construction.
+     *
+     * @return array{0:float,1:float} [largeur, hauteur] en mm.
+     */
+    private static function logo_drawn_size($path, $max_w, $max_h) {
+        $size = @getimagesize($path); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        $w_px = is_array($size) && !empty($size[0]) ? $size[0] : 0;
+        $h_px = is_array($size) && !empty($size[1]) ? $size[1] : 0;
+        return psc_logo_fit_dimensions($w_px, $h_px, $max_w, $max_h);
+    }
+
     /** Retourne une date au format "7 juillet 2026" (UTF-8, pour passer ensuite dans enc()). */
     private static function french_full_date($ts) {
         // Initialisation paresseuse, même raison que month_label() :
@@ -674,8 +689,13 @@ class Psc_Invoices {
         $pdf->AddPage();
 
         // ---- HEADER: logos (optional) + texte centré ----
+        // Les logos sont BORNÉS en largeur ET en hauteur (proportions
+        // conservées) : un blason portrait dessiné à largeur seule
+        // débordait de l'en-tête et recouvrait le bloc d'adresse de la
+        // famille. La hauteur réellement dessinée repousse le séparateur.
         $valid_exts   = array('JPG', 'JPEG', 'PNG', 'GIF');
-        $logo_w       = 35;
+        $logo_w       = 35; // largeur du slot de texte réservé de part et d'autre
+        $logo_max_h   = 25; // hauteur maximale dessinée — jamais sous le séparateur
         $logo_l_path  = $logo_left_id  ? get_attached_file($logo_left_id)  : '';
         $logo_r_path  = $logo_right_id ? get_attached_file($logo_right_id) : '';
         $has_logo_l   = $logo_l_path && file_exists($logo_l_path)
@@ -687,8 +707,17 @@ class Psc_Invoices {
         $txt_w = $pw  - ($has_logo_l ? $logo_w : 0) - ($has_logo_r ? $logo_w : 0);
         $y_hdr = $pdf->GetY();
 
-        if ($has_logo_l) $pdf->Image($logo_l_path, $ml, $y_hdr, $logo_w, 0);
-        if ($has_logo_r) $pdf->Image($logo_r_path, $ml + $pw - $logo_w, $y_hdr, $logo_w, 0);
+        $logo_drawn_h = 0;
+        if ($has_logo_l) {
+            list($lw, $lh) = self::logo_drawn_size($logo_l_path, $logo_w, $logo_max_h);
+            $pdf->Image($logo_l_path, $ml, $y_hdr, $lw, $lh);
+            $logo_drawn_h = max($logo_drawn_h, $lh);
+        }
+        if ($has_logo_r) {
+            list($rw, $rh) = self::logo_drawn_size($logo_r_path, $logo_w, $logo_max_h);
+            $pdf->Image($logo_r_path, $ml + $pw - $rw, $y_hdr, $rw, $rh);
+            $logo_drawn_h = max($logo_drawn_h, $rh);
+        }
 
         $pdf->SetXY($txt_x, $y_hdr);
         if ($org_intro) {
@@ -715,7 +744,7 @@ class Psc_Invoices {
             $pdf->MultiCell($txt_w, 4, self::enc($org_email), 0, 'C');
         }
 
-        $pdf->SetY(max($pdf->GetY(), $y_hdr + ($has_logo_l || $has_logo_r ? $logo_w * 0.6 : 0)) + 4);
+        $pdf->SetY(max($pdf->GetY(), $y_hdr + $logo_drawn_h) + 4);
 
         // Séparateur horizontal
         $pdf->SetDrawColor(0, 0, 0);
@@ -798,7 +827,11 @@ class Psc_Invoices {
         $row_h       = 6;
 
         foreach ($services as $code => $svc) {
-            if ($code === 'FSR' && empty($grid[$code])) continue;
+            // Un type de prestation sans AUCUNE occurrence ce mois-ci ne
+            // figure pas : ni son bloc de lignes, ni ses enfants à zéro —
+            // la facture ne liste que ce qui est réellement dû. (FSR et
+            // les autres suivent la même règle.)
+            if (empty($grid[$code])) continue;
             $price = (float) $svc['price'];
 
             // Ligne service : #E4E4E4

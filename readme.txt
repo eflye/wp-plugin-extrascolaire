@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.5.0
+Stable tag: 5.5.1
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,15 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.5.1 =
+* Facture PDF : un type de prestation sans aucune occurrence du mois ne
+  figure plus — ni son bloc, ni ses lignes à zéro ; la facture ne liste
+  que ce qui est réellement dû (le total est inchangé).
+* Facture PDF : les logos sont bornés en largeur ET en hauteur
+  (proportions conservées) — un blason portrait ne débordait plus de
+  l'en-tête et ne recouvrait plus le bloc d'adresse de la famille ; la
+  hauteur réellement dessinée repousse le séparateur.
 
 = 5.5.0 =
 * Facturation libre : les factures se génèrent quand la mairie le décide,

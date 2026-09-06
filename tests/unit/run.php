@@ -82,6 +82,9 @@ require __DIR__ . '/../../includes/helpers/session.php';
 // Export ODS (OpenDocument) — fonctions XML pures.
 require __DIR__ . '/../../includes/helpers/ods.php';
 
+// Géométrie des logos PDF (proportions bornées à la boîte).
+require __DIR__ . '/../../includes/helpers/pdf.php';
+
 $failures = array();
 $checks   = 0;
 
@@ -461,6 +464,26 @@ $assert('ods : nom de feuille échappé', strpos($xml, 'table:name="Prélèvemen
 $assert('ods : racine document-content présente', strpos($xml, '<office:document-content') !== false, true);
 $xml_lb = psc_ods_content_xml('Feuille', array('H'), array(array("ligne1\nligne2")));
 $assert('ods : retour à la ligne -> text:line-break', strpos($xml_lb, '<text:line-break/>') !== false, true);
+
+/* ---------------------------------------------------------------- */
+/* pdf.php — logos bornés (jamais sous le bloc d'adresse)             */
+/* ---------------------------------------------------------------- */
+// Logo paysage : toute la largeur, hauteur proportionnelle.
+list($lw, $lh) = psc_logo_fit_dimensions(600, 200, 35, 25);
+$assert('logo paysage : largeur = max', $lw, 35.0);
+$assert('logo paysage : hauteur proportionnelle', $lh, round(35 * 200 / 600, 2));
+
+// Logo portrait (blason) : toute la hauteur, JAMAIS plus bas que la boîte.
+list($pw2, $ph2) = psc_logo_fit_dimensions(200, 1200, 35, 25);
+$assert('logo portrait : hauteur = max (bornée)', $ph2, 25.0);
+$assert('logo portrait : largeur réduite', $pw2, round(25 * 200 / 1200, 2));
+
+// Logo carré : tient dans les deux bornes.
+list($sw, $sh) = psc_logo_fit_dimensions(500, 500, 35, 25);
+$assert('logo carré : hauteur = max, largeur proportionnelle', array($sw, $sh), array(25.0, 25.0));
+
+// Image indéterminable : la boîte entière (bornée par construction).
+$assert('logo indéterminable : boîte entière', psc_logo_fit_dimensions(0, 0, 35, 25), array(35.0, 25.0));
 
 /* ---------------------------------------------------------------- */
 

@@ -30,6 +30,7 @@ foreach (array(
     'throttle',
     'files',
     'ods',
+    'pdf',
     'settings',
     'admin-ui',
 ) as $psc_helper) {
