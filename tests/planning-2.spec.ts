@@ -152,9 +152,14 @@ test.describe('Planning - 2 : rythme + exceptions (fonctionnel, base vérifiée)
     try {
       await page.reload();
       await expect(page.getByTestId('planning-sans-repas')).toBeVisible();
-      await expect(page.getByTestId('pattern-2-CANT')).toBeDisabled();
+      for (const grid of ['pattern-grid', 'exception-grid']) {
+        await expect(page.getByTestId(grid).locator('thead tr:first-child [data-column-label]:visible')).toHaveText(['G.M.', 'Cantine sans repas', 'G.S.', 'Forfait sans repas']);
+      }
+      await expect(page.getByTestId('exception-grid').locator('thead [data-service-column="FORF"] .psc-exc-price')).toHaveText(/9[,.]00 €/);
+      await expect(page.getByTestId('exc-tout-CANT')).toBeHidden();
+      await expect(page.getByTestId('pattern-2-CANT')).toBeHidden();
       await expect(page.getByTestId('pattern-2-MSR')).toBeEnabled();
-      await expect(page.getByTestId(`exc-${data.free_date}-CANT`)).toBeDisabled();
+      await expect(page.getByTestId(`exc-${data.free_date}-CANT`)).toBeHidden();
       const blocked = JSON.parse(wpCliEval(`echo json_encode(array(
         Psc_Planning::toggle_pattern(${data.alice_id}, '${data.year_key}', 2, 'CANT', true)['status'],
         Psc_Planning::toggle_exception(${data.alice_id}, '${data.free_date}', 'CANT', true)['status'],
@@ -163,13 +168,21 @@ test.describe('Planning - 2 : rythme + exceptions (fonctionnel, base vérifiée)
       expect(blocked).toEqual(['invalid', 'invalid', []]);
       await page.getByTestId('pattern-2-MSR').click();
       await expect(page.getByTestId('pattern-2-MSR')).toHaveAttribute('aria-pressed', 'true');
-      await expect(page.getByTestId('pattern-2-CANT')).toBeDisabled();
+      await expect(page.getByTestId('pattern-2-CANT')).toBeHidden();
 
       await page.getByTestId(`child-tab-${data.bob_id}`).click();
       await expect(page.getByTestId('planning-sans-repas')).toBeHidden();
       await expect(page.getByTestId('pattern-2-CANT')).toBeEnabled();
+      for (const grid of ['pattern-grid', 'exception-grid']) {
+        await expect(page.getByTestId(grid).locator('thead tr:first-child [data-column-label]:visible')).toHaveText(['G.M.', 'Cant.', 'G.S.', 'Forf.', 'S. repas']);
+      }
       await page.getByTestId(`child-tab-${data.alice_id}`).click();
       await expect(page.getByTestId('planning-sans-repas')).toBeVisible();
+      for (const grid of ['pattern-grid', 'exception-grid']) {
+        await expect(page.getByTestId(grid).locator('thead tr:first-child [data-column-label]:visible')).toHaveText(['G.M.', 'Cantine sans repas', 'G.S.', 'Forfait sans repas']);
+      }
+      await expect(page.getByTestId('exception-grid').locator('thead [data-service-column="FORF"] .psc-exc-price')).toHaveText(/9[,.]00 €/);
+      await expect(page.getByTestId('exc-tout-CANT')).toBeHidden();
       await page.goto(`${APP_BASE}/?psc_tab=enfants`);
       await expect(page.getByTestId(`portal-child-row-${data.alice_id}`)).toContainText('Cantine sans repas');
       await expect(page.getByTestId(`portal-child-row-${data.bob_id}`)).not.toContainText('Cantine sans repas');

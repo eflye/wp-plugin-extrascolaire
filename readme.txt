@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.4.0
+Stable tag: 5.4.1
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,14 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.4.1 =
+* Planning cantine2 : pour les enfants « Cantine sans repas », la colonne
+  Cantine est masquée dans le rythme habituel et les exceptions du mois.
+* Affichage des colonnes G.M., Cantine sans repas, G.S. et Forfait sans
+  repas, avec le tarif sans repas configuré dans les Réglages.
+* Les colonnes et tarifs s’adaptent au changement d’enfant sans rechargement.
+* Test navigateur couvrant les deux profils et le changement d’enfant.
 
 = 5.4.0 =
 * Menus : champ « Origine de la viande » prérempli dans le backoffice,

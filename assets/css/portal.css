@@ -2138,3 +2138,9 @@ button.psc-exc-locked[aria-pressed="false"] { background: transparent; border-co
 }
 .psc-menu-origin h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
 .psc-menu-origin p { margin: 0; font-size: 13px; line-height: 1.65; }
+
+/* Les colonnes exclues du profil doivent rester absentes des deux grilles. */
+.psc-pattern-grid [data-service-column][hidden],
+.psc-exception-grid [data-service-column][hidden] {
+    display: none;
+}

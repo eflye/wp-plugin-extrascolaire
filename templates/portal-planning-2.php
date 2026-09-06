@@ -72,6 +72,27 @@ $psc_active_sans_repas = false;
 foreach ($children as $c) {
     if ((int) $c->id === $psc_active_child_id) { $psc_active_name = $c->prenom; $psc_active_sans_repas = !empty($c->cantine_sans_repas); break; }
 }
+// Conserver les cellules masquées pour pouvoir changer d’enfant sans rechargement.
+$psc_column_order = $psc_active_sans_repas ? array('GM', 'MSR', 'GS', 'FORF', 'CANT') : psc_allowed_services();
+$psc_columns = array();
+$psc_billing = psc_billing_tariffs();
+foreach (psc_allowed_services() as $code) {
+    $psc_columns[$code] = array(
+        'label' => $psc_short[$code],
+        'title' => $psc_services[$code]['label'],
+        'price' => $psc_services[$code]['price'],
+    );
+}
+$psc_without_meal_columns = $psc_columns;
+$psc_without_meal_columns['MSR']['label'] = __('Cantine sans repas', 'periscolaire-registration');
+$psc_without_meal_columns['FORF'] = array(
+    'label' => __('Forfait sans repas', 'periscolaire-registration'),
+    'title' => $psc_billing['FSR']['label'],
+    'price' => $psc_billing['FSR']['price'],
+);
+$psc_v2_boot['columns'] = $psc_columns;
+$psc_v2_boot['without_meal_columns'] = $psc_without_meal_columns;
+$psc_display_columns = $psc_active_sans_repas ? $psc_without_meal_columns : $psc_columns;
 $psc_active_classe = Psc_School_Years::classe_for($psc_active_child_id);
 $psc_active_month = $psc_year_summary['months'][$psc_month_key]['per_child'][$psc_active_child_id] ?? array('days' => 0, 'amount' => 0.0);
 $psc_active_year = $psc_year_summary['year']['per_child'][$psc_active_child_id] ?? array('days' => 0, 'amount' => 0.0);
@@ -158,8 +179,8 @@ $psc_active_year = $psc_year_summary['year']['per_child'][$psc_active_child_id] 
         <thead>
           <tr>
             <th scope="col"><?php esc_html_e('Jour', 'periscolaire-registration'); ?></th>
-            <?php foreach (psc_allowed_services() as $code): ?>
-            <th scope="col" title="<?php echo esc_attr($psc_services[$code]['label']); ?>"><?php echo esc_html($psc_short[$code]); ?></th>
+            <?php foreach ($psc_column_order as $code): ?>
+            <th scope="col" data-service-column="<?php echo esc_attr($code); ?>"<?php echo $psc_active_sans_repas && $code === 'CANT' ? ' hidden' : ''; ?> title="<?php echo esc_attr($psc_display_columns[$code]['title']); ?>"><span data-column-label><?php echo esc_html($psc_display_columns[$code]['label']); ?></span></th>
             <?php endforeach; ?>
           </tr>
         </thead>
@@ -169,9 +190,9 @@ $psc_active_year = $psc_year_summary['year']['per_child'][$psc_active_child_id] 
           foreach ($jours as $wd => $jour_label): ?>
           <tr>
             <th scope="row"><?php echo esc_html($jour_label); ?></th>
-            <?php foreach (psc_allowed_services() as $code):
+            <?php foreach ($psc_column_order as $code):
                 $on = !empty($psc_all_patterns[$psc_active_child_id][$psc_year_key][$wd][$code]); ?>
-            <td>
+            <td data-service-column="<?php echo esc_attr($code); ?>"<?php echo $psc_active_sans_repas && $code === 'CANT' ? ' hidden' : ''; ?>>
               <button type="button"
                       class="psc-pat-btn<?php echo $on ? ' is-on' : ''; ?>"
                       data-weekday="<?php echo esc_attr($wd); ?>"
@@ -224,15 +245,15 @@ $psc_active_year = $psc_year_summary['year']['per_child'][$psc_active_child_id] 
         <thead>
           <tr>
             <th scope="col" class="psc-exc-day-col"><?php esc_html_e('Jour', 'periscolaire-registration'); ?></th>
-            <?php foreach (psc_allowed_services() as $code): ?>
-            <th scope="col" title="<?php echo esc_attr($psc_services[$code]['label']); ?>">
-              <?php echo esc_html($psc_short[$code]); ?><br><span class="psc-exc-price"><?php echo esc_html(number_format_i18n($psc_services[$code]['price'], 2)); ?> €</span>
+            <?php foreach ($psc_column_order as $code): ?>
+            <th scope="col" data-service-column="<?php echo esc_attr($code); ?>"<?php echo $psc_active_sans_repas && $code === 'CANT' ? ' hidden' : ''; ?> title="<?php echo esc_attr($psc_display_columns[$code]['title']); ?>">
+              <span data-column-label><?php echo esc_html($psc_display_columns[$code]['label']); ?></span><br><span class="psc-exc-price"><?php echo esc_html(number_format_i18n($psc_display_columns[$code]['price'], 2)); ?> €</span>
             </th>
             <?php endforeach; ?>
           </tr>
           <tr class="psc-exc-actions-row">
             <th scope="col" class="psc-exc-month-label"><?php esc_html_e('Mois entier', 'periscolaire-registration'); ?></th>
-            <?php foreach (psc_allowed_services() as $code):
+            <?php foreach ($psc_column_order as $code):
                 $exc_dates = array();
                 foreach ($psc_cells as $date => $day) {
                     if ($day['locked']) continue;
@@ -244,7 +265,7 @@ $psc_active_year = $psc_year_summary['year']['per_child'][$psc_active_child_id] 
                     return $psc_cells[$d]['services'][$code]['declared'];
                 })) === count($exc_dates);
             ?>
-            <th scope="col">
+            <th scope="col" data-service-column="<?php echo esc_attr($code); ?>"<?php echo $psc_active_sans_repas && $code === 'CANT' ? ' hidden' : ''; ?>>
               <button type="button" class="psc-exc-tout"
                       data-service="<?php echo esc_attr($code); ?>"
                       data-testid="exc-tout-<?php echo esc_attr($code); ?>"
@@ -265,14 +286,14 @@ $psc_active_year = $psc_year_summary['year']['per_child'][$psc_active_child_id] 
               <?php echo esc_html($abbr); ?>
               <?php if ($day['locked']): ?><span class="psc-lock" aria-hidden="true">&#128274;</span><?php endif; ?>
             </th>
-            <?php foreach (psc_allowed_services() as $code):
+            <?php foreach ($psc_column_order as $code):
                 $cell = $day['services'][$code];
                 $state = 'none';
                 if ($cell['exception_value'] === true) $state = 'add';
                 elseif ($cell['exception_value'] === false) $state = 'remove';
                 elseif ($cell['origin'] === 'pattern') $state = 'pattern';
             ?>
-            <td>
+            <td data-service-column="<?php echo esc_attr($code); ?>"<?php echo $psc_active_sans_repas && $code === 'CANT' ? ' hidden' : ''; ?>>
               <button type="button"
                       class="psc-exc-cell psc-exc-<?php echo esc_attr($state); ?>"
                       data-date="<?php echo esc_attr($date); ?>"

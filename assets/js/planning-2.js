@@ -39,6 +39,28 @@
 
     /* ---------- Rendu ---------- */
 
+    function renderServiceColumns() {
+        var child = activeChildMeta();
+        var withoutMeal = !!(child && child.cantine_sans_repas);
+        var order = withoutMeal ? ['GM', 'MSR', 'GS', 'FORF', 'CANT'] : SERVICES;
+        var columns = withoutMeal ? boot.without_meal_columns : boot.columns;
+        document.querySelectorAll('.psc-pattern-grid tr, .psc-exception-grid tr').forEach(function (row) {
+            order.forEach(function (svc) {
+                var cell = row.querySelector('[data-service-column="' + svc + '"]');
+                if (!cell) return;
+                cell.hidden = withoutMeal && svc === 'CANT';
+                var label = cell.querySelector('[data-column-label]');
+                if (label) {
+                    label.textContent = columns[svc].label;
+                    cell.title = columns[svc].title;
+                }
+                var price = cell.querySelector('.psc-exc-price');
+                if (price) price.textContent = euro(columns[svc].price) + ' €';
+                row.appendChild(cell);
+            });
+        });
+    }
+
     function renderFrieze(frieze) {
         if (!frieze) return;
         var labelFor = function (m) {
@@ -122,6 +144,7 @@
             var cell = day.services[svc];
             if (!cell) return;
             var td = document.createElement('td');
+            td.dataset.serviceColumn = svc;
             var btn = document.createElement('button');
             var state = stateForCell(cell);
             if (day.locked) state = 'locked';
@@ -256,6 +279,7 @@
         if (status) status.hidden = !(child && child.cantine_sans_repas);
         renderExceptionTable(state);
         renderPatternGrid(state.patterns || (state.all_patterns || {})[boot.active_child]);
+        renderServiceColumns();
         renderFrieze(state.frieze);
         renderExcBar(state);
         renderRecap(state);
