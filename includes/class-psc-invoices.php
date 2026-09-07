@@ -860,7 +860,7 @@ class Psc_Invoices {
         $pdf->Cell($cw[3],           $row_h, self::price_cell($grand_total),  1, 1, 'R', true);
 
         // ---- PIED DE PAGE ----
-        if ($footer_text) {
+        if ($footer_text && ($parent->payment_mode ?? 'autre') === 'prelevement') {
             $pdf->Ln(10);
             $pdf->SetFont('Helvetica', 'B', 10);
             $pdf->SetTextColor(0, 0, 0);

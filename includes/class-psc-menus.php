@@ -20,9 +20,15 @@ class Psc_Menus {
         return __('Les viandes de bœuf, volaille, porc et de veau qui vous sont servies sont issues d’animaux nés, élevés et abattus en France et pouvant être issue de l’agriculture biologique.', 'periscolaire-registration');
     }
 
-    /** Une valeur vide enregistrée masque volontairement la mention. */
+    /**
+     * Les menus créés avant l'ajout du champ ont une valeur NULL : ils
+     * utilisent alors la mention par défaut. Une chaîne vide enregistrée
+     * explicitement continue de masquer volontairement la mention.
+     */
     public static function meat_origin($menu) {
-        return $menu && isset($menu->origine_viande) ? trim((string) $menu->origine_viande) : '';
+        if (!$menu) return '';
+        if (!isset($menu->origine_viande)) return self::default_meat_origin();
+        return trim((string) $menu->origine_viande);
     }
 
     public static function jour_labels() {

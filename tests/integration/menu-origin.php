@@ -24,13 +24,22 @@ try {
     $assert(Psc_Menus::meat_origin($menu) === $origin, 'Persistance');
     Psc_Menus::save($id, $week, $days);
     $assert(Psc_Menus::meat_origin(Psc_Menus::get($id)) === $origin, 'Appel historique conserve le champ');
-    $nav = array('has_content'=>true, 'days'=>array(array('day'=>'Lundi','dish'=>'Menu test')), 'origine_viande'=>$origin, 'prev_url'=>'#', 'next_url'=>'#', 'reset_url'=>'#', 'is_current_week'=>true, 'week_label'=>'Semaine de test');
-    foreach (array('portal-menu-block.php','guest-menu.php') as $file) {
+
+    // Régression : les menus créés avant l'ajout du champ ont NULL en base.
+    $wpdb->query($wpdb->prepare('UPDATE '.psc_table('menus').' SET origine_viande = NULL WHERE id = %d', $id));
+    $legacy_menu = Psc_Menus::get($id);
+    $assert(Psc_Menus::meat_origin($legacy_menu) === $origin, 'Valeur par défaut pour un menu historique');
+    $views = array(
+        'portal-menu-block.php' => Psc_Frontend_Menus::portal_menu_data($week, home_url('/')),
+        'guest-menu.php'        => Psc_Frontend_Menus::guest_menu_data($week, home_url('/')),
+    );
+    foreach ($views as $file => $nav) {
         $psc_portal_menu = $nav; $psc_guest_menu = $nav;
         ob_start(); include PSC_PATH.'templates/'.$file; $html = ob_get_clean();
         $assert(strpos($html, 'Origine de la viande') !== false, 'Titre '.$file);
         $assert(strpos($html, esc_html($origin)) !== false, 'Texte '.$file);
     }
+    $menu = $legacy_menu;
     Psc_Mailer::send_weekly_menu((object) array('email'=>'menu-test@example.invalid'), $menu);
     $assert(strpos($captured, esc_html($origin)) !== false, 'E-mail contient la mention');
     Psc_Menus::save($id, $week, $days, '<b>France</b>');

@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.5.2
+Stable tag: 5.5.3
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,12 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.5.3 =
+* Facture PDF : la mention de prélèvement le 5 du mois suivant apparaît
+  uniquement pour les familles réglant par prélèvement automatique SEPA.
+* Menu de la semaine : la mention « Origine de la viande » apparaît aussi
+  sur les anciens menus, dans l'espace famille connecté et la vue publique.
 
 = 5.5.2 =
 * Facture PDF : suppression de la mention nominative « Cantine sans repas »

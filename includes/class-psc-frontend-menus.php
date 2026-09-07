@@ -125,8 +125,8 @@ class Psc_Frontend_Menus extends Psc_Frontend_Base {
         return self::menu_nav_data(array('psc_tab' => 'menu'), $week_override, $base_url_override);
     }
 
-    public static function guest_menu_data() {
-        return self::menu_nav_data();
+    public static function guest_menu_data($week_override = null, $base_url_override = null) {
+        return self::menu_nav_data(array(), $week_override, $base_url_override);
     }
 
     /**

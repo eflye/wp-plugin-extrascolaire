@@ -240,6 +240,53 @@ test.describe('Facturation libre + export prélèvements', () => {
     }
   });
 
+  test('PDF : le pied de prélèvement est réservé au paiement SEPA', async ({ page }) => {
+    page.on('dialog', (dialog) => dialog.accept());
+    const footer = 'Cette somme sera prélevée le 5 du mois suivant.';
+    const previousFooter = wpCliEval(
+      `echo wp_json_encode(get_option('psc_billing_footer', null));`
+    ).trim().split('\n').pop() ?? 'null';
+
+    try {
+      wpCli(['option', 'update', 'psc_billing_footer', footer]);
+      await loginAsAdmin(page);
+      await page.goto(facturesUrl());
+      await page.locator('button:has-text("Générer / Regénérer les factures de")').click();
+      await expect(page.locator('.notice-updated:has-text("Factures générées avec succès")')).toBeVisible();
+
+      const readInvoice = async (): Promise<string> => {
+        const href = await page.locator('tr:has-text("FacturesE2E") a:has-text("Télécharger")').getAttribute('href');
+        expect(href, 'lien de téléchargement du PDF introuvable').toBeTruthy();
+        const response = await page.request.get(href!.startsWith('http') ? href! : `${APP_BASE}${href}`);
+        expect(response.status()).toBe(200);
+        const path = `${MOIS}-footer-facture.pdf`;
+        const { writeFileSync } = await import('node:fs');
+        writeFileSync(path, Buffer.from(await response.body()));
+        const content = pdfContent(path);
+        unlinkSync(path);
+        return content;
+      };
+
+      expect(await readInvoice()).toContain('Cette somme sera pr');
+
+      wpCliEval(
+        `global $wpdb;
+         $wpdb->update($wpdb->prefix.'psc_parents', array('payment_mode' => 'autre'), array('email' => '${EMAIL}'), array('%s'), array('%s'));`
+      );
+      await page.goto(facturesUrl());
+      await page.locator('button:has-text("Générer / Regénérer les factures de")').click();
+      await expect(page.locator('.notice-updated:has-text("Factures générées avec succès")')).toBeVisible();
+      expect(await readInvoice()).not.toContain('Cette somme sera pr');
+    } finally {
+      wpCliEval(
+        `global $wpdb;
+         $wpdb->update($wpdb->prefix.'psc_parents', array('payment_mode' => 'prelevement'), array('email' => '${EMAIL}'), array('%s'), array('%s'));
+         $previous = json_decode('${previousFooter.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', true);
+         if ($previous === null) delete_option('psc_billing_footer'); else update_option('psc_billing_footer', $previous);`
+      );
+    }
+  });
+
   test('export prélèvements : .ods OpenDocument avec IBAN, mandat et montant', async ({ page }) => {
     page.on('dialog', (d) => d.accept());
     await loginAsAdmin(page);
