@@ -330,18 +330,8 @@ class Psc_Invoices {
         return $out;
     }
 
-    /**
-     * Construit le classeur .ods des prélèvements du mois dans le fichier
-     * temporaire donné — ZIP ODF minimal : mimetype non compressé en
-     * première entrée, manifeste, contenu. Ouvrable nativement dans
-     * LibreOffice Calc (cible) et Excel.
-     *
-     * @param string $target Chemin du fichier .ods à écrire.
-     * @param array  $rows   Retour de sepa_rows().
-     * @return true|WP_Error
-     */
-    public static function build_sepa_ods($target, array $rows) {
-        $headers = array(
+    private static function sepa_export_headers() {
+        return array(
             __('Titulaire du compte', 'periscolaire-registration'),
             __('E-mail', 'periscolaire-registration'),
             __('IBAN', 'periscolaire-registration'),
@@ -355,6 +345,42 @@ class Psc_Invoices {
             __('Montant à prélever (€)', 'periscolaire-registration'),
             __('Objet du prélèvement', 'periscolaire-registration'),
         );
+    }
+
+    /** CSV UTF-8 avec BOM, séparateur français et protection contre les formules. */
+    public static function build_sepa_csv($target, array $rows) {
+        $stream = fopen($target, 'wb');
+        if (!$stream) {
+            return new WP_Error('csv_fail', __('Création du fichier d’export impossible.', 'periscolaire-registration'));
+        }
+        $ok = fwrite($stream, "\xEF\xBB\xBF") !== false;
+        $ok = fputcsv($stream, self::sepa_export_headers(), ';', '"', '') !== false && $ok;
+        foreach ($rows as $r) {
+            $data = array(
+                $r['titulaire'], $r['email'], $r['iban'], $r['bic'],
+                $r['adresse'], $r['code_postal'], $r['ville'],
+                $r['mandate_ref'], $r['invoice_ref'], $r['mois_label'],
+                number_format($r['montant'], 2, ',', ''),
+                __('Périscolaire — ', 'periscolaire-registration') . $r['mois_label'],
+            );
+            $ok = fputcsv($stream, array_map('psc_csv_escape', $data), ';', '"', '') !== false && $ok;
+        }
+        $ok = fclose($stream) && $ok;
+        return $ok ? true : new WP_Error('csv_fail', __('Écriture du fichier d’export impossible.', 'periscolaire-registration'));
+    }
+
+    /**
+     * Construit le classeur .ods des prélèvements du mois dans le fichier
+     * temporaire donné — ZIP ODF minimal : mimetype non compressé en
+     * première entrée, manifeste, contenu. Ouvrable nativement dans
+     * LibreOffice Calc (cible) et Excel.
+     *
+     * @param string $target Chemin du fichier .ods à écrire.
+     * @param array  $rows   Retour de sepa_rows().
+     * @return true|WP_Error
+     */
+    public static function build_sepa_ods($target, array $rows) {
+        $headers = self::sepa_export_headers();
 
         $data = array();
         foreach ($rows as $r) {
@@ -399,12 +425,51 @@ class Psc_Invoices {
     /**
      * Retourne la liste des factures pour un mois (avec nom et email famille).
      */
+    public static function set_payment_received($invoice_id, $received) {
+        global $wpdb;
+        $table = psc_table('invoices');
+        $parents = psc_table('parents');
+        $invoice = $wpdb->get_row($wpdb->prepare("SELECT i.*, p.payment_mode FROM $table i JOIN $parents p ON p.id=i.parent_id WHERE i.id=%d", $invoice_id));
+        if (!$invoice || $invoice->payment_mode !== 'autre') {
+            return new WP_Error('invalid', __('Seules les factures chèque ou espèces peuvent être pointées.', 'periscolaire-registration'));
+        }
+        $result = $wpdb->update($table, array('payment_received_at' => $received ? ($invoice->payment_received_at ?: current_time('mysql')) : null), array('id' => $invoice_id));
+        return $result === false ? new WP_Error('payment_failed', __('Enregistrement du paiement impossible.', 'periscolaire-registration')) : $invoice->mois;
+    }
+
+    /** Comptes cumulés jusqu'au mois inclus, y compris les familles inactives. */
+    public static function family_accounts($month) {
+        global $wpdb;
+        $parents = psc_table('parents');
+        $invoices = psc_table('invoices');
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT p.id AS family_id, p.nom, p.email, p.payment_mode,
+                    i.id AS invoice_id, i.mois, i.total, i.payment_received_at
+             FROM $parents p LEFT JOIN $invoices i ON i.parent_id=p.id AND i.mois <= %s
+             ORDER BY p.nom, p.email, p.id, i.mois DESC", $month
+        ));
+        $accounts = array();
+        foreach ($rows as $row) {
+            $id = (int) $row->family_id;
+            if (!isset($accounts[$id])) {
+                $accounts[$id] = array('name' => $row->nom, 'email' => $row->email, 'paid' => 0, 'due' => 0, 'invoices' => array());
+            }
+            if (!$row->invoice_id) continue;
+            $cents = (int) round((float) $row->total * 100);
+            $paid = $row->payment_mode === 'prelevement' || !empty($row->payment_received_at) || $cents === 0;
+            $accounts[$id][$paid ? 'paid' : 'due'] += $cents;
+            $accounts[$id]['invoices'][] = array('month' => $row->mois, 'cents' => $cents, 'paid' => $paid,
+                'direct_debit' => $row->payment_mode === 'prelevement', 'received_at' => $row->payment_received_at);
+        }
+        return $accounts;
+    }
+
     public static function get_for_month($mois) {
         global $wpdb;
         $t_inv = psc_table('invoices');
         $t_par = psc_table('parents');
         return $wpdb->get_results($wpdb->prepare(
-            "SELECT i.*, p.nom AS parent_nom, p.email AS parent_email
+            "SELECT i.*, p.nom AS parent_nom, p.email AS parent_email, p.payment_mode
              FROM $t_inv i
              JOIN $t_par p ON p.id = i.parent_id
              WHERE i.mois = %s
@@ -435,7 +500,7 @@ class Psc_Invoices {
         $t_inv = psc_table('invoices');
         $t_par = psc_table('parents');
         return $wpdb->get_row($wpdb->prepare(
-            "SELECT i.*, p.nom AS parent_nom, p.email AS parent_email
+            "SELECT i.*, p.nom AS parent_nom, p.email AS parent_email, p.payment_mode
              FROM $t_inv i
              JOIN $t_par p ON p.id = i.parent_id
              WHERE i.id = %d",

@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.4.0';
+    const DB_VERSION = '4.4.1';
     const ROLES_VERSION = '1.0.0';
 
     public static function activate() {
@@ -1062,6 +1062,7 @@ CREATE TABLE $t_inv (
             parent_id BIGINT UNSIGNED NOT NULL,
             mois CHAR(7) NOT NULL,
             total DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+            payment_received_at DATETIME NULL,
             pdf_path VARCHAR(500) NULL,
             sent_at DATETIME NULL,
             created_at DATETIME NOT NULL,

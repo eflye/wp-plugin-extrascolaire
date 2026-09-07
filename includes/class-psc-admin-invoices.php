@@ -7,6 +7,8 @@ if (!defined('ABSPATH')) exit;
 class Psc_Admin_Invoices extends Psc_Admin_Base {
 
     public static function init() {
+        add_action('admin_post_psc_download_general', array(__CLASS__, 'handle_download_general'));
+        add_action('admin_post_psc_payment_received', array(__CLASS__, 'handle_payment_received'));
         add_action('admin_post_psc_generate_invoices', array(__CLASS__, 'handle_generate_invoices'));
         add_action('admin_post_psc_send_invoice', array(__CLASS__, 'handle_send_invoice'));
         add_action('admin_post_psc_send_all_invoices', array(__CLASS__, 'handle_send_all_invoices'));
@@ -14,6 +16,42 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
         add_action('admin_post_psc_delete_invoices', array(__CLASS__, 'handle_delete_invoices'));
         add_action('admin_post_psc_download_pain008', array(__CLASS__, 'handle_download_pain008'));
         add_action('admin_post_psc_download_sepa', array(__CLASS__, 'handle_download_sepa'));
+    }
+
+    public static function handle_payment_received() {
+        self::guard('psc_payment_received');
+        $received = psc_post('received');
+        if (!in_array($received, array('0', '1'), true)) self::redirect('psc_factures', 'invalid');
+        $month = Psc_Invoices::set_payment_received(absint(psc_post('invoice_id')), $received === '1');
+        if (is_wp_error($month)) wp_die(esc_html($month->get_error_message()), '', array('response' => 400));
+        wp_safe_redirect(add_query_arg(array('page' => 'psc_factures', 'mois' => $month, 'psc_msg' => 'payment_saved'), admin_url('admin.php')));
+        exit;
+    }
+
+    public static function handle_download_general() {
+        self::guard('psc_download_general');
+        $month = psc_post('mois');
+        if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month)) self::redirect('psc_factures', 'invalid');
+        $rows = Psc_Invoices::get_for_month($month);
+        if (!$rows) self::redirect('psc_factures', 'sepa_need_generate');
+        $stream = fopen('php://temp', 'w+');
+        if (!$stream) self::redirect('psc_factures', 'sepa_failed');
+        fwrite($stream, "\xEF\xBB\xBF");
+        fputcsv($stream, array('Année', 'Mois', 'Nom', 'Moyen de paiement', 'Montant'), ';', '"', '');
+        foreach ($rows as $row) {
+            fputcsv($stream, array_map('psc_csv_escape', array(substr($month, 0, 4), substr($month, 5, 2), $row->parent_nom,
+                $row->payment_mode === 'prelevement' ? 'prélèvement' : 'chèque ou espèces', str_replace('.', ',', $row->total))), ';', '"', '');
+        }
+        rewind($stream);
+        psc_log_download('factures', 'periscolaire/factures/' . $month . '/facturation-' . $month . '.csv');
+        nocache_headers();
+        header('Cache-Control: private, no-store, no-cache, must-revalidate');
+        header('X-Content-Type-Options: nosniff');
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="facturation-' . $month . '.csv"');
+        fpassthru($stream);
+        fclose($stream);
+        exit;
     }
 
     /**
@@ -38,7 +76,7 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
     }
 
     /**
-     * Export .ods des prélèvements SEPA du mois : une ligne par famille en
+     * Export .ods ou .csv des prélèvements SEPA du mois : une ligne par famille en
      * prélèvement, montant de sa facture, IBAN déchiffré, référence de
      * mandat — tout ce qu'il faut pour saisir les prélèvements dans
      * l'outil bancaire de la mairie. Le fichier est construit à la volée,
@@ -75,7 +113,8 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
         if (!$tmp) {
             self::redirect('psc_factures', 'sepa_failed');
         }
-        $built = Psc_Invoices::build_sepa_ods($tmp, $rows);
+        $format = isset($_POST['format']) && $_POST['format'] === 'csv' ? 'csv' : 'ods';
+        $built = $format === 'csv' ? Psc_Invoices::build_sepa_csv($tmp, $rows) : Psc_Invoices::build_sepa_ods($tmp, $rows);
         if (is_wp_error($built)) {
             @unlink($tmp); // phpcs:ignore WordPress.PHP.NoSilencedErrors
             self::redirect('psc_factures', 'sepa_failed');
@@ -83,11 +122,13 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
 
         // Journalisation : mêmes règles que les autres lectures du
         // répertoire privé — ce fichier contient des IBAN en clair.
-        psc_log_download('prelevements', 'periscolaire/factures/' . $mois . '/prelevements-' . $mois . '.ods');
+        psc_log_download('prelevements', 'periscolaire/factures/' . $mois . '/prelevements-' . $mois . '.' . $format);
 
-        $filename = 'prelevements-' . $mois . '.ods';
+        $filename = 'prelevements-' . $mois . '.' . $format;
         nocache_headers();
-        header('Content-Type: application/vnd.oasis.opendocument.spreadsheet');
+        header('Cache-Control: private, no-store, no-cache, must-revalidate');
+        header('X-Content-Type-Options: nosniff');
+        header('Content-Type: ' . ($format === 'csv' ? 'text/csv; charset=UTF-8' : 'application/vnd.oasis.opendocument.spreadsheet'));
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         header('Content-Length: ' . (string) filesize($tmp));
         readfile($tmp);
@@ -188,6 +229,13 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
         $invoice_id = psc_get_int('invoice_id');
         check_admin_referer('psc_download_invoice_' . $invoice_id);
         Psc_Invoices::download($invoice_id);
+    }
+
+    public static function page_comptes_familles() {
+        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        $as_of = current_time('Y-m-d');
+        $accounts = Psc_Invoices::family_accounts(substr($as_of, 0, 7));
+        include PSC_PATH . 'templates/admin-comptes-familles.php';
     }
 
     public static function page_factures() {

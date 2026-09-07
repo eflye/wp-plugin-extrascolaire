@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.5.8
+Stable tag: 5.5.9
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,15 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.5.9 =
+* Facturation : regroupe les exports par mois et ajoute les CSV des
+  prélèvements et de l’ensemble des factures.
+* Paiements : pointage reçu / non reçu des chèques et espèces par facture
+  mensuelle, avec conservation de la date de réception.
+* État des comptes familles : détail des factures payées et non payées,
+  total payé et somme due jusqu’au mois en cours ; prélèvements considérés
+  payés par défaut selon le mode de paiement actuel de la famille.
 
 = 5.5.8 =
 * Factures : export XML des prélèvements SEPA CORE pain.008.001.02,

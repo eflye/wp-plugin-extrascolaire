@@ -1,9 +1,10 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="wrap psc-admin">
-<h1><?php esc_html_e('Factures', 'periscolaire-registration'); ?></h1>
+<h1><?php esc_html_e('Facturation', 'periscolaire-registration'); ?></h1>
 
 <?php
 $psc_notices = array(
+    'payment_saved' => array('updated', __('Statut du paiement enregistré.', 'periscolaire-registration')),
     'generated'   => array('updated', __('Factures générées avec succès.', 'periscolaire-registration')),
     'gen_zero'    => array('warning', __('Aucune inscription trouvée pour ce mois.', 'periscolaire-registration')),
     'gen_error'   => array('error', __('Erreur lors de la génération.', 'periscolaire-registration')),
@@ -58,26 +59,42 @@ psc_admin_notice_map($psc_notices, $psc_msg);
             &#10005; <?php esc_html_e('Supprimer les factures du mois', 'periscolaire-registration'); ?>
         </button>
     </form>
-    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline;">
-        <input type="hidden" name="action" value="psc_download_sepa">
-        <input type="hidden" name="mois" value="<?php echo esc_attr($selected_mois); ?>">
-        <?php wp_nonce_field('psc_download_sepa'); ?>
-        <button type="submit" class="button button-secondary" title="<?php echo esc_attr(__('Familles en prélèvement : IBAN, référence de mandat et montant de leur facture du mois (fichier .ods, ouvrable dans LibreOffice).', 'periscolaire-registration')); ?>">
-            &#8659; <?php esc_html_e('Export prélèvements (SEPA, .ods)', 'periscolaire-registration'); ?>
-        </button>
-    </form>
-    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <input type="hidden" name="action" value="psc_download_pain008">
-        <input type="hidden" name="mois" value="<?php echo esc_attr($selected_mois); ?>">
-        <?php wp_nonce_field('psc_download_pain008'); ?>
-        <label for="psc-collection-date"><?php esc_html_e('Date de prélèvement :', 'periscolaire-registration'); ?></label>
-        <input id="psc-collection-date" type="date" name="collection_date" required min="<?php echo esc_attr((new DateTimeImmutable('tomorrow', wp_timezone()))->format('Y-m-d')); ?>">
-        <button type="submit" class="button button-secondary"><?php esc_html_e('export fichier pain.008', 'periscolaire-registration'); ?></button>
-    </form>
     <?php endif; ?>
 </div>
-<p class="description"><?php esc_html_e('Le fichier XML reprend les factures positives des familles actives en prélèvement. Choisissez la date convenue avec votre banque, en tenant compte du délai de remise et de l’information des familles. Ce téléchargement ne transmet aucun ordre à la banque.', 'periscolaire-registration'); ?>
-&nbsp;<a href="<?php echo esc_url(admin_url('admin.php?page=psc_settings#psc-org-ics')); ?>"><?php esc_html_e('Configurer le compte créancier', 'periscolaire-registration'); ?></a></p>
+
+<section class="postbox" style="padding:16px;margin-top:20px;" aria-labelledby="psc-exports-title">
+<h2 id="psc-exports-title" style="margin-top:0;"><?php esc_html_e('Exports par mois', 'periscolaire-registration'); ?></h2>
+<form method="get" style="margin-bottom:16px;">
+    <input type="hidden" name="page" value="psc_factures">
+    <label for="psc-export-month"><strong><?php esc_html_e('Mois à exporter', 'periscolaire-registration'); ?></strong></label>
+    <select id="psc-export-month" name="mois" onchange="this.form.submit()">
+        <?php foreach ($all_months as $m): ?>
+        <option value="<?php echo esc_attr($m); ?>" <?php selected($selected_mois, $m); ?>><?php echo esc_html(Psc_Invoices::month_label($m)); ?></option>
+        <?php endforeach; ?>
+    </select>
+    <button class="button"><?php esc_html_e('Choisir', 'periscolaire-registration'); ?></button>
+</form>
+<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+<?php foreach (array('csv', 'ods', 'general') as $format): $action = $format === 'general' ? 'psc_download_general' : 'psc_download_sepa'; ?>
+<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+    <input type="hidden" name="action" value="<?php echo esc_attr($action); ?>">
+    <input type="hidden" name="format" value="<?php echo esc_attr($format); ?>">
+    <input type="hidden" name="mois" value="<?php echo esc_attr($selected_mois); ?>">
+    <?php wp_nonce_field($action); ?>
+    <button class="button button-secondary"><?php echo esc_html($format === 'general' ? __('Export général (.csv)', 'periscolaire-registration') : sprintf(__('Export prélèvements (SEPA, .%s)', 'periscolaire-registration'), $format)); ?></button>
+</form>
+<?php endforeach; ?>
+<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <input type="hidden" name="action" value="psc_download_pain008">
+    <input type="hidden" name="mois" value="<?php echo esc_attr($selected_mois); ?>">
+    <?php wp_nonce_field('psc_download_pain008'); ?>
+    <label for="psc-collection-date"><?php esc_html_e('Date de prélèvement :', 'periscolaire-registration'); ?></label>
+    <input id="psc-collection-date" type="date" name="collection_date" required min="<?php echo esc_attr((new DateTimeImmutable('tomorrow', wp_timezone()))->format('Y-m-d')); ?>">
+    <button class="button button-secondary"><?php esc_html_e('Export fichier pain.008', 'periscolaire-registration'); ?></button>
+</form>
+</div>
+<p class="description"><?php esc_html_e('Pour le fichier pain.008, choisissez la date convenue avec votre banque. Le téléchargement ne transmet aucun ordre à la banque.', 'periscolaire-registration'); ?> <a href="<?php echo esc_url(admin_url('admin.php?page=psc_settings#psc-org-ics')); ?>"><?php esc_html_e('Configurer le compte créancier', 'periscolaire-registration'); ?></a></p>
+</section>
 
 <?php if ($selected_mois && !empty($invoices)): ?>
 
@@ -107,6 +124,7 @@ psc_admin_notice_map($psc_notices, $psc_msg);
     <th style="text-align:right"><?php esc_html_e('Total', 'periscolaire-registration'); ?></th>
     <th><?php esc_html_e('Générée le', 'periscolaire-registration'); ?></th>
     <th><?php esc_html_e('Envoyée le', 'periscolaire-registration'); ?></th>
+    <th><?php esc_html_e('Paiement', 'periscolaire-registration'); ?></th>
     <th><?php esc_html_e('Actions', 'periscolaire-registration'); ?></th>
 </tr>
 </thead>
@@ -122,6 +140,21 @@ psc_admin_notice_map($psc_notices, $psc_msg);
             <span style="color:#46b450">✔ <?php echo esc_html(date_i18n('d/m/Y H:i', strtotime($inv->sent_at))); ?></span>
         <?php else: ?>
             <span style="color:#999"><?php esc_html_e('Non envoyée', 'periscolaire-registration'); ?></span>
+        <?php endif; ?>
+    </td>
+    <td>
+        <?php if ($inv->payment_mode === 'autre'): ?>
+        <strong><?php echo $inv->payment_received_at ? esc_html__('Reçu', 'periscolaire-registration') : esc_html__('Non reçu', 'periscolaire-registration'); ?></strong><br>
+        <small><?php esc_html_e('Chèque ou espèces', 'periscolaire-registration'); ?><?php if ($inv->payment_received_at) echo ' — ' . esc_html(date_i18n('d/m/Y', strtotime($inv->payment_received_at))); ?></small>
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+            <input type="hidden" name="action" value="psc_payment_received">
+            <input type="hidden" name="invoice_id" value="<?php echo esc_attr($inv->id); ?>">
+            <input type="hidden" name="received" value="<?php echo $inv->payment_received_at ? '0' : '1'; ?>">
+            <?php wp_nonce_field('psc_payment_received'); ?>
+            <button class="button button-small"><?php echo $inv->payment_received_at ? esc_html__('Marquer non reçu', 'periscolaire-registration') : esc_html__('Marquer reçu', 'periscolaire-registration'); ?></button>
+        </form>
+        <?php else: ?>
+        <?php esc_html_e('Prélèvement', 'periscolaire-registration'); ?>
         <?php endif; ?>
     </td>
     <td style="white-space:nowrap">
@@ -152,7 +185,7 @@ psc_admin_notice_map($psc_notices, $psc_msg);
     <th style="text-align:right">
         <?php echo esc_html(number_format(array_sum(array_column($invoices, 'total')), 2, ',', ' ')); ?> €
     </th>
-    <th colspan="3"></th>
+    <th colspan="4"></th>
 </tr>
 </tfoot>
 </table>

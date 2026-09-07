@@ -83,7 +83,9 @@ class Psc_Admin extends Psc_Admin_Base {
         add_submenu_page('psc_dashboard', __('Personnes autorisées', 'periscolaire-registration'), null, $cap, 'psc_pickup_persons', array('Psc_Admin_Familles', 'page_pickup_persons'));
 
         // Facturation
-        add_submenu_page('psc_dashboard', __('Factures', 'periscolaire-registration'), __('Factures', 'periscolaire-registration'), $cap, 'psc_factures', array('Psc_Admin_Invoices', 'page_factures'));
+        add_submenu_page('psc_dashboard', __('Facturation', 'periscolaire-registration'), __('Facturation', 'periscolaire-registration'), $cap, 'psc_factures', array('Psc_Admin_Invoices', 'page_factures'));
+
+        add_submenu_page('psc_dashboard', __('État des comptes familles', 'periscolaire-registration'), __('État des comptes familles', 'periscolaire-registration'), $cap, 'psc_comptes_familles', array('Psc_Admin_Invoices', 'page_comptes_familles'));
 
         // Configuration
         add_submenu_page('psc_dashboard', __('Modèles e-mails', 'periscolaire-registration'), __('Modèles e-mails', 'periscolaire-registration'), $cap, 'psc_email_templates', array('Psc_Admin_Config', 'page_email_templates'));
