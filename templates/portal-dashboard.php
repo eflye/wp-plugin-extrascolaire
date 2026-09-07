@@ -88,6 +88,13 @@
   <?php endif; ?>
 </div>
 
+<?php if (!empty($psc_portal_dashboard['menu']) && !empty($psc_portal_dashboard['origine_viande'])): ?>
+<aside class="psc-menu-origin" data-testid="menu-meat-origin">
+  <h3><?php esc_html_e('Origine de la viande', 'periscolaire-registration'); ?></h3>
+  <p><?php echo nl2br(esc_html($psc_portal_dashboard['origine_viande'])); ?></p>
+</aside>
+<?php endif; ?>
+
 <div class="psc-portal-section-heading">
   <span class="psc-portal-numeral">II.</span>
   <span class="psc-portal-heading-label"><?php esc_html_e('Mes enfants', 'periscolaire-registration'); ?></span>

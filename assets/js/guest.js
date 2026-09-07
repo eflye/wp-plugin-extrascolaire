@@ -132,7 +132,10 @@
             sepaBlock.hidden = !isSepa;
             sepaRequiredIds.forEach(function (id) {
                 var el = document.getElementById(id);
-                if (el) el.required = isSepa;
+                if (el) {
+                    el.required = isSepa;
+                    el.disabled = !isSepa;
+                }
             });
         }
 
@@ -142,12 +145,21 @@
 
         var sameAddress = document.getElementById('psc-sepa-same-address');
         if (sameAddress) {
-            sameAddress.addEventListener('change', function () {
-                if (!sameAddress.checked) return;
-                document.getElementById('psc-sepa-adresse').value = document.getElementById('psc-req-adresse').value;
-                document.getElementById('psc-sepa-cp').value       = document.getElementById('psc-req-cp').value;
-                document.getElementById('psc-sepa-ville').value    = document.getElementById('psc-req-ville').value;
+            function syncAddress() {
+                ['adresse', 'cp', 'ville'].forEach(function (part) {
+                    var target = document.getElementById('psc-sepa-' + part);
+                    target.readOnly = sameAddress.checked;
+                    if (sameAddress.checked) target.value = document.getElementById('psc-req-' + part).value;
+                });
+            }
+            sameAddress.addEventListener('change', syncAddress);
+            ['adresse', 'cp', 'ville'].forEach(function (part) {
+                var source = document.getElementById('psc-req-' + part);
+                source.addEventListener('input', syncAddress);
+                source.addEventListener('change', syncAddress);
             });
+            sameAddress.form.addEventListener('submit', syncAddress);
+            syncAddress();
         }
     }
 
@@ -393,6 +405,7 @@
             adresse.value = props.name || props.label;
             cp.value     = props.postcode;
             ville.value  = props.city;
+            adresse.dispatchEvent(new window.Event('change'));
             lastLabel    = props.label;
             search.value = props.label;
             status.textContent = '';
@@ -473,6 +486,7 @@
                 adresse.value = '';
                 cp.value = '';
                 ville.value = '';
+                adresse.dispatchEvent(new window.Event('change'));
             }
             refreshValidity();
             runSearch();

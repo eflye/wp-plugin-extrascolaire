@@ -2144,3 +2144,11 @@ button.psc-exc-locked[aria-pressed="false"] { background: transparent; border-co
 .psc-exception-grid [data-service-column][hidden] {
     display: none;
 }
+
+/* Adresse du titulaire recopiée du foyer : envoyée avec le formulaire,
+   mais non modifiable tant que la case reste cochée. */
+.psc-portal-field-underline[readonly] {
+    background-color: #F0EDE8;
+    color: #746E67;
+    cursor: not-allowed;
+}

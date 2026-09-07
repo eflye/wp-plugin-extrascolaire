@@ -208,17 +208,19 @@ class Psc_Frontend extends Psc_Frontend_Base {
         // défilement).
         wp_enqueue_style('psc-portal', PSC_URL . 'assets/css/portal.css', array('psc-frontend'), PSC_VERSION);
 
+        wp_enqueue_script('psc-banking', PSC_URL . 'assets/js/banking.js', array(), PSC_VERSION, true);
+
         if (Psc_Parents::current()) {
             // psc-dialog : sémantique de dialogue des popins du portail
             // (role="dialog", aria-modal, piège de focus, Échap) — cf. les
             // modales de portal.js et le tour de découverte.
             wp_enqueue_script('psc-dialog', PSC_URL . 'assets/js/psc-dialog.js', array(), PSC_VERSION, true);
-            wp_enqueue_script('psc-portal', PSC_URL . 'assets/js/portal.js', array('psc-ajax', 'psc-dialog'), PSC_VERSION, true);
+            wp_enqueue_script('psc-portal', PSC_URL . 'assets/js/portal.js', array('psc-ajax', 'psc-dialog', 'psc-banking'), PSC_VERSION, true);
             // Écran Planning - 2 (rythme + exceptions) : re-rendu des zones
             // après chaque écriture AJAX, navigation mois et onglets enfants.
             wp_enqueue_script('psc-planning-2', PSC_URL . 'assets/js/planning-2.js', array('psc-ajax'), PSC_VERSION, true);
         } else {
-            wp_enqueue_script('psc-guest', PSC_URL . 'assets/js/guest.js', array(), PSC_VERSION, true);
+            wp_enqueue_script('psc-guest', PSC_URL . 'assets/js/guest.js', array('psc-banking'), PSC_VERSION, true);
         }
     }
 
@@ -432,6 +434,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
             'amount_label'   => number_format_i18n($amount, 2),
             'next_invoice'   => $next_invoice,
             'menu'           => Psc_Frontend_Menus::menu_days_for_week($current_week),
+            'origine_viande' => Psc_Menus::meat_origin(Psc_Menus::get_by_week($current_week)),
             'menu_no_school' => !Psc_Frontend_Menus::week_has_school_day($current_week),
             'children'       => $children_summaries,
         );

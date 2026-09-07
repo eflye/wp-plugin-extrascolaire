@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.5.6
+Stable tag: 5.5.7
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,14 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.5.7 =
+* Inscription et passage au prélèvement : validation de l’IBAN et du BIC
+  dans le navigateur avant de poursuivre, en complément des contrôles serveur.
+* Adresse du titulaire identique au foyer : champs recopiés, grisés et en
+  lecture seule tant que la case est cochée ; synchronisation à l’inscription.
+* Tableau de bord famille : affiche l’origine de la viande sous le menu
+  de la semaine, lorsqu’elle est renseignée.
 
 = 5.5.6 =
 * Mon profil : le choix du mode de paiement reste réversible entre « Chèque ou

@@ -218,11 +218,11 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
           </div>
           <div>
             <label class="psc-portal-field-label" for="psc-sepa-iban"><?php esc_html_e('IBAN', 'periscolaire-registration'); ?></label>
-            <input id="psc-sepa-iban" class="psc-portal-field-underline" type="text" name="sepa_iban" maxlength="42" placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX" autocomplete="off">
+            <input id="psc-sepa-iban" class="psc-portal-field-underline" type="text" name="sepa_iban" data-bank-validation="iban" data-bank-error="<?php echo esc_attr__('L’IBAN saisi est invalide. Vérifiez les caractères et la clé de contrôle.', 'periscolaire-registration'); ?>" maxlength="42" placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX" autocomplete="off">
           </div>
           <div>
             <label class="psc-portal-field-label" for="psc-sepa-bic"><?php esc_html_e('BIC', 'periscolaire-registration'); ?></label>
-            <input id="psc-sepa-bic" class="psc-portal-field-underline" type="text" name="sepa_bic" maxlength="11" placeholder="XXXXFRPPXXX" autocomplete="off">
+            <input id="psc-sepa-bic" class="psc-portal-field-underline" type="text" name="sepa_bic" data-bank-validation="bic" data-bank-error="<?php echo esc_attr__('Le BIC doit contenir 8 ou 11 caractères : 6 lettres, puis 2 ou 5 lettres ou chiffres.', 'periscolaire-registration'); ?>" maxlength="11" placeholder="XXXXFRPPXXX" autocomplete="off">
           </div>
         </div>
 

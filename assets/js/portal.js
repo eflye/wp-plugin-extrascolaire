@@ -395,12 +395,16 @@
         if (currentCard) currentCard.addEventListener('click', function () { selectMode(false); });
 
         if (sameAddress) {
-            sameAddress.addEventListener('change', function () {
-                if (!sameAddress.checked) return;
-                document.getElementById('psc-profile-sepa-adresse').value = sameAddress.dataset.address || '';
-                document.getElementById('psc-profile-sepa-cp').value = sameAddress.dataset.postcode || '';
-                document.getElementById('psc-profile-sepa-ville').value = sameAddress.dataset.city || '';
-            });
+            function syncAddress() {
+                var parts = { adresse: 'address', cp: 'postcode', ville: 'city' };
+                Object.keys(parts).forEach(function (part) {
+                    var field = document.getElementById('psc-profile-sepa-' + part);
+                    field.readOnly = sameAddress.checked;
+                    if (sameAddress.checked) field.value = sameAddress.dataset[parts[part]] || '';
+                });
+            }
+            sameAddress.addEventListener('change', syncAddress);
+            syncAddress();
         }
     }
 
