@@ -7,14 +7,41 @@
 
 if (!defined('ABSPATH')) exit;
 
+require_once __DIR__ . '/banking-uk.php';
+
+/** Source unique pour les contrôles PHP et navigateur. */
+function psc_banking_rules() {
+    static $rules = null;
+    if ($rules === null) {
+        $rules = array(
+            'patterns' => json_decode(file_get_contents(__DIR__ . '/../data/iban-patterns.json'), true),
+            'uk' => json_decode(file_get_contents(__DIR__ . '/../data/uk-modulus.json'), true),
+        );
+    }
+    return $rules;
+}
+
+function psc_banking_assets() {
+    wp_enqueue_script('psc-banking', PSC_URL . 'assets/js/banking.js', array(), PSC_VERSION, true);
+    wp_localize_script('psc-banking', 'PSC_BANK', psc_banking_rules());
+}
+
 /**
- * Valide un IBAN : format général (ISO 13616) + clé de contrôle mod-97.
+ * Valide un IBAN : pays et structure ISO 13616 + clé mod-97 + contrôles nationaux FR/GB.
  * Renvoie l'IBAN normalisé (majuscules, sans espaces) ou false.
  */
 function psc_valid_iban($iban) {
-    $iban = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string) $iban));
-    if (strlen($iban) < 15 || strlen($iban) > 34) return false;
-    if (!preg_match('/^[A-Z]{2}\d{2}[A-Z0-9]+$/', $iban)) return false;
+    if (!is_string($iban) || strlen($iban) > 128) return false;
+    // Espaces de présentation uniquement : ne jamais effacer ponctuation,
+    // caractères de contrôle ou caractères invisibles pour « réparer » un IBAN.
+    $iban = strtoupper(str_replace(array(' ', "\xc2\xa0", "\xe2\x80\xaf"), '', $iban));
+    if (!preg_match('/\A[A-Z]{2}[0-9]{2}[A-Z0-9]+\z/', $iban)) return false;
+    $key = (int) substr($iban, 2, 2);
+    if ($key < 2 || $key > 98) return false;
+    $rules = psc_banking_rules();
+    $country = substr($iban, 0, 2);
+    if (!isset($rules['patterns'][$country])) return false;
+    if (!preg_match('/\A' . $country . $rules['patterns'][$country] . '\z/', $iban)) return false;
 
     // Les 4 premiers caractères passent à la fin, les lettres deviennent
     // des chiffres (A=10 .. Z=35), puis on vérifie que le nombre obtenu
@@ -31,7 +58,19 @@ function psc_valid_iban($iban) {
     foreach (str_split($numeric, 7) as $block) {
         $checksum = ((int) ((string) $checksum . $block)) % 97;
     }
-    return $checksum === 1 ? $iban : false;
+    if ($checksum !== 1) return false;
+    if ($country === 'FR' && !psc_valid_french_rib($iban)) return false;
+    if ($country === 'GB' && !psc_valid_uk_account(substr($iban, 8, 6), substr($iban, 14, 8), $rules['uk'])) return false;
+    return $iban;
+}
+
+/** Clé RIB : conversion nationale des lettres, distincte de celle de l’IBAN. */
+function psc_valid_french_rib($iban) {
+    $account = strtr(substr($iban, 14, 11), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', '12345678912345678923456789');
+    $remainder = 0;
+    foreach (str_split($account) as $digit) $remainder = ($remainder * 10 + (int) $digit) % 97;
+    $key = 97 - ((89 * (int) substr($iban, 4, 5) + 15 * (int) substr($iban, 9, 5) + 3 * $remainder) % 97);
+    return $key === (int) substr($iban, 25, 2);
 }
 
 /**

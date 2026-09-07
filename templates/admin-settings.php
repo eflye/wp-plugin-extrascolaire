@@ -188,6 +188,21 @@ $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
 </td>
 </tr>
 <tr>
+<th><label for="psc-org-iban"><?php esc_html_e('IBAN du compte créancier', 'periscolaire-registration'); ?></label></th>
+<td><input id="psc-org-iban" type="text" name="org_iban" class="large-text" maxlength="42" autocomplete="off"
+    data-bank-validation="iban" data-bank-error="<?php esc_attr_e('IBAN invalide : vérifiez le pays, la longueur et les clés de contrôle.', 'periscolaire-registration'); ?>"
+    value="<?php echo esc_attr(psc_decrypt(get_option('psc_billing_org_iban', '')) ?? ''); ?>">
+<p class="description"><?php esc_html_e('Compte de la collectivité à créditer lors des prélèvements. Nécessaire pour l’export pain.008 ; enregistré chiffré.', 'periscolaire-registration'); ?></p></td>
+</tr>
+<tr>
+<th><label for="psc-org-bic"><?php esc_html_e('BIC de la banque du créancier', 'periscolaire-registration'); ?></label></th>
+<td><input id="psc-org-bic" type="text" name="org_bic" class="regular-text" maxlength="11" autocomplete="off"
+    data-bank-validation="bic" data-bank-error="<?php esc_attr_e('BIC invalide : 8 ou 11 caractères attendus.', 'periscolaire-registration'); ?>"
+    value="<?php echo esc_attr(get_option('psc_billing_org_bic', '')); ?>">
+<p class="description"><?php esc_html_e('Facultatif pour un compte dans l’EEE, sauf exigence de votre banque. À renseigner de préférence.', 'periscolaire-registration'); ?></p></td>
+</tr>
+
+<tr>
 <th><?php esc_html_e('Logo gauche', 'periscolaire-registration'); ?></th>
 <td>
     <div id="psc-logo-left-preview" style="margin-bottom:6px;">

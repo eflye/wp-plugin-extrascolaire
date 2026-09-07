@@ -147,9 +147,11 @@ $assert('IBAN : GB valide', psc_valid_iban('GB82 WEST 1234 5698 7654 32'), 'GB82
 $assert('IBAN : clé de contrôle erronée -> false', psc_valid_iban('FR76 3000 6000 0112 3456 7890 188'), false);
 $assert('IBAN : trop court -> false', psc_valid_iban('FR76 1234 567'), false);
 $assert('IBAN : trop long (> 34) -> false', psc_valid_iban('FR763000600001123456789018900000000000000000'), false);
-$assert('IBAN : séparateurs non standards (tirets, points) supprimés', psc_valid_iban('FR76-3000.6000-0112.3456-7890-189'), 'FR7630006000011234567890189');
+$assert('IBAN : séparateurs non standards refusés', psc_valid_iban('FR76-3000.6000-0112.3456-7890-189'), false);
 $assert('IBAN : texte sans structure -> false', psc_valid_iban('bonjour le monde'), false);
 $assert('IBAN : pays en bas de casse accepté', psc_valid_iban('fr7630006000011234567890189'), 'FR7630006000011234567890189');
+
+require __DIR__ . '/banking.php';
 
 $assert('BIC : 8 caractères (siège)', psc_valid_bic('AGRIFRPP'), 'AGRIFRPP');
 $assert('BIC : 11 caractères (agence)', psc_valid_bic('AGRIFRPPXXX'), 'AGRIFRPPXXX');

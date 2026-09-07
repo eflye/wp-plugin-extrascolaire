@@ -423,7 +423,7 @@ class Psc_Requests {
                 exit;
             }
 
-            $sepa_iban = psc_valid_iban(psc_post('sepa_iban'));
+            $sepa_iban = psc_valid_iban(wp_unslash($_POST['sepa_iban'] ?? ''));
             if (!$sepa_iban) {
                 wp_safe_redirect(add_query_arg('psc_msg', 'bad_iban', $back));
                 exit;

@@ -16,6 +16,19 @@ class Psc_Admin_Config extends Psc_Admin_Base {
     public static function handle_save_settings() {
         self::guard('psc_save_settings');
 
+        // Valider les coordonnées avant toute sauvegarde des réglages.
+        $org_iban_raw = wp_unslash($_POST['org_iban'] ?? '');
+        $org_bic_raw = wp_unslash($_POST['org_bic'] ?? '');
+        $org_ics_raw = wp_unslash($_POST['org_ics'] ?? '');
+        $org_iban = $org_iban_raw === '' ? '' : psc_valid_iban($org_iban_raw);
+        $org_bic = $org_bic_raw === '' ? '' : psc_valid_bic($org_bic_raw);
+        $org_ics = $org_ics_raw === '' ? '' : Psc_Sepa_Export::valid_ics($org_ics_raw);
+        if ($org_iban === false || $org_bic === false || $org_ics === false) {
+            wp_die(esc_html__('Coordonnées du créancier invalides : vérifiez l’IBAN, le BIC et l’ICS. Aucun réglage n’a été modifié.', 'periscolaire-registration'), '', array('response' => 400, 'back_link' => true));
+        }
+        $org_iban_encrypted = psc_encrypt($org_iban === '' ? null : $org_iban);
+        if (is_wp_error($org_iban_encrypted)) wp_die(esc_html($org_iban_encrypted->get_error_message()), '', array('response' => 500, 'back_link' => true));
+
         $prices = array();
         foreach (array_keys(psc_billing_tariffs()) as $code) {
             $raw = isset($_POST['price_' . $code]) ? wp_unslash($_POST['price_' . $code]) : '0';
@@ -61,7 +74,6 @@ class Psc_Admin_Config extends Psc_Admin_Base {
             'psc_billing_org_fax'     => 'sanitize_text_field',
             'psc_billing_org_email'   => 'sanitize_email',
             'psc_billing_org_city'    => 'sanitize_text_field',
-            'psc_billing_org_ics'     => 'sanitize_text_field',
             'psc_billing_footer'      => 'sanitize_text_field',
         );
         foreach ($billing_fields as $option => $sanitizer) {
@@ -69,6 +81,9 @@ class Psc_Admin_Config extends Psc_Admin_Base {
             $val = isset($_POST[$post_key]) ? call_user_func($sanitizer, wp_unslash($_POST[$post_key])) : '';
             update_option($option, $val);
         }
+        update_option('psc_billing_org_ics', $org_ics);
+        update_option('psc_billing_org_iban', $org_iban_encrypted, false);
+        update_option('psc_billing_org_bic', $org_bic, false);
         update_option('psc_billing_logo_left_id',  absint(isset($_POST['logo_left_id'])  ? $_POST['logo_left_id']  : 0));
         update_option('psc_billing_logo_right_id', absint(isset($_POST['logo_right_id']) ? $_POST['logo_right_id'] : 0));
 

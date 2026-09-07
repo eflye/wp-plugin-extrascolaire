@@ -47,7 +47,9 @@ jobs:
       # chiffré, altération détectée, clair hérité préservé — doit tenir
       # sur chacun.
       - name: Tests unitaires des helpers purs
-        run: php tests/unit/run.php
+        run: |
+          php tests/unit/run.php
+          php tests/unit/sepa-export.php
 
   # Analyse statique du code de l'extension (includes/), niveau 3 —
   # cf. phpstan.neon. Le résultat est indépendant de la version de PHP
@@ -98,3 +100,9 @@ jobs:
 
       - name: Lint JavaScript
         run: npx eslint assets/js
+
+      - name: Installe Chromium pour les validateurs bancaires
+        run: npx playwright install --with-deps chromium
+
+      - name: Teste les champs IBAN des trois formulaires
+        run: npm run test:banking

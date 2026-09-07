@@ -6,7 +6,8 @@
   "scripts": {
     "test:e2e": "playwright test --project=test",
     "demo:e2e": "playwright test --project=demo",
-    "lint:js": "eslint assets/js"
+    "lint:js": "eslint assets/js",
+    "test:banking": "node tests/unit/banking-browser.cjs"
   },
   "license": "GPL-2.0-or-later",
   "type": "commonjs",

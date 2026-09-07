@@ -595,8 +595,9 @@ class Psc_Parents {
             $formats[] = '%s';
         }
         if (array_key_exists('sepa_iban', $data)) {
-            $iban = !empty($data['sepa_iban']) ? psc_valid_iban($data['sepa_iban']) : null;
-            if (!empty($data['sepa_iban']) && !$iban) return new WP_Error('psc_bad_iban', __('IBAN invalide.', 'periscolaire-registration'));
+            $has_iban = $data['sepa_iban'] !== '' && $data['sepa_iban'] !== null;
+            $iban = $has_iban ? psc_valid_iban($data['sepa_iban']) : null;
+            if ($has_iban && $iban === false) return new WP_Error('psc_bad_iban', __('IBAN invalide.', 'periscolaire-registration'));
             // Échec de chiffrement = enregistrement refusé (jamais en clair).
             $iban_enc = psc_encrypt($iban);
             if (is_wp_error($iban_enc)) return $iban_enc;
@@ -637,6 +638,13 @@ class Psc_Parents {
                 return new WP_Error('psc_bad_second_parent_phone', __('Téléphone du second parent invalide.', 'periscolaire-registration'));
             }
             $set['second_parent_telephone'] = $phone;
+            $formats[] = '%s';
+        }
+
+        if (array_key_exists('sepa_country', $data)) {
+            $country = strtoupper(trim((string) $data['sepa_country']));
+            if (!preg_match('/\A[A-Z]{2}\z/', $country)) return new WP_Error('psc_bad_country', __('Pays du titulaire invalide : utilisez un code ISO de deux lettres.', 'periscolaire-registration'));
+            $set['sepa_country'] = $country;
             $formats[] = '%s';
         }
 

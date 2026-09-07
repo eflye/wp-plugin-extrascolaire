@@ -12,6 +12,7 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
         add_action('admin_post_psc_send_all_invoices', array(__CLASS__, 'handle_send_all_invoices'));
         add_action('admin_post_psc_download_invoice', array(__CLASS__, 'handle_download_invoice'));
         add_action('admin_post_psc_delete_invoices', array(__CLASS__, 'handle_delete_invoices'));
+        add_action('admin_post_psc_download_pain008', array(__CLASS__, 'handle_download_pain008'));
         add_action('admin_post_psc_download_sepa', array(__CLASS__, 'handle_download_sepa'));
     }
 
@@ -91,6 +92,28 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
         header('Content-Length: ' . (string) filesize($tmp));
         readfile($tmp);
         @unlink($tmp); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        exit;
+    }
+
+    /** Téléchargement XML privé, sans envoi à la banque ni modification des factures. */
+    public static function handle_download_pain008() {
+        self::guard('psc_download_pain008');
+        $month = psc_post('mois');
+        $date = psc_post('collection_date');
+        $rows = Psc_Invoices::sepa_rows($month);
+        $xml = is_wp_error($rows) ? $rows : Psc_Sepa_Export::build($rows, Psc_Sepa_Export::creditor(), $month, $date);
+        if (is_wp_error($xml)) {
+            wp_die(nl2br(esc_html($xml->get_error_message())), esc_html__('Export pain.008 impossible', 'periscolaire-registration'), array('response' => 400, 'back_link' => true));
+        }
+        $filename = 'prelevements-' . $month . '-' . $date . '-pain008.xml';
+        psc_log_download('prelevements', 'periscolaire/factures/' . $month . '/' . $filename);
+        nocache_headers();
+        header('Cache-Control: private, no-store, no-cache, must-revalidate');
+        header('Content-Type: application/xml; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('X-Content-Type-Options: nosniff');
+        header('Content-Length: ' . strlen($xml));
+        echo $xml; // XML construit par DOM et validé par XSD.
         exit;
     }
 

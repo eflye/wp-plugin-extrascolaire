@@ -337,12 +337,13 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
             'sepa_adresse'     => psc_post('sepa_adresse'),
             'sepa_code_postal' => psc_post('sepa_code_postal'),
             'sepa_ville'       => psc_post('sepa_ville'),
-            'sepa_iban'        => psc_post('sepa_iban'),
+            'sepa_country'     => psc_post('sepa_country', 'FR'),
+            'sepa_iban'        => wp_unslash($_POST['sepa_iban'] ?? ''),
             'sepa_bic'         => psc_post('sepa_bic'),
         ));
         if (is_wp_error($result)) {
             wp_safe_redirect(add_query_arg(
-                array('page' => 'psc_parents', 'edit' => $id, 'psc_msg' => $result->get_error_code() === 'psc_bad_iban' ? 'bad_iban' : 'bad_bic'),
+                array('page' => 'psc_parents', 'edit' => $id, 'psc_msg' => $result->get_error_code() === 'psc_bad_country' ? 'bad_country' : ($result->get_error_code() === 'psc_bad_iban' ? 'bad_iban' : 'bad_bic')),
                 admin_url('admin.php')
             ));
             exit;

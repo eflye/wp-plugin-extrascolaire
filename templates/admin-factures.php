@@ -66,8 +66,18 @@ psc_admin_notice_map($psc_notices, $psc_msg);
             &#8659; <?php esc_html_e('Export prélèvements (SEPA, .ods)', 'periscolaire-registration'); ?>
         </button>
     </form>
+    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <input type="hidden" name="action" value="psc_download_pain008">
+        <input type="hidden" name="mois" value="<?php echo esc_attr($selected_mois); ?>">
+        <?php wp_nonce_field('psc_download_pain008'); ?>
+        <label for="psc-collection-date"><?php esc_html_e('Date de prélèvement :', 'periscolaire-registration'); ?></label>
+        <input id="psc-collection-date" type="date" name="collection_date" required min="<?php echo esc_attr((new DateTimeImmutable('tomorrow', wp_timezone()))->format('Y-m-d')); ?>">
+        <button type="submit" class="button button-secondary"><?php esc_html_e('export fichier pain.008', 'periscolaire-registration'); ?></button>
+    </form>
     <?php endif; ?>
 </div>
+<p class="description"><?php esc_html_e('Le fichier XML reprend les factures positives des familles actives en prélèvement. Choisissez la date convenue avec votre banque, en tenant compte du délai de remise et de l’information des familles. Ce téléchargement ne transmet aucun ordre à la banque.', 'periscolaire-registration'); ?>
+&nbsp;<a href="<?php echo esc_url(admin_url('admin.php?page=psc_settings#psc-org-ics')); ?>"><?php esc_html_e('Configurer le compte créancier', 'periscolaire-registration'); ?></a></p>
 
 <?php if ($selected_mois && !empty($invoices)): ?>
 

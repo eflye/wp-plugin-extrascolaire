@@ -293,7 +293,7 @@ class Psc_Invoices {
             "SELECT i.id AS invoice_id, i.total, i.created_at,
                     p.nom, p.prenom, p.email, p.sepa_iban, p.sepa_bic,
                     p.sepa_titulaire, p.sepa_adresse, p.sepa_code_postal,
-                    p.sepa_ville, p.sepa_mandate_ref
+                    p.sepa_ville, p.sepa_mandate_ref, p.sepa_reglement_accepted_at, p.sepa_country
              FROM $t_inv i
              JOIN $t_par p ON p.id = i.parent_id
              WHERE i.mois = %s AND p.payment_mode = 'prelevement' AND p.active = 1
@@ -319,6 +319,9 @@ class Psc_Invoices {
                 'code_postal'  => (string) $r->sepa_code_postal,
                 'ville'        => (string) $r->sepa_ville,
                 'mandate_ref'  => (string) $r->sepa_mandate_ref,
+                'mandate_accepted_at' => (string) $r->sepa_reglement_accepted_at,
+                'country'      => (string) $r->sepa_country,
+                'montant_decimal' => (string) $r->total,
                 'invoice_ref'  => 'FC-' . str_replace('-', '', $mois) . '-' . (int) $r->invoice_id,
                 'mois_label'   => self::month_label($mois),
                 'montant'      => (float) $r->total,

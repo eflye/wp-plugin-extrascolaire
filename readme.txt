@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.5.7
+Stable tag: 5.5.8
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,15 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.5.8 =
+* Factures : export XML des prélèvements SEPA CORE pain.008.001.02,
+  avec date de prélèvement, compte créancier et validation du schéma XSD.
+* Mandats : utilise la date d’acceptation enregistrée comme date de signature ;
+  bloque l’export si des données obligatoires sont absentes ou invalides.
+* IBAN : renforce les contrôles dans tous les formulaires, notamment la clé
+  RIB française, les structures nationales et les contrôles britanniques.
+* Ajoute des tests bancaires partagés PHP/navigateur et des tests d’export SEPA.
 
 = 5.5.7 =
 * Inscription et passage au prélèvement : validation de l’IBAN et du BIC

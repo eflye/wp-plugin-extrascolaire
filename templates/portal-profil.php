@@ -115,7 +115,7 @@
           </div>
           <div>
             <label class="psc-portal-field-label" for="psc-profile-sepa-iban"><?php esc_html_e('IBAN', 'periscolaire-registration'); ?> <span class="psc-req">*</span></label>
-            <input id="psc-profile-sepa-iban" class="psc-portal-field-underline" type="text" name="sepa_iban" data-bank-validation="iban" data-bank-error="<?php echo esc_attr__('L’IBAN saisi est invalide. Vérifiez les caractères et la clé de contrôle.', 'periscolaire-registration'); ?>" maxlength="42" placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX" autocomplete="off" required>
+            <input id="psc-profile-sepa-iban" class="psc-portal-field-underline" type="text" name="sepa_iban" data-bank-validation="iban" data-bank-error="<?php echo esc_attr__('IBAN invalide : vérifiez le pays, la longueur, les caractères et les chiffres de contrôle.', 'periscolaire-registration'); ?>" maxlength="42" placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX" autocomplete="off" required>
           </div>
           <div>
             <label class="psc-portal-field-label" for="psc-profile-sepa-bic"><?php esc_html_e('BIC', 'periscolaire-registration'); ?> <span class="psc-req">*</span></label>

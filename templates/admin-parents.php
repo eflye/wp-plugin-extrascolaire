@@ -12,6 +12,7 @@ $psc_notices = array(
     'deactivated' => array('success', __('Accès désactivé.', 'periscolaire-registration')),
     'reactivated' => array('success', __('Accès réactivé.', 'periscolaire-registration')),
     'updated'     => array('success', __('Informations de la famille mises à jour.', 'periscolaire-registration')),
+    'bad_country' => array('error', __('Pays du titulaire invalide : utilisez un code ISO de deux lettres.', 'periscolaire-registration')),
     'bad_iban'    => array('error', __('IBAN invalide.', 'periscolaire-registration')),
     'bad_bic'     => array('error', __('BIC invalide.', 'periscolaire-registration')),
     'bad_code_postal' => array('error', __('Code postal invalide.', 'periscolaire-registration')),
@@ -66,8 +67,11 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 <tr><th><label for="psc-edit-sepa-ville"><?php esc_html_e('Ville (titulaire)', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-edit-sepa-ville" type="text" name="sepa_ville" class="regular-text" maxlength="100"
     value="<?php echo esc_attr($edit_parent->sepa_ville ?? ''); ?>"></td></tr>
+<tr><th><label for="psc-edit-sepa-country"><?php esc_html_e('Pays de résidence du titulaire', 'periscolaire-registration'); ?></label></th>
+<td><input id="psc-edit-sepa-country" type="text" name="sepa_country" maxlength="2" pattern="[A-Za-z]{2}" required class="small-text" value="<?php echo esc_attr($edit_parent->sepa_country ?? 'FR'); ?>">
+<p class="description"><?php esc_html_e('Code ISO : FR pour la France. Indiquez le pays de l’adresse du titulaire, même si sa banque est à l’étranger.', 'periscolaire-registration'); ?></p></td></tr>
 <tr><th><label for="psc-edit-sepa-iban"><?php esc_html_e('IBAN', 'periscolaire-registration'); ?></label></th>
-<td><input id="psc-edit-sepa-iban" type="text" name="sepa_iban" class="large-text" maxlength="42"
+<td><input id="psc-edit-sepa-iban" type="text" name="sepa_iban" data-bank-validation="iban" data-bank-error="<?php esc_attr_e('IBAN invalide : vérifiez le pays, la longueur, les caractères et les chiffres de contrôle.', 'periscolaire-registration'); ?>" class="large-text" maxlength="42"
     value="<?php echo esc_attr(psc_read_iban($edit_parent)); ?>" placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX"></td></tr>
 <tr><th><label for="psc-edit-sepa-bic"><?php esc_html_e('BIC', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-edit-sepa-bic" type="text" name="sepa_bic" class="regular-text" maxlength="11"

@@ -88,7 +88,7 @@ class Psc_Frontend_Profil extends Psc_Frontend_Base {
         $ville       = psc_post('sepa_ville');
         if ($titulaire === '') self::parent_form_redirect('profil_sepa_missing');
 
-        $iban = psc_valid_iban(psc_post('sepa_iban'));
+        $iban = psc_valid_iban(wp_unslash($_POST['sepa_iban'] ?? ''));
         if (!$iban) self::parent_form_redirect('profil_sepa_bad_iban');
         $bic = psc_valid_bic(psc_post('sepa_bic'));
         if (!$bic) self::parent_form_redirect('profil_sepa_bad_bic');

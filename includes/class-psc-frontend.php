@@ -208,7 +208,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
         // défilement).
         wp_enqueue_style('psc-portal', PSC_URL . 'assets/css/portal.css', array('psc-frontend'), PSC_VERSION);
 
-        wp_enqueue_script('psc-banking', PSC_URL . 'assets/js/banking.js', array(), PSC_VERSION, true);
+        psc_banking_assets();
 
         if (Psc_Parents::current()) {
             // psc-dialog : sémantique de dialogue des popins du portail

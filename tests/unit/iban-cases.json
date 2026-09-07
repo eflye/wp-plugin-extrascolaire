@@ -1,0 +1,5348 @@
+[
+  {
+    "label": "SWIFT AD",
+    "value": "AD1200012030200359100100",
+    "valid": true
+  },
+  {
+    "label": "SWIFT AE",
+    "value": "AE070331234567890123456",
+    "valid": true
+  },
+  {
+    "label": "SWIFT AL",
+    "value": "AL47212110090000000235698741",
+    "valid": true
+  },
+  {
+    "label": "SWIFT AT",
+    "value": "AT611904300234573201",
+    "valid": true
+  },
+  {
+    "label": "SWIFT AZ",
+    "value": "AZ21NABZ00000000137010001944",
+    "valid": true
+  },
+  {
+    "label": "SWIFT BA",
+    "value": "BA391290079401028494",
+    "valid": true
+  },
+  {
+    "label": "SWIFT BE",
+    "value": "BE68539007547034",
+    "valid": true
+  },
+  {
+    "label": "SWIFT BG",
+    "value": "BG80BNBG96611020345678",
+    "valid": true
+  },
+  {
+    "label": "SWIFT BH",
+    "value": "BH67BMAG00001299123456",
+    "valid": true
+  },
+  {
+    "label": "SWIFT BI",
+    "value": "BI4210000100010000332045181",
+    "valid": true
+  },
+  {
+    "label": "SWIFT BR",
+    "value": "BR1800360305000010009795493C1",
+    "valid": true
+  },
+  {
+    "label": "SWIFT BY",
+    "value": "BY13NBRB3600900000002Z00AB00",
+    "valid": true
+  },
+  {
+    "label": "SWIFT CH",
+    "value": "CH9300762011623852957",
+    "valid": true
+  },
+  {
+    "label": "SWIFT CR",
+    "value": "CR05015202001026284066",
+    "valid": true
+  },
+  {
+    "label": "SWIFT CY",
+    "value": "CY17002001280000001200527600",
+    "valid": true
+  },
+  {
+    "label": "SWIFT CZ",
+    "value": "CZ6508000000192000145399",
+    "valid": true
+  },
+  {
+    "label": "SWIFT DE",
+    "value": "DE89370400440532013000",
+    "valid": true
+  },
+  {
+    "label": "SWIFT DJ",
+    "value": "DJ2100010000000154000100186",
+    "valid": true
+  },
+  {
+    "label": "SWIFT DK",
+    "value": "DK5000400440116243",
+    "valid": true
+  },
+  {
+    "label": "SWIFT DO",
+    "value": "DO28BAGR00000001212453611324",
+    "valid": true
+  },
+  {
+    "label": "SWIFT EE",
+    "value": "EE382200221020145685",
+    "valid": true
+  },
+  {
+    "label": "SWIFT EG",
+    "value": "EG380019000500000000263180002",
+    "valid": true
+  },
+  {
+    "label": "SWIFT ES",
+    "value": "ES9121000418450200051332",
+    "valid": true
+  },
+  {
+    "label": "SWIFT FI",
+    "value": "FI2112345600000785",
+    "valid": true
+  },
+  {
+    "label": "SWIFT FK",
+    "value": "FK88SC123456789012",
+    "valid": true
+  },
+  {
+    "label": "SWIFT FO",
+    "value": "FO6264600001631634",
+    "valid": true
+  },
+  {
+    "label": "SWIFT FR",
+    "value": "FR1420041010050500013M02606",
+    "valid": true
+  },
+  {
+    "label": "SWIFT GB",
+    "value": "GB29NWBK60161331926819",
+    "valid": true
+  },
+  {
+    "label": "SWIFT GE",
+    "value": "GE29NB0000000101904917",
+    "valid": true
+  },
+  {
+    "label": "SWIFT GI",
+    "value": "GI75NWBK000000007099453",
+    "valid": true
+  },
+  {
+    "label": "SWIFT GL",
+    "value": "GL8964710001000206",
+    "valid": true
+  },
+  {
+    "label": "SWIFT GR",
+    "value": "GR1601101250000000012300695",
+    "valid": true
+  },
+  {
+    "label": "SWIFT GT",
+    "value": "GT82TRAJ01020000001210029690",
+    "valid": true
+  },
+  {
+    "label": "SWIFT HN",
+    "value": "HN88CABF00000000000250005469",
+    "valid": true
+  },
+  {
+    "label": "SWIFT HR",
+    "value": "HR1210010051863000160",
+    "valid": true
+  },
+  {
+    "label": "SWIFT HU",
+    "value": "HU42117730161111101800000000",
+    "valid": true
+  },
+  {
+    "label": "SWIFT IE",
+    "value": "IE29AIBK93115212345678",
+    "valid": true
+  },
+  {
+    "label": "SWIFT IL",
+    "value": "IL620108000000099999999",
+    "valid": true
+  },
+  {
+    "label": "SWIFT IQ",
+    "value": "IQ98NBIQ850123456789012",
+    "valid": true
+  },
+  {
+    "label": "SWIFT IS",
+    "value": "IS140159260076545510730339",
+    "valid": true
+  },
+  {
+    "label": "SWIFT IT",
+    "value": "IT60X0542811101000000123456",
+    "valid": true
+  },
+  {
+    "label": "SWIFT JO",
+    "value": "JO94CBJO0010000000000131000302",
+    "valid": true
+  },
+  {
+    "label": "SWIFT KW",
+    "value": "KW81CBKU0000000000001234560101",
+    "valid": true
+  },
+  {
+    "label": "SWIFT KZ",
+    "value": "KZ86125KZT5004100100",
+    "valid": true
+  },
+  {
+    "label": "SWIFT LB",
+    "value": "LB62099900000001001901229114",
+    "valid": true
+  },
+  {
+    "label": "SWIFT LC",
+    "value": "LC55HEMM000100010012001200023015",
+    "valid": true
+  },
+  {
+    "label": "SWIFT LI",
+    "value": "LI21088100002324013AA",
+    "valid": true
+  },
+  {
+    "label": "SWIFT LT",
+    "value": "LT121000011101001000",
+    "valid": true
+  },
+  {
+    "label": "SWIFT LU",
+    "value": "LU280019400644750000",
+    "valid": true
+  },
+  {
+    "label": "SWIFT LV",
+    "value": "LV80BANK0000435195001",
+    "valid": true
+  },
+  {
+    "label": "SWIFT LY",
+    "value": "LY83002048000020100120361",
+    "valid": true
+  },
+  {
+    "label": "SWIFT MC",
+    "value": "MC5811222000010123456789030",
+    "valid": true
+  },
+  {
+    "label": "SWIFT MD",
+    "value": "MD24AG000225100013104168",
+    "valid": true
+  },
+  {
+    "label": "SWIFT ME",
+    "value": "ME25505000012345678951",
+    "valid": true
+  },
+  {
+    "label": "SWIFT MK",
+    "value": "MK07250120000058984",
+    "valid": true
+  },
+  {
+    "label": "SWIFT MN",
+    "value": "MN121234123456789123",
+    "valid": true
+  },
+  {
+    "label": "SWIFT MR",
+    "value": "MR1300020001010000123456753",
+    "valid": true
+  },
+  {
+    "label": "SWIFT MT",
+    "value": "MT84MALT011000012345MTLCAST001S",
+    "valid": true
+  },
+  {
+    "label": "SWIFT MU",
+    "value": "MU17BOMM0101101030300200000MUR",
+    "valid": true
+  },
+  {
+    "label": "SWIFT NI",
+    "value": "NI45BAPR00000013000003558124",
+    "valid": true
+  },
+  {
+    "label": "SWIFT NL",
+    "value": "NL91ABNA0417164300",
+    "valid": true
+  },
+  {
+    "label": "SWIFT NO",
+    "value": "NO9386011117947",
+    "valid": true
+  },
+  {
+    "label": "SWIFT OM",
+    "value": "OM810180000001299123456",
+    "valid": true
+  },
+  {
+    "label": "SWIFT PK",
+    "value": "PK36SCBL0000001123456702",
+    "valid": true
+  },
+  {
+    "label": "SWIFT PL",
+    "value": "PL61109010140000071219812874",
+    "valid": true
+  },
+  {
+    "label": "SWIFT PS",
+    "value": "PS92PALS000000000400123456702",
+    "valid": true
+  },
+  {
+    "label": "SWIFT PT",
+    "value": "PT50000201231234567890154",
+    "valid": true
+  },
+  {
+    "label": "SWIFT QA",
+    "value": "QA58DOHB00001234567890ABCDEFG",
+    "valid": true
+  },
+  {
+    "label": "SWIFT RO",
+    "value": "RO49AAAA1B31007593840000",
+    "valid": true
+  },
+  {
+    "label": "SWIFT RS",
+    "value": "RS35260005601001611379",
+    "valid": true
+  },
+  {
+    "label": "SWIFT RU",
+    "value": "RU0304452522540817810538091310419",
+    "valid": true
+  },
+  {
+    "label": "SWIFT SA",
+    "value": "SA0380000000608010167519",
+    "valid": true
+  },
+  {
+    "label": "SWIFT SC",
+    "value": "SC18SSCB11010000000000001497USD",
+    "valid": true
+  },
+  {
+    "label": "SWIFT SD",
+    "value": "SD2129010501234001",
+    "valid": true
+  },
+  {
+    "label": "SWIFT SE",
+    "value": "SE4550000000058398257466",
+    "valid": true
+  },
+  {
+    "label": "SWIFT SI",
+    "value": "SI56263300012039086",
+    "valid": true
+  },
+  {
+    "label": "SWIFT SK",
+    "value": "SK3112000000198742637541",
+    "valid": true
+  },
+  {
+    "label": "SWIFT SM",
+    "value": "SM86U0322509800000000270100",
+    "valid": true
+  },
+  {
+    "label": "SWIFT SO",
+    "value": "SO211000001001000100141",
+    "valid": true
+  },
+  {
+    "label": "SWIFT ST",
+    "value": "ST23000100010051845310146",
+    "valid": true
+  },
+  {
+    "label": "SWIFT SV",
+    "value": "SV62CENR00000000000000700025",
+    "valid": true
+  },
+  {
+    "label": "SWIFT TL",
+    "value": "TL380080012345678910157",
+    "valid": true
+  },
+  {
+    "label": "SWIFT TN",
+    "value": "TN5910006035183598478831",
+    "valid": true
+  },
+  {
+    "label": "SWIFT TR",
+    "value": "TR330006100519786457841326",
+    "valid": true
+  },
+  {
+    "label": "SWIFT UA",
+    "value": "UA213223130000026007233566001",
+    "valid": true
+  },
+  {
+    "label": "SWIFT VA",
+    "value": "VA59001123000012345678",
+    "valid": true
+  },
+  {
+    "label": "SWIFT VG",
+    "value": "VG96VPVG0000012345678901",
+    "valid": true
+  },
+  {
+    "label": "SWIFT XK",
+    "value": "XK051212012345678906",
+    "valid": true
+  },
+  {
+    "label": "SWIFT YE",
+    "value": "YE15CBYE0001018861234567891234",
+    "valid": true
+  },
+  {
+    "label": "Exemple utilisateur 1",
+    "value": "GB33BUKB20201555555555",
+    "valid": true
+  },
+  {
+    "label": "Exemple utilisateur 2",
+    "value": "GB94BARC10201530093459",
+    "valid": true
+  },
+  {
+    "label": "Exemple utilisateur 3",
+    "value": "GB94BARC20201530093459 ",
+    "valid": false
+  },
+  {
+    "label": "Exemple utilisateur 4",
+    "value": "GB96BARC202015300934591",
+    "valid": false
+  },
+  {
+    "label": "Exemple utilisateur 5",
+    "value": "GB02BARC20201530093451",
+    "valid": false
+  },
+  {
+    "label": "Exemple utilisateur 6",
+    "value": "GB68CITI18500483515538",
+    "valid": true,
+    "note": "Fourni comme invalide par iban.com. Passe SWIFT et VocaLink V900 : 185004, poids 2 7 6 5 4 3 2 1, somme 121, modulo 11 = 0. Pas de preuve d’existence du compte."
+  },
+  {
+    "label": "Exemple utilisateur 7",
+    "value": "GB24BARC20201630093459",
+    "valid": false
+  },
+  {
+    "label": "Exemple utilisateur 8",
+    "value": "GB12BARC20201530093A59",
+    "valid": false
+  },
+  {
+    "label": "Exemple utilisateur 9",
+    "value": "GB78BARCO0201530093459",
+    "valid": false
+  },
+  {
+    "label": "Exemple utilisateur 10",
+    "value": "GB2LABBY09012857201707",
+    "valid": false
+  },
+  {
+    "label": "Exemple utilisateur 11",
+    "value": "GB01BARC20714583608387",
+    "valid": false
+  },
+  {
+    "label": "Exemple utilisateur 12",
+    "value": "GB00HLFX11016111455365",
+    "valid": false
+  },
+  {
+    "label": "Exemple utilisateur 13",
+    "value": "US64SVBKUS6S3300958879",
+    "valid": false
+  },
+  {
+    "label": "FR caractère interdit '-'",
+    "value": "FR76300060-00011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR caractère interdit '.'",
+    "value": "FR76300060.00011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR caractère interdit '/'",
+    "value": "FR76300060/00011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR caractère interdit '\\n'",
+    "value": "FR76300060\n00011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR caractère interdit '\\t'",
+    "value": "FR76300060\t00011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR caractère interdit '\\r'",
+    "value": "FR76300060\r00011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR caractère interdit '\\x00'",
+    "value": "FR76300060\u000000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR caractère interdit '\\u200b'",
+    "value": "FR76300060​00011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR caractère interdit '\\ufeff'",
+    "value": "FR76300060﻿00011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR caractère interdit 'é'",
+    "value": "FR76300060é00011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR caractère interdit '💳'",
+    "value": "FR76300060💳00011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR caractère interdit '<b>'",
+    "value": "FR76300060<b>00011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR espaces de présentation ' '",
+    "value": "fr76 3000 6000 0112 3456 7890 189",
+    "valid": true
+  },
+  {
+    "label": "FR espaces de présentation '\\xa0'",
+    "value": "fr76 3000 6000 0112 3456 7890 189",
+    "valid": true
+  },
+  {
+    "label": "FR espaces de présentation '\\u202f'",
+    "value": "fr76 3000 6000 0112 3456 7890 189",
+    "valid": true
+  },
+  {
+    "label": "FR clé IBAN réservée 0",
+    "value": "FR0030006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR clé IBAN réservée 1",
+    "value": "FR0130006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR clé IBAN réservée 99",
+    "value": "FR9930006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "Pays inconnu avec modulo valide US",
+    "value": "US3530006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "Pays inconnu avec modulo valide ZZ",
+    "value": "ZZ6630006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR longueur erronée mais modulo valide -1",
+    "value": "FR133000600001123456789018",
+    "valid": false
+  },
+  {
+    "label": "FR longueur erronée mais modulo valide 1",
+    "value": "FR76300060000112345678901890",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 0",
+    "value": "FR5430006000011234567890100",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 1",
+    "value": "FR2730006000011234567890101",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 2",
+    "value": "FR9730006000011234567890102",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 3",
+    "value": "FR7030006000011234567890103",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 4",
+    "value": "FR4330006000011234567890104",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 5",
+    "value": "FR1630006000011234567890105",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 6",
+    "value": "FR8630006000011234567890106",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 7",
+    "value": "FR5930006000011234567890107",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 8",
+    "value": "FR3230006000011234567890108",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 9",
+    "value": "FR0530006000011234567890109",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 10",
+    "value": "FR7530006000011234567890110",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 11",
+    "value": "FR4830006000011234567890111",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 12",
+    "value": "FR2130006000011234567890112",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 13",
+    "value": "FR9130006000011234567890113",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 14",
+    "value": "FR6430006000011234567890114",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 15",
+    "value": "FR3730006000011234567890115",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 16",
+    "value": "FR1030006000011234567890116",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 17",
+    "value": "FR8030006000011234567890117",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 18",
+    "value": "FR5330006000011234567890118",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 19",
+    "value": "FR2630006000011234567890119",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 20",
+    "value": "FR9630006000011234567890120",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 21",
+    "value": "FR6930006000011234567890121",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 22",
+    "value": "FR4230006000011234567890122",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 23",
+    "value": "FR1530006000011234567890123",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 24",
+    "value": "FR8530006000011234567890124",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 25",
+    "value": "FR5830006000011234567890125",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 26",
+    "value": "FR3130006000011234567890126",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 27",
+    "value": "FR0430006000011234567890127",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 28",
+    "value": "FR7430006000011234567890128",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 29",
+    "value": "FR4730006000011234567890129",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 30",
+    "value": "FR2030006000011234567890130",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 31",
+    "value": "FR9030006000011234567890131",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 32",
+    "value": "FR6330006000011234567890132",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 33",
+    "value": "FR3630006000011234567890133",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 34",
+    "value": "FR0930006000011234567890134",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 35",
+    "value": "FR7930006000011234567890135",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 36",
+    "value": "FR5230006000011234567890136",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 37",
+    "value": "FR2530006000011234567890137",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 38",
+    "value": "FR9530006000011234567890138",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 39",
+    "value": "FR6830006000011234567890139",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 40",
+    "value": "FR4130006000011234567890140",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 41",
+    "value": "FR1430006000011234567890141",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 42",
+    "value": "FR8430006000011234567890142",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 43",
+    "value": "FR5730006000011234567890143",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 44",
+    "value": "FR3030006000011234567890144",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 45",
+    "value": "FR0330006000011234567890145",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 46",
+    "value": "FR7330006000011234567890146",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 47",
+    "value": "FR4630006000011234567890147",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 48",
+    "value": "FR1930006000011234567890148",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 49",
+    "value": "FR8930006000011234567890149",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 50",
+    "value": "FR6230006000011234567890150",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 51",
+    "value": "FR3530006000011234567890151",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 52",
+    "value": "FR0830006000011234567890152",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 53",
+    "value": "FR7830006000011234567890153",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 54",
+    "value": "FR5130006000011234567890154",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 55",
+    "value": "FR2430006000011234567890155",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 56",
+    "value": "FR9430006000011234567890156",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 57",
+    "value": "FR6730006000011234567890157",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 58",
+    "value": "FR4030006000011234567890158",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 59",
+    "value": "FR1330006000011234567890159",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 60",
+    "value": "FR8330006000011234567890160",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 61",
+    "value": "FR5630006000011234567890161",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 62",
+    "value": "FR2930006000011234567890162",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 63",
+    "value": "FR0230006000011234567890163",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 64",
+    "value": "FR7230006000011234567890164",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 65",
+    "value": "FR4530006000011234567890165",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 66",
+    "value": "FR1830006000011234567890166",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 67",
+    "value": "FR8830006000011234567890167",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 68",
+    "value": "FR6130006000011234567890168",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 69",
+    "value": "FR3430006000011234567890169",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 70",
+    "value": "FR0730006000011234567890170",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 71",
+    "value": "FR7730006000011234567890171",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 72",
+    "value": "FR5030006000011234567890172",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 73",
+    "value": "FR2330006000011234567890173",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 74",
+    "value": "FR9330006000011234567890174",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 75",
+    "value": "FR6630006000011234567890175",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 76",
+    "value": "FR3930006000011234567890176",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 77",
+    "value": "FR1230006000011234567890177",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 78",
+    "value": "FR8230006000011234567890178",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 79",
+    "value": "FR5530006000011234567890179",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 80",
+    "value": "FR2830006000011234567890180",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 81",
+    "value": "FR9830006000011234567890181",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 82",
+    "value": "FR7130006000011234567890182",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 83",
+    "value": "FR4430006000011234567890183",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 84",
+    "value": "FR1730006000011234567890184",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 85",
+    "value": "FR8730006000011234567890185",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 86",
+    "value": "FR6030006000011234567890186",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 87",
+    "value": "FR3330006000011234567890187",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 88",
+    "value": "FR0630006000011234567890188",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 90",
+    "value": "FR4930006000011234567890190",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 91",
+    "value": "FR2230006000011234567890191",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 92",
+    "value": "FR9230006000011234567890192",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 93",
+    "value": "FR6530006000011234567890193",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 94",
+    "value": "FR3830006000011234567890194",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 95",
+    "value": "FR1130006000011234567890195",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 96",
+    "value": "FR8130006000011234567890196",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 97",
+    "value": "FR5430006000011234567890197",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 98",
+    "value": "FR2730006000011234567890198",
+    "valid": false
+  },
+  {
+    "label": "FR fausse clé RIB 99",
+    "value": "FR9730006000011234567890199",
+    "valid": false
+  },
+  {
+    "label": "FR lettre dans code banque/guichet/clé 4",
+    "value": "FR07A0006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR lettre dans code banque/guichet/clé 5",
+    "value": "FR913A006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR lettre dans code banque/guichet/clé 6",
+    "value": "FR6830A06000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR lettre dans code banque/guichet/clé 7",
+    "value": "FR56300A6000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR lettre dans code banque/guichet/clé 8",
+    "value": "FR783000A000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR lettre dans code banque/guichet/clé 9",
+    "value": "FR3630006A00011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR lettre dans code banque/guichet/clé 10",
+    "value": "FR55300060A0011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR lettre dans code banque/guichet/clé 11",
+    "value": "FR863000600A011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR lettre dans code banque/guichet/clé 12",
+    "value": "FR6030006000A11234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR lettre dans code banque/guichet/clé 13",
+    "value": "FR55300060000A1234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR lettre dans code banque/guichet/clé 25",
+    "value": "FR17300060000112345678901A9",
+    "valid": false
+  },
+  {
+    "label": "FR lettre dans code banque/guichet/clé 26",
+    "value": "FR053000600001123456789018A",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0A",
+    "value": "FR303000600001A234567890189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0A",
+    "value": "FR033000600001A234567890190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0B",
+    "value": "FR303000600001B234567890139",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0B",
+    "value": "FR033000600001B234567890140",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0C",
+    "value": "FR303000600001C234567890186",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0C",
+    "value": "FR033000600001C234567890187",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0D",
+    "value": "FR303000600001D234567890136",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0D",
+    "value": "FR033000600001D234567890137",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0E",
+    "value": "FR303000600001E234567890183",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0E",
+    "value": "FR033000600001E234567890184",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0F",
+    "value": "FR303000600001F234567890133",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0F",
+    "value": "FR033000600001F234567890134",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0G",
+    "value": "FR303000600001G234567890180",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0G",
+    "value": "FR033000600001G234567890181",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0H",
+    "value": "FR303000600001H234567890130",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0H",
+    "value": "FR033000600001H234567890131",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0I",
+    "value": "FR303000600001I234567890177",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0I",
+    "value": "FR033000600001I234567890178",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0J",
+    "value": "FR053000600001J234567890189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0J",
+    "value": "FR753000600001J234567890190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0K",
+    "value": "FR053000600001K234567890139",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0K",
+    "value": "FR753000600001K234567890140",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0L",
+    "value": "FR053000600001L234567890186",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0L",
+    "value": "FR753000600001L234567890187",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0M",
+    "value": "FR053000600001M234567890136",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0M",
+    "value": "FR753000600001M234567890137",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0N",
+    "value": "FR053000600001N234567890183",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0N",
+    "value": "FR753000600001N234567890184",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0O",
+    "value": "FR053000600001O234567890133",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0O",
+    "value": "FR753000600001O234567890134",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0P",
+    "value": "FR053000600001P234567890180",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0P",
+    "value": "FR753000600001P234567890181",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0Q",
+    "value": "FR053000600001Q234567890130",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0Q",
+    "value": "FR753000600001Q234567890131",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0R",
+    "value": "FR053000600001R234567890177",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0R",
+    "value": "FR753000600001R234567890178",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0S",
+    "value": "FR693000600001S234567890139",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0S",
+    "value": "FR423000600001S234567890140",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0T",
+    "value": "FR693000600001T234567890186",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0T",
+    "value": "FR423000600001T234567890187",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0U",
+    "value": "FR693000600001U234567890136",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0U",
+    "value": "FR423000600001U234567890137",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0V",
+    "value": "FR693000600001V234567890183",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0V",
+    "value": "FR423000600001V234567890184",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0W",
+    "value": "FR693000600001W234567890133",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0W",
+    "value": "FR423000600001W234567890134",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0X",
+    "value": "FR693000600001X234567890180",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0X",
+    "value": "FR423000600001X234567890181",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0Y",
+    "value": "FR693000600001Y234567890130",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0Y",
+    "value": "FR423000600001Y234567890131",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 0Z",
+    "value": "FR693000600001Z234567890177",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 0Z",
+    "value": "FR423000600001Z234567890178",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1A",
+    "value": "FR7630006000011A34567890194",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1A",
+    "value": "FR4930006000011A34567890195",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1B",
+    "value": "FR7630006000011B34567890189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1B",
+    "value": "FR4930006000011B34567890190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1C",
+    "value": "FR7630006000011C34567890184",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1C",
+    "value": "FR4930006000011C34567890185",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1D",
+    "value": "FR7630006000011D34567890179",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1D",
+    "value": "FR4930006000011D34567890180",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1E",
+    "value": "FR7630006000011E34567890174",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1E",
+    "value": "FR4930006000011E34567890175",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1F",
+    "value": "FR7630006000011F34567890169",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1F",
+    "value": "FR4930006000011F34567890170",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1G",
+    "value": "FR7630006000011G34567890164",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1G",
+    "value": "FR4930006000011G34567890165",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1H",
+    "value": "FR7630006000011H34567890159",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1H",
+    "value": "FR4930006000011H34567890160",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1I",
+    "value": "FR7630006000011I34567890154",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1I",
+    "value": "FR4930006000011I34567890155",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1J",
+    "value": "FR2530006000011J34567890194",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1J",
+    "value": "FR9530006000011J34567890195",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1K",
+    "value": "FR2530006000011K34567890189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1K",
+    "value": "FR9530006000011K34567890190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1L",
+    "value": "FR2530006000011L34567890184",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1L",
+    "value": "FR9530006000011L34567890185",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1M",
+    "value": "FR2530006000011M34567890179",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1M",
+    "value": "FR9530006000011M34567890180",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1N",
+    "value": "FR2530006000011N34567890174",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1N",
+    "value": "FR9530006000011N34567890175",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1O",
+    "value": "FR2530006000011O34567890169",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1O",
+    "value": "FR9530006000011O34567890170",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1P",
+    "value": "FR2530006000011P34567890164",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1P",
+    "value": "FR9530006000011P34567890165",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1Q",
+    "value": "FR2530006000011Q34567890159",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1Q",
+    "value": "FR9530006000011Q34567890160",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1R",
+    "value": "FR2530006000011R34567890154",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1R",
+    "value": "FR9530006000011R34567890155",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1S",
+    "value": "FR1230006000011S34567890189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1S",
+    "value": "FR8230006000011S34567890190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1T",
+    "value": "FR1230006000011T34567890184",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1T",
+    "value": "FR8230006000011T34567890185",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1U",
+    "value": "FR1230006000011U34567890179",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1U",
+    "value": "FR8230006000011U34567890180",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1V",
+    "value": "FR1230006000011V34567890174",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1V",
+    "value": "FR8230006000011V34567890175",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1W",
+    "value": "FR1230006000011W34567890169",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1W",
+    "value": "FR8230006000011W34567890170",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1X",
+    "value": "FR1230006000011X34567890164",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1X",
+    "value": "FR8230006000011X34567890165",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1Y",
+    "value": "FR1230006000011Y34567890159",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1Y",
+    "value": "FR8230006000011Y34567890160",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 1Z",
+    "value": "FR1230006000011Z34567890154",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 1Z",
+    "value": "FR8230006000011Z34567890155",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2A",
+    "value": "FR49300060000112A4567890190",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2A",
+    "value": "FR22300060000112A4567890191",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2B",
+    "value": "FR49300060000112B4567890141",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2B",
+    "value": "FR22300060000112B4567890142",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2C",
+    "value": "FR49300060000112C4567890189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2C",
+    "value": "FR22300060000112C4567890190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2D",
+    "value": "FR49300060000112D4567890140",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2D",
+    "value": "FR22300060000112D4567890141",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2E",
+    "value": "FR49300060000112E4567890188",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2E",
+    "value": "FR22300060000112E4567890189",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2F",
+    "value": "FR49300060000112F4567890139",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2F",
+    "value": "FR22300060000112F4567890140",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2G",
+    "value": "FR49300060000112G4567890187",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2G",
+    "value": "FR22300060000112G4567890188",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2H",
+    "value": "FR49300060000112H4567890138",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2H",
+    "value": "FR22300060000112H4567890139",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2I",
+    "value": "FR49300060000112I4567890186",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2I",
+    "value": "FR22300060000112I4567890187",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2J",
+    "value": "FR73300060000112J4567890190",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2J",
+    "value": "FR46300060000112J4567890191",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2K",
+    "value": "FR73300060000112K4567890141",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2K",
+    "value": "FR46300060000112K4567890142",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2L",
+    "value": "FR73300060000112L4567890189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2L",
+    "value": "FR46300060000112L4567890190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2M",
+    "value": "FR73300060000112M4567890140",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2M",
+    "value": "FR46300060000112M4567890141",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2N",
+    "value": "FR73300060000112N4567890188",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2N",
+    "value": "FR46300060000112N4567890189",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2O",
+    "value": "FR73300060000112O4567890139",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2O",
+    "value": "FR46300060000112O4567890140",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2P",
+    "value": "FR73300060000112P4567890187",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2P",
+    "value": "FR46300060000112P4567890188",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2Q",
+    "value": "FR73300060000112Q4567890138",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2Q",
+    "value": "FR46300060000112Q4567890139",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2R",
+    "value": "FR73300060000112R4567890186",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2R",
+    "value": "FR46300060000112R4567890187",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2S",
+    "value": "FR62300060000112S4567890141",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2S",
+    "value": "FR35300060000112S4567890142",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2T",
+    "value": "FR62300060000112T4567890189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2T",
+    "value": "FR35300060000112T4567890190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2U",
+    "value": "FR62300060000112U4567890140",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2U",
+    "value": "FR35300060000112U4567890141",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2V",
+    "value": "FR62300060000112V4567890188",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2V",
+    "value": "FR35300060000112V4567890189",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2W",
+    "value": "FR62300060000112W4567890139",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2W",
+    "value": "FR35300060000112W4567890140",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2X",
+    "value": "FR62300060000112X4567890187",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2X",
+    "value": "FR35300060000112X4567890188",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2Y",
+    "value": "FR62300060000112Y4567890138",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2Y",
+    "value": "FR35300060000112Y4567890139",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 2Z",
+    "value": "FR62300060000112Z4567890186",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 2Z",
+    "value": "FR35300060000112Z4567890187",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3A",
+    "value": "FR803000600001123A567890194",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3A",
+    "value": "FR533000600001123A567890195",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3B",
+    "value": "FR803000600001123B567890160",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3B",
+    "value": "FR533000600001123B567890161",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3C",
+    "value": "FR803000600001123C567890126",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3C",
+    "value": "FR533000600001123C567890127",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3D",
+    "value": "FR803000600001123D567890189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3D",
+    "value": "FR533000600001123D567890190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3E",
+    "value": "FR803000600001123E567890155",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3E",
+    "value": "FR533000600001123E567890156",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3F",
+    "value": "FR803000600001123F567890121",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3F",
+    "value": "FR533000600001123F567890122",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3G",
+    "value": "FR803000600001123G567890184",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3G",
+    "value": "FR533000600001123G567890185",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3H",
+    "value": "FR803000600001123H567890150",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3H",
+    "value": "FR533000600001123H567890151",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3I",
+    "value": "FR803000600001123I567890116",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3I",
+    "value": "FR533000600001123I567890117",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3J",
+    "value": "FR633000600001123J567890194",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3J",
+    "value": "FR363000600001123J567890195",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3K",
+    "value": "FR633000600001123K567890160",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3K",
+    "value": "FR363000600001123K567890161",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3L",
+    "value": "FR633000600001123L567890126",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3L",
+    "value": "FR363000600001123L567890127",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3M",
+    "value": "FR633000600001123M567890189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3M",
+    "value": "FR363000600001123M567890190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3N",
+    "value": "FR633000600001123N567890155",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3N",
+    "value": "FR363000600001123N567890156",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3O",
+    "value": "FR633000600001123O567890121",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3O",
+    "value": "FR363000600001123O567890122",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3P",
+    "value": "FR633000600001123P567890184",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3P",
+    "value": "FR363000600001123P567890185",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3Q",
+    "value": "FR633000600001123Q567890150",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3Q",
+    "value": "FR363000600001123Q567890151",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3R",
+    "value": "FR633000600001123R567890116",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3R",
+    "value": "FR363000600001123R567890117",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3S",
+    "value": "FR913000600001123S567890160",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3S",
+    "value": "FR643000600001123S567890161",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3T",
+    "value": "FR913000600001123T567890126",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3T",
+    "value": "FR643000600001123T567890127",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3U",
+    "value": "FR913000600001123U567890189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3U",
+    "value": "FR643000600001123U567890190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3V",
+    "value": "FR913000600001123V567890155",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3V",
+    "value": "FR643000600001123V567890156",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3W",
+    "value": "FR913000600001123W567890121",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3W",
+    "value": "FR643000600001123W567890122",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3X",
+    "value": "FR913000600001123X567890184",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3X",
+    "value": "FR643000600001123X567890185",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3Y",
+    "value": "FR913000600001123Y567890150",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3Y",
+    "value": "FR643000600001123Y567890151",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 3Z",
+    "value": "FR913000600001123Z567890116",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 3Z",
+    "value": "FR643000600001123Z567890117",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4A",
+    "value": "FR3730006000011234A67890125",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4A",
+    "value": "FR1030006000011234A67890126",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4B",
+    "value": "FR3730006000011234B67890141",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4B",
+    "value": "FR1030006000011234B67890142",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4C",
+    "value": "FR3730006000011234C67890157",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4C",
+    "value": "FR1030006000011234C67890158",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4D",
+    "value": "FR3730006000011234D67890173",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4D",
+    "value": "FR1030006000011234D67890174",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4E",
+    "value": "FR3730006000011234E67890189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4E",
+    "value": "FR1030006000011234E67890190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4F",
+    "value": "FR3730006000011234F67890108",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4F",
+    "value": "FR1030006000011234F67890109",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4G",
+    "value": "FR3730006000011234G67890124",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4G",
+    "value": "FR1030006000011234G67890125",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4H",
+    "value": "FR3730006000011234H67890140",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4H",
+    "value": "FR1030006000011234H67890141",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4I",
+    "value": "FR3730006000011234I67890156",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4I",
+    "value": "FR1030006000011234I67890157",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4J",
+    "value": "FR4530006000011234J67890125",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4J",
+    "value": "FR1830006000011234J67890126",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4K",
+    "value": "FR4530006000011234K67890141",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4K",
+    "value": "FR1830006000011234K67890142",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4L",
+    "value": "FR4530006000011234L67890157",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4L",
+    "value": "FR1830006000011234L67890158",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4M",
+    "value": "FR4530006000011234M67890173",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4M",
+    "value": "FR1830006000011234M67890174",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4N",
+    "value": "FR4530006000011234N67890189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4N",
+    "value": "FR1830006000011234N67890190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4O",
+    "value": "FR4530006000011234O67890108",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4O",
+    "value": "FR1830006000011234O67890109",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4P",
+    "value": "FR4530006000011234P67890124",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4P",
+    "value": "FR1830006000011234P67890125",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4Q",
+    "value": "FR4530006000011234Q67890140",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4Q",
+    "value": "FR1830006000011234Q67890141",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4R",
+    "value": "FR4530006000011234R67890156",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4R",
+    "value": "FR1830006000011234R67890157",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4S",
+    "value": "FR0930006000011234S67890141",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4S",
+    "value": "FR7930006000011234S67890142",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4T",
+    "value": "FR0930006000011234T67890157",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4T",
+    "value": "FR7930006000011234T67890158",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4U",
+    "value": "FR0930006000011234U67890173",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4U",
+    "value": "FR7930006000011234U67890174",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4V",
+    "value": "FR0930006000011234V67890189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4V",
+    "value": "FR7930006000011234V67890190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4W",
+    "value": "FR0930006000011234W67890108",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4W",
+    "value": "FR7930006000011234W67890109",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4X",
+    "value": "FR0930006000011234X67890124",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4X",
+    "value": "FR7930006000011234X67890125",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4Y",
+    "value": "FR0930006000011234Y67890140",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4Y",
+    "value": "FR7930006000011234Y67890141",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 4Z",
+    "value": "FR0930006000011234Z67890156",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 4Z",
+    "value": "FR7930006000011234Z67890157",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5A",
+    "value": "FR31300060000112345A7890181",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5A",
+    "value": "FR04300060000112345A7890182",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5B",
+    "value": "FR31300060000112345B7890105",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5B",
+    "value": "FR04300060000112345B7890106",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5C",
+    "value": "FR31300060000112345C7890126",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5C",
+    "value": "FR04300060000112345C7890127",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5D",
+    "value": "FR31300060000112345D7890147",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5D",
+    "value": "FR04300060000112345D7890148",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5E",
+    "value": "FR31300060000112345E7890168",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5E",
+    "value": "FR04300060000112345E7890169",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5F",
+    "value": "FR31300060000112345F7890189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5F",
+    "value": "FR04300060000112345F7890190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5G",
+    "value": "FR31300060000112345G7890113",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5G",
+    "value": "FR04300060000112345G7890114",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5H",
+    "value": "FR31300060000112345H7890134",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5H",
+    "value": "FR04300060000112345H7890135",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5I",
+    "value": "FR31300060000112345I7890155",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5I",
+    "value": "FR04300060000112345I7890156",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5J",
+    "value": "FR90300060000112345J7890181",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5J",
+    "value": "FR63300060000112345J7890182",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5K",
+    "value": "FR90300060000112345K7890105",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5K",
+    "value": "FR63300060000112345K7890106",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5L",
+    "value": "FR90300060000112345L7890126",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5L",
+    "value": "FR63300060000112345L7890127",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5M",
+    "value": "FR90300060000112345M7890147",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5M",
+    "value": "FR63300060000112345M7890148",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5N",
+    "value": "FR90300060000112345N7890168",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5N",
+    "value": "FR63300060000112345N7890169",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5O",
+    "value": "FR90300060000112345O7890189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5O",
+    "value": "FR63300060000112345O7890190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5P",
+    "value": "FR90300060000112345P7890113",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5P",
+    "value": "FR63300060000112345P7890114",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5Q",
+    "value": "FR90300060000112345Q7890134",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5Q",
+    "value": "FR63300060000112345Q7890135",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5R",
+    "value": "FR90300060000112345R7890155",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5R",
+    "value": "FR63300060000112345R7890156",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5S",
+    "value": "FR67300060000112345S7890105",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5S",
+    "value": "FR40300060000112345S7890106",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5T",
+    "value": "FR67300060000112345T7890126",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5T",
+    "value": "FR40300060000112345T7890127",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5U",
+    "value": "FR67300060000112345U7890147",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5U",
+    "value": "FR40300060000112345U7890148",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5V",
+    "value": "FR67300060000112345V7890168",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5V",
+    "value": "FR40300060000112345V7890169",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5W",
+    "value": "FR67300060000112345W7890189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5W",
+    "value": "FR40300060000112345W7890190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5X",
+    "value": "FR67300060000112345X7890113",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5X",
+    "value": "FR40300060000112345X7890114",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5Y",
+    "value": "FR67300060000112345Y7890134",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5Y",
+    "value": "FR40300060000112345Y7890135",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 5Z",
+    "value": "FR67300060000112345Z7890155",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 5Z",
+    "value": "FR40300060000112345Z7890156",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6A",
+    "value": "FR703000600001123456A890157",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6A",
+    "value": "FR433000600001123456A890158",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6B",
+    "value": "FR703000600001123456B890130",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6B",
+    "value": "FR433000600001123456B890131",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6C",
+    "value": "FR703000600001123456C890103",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6C",
+    "value": "FR433000600001123456C890104",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6D",
+    "value": "FR703000600001123456D890173",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6D",
+    "value": "FR433000600001123456D890174",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6E",
+    "value": "FR703000600001123456E890146",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6E",
+    "value": "FR433000600001123456E890147",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6F",
+    "value": "FR703000600001123456F890119",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6F",
+    "value": "FR433000600001123456F890120",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6G",
+    "value": "FR703000600001123456G890189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6G",
+    "value": "FR433000600001123456G890190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6H",
+    "value": "FR703000600001123456H890162",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6H",
+    "value": "FR433000600001123456H890163",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6I",
+    "value": "FR703000600001123456I890135",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6I",
+    "value": "FR433000600001123456I890136",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6J",
+    "value": "FR083000600001123456J890157",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6J",
+    "value": "FR783000600001123456J890158",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6K",
+    "value": "FR083000600001123456K890130",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6K",
+    "value": "FR783000600001123456K890131",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6L",
+    "value": "FR083000600001123456L890103",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6L",
+    "value": "FR783000600001123456L890104",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6M",
+    "value": "FR083000600001123456M890173",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6M",
+    "value": "FR783000600001123456M890174",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6N",
+    "value": "FR083000600001123456N890146",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6N",
+    "value": "FR783000600001123456N890147",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6O",
+    "value": "FR083000600001123456O890119",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6O",
+    "value": "FR783000600001123456O890120",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6P",
+    "value": "FR083000600001123456P890189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6P",
+    "value": "FR783000600001123456P890190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6Q",
+    "value": "FR083000600001123456Q890162",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6Q",
+    "value": "FR783000600001123456Q890163",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6R",
+    "value": "FR083000600001123456R890135",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6R",
+    "value": "FR783000600001123456R890136",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6S",
+    "value": "FR933000600001123456S890130",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6S",
+    "value": "FR663000600001123456S890131",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6T",
+    "value": "FR933000600001123456T890103",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6T",
+    "value": "FR663000600001123456T890104",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6U",
+    "value": "FR933000600001123456U890173",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6U",
+    "value": "FR663000600001123456U890174",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6V",
+    "value": "FR933000600001123456V890146",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6V",
+    "value": "FR663000600001123456V890147",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6W",
+    "value": "FR933000600001123456W890119",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6W",
+    "value": "FR663000600001123456W890120",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6X",
+    "value": "FR933000600001123456X890189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6X",
+    "value": "FR663000600001123456X890190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6Y",
+    "value": "FR933000600001123456Y890162",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6Y",
+    "value": "FR663000600001123456Y890163",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 6Z",
+    "value": "FR933000600001123456Z890135",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 6Z",
+    "value": "FR663000600001123456Z890136",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7A",
+    "value": "FR4130006000011234567A90140",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7A",
+    "value": "FR1430006000011234567A90141",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7B",
+    "value": "FR4130006000011234567B90147",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7B",
+    "value": "FR1430006000011234567B90148",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7C",
+    "value": "FR4130006000011234567C90154",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7C",
+    "value": "FR1430006000011234567C90155",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7D",
+    "value": "FR4130006000011234567D90161",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7D",
+    "value": "FR1430006000011234567D90162",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7E",
+    "value": "FR4130006000011234567E90168",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7E",
+    "value": "FR1430006000011234567E90169",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7F",
+    "value": "FR4130006000011234567F90175",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7F",
+    "value": "FR1430006000011234567F90176",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7G",
+    "value": "FR4130006000011234567G90182",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7G",
+    "value": "FR1430006000011234567G90183",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7H",
+    "value": "FR4130006000011234567H90189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7H",
+    "value": "FR1430006000011234567H90190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7I",
+    "value": "FR4130006000011234567I90196",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7I",
+    "value": "FR1430006000011234567I90197",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7J",
+    "value": "FR9330006000011234567J90140",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7J",
+    "value": "FR6630006000011234567J90141",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7K",
+    "value": "FR9330006000011234567K90147",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7K",
+    "value": "FR6630006000011234567K90148",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7L",
+    "value": "FR9330006000011234567L90154",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7L",
+    "value": "FR6630006000011234567L90155",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7M",
+    "value": "FR9330006000011234567M90161",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7M",
+    "value": "FR6630006000011234567M90162",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7N",
+    "value": "FR9330006000011234567N90168",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7N",
+    "value": "FR6630006000011234567N90169",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7O",
+    "value": "FR9330006000011234567O90175",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7O",
+    "value": "FR6630006000011234567O90176",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7P",
+    "value": "FR9330006000011234567P90182",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7P",
+    "value": "FR6630006000011234567P90183",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7Q",
+    "value": "FR9330006000011234567Q90189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7Q",
+    "value": "FR6630006000011234567Q90190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7R",
+    "value": "FR9330006000011234567R90196",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7R",
+    "value": "FR6630006000011234567R90197",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7S",
+    "value": "FR5330006000011234567S90147",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7S",
+    "value": "FR2630006000011234567S90148",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7T",
+    "value": "FR5330006000011234567T90154",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7T",
+    "value": "FR2630006000011234567T90155",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7U",
+    "value": "FR5330006000011234567U90161",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7U",
+    "value": "FR2630006000011234567U90162",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7V",
+    "value": "FR5330006000011234567V90168",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7V",
+    "value": "FR2630006000011234567V90169",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7W",
+    "value": "FR5330006000011234567W90175",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7W",
+    "value": "FR2630006000011234567W90176",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7X",
+    "value": "FR5330006000011234567X90182",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7X",
+    "value": "FR2630006000011234567X90183",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7Y",
+    "value": "FR5330006000011234567Y90189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7Y",
+    "value": "FR2630006000011234567Y90190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 7Z",
+    "value": "FR5330006000011234567Z90196",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 7Z",
+    "value": "FR2630006000011234567Z90197",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8A",
+    "value": "FR61300060000112345678A0164",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8A",
+    "value": "FR34300060000112345678A0165",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8B",
+    "value": "FR61300060000112345678B0155",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8B",
+    "value": "FR34300060000112345678B0156",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8C",
+    "value": "FR61300060000112345678C0146",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8C",
+    "value": "FR34300060000112345678C0147",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8D",
+    "value": "FR61300060000112345678D0137",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8D",
+    "value": "FR34300060000112345678D0138",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8E",
+    "value": "FR61300060000112345678E0128",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8E",
+    "value": "FR34300060000112345678E0129",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8F",
+    "value": "FR61300060000112345678F0119",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8F",
+    "value": "FR34300060000112345678F0120",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8G",
+    "value": "FR61300060000112345678G0110",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8G",
+    "value": "FR34300060000112345678G0111",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8H",
+    "value": "FR61300060000112345678H0101",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8H",
+    "value": "FR34300060000112345678H0102",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8I",
+    "value": "FR61300060000112345678I0189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8I",
+    "value": "FR34300060000112345678I0190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8J",
+    "value": "FR08300060000112345678J0164",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8J",
+    "value": "FR78300060000112345678J0165",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8K",
+    "value": "FR08300060000112345678K0155",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8K",
+    "value": "FR78300060000112345678K0156",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8L",
+    "value": "FR08300060000112345678L0146",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8L",
+    "value": "FR78300060000112345678L0147",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8M",
+    "value": "FR08300060000112345678M0137",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8M",
+    "value": "FR78300060000112345678M0138",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8N",
+    "value": "FR08300060000112345678N0128",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8N",
+    "value": "FR78300060000112345678N0129",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8O",
+    "value": "FR08300060000112345678O0119",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8O",
+    "value": "FR78300060000112345678O0120",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8P",
+    "value": "FR08300060000112345678P0110",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8P",
+    "value": "FR78300060000112345678P0111",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8Q",
+    "value": "FR08300060000112345678Q0101",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8Q",
+    "value": "FR78300060000112345678Q0102",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8R",
+    "value": "FR08300060000112345678R0189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8R",
+    "value": "FR78300060000112345678R0190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8S",
+    "value": "FR04300060000112345678S0155",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8S",
+    "value": "FR74300060000112345678S0156",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8T",
+    "value": "FR04300060000112345678T0146",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8T",
+    "value": "FR74300060000112345678T0147",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8U",
+    "value": "FR04300060000112345678U0137",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8U",
+    "value": "FR74300060000112345678U0138",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8V",
+    "value": "FR04300060000112345678V0128",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8V",
+    "value": "FR74300060000112345678V0129",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8W",
+    "value": "FR04300060000112345678W0119",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8W",
+    "value": "FR74300060000112345678W0120",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8X",
+    "value": "FR04300060000112345678X0110",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8X",
+    "value": "FR74300060000112345678X0111",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8Y",
+    "value": "FR04300060000112345678Y0101",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8Y",
+    "value": "FR74300060000112345678Y0102",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 8Z",
+    "value": "FR04300060000112345678Z0189",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 8Z",
+    "value": "FR74300060000112345678Z0190",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9A",
+    "value": "FR103000600001123456789A159",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9A",
+    "value": "FR803000600001123456789A160",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9B",
+    "value": "FR103000600001123456789B129",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9B",
+    "value": "FR803000600001123456789B130",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9C",
+    "value": "FR103000600001123456789C196",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9C",
+    "value": "FR803000600001123456789C197",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9D",
+    "value": "FR103000600001123456789D166",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9D",
+    "value": "FR803000600001123456789D167",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9E",
+    "value": "FR103000600001123456789E136",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9E",
+    "value": "FR803000600001123456789E137",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9F",
+    "value": "FR103000600001123456789F106",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9F",
+    "value": "FR803000600001123456789F107",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9G",
+    "value": "FR103000600001123456789G173",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9G",
+    "value": "FR803000600001123456789G174",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9H",
+    "value": "FR103000600001123456789H143",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9H",
+    "value": "FR803000600001123456789H144",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9I",
+    "value": "FR103000600001123456789I113",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9I",
+    "value": "FR803000600001123456789I114",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9J",
+    "value": "FR923000600001123456789J159",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9J",
+    "value": "FR653000600001123456789J160",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9K",
+    "value": "FR923000600001123456789K129",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9K",
+    "value": "FR653000600001123456789K130",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9L",
+    "value": "FR923000600001123456789L196",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9L",
+    "value": "FR653000600001123456789L197",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9M",
+    "value": "FR923000600001123456789M166",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9M",
+    "value": "FR653000600001123456789M167",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9N",
+    "value": "FR923000600001123456789N136",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9N",
+    "value": "FR653000600001123456789N137",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9O",
+    "value": "FR923000600001123456789O106",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9O",
+    "value": "FR653000600001123456789O107",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9P",
+    "value": "FR923000600001123456789P173",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9P",
+    "value": "FR653000600001123456789P174",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9Q",
+    "value": "FR923000600001123456789Q143",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9Q",
+    "value": "FR653000600001123456789Q144",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9R",
+    "value": "FR923000600001123456789R113",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9R",
+    "value": "FR653000600001123456789R114",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9S",
+    "value": "FR143000600001123456789S129",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9S",
+    "value": "FR843000600001123456789S130",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9T",
+    "value": "FR143000600001123456789T196",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9T",
+    "value": "FR843000600001123456789T197",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9U",
+    "value": "FR143000600001123456789U166",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9U",
+    "value": "FR843000600001123456789U167",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9V",
+    "value": "FR143000600001123456789V136",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9V",
+    "value": "FR843000600001123456789V137",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9W",
+    "value": "FR143000600001123456789W106",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9W",
+    "value": "FR843000600001123456789W107",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9X",
+    "value": "FR143000600001123456789X173",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9X",
+    "value": "FR843000600001123456789X174",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9Y",
+    "value": "FR143000600001123456789Y143",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9Y",
+    "value": "FR843000600001123456789Y144",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 9Z",
+    "value": "FR143000600001123456789Z113",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 9Z",
+    "value": "FR843000600001123456789Z114",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10A",
+    "value": "FR7230006000011234567890A89",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10A",
+    "value": "FR4530006000011234567890A90",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10B",
+    "value": "FR7230006000011234567890B86",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10B",
+    "value": "FR4530006000011234567890B87",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10C",
+    "value": "FR7230006000011234567890C83",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10C",
+    "value": "FR4530006000011234567890C84",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10D",
+    "value": "FR7230006000011234567890D80",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10D",
+    "value": "FR4530006000011234567890D81",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10E",
+    "value": "FR7230006000011234567890E77",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10E",
+    "value": "FR4530006000011234567890E78",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10F",
+    "value": "FR7230006000011234567890F74",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10F",
+    "value": "FR4530006000011234567890F75",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10G",
+    "value": "FR7230006000011234567890G71",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10G",
+    "value": "FR4530006000011234567890G72",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10H",
+    "value": "FR7230006000011234567890H68",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10H",
+    "value": "FR4530006000011234567890H69",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10I",
+    "value": "FR7230006000011234567890I65",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10I",
+    "value": "FR4530006000011234567890I66",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10J",
+    "value": "FR2230006000011234567890J89",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10J",
+    "value": "FR9230006000011234567890J90",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10K",
+    "value": "FR2230006000011234567890K86",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10K",
+    "value": "FR9230006000011234567890K87",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10L",
+    "value": "FR2230006000011234567890L83",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10L",
+    "value": "FR9230006000011234567890L84",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10M",
+    "value": "FR2230006000011234567890M80",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10M",
+    "value": "FR9230006000011234567890M81",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10N",
+    "value": "FR2230006000011234567890N77",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10N",
+    "value": "FR9230006000011234567890N78",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10O",
+    "value": "FR2230006000011234567890O74",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10O",
+    "value": "FR9230006000011234567890O75",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10P",
+    "value": "FR2230006000011234567890P71",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10P",
+    "value": "FR9230006000011234567890P72",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10Q",
+    "value": "FR2230006000011234567890Q68",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10Q",
+    "value": "FR9230006000011234567890Q69",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10R",
+    "value": "FR2230006000011234567890R65",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10R",
+    "value": "FR9230006000011234567890R66",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10S",
+    "value": "FR5330006000011234567890S86",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10S",
+    "value": "FR2630006000011234567890S87",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10T",
+    "value": "FR5330006000011234567890T83",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10T",
+    "value": "FR2630006000011234567890T84",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10U",
+    "value": "FR5330006000011234567890U80",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10U",
+    "value": "FR2630006000011234567890U81",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10V",
+    "value": "FR5330006000011234567890V77",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10V",
+    "value": "FR2630006000011234567890V78",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10W",
+    "value": "FR5330006000011234567890W74",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10W",
+    "value": "FR2630006000011234567890W75",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10X",
+    "value": "FR5330006000011234567890X71",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10X",
+    "value": "FR2630006000011234567890X72",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10Y",
+    "value": "FR5330006000011234567890Y68",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10Y",
+    "value": "FR2630006000011234567890Y69",
+    "valid": false
+  },
+  {
+    "label": "FR compte alphanumérique 10Z",
+    "value": "FR5330006000011234567890Z65",
+    "valid": true
+  },
+  {
+    "label": "FR compte alphanumérique mauvaise clé RIB 10Z",
+    "value": "FR2630006000011234567890Z66",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 20",
+    "value": "FR0630006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 21",
+    "value": "FR1630006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 22",
+    "value": "FR2630006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 23",
+    "value": "FR3630006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 24",
+    "value": "FR4630006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 25",
+    "value": "FR5630006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 26",
+    "value": "FR6630006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 28",
+    "value": "FR8630006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 29",
+    "value": "FR9630006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 30",
+    "value": "FR7030006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 31",
+    "value": "FR7130006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 32",
+    "value": "FR7230006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 33",
+    "value": "FR7330006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 34",
+    "value": "FR7430006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 35",
+    "value": "FR7530006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 37",
+    "value": "FR7730006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 38",
+    "value": "FR7830006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 39",
+    "value": "FR7930006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 40",
+    "value": "FR7600006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 41",
+    "value": "FR7610006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 42",
+    "value": "FR7620006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 44",
+    "value": "FR7640006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 45",
+    "value": "FR7650006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 46",
+    "value": "FR7660006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 47",
+    "value": "FR7670006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 48",
+    "value": "FR7680006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 49",
+    "value": "FR7690006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 51",
+    "value": "FR7631006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 52",
+    "value": "FR7632006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 53",
+    "value": "FR7633006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 54",
+    "value": "FR7634006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 55",
+    "value": "FR7635006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 56",
+    "value": "FR7636006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 57",
+    "value": "FR7637006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 58",
+    "value": "FR7638006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 59",
+    "value": "FR7639006000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 61",
+    "value": "FR7630106000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 62",
+    "value": "FR7630206000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 63",
+    "value": "FR7630306000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 64",
+    "value": "FR7630406000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 65",
+    "value": "FR7630506000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 66",
+    "value": "FR7630606000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 67",
+    "value": "FR7630706000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 68",
+    "value": "FR7630806000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 69",
+    "value": "FR7630906000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 71",
+    "value": "FR7630016000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 72",
+    "value": "FR7630026000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 73",
+    "value": "FR7630036000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 74",
+    "value": "FR7630046000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 75",
+    "value": "FR7630056000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 76",
+    "value": "FR7630066000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 77",
+    "value": "FR7630076000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 78",
+    "value": "FR7630086000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 79",
+    "value": "FR7630096000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 80",
+    "value": "FR7630000000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 81",
+    "value": "FR7630001000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 82",
+    "value": "FR7630002000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 83",
+    "value": "FR7630003000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 84",
+    "value": "FR7630004000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 85",
+    "value": "FR7630005000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 87",
+    "value": "FR7630007000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 88",
+    "value": "FR7630008000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 89",
+    "value": "FR7630009000011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 91",
+    "value": "FR7630006100011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 92",
+    "value": "FR7630006200011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 93",
+    "value": "FR7630006300011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 94",
+    "value": "FR7630006400011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 95",
+    "value": "FR7630006500011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 96",
+    "value": "FR7630006600011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 97",
+    "value": "FR7630006700011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 98",
+    "value": "FR7630006800011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 99",
+    "value": "FR7630006900011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 101",
+    "value": "FR7630006010011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 102",
+    "value": "FR7630006020011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 103",
+    "value": "FR7630006030011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 104",
+    "value": "FR7630006040011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 105",
+    "value": "FR7630006050011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 106",
+    "value": "FR7630006060011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 107",
+    "value": "FR7630006070011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 108",
+    "value": "FR7630006080011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 109",
+    "value": "FR7630006090011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 111",
+    "value": "FR7630006001011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 112",
+    "value": "FR7630006002011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 113",
+    "value": "FR7630006003011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 114",
+    "value": "FR7630006004011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 115",
+    "value": "FR7630006005011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 116",
+    "value": "FR7630006006011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 117",
+    "value": "FR7630006007011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 118",
+    "value": "FR7630006008011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 119",
+    "value": "FR7630006009011234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 121",
+    "value": "FR7630006000111234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 122",
+    "value": "FR7630006000211234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 123",
+    "value": "FR7630006000311234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 124",
+    "value": "FR7630006000411234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 125",
+    "value": "FR7630006000511234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 126",
+    "value": "FR7630006000611234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 127",
+    "value": "FR7630006000711234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 128",
+    "value": "FR7630006000811234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 129",
+    "value": "FR7630006000911234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 130",
+    "value": "FR7630006000001234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 132",
+    "value": "FR7630006000021234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 133",
+    "value": "FR7630006000031234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 134",
+    "value": "FR7630006000041234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 135",
+    "value": "FR7630006000051234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 136",
+    "value": "FR7630006000061234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 137",
+    "value": "FR7630006000071234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 138",
+    "value": "FR7630006000081234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 139",
+    "value": "FR7630006000091234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 140",
+    "value": "FR7630006000010234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 142",
+    "value": "FR7630006000012234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 143",
+    "value": "FR7630006000013234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 144",
+    "value": "FR7630006000014234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 145",
+    "value": "FR7630006000015234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 146",
+    "value": "FR7630006000016234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 147",
+    "value": "FR7630006000017234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 148",
+    "value": "FR7630006000018234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 149",
+    "value": "FR7630006000019234567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 150",
+    "value": "FR7630006000011034567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 151",
+    "value": "FR7630006000011134567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 153",
+    "value": "FR7630006000011334567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 154",
+    "value": "FR7630006000011434567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 155",
+    "value": "FR7630006000011534567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 156",
+    "value": "FR7630006000011634567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 157",
+    "value": "FR7630006000011734567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 158",
+    "value": "FR7630006000011834567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 159",
+    "value": "FR7630006000011934567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 160",
+    "value": "FR7630006000011204567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 161",
+    "value": "FR7630006000011214567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 162",
+    "value": "FR7630006000011224567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 164",
+    "value": "FR7630006000011244567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 165",
+    "value": "FR7630006000011254567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 166",
+    "value": "FR7630006000011264567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 167",
+    "value": "FR7630006000011274567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 168",
+    "value": "FR7630006000011284567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 169",
+    "value": "FR7630006000011294567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 170",
+    "value": "FR7630006000011230567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 171",
+    "value": "FR7630006000011231567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 172",
+    "value": "FR7630006000011232567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 173",
+    "value": "FR7630006000011233567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 175",
+    "value": "FR7630006000011235567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 176",
+    "value": "FR7630006000011236567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 177",
+    "value": "FR7630006000011237567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 178",
+    "value": "FR7630006000011238567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 179",
+    "value": "FR7630006000011239567890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 180",
+    "value": "FR7630006000011234067890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 181",
+    "value": "FR7630006000011234167890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 182",
+    "value": "FR7630006000011234267890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 183",
+    "value": "FR7630006000011234367890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 184",
+    "value": "FR7630006000011234467890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 186",
+    "value": "FR7630006000011234667890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 187",
+    "value": "FR7630006000011234767890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 188",
+    "value": "FR7630006000011234867890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 189",
+    "value": "FR7630006000011234967890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 190",
+    "value": "FR7630006000011234507890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 191",
+    "value": "FR7630006000011234517890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 192",
+    "value": "FR7630006000011234527890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 193",
+    "value": "FR7630006000011234537890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 194",
+    "value": "FR7630006000011234547890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 195",
+    "value": "FR7630006000011234557890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 197",
+    "value": "FR7630006000011234577890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 198",
+    "value": "FR7630006000011234587890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 199",
+    "value": "FR7630006000011234597890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 200",
+    "value": "FR7630006000011234560890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 201",
+    "value": "FR7630006000011234561890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 202",
+    "value": "FR7630006000011234562890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 203",
+    "value": "FR7630006000011234563890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 204",
+    "value": "FR7630006000011234564890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 205",
+    "value": "FR7630006000011234565890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 206",
+    "value": "FR7630006000011234566890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 208",
+    "value": "FR7630006000011234568890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 209",
+    "value": "FR7630006000011234569890189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 210",
+    "value": "FR7630006000011234567090189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 211",
+    "value": "FR7630006000011234567190189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 212",
+    "value": "FR7630006000011234567290189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 213",
+    "value": "FR7630006000011234567390189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 214",
+    "value": "FR7630006000011234567490189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 215",
+    "value": "FR7630006000011234567590189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 216",
+    "value": "FR7630006000011234567690189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 217",
+    "value": "FR7630006000011234567790189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 219",
+    "value": "FR7630006000011234567990189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 220",
+    "value": "FR7630006000011234567800189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 221",
+    "value": "FR7630006000011234567810189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 222",
+    "value": "FR7630006000011234567820189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 223",
+    "value": "FR7630006000011234567830189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 224",
+    "value": "FR7630006000011234567840189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 225",
+    "value": "FR7630006000011234567850189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 226",
+    "value": "FR7630006000011234567860189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 227",
+    "value": "FR7630006000011234567870189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 228",
+    "value": "FR7630006000011234567880189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 231",
+    "value": "FR7630006000011234567891189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 232",
+    "value": "FR7630006000011234567892189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 233",
+    "value": "FR7630006000011234567893189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 234",
+    "value": "FR7630006000011234567894189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 235",
+    "value": "FR7630006000011234567895189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 236",
+    "value": "FR7630006000011234567896189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 237",
+    "value": "FR7630006000011234567897189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 238",
+    "value": "FR7630006000011234567898189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 239",
+    "value": "FR7630006000011234567899189",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 240",
+    "value": "FR7630006000011234567890089",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 242",
+    "value": "FR7630006000011234567890289",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 243",
+    "value": "FR7630006000011234567890389",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 244",
+    "value": "FR7630006000011234567890489",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 245",
+    "value": "FR7630006000011234567890589",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 246",
+    "value": "FR7630006000011234567890689",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 247",
+    "value": "FR7630006000011234567890789",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 248",
+    "value": "FR7630006000011234567890889",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 249",
+    "value": "FR7630006000011234567890989",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 250",
+    "value": "FR7630006000011234567890109",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 251",
+    "value": "FR7630006000011234567890119",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 252",
+    "value": "FR7630006000011234567890129",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 253",
+    "value": "FR7630006000011234567890139",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 254",
+    "value": "FR7630006000011234567890149",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 255",
+    "value": "FR7630006000011234567890159",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 256",
+    "value": "FR7630006000011234567890169",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 257",
+    "value": "FR7630006000011234567890179",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 259",
+    "value": "FR7630006000011234567890199",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 260",
+    "value": "FR7630006000011234567890180",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 261",
+    "value": "FR7630006000011234567890181",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 262",
+    "value": "FR7630006000011234567890182",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 263",
+    "value": "FR7630006000011234567890183",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 264",
+    "value": "FR7630006000011234567890184",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 265",
+    "value": "FR7630006000011234567890185",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 266",
+    "value": "FR7630006000011234567890186",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 267",
+    "value": "FR7630006000011234567890187",
+    "valid": false
+  },
+  {
+    "label": "FR erreur de saisie 268",
+    "value": "FR7630006000011234567890188",
+    "valid": false
+  },
+  {
+    "label": "VocaLink V900 1",
+    "value": "GB55TEST08999966374958",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 2",
+    "value": "GB85TEST10799988837491",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 3",
+    "value": "GB86TEST20295963748472",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 4",
+    "value": "GB42TEST87142746238510",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 5",
+    "value": "GB04TEST87242746238510",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 6",
+    "value": "GB69TEST87142709123496",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 7",
+    "value": "GB31TEST87142799123496",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 8",
+    "value": "GB70TEST82000073688637",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 9",
+    "value": "GB68TEST82799973988638",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 10",
+    "value": "GB28TEST82710128748352",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 11",
+    "value": "GB06TEST13402063849203",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 12",
+    "value": "GB51TEST11876564371389",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 13",
+    "value": "GB54TEST20091541011166",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 14",
+    "value": "GB74TEST93861107806039",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 15",
+    "value": "GB27TEST93860042368003",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 16",
+    "value": "GB35TEST93806355065200",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 17",
+    "value": "GB45TEST77279899345694",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 18",
+    "value": "GB68TEST08609006774744",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 19",
+    "value": "GB76TEST30907002355688",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 20",
+    "value": "GB68TEST30907012345668",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 21",
+    "value": "GB19TEST30907012345677",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 22",
+    "value": "GB60TEST30907099345694",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 23",
+    "value": "GB63TEST93806315764273",
+    "valid": false
+  },
+  {
+    "label": "VocaLink V900 24",
+    "value": "GB15TEST93806315764264",
+    "valid": false
+  },
+  {
+    "label": "VocaLink V900 25",
+    "value": "GB57TEST93806315763217",
+    "valid": false
+  },
+  {
+    "label": "VocaLink V900 26",
+    "value": "GB78TEST11876564371388",
+    "valid": false
+  },
+  {
+    "label": "VocaLink V900 27",
+    "value": "GB11TEST20309966831036",
+    "valid": false
+  },
+  {
+    "label": "VocaLink V900 28",
+    "value": "GB55TEST20309958716970",
+    "valid": false
+  },
+  {
+    "label": "VocaLink V900 29",
+    "value": "GB28TEST08999966374959",
+    "valid": false
+  },
+  {
+    "label": "VocaLink V900 30",
+    "value": "GB31TEST10799988837493",
+    "valid": false
+  },
+  {
+    "label": "VocaLink V900 31",
+    "value": "GB60TEST07445612345112",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 32",
+    "value": "GB23TEST07011634012583",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 33",
+    "value": "GB38TEST07445611104102",
+    "valid": true
+  },
+  {
+    "label": "VocaLink V900 34",
+    "value": "GB54TEST18000200000190",
+    "valid": true
+  },
+  {
+    "label": "FR caractère final interdit '\\n'",
+    "value": "FR7630006000011234567890189\n",
+    "valid": false
+  },
+  {
+    "label": "FR caractère final interdit '\\t'",
+    "value": "FR7630006000011234567890189\t",
+    "valid": false
+  },
+  {
+    "label": "FR caractère final interdit '\\u200b'",
+    "value": "FR7630006000011234567890189​",
+    "valid": false
+  }
+]

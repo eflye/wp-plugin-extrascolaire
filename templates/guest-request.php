@@ -218,7 +218,7 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
           </div>
           <div>
             <label class="psc-portal-field-label" for="psc-sepa-iban"><?php esc_html_e('IBAN', 'periscolaire-registration'); ?></label>
-            <input id="psc-sepa-iban" class="psc-portal-field-underline" type="text" name="sepa_iban" data-bank-validation="iban" data-bank-error="<?php echo esc_attr__('L’IBAN saisi est invalide. Vérifiez les caractères et la clé de contrôle.', 'periscolaire-registration'); ?>" maxlength="42" placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX" autocomplete="off">
+            <input id="psc-sepa-iban" class="psc-portal-field-underline" type="text" name="sepa_iban" data-bank-validation="iban" data-bank-error="<?php echo esc_attr__('IBAN invalide : vérifiez le pays, la longueur, les caractères et les chiffres de contrôle.', 'periscolaire-registration'); ?>" maxlength="42" placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX" autocomplete="off">
           </div>
           <div>
             <label class="psc-portal-field-label" for="psc-sepa-bic"><?php esc_html_e('BIC', 'periscolaire-registration'); ?></label>

@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.3.1';
+    const DB_VERSION = '4.4.0';
     const ROLES_VERSION = '1.0.0';
 
     public static function activate() {
@@ -974,6 +974,7 @@ CREATE TABLE $t_parent (
             sepa_code_postal VARCHAR(10) NULL,
             sepa_ville VARCHAR(100) NULL,
             sepa_mandate_ref VARCHAR(35) NULL,
+            sepa_country CHAR(2) NOT NULL DEFAULT 'FR',
             reglement_accepted_at DATETIME NULL,
             sepa_reglement_accepted_at DATETIME NULL,
             second_parent_prenom VARCHAR(191) NULL,
