@@ -180,7 +180,7 @@ $psc_active_year = $psc_year_summary['year']['per_child'][$psc_active_child_id] 
           <tr>
             <th scope="col"><?php esc_html_e('Jour', 'periscolaire-registration'); ?></th>
             <?php foreach ($psc_column_order as $code): ?>
-            <th scope="col" data-service-column="<?php echo esc_attr($code); ?>"<?php echo $psc_active_sans_repas && $code === 'CANT' ? ' hidden' : ''; ?> title="<?php echo esc_attr($psc_display_columns[$code]['title']); ?>"><span data-column-label><?php echo esc_html($psc_display_columns[$code]['label']); ?></span></th>
+            <th scope="col" data-service-column="<?php echo esc_attr($code); ?>"<?php echo ($psc_active_sans_repas ? $code === 'CANT' : $code === 'MSR') ? ' hidden' : ''; ?> title="<?php echo esc_attr($psc_display_columns[$code]['title']); ?>"><span data-column-label><?php echo esc_html($psc_display_columns[$code]['label']); ?></span></th>
             <?php endforeach; ?>
           </tr>
         </thead>
@@ -192,12 +192,12 @@ $psc_active_year = $psc_year_summary['year']['per_child'][$psc_active_child_id] 
             <th scope="row"><?php echo esc_html($jour_label); ?></th>
             <?php foreach ($psc_column_order as $code):
                 $on = !empty($psc_all_patterns[$psc_active_child_id][$psc_year_key][$wd][$code]); ?>
-            <td data-service-column="<?php echo esc_attr($code); ?>"<?php echo $psc_active_sans_repas && $code === 'CANT' ? ' hidden' : ''; ?>>
+            <td data-service-column="<?php echo esc_attr($code); ?>"<?php echo ($psc_active_sans_repas ? $code === 'CANT' : $code === 'MSR') ? ' hidden' : ''; ?>>
               <button type="button"
                       class="psc-pat-btn<?php echo $on ? ' is-on' : ''; ?>"
                       data-weekday="<?php echo esc_attr($wd); ?>"
                       data-service="<?php echo esc_attr($code); ?>"
-                      <?php disabled($code === 'CANT' && $psc_active_sans_repas); ?>
+                      <?php disabled($psc_active_sans_repas ? $code === 'CANT' : $code === 'MSR'); ?>
                       data-testid="pattern-<?php echo esc_attr($wd); ?>-<?php echo esc_attr($code); ?>"
                       aria-pressed="<?php echo $on ? 'true' : 'false'; ?>"
                       aria-label="<?php echo esc_attr($jour_label . ' — ' . $psc_services[$code]['label'] . ' — ' . $psc_active_name); ?>">
@@ -246,7 +246,7 @@ $psc_active_year = $psc_year_summary['year']['per_child'][$psc_active_child_id] 
           <tr>
             <th scope="col" class="psc-exc-day-col"><?php esc_html_e('Jour', 'periscolaire-registration'); ?></th>
             <?php foreach ($psc_column_order as $code): ?>
-            <th scope="col" data-service-column="<?php echo esc_attr($code); ?>"<?php echo $psc_active_sans_repas && $code === 'CANT' ? ' hidden' : ''; ?> title="<?php echo esc_attr($psc_display_columns[$code]['title']); ?>">
+            <th scope="col" data-service-column="<?php echo esc_attr($code); ?>"<?php echo ($psc_active_sans_repas ? $code === 'CANT' : $code === 'MSR') ? ' hidden' : ''; ?> title="<?php echo esc_attr($psc_display_columns[$code]['title']); ?>">
               <span data-column-label><?php echo esc_html($psc_display_columns[$code]['label']); ?></span><br><span class="psc-exc-price"><?php echo esc_html(number_format_i18n($psc_display_columns[$code]['price'], 2)); ?> €</span>
             </th>
             <?php endforeach; ?>
@@ -265,7 +265,7 @@ $psc_active_year = $psc_year_summary['year']['per_child'][$psc_active_child_id] 
                     return $psc_cells[$d]['services'][$code]['declared'];
                 })) === count($exc_dates);
             ?>
-            <th scope="col" data-service-column="<?php echo esc_attr($code); ?>"<?php echo $psc_active_sans_repas && $code === 'CANT' ? ' hidden' : ''; ?>>
+            <th scope="col" data-service-column="<?php echo esc_attr($code); ?>"<?php echo ($psc_active_sans_repas ? $code === 'CANT' : $code === 'MSR') ? ' hidden' : ''; ?>>
               <button type="button" class="psc-exc-tout"
                       data-service="<?php echo esc_attr($code); ?>"
                       data-testid="exc-tout-<?php echo esc_attr($code); ?>"
@@ -293,7 +293,7 @@ $psc_active_year = $psc_year_summary['year']['per_child'][$psc_active_child_id] 
                 elseif ($cell['exception_value'] === false) $state = 'remove';
                 elseif ($cell['origin'] === 'pattern') $state = 'pattern';
             ?>
-            <td data-service-column="<?php echo esc_attr($code); ?>"<?php echo $psc_active_sans_repas && $code === 'CANT' ? ' hidden' : ''; ?>>
+            <td data-service-column="<?php echo esc_attr($code); ?>"<?php echo ($psc_active_sans_repas ? $code === 'CANT' : $code === 'MSR') ? ' hidden' : ''; ?>>
               <button type="button"
                       class="psc-exc-cell psc-exc-<?php echo esc_attr($state); ?>"
                       data-date="<?php echo esc_attr($date); ?>"

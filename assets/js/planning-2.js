@@ -48,7 +48,7 @@
             order.forEach(function (svc) {
                 var cell = row.querySelector('[data-service-column="' + svc + '"]');
                 if (!cell) return;
-                cell.hidden = withoutMeal && svc === 'CANT';
+                cell.hidden = withoutMeal ? svc === 'CANT' : svc === 'MSR';
                 var label = cell.querySelector('[data-column-label]');
                 if (label) {
                     label.textContent = columns[svc].label;
@@ -100,7 +100,8 @@
             btn.setAttribute('aria-pressed', on ? 'true' : 'false');
             btn.textContent = on ? '✓' : '';
             var active = activeChildMeta();
-            btn.disabled = svc === 'CANT' && !!(active && active.cantine_sans_repas);
+            var withoutMeal = !!(active && active.cantine_sans_repas);
+            btn.disabled = withoutMeal ? svc === 'CANT' : svc === 'MSR';
         });
         var child = activeChildMeta();
         if (child) grid.dataset.child = String(child.id);

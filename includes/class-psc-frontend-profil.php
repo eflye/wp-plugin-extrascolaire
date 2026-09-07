@@ -12,6 +12,8 @@ class Psc_Frontend_Profil extends Psc_Frontend_Base {
     public static function init() {
         add_action('admin_post_nopriv_psc_parent_update_profile', array(__CLASS__, 'handle_parent_update_profile'));
         add_action('admin_post_psc_parent_update_profile', array(__CLASS__, 'handle_parent_update_profile'));
+        add_action('admin_post_nopriv_psc_parent_enable_sepa', array(__CLASS__, 'handle_parent_enable_sepa'));
+        add_action('admin_post_psc_parent_enable_sepa', array(__CLASS__, 'handle_parent_enable_sepa'));
 
         add_action('admin_post_nopriv_psc_parent_update_second_parent', array(__CLASS__, 'handle_parent_update_second_parent'));
         add_action('admin_post_psc_parent_update_second_parent', array(__CLASS__, 'handle_parent_update_second_parent'));
@@ -66,6 +68,66 @@ class Psc_Frontend_Profil extends Psc_Frontend_Base {
         }
 
         self::parent_form_redirect('profil_updated');
+    }
+
+    /** Active le prélèvement depuis « Mon profil » avec les contrôles de l'inscription initiale. */
+    public static function handle_parent_enable_sepa() {
+        $parent = self::authed_parent('psc_parent_enable_sepa');
+        if (!$parent) self::parent_form_redirect('auth');
+        if (($parent->payment_mode ?? 'autre') === 'prelevement') {
+            self::parent_form_redirect('profil_sepa_enabled');
+        }
+
+        if (empty($_POST['sepa_reglement_accepted'])) {
+            self::parent_form_redirect('profil_sepa_reglement_required');
+        }
+
+        $titulaire   = psc_post('sepa_titulaire');
+        $adresse     = psc_post('sepa_adresse');
+        $code_postal = psc_post('sepa_code_postal');
+        $ville       = psc_post('sepa_ville');
+        if ($titulaire === '') self::parent_form_redirect('profil_sepa_missing');
+
+        $iban = psc_valid_iban(psc_post('sepa_iban'));
+        if (!$iban) self::parent_form_redirect('profil_sepa_bad_iban');
+        $bic = psc_valid_bic(psc_post('sepa_bic'));
+        if (!$bic) self::parent_form_redirect('profil_sepa_bad_bic');
+        if ($code_postal !== '' && !psc_valid_postcode($code_postal)) {
+            self::parent_form_redirect('profil_sepa_bad_postcode');
+        }
+
+        $rum = !empty($parent->sepa_mandate_ref)
+            ? (string) $parent->sepa_mandate_ref
+            : psc_parent_sepa_mandate_ref($parent->id);
+        $accepted_at = current_time('mysql');
+        $mandate = Psc_Sepa_Mandate::build_temp_pdf($rum, array(
+            'titulaire'   => $titulaire,
+            'adresse'     => $adresse,
+            'code_postal' => $code_postal,
+            'ville'       => $ville,
+            'iban'        => $iban,
+            'bic'         => $bic,
+        ));
+
+        $result = Psc_Parents::update($parent->id, array(
+            'payment_mode'               => 'prelevement',
+            'sepa_iban'                  => $iban,
+            'sepa_bic'                   => $bic,
+            'sepa_titulaire'             => $titulaire,
+            'sepa_adresse'               => $adresse,
+            'sepa_code_postal'           => $code_postal,
+            'sepa_ville'                 => $ville,
+            'sepa_mandate_ref'           => $rum,
+            'sepa_reglement_accepted_at' => $accepted_at,
+        ));
+        if (is_wp_error($result) || $result === false) {
+            if ($mandate && file_exists($mandate)) unlink($mandate);
+            self::parent_form_redirect('profil_sepa_error');
+        }
+
+        Psc_Mailer::send_sepa_enabled($parent, $mandate ? array($mandate) : array());
+        if ($mandate && file_exists($mandate)) unlink($mandate);
+        self::parent_form_redirect('profil_sepa_enabled');
     }
 
     /**

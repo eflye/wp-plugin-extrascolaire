@@ -692,6 +692,18 @@ class Psc_Mailer {
         return self::send($email, $subject, self::layout($body, $subject), $attachments);
     }
 
+    /** Confirme l'activation du prélèvement depuis le profil famille. */
+    public static function send_sepa_enabled($parent, $attachments = array()) {
+        $subject = sprintf(__('[%s] Prélèvement automatique activé', 'periscolaire-registration'), self::site_name());
+        $body = self::h2(__('Prélèvement automatique activé', 'periscolaire-registration'))
+            . self::p(__('Votre mode de paiement est désormais le prélèvement automatique SEPA.', 'periscolaire-registration'))
+            . ($attachments ? self::info_box(
+                __('<strong>📎 Mandat de prélèvement SEPA joint.</strong><br>', 'periscolaire-registration')
+                . __('Merci de l’imprimer, de le signer, puis de l’adresser à votre banque. Conservez-en une copie.', 'periscolaire-registration')
+            ) : '');
+        return self::send($parent->email, $subject, self::layout($body, $subject), $attachments);
+    }
+
     public static function notify_mairie_new_request($req, $children) {
         $site    = self::site_name();
         $subject = Psc_Email_Templates::subject('notify_mairie', array('site' => $site));

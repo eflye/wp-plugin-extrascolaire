@@ -59,6 +59,7 @@ class Psc_Planning {
         $child_id = (int) $child_id;
         $date = psc_valid_date($date);
         if (!$child_id || !$date || !psc_is_valid_service($service_code)) return false;
+        if (self::service_restricted_for_child($child_id, $service_code)) return false;
 
         $key = $child_id . '|' . $date . '|' . $service_code;
         if (array_key_exists($key, self::$single_cache)) return self::$single_cache[$key];
@@ -262,6 +263,10 @@ class Psc_Planning {
                 }
 
                 foreach ($services as $svc) {
+                    if (self::service_restricted_for_child($cid, $svc)) {
+                        $map[$cid][$date][$svc] = false;
+                        continue;
+                    }
                     $map[$cid][$date][$svc] = psc_resolve_declaration(
                         $svc === $forf,
                         !empty($pats[$svc]),
@@ -371,6 +376,17 @@ class Psc_Planning {
 
             $per_service = array();
             foreach (psc_allowed_services() as $svc) {
+                if (self::service_restricted_for_child($child_id, $svc)) {
+                    $per_service[$svc] = array(
+                        'declared' => false,
+                        'origin' => 'none',
+                        'exception_value' => null,
+                        'locked' => $locked,
+                        'closed' => true,
+                        'price' => (float) psc_services()[$svc]['price'],
+                    );
+                    continue;
+                }
                 $exc = array_key_exists($svc, $exc_d) ? (bool) $exc_d[$svc] : null;
                 $declared = psc_resolve_declaration(
                     $svc === $forf,
@@ -646,6 +662,15 @@ class Psc_Planning {
                 $open = $open_map[$date];
 
                 foreach (psc_allowed_services() as $svc) {
+                    if (self::service_restricted_for_child($cid, $svc)) {
+                        $map[$cid][$date][$svc] = array(
+                            'explicit' => false,
+                            'declared' => false,
+                            'locked' => psc_is_locked($date),
+                            'closed' => true,
+                        );
+                        continue;
+                    }
                     $exc_val = array_key_exists($svc, $exc) ? (bool) $exc[$svc] : null;
                     // L'exception GAGNE dans l'affichage comme dans la
                     // résolution : un retrait exceptionnel sur un jour du
@@ -696,7 +721,7 @@ class Psc_Planning {
             return array('status' => 'invalid');
         }
 
-        if ($on && $service_code === 'CANT' && self::cantine_sans_repas_flag($child_id)) {
+        if ($on && self::service_restricted_for_child($child_id, $service_code)) {
             return array('status' => 'invalid');
         }
 
@@ -797,7 +822,7 @@ class Psc_Planning {
         if (!$child_id || $year_key === '' || !in_array($weekday, self::WEEKDAYS, true) || !psc_is_valid_service($service_code)) {
             return array('status' => 'invalid');
         }
-        if ($on && $service_code === 'CANT' && self::cantine_sans_repas_flag($child_id)) {
+        if ($on && self::service_restricted_for_child($child_id, $service_code)) {
             return array('status' => 'invalid');
         }
         if (!Psc_School_Year::get($year_key)) {
@@ -954,6 +979,9 @@ class Psc_Planning {
                     if (self::cantine_sans_repas_flag($tid)) {
                         if ($svc === 'CANT') $want = false;
                         if ($svc === psc_midi_sans_repas_code()) $want = $want || !empty($source[$weekday]['CANT']);
+                    } else {
+                        if ($svc === 'CANT') $want = $want || !empty($source[$weekday][psc_midi_sans_repas_code()]);
+                        if ($svc === psc_midi_sans_repas_code()) $want = false;
                     }
                     $r = self::toggle_pattern($tid, $year_key, $weekday, $svc, $want);
                     if ($r['status'] === 'ok') {
@@ -1345,6 +1373,14 @@ class Psc_Planning {
         if (!$child_id) return false;
         $flags = self::cantine_sans_repas_flags(array($child_id));
         return !empty($flags[$child_id]);
+    }
+
+    /** Une famille ne peut choisir que le service de midi autorisé par le flag mairie. */
+    protected static function service_restricted_for_child($child_id, $service_code) {
+        $without_meal = self::cantine_sans_repas_flag($child_id);
+        if ($service_code === 'CANT') return $without_meal;
+        if ($service_code === psc_midi_sans_repas_code()) return !$without_meal;
+        return false;
     }
 
     /**

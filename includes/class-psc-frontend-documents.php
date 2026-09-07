@@ -96,7 +96,7 @@ class Psc_Frontend_Documents extends Psc_Frontend_Base {
         check_admin_referer('psc_parent_download_invoice_' . $invoice_id);
 
         $invoice = Psc_Invoices::get($invoice_id);
-        if (!$invoice || (int) $invoice->parent_id !== (int) $parent->id) {
+        if (!$invoice || (int) $invoice->parent_id !== (int) $parent->id || empty($invoice->sent_at)) {
             wp_die(esc_html__('Facture introuvable.', 'periscolaire-registration'), '', array('response' => 404));
         }
 

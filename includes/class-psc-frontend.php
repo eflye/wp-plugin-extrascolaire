@@ -341,6 +341,8 @@ class Psc_Frontend extends Psc_Frontend_Base {
         }
         if (in_array($psc_msg, array(
             'profil_updated', 'profil_updated_email_pending', 'profil_error', 'profil_invalid',
+            'profil_sepa_enabled', 'profil_sepa_reglement_required', 'profil_sepa_missing',
+            'profil_sepa_bad_iban', 'profil_sepa_bad_bic', 'profil_sepa_bad_postcode', 'profil_sepa_error',
             'email_taken', 'email_changed', 'email_change_cancelled',
             'bad_email_token', 'expired_email_token',
             'second_parent_updated', 'second_parent_removed',
@@ -376,8 +378,8 @@ class Psc_Frontend extends Psc_Frontend_Base {
 
     /**
      * Statistiques du tableau de bord : cumul ANNÉE scolaire (tous enfants
-     * actifs confondus — plus aucune notion de trimestre), prochaine facture
-     * non envoyée, menu de la semaine réelle en cours, résumé par enfant.
+     * actifs confondus — plus aucune notion de trimestre), dernière facture
+     * publiée, menu de la semaine réelle en cours, résumé par enfant.
      * Les déclarations viennent de Psc_Planning::year_summary() (source de
      * vérité unique, un lot de requêtes).
      */
@@ -415,12 +417,10 @@ class Psc_Frontend extends Psc_Frontend_Base {
         }
 
         $next_invoice = null;
-        $pending = array_values(array_filter($invoices, function ($i) { return empty($i->sent_at); }));
-        if ($pending) {
-            usort($pending, function ($a, $b) { return strcmp($a->mois, $b->mois); });
+        if ($invoices) {
             $next_invoice = array(
-                'mois_label'   => Psc_Invoices::month_label($pending[0]->mois),
-                'status_label' => __('En attente', 'periscolaire-registration'),
+                'mois_label'   => Psc_Invoices::month_label($invoices[0]->mois),
+                'status_label' => __('Disponible', 'periscolaire-registration'),
             );
         }
 

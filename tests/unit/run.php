@@ -163,6 +163,7 @@ $assert('masquage : pays + 4 derniers', psc_mask_iban('FR76300060000112345678901
 
 $assert('mandat : identifiant à 8 chiffres', psc_sepa_mandate_ref(42), 'RUM00000042');
 $assert('mandat : identifiant nul', psc_sepa_mandate_ref(0), 'RUM00000000');
+$assert('mandat profil : espace de référence distinct', psc_parent_sepa_mandate_ref(42), 'RUMP00000042');
 
 $assert(
     'lecture : foyer chiffré déchiffré',

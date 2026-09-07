@@ -15,6 +15,8 @@ import { test, expect, type Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { readFileSync, unlinkSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
+import { readFormPageUrl } from '../playwright/seed-result';
+import { findLatestMessage } from '../helpers/mailpit';
 
 const APP_BASE = 'http://localhost:8080';
 const ENGINE = process.env.PSC_CONTAINER_ENGINE ?? 'podman';
@@ -43,6 +45,17 @@ async function loginAsAdmin(page: Page): Promise<void> {
   await page.locator('#user_pass').fill('admin');
   await page.locator('#wp-submit').click();
   await page.waitForURL('**/wp-admin/**', { timeout: 30_000 });
+}
+
+async function loginAsFamily(page: Page): Promise<void> {
+  await page.goto(readFormPageUrl());
+  await page.getByTestId('login-email-input').fill(EMAIL);
+  await page.getByTestId('login-submit-button').click();
+  const mail = await findLatestMessage(EMAIL, 'Votre lien d\'accès aux inscriptions périscolaires');
+  const link = mail.Text.match(/https?:\/\/\S*psc_pid=\d+&psc_token=[0-9a-f]+/);
+  expect(link, 'lien de connexion famille introuvable').toBeTruthy();
+  await page.goto(link![0]);
+  await expect(page.getByTestId('portal-root')).toBeVisible();
 }
 
 function facturesUrl(): string {
@@ -174,6 +187,45 @@ test.describe('Facturation libre + export prélèvements', () => {
     await expect(page.locator('.notice-updated:has-text("Factures du mois supprimées")')).toBeVisible();
     expect(invoiceCount()).toBe('0');
     await expect(page.locator('td:has-text("FacturesE2E")')).toHaveCount(0);
+  });
+
+  test('portail famille : facture invisible avant envoi, visible et téléchargeable après', async ({ page }) => {
+    page.on('dialog', (d) => d.accept());
+    await loginAsAdmin(page);
+    await page.goto(facturesUrl());
+    await page.locator('button:has-text("Générer / Regénérer les factures de")').click();
+    await expect(page.locator('.notice-updated:has-text("Factures générées avec succès")')).toBeVisible();
+
+    expect(wpCliEval(
+      `global $wpdb;
+       $pid = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}psc_parents WHERE email = %s", '${EMAIL}'));
+       echo count(Psc_Invoices::get_for_parent($pid));`
+    ).trim().split('\n').pop()).toBe('0');
+
+    await loginAsFamily(page);
+    await page.goto(`${readFormPageUrl()}${readFormPageUrl().includes('?') ? '&' : '?'}psc_tab=factures`);
+    await expect(page.getByTestId('portal-invoices-empty')).toBeVisible();
+    await expect(page.getByTestId('portal-invoices-table')).toHaveCount(0);
+
+    await page.goto(facturesUrl());
+    await page.locator('button:has-text("Envoyer toutes les factures non envoyées")').click();
+    await expect(page.locator('.notice-updated:has-text("Toutes les factures ont été envoyées")')).toBeVisible();
+
+    await page.goto(`${readFormPageUrl()}${readFormPageUrl().includes('?') ? '&' : '?'}psc_tab=factures`);
+    await expect(page.getByTestId('portal-invoices-table')).toBeVisible();
+    const download = page.getByRole('link', { name: 'Télécharger' });
+    const href = await download.getAttribute('href');
+    expect(href).toBeTruthy();
+
+    // Même une ancienne URL signée ne donne plus accès au PDF si l'envoi
+    // est retiré : l'autorisation est contrôlée à chaque téléchargement.
+    wpCliEval(
+      `global $wpdb;
+       $pid = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}psc_parents WHERE email = %s", '${EMAIL}'));
+       $wpdb->update($wpdb->prefix.'psc_invoices', array('sent_at' => null), array('parent_id' => $pid, 'mois' => '${MOIS}'), array('%s'), array('%d','%s'));`
+    );
+    const blocked = await page.request.get(href!);
+    expect(blocked.status()).toBe(404);
   });
 
   test('PDF : seules les prestations dues figurent, logos bornés', async ({ page }) => {

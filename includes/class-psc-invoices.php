@@ -411,16 +411,15 @@ class Psc_Invoices {
     }
 
     /**
-     * Retourne toutes les factures d'une famille, triées du mois le plus
-     * récent au plus ancien. Utilisé par l'espace famille (accès à ses
-     * propres factures uniquement — le contrôle d'appartenance est fait
-     * par l'appelant).
+     * Retourne les factures PUBLIÉES d'une famille, triées du mois le plus
+     * récent au plus ancien. Une génération admin reste un brouillon tant
+     * que son envoi n'a pas renseigné sent_at.
      */
     public static function get_for_parent($parent_id) {
         global $wpdb;
         $t_inv = psc_table('invoices');
         return $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM $t_inv WHERE parent_id = %d ORDER BY mois DESC",
+            "SELECT * FROM $t_inv WHERE parent_id = %d AND sent_at IS NOT NULL ORDER BY mois DESC",
             $parent_id
         ));
     }

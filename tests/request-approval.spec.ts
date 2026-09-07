@@ -132,7 +132,7 @@ test.describe('P0-01 — allergies et approbation des demandes', () => {
     // approuvées restent 90 jours en base et alourdiraient les écrans).
     wpCliEval(
       `global $wpdb;
-       foreach (array('demande-manuelle.e2e+', 'demande-auto.e2e+', 'demande-rap-proch.e2e+', 'demande-revoc.e2e+') as $prefix) {
+       foreach (array('demande-manuelle.e2e+', 'demande-auto.e2e+', 'demande-rap-proch.e2e+', 'demande-revoc.e2e+', 'profil-sepa.e2e+') as $prefix) {
          $like = $prefix . '%@example.test';
          $wpdb->query($wpdb->prepare("DELETE r FROM {$wpdb->prefix}psc_requests r WHERE r.email LIKE %s", $like));
          $ids = $wpdb->get_col($wpdb->prepare("SELECT id FROM {$wpdb->prefix}psc_parents WHERE email LIKE %s", $like));
@@ -193,6 +193,61 @@ test.describe('P0-01 — allergies et approbation des demandes', () => {
 
     const pai = await findLatestMessage(mairieEmail(), 'Allergie alimentaire déclarée');
     expect(pai.Subject).toContain('Léo');
+  });
+
+  test('Mon profil : passage de chèque ou espèces au prélèvement SEPA', async ({ page }) => {
+    const email = `profil-sepa.e2e+${Date.now()}@example.test`;
+    wpCli(['option', 'update', 'psc_auto_approve_requests', '1']);
+
+    await submitRequest(page, email, 'Noé', null);
+    await verifyLink(email, page);
+    await expect(page.getByTestId('notice-welcome')).toBeVisible();
+
+    const profileUrl = `${readFormPageUrl()}${readFormPageUrl().includes('?') ? '&' : '?'}psc_tab=profil`;
+    await page.goto(profileUrl);
+    const skip = page.getByTestId('onboarding-skip');
+    if (await skip.isVisible().catch(() => false)) {
+      await skip.click();
+      await page.waitForLoadState('load');
+      await page.goto(profileUrl);
+    }
+
+    await expect(page.getByTestId('profil-payment-autre-active')).toBeVisible();
+    await expect(page.getByTestId('profil-sepa-fields')).toBeHidden();
+    await page.getByTestId('profil-payment-enable-sepa').click();
+    await expect(page.getByTestId('profil-sepa-fields')).toBeVisible();
+    await expect(page.locator('#psc-profile-sepa-titulaire')).toHaveAttribute('required', '');
+    await expect(page.locator('#psc-profile-sepa-iban')).toHaveAttribute('required', '');
+    await expect(page.locator('#psc-profile-sepa-bic')).toHaveAttribute('required', '');
+
+    await page.locator('#psc-profile-sepa-iban').fill('FR76 3000 6000 0112 3456 7890 189');
+    await page.locator('#psc-profile-sepa-bic').fill('AGRIFRPP882');
+    await page.locator('#psc-profile-sepa-same-address').check();
+    await page.getByTestId('profil-sepa-accept').check();
+    await page.getByTestId('profil-sepa-submit').click();
+
+    await expect(page.getByTestId('notice-profil_sepa_enabled')).toBeVisible();
+    await expect(page.getByTestId('profil-payment-prelevement-active')).toBeVisible();
+    const stored = JSON.parse(wpCliEval(
+      `global $wpdb;
+       $p = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}psc_parents WHERE email = %s", '${email}'));
+       echo wp_json_encode(array(
+         'mode' => $p->payment_mode,
+         'iban' => psc_read_iban($p),
+         'bic' => $p->sepa_bic,
+         'rum' => $p->sepa_mandate_ref,
+         'accepted' => !empty($p->sepa_reglement_accepted_at),
+       ));`
+    ));
+    expect(stored).toEqual({
+      mode: 'prelevement',
+      iban: 'FR7630006000011234567890189',
+      bic: 'AGRIFRPP882',
+      rum: expect.stringMatching(/^RUMP\d{8}$/),
+      accepted: true,
+    });
+    const confirmation = await findLatestMessage(email, 'Prélèvement automatique activé');
+    expect(confirmation.Text).toContain('prélèvement automatique SEPA');
   });
 
   test('révocation durable : retrait du second parent tue sessions et lien en attente', async ({ browser }) => {

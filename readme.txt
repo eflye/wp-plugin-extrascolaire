@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.5.3
+Stable tag: 5.5.4
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,16 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.5.4 =
+* Planning famille : « Cantine sans repas » est proposée uniquement aux
+  enfants flaggés par la mairie ; les autres utilisent exclusivement la
+  cantine avec repas. La règle est également contrôlée côté serveur.
+* Mon profil : une famille réglant par chèque ou espèces peut activer le
+  prélèvement SEPA après saisie et validation des informations obligatoires.
+  L'IBAN est chiffré et le mandat est envoyé par e-mail lorsque disponible.
+* Factures : une facture générée reste invisible et inaccessible dans
+  l'espace famille jusqu'à son envoi par la mairie.
 
 = 5.5.3 =
 * Facture PDF : la mention de prélèvement le 5 du mois suivant apparaît

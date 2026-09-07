@@ -174,8 +174,16 @@ test.describe('Planning - 2 : rythme + exceptions (fonctionnel, base vérifiée)
       await expect(page.getByTestId('planning-sans-repas')).toBeHidden();
       await expect(page.getByTestId('pattern-2-CANT')).toBeEnabled();
       for (const grid of ['pattern-grid', 'exception-grid']) {
-        await expect(page.getByTestId(grid).locator('thead tr:first-child [data-column-label]:visible')).toHaveText(['G.M.', 'Cant.', 'G.S.', 'Forf.', 'S. repas']);
+        await expect(page.getByTestId(grid).locator('thead tr:first-child [data-column-label]:visible')).toHaveText(['G.M.', 'Cant.', 'G.S.', 'Forf.']);
       }
+      await expect(page.getByTestId('pattern-2-MSR')).toBeHidden();
+      await expect(page.getByTestId('exc-tout-MSR')).toBeHidden();
+      const normalBlocked = JSON.parse(wpCliEval(`echo json_encode(array(
+        Psc_Planning::toggle_pattern(${data.bob_id}, '${data.year_key}', 2, 'MSR', true)['status'],
+        Psc_Planning::toggle_exception(${data.bob_id}, '${data.free_date}', 'MSR', true)['status'],
+        Psc_Planning::toggle_exception_bulk(${data.bob_id}, array('${data.free_date}'), 'MSR', true)
+      ));`));
+      expect(normalBlocked).toEqual(['invalid', 'invalid', []]);
       await page.getByTestId(`child-tab-${data.alice_id}`).click();
       await expect(page.getByTestId('planning-sans-repas')).toBeVisible();
       for (const grid of ['pattern-grid', 'exception-grid']) {

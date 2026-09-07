@@ -76,3 +76,8 @@ function psc_read_iban($record) {
 function psc_sepa_mandate_ref($request_id) {
     return 'RUM' . str_pad((int) $request_id, 8, '0', STR_PAD_LEFT);
 }
+
+/** Référence distincte pour un mandat créé depuis le profil d'un foyer. */
+function psc_parent_sepa_mandate_ref($parent_id) {
+    return 'RUMP' . str_pad((int) $parent_id, 8, '0', STR_PAD_LEFT);
+}

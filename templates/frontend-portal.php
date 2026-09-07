@@ -104,6 +104,13 @@
         'profil_updated_email_pending' => array('ok',  __("Informations mises à jour. Un e-mail de confirmation a été envoyé à votre nouvelle adresse : cliquez sur le lien qu'il contient pour l'activer.", 'periscolaire-registration')),
         'profil_error'                 => array('err', __("Certaines informations n'ont pas pu être enregistrées. Vérifiez votre saisie.", 'periscolaire-registration')),
         'profil_invalid'               => array('err', __("Certaines informations sont invalides : vérifiez les numéros de téléphone et le code postal.", 'periscolaire-registration')),
+        'profil_sepa_enabled'          => array('ok',  __('Le prélèvement automatique SEPA est activé. Un e-mail de confirmation vous a été envoyé.', 'periscolaire-registration')),
+        'profil_sepa_reglement_required' => array('err', __('Vous devez accepter le règlement du prélèvement automatique.', 'periscolaire-registration')),
+        'profil_sepa_missing'          => array('err', __('Le titulaire du compte est obligatoire.', 'periscolaire-registration')),
+        'profil_sepa_bad_iban'         => array('err', __('L’IBAN renseigné n’est pas valide.', 'periscolaire-registration')),
+        'profil_sepa_bad_bic'          => array('err', __('Le BIC renseigné n’est pas valide.', 'periscolaire-registration')),
+        'profil_sepa_bad_postcode'     => array('err', __('Le code postal du titulaire doit contenir 5 chiffres.', 'periscolaire-registration')),
+        'profil_sepa_error'            => array('err', __('Le prélèvement automatique n’a pas pu être activé. Vérifiez votre saisie.', 'periscolaire-registration')),
         'email_taken'                  => array('err', __('Cette adresse e-mail est déjà utilisée par une autre famille.', 'periscolaire-registration')),
         'email_changed'                => array('ok',  __('Votre nouvelle adresse e-mail est confirmée : utilisez-la désormais pour vous connecter.', 'periscolaire-registration')),
         'email_change_cancelled'       => array('ok',  __("Changement d'adresse e-mail annulé.", 'periscolaire-registration')),
@@ -129,7 +136,7 @@
     );
     // Confirmations : popin auto-masquée (cf. assets/js/frontend.js).
     // Erreurs à corriger : bandeau classique, le temps de lire et d'agir.
-    $psc_toast_messages = array('welcome', 'child_updated', 'child_added', 'absence_cancelled', 'profil_updated', 'assurance_uploaded', 'household_pickup_added', 'pickup_updated', 'pickup_removed');
+    $psc_toast_messages = array('welcome', 'child_updated', 'child_added', 'absence_cancelled', 'profil_updated', 'profil_sepa_enabled', 'assurance_uploaded', 'household_pickup_added', 'pickup_updated', 'pickup_removed');
     if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
         list($type, $text) = $psc_notices[$psc_msg];
         $is_toast = in_array($psc_msg, $psc_toast_messages, true);

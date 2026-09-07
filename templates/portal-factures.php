@@ -3,7 +3,7 @@
 <h1 class="psc-portal-h1" data-testid="factures-title"><?php esc_html_e('Mes factures', 'periscolaire-registration'); ?></h1>
 
 <?php if (empty($invoices)): ?>
-<p class="psc-portal-dash-menu-empty" data-testid="portal-invoices-empty"><?php esc_html_e("Aucune facture n'a encore été émise pour votre famille.", 'periscolaire-registration'); ?></p>
+<p class="psc-portal-dash-menu-empty" data-testid="portal-invoices-empty"><?php esc_html_e("Aucune facture n'a encore été envoyée à votre famille.", 'periscolaire-registration'); ?></p>
 <?php else: ?>
 <div class="psc-portal-table-scroll">
 <table class="psc-portal-table" data-testid="portal-invoices-table">
@@ -15,13 +15,7 @@
     <tr data-testid="portal-invoice-row-<?php echo esc_attr($inv->id); ?>">
       <td style="font-family:'Fraunces',serif;font-weight:600;"><?php echo esc_html(Psc_Invoices::month_label($inv->mois)); ?></td>
       <td style="font-family:'Fraunces',serif;font-weight:700;"><?php echo esc_html(number_format_i18n((float) $inv->total, 2)); ?> €</td>
-      <td>
-        <?php if ($inv->sent_at): ?>
-          <span class="psc-portal-pill"><?php esc_html_e('Envoyée le', 'periscolaire-registration'); ?> <?php echo esc_html(date_i18n('d/m/Y', strtotime($inv->sent_at))); ?></span>
-        <?php else: ?>
-          <span class="psc-portal-pill psc-portal-pill--pending"><?php esc_html_e('En attente', 'periscolaire-registration'); ?></span>
-        <?php endif; ?>
-      </td>
+      <td><span class="psc-portal-pill"><?php esc_html_e('Envoyée le', 'periscolaire-registration'); ?> <?php echo esc_html(date_i18n('d/m/Y', strtotime($inv->sent_at))); ?></span></td>
       <td>
         <?php if ($inv->pdf_path): ?>
         <a class="psc-portal-btn-outline-forest"

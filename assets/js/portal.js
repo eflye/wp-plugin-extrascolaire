@@ -368,6 +368,31 @@
         }
     }
 
+    /* ---------- Mon profil : passage au prélèvement SEPA ---------- */
+
+    function initProfileSepa() {
+        var card = document.getElementById('psc-profile-pm-prelevement');
+        var panel = document.getElementById('psc-profile-sepa-panel');
+        var sameAddress = document.getElementById('psc-profile-sepa-same-address');
+        if (!card || !panel) return;
+
+        card.addEventListener('click', function () {
+            card.classList.add('is-active');
+            panel.hidden = false;
+            var first = document.getElementById('psc-profile-sepa-titulaire');
+            if (first) first.focus();
+        });
+
+        if (sameAddress) {
+            sameAddress.addEventListener('change', function () {
+                if (!sameAddress.checked) return;
+                document.getElementById('psc-profile-sepa-adresse').value = sameAddress.dataset.address || '';
+                document.getElementById('psc-profile-sepa-cp').value = sameAddress.dataset.postcode || '';
+                document.getElementById('psc-profile-sepa-ville').value = sameAddress.dataset.city || '';
+            });
+        }
+    }
+
     /* ---------- Popin de découverte (première connexion) ---------- */
 
     function initOnboardingTour() {
@@ -424,6 +449,7 @@
         initPickupPersonModal();
         initMenuNav();
         initToggleAddBlock('psc-add-second-parent', 'psc-second-parent-block');
+        initProfileSepa();
         initOnboardingTour();
     });
 })();

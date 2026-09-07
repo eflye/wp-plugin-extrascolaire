@@ -10,7 +10,7 @@
     <div class="psc-portal-card-sub"><?php echo esc_html($psc_portal_dashboard['amount_label']); ?> <?php esc_html_e('€ déclarés', 'periscolaire-registration'); ?></div>
   </div>
   <div class="psc-portal-card">
-    <div class="psc-portal-card-label"><?php esc_html_e('Prochaine facture', 'periscolaire-registration'); ?></div>
+    <div class="psc-portal-card-label"><?php esc_html_e('Dernière facture', 'periscolaire-registration'); ?></div>
     <?php if ($psc_portal_dashboard['next_invoice']): ?>
     <div class="psc-portal-card-value" data-testid="dashboard-next-invoice"><?php echo esc_html($psc_portal_dashboard['next_invoice']['mois_label']); ?></div>
     <div class="psc-portal-card-sub"><?php echo esc_html($psc_portal_dashboard['next_invoice']['status_label']); ?></div>
