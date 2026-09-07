@@ -216,6 +216,8 @@ test.describe('P0-01 — allergies et approbation des demandes', () => {
     await expect(page.getByTestId('profil-sepa-fields')).toBeHidden();
     await page.getByTestId('profil-payment-enable-sepa').click();
     await expect(page.getByTestId('profil-sepa-fields')).toBeVisible();
+    await expect(page.getByTestId('profil-payment-autre-active')).not.toHaveClass(/is-active/);
+    await expect(page.getByTestId('profil-payment-enable-sepa')).toHaveClass(/is-active/);
     await expect(page.locator('#psc-profile-sepa-titulaire')).toHaveAttribute('required', '');
     await expect(page.locator('#psc-profile-sepa-iban')).toHaveAttribute('required', '');
     await expect(page.locator('#psc-profile-sepa-bic')).toHaveAttribute('required', '');

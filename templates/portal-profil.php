@@ -90,7 +90,7 @@
 
       <p class="psc-portal-intro"><?php esc_html_e('Vous réglez actuellement vos factures par chèque ou espèces. Vous pouvez activer le prélèvement automatique.', 'periscolaire-registration'); ?></p>
       <div class="psc-wizard-payment-cards">
-        <div class="psc-wizard-payment-card is-active" data-testid="profil-payment-autre-active">
+        <div class="psc-wizard-payment-card is-active" id="psc-profile-pm-autre" data-testid="profil-payment-autre-active">
           <div class="psc-wizard-payment-card-title"><?php esc_html_e('Chèque ou espèces', 'periscolaire-registration'); ?></div>
           <div class="psc-wizard-payment-card-sub"><?php esc_html_e('Mode actuel', 'periscolaire-registration'); ?></div>
         </div>

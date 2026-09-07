@@ -413,6 +413,39 @@ test.describe('Planning - 2 : rythme + exceptions (fonctionnel, base vérifiée)
     ).toBe('4');
   });
 
+  test('appliquer à la fratrie après avoir coché uniquement G.M., Cant., G.S. ou Forfait', async ({ page }) => {
+    // Bob part sans aucun rythme. Chaque sélection AJAX doit mettre à jour
+    // la source utilisée par le bouton de copie, sans rechargement.
+    await page.getByTestId(`child-tab-${data.bob_id}`).click();
+    const feedback = page.locator('#psc-apply-siblings-feedback');
+    const services = ['GM', 'CANT', 'GS', 'FORF'];
+    let previous: string | null = null;
+
+    for (const service of services) {
+      if (previous) {
+        await page.getByTestId(`pattern-1-${previous}`).click();
+        await expect(page.getByTestId(`pattern-1-${previous}`)).not.toHaveClass(/is-on/);
+      }
+      const button = page.getByTestId(`pattern-1-${service}`);
+      await expect(button).not.toHaveClass(/is-on/);
+      await button.click();
+      await expect(button).toHaveClass(/is-on/);
+
+      await feedback.evaluate((el) => { el.textContent = ''; });
+      await page.getByTestId('apply-siblings').click();
+      await expect(feedback).toContainText('Rythme appliqué à toute la fratrie');
+      await expect(feedback).not.toContainText("Cochez d'abord");
+      expect(
+        wpCliEval(
+          `global $wpdb; echo (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->prefix}psc_pattern WHERE child_id = %d AND weekday = 1 AND service_code = %s", ${data.alice_id}, '${service}'
+          ));`
+        )
+      ).toBe('1');
+      previous = service;
+    }
+  });
+
   test('revenir au rythme : purge des exceptions du mois (base)', async ({ page }) => {
     // Deux exceptions : un retrait sur pattern_date (CANT) et un ajout sur
     // free_date (GS), posés par l'UI elle-même.

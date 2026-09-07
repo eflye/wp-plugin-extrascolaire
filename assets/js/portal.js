@@ -372,11 +372,13 @@
 
     function initProfileSepa() {
         var card = document.getElementById('psc-profile-pm-prelevement');
+        var currentCard = document.getElementById('psc-profile-pm-autre');
         var panel = document.getElementById('psc-profile-sepa-panel');
         var sameAddress = document.getElementById('psc-profile-sepa-same-address');
         if (!card || !panel) return;
 
         card.addEventListener('click', function () {
+            if (currentCard) currentCard.classList.remove('is-active');
             card.classList.add('is-active');
             panel.hidden = false;
             var first = document.getElementById('psc-profile-sepa-titulaire');

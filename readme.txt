@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.5.4
+Stable tag: 5.5.5
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,13 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.5.5 =
+* Mon profil : sélectionner le prélèvement retire immédiatement l'état actif
+  de la carte « Chèque ou espèces ».
+* Planning famille : « Appliquer ce rythme à toute la fratrie » utilise
+  immédiatement les cases qui viennent d'être cochées, sans rechargement,
+  pour G.M., Cantine, G.S. et Forfait.
 
 = 5.5.4 =
 * Planning famille : « Cantine sans repas » est proposée uniquement aux

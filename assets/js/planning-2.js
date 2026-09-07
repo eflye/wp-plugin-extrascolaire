@@ -274,7 +274,10 @@
 
     function applyState(state) {
         if (!state) return;
+        if (state.year_key) boot.year_key = state.year_key;
+        if (state.month) boot.month = state.month;
         if (state.children_list) boot.children = state.children_list;
+        if (state.all_patterns) boot.patterns = state.all_patterns;
         var child = activeChildMeta();
         var status = document.querySelector('[data-testid="planning-sans-repas"]');
         if (status) status.hidden = !(child && child.cantine_sans_repas);
