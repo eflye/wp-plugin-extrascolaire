@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.3.0';
+    const DB_VERSION = '4.3.1';
     const ROLES_VERSION = '1.0.0';
 
     public static function activate() {
@@ -1150,6 +1150,7 @@ CREATE TABLE $t_att (
             jour_date DATE NOT NULL,
             service VARCHAR(10) NOT NULL,
             present TINYINT(1) NOT NULL DEFAULT 1,
+            arrival_time TIME NULL,
             departure_time TIME NULL,
             pointed_at DATETIME NOT NULL,
             PRIMARY KEY  (id),

@@ -346,6 +346,7 @@ body.psc-sidscm-active main.site-main .entry-content {
     padding: 4px 10px;
     white-space: nowrap;
 }
+.psc-sidscm-row-arrival,
 .psc-sidscm-row-departure {
     display: flex;
     align-items: center;
@@ -355,6 +356,7 @@ body.psc-sidscm-active main.site-main .entry-content {
     font-weight: 600;
     white-space: nowrap;
 }
+.psc-sidscm-row-arrival-input,
 .psc-sidscm-row-departure-input {
     border: 1px solid var(--psc-forest);
     background: #fff;

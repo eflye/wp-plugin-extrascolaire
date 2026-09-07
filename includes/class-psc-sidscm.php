@@ -18,8 +18,8 @@ if (!defined('ABSPATH')) exit;
  * dédiée (wp_psc_attendance), horodaté, un enfant "présent" par défaut
  * tant qu'il n'a jamais été pointé explicitement (l'intervenant ne
  * décoche que les absents plutôt que de cocher tout le monde). Sur
- * l'onglet Garderie soir uniquement, la même ligne porte aussi l'heure
- * de départ réelle saisie par l'intervenant (departure_time).
+ * l'onglet Garderie matin porte l'heure d'arrivée réelle (arrival_time),
+ * et l'onglet Garderie soir l'heure de départ (departure_time).
  */
 class Psc_Sidscm {
 
@@ -41,6 +41,8 @@ class Psc_Sidscm {
         add_action('wp_ajax_psc_sidscm_data', array(__CLASS__, 'ajax_data'));
         add_action('wp_ajax_nopriv_psc_sidscm_toggle', array(__CLASS__, 'ajax_toggle'));
         add_action('wp_ajax_psc_sidscm_toggle', array(__CLASS__, 'ajax_toggle'));
+        add_action('wp_ajax_nopriv_psc_sidscm_arrival', array(__CLASS__, 'ajax_set_arrival'));
+        add_action('wp_ajax_psc_sidscm_arrival', array(__CLASS__, 'ajax_set_arrival'));
         add_action('wp_ajax_nopriv_psc_sidscm_departure', array(__CLASS__, 'ajax_set_departure'));
         add_action('wp_ajax_psc_sidscm_departure', array(__CLASS__, 'ajax_set_departure'));
     }
@@ -146,6 +148,7 @@ class Psc_Sidscm {
                 'empty_day'     => __('Aucun enfant attendu ce jour pour ce service.', 'periscolaire-registration'),
                 'present_count' => __('%s / %s présents', 'periscolaire-registration'),
                 'authorised'    => __('Autorisés', 'periscolaire-registration'),
+                'arrival'       => __('Arrivée', 'periscolaire-registration'),
                 'departure'     => __('Départ', 'periscolaire-registration'),
                 'no_authorised' => __('Aucune personne autorisée renseignée.', 'periscolaire-registration'),
                 'week'          => __('semaine', 'periscolaire-registration'),
@@ -286,6 +289,7 @@ class Psc_Sidscm {
             'services'   => psc_services(),
             'children'   => array(),
             'attendance' => new stdClass(), // objet vide côté JSON si aucune ligne
+            'arrivals'    => new stdClass(),
             'departures' => new stdClass(),
         );
 
@@ -310,15 +314,19 @@ class Psc_Sidscm {
 
         $t_att = psc_table('attendance');
         $att_rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT child_id, jour_date, service, present, departure_time FROM $t_att
+            "SELECT child_id, jour_date, service, present, arrival_time, departure_time FROM $t_att
              WHERE child_id IN ($ph_child) AND jour_date IN ($ph_date)",
             array_merge($child_ids, $dates)
         ));
         $attendance = array();
+        $arrivals = array();
         $departures = array();
         foreach ($att_rows as $a) {
             $key = $a->child_id . '|' . $a->jour_date . '|' . $a->service;
             $attendance[$key] = (int) $a->present;
+            if ($a->arrival_time) {
+                $arrivals[$key] = substr($a->arrival_time, 0, 5);
+            }
             if ($a->departure_time) {
                 // Colonne TIME MySQL -> "HH:MM" pour <input type="time">
                 // (l'attribut value n'accepte pas les secondes en trop).
@@ -384,7 +392,7 @@ class Psc_Sidscm {
                 'prenom'     => $c->prenom,
                 'nom'        => $c->nom,
                 'classe'     => $classe,
-                'diet'       => $diet_bits ? implode(', ', $diet_bits) : null,
+                'diet'       => $diet_bits ? implode(', ', $diet_bits) : __('Standard', 'periscolaire-registration'),
                 // Allergie alimentaire : usage critique de la liste cantine,
                 // en priorité et lisible sans déplier (#9E4A4A, cf. sidscm.js).
                 'allergies'  => $allergies !== '' ? $allergies : null,
@@ -405,6 +413,7 @@ class Psc_Sidscm {
 
         $out['children'] = $out_children;
         $out['attendance'] = $attendance ?: new stdClass();
+        $out['arrivals'] = $arrivals ?: new stdClass();
         $out['departures'] = $departures ?: new stdClass();
 
         wp_send_json_success($out);
@@ -460,6 +469,54 @@ class Psc_Sidscm {
                 'present'    => $present,
                 'pointed_at' => $now,
             ), array('%d', '%s', '%s', '%d', '%s'));
+        }
+
+        wp_send_json_success();
+    }
+
+    /* ---------------- Heure d'arrivée (Garderie matin) ---------------- */
+
+    /** Enregistre l'heure d'arrivée sans modifier le pointage présent/absent. */
+    public static function ajax_set_arrival() {
+        check_ajax_referer('psc_sidscm_front', 'nonce');
+        if (!psc_rate_limit_by_ip('sidscm_arrival_', 240, HOUR_IN_SECONDS)) {
+            wp_send_json_error(array('code' => 'rate'), 429);
+        }
+        self::require_code();
+
+        $child_id = psc_post_int('child_id');
+        $date     = psc_valid_date(psc_post('jour_date'));
+        $time     = psc_post('arrival_time');
+        if (!$child_id || !$date || ($time !== '' && !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time))) {
+            wp_send_json_error(array('code' => 'invalid'), 400);
+        }
+        self::require_day_service($child_id, $date, 'GM');
+
+        global $wpdb;
+        $t_att = psc_table('attendance');
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $t_att WHERE child_id = %d AND jour_date = %s AND service = 'GM'",
+            $child_id, $date
+        ));
+        $now = current_time('mysql');
+        $arrival_time = $time !== '' ? $time . ':00' : null;
+
+        if ($existing) {
+            $wpdb->update(
+                $t_att,
+                array('arrival_time' => $arrival_time, 'pointed_at' => $now),
+                array('id' => $existing),
+                array('%s', '%s'),
+                array('%d')
+            );
+        } else {
+            $wpdb->insert($t_att, array(
+                'child_id'    => $child_id,
+                'jour_date'   => $date,
+                'service'     => 'GM',
+                'arrival_time'=> $arrival_time,
+                'pointed_at'  => $now,
+            ), array('%d', '%s', '%s', '%s', '%s'));
         }
 
         wp_send_json_success();

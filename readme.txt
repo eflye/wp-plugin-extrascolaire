@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.5.5
+Stable tag: 5.5.6
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,16 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.5.6 =
+* Mon profil : le choix du mode de paiement reste réversible entre « Chèque ou
+  espèces » et « Prélèvement automatique » tant que le formulaire SEPA n'a pas
+  été validé.
+* Espace intervenants : saisie et conservation de l'heure d'arrivée pour la
+  garderie du matin, sans modifier le pointage de présence.
+* Espace intervenants : le régime alimentaire de chaque enfant apparaît sur
+  les listes cantine, en vue Jour et Semaine (Standard, Sans porc ou Sans
+  viande).
 
 = 5.5.5 =
 * Mon profil : sélectionner le prélèvement retire immédiatement l'état actif

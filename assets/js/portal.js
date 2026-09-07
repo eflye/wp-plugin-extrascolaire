@@ -377,13 +377,22 @@
         var sameAddress = document.getElementById('psc-profile-sepa-same-address');
         if (!card || !panel) return;
 
+        function selectMode(isSepa) {
+            if (currentCard) {
+                currentCard.classList.toggle('is-active', !isSepa);
+                currentCard.setAttribute('aria-pressed', isSepa ? 'false' : 'true');
+            }
+            card.classList.toggle('is-active', isSepa);
+            card.setAttribute('aria-pressed', isSepa ? 'true' : 'false');
+            panel.hidden = !isSepa;
+        }
+
         card.addEventListener('click', function () {
-            if (currentCard) currentCard.classList.remove('is-active');
-            card.classList.add('is-active');
-            panel.hidden = false;
+            selectMode(true);
             var first = document.getElementById('psc-profile-sepa-titulaire');
             if (first) first.focus();
         });
+        if (currentCard) currentCard.addEventListener('click', function () { selectMode(false); });
 
         if (sameAddress) {
             sameAddress.addEventListener('change', function () {

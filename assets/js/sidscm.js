@@ -25,6 +25,7 @@
         services: {},  // code => { label, price }
         children: [],  // { id, prenom, nom, classe, diet, GM: [jours], CANT: [jours], GS: [jours] }
         attendance: {}, // "childId|date|service" => 0|1
+        arrivals: {},   // "childId|date|GM" => "HH:MM"
         departures: {}, // "childId|date|GS" => "HH:MM"
         authExpanded: {}, // childId => bool, replié par défaut, survit aux re-rendus (checkbox, départ...)
     };
@@ -115,6 +116,7 @@
             state.services = data.services || {};
             state.children = data.children || [];
             state.attendance = data.attendance || {};
+            state.arrivals = data.arrivals || {};
             state.departures = data.departures || {};
 
             var dayKeys = Object.keys(state.days);
@@ -142,6 +144,14 @@
             child_id: childId,
             jour_date: date,
             departure_time: time,
+        }).catch(function () { /* valeur locale conservée malgré l'échec réseau */ });
+    }
+
+    function setArrival(childId, date, time) {
+        ajax('psc_sidscm_arrival', {
+            child_id: childId,
+            jour_date: date,
+            arrival_time: time,
         }).catch(function () { /* valeur locale conservée malgré l'échec réseau */ });
     }
 
@@ -231,7 +241,7 @@
             var present = Object.prototype.hasOwnProperty.call(state.attendance, key) ? !!state.attendance[key] : true;
             if (present) presentCount++;
             var dietHtml = (svc === 'CANT' && c.diet)
-                ? '<span class="psc-sidscm-row-diet">' + escapeHtml(c.diet) + '</span>'
+                ? '<span class="psc-sidscm-row-diet" data-testid="sidscm-diet-' + c.id + '">' + escapeHtml(c.diet) + '</span>'
                 : '';
             // Allergie alimentaire : usage critique de la liste cantine —
             // en priorité sur la ligne, en #9E4A4A, lisible sans déplier.
@@ -249,6 +259,13 @@
             var noMealHtml = (svc === 'CANT' && (c.MSR || []).indexOf(day) !== -1)
                 ? '<span class="psc-sidscm-row-brings-meal">' + t('no_meal') + '</span>'
                 : '';
+            var arrivalHtml = '';
+            if (svc === 'GM') {
+                var arrivalVal = state.arrivals[key] || '';
+                arrivalHtml = '<label class="psc-sidscm-row-arrival">' + t('arrival') +
+                    '<input type="time" class="psc-sidscm-row-arrival-input" data-child-id="' + c.id + '"' +
+                    ' value="' + escapeHtml(arrivalVal) + '" data-testid="sidscm-arrival-' + c.id + '"></label>';
+            }
             var departureHtml = '';
             if (svc === 'GS') {
                 var departureVal = state.departures[key] || '';
@@ -272,7 +289,7 @@
                 (present ? ' checked' : '') + ' data-testid="sidscm-check-' + c.id + '">' +
                 '<span class="psc-sidscm-row-name">' + escapeHtml(c.prenom) + ' ' + escapeHtml(c.nom) + '</span>' +
                 '<span class="psc-sidscm-row-classe">' + escapeHtml(c.classe || '') + '</span>' +
-                '</label>' + allergyHtml + bringsMealHtml + noMealHtml + dietHtml + departureHtml + authToggleHtml +
+                '</label>' + allergyHtml + bringsMealHtml + noMealHtml + dietHtml + arrivalHtml + departureHtml + authToggleHtml +
                 '</div>' + (expanded ? renderAuthPanel(c) : '');
         }).join('');
 
@@ -306,6 +323,15 @@
                 var key = childId + '|' + date + '|' + svc;
                 state.departures[key] = input.value;
                 setDeparture(childId, date, input.value);
+            });
+        });
+
+        els.content.querySelectorAll('.psc-sidscm-row-arrival-input').forEach(function (input) {
+            input.addEventListener('change', function () {
+                var childId = input.dataset.childId;
+                var key = childId + '|' + date + '|' + svc;
+                state.arrivals[key] = input.value;
+                setArrival(childId, date, input.value);
             });
         });
 
@@ -358,9 +384,12 @@
             var noMealWeekHtml = (svc === 'CANT' && (c.MSR || []).length)
                 ? '<span class="psc-sidscm-row-brings-meal">' + t('no_meal') + '</span>'
                 : '';
+            var dietWeekHtml = (svc === 'CANT' && c.diet)
+                ? '<span class="psc-sidscm-row-diet" data-testid="sidscm-diet-' + c.id + '">' + escapeHtml(c.diet) + '</span>'
+                : '';
             return '<tr><td class="psc-sidscm-table-child-cell">' + escapeHtml(c.prenom) + ' ' + escapeHtml(c.nom) +
                 ' <span class="psc-sidscm-table-child-classe">(' + escapeHtml(c.classe || '') + ')</span>' +
-                allergyHtml + bringsMealHtml + noMealWeekHtml +
+                allergyHtml + bringsMealHtml + noMealWeekHtml + dietWeekHtml +
                 authWeekBtn(c) + '</td>' +
                 marksHtml + '</tr>';
         }).join('');

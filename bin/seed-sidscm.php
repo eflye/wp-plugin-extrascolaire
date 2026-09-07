@@ -18,7 +18,7 @@
  *     dédiés pour ne jamais croiser les autres seeds), purgée puis
  *     recréée à chaque run ;
  *   - des PATTERNS de rythme (v4) pour la semaine réellement en cours :
- *     Nina GM + CANT + GS, Marco GS seul, chaque lundi/mardi/jeudi/
+ *     Nina GM + CANT + GS, Marco CANT + GS, chaque lundi/mardi/jeudi/
  *     vendredi de l'année — psc_open_days(), le même calcul que l'écran,
  *     exclut déjà vacances, fériés et fermetures.
  *
@@ -105,17 +105,18 @@ WP_CLI::add_command('seed-sidscm', function () {
     ), array('%s', '%s', '%d', '%s'));
     $parent_id = (int) $wpdb->insert_id;
 
-    $make_child = function ($prenom) use ($wpdb, $t_child, $parent_id, $config) {
+    $make_child = function ($prenom, $sans_porc = 0) use ($wpdb, $t_child, $parent_id, $config) {
         $wpdb->insert($t_child, array(
             'parent_id'  => $parent_id,
             'nom'        => $config['nom'],
             'prenom'     => $prenom,
+            'sans_porc'  => $sans_porc,
             'statut'     => 'actif',
             'created_at' => current_time('mysql'),
-        ), array('%d', '%s', '%s', '%s', '%s'));
+        ), array('%d', '%s', '%s', '%d', '%s', '%s'));
         return (int) $wpdb->insert_id;
     };
-    $enfant_a_id = $make_child($config['enfant_a_prenom']);
+    $enfant_a_id = $make_child($config['enfant_a_prenom'], 1);
     $enfant_b_id = $make_child($config['enfant_b_prenom']);
 
     /* ---------------------------------------------------------------- */
@@ -136,7 +137,7 @@ WP_CLI::add_command('seed-sidscm', function () {
 
     // Déclarations explicites de la semaine courante — l'ancien seed
     // écrivait une ligne d'inscription par jour ouvert, le scénario attend
-    // Nina GM+CANT+GS et Marco GS sur TOUS les jours ouverts, passés
+    // Nina GM+CANT+GS et Marco CANT+GS sur TOUS les jours ouverts, passés
     // compris (lundi/mardi déjà verrouillés). Une seed par PATTERN serait
     // faux ici : la sauvegarde d'un rythme fige les jours verrouillés dans
     // leur état d'avant (non déclaré) — le pointage perdrait deux jours.
@@ -146,6 +147,7 @@ WP_CLI::add_command('seed-sidscm', function () {
         foreach (array('GM', 'CANT', 'GS') as $service) {
             Psc_Planning::toggle_exception($enfant_a_id, $date, $service, true, true);
         }
+        Psc_Planning::toggle_exception($enfant_b_id, $date, 'CANT', true, true);
         Psc_Planning::toggle_exception($enfant_b_id, $date, 'GS', true, true);
     }
     Psc_Planning::flush_cache();

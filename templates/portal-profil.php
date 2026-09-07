@@ -90,11 +90,11 @@
 
       <p class="psc-portal-intro"><?php esc_html_e('Vous réglez actuellement vos factures par chèque ou espèces. Vous pouvez activer le prélèvement automatique.', 'periscolaire-registration'); ?></p>
       <div class="psc-wizard-payment-cards">
-        <div class="psc-wizard-payment-card is-active" id="psc-profile-pm-autre" data-testid="profil-payment-autre-active">
+        <button type="button" class="psc-wizard-payment-card is-active" id="psc-profile-pm-autre" data-testid="profil-payment-autre-active" aria-pressed="true">
           <div class="psc-wizard-payment-card-title"><?php esc_html_e('Chèque ou espèces', 'periscolaire-registration'); ?></div>
           <div class="psc-wizard-payment-card-sub"><?php esc_html_e('Mode actuel', 'periscolaire-registration'); ?></div>
-        </div>
-        <button type="button" class="psc-wizard-payment-card" id="psc-profile-pm-prelevement" data-testid="profil-payment-enable-sepa">
+        </button>
+        <button type="button" class="psc-wizard-payment-card" id="psc-profile-pm-prelevement" data-testid="profil-payment-enable-sepa" aria-pressed="false">
           <div class="psc-wizard-payment-card-title"><?php esc_html_e('Prélèvement automatique', 'periscolaire-registration'); ?></div>
           <div class="psc-wizard-payment-card-sub"><?php esc_html_e('Gratuit — prélevé le 5 du mois suivant', 'periscolaire-registration'); ?></div>
         </button>

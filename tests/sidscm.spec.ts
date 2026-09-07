@@ -18,11 +18,9 @@
  * chaque action (jamais de référence conservée), et l'aller/retour AJAX
  * est attendu via expect.poll sur la base plutôt que sur le DOM.
  *
- * Appels consommés par run : 1 mauvais code (seau partagé sidscm_bad_,
- * 20/h tous endpoints confondus — le scénario s'en tient là), 4
- * déverrouillages, 4 chargements de semaine, 3 pointages, 1 départ,
- * 2 pointages forgés refusés par la cohérence jour/service : très en
- * dessous des quatre rate-limits de l'écran.
+ * Appels consommés par run : un seul mauvais code, quelques chargements,
+ * trois pointages, une arrivée, un départ et deux requêtes forgées refusées ;
+ * le scénario reste très en dessous des limites de débit de l'écran.
  */
 
 import { test, expect, type Page } from '@playwright/test';
@@ -93,16 +91,16 @@ function attendanceRow(
   childId: number,
   date: string,
   service: string
-): { present: number; departure_time: string | null } | null {
+): { present: number; arrival_time: string | null; departure_time: string | null } | null {
   const out = wpCliEval(
     `global $wpdb;
      $row = $wpdb->get_row($wpdb->prepare(
-       "SELECT present, departure_time FROM {$wpdb->prefix}psc_attendance
+       "SELECT present, arrival_time, departure_time FROM {$wpdb->prefix}psc_attendance
         WHERE child_id = %d AND jour_date = %s AND service = %s",
        ${childId}, '${date}', '${service}'
      ));
      echo wp_json_encode($row
-       ? array('present' => (int) $row->present, 'departure_time' => $row->departure_time)
+       ? array('present' => (int) $row->present, 'arrival_time' => $row->arrival_time, 'departure_time' => $row->departure_time)
        : null);`
   );
   return JSON.parse(out);
@@ -166,7 +164,7 @@ test('pointage GM — décoché repasse absent, recoché revient présent, re-po
   // Nina est inscrite GM + CANT + GS tous les jours ouverts : sa case est
   // cochée sans qu'aucune ligne de pointage n'existe (présent par défaut).
   await expect(page.getByTestId(`sidscm-check-${data.enfant_a_id}`)).toBeChecked();
-  // Marco n'est inscrit qu'en Garderie soir : pas de ligne sur l'onglet GM.
+  // Marco n'est pas inscrit en Garderie matin : pas de ligne sur l'onglet GM.
   await expect(page.getByTestId(`sidscm-row-${data.enfant_b_id}`)).toBeHidden();
 
   // Décochage : la vue est re-rendue après le clic (innerHTML), le
@@ -175,20 +173,20 @@ test('pointage GM — décoché repasse absent, recoché revient présent, re-po
   await page.getByTestId(`sidscm-check-${data.enfant_a_id}`).click();
   await expect
     .poll(() => attendanceRow(data.enfant_a_id, data.first_date, 'GM'), { intervals: [1_000], timeout: 15_000 })
-    .toEqual({ present: 0, departure_time: null });
+    .toEqual({ present: 0, arrival_time: null, departure_time: null });
 
   // Recochage : retour à présent=1.
   await page.getByTestId(`sidscm-check-${data.enfant_a_id}`).click();
   await expect
     .poll(() => attendanceRow(data.enfant_a_id, data.first_date, 'GM'), { intervals: [1_000], timeout: 15_000 })
-    .toEqual({ present: 1, departure_time: null });
+    .toEqual({ present: 1, arrival_time: null, departure_time: null });
 
   // Re-pointage : le cycle complet laisse exactement UNE ligne
   // (upsert enfant × jour × service, jamais un doublon).
   await page.getByTestId(`sidscm-check-${data.enfant_a_id}`).click();
   await expect
     .poll(() => attendanceRow(data.enfant_a_id, data.first_date, 'GM'), { intervals: [1_000], timeout: 15_000 })
-    .toEqual({ present: 0, departure_time: null });
+    .toEqual({ present: 0, arrival_time: null, departure_time: null });
   expect(attendanceCount(data.enfant_a_id, data.first_date, 'GM')).toBe(1);
 });
 
@@ -215,7 +213,33 @@ test('départ GS — l\'heure de départ crée la ligne sans toucher au pointage
   // volontairement la colonne present.
   await expect
     .poll(() => attendanceRow(data.enfant_b_id, data.first_date, 'GS'), { intervals: [1_000], timeout: 15_000 })
-    .toEqual({ present: 1, departure_time: '17:05:00' });
+    .toEqual({ present: 1, arrival_time: null, departure_time: '17:05:00' });
+});
+
+test('arrivée GM — l\'heure est enregistrée sans toucher au pointage de présence', async ({ page }) => {
+  const data = seed();
+  await unlock(page, data);
+  await page.getByTestId(`sidscm-day-${data.first_jour}`).click();
+
+  expect(attendanceRow(data.enfant_a_id, data.first_date, 'GM')).toBeNull();
+  await page.getByTestId(`sidscm-arrival-${data.enfant_a_id}`).fill('07:42');
+  await expect
+    .poll(() => attendanceRow(data.enfant_a_id, data.first_date, 'GM'), { intervals: [1_000], timeout: 15_000 })
+    .toEqual({ present: 1, arrival_time: '07:42:00', departure_time: null });
+});
+
+test('cantine — chaque enfant affiche son régime alimentaire en jour et semaine', async ({ page }) => {
+  const data = seed();
+  await unlock(page, data);
+  await page.getByTestId(`sidscm-day-${data.first_jour}`).click();
+  await page.getByTestId('sidscm-svc-CANT').click();
+
+  await expect(page.getByTestId(`sidscm-diet-${data.enfant_a_id}`)).toHaveText('Sans porc');
+  await expect(page.getByTestId(`sidscm-diet-${data.enfant_b_id}`)).toHaveText('Standard');
+
+  await page.getByTestId('sidscm-mode-week').click();
+  await expect(page.getByTestId(`sidscm-diet-${data.enfant_a_id}`)).toHaveText('Sans porc');
+  await expect(page.getByTestId(`sidscm-diet-${data.enfant_b_id}`)).toHaveText('Standard');
 });
 
 test('cohérence jour/service — pointage forgé refusé, aucune ligne créée', async ({ page, request }) => {
@@ -258,8 +282,8 @@ test('cohérence jour/service — pointage forgé refusé, aucune ligne créée'
   expect(await errorBody(respNotOpen)).toEqual({ success: false, data: { code: 'not_open' } });
   expect(attendanceRow(data.enfant_a_id, mercredi, 'GM')).toBeNull();
 
-  // Jour ouvert mais enfant non attendu au service : Marco n'est inscrit
-  // qu'en Garderie soir — un pointage cantine à son sujet est refusé.
+  // Jour ouvert mais enfant non attendu au service : Marco n'est pas inscrit
+  // en Garderie matin — un pointage GM à son sujet est refusé.
   const respNotExpected = await forgedToggle(data.enfant_b_id, data.first_date, 'GM');
   expect(await errorBody(respNotExpected)).toEqual({ success: false, data: { code: 'not_expected' } });
   expect(attendanceRow(data.enfant_b_id, data.first_date, 'GM')).toBeNull();
