@@ -120,11 +120,7 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
     <div class="psc-wizard-step" data-wizard-step="1" data-testid="wizard-step-1">
       <p class="psc-wizard-help"><?php esc_html_e('Renseignez au moins un enfant (nom, prénom). Vous pouvez préciser un régime alimentaire, des allergies et le rythme habituel prévu.', 'periscolaire-registration'); ?></p>
 
-      <datalist id="psc-pickup-lien-suggestions">
-        <?php foreach (psc_pickup_lien_suggestions() as $psc_lien): ?>
-        <option value="<?php echo esc_attr($psc_lien); ?>">
-        <?php endforeach; ?>
-      </datalist>
+
 
       <div id="psc-children-list">
         <div class="psc-wizard-child-row" data-index="0">
@@ -170,11 +166,7 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
             </div>
           </div>
 
-          <div class="psc-wizard-pickup-block">
-            <p class="psc-wizard-pickup-title"><?php esc_html_e('Personnes autorisées à récupérer cet enfant en fin de garderie du soir (facultatif)', 'periscolaire-registration'); ?></p>
-            <div class="psc-wizard-pickup-list" data-pickup-list></div>
-            <button type="button" class="psc-wizard-add-pickup-btn" data-testid="add-pickup-person-0"><?php esc_html_e('+ Ajouter une personne autorisée', 'periscolaire-registration'); ?></button>
-          </div>
+
 
           <button type="button" class="psc-wizard-remove-btn" aria-label="<?php esc_attr_e('Supprimer cet enfant', 'periscolaire-registration'); ?>" hidden><?php esc_html_e('Retirer', 'periscolaire-registration'); ?></button>
         </div>

@@ -120,10 +120,7 @@ $psc_active_year = $psc_year_summary['year']['per_child'][$psc_active_child_id] 
     <?php esc_html_e("Déclarez une seule fois le rythme habituel de chaque enfant : il vaut pour toute
     l'année. Vous n'ajustez ensuite que les exceptions, mois par mois.", 'periscolaire-registration'); ?>
   </p>
-  <p class="psc-portal-intro-sub" style="color:#4E6C8D;">
-    <?php esc_html_e('Chaque jour reste modifiable jusqu\'à', 'periscolaire-registration'); ?> <strong><?php echo esc_html(sprintf(__('%s heures', 'periscolaire-registration'), psc_lock_hours())); ?></strong> <?php esc_html_e('avant la date concernée.
-    Passé ce délai, la case est grisée : contactez la mairie.', 'periscolaire-registration'); ?>
-  </p>
+
 
   <?php /* a. Frise de l'année */ ?>
   <div class="psc-frieze-wrap" data-testid="planning-frieze">
@@ -225,7 +222,7 @@ $psc_active_year = $psc_year_summary['year']['per_child'][$psc_active_child_id] 
         <div>
           <div class="psc-panel-step psc-panel-step--gold"><?php esc_html_e('Étape 2 — Ajuster le planning', 'periscolaire-registration'); ?></div>
           <div class="psc-panel-title psc-exc-month" data-exc-month><?php echo esc_html($psc_month_label); ?></div>
-          <p class="psc-portal-intro-sub"><?php esc_html_e("Modifiez les jours où vos besoins diffèrent du rythme habituel.", 'periscolaire-registration'); ?></p>
+          <p class="psc-portal-intro-sub"><?php esc_html_e('Ajustez votre planning jusqu’à', 'periscolaire-registration'); ?> <strong><?php echo esc_html(sprintf(__('%s heures avant le jour concerné', 'periscolaire-registration'), psc_lock_hours())); ?></strong>. <?php esc_html_e('Ensuite, contactez la mairie.', 'periscolaire-registration'); ?></p>
         </div>
         <div class="psc-month-nav">
           <button type="button" class="psc-month-nav-btn psc-exc-prev" data-testid="exc-prev" aria-label="<?php esc_attr_e('Mois précédent', 'periscolaire-registration'); ?>"<?php disabled($psc_prev_month === null); ?>>←</button>

@@ -255,11 +255,6 @@
                 '<textarea name="child_food_allergies_' + idx + '" rows="2" maxlength="1000" placeholder="' + t('allergy_placeholder') + '" style="width:100%;resize:vertical;border:1px solid rgba(36,64,92,0.3);background:#fff;font-size:13px;padding:8px;"></textarea>' +
                 '<p class="psc-child-allergy-help" style="font-size:11px;color:#8B8279;margin:6px 0 0;">' + t('allergy_help') + '</p>' +
                 '</div></div>' +
-                '<div class="psc-wizard-pickup-block">' +
-                '<p class="psc-wizard-pickup-title">' + t('pickup_title') + '</p>' +
-                '<div class="psc-wizard-pickup-list" data-pickup-list></div>' +
-                '<button type="button" class="psc-wizard-add-pickup-btn" data-testid="add-pickup-person-' + idx + '">' + t('pickup_add') + '</button>' +
-                '</div>' +
                 '<button type="button" class="psc-wizard-remove-btn" aria-label="' + t('child_remove') + '">' + t('remove') + '</button>';
 
             list.appendChild(row);
@@ -267,91 +262,6 @@
             wireAllergyToggle(row);
             updateRemoveButtons();
             updateAddBtn();
-            row.querySelector('input[type="text"]').focus();
-        });
-    }
-
-    /* ---------- Personnes autorisées à récupérer (sous-répéteur par enfant) ---------- */
-
-    function initPickupPersons() {
-        var list = document.getElementById('psc-children-list');
-        if (!list) return;
-        var MAX_PICKUP = 8; // cf. psc_max_pickup_persons_per_child() côté serveur, seule source d'autorité
-
-        function personCount(pickupList) {
-            return pickupList.querySelectorAll('.psc-wizard-pickup-row').length;
-        }
-
-        function updateAddPickupBtn(childRow) {
-            var pickupList = childRow.querySelector('[data-pickup-list]');
-            var addBtn = childRow.querySelector('.psc-wizard-add-pickup-btn');
-            if (pickupList && addBtn) addBtn.disabled = personCount(pickupList) >= MAX_PICKUP;
-        }
-
-        function wirePickupValidation(row) {
-            var inputs = row.querySelectorAll('input');
-            function validate() {
-                var filled = Array.prototype.some.call(inputs, function (input) { return input.value.trim() !== ''; });
-                inputs.forEach(function (input) {
-                    input.required = filled && /_(prenom|nom|telephone)_/.test(input.name);
-                    if (input.type === 'tel') {
-                        var phone = input.value.replace(/[\s.\-()]/g, '');
-                        input.setCustomValidity(phone && !/^(?:(?:\+|00)33|0)[1-9][0-9]{8}$/.test(phone) ? t('phone_pattern_title') : '');
-                    }
-                });
-            }
-            row.addEventListener('input', validate);
-            validate();
-        }
-
-        function wirePickupRemove(row, childRow) {
-            wirePickupValidation(row);
-            var btn = row.querySelector('.psc-wizard-remove-pickup-btn');
-            if (!btn) return;
-            btn.addEventListener('click', function () {
-                row.remove();
-                updateAddPickupBtn(childRow);
-            });
-        }
-
-        // Câble les lignes déjà présentes au chargement (aucune par défaut,
-        // la liste est facultative — robustesse si le serveur les réinjecte
-        // après une erreur de validation ailleurs dans le formulaire).
-        list.querySelectorAll('.psc-wizard-pickup-row').forEach(function (row) {
-            var childRow = row.closest('.psc-wizard-child-row');
-            if (childRow) wirePickupRemove(row, childRow);
-        });
-
-        // Délégation sur la liste plutôt qu'un câblage bouton par bouton :
-        // le bouton "+ Ajouter une personne" existe aussi dans les lignes
-        // enfant créées dynamiquement par initChildren().
-        list.addEventListener('click', function (e) {
-            var addBtn = e.target.closest('.psc-wizard-add-pickup-btn');
-            if (!addBtn) return;
-            var childRow = addBtn.closest('.psc-wizard-child-row');
-            var pickupList = childRow.querySelector('[data-pickup-list]');
-            var childIdx = childRow.dataset.index;
-            if (personCount(pickupList) >= MAX_PICKUP) return;
-            var n = 0;
-            while (pickupList.querySelector('[name="child_pickup_prenom_' + childIdx + '_' + n + '"]')) n++;
-
-            var row = document.createElement('div');
-            row.className = 'psc-wizard-pickup-row';
-            var base = 'psc-pp-' + childIdx + '-' + n;
-            row.innerHTML =
-                '<div><label class="psc-portal-field-label screen-reader-text" for="' + base + '-prenom">' + t('pickup_firstname') + '</label>' +
-                '<input id="' + base + '-prenom" class="psc-portal-field-underline" type="text" name="child_pickup_prenom_' + childIdx + '_' + n + '" placeholder="' + t('firstname') + '" maxlength="191"></div>' +
-                '<div><label class="psc-portal-field-label screen-reader-text" for="' + base + '-nom">' + t('pickup_lastname') + '</label>' +
-                '<input id="' + base + '-nom" class="psc-portal-field-underline" type="text" name="child_pickup_nom_' + childIdx + '_' + n + '" placeholder="' + t('lastname') + '" maxlength="191"></div>' +
-                '<div><label class="psc-portal-field-label screen-reader-text" for="' + base + '-tel">' + t('pickup_phone') + '</label>' +
-                '<input id="' + base + '-tel" class="psc-portal-field-underline" type="tel" name="child_pickup_telephone_' + childIdx + '_' + n + '" placeholder="' + t('phone') + '" maxlength="40" title="' + t('phone_pattern_title') + '"></div>' +
-                '<div><label class="psc-portal-field-label screen-reader-text" for="' + base + '-lien">' + t('pickup_link') + '</label>' +
-                '<input id="' + base + '-lien" class="psc-portal-field-underline" type="text" name="child_pickup_lien_' + childIdx + '_' + n + '" placeholder="' + t('link_placeholder') + '" maxlength="100" list="psc-pickup-lien-suggestions"></div>' +
-                '<button type="button" class="psc-wizard-remove-pickup-btn" aria-label="' + t('pickup_remove') + '">' + t('remove') + '</button>';
-
-            pickupList.appendChild(row);
-            wirePickupRemove(row, childRow);
-            updateAddPickupBtn(childRow);
             row.querySelector('input[type="text"]').focus();
         });
     }
@@ -618,7 +528,6 @@
         initAddressAutocomplete();
         initPaymentCards();
         initChildren();
-        initPickupPersons();
         initSecondParent();
     });
 })();

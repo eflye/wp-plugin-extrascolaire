@@ -333,33 +333,6 @@ class Psc_Requests {
                 exit;
             }
 
-            // Personnes autorisées à récupérer cet enfant : facultatif (une
-            // ligne totalement vide est ignorée), mais une ligne où au
-            // moins un champ est renseigné doit être complète — même
-            // logique que pour un enfant explicitement nommé mais
-            // incomplet ci-dessus : la faire disparaître silencieusement
-            // serait trompeur pour le parent.
-            $pickup_persons = array();
-            $max_pickup = psc_max_pickup_persons_per_child();
-            for ($j = 0; $j < $max_pickup; $j++) {
-                $pp_prenom = psc_post("child_pickup_prenom_{$i}_{$j}");
-                $pp_nom    = psc_post("child_pickup_nom_{$i}_{$j}");
-                $pp_tel    = psc_post("child_pickup_telephone_{$i}_{$j}");
-                $pp_lien   = psc_post("child_pickup_lien_{$i}_{$j}");
-                if ($pp_prenom === '' && $pp_nom === '' && $pp_tel === '' && $pp_lien === '') continue;
-                if ($pp_prenom === '' || $pp_nom === '' || $pp_tel === '' || psc_valid_phone($pp_tel) === false) {
-                    wp_safe_redirect(add_query_arg('psc_msg', 'pickup_person_incomplete', $back));
-                    exit;
-                }
-                $pickup_persons[] = array(
-                    'prenom'         => mb_substr($pp_prenom, 0, 191),
-                    'nom'            => mb_substr($pp_nom, 0, 191),
-                    'telephone'      => mb_substr($pp_tel, 0, 40),
-                    'lien'           => mb_substr($pp_lien, 0, 100),
-                    'piece_identite' => isset($_POST["child_pickup_piece_identite_{$i}_{$j}"]) ? 1 : 0,
-                );
-            }
-
             // Allergies alimentaires : la case précède le champ — cochée,
             // le champ libre est requis (une allergie déclarée sans
             // description n'est pas exploitable par la restauration).
@@ -383,7 +356,7 @@ class Psc_Requests {
                 'sans_porc'            => isset($_POST['child_sans_porc_' . $i]) ? 1 : 0,
                 'vegan'                => isset($_POST['child_vegan_' . $i]) ? 1 : 0,
                 'food_allergies'       => $allergies,
-                'personnes_autorisees' => $pickup_persons,
+                'personnes_autorisees' => array(),
             );
             $assurance_uploads[count($children) - 1] = $file;
         }
