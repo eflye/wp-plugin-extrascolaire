@@ -354,6 +354,7 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
     public static function page_parents() {
         if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         $parents     = Psc_Parents::all();
+        $awaiting_confirmation = Psc_Requests::awaiting_confirmation();
         $psc_msg     = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         $edit_id     = psc_get_int('edit');
         $edit_parent = $edit_id ? Psc_Parents::get_by_id($edit_id) : null;

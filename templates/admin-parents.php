@@ -103,8 +103,8 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 <table class="widefat striped">
 <thead><tr><th><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('E-mail', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Adresse', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Paiement', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Dernière connexion', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Actions', 'periscolaire-registration'); ?></th></tr></thead>
 <tbody>
-<?php if (empty($parents)): ?>
-<tr><td colspan="6"><?php esc_html_e('Aucune famille enregistrée.', 'periscolaire-registration'); ?></td></tr>
+<?php if (empty($parents) && empty($awaiting_confirmation)): ?>
+<tr><td colspan="7"><?php esc_html_e('Aucune famille enregistrée.', 'periscolaire-registration'); ?></td></tr>
 <?php else: foreach ($parents as $p): ?>
 <tr>
 <td><?php echo $p->nom ? esc_html($p->nom) : '—'; ?></td>
@@ -147,6 +147,17 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 </td>
 </tr>
 <?php endforeach; endif; ?>
+<?php foreach ($awaiting_confirmation as $request): ?>
+<tr>
+<td><?php echo esc_html(trim($request->prenom . ' ' . $request->nom) ?: '—'); ?></td>
+<td><?php echo esc_html($request->email); ?></td>
+<td><?php echo esc_html(trim($request->adresse . ' ' . $request->code_postal . ' ' . $request->ville)); ?></td>
+<td><?php echo $request->payment_mode === 'prelevement' ? esc_html__('Prélèvement', 'periscolaire-registration') : esc_html__('Chèque / espèces', 'periscolaire-registration'); ?></td>
+<td><em><?php esc_html_e('jamais', 'periscolaire-registration'); ?></em></td>
+<td><strong style="color:#996800"><?php esc_html_e('Attente de confirmation', 'periscolaire-registration'); ?></strong><br><small><?php echo esc_html(sprintf(__('Demande déposée le %s', 'periscolaire-registration'), date_i18n('d/m/Y H:i', strtotime($request->created_at)))); ?></small></td>
+<td><span class="description"><?php esc_html_e('Le parent doit confirmer son adresse e-mail pour poursuivre son inscription.', 'periscolaire-registration'); ?></span></td>
+</tr>
+<?php endforeach; ?>
 </tbody>
 </table>
 </div>

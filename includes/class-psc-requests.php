@@ -7,7 +7,7 @@ if (!defined('ABSPATH')) exit;
  * Parcours en deux temps, volontairement :
  *
  *   1. Le parent remplit le formulaire public. La demande est créée avec
- *      le statut "unverified" et N'APPARAÎT PAS dans le backoffice.
+ *      le statut "unverified", visible dans Familles en attente de confirmation.
  *      Un e-mail de vérification est envoyé.
  *   2. Le parent clique sur le lien reçu : la demande passe en "pending"
  *      et rejoint la file de modération de la mairie.
@@ -99,6 +99,14 @@ class Psc_Requests {
             "SELECT * FROM $t WHERE status = %s AND verified = 1 ORDER BY created_at ASC",
             $status
         ));
+    }
+
+    /** Demandes non confirmées, affichées en lecture seule dans Familles. */
+    public static function awaiting_confirmation() {
+        global $wpdb;
+        $table = psc_table('requests');
+        return $wpdb->get_results("SELECT nom, prenom, email, adresse, code_postal, ville, payment_mode, created_at
+            FROM $table WHERE status = 'unverified' AND verified = 0 ORDER BY nom, email, created_at");
     }
 
     public static function pending_count() {
