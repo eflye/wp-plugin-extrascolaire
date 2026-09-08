@@ -148,9 +148,13 @@ function psc_resolve_declaration($is_forfait, $pattern, $exception, $forf_patter
  * @param array $slot        Créneau du midi : 'request' (code visé),
  *                           'cant_pattern', 'msr_pattern' — mêmes clés que
  *                           psc_resolve_declaration(), patterns seulement.
+ * @param bool|null $forf_exception Exception FORF de la date, si présente.
  * @return string 'delete' (retirer toute exception du triplet) | 'upsert' (poser/actualiser avec $target)
  */
-function psc_exception_write_decision($is_forfait, $pattern, $forf_pattern, $target, $slot = array()) {
+function psc_exception_write_decision($is_forfait, $pattern, $forf_pattern, $target, $slot = array(), $forf_exception = null) {
+    // Une unité se compare à la couverture réelle du forfait pour cette date.
+    // Le forfait lui-même reste comparé à son rythme pour permettre le retour au rythme.
+    if (!$is_forfait && $forf_exception !== null) $forf_pattern = (bool) $forf_exception;
     $request = isset($slot['request']) ? (string) $slot['request'] : '';
     if ($request === 'MSR') {
         $base = !empty($slot['cant_pattern']) ? false : (bool) $pattern;

@@ -743,6 +743,10 @@ class Psc_Planning {
         $pats     = isset($patterns[$child_id][$year_key][$weekday]) ? $patterns[$child_id][$year_key][$weekday] : array();
         $forf     = psc_forfait_code();
 
+        $exceptions = self::load_exceptions(array($child_id), array($date));
+        $day_exceptions = $exceptions[$child_id][$date] ?? array();
+        $forf_exception = array_key_exists($forf, $day_exceptions) ? (bool) $day_exceptions[$forf] : null;
+
         $decision = psc_exception_write_decision(
             $service_code === $forf,
             !empty($pats[$service_code]),
@@ -752,7 +756,8 @@ class Psc_Planning {
                 'request'      => $service_code,
                 'cant_pattern' => !empty($pats['CANT']),
                 'msr_pattern'  => !empty($pats[psc_midi_sans_repas_code()]),
-            )
+            ),
+            $forf_exception
         );
 
         global $wpdb;

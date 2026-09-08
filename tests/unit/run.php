@@ -335,6 +335,12 @@ $assert('midi décision : décocher MSR couvert par la cantine -> suppression (n
 $assert('midi décision : cocher CANT au rythme -> suppression', psc_exception_write_decision(false, true, false, true, $slot_cant), 'delete');
 $assert('midi décision : cocher CANT masquée par un pattern MSR -> exception posée (elle gagne)', psc_exception_write_decision(false, false, false, true, array_merge($slot_cant, array('msr_pattern' => true))), 'upsert');
 $assert('midi décision : décocher CANT masquée par un pattern MSR -> suppression (déjà masquée)', psc_exception_write_decision(false, false, false, false, array_merge($slot_cant, array('msr_pattern' => true))), 'delete');
+foreach (array('GM', 'CANT', 'GS') as $service) {
+    $slot = array('request' => $service);
+    $assert($service . ' : forfait retiré, ajout individuel conservé', psc_exception_write_decision(false, false, true, true, $slot, false), 'upsert');
+    $assert($service . ' : forfait retiré, retrait individuel nettoyé', psc_exception_write_decision(false, false, true, false, $slot, false), 'delete');
+}
+$assert('forfait retiré puis rétabli : retour au rythme', psc_exception_write_decision(true, true, true, true, array(), false), 'delete');
 $assert('midi décision : forfait au rythme, décocher CANT sans MSR -> exception posée (retrait du repli)', psc_exception_write_decision(false, false, true, false, $slot_cant), 'upsert');
 $assert('midi décision : forfait au rythme + pattern MSR, décocher CANT -> suppression (déjà masquée)', psc_exception_write_decision(false, false, true, false, array_merge($slot_cant, array('msr_pattern' => true))), 'delete');
 

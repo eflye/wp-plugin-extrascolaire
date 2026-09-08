@@ -145,6 +145,30 @@ test.describe('Planning - 2 : rythme + exceptions (fonctionnel, base vérifiée)
     await expect(page.getByTestId('exception-grid')).toBeVisible();
   });
 
+  test('forfait retiré en exception : sélectionner les trois services individuels', async ({ page }) => {
+    const date = data.pattern_date;
+    const weekday = new Date(date + 'T12:00:00Z').getUTCDay();
+    await page.getByTestId(`pattern-${weekday}-FORF`).click();
+    await expect(page.getByTestId(`pattern-${weekday}-FORF`)).toHaveClass(/is-on/);
+    await page.getByTestId(`exc-${date}-FORF`).click();
+    await expect(page.getByTestId(`exc-${date}-FORF`)).toHaveAttribute('aria-pressed', 'false');
+    for (const service of ['GM', 'CANT', 'GS']) {
+      await page.getByTestId(`exc-${date}-${service}`).click();
+      await expect(page.getByTestId(`exc-${date}-${service}`)).toHaveAttribute('aria-pressed', 'true');
+      expect(wpCliEval(`echo Psc_Planning::is_declared(${data.alice_id}, '${date}', '${service}') ? '1' : '0';`)).toBe('1');
+    }
+    await page.reload();
+    for (const service of ['GM', 'CANT', 'GS']) {
+      await expect(page.getByTestId(`exc-${date}-${service}`)).toHaveAttribute('aria-pressed', 'true');
+      await page.getByTestId(`exc-${date}-${service}`).click();
+      await expect(page.getByTestId(`exc-${date}-${service}`)).toHaveAttribute('aria-pressed', 'false');
+    }
+    expect(exceptionRows(data.alice_id, date)).toBe('1');
+    await page.getByTestId(`exc-${date}-FORF`).click();
+    await expect(page.getByTestId(`exc-${date}-FORF`)).toHaveAttribute('aria-pressed', 'true');
+    expect(exceptionRows(data.alice_id, date)).toBe('0');
+  });
+
   test('forfait sans repas : tarif, résumés, badges et facture', async ({ page }) => {
     wpCliEval(`global $wpdb;
       $wpdb->update(psc_table('children'), array('cantine_sans_repas'=>1), array('id'=>${data.alice_id}));
