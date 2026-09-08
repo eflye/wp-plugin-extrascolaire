@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.5.13
+Stable tag: 5.5.14
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,12 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.5.14 =
+* Familles : permet de supprimer une demande en attente de confirmation,
+  avec confirmation préalable et suppression de ses justificatifs.
+* Vérifie que la demande est toujours non confirmée avant sa suppression
+  depuis la liste des familles, puis revient sur cette liste.
 
 = 5.5.13 =
 * Familles : affiche les demandes non confirmées avec le statut

@@ -4,6 +4,9 @@
 
 <?php
 $psc_notices = array(
+    'request_deleted' => array('success', __('Demande en attente de confirmation supprimée.', 'periscolaire-registration')),
+    'request_not_unverified' => array('error', __('Cette demande n’est plus en attente de confirmation. Actualisez la liste des familles.', 'periscolaire-registration')),
+    'request_delete_failed' => array('error', __('La suppression de la demande a échoué.', 'periscolaire-registration')),
     'added'       => array('success', __('Famille enregistrée. Vous pouvez maintenant lui envoyer son lien d\'accès.', 'periscolaire-registration')),
     'exists'      => array('error', __('Cette adresse e-mail est déjà enregistrée.', 'periscolaire-registration')),
     'invalid'     => array('error', __('Adresse e-mail invalide ou famille introuvable.', 'periscolaire-registration')),
@@ -155,7 +158,15 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 <td><?php echo $request->payment_mode === 'prelevement' ? esc_html__('Prélèvement', 'periscolaire-registration') : esc_html__('Chèque / espèces', 'periscolaire-registration'); ?></td>
 <td><em><?php esc_html_e('jamais', 'periscolaire-registration'); ?></em></td>
 <td><strong style="color:#996800"><?php esc_html_e('Attente de confirmation', 'periscolaire-registration'); ?></strong><br><small><?php echo esc_html(sprintf(__('Demande déposée le %s', 'periscolaire-registration'), date_i18n('d/m/Y H:i', strtotime($request->created_at)))); ?></small></td>
-<td><span class="description"><?php esc_html_e('Le parent doit confirmer son adresse e-mail pour poursuivre son inscription.', 'periscolaire-registration'); ?></span></td>
+<td><span class="description"><?php esc_html_e('Le parent doit confirmer son adresse e-mail pour poursuivre son inscription.', 'periscolaire-registration'); ?></span>
+<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('<?php echo esc_js(__('Supprimer définitivement cette demande et ses justificatifs ? Le lien de confirmation ne sera plus utilisable.', 'periscolaire-registration')); ?>');">
+    <?php wp_nonce_field('psc_delete_request'); ?>
+    <input type="hidden" name="action" value="psc_delete_request">
+    <input type="hidden" name="source" value="families">
+    <input type="hidden" name="id" value="<?php echo esc_attr($request->id); ?>">
+    <button class="button button-link-delete"><?php esc_html_e('Supprimer', 'periscolaire-registration'); ?></button>
+</form>
+</td>
 </tr>
 <?php endforeach; ?>
 </tbody>

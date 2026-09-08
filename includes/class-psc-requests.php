@@ -105,7 +105,7 @@ class Psc_Requests {
     public static function awaiting_confirmation() {
         global $wpdb;
         $table = psc_table('requests');
-        return $wpdb->get_results("SELECT nom, prenom, email, adresse, code_postal, ville, payment_mode, created_at
+        return $wpdb->get_results("SELECT id, nom, prenom, email, adresse, code_postal, ville, payment_mode, created_at
             FROM $table WHERE status = 'unverified' AND verified = 0 ORDER BY nom, email, created_at");
     }
 
@@ -1022,10 +1022,22 @@ class Psc_Requests {
 
         global $wpdb;
         $id = psc_post_int('id');
+        $from_families = psc_post('source') === 'families';
+        if ($from_families) {
+            $request = self::get($id);
+            if (!$request || $request->status !== 'unverified' || (int) $request->verified !== 0) {
+                Psc_Admin::redirect_public('psc_parents', 'request_not_unverified');
+                return;
+            }
+        }
         if ($id) {
             Psc_Assurances::delete_pending_files($id);
-            $wpdb->delete(psc_table('requests'), array('id' => $id), array('%d'));
+            $deleted = $wpdb->delete(psc_table('requests'), array('id' => $id), array('%d'));
+            if ($from_families && !$deleted) {
+                Psc_Admin::redirect_public('psc_parents', 'request_delete_failed');
+                return;
+            }
         }
-        Psc_Admin::redirect_public('psc_requests', 'deleted');
+        Psc_Admin::redirect_public($from_families ? 'psc_parents' : 'psc_requests', $from_families ? 'request_deleted' : 'deleted');
     }
 }
