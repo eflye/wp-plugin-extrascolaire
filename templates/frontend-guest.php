@@ -21,6 +21,8 @@
         'child_incomplete' => array('err', __('Merci de renseigner tous les champs de chaque enfant (prénom, nom, classe, date de naissance).', 'periscolaire-registration')),
         'child_bad_birthdate' => array('err', __('La date de naissance d\'un enfant est incohérente : jamais dans le futur, et au moins 3 ans au 1er septembre de l\'année en cours.', 'periscolaire-registration')),
         'pickup_person_incomplete' => array('err', __('Merci de renseigner le prénom, le nom et un téléphone valide pour chaque personne autorisée.', 'periscolaire-registration')),
+        'assurance_partial' => array('err', __('Le transfert du justificatif est incomplet. Sélectionnez à nouveau le PDF depuis les fichiers de votre appareil, puis renvoyez la demande.', 'periscolaire-registration')),
+        'assurance_upload_failed' => array('err', __('Le serveur n’a pas pu recevoir le justificatif. Réessayez ; si le problème persiste, contactez la mairie.', 'periscolaire-registration')),
         'assurance_required'      => array('err', __('Merci de joindre le justificatif d\'assurance scolaire de chaque enfant déclaré.', 'periscolaire-registration')),
         'assurance_too_large'     => array('err', __('Un des justificatifs d\'assurance dépasse la taille maximale autorisée (1 Mo).', 'periscolaire-registration')),
         'assurance_invalid_type'  => array('err', __('Format de justificatif non accepté (PDF, JPG ou PNG uniquement).', 'periscolaire-registration')),
@@ -46,7 +48,7 @@
     $psc_wizard_messages = array(
         'coordonnees_incomplete',
         'need_child', 'child_incomplete', 'child_bad_birthdate', 'pickup_person_incomplete',
-        'assurance_required', 'assurance_too_large', 'assurance_invalid_type',
+        'assurance_required', 'assurance_too_large', 'assurance_invalid_type', 'assurance_partial', 'assurance_upload_failed',
         'reglement_required', 'sepa_reglement_required',
         'sepa_missing', 'bad_iban', 'bad_bic', 'bad_code_postal', 'crypto_unavailable',
         'second_parent_bad_email', 'second_parent_bad_phone', 'second_parent_email_taken',

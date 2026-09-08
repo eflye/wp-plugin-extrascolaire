@@ -336,8 +336,9 @@ class Psc_Requests {
             $file = isset($_FILES['child_assurance_' . $i]) ? $_FILES['child_assurance_' . $i] : null;
             $file_check = Psc_Assurances::validate_upload($file);
             if ($file_check !== true) {
-                $codes = array('too_large' => 'assurance_too_large', 'invalid_type' => 'assurance_invalid_type');
-                wp_safe_redirect(add_query_arg('psc_msg', isset($codes[$file_check]) ? $codes[$file_check] : 'assurance_required', $back));
+                $codes = array('too_large' => 'assurance_too_large', 'invalid_type' => 'assurance_invalid_type', 'required' => 'assurance_required', 'partial' => 'assurance_partial', 'failed' => 'assurance_upload_failed');
+                error_log(sprintf('[PSC assurance] child_index=%d reason=%s upload_error=%d size=%d', $i, $file_check, (int) ($file['error'] ?? -1), (int) ($file['size'] ?? 0)));
+                wp_safe_redirect(add_query_arg('psc_msg', isset($codes[$file_check]) ? $codes[$file_check] : 'assurance_upload_failed', $back));
                 exit;
             }
 

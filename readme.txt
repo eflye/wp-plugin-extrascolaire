@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.5.14
+Stable tag: 5.5.15
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,14 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.5.15 =
+* Première inscription : vérifie les pièces jointes avant l’envoi final
+  et revient à l’étape Enfants si un fichier est absent, vide ou illisible.
+* Justificatifs : distingue fichier manquant, taille dépassée, transfert
+  incomplet et erreur serveur ; ajoute un diagnostic technique sans contenu
+  des documents dans les logs.
+* Ajoute des tests navigateur et PHP sur la réception des justificatifs.
 
 = 5.5.14 =
 * Familles : permet de supprimer une demande en attente de confirmation,

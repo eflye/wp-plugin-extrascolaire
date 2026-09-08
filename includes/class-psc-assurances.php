@@ -116,12 +116,16 @@ class Psc_Assurances {
      * type), sans aucun effet de bord — utilisable en pré-contrôle avant de
      * créer quoi que ce soit en base (ex : ajout d'un enfant, où l'on ne
      * veut pas insérer la fiche si le justificatif obligatoire est absent).
-     * Retourne true, ou un code : 'required'|'too_large'|'invalid_type'.
+     * Retourne true, ou un code : 'required'|'too_large'|'invalid_type'|'partial'|'failed'.
      */
     public static function validate_upload($file) {
-        if (empty($file) || !isset($file['error']) || $file['error'] !== UPLOAD_ERR_OK) {
-            return 'required';
-        }
+        if (empty($file)) return 'required';
+        $error = $file['error'] ?? null;
+        if ($error === UPLOAD_ERR_NO_FILE) return 'required';
+        if ($error === UPLOAD_ERR_INI_SIZE || $error === UPLOAD_ERR_FORM_SIZE) return 'too_large';
+        if ($error === UPLOAD_ERR_PARTIAL) return 'partial';
+        if ($error !== UPLOAD_ERR_OK) return 'failed';
+        if (empty($file['size'])) return 'partial';
         if ($file['size'] > MB_IN_BYTES) {
             return 'too_large';
         }
