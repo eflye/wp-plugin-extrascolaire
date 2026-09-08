@@ -19,6 +19,7 @@
 
       <div class="psc-onboarding-step" data-step="2">
         <p class="psc-portal-modal-title"><?php esc_html_e('Planning', 'periscolaire-registration'); ?></p>
+        <p class="psc-onboarding-text"><strong><?php if (psc_lock_hours() > 0): ?><?php echo esc_html(sprintf(__('Vous pouvez modifier le planning jusqu’à %s heures avant la date concernée.', 'periscolaire-registration'), psc_lock_hours())); ?><?php else: ?><?php esc_html_e('Vous pouvez modifier le planning sans délai de verrouillage.', 'periscolaire-registration'); ?><?php endif; ?></strong></p>
         <p class="psc-portal-text"><?php esc_html_e('Déclarez le rythme habituel de vos enfants pour toute l\'année scolaire, puis ajustez jour par jour quand un imprévu survient : chaque case est enregistrée immédiatement, sans bouton « Envoyer » à chercher. Vous pouvez aussi annuler rapidement une prestation depuis le tableau de bord si un jour ne convient plus.', 'periscolaire-registration'); ?></p>
       </div>
 

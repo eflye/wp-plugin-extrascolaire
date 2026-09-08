@@ -145,11 +145,11 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
             </select>
           </div>
           <div>
-            <label class="psc-portal-field-label screen-reader-text" for="psc-cb-0"><?php esc_html_e("Date de naissance de l'enfant 1", 'periscolaire-registration'); ?></label>
+            <label class="psc-portal-field-label" for="psc-cb-0"><?php esc_html_e("Date de naissance", 'periscolaire-registration'); ?></label>
             <input id="psc-cb-0" class="psc-portal-field-underline" type="date" name="child_naissance_0" max="<?php echo esc_attr(psc_child_birthdate_max()); ?>" required>
           </div>
           <div>
-            <label class="psc-portal-field-label" for="psc-ca-0"><?php esc_html_e("Justificatif d'assurance scolaire", 'periscolaire-registration'); ?></label>
+            <label class="psc-portal-field-label" for="psc-ca-0"><?php esc_html_e("Justificatif d'assurance scolaire (PDF)", 'periscolaire-registration'); ?></label>
             <input id="psc-ca-0" type="file" name="child_assurance_0" accept=".pdf,.jpg,.jpeg,.png" required>
           </div>
           <div class="psc-wizard-diet-cell">

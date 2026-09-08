@@ -307,7 +307,7 @@
             nomField.value = '';
             telField.value = '';
             lienField.value = '';
-            pieceField.checked = false;
+            pieceField.value = '0';
             window.PscDialog.open(overlay, { focus: '#psc-pickup-prenom' });
         }
 
@@ -322,7 +322,7 @@
             nomField.value = p.nom || '';
             telField.value = p.telephone || '';
             lienField.value = p.lien || '';
-            pieceField.checked = !!p.piece_identite;
+            pieceField.value = p.piece_identite ? '1' : '0';
             window.PscDialog.open(overlay, { focus: '#psc-pickup-prenom' });
         }
 

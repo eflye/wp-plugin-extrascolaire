@@ -154,7 +154,7 @@ if ($psc_active_year) {
 
 <div id="psc-assurance-upload-modal" class="psc-portal-modal-overlay" hidden data-testid="assurance-upload-modal">
   <div class="psc-portal-modal" role="dialog" aria-modal="true" aria-labelledby="psc-assurance-upload-title" tabindex="-1">
-    <h3 class="psc-portal-modal-title" id="psc-assurance-upload-title"><?php esc_html_e("Justificatif d'assurance scolaire", 'periscolaire-registration'); ?></h3>
+    <h3 class="psc-portal-modal-title" id="psc-assurance-upload-title"><?php esc_html_e("Justificatif d'assurance scolaire (PDF)", 'periscolaire-registration'); ?></h3>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data" data-testid="assurance-upload-form">
       <?php wp_nonce_field('psc_parent_upload_assurance'); psc_parent_nonce_field('psc_parent_upload_assurance'); ?>
       <input type="hidden" name="action" value="psc_parent_upload_assurance">
@@ -213,7 +213,7 @@ if ($psc_active_year) {
         <input type="date" name="new_naissance" max="<?php echo esc_attr(psc_child_birthdate_max()); ?>" class="psc-portal-field-underline">
       </div>
       <div>
-        <div class="psc-portal-field-label"><?php esc_html_e("Justificatif d'assurance scolaire", 'periscolaire-registration'); ?></div>
+        <div class="psc-portal-field-label"><?php esc_html_e("Justificatif d'assurance scolaire (PDF)", 'periscolaire-registration'); ?></div>
         <input type="file" name="new_assurance_file" accept=".pdf,.jpg,.jpeg,.png" required class="psc-portal-field-underline">
       </div>
       <div>

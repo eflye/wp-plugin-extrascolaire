@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.5.10
+Stable tag: 5.5.11
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,15 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.5.11 =
+* Première inscription : affiche le libellé Date de naissance et précise
+  le format PDF demandé pour l’assurance scolaire.
+* Personnes autorisées : corrige la validation des téléphones et des champs
+  incomplets ainsi que les doublons après suppression puis ajout.
+* Retire la case de présentation d’une pièce d’identité des formulaires.
+* Planning : renomme l’étape 2 « Ajuster le planning » et souligne le délai
+  paramétrable de modification, également rappelé à la première connexion.
 
 = 5.5.10 =
 * Planning : après retrait exceptionnel d’un forfait du rythme habituel,

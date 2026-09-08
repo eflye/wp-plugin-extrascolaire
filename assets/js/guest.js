@@ -240,7 +240,7 @@
                 '<input id="psc-cn-' + idx + '" class="psc-portal-field-underline" type="text" name="child_nom_' + idx + '" placeholder="' + t('lastname') + '" maxlength="190" required></div>' +
                 '<div><label class="psc-portal-field-label screen-reader-text" for="psc-cc-' + idx + '">' + t('child_class', n) + '</label>' +
                 '<select id="psc-cc-' + idx + '" class="psc-portal-field-underline" name="child_classe_' + idx + '" required>' + classeOptionsHTML + '</select></div>' +
-                '<div><label class="psc-portal-field-label screen-reader-text" for="psc-cb-' + idx + '">' + t('child_birthdate', n) + '</label>' +
+                '<div><label class="psc-portal-field-label" for="psc-cb-' + idx + '">' + t('child_birthdate') + '</label>' +
                 '<input id="psc-cb-' + idx + '" class="psc-portal-field-underline" type="date" name="child_naissance_' + idx + '" max="' + t('child_birthdate_max') + '" required></div>' +
                 '<div><label class="psc-portal-field-label" for="psc-ca-' + idx + '">' + t('insurance') + '</label>' +
                 '<input id="psc-ca-' + idx + '" type="file" name="child_assurance_' + idx + '" accept=".pdf,.jpg,.jpeg,.png" required></div>' +
@@ -288,7 +288,24 @@
             if (pickupList && addBtn) addBtn.disabled = personCount(pickupList) >= MAX_PICKUP;
         }
 
+        function wirePickupValidation(row) {
+            var inputs = row.querySelectorAll('input');
+            function validate() {
+                var filled = Array.prototype.some.call(inputs, function (input) { return input.value.trim() !== ''; });
+                inputs.forEach(function (input) {
+                    input.required = filled && /_(prenom|nom|telephone)_/.test(input.name);
+                    if (input.type === 'tel') {
+                        var phone = input.value.replace(/[\s.\-()]/g, '');
+                        input.setCustomValidity(phone && !/^(?:(?:\+|00)33|0)[1-9][0-9]{8}$/.test(phone) ? t('phone_pattern_title') : '');
+                    }
+                });
+            }
+            row.addEventListener('input', validate);
+            validate();
+        }
+
         function wirePickupRemove(row, childRow) {
+            wirePickupValidation(row);
             var btn = row.querySelector('.psc-wizard-remove-pickup-btn');
             if (!btn) return;
             btn.addEventListener('click', function () {
@@ -314,8 +331,9 @@
             var childRow = addBtn.closest('.psc-wizard-child-row');
             var pickupList = childRow.querySelector('[data-pickup-list]');
             var childIdx = childRow.dataset.index;
-            var n = personCount(pickupList);
-            if (n >= MAX_PICKUP) return;
+            if (personCount(pickupList) >= MAX_PICKUP) return;
+            var n = 0;
+            while (pickupList.querySelector('[name="child_pickup_prenom_' + childIdx + '_' + n + '"]')) n++;
 
             var row = document.createElement('div');
             row.className = 'psc-wizard-pickup-row';
@@ -326,10 +344,9 @@
                 '<div><label class="psc-portal-field-label screen-reader-text" for="' + base + '-nom">' + t('pickup_lastname') + '</label>' +
                 '<input id="' + base + '-nom" class="psc-portal-field-underline" type="text" name="child_pickup_nom_' + childIdx + '_' + n + '" placeholder="' + t('lastname') + '" maxlength="191"></div>' +
                 '<div><label class="psc-portal-field-label screen-reader-text" for="' + base + '-tel">' + t('pickup_phone') + '</label>' +
-                '<input id="' + base + '-tel" class="psc-portal-field-underline" type="tel" name="child_pickup_telephone_' + childIdx + '_' + n + '" placeholder="' + t('phone') + '" maxlength="40" pattern="(?:\\+33|0)[1-9](?:[ .-]?[0-9]{2}){4}" title="' + t('phone_pattern_title') + '"></div>' +
+                '<input id="' + base + '-tel" class="psc-portal-field-underline" type="tel" name="child_pickup_telephone_' + childIdx + '_' + n + '" placeholder="' + t('phone') + '" maxlength="40" title="' + t('phone_pattern_title') + '"></div>' +
                 '<div><label class="psc-portal-field-label screen-reader-text" for="' + base + '-lien">' + t('pickup_link') + '</label>' +
                 '<input id="' + base + '-lien" class="psc-portal-field-underline" type="text" name="child_pickup_lien_' + childIdx + '_' + n + '" placeholder="' + t('link_placeholder') + '" maxlength="100" list="psc-pickup-lien-suggestions"></div>' +
-                '<label class="psc-wizard-diet-check"><input type="checkbox" name="child_pickup_piece_identite_' + childIdx + '_' + n + '" value="1"> ' + t('pickup_id_check') + '</label>' +
                 '<button type="button" class="psc-wizard-remove-pickup-btn" aria-label="' + t('pickup_remove') + '">' + t('remove') + '</button>';
 
             pickupList.appendChild(row);

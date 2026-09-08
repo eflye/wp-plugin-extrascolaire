@@ -91,9 +91,7 @@
         <?php endforeach; ?>
       </datalist>
 
-      <label class="psc-wizard-check-line" style="margin-top:16px;">
-        <input type="checkbox" id="psc-pickup-piece-identite" name="piece_identite" value="1"> <?php esc_html_e("Présentera une pièce d'identité", 'periscolaire-registration'); ?>
-      </label>
+      <input type="hidden" id="psc-pickup-piece-identite" name="piece_identite" value="0">
 
       <div class="psc-portal-modal-actions">
         <button type="button" class="psc-portal-btn-outline-ink" data-pickup-modal-close><?php esc_html_e('Annuler', 'periscolaire-registration'); ?></button>
