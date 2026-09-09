@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.5.16
+Stable tag: 5.5.17
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,14 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.5.17 =
+* Intervenants : la vue Semaine propose la semaine en cours et les huit
+  suivantes, avec des colonnes datées et séparées pour chaque service.
+* Le pointage reste limité à la semaine en cours ; le retour à la vue Jour
+  recharge cette semaine.
+* Mon profil : retirer le second parent conserve la session qui effectue
+  l’action tout en révoquant les autres sessions et anciens liens d’accès.
 
 = 5.5.16 =
 * Mon profil : l’ajout d’un second parent conserve la session en cours ;

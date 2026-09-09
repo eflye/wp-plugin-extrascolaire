@@ -451,3 +451,8 @@ body.psc-sidscm-active main.site-main .entry-content {
     .psc-sidscm-content { padding-left: 16px; padding-right: 16px; }
     .psc-sidscm-lock-inner { padding-left: 20px; padding-right: 20px; }
 }
+
+/* Colonnes quotidiennes lisibles pour chaque service en vue semaine. */
+.psc-sidscm-table .psc-sidscm-week-day { min-width: 95px; border-left: 1px solid var(--psc-rule-lighter); }
+.psc-sidscm-table .psc-sidscm-week-day:nth-child(even) { background: rgba(36, 64, 92, 0.04); }
+#psc-sidscm-week { max-width: 100%; padding: 10px; font: inherit; }

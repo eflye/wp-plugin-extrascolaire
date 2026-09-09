@@ -242,6 +242,33 @@ test('cantine — chaque enfant affiche son régime alimentaire en jour et semai
   await expect(page.getByTestId(`sidscm-diet-${data.enfant_b_id}`)).toHaveText('Standard');
 });
 
+test('semaines : navigation future et dates distinctes pour chaque service', async ({ page }) => {
+  const data = seed();
+  await unlock(page, data);
+  await page.getByTestId('sidscm-mode-week').click();
+  const select = page.getByTestId('sidscm-week-select');
+  await expect(select.locator('option')).toHaveCount(9);
+  await expect(page.locator('[data-day]')).toHaveCount(0);
+  const weeks = await select.locator('option').evaluateAll(options => options.map(o => (o as HTMLOptionElement).value));
+  const responsePromise = page.waitForResponse(async response => response.url().includes('admin-ajax.php') && (response.request().postData() || '').includes('psc_sidscm_data'));
+  await select.selectOption(weeks[1]);
+  const payload = (await (await responsePromise).json()).data;
+  await expect(select).toBeEnabled();
+  expect(payload.week).toBe(weeks[1]);
+  for (const service of ['GM', 'CANT', 'GS']) {
+    await page.getByTestId('sidscm-svc-' + service).click();
+    const headers = page.locator('.psc-sidscm-week-day[scope="col"]');
+    await expect(headers).toHaveCount(Object.keys(payload.days).length);
+    for (const [day, date] of Object.entries(payload.days)) {
+      const parts = String(date).split('-');
+      await expect(headers.filter({ hasText: day.charAt(0).toUpperCase() + day.slice(1) })).toContainText(parts[2] + '/' + parts[1]);
+    }
+  }
+  await page.getByTestId('sidscm-mode-day').click();
+  await expect(page.getByTestId('sidscm-day-' + data.first_jour)).toBeVisible();
+  await expect(select).toHaveCount(0);
+});
+
 test('cohérence jour/service — pointage forgé refusé, aucune ligne créée', async ({ page, request }) => {
   const data = seed();
   await unlock(page, data);

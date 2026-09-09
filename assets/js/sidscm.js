@@ -19,6 +19,9 @@
     var state = {
         code: '',
         viewMode: 'day',
+        week: null,
+        currentWeek: null,
+        weeks: {},
         activeDay: null,
         activeService: SERVICE_ORDER[0], // première prestation de la journée
         days: {},      // jour => date (Y-m-d), ordre lundi/mardi/jeudi/vendredi
@@ -40,10 +43,6 @@
 
     function capitalize(s) {
         return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
-    }
-
-    function shortDay(jour) {
-        return capitalize(jour).slice(0, 3);
     }
 
     /** "2026-08-17" -> "17/08" — la date vient toujours de state.days
@@ -110,8 +109,13 @@
 
     /* ---------------- Données ---------------- */
 
-    function fetchData() {
-        return ajax('psc_sidscm_data').then(function (data) {
+    function fetchData(week) {
+        els.modeDay.disabled = true;
+        els.modeWeek.disabled = true;
+        return ajax('psc_sidscm_data', { week: week || '' }).then(function (data) {
+            state.week = data.week;
+            state.currentWeek = data.current_week;
+            state.weeks = data.weeks || {};
             state.days = data.days || {};
             state.services = data.services || {};
             state.children = data.children || [];
@@ -124,6 +128,9 @@
                 state.activeDay = dayKeys[0] || null;
             }
             renderAll();
+        }).finally(function () {
+            els.modeDay.disabled = false;
+            els.modeWeek.disabled = false;
         });
     }
 
@@ -160,7 +167,7 @@
     function countExpected(svc) {
         var day = state.activeDay;
         return state.children.filter(function (c) {
-            return (c[svc] || []).indexOf(day) !== -1;
+            return state.viewMode === 'week' ? (c[svc] || []).length > 0 : (c[svc] || []).indexOf(day) !== -1;
         }).length;
     }
 
@@ -171,6 +178,25 @@
     }
 
     function renderDays() {
+        if (state.viewMode === 'week') {
+            els.days.innerHTML = '<label for="psc-sidscm-week">' + escapeHtml(t('choose_week')) + '</label>' +
+                '<select id="psc-sidscm-week" data-testid="sidscm-week-select">' + Object.keys(state.weeks).map(function (week) {
+                    return '<option value="' + week + '"' + (week === state.week ? ' selected' : '') + '>' + escapeHtml(state.weeks[week]) + '</option>';
+                }).join('') + '</select>';
+            els.days.querySelector('select').addEventListener('change', function (event) {
+                var select = event.target;
+                select.disabled = true;
+                els.content.innerHTML = '';
+                fetchData(select.value).catch(function () {
+                    renderAll();
+                    var message = document.createElement('p');
+                    message.setAttribute('role', 'alert');
+                    message.textContent = t('load_error');
+                    els.content.prepend(message);
+                });
+            });
+            return;
+        }
         var dayKeys = Object.keys(state.days);
         els.days.innerHTML = dayKeys.map(function (d) {
             var active = d === state.activeDay;
@@ -355,13 +381,13 @@
         }));
 
         var headHtml = dayKeys.map(function (d) {
-            return '<th>' + escapeHtml(shortDay(d)) + '</th>';
+            return '<th scope="col" class="psc-sidscm-week-day">' + escapeHtml(capitalize(d)) + '<br>' + escapeHtml(formatDDMM(state.days[d])) + '</th>';
         }).join('');
 
         // Personnes autorisées : uniquement pour la Garderie soir, cf.
         // renderDayView() — masqué en semaine sur les autres services.
         var authWeekBtn = function (c) {
-            return svc === 'GS'
+            return svc === 'GS' && state.week === state.currentWeek
                 ? '<button type="button" class="psc-sidscm-auth-toggle psc-sidscm-auth-toggle--week" data-child-id="' + c.id + '"' +
                     ' data-testid="sidscm-auth-week-' + c.id + '"><span class="psc-sidscm-auth-toggle-icon">+</span> ' + t('authorised') + '</button>'
                 : '';
@@ -370,7 +396,7 @@
         var rowsHtml = rows.map(function (c) {
             var marksHtml = dayKeys.map(function (d) {
                 var expected = (c[svc] || []).indexOf(d) !== -1;
-                return '<td><span class="psc-sidscm-mark' + (expected ? '' : ' is-absent') + '">' +
+                return '<td class="psc-sidscm-week-day"><span class="psc-sidscm-mark' + (expected ? '' : ' is-absent') + '">' +
                     (expected ? '●' : '—') + '</span></td>';
             }).join('');
             // Allergie alimentaire + mention « apporte son repas » : usage
@@ -396,7 +422,7 @@
 
         els.content.innerHTML =
             '<div class="psc-sidscm-panel" data-testid="sidscm-week-panel">' +
-            '<div class="psc-sidscm-panel-head"><div class="psc-sidscm-panel-title">' + escapeHtml(svcLabel(svc)) + ' — ' + t('week') + '</div></div>' +
+            '<div class="psc-sidscm-panel-head"><div class="psc-sidscm-panel-title">' + escapeHtml(svcLabel(svc)) + ' — ' + escapeHtml(state.weeks[state.week] || t('week')) + '</div></div>' +
             '<div class="psc-sidscm-table-scroll"><table class="psc-sidscm-table">' +
             '<thead><tr><th class="psc-sidscm-table-child-head">' + t('child') + '</th>' + headHtml + '</tr></thead>' +
             '<tbody>' + rowsHtml + '</tbody></table></div>' +
@@ -456,7 +482,12 @@
 
         els.modeDay.addEventListener('click', function () {
             state.viewMode = 'day';
-            renderAll();
+            if (state.week !== state.currentWeek) {
+                els.content.innerHTML = '';
+                fetchData(state.currentWeek).catch(function () { state.viewMode = 'week'; renderAll(); });
+            } else {
+                renderAll();
+            }
         });
         els.modeWeek.addEventListener('click', function () {
             state.viewMode = 'week';

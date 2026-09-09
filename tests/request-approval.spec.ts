@@ -284,7 +284,7 @@ test.describe('P0-01 — allergies et approbation des demandes', () => {
     await expect(page.getByTestId('login-card')).toHaveCount(0);
   });
 
-  test('révocation durable : retrait du second parent tue sessions et lien en attente', async ({ browser }) => {
+  test('retrait du second parent : conserve la session courante et révoque les autres accès', async ({ browser }) => {
     const email = `demande-revoc.e2e+${Date.now()}@example.test`;
     const second = `second-${email}`;
     wpCli(['option', 'update', 'psc_auto_approve_requests', '1']);
@@ -306,6 +306,9 @@ test.describe('P0-01 — allergies et approbation des demandes', () => {
     const linkMatch = linkMail.Text.match(/https?:\/\/\S*psc_token=[0-9a-f]+/);
     expect(linkMatch, 'lien du second parent introuvable').toBeTruthy();
 
+    await page2.goto(linkMatch![0]);
+    await expect(page2.getByTestId('login-card')).toHaveCount(0);
+
     // Retrait du second parent depuis « Mon profil » (session titulaire).
     const formUrl = readFormPageUrl();
     const tabUrl = formUrl + (formUrl.includes('?') ? '&' : '?') + 'psc_tab=profil';
@@ -322,10 +325,14 @@ test.describe('P0-01 — allergies et approbation des demandes', () => {
     page.on('dialog', (d) => d.accept());
     await page.getByTestId('profil-remove-second-parent').click();
 
-    // La session OUVERTE du titulaire meurt sur le champ (bump d'époque) :
-    // le portail retombe sur la vue invité — plus aucune donnée famille.
-    await page.goto(readFormPageUrl());
-    await expect(page.getByTestId('login-card')).toBeVisible();
+    await expect(page.getByTestId('notice-second_parent_removed')).toBeVisible();
+    await page.goto(tabUrl);
+    await expect(page.getByTestId('profil-add-second-parent')).toBeVisible();
+    await expect(page.getByTestId('login-card')).toHaveCount(0);
+
+    // L’autre session ouverte avant le retrait est invalidée.
+    await page2.goto(readFormPageUrl());
+    await expect(page2.getByTestId('login-card')).toBeVisible();
 
     // Le lien capturé du second parent est refusé : vue invité, jamais le
     // portail.

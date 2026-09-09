@@ -151,6 +151,8 @@ class Psc_Sidscm {
                 'arrival'       => __('Arrivée', 'periscolaire-registration'),
                 'departure'     => __('Départ', 'periscolaire-registration'),
                 'no_authorised' => __('Aucune personne autorisée renseignée.', 'periscolaire-registration'),
+                'choose_week' => __('Semaine à consulter', 'periscolaire-registration'),
+                'load_error' => __('Chargement impossible. Réessayez.', 'periscolaire-registration'),
                 'week'          => __('semaine', 'periscolaire-registration'),
                 'child'         => __('Enfant', 'periscolaire-registration'),
                 'brings_meal'   => __('Apporte son repas — à ne pas compter dans les couverts', 'periscolaire-registration'),
@@ -278,13 +280,23 @@ class Psc_Sidscm {
         self::require_code();
 
         global $wpdb;
-        $monday = psc_week_start(current_time('Y-m-d'));
+        $current_week = psc_week_start(current_time('Y-m-d'));
+        $weeks = array();
+        for ($offset = 0; $offset <= 8; $offset++) {
+            $start = date('Y-m-d', strtotime($current_week . ' +' . $offset . ' weeks'));
+            $weeks[$start] = sprintf(__('Semaine du %s au %s', 'periscolaire-registration'), date_i18n('d/m/Y', strtotime($start)), date_i18n('d/m/Y', strtotime($start . ' +4 days')));
+        }
+        $monday = psc_post('week') ?: $current_week;
+        if (!isset($weeks[$monday])) wp_send_json_error(array('code' => 'invalid_week'), 400);
         // Ne contient jamais le mercredi (psc_is_school_day()) et exclut déjà
         // vacances/jours fériés/fermetures ponctuelles : les seuls jours à
         // afficher sont ceux réellement en service cette semaine.
         $open_days = psc_open_days($monday);
 
         $out = array(
+            'week' => $monday,
+            'current_week' => $current_week,
+            'weeks' => $weeks,
             'days'       => $open_days,
             'services'   => psc_services(),
             'children'   => array(),

@@ -190,6 +190,8 @@ class Psc_Frontend_Profil extends Psc_Frontend_Base {
         // une session ouverte ou le lien commun encore valable — elles
         // meurent immédiatement (et durablement), pas « jusqu'à 12 h ».
         Psc_Parents::revoke_access((int) $parent->id);
+        // Renouveler uniquement la session qui vient d’effectuer le retrait.
+        Psc_Parents::open_session((int) $parent->id);
 
         self::parent_form_redirect('second_parent_removed');
     }
