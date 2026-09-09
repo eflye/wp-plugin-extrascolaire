@@ -15,6 +15,11 @@ psc_admin_notice_map($psc_notices, $psc_msg);
 
 <div class="psc-box">
 <h2><?php echo $editing ? esc_html__('Modifier le menu', 'periscolaire-registration') : esc_html__('Saisir un menu', 'periscolaire-registration'); ?> — <?php esc_html_e('semaine du', 'periscolaire-registration'); ?> <?php echo esc_html(date_i18n('d/m/Y', strtotime($target_week))); ?></h2>
+<p><?php esc_html_e("Une ligne = un plat. Terminez la ligne par une étoile pour un plat bio, par deux étoiles pour un plat Label Rouge : le logo s'affiche automatiquement côté familles et dans l'e-mail.", 'periscolaire-registration'); ?></p>
+<div class="psc-menu-examples">
+<p><code>Carottes râpées*</code> → <?php echo Psc_Menus::label_image('bio'); ?></p>
+<p><code>Poulet fermier rôti**</code> → <?php echo Psc_Menus::label_image('label_rouge'); ?></p>
+</div>
 <p>
     <?php esc_html_e("Une semaine = un menu. Seuls les jours d'école effectivement ouverts sont proposés ci-dessous : les vacances scolaires et les fermetures ponctuelles (Périscolaire", 'periscolaire-registration'); ?>
     &gt; <?php esc_html_e('Calendrier scolaire) sont pris en compte automatiquement.', 'periscolaire-registration'); ?>
@@ -41,9 +46,10 @@ psc_admin_notice_map($psc_notices, $psc_msg);
 <tr>
     <th><label for="psc-menu-<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?> <span class="description">(<?php echo esc_html(date_i18n('d/m', strtotime($open_days[$key]))); ?>)</span></label></th>
     <td>
-        <textarea id="psc-menu-<?php echo esc_attr($key); ?>" name="<?php echo esc_attr($key); ?>" rows="3" class="large-text" maxlength="2000"><?php
+        <textarea id="psc-menu-<?php echo esc_attr($key); ?>" name="<?php echo esc_attr($key); ?>" rows="3" class="large-text" data-menu-input maxlength="2000"><?php
             echo esc_textarea($editing ? $editing->$key : '');
         ?></textarea>
+        <div class="psc-menu-preview" data-menu-preview><?php echo Psc_Menus::render_dishes($editing ? $editing->$key : '', 'preview'); ?></div>
     </td>
 </tr>
 <?php endforeach; ?>
@@ -55,7 +61,7 @@ psc_admin_notice_map($psc_notices, $psc_msg);
     </td>
 </tr>
 </table>
-<?php submit_button($editing ? __('Enregistrer les modifications', 'periscolaire-registration') : __('Enregistrer le menu', 'periscolaire-registration')); ?>
+<div class="psc-menu-save"><?php submit_button($editing ? __('Enregistrer les modifications', 'periscolaire-registration') : __('Enregistrer le menu', 'periscolaire-registration')); ?><span id="psc-menu-summary" role="status" aria-live="polite"></span></div>
 </form>
 <?php endif; ?>
 </div>

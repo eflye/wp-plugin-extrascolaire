@@ -78,7 +78,7 @@
     <?php foreach ($psc_portal_dashboard['menu'] as $m): ?>
     <div>
       <div class="psc-portal-dash-menu-day"><?php echo esc_html($m['day']); ?></div>
-      <div class="psc-portal-dash-menu-dish"><?php echo esc_html($m['dish']); ?></div>
+      <div class="psc-portal-dash-menu-dish"><?php echo Psc_Menus::render_dishes($m['dish']); ?></div>
     </div>
     <?php endforeach; ?>
   <?php elseif (!empty($psc_portal_dashboard['menu_no_school'])): ?>
@@ -87,6 +87,8 @@
     <p class="psc-portal-dash-menu-empty"><?php esc_html_e('Menu non encore renseigné pour cette semaine.', 'periscolaire-registration'); ?></p>
   <?php endif; ?>
 </div>
+
+<?php echo Psc_Menus::render_legend($psc_portal_dashboard['menu'] ?? array()); ?>
 
 <?php if (!empty($psc_portal_dashboard['menu']) && !empty($psc_portal_dashboard['origine_viande'])): ?>
 <aside class="psc-menu-origin" data-testid="menu-meat-origin">

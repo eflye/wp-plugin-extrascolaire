@@ -16,6 +16,69 @@ class Psc_Menus {
     /** Décalage en jours depuis le lundi de la semaine. */
     const JOUR_OFFSETS = array('lundi' => 0, 'mardi' => 1, 'jeudi' => 3, 'vendredi' => 4);
 
+    /** Règles partagées avec l’aperçu local : l’ordre des suffixes est significatif. */
+    public static function label_rules() {
+        return array('suffixes' => array('label_rouge' => '\*\*\s*$', 'bio' => '\*\s*$'), 'cleanup' => array('\*+\s*$', '\*+'));
+    }
+
+    public static function parse_menu_lines(string $raw): array {
+        $rules = self::label_rules();
+        $out = array();
+        foreach (preg_split('/\r\n|\r|\n/', $raw) as $line) {
+            $line = trim($line);
+            if ($line === '') continue;
+            $label = null;
+            foreach ($rules['suffixes'] as $key => $pattern) {
+                if (preg_match('/' . $pattern . '/u', $line)) { $label = $key; break; }
+            }
+            foreach ($rules['cleanup'] as $pattern) $line = preg_replace('/' . $pattern . '/u', '', $line);
+            $name = trim($line);
+            if ($name !== '') $out[] = array('name' => $name, 'label' => $label);
+        }
+        return $out;
+    }
+
+    public static function quality_labels() {
+        return array(
+            'bio' => array('url' => PSC_URL . 'assets/img/logo-ab.png', 'alt' => __("Issu de l'agriculture biologique", 'periscolaire-registration'), 'legend' => __('Plat préparé avec des ingrédients issus de l’agriculture biologique.', 'periscolaire-registration')),
+            'label_rouge' => array('url' => PSC_URL . 'assets/img/logo-label-rouge.png', 'alt' => __('Label Rouge — garantie qualité supérieure', 'periscolaire-registration'), 'legend' => __('Produit Label Rouge, garantie de qualité supérieure.', 'periscolaire-registration')),
+        );
+    }
+
+    public static function label_image($label, $height = 22) {
+        $labels = self::quality_labels();
+        if (!isset($labels[$label])) return '';
+        $item = $labels[$label];
+        return '<img src="' . esc_url($item['url']) . '" alt="' . esc_attr($item['alt']) . '" title="' . esc_attr($item['alt']) . '" height="' . (int) $height . '" style="height:' . (int) $height . 'px;width:auto;max-width:none;flex:none;border:0;display:inline-block;vertical-align:middle;">';
+    }
+
+    /** HTML échappé partagé par le portail, le tableau de bord, l’impression et l’e-mail. */
+    public static function render_dishes($raw, $context = 'frontend') {
+        $html = '';
+        foreach (self::parse_menu_lines((string) $raw) as $dish) {
+            $style = $context === 'email' ? 'margin:0 0 5px;color:#24405C;' : 'display:flex;align-items:center;gap:8px;color:#24405C;';
+            $html .= '<div class="psc-menu-dish" style="' . $style . '"><span>' . esc_html($dish['name']) . '</span>';
+            if ($dish['label']) $html .= ' ' . self::label_image($dish['label'], $context === 'preview' ? 16 : 22);
+            $html .= '</div>';
+        }
+        return $html;
+    }
+
+    public static function render_legend(array $days) {
+        $present = array();
+        foreach ($days as $day) {
+            foreach (self::parse_menu_lines((string) $day['dish']) as $dish) {
+                if ($dish['label']) $present[$dish['label']] = true;
+            }
+        }
+        if (!$present) return '';
+        $html = '<div class="psc-menu-legend" style="border-top:1px solid #F0E7DC;margin-top:16px;padding-top:12px;color:#4E6C8D;">';
+        foreach (self::quality_labels() as $key => $label) {
+            if (isset($present[$key])) $html .= '<p style="margin:0 0 8px;font-size:13px;">' . self::label_image($key) . ' ' . esc_html($label['legend']) . '</p>';
+        }
+        return $html . '</div>';
+    }
+
     public static function default_meat_origin() {
         return __('Les viandes de bœuf, volaille, porc et de veau qui vous sont servies sont issues d’animaux nés, élevés et abattus en France et pouvant être issue de l’agriculture biologique.', 'periscolaire-registration');
     }

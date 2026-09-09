@@ -50,6 +50,7 @@ jobs:
         run: |
           php tests/unit/run.php
           php tests/unit/sepa-export.php
+          php tests/unit/menu-labels.php
 
   # Analyse statique du code de l'extension (includes/), niveau 3 —
   # cf. phpstan.neon. Le résultat est indépendant de la version de PHP

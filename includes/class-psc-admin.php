@@ -106,6 +106,11 @@ class Psc_Admin extends Psc_Admin_Base {
         if (strpos($hook, 'psc_') === false) return;
         if (strpos($hook, 'psc_parents') !== false || strpos($hook, 'psc_settings') !== false) psc_banking_assets();
         wp_enqueue_style('psc-admin', PSC_URL . 'assets/css/admin.css', array(), PSC_VERSION);
+        if (strpos($hook, 'psc_menus') !== false) {
+            wp_enqueue_script('psc-menu-preview', PSC_URL . 'assets/js/menu-preview.js', array(), PSC_VERSION, true);
+            wp_localize_script('psc-menu-preview', 'PSC_MENU', array('rules' => Psc_Menus::label_rules(), 'labels' => Psc_Menus::quality_labels(),
+                'summary' => __('%n plats saisis · %b bio · %r Label Rouge (%p % labellisés)', 'periscolaire-registration')));
+        }
         if (strpos($hook, 'psc_settings') !== false) {
             wp_enqueue_media();
         }

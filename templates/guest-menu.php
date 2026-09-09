@@ -18,10 +18,11 @@
   <?php foreach ($psc_guest_menu['days'] as $d): ?>
   <tr>
     <th scope="row"><?php echo esc_html($d['day']); ?></th>
-    <td><?php echo nl2br(esc_html($d['dish'])); ?></td>
+    <td><?php echo Psc_Menus::render_dishes($d['dish']); ?></td>
   </tr>
   <?php endforeach; ?>
 </table>
+<?php echo Psc_Menus::render_legend($psc_guest_menu['days']); ?>
 <?php if (!empty($psc_guest_menu['origine_viande'])): ?>
 <aside class="psc-menu-origin" data-testid="menu-meat-origin">
   <h3><?php esc_html_e('Origine de la viande', 'periscolaire-registration'); ?></h3>

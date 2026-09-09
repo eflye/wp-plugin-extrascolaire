@@ -414,17 +414,19 @@ class Psc_Mailer {
 
         $body .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:14px;margin:16px 0;">';
         $has_content = false;
+        $menu_days = array();
         foreach (Psc_Menus::jour_labels() as $key => $label) {
             $content = trim((string) $menu->$key);
             if ($content === '') continue;
             $has_content = true;
+            $menu_days[] = array('dish' => $content);
             $body .= '<tr>'
                 . '<td style="background-color:#F5E7DC;color:#24405C;font-weight:bold;padding:8px 12px;'
                 . 'border:1px solid #E5DCC3;width:110px;vertical-align:top;white-space:nowrap;">' . esc_html($label) . '</td>'
-                . '<td style="padding:8px 12px;border:1px solid #E5DCC3;">' . nl2br(esc_html($content)) . '</td>'
+                . '<td style="padding:8px 12px;border:1px solid #E5DCC3;">' . Psc_Menus::render_dishes($content, 'email') . '</td>'
                 . '</tr>';
         }
-        $body .= '</table>';
+        $body .= '</table>' . Psc_Menus::render_legend($menu_days);
         $origin = Psc_Menus::meat_origin($menu);
         if ($has_content && $origin !== '') {
             $body .= '<div style="border-left:3px solid #E08A5F;background:#FAF6F1;padding:12px 16px;margin:16px 0;color:#24405C;">'

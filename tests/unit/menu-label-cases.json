@@ -1,0 +1,11 @@
+[
+ {"raw":"Carottes râpées*","expected":[{"name":"Carottes râpées","label":"bio"}]},
+ {"raw":"Sauté de dinde fermière**","expected":[{"name":"Sauté de dinde fermière","label":"label_rouge"}]},
+ {"raw":"Poulet***","expected":[{"name":"Poulet","label":"label_rouge"}]},
+ {"raw":"Haricots verts","expected":[{"name":"Haricots verts","label":null}]},
+ {"raw":"  Pommes *  \r\n\n Fromage ** \t","expected":[{"name":"Pommes","label":"bio"},{"name":"Fromage","label":"label_rouge"}]},
+ {"raw":"Sa*lade\nP**âtes*\n***\n\n","expected":[{"name":"Salade","label":null},{"name":"Pâtes","label":"bio"}]},
+ {"raw":"<script>alert(1)</script>*","expected":[{"name":"<script>alert(1)</script>","label":"bio"}]},
+ {"raw":"Entrée\rPlat\rDessert","expected":[{"name":"Entrée","label":null},{"name":"Plat","label":null},{"name":"Dessert","label":null}]},
+ {"raw":"   \n\t","expected":[]}
+]

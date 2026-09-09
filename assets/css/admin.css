@@ -146,3 +146,8 @@
 }
 .psc-sup-modal h2 { margin: 0 0 8px; }
 .psc-sup-modal-overlay[hidden] { display: none; }
+
+.psc-menu-examples { padding: 8px 16px; background: #f6f7f7; border-left: 3px solid #00a32a; margin: 16px 0; }
+.psc-menu-preview { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.psc-menu-preview .psc-menu-dish { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border: 1px solid #dcdcde; border-radius: 14px; background: #fff; color: #24405C; font-size: 12.5px; }
+.psc-menu-save { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
