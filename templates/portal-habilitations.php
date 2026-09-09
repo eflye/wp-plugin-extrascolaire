@@ -17,9 +17,9 @@
       <div class="psc-portal-table-scroll">
       <table class="psc-portal-table" data-testid="pickup-table-<?php echo esc_attr($c->id); ?>">
         <colgroup>
-          <col style="width:16%"><col style="width:16%"><col style="width:18%"><col style="width:18%"><col style="width:14%"><col style="width:18%">
+          <col style="width:18%"><col style="width:18%"><col style="width:22%"><col style="width:20%"><col style="width:22%">
         </colgroup>
-        <thead><tr><th><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Téléphone', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Lien', 'periscolaire-registration'); ?></th><th><?php esc_html_e("Pièce d'identité", 'periscolaire-registration'); ?></th><th></th></tr></thead>
+        <thead><tr><th><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Téléphone', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Lien', 'periscolaire-registration'); ?></th><th></th></tr></thead>
         <tbody>
         <?php foreach ($psc_parent_rows as $psc_pr_i => $pr): ?>
           <tr data-testid="pickup-parent-row-<?php echo esc_attr($c->id); ?>-<?php echo esc_attr($psc_pr_i); ?>">
@@ -27,7 +27,6 @@
             <td data-label="<?php esc_attr_e('Nom', 'periscolaire-registration'); ?>"><?php echo esc_html($pr['nom']); ?></td>
             <td data-label="<?php esc_attr_e('Téléphone', 'periscolaire-registration'); ?>"><?php echo esc_html($pr['telephone'] !== '' ? $pr['telephone'] : '—'); ?></td>
             <td data-label="<?php esc_attr_e('Lien', 'periscolaire-registration'); ?>"><span class="psc-portal-pill"><?php echo esc_html($pr['role']); ?></span></td>
-            <td data-label="<?php esc_attr_e("Pièce d'identité", 'periscolaire-registration'); ?>"><span class="psc-portal-muted">—</span></td>
             <td class="psc-portal-row-save"></td>
           </tr>
         <?php endforeach; ?>
@@ -37,13 +36,7 @@
             <td data-label="<?php esc_attr_e('Nom', 'periscolaire-registration'); ?>"><?php echo esc_html($p->nom); ?></td>
             <td data-label="<?php esc_attr_e('Téléphone', 'periscolaire-registration'); ?>"><?php echo esc_html($p->telephone); ?></td>
             <td data-label="<?php esc_attr_e('Lien', 'periscolaire-registration'); ?>"><?php echo esc_html($p->lien !== '' ? $p->lien : '—'); ?></td>
-            <td data-label="<?php esc_attr_e("Pièce d'identité", 'periscolaire-registration'); ?>">
-              <?php if ((int) $p->piece_identite === 1): ?>
-                <span class="psc-badge-ok"><?php esc_html_e('Oui', 'periscolaire-registration'); ?></span>
-              <?php else: ?>
-                <span class="psc-portal-muted">—</span>
-              <?php endif; ?>
-            </td>
+
             <td class="psc-portal-row-save">
               <button type="button" class="psc-portal-btn-sm" data-pickup-edit-trigger data-pickup-id="<?php echo esc_attr($p->id); ?>" aria-label="<?php esc_attr_e('Modifier les coordonnées de', 'periscolaire-registration'); ?> <?php echo esc_attr($p->prenom . ' ' . $p->nom); ?>"><?php esc_html_e('Modifier', 'periscolaire-registration'); ?></button>
               <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
@@ -91,7 +84,6 @@
         <?php endforeach; ?>
       </datalist>
 
-      <input type="hidden" id="psc-pickup-piece-identite" name="piece_identite" value="0">
 
       <div class="psc-portal-modal-actions">
         <button type="button" class="psc-portal-btn-outline-ink" data-pickup-modal-close><?php esc_html_e('Annuler', 'periscolaire-registration'); ?></button>
@@ -113,7 +105,6 @@
               'nom'            => $p->nom,
               'telephone'      => $p->telephone,
               'lien'           => $p->lien,
-              'piece_identite' => (int) $p->piece_identite,
           );
       }
   }

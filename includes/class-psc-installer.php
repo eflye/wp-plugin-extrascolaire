@@ -3,11 +3,12 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.4.1';
+    const DB_VERSION = '4.4.2';
     const ROLES_VERSION = '1.0.0';
 
     public static function activate() {
         self::create_tables();
+        if (!self::remove_pickup_identity_data()) return;
         self::store_constraints_state();
         update_option('psc_db_version', self::DB_VERSION);
         self::sync_roles();
@@ -100,6 +101,7 @@ class Psc_Installer {
             // verrouille ce cas en intégration continue).
             self::create_tables();
 
+            if (!self::remove_pickup_identity_data()) return;
             update_option('psc_db_version', self::DB_VERSION);
         }
 
@@ -867,6 +869,36 @@ class Psc_Installer {
         }
     }
 
+    /** Retire l'ancien indicateur des habilitations et des instantanés historiques. */
+    protected static function remove_pickup_identity_data() {
+        global $wpdb;
+        $table = psc_table('pickup_persons');
+        if ($wpdb->get_var("SHOW COLUMNS FROM $table LIKE 'piece_identite'")) {
+            if ($wpdb->query("ALTER TABLE $table DROP COLUMN piece_identite") === false) return false;
+        }
+        $strip = static function ($value) use (&$strip) {
+            if (!is_array($value)) return $value;
+            unset($value['piece_identite']);
+            foreach ($value as $key => $item) $value[$key] = $strip($item);
+            return $value;
+        };
+        foreach (array('pickup_history' => 'person_snapshot', 'requests' => 'children_json') as $name => $column) {
+            $table = psc_table($name);
+            $cursor = 0;
+            do {
+                $rows = $wpdb->get_results($wpdb->prepare("SELECT id, $column AS payload FROM $table WHERE id > %d AND $column LIKE %s ORDER BY id LIMIT 100", $cursor, '%' . $wpdb->esc_like('"piece_identite"') . '%'));
+                if ($wpdb->last_error) return false;
+                foreach ($rows as $row) {
+                    $cursor = (int) $row->id;
+                    $data = json_decode($row->payload, true);
+                    if (!is_array($data)) continue;
+                    if ($wpdb->update($table, array($column => wp_json_encode($strip($data))), array('id' => $cursor)) === false) return false;
+                }
+            } while (count($rows) === 100);
+        }
+        return true;
+    }
+
     protected static function create_tables() {
         global $wpdb;
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -1119,7 +1151,6 @@ CREATE TABLE $t_pickup (
             prenom VARCHAR(191) NOT NULL,
             lien VARCHAR(100) NULL,
             telephone VARCHAR(40) NOT NULL,
-            piece_identite TINYINT(1) NOT NULL DEFAULT 0,
             statut VARCHAR(20) NOT NULL DEFAULT 'active',
             created_at DATETIME NOT NULL,
             updated_at DATETIME NOT NULL,

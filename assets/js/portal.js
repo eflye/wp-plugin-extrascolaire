@@ -294,7 +294,6 @@
         var nomField    = document.getElementById('psc-pickup-nom');
         var telField    = document.getElementById('psc-pickup-telephone');
         var lienField   = document.getElementById('psc-pickup-lien');
-        var pieceField  = document.getElementById('psc-pickup-piece-identite');
 
         /* L'ajout vaut pour tous les enfants : l'endpoint foyer boucle sur
            toute la fratrie (psc_parent_add_household_pickup_person). */
@@ -307,7 +306,6 @@
             nomField.value = '';
             telField.value = '';
             lienField.value = '';
-            pieceField.value = '0';
             window.PscDialog.open(overlay, { focus: '#psc-pickup-prenom' });
         }
 
@@ -322,7 +320,6 @@
             nomField.value = p.nom || '';
             telField.value = p.telephone || '';
             lienField.value = p.lien || '';
-            pieceField.value = p.piece_identite ? '1' : '0';
             window.PscDialog.open(overlay, { focus: '#psc-pickup-prenom' });
         }
 

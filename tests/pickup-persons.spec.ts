@@ -133,7 +133,7 @@ async function loginAsFamily(page: Page, email: string, parentId: number): Promi
 
 test.describe.serial('Personnes autorisées à récupérer un enfant', () => {
 
-test('onboarding — une personne autorisée saisie à la demande devient une entrée d\'historique "ajout"', async ({ page }) => {
+test('onboarding — les habilitations se renseignent après inscription', async ({ page }) => {
   const data = seed();
 
   /* ---------------- BAN mockée : la CI ne touche jamais le réseau externe ---------------- */
@@ -189,13 +189,7 @@ test('onboarding — une personne autorisée saisie à la demande devient une en
     buffer: Buffer.from('%PDF-1.4 e2e pickup-persons spec'),
   });
 
-  await page.getByTestId('add-pickup-person-0').click();
-  const pickupRow = page.locator('.psc-wizard-pickup-row').first();
-  await pickupRow.locator('input[name^="child_pickup_prenom_"]').fill('Grand');
-  await pickupRow.locator('input[name^="child_pickup_nom_"]').fill('Parent');
-  await pickupRow.locator('input[name^="child_pickup_telephone_"]').fill('0600000099');
-  await pickupRow.locator('input[name^="child_pickup_lien_"]').fill('Grand-parent');
-  await pickupRow.locator('input[name^="child_pickup_piece_identite_"]').check();
+  await expect(page.getByTestId('add-pickup-person-0')).toHaveCount(0);
 
   await page.getByTestId('wizard-next').click();
 
@@ -233,27 +227,12 @@ test('onboarding — une personne autorisée saisie à la demande devient une en
   );
   expect(Number(childId), 'enfant créé à l\'approbation').toBeGreaterThan(0);
 
-  const row = wpCliEval(
-    `global $wpdb; $r = $wpdb->get_row($wpdb->prepare(
-      "SELECT action, source, person_snapshot FROM {$wpdb->prefix}psc_pickup_history
-       WHERE child_id = %d ORDER BY id DESC LIMIT 1", ${childId}
-    )); echo json_encode($r);`
-  );
-  const parsed = JSON.parse(row);
-  expect(parsed.action).toBe('ajout');
-  expect(parsed.source).toBe('parent');
-  const snap = JSON.parse(parsed.person_snapshot);
-  expect(snap.prenom).toBe('Grand');
-  expect(snap.nom).toBe('Parent');
-  expect(snap.telephone).toBe('0600000099');
-  expect(snap.piece_identite).toBe(1);
-
   const currentCount = wpCliEval(
     `global $wpdb; echo (int) $wpdb->get_var($wpdb->prepare(
       "SELECT COUNT(*) FROM {$wpdb->prefix}psc_pickup_persons WHERE child_id = %d AND statut = 'active'", ${childId}
     ));`
   );
-  expect(currentCount).toBe('1');
+  expect(currentCount).toBe('0');
 });
 
 test('fiche vivante — ajout pour toute la fratrie, modification, retrait, puis consultation mairie', async ({ page }) => {

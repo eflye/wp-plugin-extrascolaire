@@ -194,7 +194,6 @@ class Psc_Requests {
                 'prenom'         => $prenom,
                 'telephone'      => $telephone,
                 'lien'           => isset($p['lien']) ? sanitize_text_field($p['lien']) : '',
-                'piece_identite' => !empty($p['piece_identite']) ? 1 : 0,
             );
             if (count($out) >= psc_max_pickup_persons_per_child()) break;
         }

@@ -141,7 +141,6 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 'pickup_phone'      => __('Téléphone de la personne autorisée', 'periscolaire-registration'),
                 'pickup_link'       => __('Lien avec l’enfant', 'periscolaire-registration'),
                 'link_placeholder'  => __('Lien (ex : Grand-parent)', 'periscolaire-registration'),
-                'pickup_id_check'   => __('Présentera une pièce d’identité', 'periscolaire-registration'),
                 'pickup_remove'     => __('Retirer cette personne autorisée', 'periscolaire-registration'),
                 'week_load_failed'  => __('Impossible de charger cette semaine. Merci de réessayer.', 'periscolaire-registration'),
                 'pickup_add_all_title' => __('Ajouter une personne autorisée', 'periscolaire-registration'),

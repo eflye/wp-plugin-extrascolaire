@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.5.15
+Stable tag: 5.5.16
 License: GPLv2 or later
 
 == Description ==
@@ -276,6 +276,14 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.5.16 =
+* Mon profil : l’ajout d’un second parent conserve la session en cours ;
+  le remplacement ou le retrait d’un accès existant reste révocable.
+* Habilitations : retire la notion de pièce d’identité des formulaires,
+  listes et traitements, avec nettoyage des anciennes données en base.
+* Ajoute « Frère / Sœur » aux suggestions de lien avec l’enfant.
+* Tests des habilitations, de la migration et des sessions du second parent.
 
 = 5.5.15 =
 * Première inscription : vérifie les pièces jointes avant l’envoi final

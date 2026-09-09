@@ -258,6 +258,32 @@ test.describe('P0-01 — allergies et approbation des demandes', () => {
     expect(confirmation.Text).toContain('prélèvement automatique SEPA');
   });
 
+  test('ajout du second parent : conserve la session du parent connecté', async ({ page }) => {
+    const email = `demande-second.e2e+${Date.now()}@example.test`;
+    wpCli(['option', 'update', 'psc_auto_approve_requests', '1']);
+    await submitRequest(page, email, 'Iris', null);
+    await verifyLink(email, page);
+    const formUrl = readFormPageUrl();
+    const tabUrl = formUrl + (formUrl.includes('?') ? '&' : '?') + 'psc_tab=profil';
+    await page.goto(tabUrl);
+    const skip = page.getByTestId('onboarding-skip');
+    if (await skip.isVisible().catch(() => false)) {
+      await skip.click();
+      await page.goto(tabUrl);
+    }
+    await page.getByTestId('profil-add-second-parent').click();
+    const form = page.getByTestId('profil-second-parent-form');
+    await form.locator('[name="second_parent_prenom"]').fill('Alex');
+    await form.locator('[name="second_parent_nom"]').fill('Test');
+    await form.locator('[name="second_parent_email"]').fill(`second-${email}`);
+    await form.locator('[name="second_parent_telephone"]').fill('0600000099');
+    await page.getByTestId('profil-second-parent-submit').click();
+    await expect(page.getByTestId('notice-second_parent_updated')).toBeVisible();
+    await page.goto(tabUrl);
+    await expect(form.locator('[name="second_parent_email"]')).toHaveValue(`second-${email}`);
+    await expect(page.getByTestId('login-card')).toHaveCount(0);
+  });
+
   test('révocation durable : retrait du second parent tue sessions et lien en attente', async ({ browser }) => {
     const email = `demande-revoc.e2e+${Date.now()}@example.test`;
     const second = `second-${email}`;

@@ -160,7 +160,10 @@ class Psc_Frontend_Profil extends Psc_Frontend_Base {
             self::parent_form_redirect($codes[$result->get_error_code()] ?? 'second_parent_bad_phone');
         }
 
-        if (trim((string) psc_post('second_parent_email')) !== $previous_email) {
+        // Un premier ajout ne retire aucun accès existant : conserver les sessions.
+        // Seul le remplacement d’une adresse déjà autorisée impose une révocation.
+        $new_email = sanitize_email(trim((string) psc_post('second_parent_email')));
+        if ($previous_email !== '' && strcasecmp($new_email, $previous_email) !== 0) {
             Psc_Parents::revoke_access((int) $parent->id);
         }
 

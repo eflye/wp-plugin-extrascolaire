@@ -14,7 +14,7 @@
 <p><em><?php esc_html_e('Aucune personne autorisée déclarée pour le moment.', 'periscolaire-registration'); ?></em></p>
 <?php else: ?>
 <table class="widefat striped">
-<thead><tr><th><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Téléphone', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Lien', 'periscolaire-registration'); ?></th><th><?php esc_html_e("Pièce d'identité", 'periscolaire-registration'); ?></th></tr></thead>
+<thead><tr><th><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Téléphone', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Lien', 'periscolaire-registration'); ?></th></tr></thead>
 <tbody>
 <?php foreach ($pickup_parent_rows as $pr): ?>
 <tr>
@@ -22,7 +22,6 @@
 <td><?php echo esc_html($pr['nom']); ?></td>
 <td><?php echo esc_html($pr['telephone'] !== '' ? $pr['telephone'] : '—'); ?></td>
 <td><?php echo esc_html($pr['role']); ?></td>
-<td>—</td>
 </tr>
 <?php endforeach; ?>
 <?php foreach ($pickup_persons as $p): ?>
@@ -31,7 +30,6 @@
 <td><?php echo esc_html($p->nom); ?></td>
 <td><?php echo esc_html($p->telephone); ?></td>
 <td><?php echo esc_html($p->lien !== '' ? $p->lien : '—'); ?></td>
-<td><?php echo ((int) $p->piece_identite === 1) ? esc_html__('Oui', 'periscolaire-registration') : '—'; ?></td>
 </tr>
 <?php endforeach; ?>
 </tbody>
@@ -64,7 +62,6 @@ foreach ($pickup_history as $h):
       $psc_detail = array();
       if (!empty($snap['telephone'])) $psc_detail[] = $snap['telephone'];
       if (!empty($snap['lien'])) $psc_detail[] = $snap['lien'];
-      if (!empty($snap['piece_identite'])) $psc_detail[] = __("pièce d'identité", 'periscolaire-registration');
       echo esc_html(implode(' · ', $psc_detail));
     ?>
   </td>

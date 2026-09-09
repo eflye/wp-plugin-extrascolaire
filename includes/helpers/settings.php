@@ -40,6 +40,7 @@ function psc_max_pickup_persons_per_child() {
 function psc_pickup_lien_suggestions() {
     return array(
         __('Grand-parent', 'periscolaire-registration'),
+        __('Frère / Sœur', 'periscolaire-registration'),
         __('Oncle / Tante', 'periscolaire-registration'),
         __('Voisin(e)', 'periscolaire-registration'),
         __('Nounou / Assistant(e) maternel(le)', 'periscolaire-registration'),

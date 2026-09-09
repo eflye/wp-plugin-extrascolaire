@@ -34,7 +34,6 @@ class Psc_Frontend_Pickup extends Psc_Frontend_Base {
             'nom'            => psc_post('nom'),
             'telephone'      => psc_post('telephone'),
             'lien'           => psc_post('lien'),
-            'piece_identite' => isset($_POST['piece_identite']) ? 1 : 0,
         );
     }
 

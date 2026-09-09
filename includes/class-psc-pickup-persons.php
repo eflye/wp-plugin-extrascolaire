@@ -138,7 +138,6 @@ class Psc_Pickup_Persons {
             'prenom'         => mb_substr(sanitize_text_field($fields['prenom'] ?? ''), 0, 191),
             'lien'           => mb_substr(sanitize_text_field($fields['lien'] ?? ''), 0, 100),
             'telephone'      => mb_substr(sanitize_text_field($fields['telephone'] ?? ''), 0, 40),
-            'piece_identite' => !empty($fields['piece_identite']) ? 1 : 0,
         );
     }
 
@@ -183,7 +182,7 @@ class Psc_Pickup_Persons {
             'statut'     => 'active',
             'created_at' => $now,
             'updated_at' => $now,
-        )), array('%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s'));
+        )), array('%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s'));
 
         $person_id = (int) $wpdb->insert_id;
         if (!$person_id) return new WP_Error('psc_failed', __("Échec de l'enregistrement.", 'periscolaire-registration'));
@@ -213,7 +212,7 @@ class Psc_Pickup_Persons {
             psc_table('pickup_persons'),
             array_merge($clean, array('updated_at' => current_time('mysql'))),
             array('id' => (int) $person->id),
-            array('%s', '%s', '%s', '%s', '%d', '%s'),
+            array('%s', '%s', '%s', '%s', '%s'),
             array('%d')
         );
 
@@ -255,7 +254,6 @@ class Psc_Pickup_Persons {
             'prenom'         => $person->prenom,
             'lien'           => $person->lien,
             'telephone'      => $person->telephone,
-            'piece_identite' => (int) $person->piece_identite,
         );
         self::log((int) $person->child_id, (int) $person->id, 'retrait', $snapshot, $source, $actor_parent_id, $actor);
         return true;
