@@ -31,6 +31,10 @@ foreach (array('administrator', 'editor') as $role_name) {
     $role = get_role($role_name);
     if ($role) $role->remove_cap('psc_manage_periscolaire');
 }
+foreach (array('administrator', 'gestionnaire_periscolaire') as $role_name) {
+    $role = get_role($role_name);
+    if ($role) $role->remove_cap('psc_manage_messages');
+}
 delete_option('psc_roles_version');
 
 // Tâche planifiée (purge RGPD des demandes) : retirée dans tous les cas,
@@ -38,6 +42,9 @@ delete_option('psc_roles_version');
 // Normalement déjà fait à la désactivation, mais la répéter ici est sans
 // risque et couvre le cas d'une suppression de fichiers "à la main".
 wp_clear_scheduled_hook('psc_cleanup_requests');
+wp_clear_scheduled_hook('psc_send_message_emails');
+wp_clear_scheduled_hook('psc_send_scheduled_messages');
+wp_clear_scheduled_hook('psc_cleanup_message_receipts');
 
 if (!defined('PSC_REMOVE_DATA_ON_UNINSTALL') || !PSC_REMOVE_DATA_ON_UNINSTALL) {
     return;

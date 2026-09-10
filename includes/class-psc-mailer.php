@@ -3,6 +3,24 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Mailer {
 
+    public static function send_family_message($message, $recipient, $test = false) {
+        $categories = Psc_Messages::get_categories();
+        $category = isset($categories[$message->categorie]) ? $categories[$message->categorie] : $categories['information'];
+        $plain = wp_strip_all_tags($message->corps, true);
+        $excerpt = mb_strlen($plain) > 600 ? mb_substr($plain, 0, 597) . '…' : $plain;
+        $url = $test ? Psc_Mailer::form_page_url() : add_query_arg(array('psc_msg' => (int) $message->id, 't' => $recipient->token), home_url('/'));
+        $body = '<p style="display:inline-block;margin:0 0 18px;padding:4px 9px;background:' . esc_attr($category['bg']) . ';color:' . esc_attr($category['fg']) . ';font-size:11px;font-weight:bold;letter-spacing:.12em;text-transform:uppercase">' . esc_html($category['label']) . '</p>';
+        $body .= self::p($excerpt) . self::btn($url, __('Lire dans mon espace famille', 'periscolaire-registration'));
+        if (!empty($message->piece_jointe_id)) {
+            $attachment = wp_get_attachment_url((int) $message->piece_jointe_id);
+            if ($attachment) $body .= self::info_box('<a href="' . esc_url($attachment) . '">' . esc_html(get_the_title((int) $message->piece_jointe_id) ?: basename(get_attached_file((int) $message->piece_jointe_id))) . '</a>');
+        }
+        $headers = array('Content-Type: text/html; charset=UTF-8', 'From: ' . self::site_name() . ' <' . get_option('admin_email') . '>');
+        $reply = psc_mairie_email();
+        if (is_email($reply)) $headers[] = 'Reply-To: ' . $reply;
+        return wp_mail($recipient->email, $message->titre, self::layout($body, $message->titre), $headers);
+    }
+
     public static function form_page_url() {
         $id = (int) get_option('psc_form_page_id', 0);
         if ($id && get_post_status($id) === 'publish') {

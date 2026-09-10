@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Périscolaire - Inscriptions
  * Description: Formulaire d'inscription en ligne aux services périscolaires (garderie matin, cantine, garderie soir, forfait) avec backoffice de centralisation pour la mairie. Remplace le fichier calendrier rempli à la main.
- * Version: 5.5.18
+ * Version: 5.6.0
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: Mairie
@@ -13,7 +13,7 @@
 // Empêche l'exécution directe du fichier via son URL.
 if (!defined('ABSPATH')) exit;
 
-define('PSC_VERSION', '5.5.18');
+define('PSC_VERSION', '5.6.0');
 define('PSC_PATH', plugin_dir_path(__FILE__));
 define('PSC_URL', plugin_dir_url(__FILE__));
 define('PSC_FILE', __FILE__);
@@ -41,6 +41,9 @@ require_once PSC_PATH . 'includes/class-psc-invoices.php';
 require_once PSC_PATH . 'includes/class-psc-sepa-export.php';
 require_once PSC_PATH . 'includes/class-psc-sepa-mandate.php';
 require_once PSC_PATH . 'includes/class-psc-menus.php';
+require_once PSC_PATH . 'includes/class-psc-messages.php';
+require_once PSC_PATH . 'includes/class-psc-messages-admin.php';
+require_once PSC_PATH . 'includes/class-psc-messages-frontend.php';
 require_once PSC_PATH . 'includes/class-psc-supplier-orders.php';
 require_once PSC_PATH . 'includes/class-psc-school-calendar.php';
 require_once PSC_PATH . 'includes/class-psc-admin-calendar-v2.php';
@@ -65,10 +68,14 @@ require_once PSC_PATH . 'includes/class-psc-sidscm.php';
 register_activation_hook(__FILE__, function () {
     Psc_Installer::activate();
     Psc_Requests::schedule_cleanup();
+    Psc_Messages::ensure_crons();
 });
 
 register_deactivation_hook(__FILE__, function () {
     Psc_Requests::unschedule_cleanup();
+    wp_clear_scheduled_hook('psc_send_message_emails');
+    wp_clear_scheduled_hook('psc_send_scheduled_messages');
+    wp_clear_scheduled_hook('psc_cleanup_message_receipts');
 });
 
 add_action('plugins_loaded', function () {
@@ -83,6 +90,8 @@ add_action('plugins_loaded', function () {
     Psc_Admin_Calendar_V2::init();
     Psc_Parents::init();
     Psc_Requests::init();
+    Psc_Messages_Admin::init();
+    Psc_Messages_Frontend::init();
     Psc_Frontend::init();
     Psc_Sidscm::init();
 });

@@ -3,8 +3,8 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.4.3';
-    const ROLES_VERSION = '1.0.0';
+    const DB_VERSION = '4.5.0';
+    const ROLES_VERSION = '1.1.0';
 
     public static function activate() {
         self::create_tables();
@@ -35,6 +35,12 @@ class Psc_Installer {
             $role = get_role($role_name);
             if ($role && !$role->has_cap($cap)) {
                 $role->add_cap($cap);
+            }
+        }
+        foreach (array('administrator', 'gestionnaire_periscolaire') as $role_name) {
+            $role = get_role($role_name);
+            if ($role && !$role->has_cap('psc_manage_messages')) {
+                $role->add_cap('psc_manage_messages');
             }
         }
     }
@@ -917,6 +923,8 @@ class Psc_Installer {
         $t_pkhist = psc_table('pickup_history');
         $t_att    = psc_table('attendance');
         $t_svc    = psc_table('service_closures');
+        $t_messages = psc_table('messages');
+        $t_message_destinataires = psc_table('message_destinataires');
         // v4.0 — année scolaire + rythme & exceptions.
         $t_sy   = psc_table('school_year');
         $t_hol  = psc_table('holidays');
@@ -1205,6 +1213,44 @@ CREATE TABLE $t_svc (
             updated_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY jour_date_service (jour_date, service)
+        ) $charset_collate;
+
+CREATE TABLE $t_messages (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            titre VARCHAR(160) NOT NULL,
+            corps LONGTEXT NOT NULL,
+            categorie VARCHAR(32) NOT NULL DEFAULT 'information',
+            statut VARCHAR(16) NOT NULL DEFAULT 'brouillon',
+            cible_type VARCHAR(16) NOT NULL DEFAULT 'all',
+            cible_valeur TEXT NULL,
+            canaux TEXT NULL,
+            piece_jointe_id BIGINT UNSIGNED NULL,
+            epingle TINYINT(1) NOT NULL DEFAULT 0,
+            accuse_requis TINYINT(1) NOT NULL DEFAULT 0,
+            date_envoi_prevue DATETIME NULL,
+            date_envoi DATETIME NULL,
+            auteur_id BIGINT UNSIGNED NOT NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            KEY statut (statut),
+            KEY date_envoi (date_envoi)
+        ) $charset_collate;
+
+CREATE TABLE $t_message_destinataires (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            message_id BIGINT UNSIGNED NOT NULL,
+            family_id BIGINT UNSIGNED NOT NULL,
+            email_statut VARCHAR(16) NOT NULL DEFAULT 'non_envoye',
+            email_erreur VARCHAR(255) NULL,
+            vu_le DATETIME NULL,
+            vu_canal VARCHAR(16) NULL,
+            accuse_le DATETIME NULL,
+            token CHAR(32) NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY msg_fam (message_id, family_id),
+            KEY vu_le (vu_le),
+            KEY token (token)
         ) $charset_collate;";
 
         // Tables LÉGACY (trimestres, calendar_days, registrations) : leur
