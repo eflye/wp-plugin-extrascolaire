@@ -2,7 +2,7 @@
 
 Plugin WordPress de gestion des services périscolaires municipaux : inscriptions des familles, planning annuel, garderies, cantine, midi sans repas, menus, commande fournisseur, pointage et facturation.
 
-**Version documentée : 5.5.0 — schéma de données 4.2.0 — 6 septembre 2026.** WordPress 5.8 minimum, PHP 7.4 minimum. L’environnement de développement local utilise **Podman**.
+**Version documentée : 5.6.0 — schéma de données 4.5.0 — 10 septembre 2026.** WordPress 5.8 minimum, PHP 7.4 minimum. L’environnement de développement local utilise **Podman**.
 
 Les familles utilisent un espace dédié sans compte WordPress. La mairie administre le service depuis le menu **Périscolaire**. Les intervenants disposent d’un écran de présence protégé par code. Aucun paiement en ligne ni émission de prélèvement bancaire n’est intégré.
 
@@ -24,6 +24,7 @@ Les familles utilisent un espace dédié sans compte WordPress. La mairie admini
 
 ## Fonctionnalités récentes
 
+- **5.6.0** : messages descendants de la mairie vers les familles, ciblage figé, diffusion par e-mail en lots, programmation, suivi nominatif de la première consultation, relance des non-lecteurs, export CSV, badge famille, alerte urgente et accusé explicite.
 - **5.5.0** : facturation libre — génération quand la mairie le veut, pour n'importe quel mois (passé, courant, futur), suppression du mois et régénération sans toucher au statut d'envoi ; export prélèvements SEPA du mois en fichier .ods (une ligne par famille : IBAN déchiffré, mandat, montant).
 - **5.4.2 et 5.4.3** : allergies conservées sur tout le parcours d'approbation (écran mairie, approbation manuelle et automatique) et rapprochement contrôlé des demandes déjà approuvées ; présence du midi pointable pour les enfants sans repas (déclaration MSR, flag mairie, forfait flégué) ; sécurité — révocation durable des accès familles (époques de session), chiffrement bancaire sans repli en clair, anti-cache `no-store`.
 
@@ -241,6 +242,10 @@ Le préfixe `wp_` ci-dessous dépend de l’installation WordPress.
 | `wp_psc_registrations`, `wp_psc_trimestres`, `wp_psc_calendar_days` | Ancien modèle, conservé sur les installations migrées |
 
 ## Sécurité
+
+### Messages aux familles et confidentialité
+
+Pour les messages diffusés par la mairie, la commune conserve la date de première consultation pendant l'année scolaire en cours plus un an, uniquement afin de vérifier que l'information a bien été reçue. Cette donnée ne sert à aucun profilage et n'est pas réutilisée. Les e-mails ne contiennent aucun pixel de suivi : la lecture est enregistrée seulement lors de l'ouverture du message dans le portail ou via son lien nominatif.
 
 - Contrôle d'accès systématique : chaque action d'administration vérifie **à la fois** la capacité de l'utilisateur (`psc_manage_periscolaire`, accordée par défaut aux administrateurs et aux éditeurs — voir [Capacité d'accès personnalisée](#capacité-daccès-personnalisée)) et un nonce WordPress (protection CSRF) — l'un ne remplace pas l'autre.
 - Cloisonnement des données : un parent ne peut agir que sur ses propres enfants, contrôlé côté serveur à chaque requête.
