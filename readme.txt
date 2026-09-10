@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.6.1
+Stable tag: 5.7.0
 License: GPLv2 or later
 
 == Description ==
@@ -280,6 +280,11 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.7.0 =
+* Intègre une boîte de réception responsive et un digest compact des messages dans l'espace famille.
+* Actualise immédiatement le badge et les urgences après lecture, avec accusé explicite et contrôle d'accès 403.
+* Réordonne le back-office pour placer Messages sous le tableau de bord et le calendrier juste avant les années scolaires.
 
 = 5.6.1 =
 * Corrige la construction de l'archive de publication après l'ajout du plan de refactorisation au dépôt.

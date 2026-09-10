@@ -2,7 +2,7 @@
 
 Plugin WordPress de gestion des services périscolaires municipaux : inscriptions des familles, planning annuel, garderies, cantine, midi sans repas, menus, commande fournisseur, pointage et facturation.
 
-**Version documentée : 5.6.1 — schéma de données 4.5.0 — 10 septembre 2026.** WordPress 5.8 minimum, PHP 7.4 minimum. L’environnement de développement local utilise **Podman**.
+**Version documentée : 5.7.0 — schéma de données 4.5.0 — 10 septembre 2026.** WordPress 5.8 minimum, PHP 7.4 minimum. L’environnement de développement local utilise **Podman**.
 
 Les familles utilisent un espace dédié sans compte WordPress. La mairie administre le service depuis le menu **Périscolaire**. Les intervenants disposent d’un écran de présence protégé par code. Aucun paiement en ligne ni émission de prélèvement bancaire n’est intégré.
 
@@ -24,6 +24,7 @@ Les familles utilisent un espace dédié sans compte WordPress. La mairie admini
 
 ## Fonctionnalités récentes
 
+- **5.7.0** : intégration complète des messages dans l'espace famille, avec digest compact sur le tableau de bord, boîte de réception responsive, badge actualisé, urgence et contrôle d'accès 403.
 - **5.6.0** : messages descendants de la mairie vers les familles, ciblage figé, diffusion par e-mail en lots, programmation, suivi nominatif de la première consultation, relance des non-lecteurs, export CSV, badge famille, alerte urgente et accusé explicite.
 - **5.5.0** : facturation libre — génération quand la mairie le veut, pour n'importe quel mois (passé, courant, futur), suppression du mois et régénération sans toucher au statut d'envoi ; export prélèvements SEPA du mois en fichier .ods (une ligne par famille : IBAN déchiffré, mandat, montant).
 - **5.4.2 et 5.4.3** : allergies conservées sur tout le parcours d'approbation (écran mairie, approbation manuelle et automatique) et rapprochement contrôlé des demandes déjà approuvées ; présence du midi pointable pour les enfants sans repas (déclaration MSR, flag mairie, forfait flégué) ; sécurité — révocation durable des accès familles (époques de session), chiffrement bancaire sans repli en clair, anti-cache `no-store`.
