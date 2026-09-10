@@ -50,12 +50,12 @@ function seedFamily(): number {
     echo $pid;`));
 }
 
-function createAndSend(familyId: number, category = 'urgent', title = 'MessagesFrontE2E Alerte', ack = false): { id: number; token: string } {
+function createAndSend(familyId: number, category = 'urgent', title = 'MessagesFrontE2E Alerte', ack = false, notify = false): { id: number; token: string } {
   return JSON.parse(wpEval(`$id=Psc_Messages::save(array(
       'titre'=>'${title}','corps'=>'<p>Texte sûr</p><script>alert(1)</script>',
       'categorie'=>'${category}','statut'=>'brouillon','cible_type'=>'familles',
       'cible_valeur'=>array('family_ids'=>array(${familyId})),
-      'canaux'=>array('portail'=>true,'email'=>true,'push'=>false),'accuse_requis'=>${ack ? 'true' : 'false'},'auteur_id'=>1));
+      'canaux'=>array('portail'=>true,'email'=>true,'push'=>${notify ? 'true' : 'false'}),'accuse_requis'=>${ack ? 'true' : 'false'},'auteur_id'=>1));
     Psc_Messages::send($id); global $wpdb;
     $token=$wpdb->get_var($wpdb->prepare("SELECT token FROM {$wpdb->prefix}psc_message_destinataires WHERE message_id=%d AND family_id=%d",$id,${familyId}));
     echo wp_json_encode(array('id'=>(int)$id,'token'=>$token));`));
@@ -137,10 +137,11 @@ test.describe('Messages aux familles', () => {
     expect(slugs.indexOf('psc_school_calendar_v2')).toBe(slugs.indexOf('psc_school_years') - 1);
   });
 
-  test('laisse le canal e-mail décoché sur un nouveau message', async ({ page }) => {
+  test('laisse les canaux e-mail et navigateur décochés sur un nouveau message', async ({ page }) => {
     await loginAsAdmin(page);
     await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_message_edit`);
     await expect(page.locator('input[name="canal_email"]')).not.toBeChecked();
+    await expect(page.locator('input[name="canal_push"]')).not.toBeChecked();
   });
 
   test('publie deux messages consécutifs sans faux doublon', async ({ page }) => {
@@ -156,6 +157,23 @@ test.describe('Messages aux familles', () => {
       await page.waitForURL('**/wp-admin/admin.php?page=psc_messages&psc_msg=sent');
     }
     expect(wpEval(`global $wpdb; echo (string)$wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}psc_messages WHERE titre IN ('MessagesFrontE2E Premier','MessagesFrontE2E Deuxième') AND statut='envoye'");`)).toBe('2');
+  });
+
+  test('ne remonte au navigateur que les messages ayant ce canal activé', async ({ page }) => {
+    const familyId = seedFamily();
+    await loginAsFamily(page);
+    await page.goto(`${readFormPageUrl()}${readFormPageUrl().includes('?') ? '&' : '?'}psc_tab=messages`);
+    await expect(page.locator('.psc-browser-notification-toggle')).toBeVisible();
+    createAndSend(familyId, 'information', 'MessagesFrontE2E Sans notification');
+    createAndSend(familyId, 'information', 'MessagesFrontE2E Avec notification', false, true);
+    const payload = await page.evaluate(async () => {
+      const config = (window as typeof window & { PSC_MESSAGE_NOTIFICATIONS: { ajaxUrl: string; nonce: string; parentNonce: string } }).PSC_MESSAGE_NOTIFICATIONS;
+      const body = new URLSearchParams({ action: 'psc_message_notifications', nonce: config.nonce, parent_nonce: config.parentNonce });
+      const response = await fetch(config.ajaxUrl, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }, body: body.toString() });
+      return response.json();
+    });
+    expect(payload.success).toBe(true);
+    expect(payload.data.messages.map((message: { title: string }) => message.title)).toEqual(['MessagesFrontE2E Avec notification']);
   });
 
   test('intègre le digest compact et décrémente le badge à l’ouverture', async ({ page }) => {

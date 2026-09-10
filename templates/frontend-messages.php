@@ -10,6 +10,7 @@ $unread = (int) $data['unread'];
     <span class="psc-message-kicker"><?php esc_html_e('Informations de la mairie', 'periscolaire-registration'); ?></span>
     <h2><?php esc_html_e('Messages', 'periscolaire-registration'); ?></h2>
     <p><?php echo esc_html(sprintf(_n('%d non lu · conservé pendant toute l’année scolaire.', '%d non lus · conservés pendant toute l’année scolaire.', $unread, 'periscolaire-registration'), $unread)); ?></p>
+    <?php if (empty($data['standalone'])): ?><button type="button" class="psc-browser-notification-toggle" hidden><?php esc_html_e('Activer les notifications', 'periscolaire-registration'); ?></button><?php endif; ?>
   </header>
   <div class="psc-message-inbox">
     <?php if (empty($data['standalone'])): ?>

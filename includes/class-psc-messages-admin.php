@@ -53,7 +53,7 @@ class Psc_Messages_Admin extends Psc_Admin_Base {
             'corps' => isset($_POST['corps']) ? wp_unslash($_POST['corps']) : '',
             'categorie' => isset($_POST['categorie']) ? sanitize_key(wp_unslash($_POST['categorie'])) : 'information',
             'statut' => $status, 'cible_type' => $type, 'cible_valeur' => $value,
-            'canaux' => array('portail' => true, 'email' => !empty($_POST['canal_email']), 'push' => false),
+            'canaux' => array('portail' => true, 'email' => !empty($_POST['canal_email']), 'push' => !empty($_POST['canal_push'])),
             'piece_jointe_id' => isset($_POST['piece_jointe_id']) ? absint($_POST['piece_jointe_id']) : 0,
             'epingle' => !empty($_POST['epingle']), 'accuse_requis' => !empty($_POST['accuse_requis']),
             'date_envoi_prevue' => isset($_POST['date_envoi_prevue']) ? sanitize_text_field(wp_unslash($_POST['date_envoi_prevue'])) : null,

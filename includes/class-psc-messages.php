@@ -86,7 +86,7 @@ class Psc_Messages {
         $row = array(
             'titre' => $title, 'corps' => $body, 'categorie' => $category, 'statut' => $status,
             'cible_type' => $target, 'cible_valeur' => $target === 'all' ? null : wp_json_encode($target_value),
-            'canaux' => wp_json_encode(array('portail' => true, 'email' => !empty($channels['email']), 'push' => false)),
+            'canaux' => wp_json_encode(array('portail' => true, 'email' => !empty($channels['email']), 'push' => !empty($channels['push']))),
             'piece_jointe_id' => $attachment_id ?: null,
             'epingle' => empty($data['epingle']) ? 0 : 1, 'accuse_requis' => empty($data['accuse_requis']) ? 0 : 1,
             'date_envoi_prevue' => $status === 'programme' ? $scheduled : null,
