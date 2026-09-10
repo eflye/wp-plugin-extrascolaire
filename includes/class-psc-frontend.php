@@ -329,6 +329,9 @@ class Psc_Frontend extends Psc_Frontend_Base {
             $planning = array_intersect(array('cantine', 'cantine2'), $known);
             $tab = $planning ? reset($planning) : 'dashboard';
         }
+        if ($requested === 'cantine' && $tab === 'cantine') {
+            psc_record_legacy_usage('planning_v1_url');
+        }
 
         if (in_array($psc_msg, array(
             'child_updated', 'child_added', 'child_invalid', 'child_limit', 'child_bad_birthdate',

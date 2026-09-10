@@ -201,6 +201,14 @@ Les tables `trimestres`, `calendar_days` et `registrations` ne sont créées que
 - **Effort** : M (< 1 j)
 - **Commit suggéré** : `chore(db): inventory production schema and legacy usage`
 
+**État au 10 septembre 2026 — observation en cours.** L'inventaire local, les
+volumes, les contraintes et les benchmarks synthétiques sont consignés dans
+`docs/schema-inventory-2026-09-10.md`. Des compteurs anonymes couvrent désormais
+les trois accès legacy et l'URL Planning 1. La durée retenue est de 35 jours
+consécutifs après leur déploiement, incluant un cycle de facturation. STEP-02
+ne sera cochée qu'après ce relevé et la confirmation de la version minimale
+réellement déployée ; STEP-03 reste donc fermée.
+
 ### [ ] STEP-03 — Retirer uniquement la compatibilité prouvée inactive
 - **Catégorie** : Code mort
 - **Constats liés** : CM-01, CM-02

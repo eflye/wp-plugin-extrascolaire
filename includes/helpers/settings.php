@@ -96,3 +96,32 @@ function psc_planning_variants() {
 function psc_planning_single_variant() {
     return count(psc_planning_variants()) === 1;
 }
+
+/**
+ * Compteur technique des chemins de compatibilité à observer avant retrait.
+ * Aucune URL, identité ou donnée métier n'est conservée : uniquement un nom
+ * de chemin connu, un total et les premier/dernier horodatages UTC.
+ */
+function psc_record_legacy_usage($key) {
+    static $recorded = array();
+    $allowed = array(
+        'planning_v1_url',
+        'registrations_migration_read',
+        'registrations_verification_read',
+        'calendar_days_migration_read',
+        'trimestres_migration_read',
+    );
+    if (!in_array($key, $allowed, true) || isset($recorded[$key])) return;
+    $recorded[$key] = true;
+
+    $counts = get_option('psc_legacy_usage_counts', array());
+    if (!is_array($counts)) $counts = array();
+    $now = gmdate('Y-m-d H:i:s');
+    $current = isset($counts[$key]) && is_array($counts[$key]) ? $counts[$key] : array();
+    $counts[$key] = array(
+        'count'      => isset($current['count']) ? (int) $current['count'] + 1 : 1,
+        'first_seen' => !empty($current['first_seen']) ? $current['first_seen'] : $now,
+        'last_seen'  => $now,
+    );
+    update_option('psc_legacy_usage_counts', $counts, false);
+}

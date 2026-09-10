@@ -645,6 +645,7 @@ class Psc_Installer {
      */
     private static function migrate_2_7_0() {
         global $wpdb;
+        psc_record_legacy_usage('calendar_days_migration_read');
         $t_inv = psc_table('invoices');
 
         $has_trimestre = (int) $wpdb->get_var(
@@ -714,6 +715,7 @@ class Psc_Installer {
      */
     private static function migrate_2_10_0() {
         global $wpdb;
+        psc_record_legacy_usage('calendar_days_migration_read');
         $t_days = psc_table('calendar_days');
         $t_reg  = psc_table('registrations');
         $t_sch  = psc_table('school_calendar');
@@ -766,6 +768,7 @@ class Psc_Installer {
      */
     private static function migrate_3_0_0() {
         global $wpdb;
+        psc_record_legacy_usage('trimestres_migration_read');
         $t_trim  = psc_table('trimestres');
         $t_child = psc_table('children');
         $t_years = psc_table('school_years');

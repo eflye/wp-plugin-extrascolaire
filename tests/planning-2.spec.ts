@@ -252,6 +252,7 @@ test.describe('Planning - 2 : rythme + exceptions (fonctionnel, base vérifiée)
   });
 
   test('menu : Planning - 1 sans lien de menu, Planning - 2 atteignable par URL', async ({ page }) => {
+    wpCliEval("delete_option('psc_legacy_usage_counts');");
     // Le menu ne propose que Planning : le lien Planning - 1 a été retiré
     // de la navigation (l'écran reste atteignable par son URL directe,
     // et la bascule de Planning - 1 mène vers Planning).
@@ -262,6 +263,10 @@ test.describe('Planning - 2 : rythme + exceptions (fonctionnel, base vérifiée)
     // Planning - 1 reste atteignable par son URL directe.
     await page.goto(`${APP_BASE}/?psc_tab=cantine`);
     await expect(page.getByTestId('cantine-title')).toBeVisible();
+    const legacyUsage = JSON.parse(wpCliEval("echo wp_json_encode(get_option('psc_legacy_usage_counts', array()));"));
+    expect(legacyUsage.planning_v1_url.count).toBe(1);
+    expect(legacyUsage.planning_v1_url.first_seen).toMatch(/^\d{4}-\d{2}-\d{2} /);
+    expect(legacyUsage.planning_v1_url.last_seen).toBe(legacyUsage.planning_v1_url.first_seen);
 
     // Et Planning ne propose plus de bascule : plus de référence à
     // « Planning - 2 » nulle part sur l'écran.

@@ -1114,6 +1114,7 @@ class Psc_Planning {
         if (!$wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $t_reg))) {
             return array('children' => 0, 'patterns' => 0, 'exceptions' => 0, 'rows' => 0, 'anomalies' => 0, 'years' => array());
         }
+        psc_record_legacy_usage('registrations_migration_read');
 
         $report = array('children' => 0, 'patterns' => 0, 'exceptions' => 0, 'rows' => 0, 'anomalies' => 0, 'years' => array());
         $child_ids = $wpdb->get_col("SELECT DISTINCT child_id FROM $t_reg ORDER BY child_id");
@@ -1286,6 +1287,7 @@ class Psc_Planning {
         if (!$wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $t_reg))) {
             return $result;
         }
+        psc_record_legacy_usage('registrations_verification_read');
 
         $rows = $wpdb->get_results("SELECT child_id, jour_date, service FROM $t_reg ORDER BY child_id, jour_date");
         if (!$rows) return $result;
