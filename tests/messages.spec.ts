@@ -72,6 +72,14 @@ async function loginAsFamily(page: import('@playwright/test').Page): Promise<voi
   await expect(page.getByTestId('portal-root')).toBeVisible();
 }
 
+async function loginAsAdmin(page: import('@playwright/test').Page): Promise<void> {
+  await page.goto(`${APP_BASE}/wp-login.php`);
+  await page.locator('#user_login').fill('admin');
+  await page.locator('#user_pass').fill('admin');
+  await page.locator('#wp-submit').click();
+  await page.waitForURL('**/wp-admin/**');
+}
+
 test.describe('Messages aux familles', () => {
   test.beforeEach(() => cleanup());
   test.afterEach(() => cleanup());
@@ -129,6 +137,27 @@ test.describe('Messages aux familles', () => {
     expect(slugs.indexOf('psc_school_calendar_v2')).toBe(slugs.indexOf('psc_school_years') - 1);
   });
 
+  test('laisse le canal e-mail décoché sur un nouveau message', async ({ page }) => {
+    await loginAsAdmin(page);
+    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_message_edit`);
+    await expect(page.locator('input[name="canal_email"]')).not.toBeChecked();
+  });
+
+  test('publie deux messages consécutifs sans faux doublon', async ({ page }) => {
+    await loginAsAdmin(page);
+    for (const suffix of ['Premier', 'Deuxième']) {
+      await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_message_edit`);
+      await page.locator('#psc-message-title').fill(`MessagesFrontE2E ${suffix}`);
+      await page.locator('#psc_message_body-html').click();
+      await page.locator('#psc_message_body').fill('<p>Message successif</p>');
+      await page.locator('[data-message-action="send"]').click();
+      await expect(page.locator('#psc-send-confirm')).toBeVisible();
+      await page.locator('#psc-send-confirm-button').click();
+      await page.waitForURL('**/wp-admin/admin.php?page=psc_messages&psc_msg=sent');
+    }
+    expect(wpEval(`global $wpdb; echo (string)$wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}psc_messages WHERE titre IN ('MessagesFrontE2E Premier','MessagesFrontE2E Deuxième') AND statut='envoye'");`)).toBe('2');
+  });
+
   test('intègre le digest compact et décrémente le badge à l’ouverture', async ({ page }) => {
     const familyId = seedFamily();
     createAndSend(familyId, 'information', 'MessagesFrontE2E Information très longue qui doit rester sur une seule ligne sans casser la mise en page du tableau de bord');
@@ -153,7 +182,7 @@ test.describe('Messages aux familles', () => {
     await first.click();
     await expect(page.getByTestId('portal-section-messages')).toBeVisible();
     await expect(page.getByTestId('portal-nav-messages').locator('.psc-message-nav-badge')).toHaveText('2');
-    await expect(page.locator('.psc-message-transparency')).toContainText('la mairie sait que vous avez reçu ce message');
+    await expect(page.locator('.psc-message-transparency>div')).toHaveText(/Lu le \d{2}\/\d{2}/);
 
     for (const width of [900, 600]) {
       await page.setViewportSize({ width, height: 900 });

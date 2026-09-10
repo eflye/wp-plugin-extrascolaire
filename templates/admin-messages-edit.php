@@ -1,7 +1,7 @@
 <?php if (!defined('ABSPATH')) exit;
 $readonly = $message && $message->statut === 'envoye';
-$m = $message ?: (object) array('id'=>0,'titre'=>'','corps'=>'','categorie'=>'information','cible_type'=>'all','cible_valeur'=>null,'canaux'=>'{"portail":true,"email":true,"push":false}','piece_jointe_id'=>null,'epingle'=>0,'accuse_requis'=>0,'date_envoi_prevue'=>null);
-$target = json_decode((string) $m->cible_valeur, true) ?: array(); $channels = json_decode((string) $m->canaux, true) ?: array('email'=>true);
+$m = $message ?: (object) array('id'=>0,'titre'=>'','corps'=>'','categorie'=>'information','cible_type'=>'all','cible_valeur'=>null,'canaux'=>'{"portail":true,"email":false,"push":false}','piece_jointe_id'=>null,'epingle'=>0,'accuse_requis'=>0,'date_envoi_prevue'=>null);
+$target = json_decode((string) $m->cible_valeur, true) ?: array(); $channels = json_decode((string) $m->canaux, true) ?: array('email'=>false);
 ?>
 <div class="wrap psc-messages-admin"><h1><?php echo $m->id ? esc_html__('Modifier le message', 'periscolaire-registration') : esc_html__('Nouveau message', 'periscolaire-registration'); ?></h1>
 <?php if ($readonly): ?><div class="notice notice-info"><p><?php esc_html_e('Ce message a été envoyé : seul son épinglage peut encore être modifié.', 'periscolaire-registration'); ?></p></div><?php endif; ?>
@@ -9,6 +9,7 @@ $target = json_decode((string) $m->cible_valeur, true) ?: array(); $channels = j
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="psc-message-form" data-readonly="<?php echo $readonly ? '1' : '0'; ?>" data-nonce-save="<?php echo esc_attr(wp_create_nonce('psc_save_message')); ?>" data-nonce-send="<?php echo esc_attr(wp_create_nonce('psc_send_message')); ?>" data-nonce-test="<?php echo esc_attr(wp_create_nonce('psc_test_message')); ?>">
 <input type="hidden" name="action" id="psc-message-action" value="psc_save_message"><input type="hidden" name="submit_action" id="psc-message-submit-action" value="draft"><input type="hidden" name="id" value="<?php echo (int) $m->id; ?>">
 <input type="hidden" name="_wpnonce" value="<?php echo esc_attr(wp_create_nonce('psc_save_message')); ?>">
+<input type="hidden" name="send_token" value="<?php echo esc_attr(wp_generate_uuid4()); ?>">
 <div class="psc-message-edit-grid"><div class="psc-message-panel">
 <h2><?php esc_html_e('Contenu', 'periscolaire-registration'); ?></h2>
 <fieldset <?php disabled($readonly); ?>><legend><?php esc_html_e('Catégorie', 'periscolaire-registration'); ?></legend><div class="psc-category-picker"><?php foreach ($categories as $slug=>$cat): ?><label class="psc-cat" style="--cat-bg:<?php echo esc_attr($cat['bg']); ?>;--cat-fg:<?php echo esc_attr($cat['fg']); ?>"><input type="radio" name="categorie" value="<?php echo esc_attr($slug); ?>" <?php checked($m->categorie,$slug); ?>><?php echo esc_html($cat['label']); ?></label><?php endforeach; ?></div></fieldset>

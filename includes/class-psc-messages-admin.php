@@ -74,8 +74,13 @@ class Psc_Messages_Admin extends Psc_Admin_Base {
 
     public static function handle_send() {
         self::guard_messages('psc_send_message');
-        $nonce = isset($_POST['_wpnonce']) ? sanitize_text_field(wp_unslash($_POST['_wpnonce'])) : '';
-        $key = 'psc_message_send_used_' . hash('sha256', $nonce);
+        // Le nonce WordPress est partagé par plusieurs formulaires pendant sa
+        // fenêtre de validité : il ne peut pas identifier un clic précis. Un
+        // jeton propre au formulaire bloque le double envoi sans empêcher le
+        // message suivant.
+        $send_token = isset($_POST['send_token']) ? sanitize_text_field(wp_unslash($_POST['send_token'])) : '';
+        if (!$send_token) $send_token = wp_generate_uuid4();
+        $key = 'psc_message_send_used_' . hash('sha256', $send_token);
         if (get_transient($key)) self::redirect_edit(0, 'duplicate');
         set_transient($key, 1, DAY_IN_SECONDS);
         $data = self::posted_data('brouillon');
