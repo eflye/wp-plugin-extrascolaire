@@ -11,6 +11,68 @@ Le projet est un plugin WordPress 5.8+ en PHP 7.4+, organisé par domaines mais 
 | Base de données | 2 | 2 | 1 | 5 |
 | **Total** | **6** | **3** | **3** | **12** |
 
+## État après livraison 5.6.1
+
+Mise à jour ciblée au 10 septembre 2026. Cette section complète l'audit initial
+sans le réécrire : lorsqu'un chiffre ou un état d'exécution ci-dessous diffère
+des sections suivantes, le présent état est celui qui fait foi.
+
+### Évolutions livrées
+
+- La version applicative est `5.6.1` et la version du schéma est `4.5.0`.
+- Le module « Messages aux familles » ajoute les domaines
+  `Psc_Messages`, `Psc_Messages_Admin` et `Psc_Messages_Frontend`, leurs vues
+  d'administration et du portail, ainsi que leurs ressources CSS/JavaScript.
+- Le schéma déclaré compte désormais **19 tables**. Les deux nouvelles tables
+  sont `psc_messages` et `psc_message_destinataires`; cette dernière fige les
+  familles destinataires au moment de l'envoi et conserve la première lecture,
+  son canal et l'accusé de prise de connaissance.
+- Trois hooks WP-Cron supplémentaires assurent la diffusion des e-mails par
+  lots, l'envoi des messages programmés et la purge des preuves de lecture :
+  `psc_send_message_emails`, `psc_send_scheduled_messages` et
+  `psc_cleanup_message_receipts`.
+- La publication `v5.6.1` corrige le contrôle de complétude du ZIP en classant
+  `REFACTORING_PLAN.md` parmi les fichiers de travail exclus du paquet. Le
+  workflow « Release plugin & thème ZIP » a ensuite construit, installé et
+  activé l'archive sur un WordPress vierge avant publication.
+
+### Filet de sécurité réellement exécuté
+
+Les limites d'environnement consignées dans l'audit initial ne sont plus
+d'actualité pour le dépôt local conteneurisé. À la livraison 5.6.1 :
+
+| Contrôle | Résultat |
+|---|---|
+| PHPStan niveau 3 | Passe, aucune erreur |
+| Syntaxe PHP | Passe sur les sources du plugin |
+| Tests unitaires PHP | 1 249 vérifications, 0 échec |
+| ESLint | Passe, aucune erreur |
+| Test bancaire navigateur | 4 formulaires × 1 066 cas, tous passants |
+| E2E Playwright | 51 tests passants, dont 4 scénarios dédiés aux messages |
+| Fumage du ZIP de release | Installation et activation réussies sur WordPress vierge |
+
+`STEP-01 — Établir le filet de sécurité` est donc **partiellement réalisée** :
+les contrôles automatisés demandés sont verts et la couverture fonctionnelle
+du nouveau module est caractérisée. Elle ne peut pas être clôturée tant qu'une
+sauvegarde de la base cible et sa restauration sur une instance isolée n'ont
+pas été effectivement testées. La mesure chiffrée de couverture PHP/JavaScript
+reste également à décider ou à documenter comme exception assumée.
+
+### Points à observer après déploiement
+
+- Sur une instance peu fréquentée, vérifier qu'un cron système appelle
+  régulièrement WP-Cron afin que programmation, lots d'e-mails et rétention ne
+  dépendent pas uniquement des visites.
+- Mesurer les volumes et les plans des requêtes de ciblage et de suivi avant
+  d'ajouter des index : le jeu local ne représente pas la cardinalité réelle.
+- Surveiller les erreurs `wp_mail`, les adresses invalides et le journal privé
+  `journal-messages.log`, sans y ajouter le contenu des messages ni d'autres
+  données personnelles.
+- Si `Psc_Messages` continue de croître, séparer progressivement ciblage,
+  diffusion, statistiques et rétention. Cette dette est nouvelle mais ne
+  justifie pas une refonte immédiate tant que les usages et volumes réels ne
+  sont pas connus.
+
 ## 2. Cartographie
 
 ### Stack, modules et points d'entrée
