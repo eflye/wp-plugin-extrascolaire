@@ -430,6 +430,12 @@ PSC_CONTAINER_ENGINE=podman PSC_WP_CONTAINER=plugin-extrascolaire-wordpress-1 np
 
 Les scénarios couvrent le parcours parent, habilitations, passage d’année, SIDSCM, commande fournisseur, rythme/exceptions et absence de débordement horizontal. Les tests Planning vérifient le rendu et les lignes en base : suppression des exceptions inutiles, copie fratrie, retour au rythme, assurance et cohérence des deux écrans.
 
+Le filet de sécurité complet et la décision de couverture sont consignés dans
+[`docs/refactoring-safety-net.md`](docs/refactoring-safety-net.md). La
+restauration isolée de la base locale se vérifie avec `npm run
+test:backup-restore` ; le script ne doit viser qu'un environnement jetable ou
+une copie prévue à cet effet.
+
 `npm run demo:e2e` produit le parcours de démonstration. Les scénarios partagent l’instance et s’exécutent avec un seul worker. Le seed peut figer l’horloge via `psc_test_frozen_now` et `mu-plugins/psc-frozen-clock.php` ; un bandeau l’indique. Pour revenir à l’heure réelle :
 
 ```bash

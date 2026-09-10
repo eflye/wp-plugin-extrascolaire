@@ -5,6 +5,7 @@
   "description": "Plugin WordPress pour la gestion des inscriptions aux services périscolaires municipaux (garderie matin, cantine, garderie soir, forfait journée).",
   "scripts": {
     "test:e2e": "playwright test --project=test",
+    "test:backup-restore": "bash bin/verify-database-backup.sh",
     "demo:e2e": "playwright test --project=demo",
     "lint:js": "eslint assets/js",
     "test:banking": "node tests/unit/banking-browser.cjs"

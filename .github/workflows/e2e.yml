@@ -142,6 +142,15 @@ jobs:
           wp plugin list
           wp option get page_on_front
 
+      # Preuve de restaurabilité avant le scénario de migration destructif :
+      # dump transactionnel de l'installation, import dans une autre base du
+      # serveur jetable, comparaison exacte, puis suppression de la copie et
+      # des fichiers temporaires. Aucun dump nominatif n'est publié.
+      - name: Sauvegarde et restauration isolée
+        env:
+          PSC_CONTAINER_ENGINE: docker
+        run: bash bin/verify-database-backup.sh
+
       # Scénario de migration : détruit le schéma périscolaire, le
       # reconstruit à un état hérité (2.4.x), rejoue la montée de version
       # complète et vérifie le résultat (schéma final, données

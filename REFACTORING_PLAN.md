@@ -51,12 +51,26 @@ d'actualité pour le dépôt local conteneurisé. À la livraison 5.6.1 :
 | E2E Playwright | 51 tests passants, dont 4 scénarios dédiés aux messages |
 | Fumage du ZIP de release | Installation et activation réussies sur WordPress vierge |
 
-`STEP-01 — Établir le filet de sécurité` est donc **partiellement réalisée** :
-les contrôles automatisés demandés sont verts et la couverture fonctionnelle
-du nouveau module est caractérisée. Elle ne peut pas être clôturée tant qu'une
-sauvegarde de la base cible et sa restauration sur une instance isolée n'ont
-pas été effectivement testées. La mesure chiffrée de couverture PHP/JavaScript
-reste également à décider ou à documenter comme exception assumée.
+### Exécution de STEP-01 — 10 septembre 2026
+
+- Sauvegarde transactionnelle restaurée dans une base isolée puis comparée :
+  **31 tables**, schéma, index et données conformes ; copie et dumps supprimés.
+- PHPStan niveau 3 et syntaxe de toutes les sources PHP : **0 erreur**.
+- Tests PHP : **1 249 vérifications unitaires**, **62 contrôles pain.008** et
+  **9 cas de parsing des menus**, tous passants.
+- ESLint : **0 erreur** ; banque navigateur : **4 formulaires × 1 066 cas**.
+- Playwright : **58 scénarios passants** sur l'instance WordPress/MySQL locale.
+- La couverture est suivie par matrice de scénarios plutôt que par pourcentage
+  de lignes ; décision, limites et règle d'ajout de régression documentées dans
+  `docs/refactoring-safety-net.md`.
+
+`STEP-01 — Établir le filet de sécurité` est **réalisée dans l'environnement
+jetable du projet** : les contrôles automatisés sont verts, la CI vérifie un
+dump transactionnel par restauration et comparaison dans une base isolée, et
+la couverture fonctionnelle retenue est documentée dans
+`docs/refactoring-safety-net.md`. La sauvegarde et la restauration de chaque
+instance réelle restent un prérequis d'exploitation avant toute migration :
+la CI ne constitue jamais une sauvegarde des données déployées.
 
 ### Points à observer après déploiement
 
@@ -155,7 +169,7 @@ Les tables `trimestres`, `calendar_days` et `registrations` ne sont créées que
 
 ## 4. Plan step by step
 
-### [ ] STEP-01 — Établir le filet de sécurité
+### [x] STEP-01 — Établir le filet de sécurité
 - **Catégorie** : Sécurité
 - **Constats liés** : FA-01, FA-02, FA-03, FA-04, FA-05, DB-01, DB-02, DB-03, DB-04, DB-05
 - **Prérequis** : aucun
