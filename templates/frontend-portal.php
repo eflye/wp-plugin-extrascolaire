@@ -62,10 +62,11 @@
       <?php if (isset($tab['menu']) && $tab['menu'] === false) continue; // onglet sans lien de menu (Planning - 1) ?>
       <a href="<?php echo esc_url($tab['url']); ?>"
          class="psc-portal-nav-btn<?php echo $tab_key === $active_tab ? ' is-active' : ''; ?>"
-         data-portal-tab="<?php echo esc_attr($tab_key); ?>"
+         <?php if ($tab_key !== 'messages'): ?>data-portal-tab="<?php echo esc_attr($tab_key); ?>"<?php endif; ?>
          data-testid="portal-nav-<?php echo esc_attr($tab_key); ?>">
         <?php echo $tab['icon']; ?>
         <?php echo esc_html($tab['label']); ?>
+        <?php if (!empty($tab['badge'])): ?><span class="psc-message-nav-badge"><?php echo (int) $tab['badge']; ?></span><?php endif; ?>
       </a>
       <?php endforeach; ?>
     </nav>
@@ -195,6 +196,10 @@
 
     <section class="psc-portal-section<?php echo $active_tab === 'menu' ? ' is-active' : ''; ?>" data-portal-section="menu" data-testid="portal-section-menu">
       <?php include PSC_PATH . 'templates/portal-menu.php'; ?>
+    </section>
+
+    <section class="psc-portal-section<?php echo $active_tab === 'messages' ? ' is-active' : ''; ?>" data-portal-section="messages" data-testid="portal-section-messages">
+      <?php include PSC_PATH . 'templates/frontend-messages.php'; ?>
     </section>
 
     <section class="psc-portal-section<?php echo $active_tab === 'enfants' ? ' is-active' : ''; ?>" data-portal-section="enfants" data-testid="portal-section-enfants">

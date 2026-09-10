@@ -274,6 +274,10 @@ class Psc_Frontend extends Psc_Frontend_Base {
             'label' => __('Menu de la semaine', 'periscolaire-registration'),
             'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3v8a2 2 0 0 0 4 0V3M6 6h4"/><path d="M14 3c-1.2 1.3-1.2 6 0 8M14 3v18M17 3v6a2 2 0 0 0 2 2v10"/></svg>',
         );
+        $tabs['messages'] = array(
+            'label' => __('Messages', 'periscolaire-registration'),
+            'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5h16v12H8l-4 4Z"/><path d="M8 9h8M8 13h5"/></svg>',
+        );
         $tabs['enfants'] = array(
             'label' => __('Mes enfants', 'periscolaire-registration'),
             'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="7" r="3.2"/><path d="M5 20c0-3.5 3.2-6 7-6s7 2.5 7 6"/></svg>',
@@ -621,7 +625,12 @@ class Psc_Frontend extends Psc_Frontend_Base {
         $active_tab       = self::resolve_active_tab($psc_msg);
         $psc_portal_tabs  = self::portal_tabs_data();
         $psc_portal_menu  = Psc_Frontend_Menus::portal_menu_data();
+        // Ouvrir un message marque sa lecture : calculer ces données avant la
+        // bannière afin qu'une urgence lue disparaisse immédiatement.
+        $psc_messages_data = Psc_Messages_Frontend::data_for_family((int) $parent->id, $active_tab === 'messages');
+        $psc_portal_tabs['messages']['badge'] = $psc_messages_data['unread'];
         $psc_portal_dashboard = self::dashboard_data($parent, $children, $psc_year_summary, $invoices);
+        $psc_portal_dashboard['urgent_message'] = Psc_Messages_Frontend::urgent_for_family((int) $parent->id);
         $psc_assurance_map = Psc_Assurances::map_for($all_children);
 
         // Uniquement les enfants actifs : un enfant sorti disparaît du
