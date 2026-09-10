@@ -73,6 +73,9 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         if (!psc_verify_parent_nonce('psc_front', $parent->id, psc_post('parent_nonce'))) {
             wp_send_json_error(array('code' => 'auth'), 403);
         }
+        if (Psc_Assurances::blocked_children(self::children_of($parent->id, true))) {
+            wp_send_json_error(array('code' => 'assurance_missing', 'message' => 'Déposez les assurances scolaires depuis Planning. Le calendrier sera accessible après leur acceptation.'), 403);
+        }
         return $parent;
     }
 
@@ -86,19 +89,8 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         return $year;
     }
 
-    /**
-     * Enfant appartenant au foyer, actif, avec assurance à jour pour les
-     * AJOUTS de déclaration ponctuelle (un retrait n'est jamais bloqué par
-     * l'assurance — pas de blocage rétroactif). Le RYTHME habituel
-     * (toggle_pattern) est volontairement hors de ce contrôle : il est posé
-     * dès l'inscription initiale (cf. Psc_Planning::seed_patterns_from_wizard,
-     * appelé par Psc_Requests::approve_request sans exigence d'assurance) —
-     * l'exiger ici rendait la grille du rythme inerte pour toute famille
-     * dont le justificatif n'est pas encore fourni, sans cohérence avec le
-     * wizard. Le blocage des JOURS reste porté par les exceptions d'ajout
-     * (cf. ajax_toggle_exception) et la notice affichée sur l'écran.
-     */
-    protected static function ajax_owned_child($parent, $child_id, $allow_add = true) {
+    /** Enfant actif du foyer, dont l'assurance permet l'accès au planning. */
+    protected static function ajax_owned_child($parent, $child_id) {
         $child = self::owned_child($child_id, $parent->id);
         if (!$child) {
             wp_send_json_error(array('code' => 'notfound'), 404);
@@ -106,7 +98,7 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         if ($child->statut !== 'actif') {
             wp_send_json_error(array('code' => 'notfound'), 404);
         }
-        if ($allow_add && !Psc_Assurances::has_valid((int) $child->id)) {
+        if (!Psc_Assurances::has_valid((int) $child->id)) {
             wp_send_json_error(array(
                 'code'    => 'assurance_missing',
                 'message' => __('L\'assurance scolaire de cet enfant n\'a pas été fournie pour l\'année en cours. Ajoutez-la depuis « Mes enfants » pour pouvoir déclarer des jours.', 'periscolaire-registration'),
@@ -262,12 +254,6 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
      * exception résiduelle (invariant) — cliquer deux fois un même jour ne
      * laisse aucune ligne.
      *
-     * L'assurance scolaire ne bloque que l'AJOUT NET (décision d'écriture
-     * « upsert » avec cible true). Un retrait, ou le RETOUR AU RYTHME
-     * (re-cocher après un retrait : la décision est une suppression),
-     * doivent toujours passer — sinon une famille dont le justificatif a
-     * expiré ne pourrait plus revenir en arrière, et l'invariant laisserait
-     * des exceptions de retrait résiduelles.
      */
     public static function ajax_toggle_exception() {
         $parent = self::ajax_parent();
@@ -288,34 +274,6 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         $child = self::owned_child($child_id, $parent->id);
         if (!$child || $child->statut !== 'actif') {
             wp_send_json_error(array('code' => 'notfound'), 404);
-        }
-
-        // Décision d'écriture (même règle que le moteur) : la base de
-        // comparaison est l'état qui prévaudrait sans l'exception de ce
-        // triplet — pattern propre, sinon couverture par le forfait.
-        $year_key = Psc_School_Year::year_key_for_date($date);
-        $weekday  = (int) date('N', strtotime($date));
-        $patterns = Psc_Planning::load_patterns(array($child_id));
-        $pats     = isset($patterns[$child_id][$year_key][$weekday]) ? $patterns[$child_id][$year_key][$weekday] : array();
-        $forf     = psc_forfait_code();
-        $decision = psc_exception_write_decision(
-            $service === $forf,
-            !empty($pats[$service]),
-            !empty($pats[$forf]),
-            (bool) $checked,
-            array(
-                'request'      => $service,
-                'cant_pattern' => !empty($pats['CANT']),
-                'msr_pattern'  => !empty($pats[psc_midi_sans_repas_code()]),
-            )
-        );
-        $is_net_add = ($decision === 'upsert' && $checked);
-
-        if ($is_net_add && !Psc_Assurances::has_valid((int) $child->id)) {
-            wp_send_json_error(array(
-                'code'    => 'assurance_missing',
-                'message' => __('L\'assurance scolaire de cet enfant n\'a pas été fournie pour l\'année en cours. Ajoutez-la depuis « Mes enfants » pour pouvoir déclarer des jours.', 'periscolaire-registration'),
-            ), 403);
         }
 
         $result = Psc_Planning::toggle_exception($child_id, $date, $service, $checked);
@@ -376,7 +334,7 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
             wp_send_json_error(array('code' => 'invalid'), 400);
         }
 
-        $child = self::ajax_owned_child($parent, $child_id, $checked);
+        $child = self::ajax_owned_child($parent, $child_id);
 
         $applied = Psc_Planning::toggle_exception_bulk($child_id, $dates, $service, $checked);
 
@@ -410,11 +368,7 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
             wp_send_json_error(array('code' => 'invalid'), 400);
         }
 
-        // Le rythme habituel n'exige pas l'assurance scolaire : il est posé
-        // dès l'inscription initiale sans cette exigence (cf.
-        // ajax_owned_child() et seed_patterns_from_wizard()) — l'exiger ici
-        // rendait la grille du rythme inerte sans cohérence avec le wizard.
-        $child = self::ajax_owned_child($parent, $child_id, false);
+        $child = self::ajax_owned_child($parent, $child_id);
 
         $result = Psc_Planning::toggle_pattern($child_id, $year->year_key, $weekday, $service, $checked);
 
@@ -445,7 +399,7 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
             wp_send_json_error(array('code' => 'invalid'), 400);
         }
 
-        $source = self::ajax_owned_child($parent, $source_child_id, true);
+        $source = self::ajax_owned_child($parent, $source_child_id);
 
         $children = self::children_of($parent->id, true);
         $target_ids = array();
@@ -478,7 +432,7 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
             wp_send_json_error(array('code' => 'invalid'), 400);
         }
 
-        self::ajax_owned_child($parent, $child_id, false);
+        self::ajax_owned_child($parent, $child_id);
 
         $deleted = Psc_Planning::reset_month_exceptions($child_id, $ym);
 
@@ -500,7 +454,7 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         if (!$child_id) {
             wp_send_json_error(array('code' => 'invalid'), 400);
         }
-        self::ajax_owned_child($parent, $child_id, false);
+        self::ajax_owned_child($parent, $child_id);
 
         $ym = self::ajax_month($year);
 

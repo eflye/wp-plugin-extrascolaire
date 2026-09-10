@@ -13,12 +13,6 @@
  *    qui lit le même modèle) ;
  *  - « revenir au rythme » purge les exceptions du mois (hors verrouillées).
  *
- * Cas durci : Chloé, enfant SANS justificatif d'assurance — l'ajout
- * exceptionnel doit y être refusé, mais le retrait, le retour au rythme
- * (re-coche) et le rythme habituel doivent TOUJOURS passer (sinon l'écran
- * est inerte et l'invariant laisse des exceptions résiduelles — c'est le
- * défaut corrigé en v5.0.2).
- *
  * Les confirmations navigateur (copie fratrie, revenir au rythme) sont
  * acceptées automatiquement via page.on('dialog').
  */
@@ -136,6 +130,7 @@ test.describe('Planning - 2 : rythme + exceptions (fonctionnel, base vérifiée)
 
   test.beforeEach(async ({ page }) => {
     data = seed();
+    wpCliEval(`Psc_Assurances::upsert_row(${data.chloe_id}, 'test/assurance.pdf', 'assurance.pdf');`);
     // Confirmations navigateur (copie fratrie, revenir au rythme) : toujours
     // accepter — le scénario asserte le résultat en base, pas la popin.
     page.on('dialog', (dialog) => dialog.accept());
@@ -518,44 +513,4 @@ test.describe('Planning - 2 : rythme + exceptions (fonctionnel, base vérifiée)
     expect(unlockedExceptionRowsInMonth(data.alice_id, data.month)).toBe('0');
   });
 
-  test('enfant sans assurance : ajout refusé, retrait et retour au rythme passent (cas durci)', async ({ page }) => {
-    // Chloé n'a ni rythme ni justificatif.
-    await page.getByTestId(`child-tab-${data.chloe_id}`).click();
-    await expect(page.getByTestId(`child-tab-${data.chloe_id}`)).toHaveAttribute('aria-selected', 'true');
-
-    // 1. L'AJOUT exceptionnel est refusé (message assurance visible)…
-    const addCell = page.getByTestId(`exc-${data.free_date}-CANT`);
-    await addCell.click();
-    await expect(page.locator('.psc-error').first()).toBeVisible();
-    await expect(page.locator('.psc-error').first()).toContainText('assurance');
-    await expect(addCell).toHaveClass(/psc-exc-none/);
-    expect(exceptionRows(data.chloe_id, data.free_date)).toBe('0');
-
-    // 2. Le RYTHME habituel passe toujours (posé dès l'inscription sans
-    //    exigence d'assurance — l'incohérence qui rendait l'écran inerte).
-    const patternCell = page.getByTestId('pattern-1-CANT');
-    await patternCell.click();
-    await expect(patternCell).toHaveClass(/is-on/);
-    expect(
-      wpCliEval(
-        `global $wpdb; echo (int) $wpdb->get_var($wpdb->prepare(
-          "SELECT COUNT(*) FROM {$wpdb->prefix}psc_pattern
-           WHERE child_id = %d AND weekday = 1 AND service_code = 'CANT'", ${data.chloe_id}
-        ));`
-      )
-    ).toBe('1');
-
-    // 3. Le RETRAIT d'un jour du rythme passe toujours…
-    const removeCell = page.getByTestId(`exc-${data.pattern_date}-CANT`);
-    await removeCell.click();
-    await expect(removeCell).toHaveClass(/psc-exc-remove/);
-    expect(exceptionRows(data.chloe_id, data.pattern_date)).toBe('1');
-
-    // 4. …et le RETOUR AU RYTHME (re-coche) n'est JAMAIS bloqué par
-    //    l'assurance : sans cela, l'invariant laisserait une exception
-    //    résiduelle et la famille serait coincée.
-    await removeCell.click();
-    await expect(removeCell).toHaveClass(/psc-exc-pattern/);
-    expect(exceptionRows(data.chloe_id, data.pattern_date)).toBe('0');
-  });
 });

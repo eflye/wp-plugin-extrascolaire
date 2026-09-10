@@ -17,6 +17,12 @@ function psc_post($key, $default = '') {
     return sanitize_text_field(wp_unslash($_POST[$key]));
 }
 
+/** Lecture d'une chaîne de requête, en rejetant les tableaux. */
+function psc_get($key, $default = '') {
+    if (!isset($_GET[$key]) || !is_string($_GET[$key])) return $default;
+    return sanitize_text_field(wp_unslash($_GET[$key]));
+}
+
 function psc_get_int($key, $default = 0) {
     return isset($_GET[$key]) ? absint($_GET[$key]) : $default;
 }

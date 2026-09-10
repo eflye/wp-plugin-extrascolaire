@@ -105,8 +105,9 @@ echo $diet ? esc_html(implode(' · ', $diet)) : '—';
 <td><?php echo $c->parent_email ? esc_html($c->parent_nom ?: $c->parent_email) : '<em>' . esc_html__('famille supprimée', 'periscolaire-registration') . '</em>'; ?></td>
 <td>
 <?php if ($c->assurance_uploaded_at): ?>
+<?php if ((int) $selected_year_id === (int) Psc_School_Years::active_id()): ?><a class="button button-small" href="<?php echo esc_url(admin_url('admin.php?page=psc_assurances&child_id=' . (int) $c->id)); ?>">Examiner</a><?php endif; ?>
 <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=psc_download_assurance&child_id=' . $c->id . '&school_year_id=' . $selected_year_id), 'psc_download_assurance_' . $c->id)); ?>" target="_blank" rel="noopener">
-<?php esc_html_e('Fournie le', 'periscolaire-registration'); ?> <?php echo esc_html(date_i18n('d/m/Y', strtotime($c->assurance_uploaded_at))); ?>
+<?php echo esc_html(Psc_Assurances::status_label(Psc_Assurances::status(Psc_School_Years::enrollment($c->id, $selected_year_id)))); ?> — <?php esc_html_e('Fournie le', 'periscolaire-registration'); ?> <?php echo esc_html(date_i18n('d/m/Y', strtotime($c->assurance_uploaded_at))); ?>
 </a>
 <?php else: ?>
 <em><?php esc_html_e('Manquante', 'periscolaire-registration'); ?></em>

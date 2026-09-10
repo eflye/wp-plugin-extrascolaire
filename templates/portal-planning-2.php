@@ -1,5 +1,11 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <?php
+$psc_blocked_children = Psc_Assurances::blocked_children($children);
+if ($psc_blocked_children) {
+    $psc_assurance_variant = 'cantine2';
+    include PSC_PATH . 'templates/portal-assurance-gate.php';
+    return;
+}
 /**
  * Planning — rythme + exceptions (maquette Family Portal v3, écran
  * « Cantine & Garderie »).

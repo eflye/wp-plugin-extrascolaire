@@ -33,13 +33,43 @@ class Psc_Assurances {
      * déclaration d'un jour (cf. ajax_toggle()).
      */
     public static function has_valid($child_id) {
-        global $wpdb;
         $year_id = Psc_School_Years::active_id();
-        if (!$year_id) return false;
-        $t_cy = psc_table('child_school_years');
-        return (bool) $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $t_cy WHERE child_id = %d AND school_year_id = %d AND assurance_file_path IS NOT NULL",
-            $child_id, $year_id
+        $doc = $year_id ? Psc_School_Years::enrollment($child_id, $year_id) : null;
+        return self::status($doc) === 'approved';
+    }
+
+    public static function manual_review() {
+        return get_option('psc_assurance_review_mode', 'auto') === 'manual';
+    }
+
+    public static function status($doc) {
+        if (!$doc || empty($doc->assurance_file_path)) return 'missing';
+        $status = $doc->assurance_status ?? 'approved';
+        if ($status === 'pending' && !self::manual_review()) return 'approved';
+        return $status;
+    }
+
+    public static function status_label($status) {
+        $labels = array('missing' => 'À fournir', 'pending' => 'En attente de validation', 'approved' => 'Acceptée', 'rejected' => 'Refusée — à remplacer');
+        return $labels[$status] ?? $labels['missing'];
+    }
+
+    /** Tous les enfants actifs doivent être couverts avant d'ouvrir le planning familial. */
+    public static function blocked_children($children) {
+        return array_values(array_filter($children, function ($child) {
+            return $child->statut === 'actif' && !self::has_valid($child->id);
+        }));
+    }
+
+    /** La révision empêche de valider un document remplacé depuis l'ouverture de la visionneuse. */
+    public static function review($child_id, $year_id, $revision, $status, $note = '') {
+        global $wpdb;
+        if (!in_array($status, array('approved', 'rejected'), true)) return false;
+        $table = psc_table('child_school_years');
+        return 1 === $wpdb->query($wpdb->prepare(
+            "UPDATE $table SET assurance_status = %s, assurance_reviewed_at = %s, assurance_reviewed_by = %d, assurance_review_note = %s
+             WHERE child_id = %d AND school_year_id = %d AND assurance_revision = %s AND assurance_file_path IS NOT NULL",
+            $status, current_time('mysql'), get_current_user_id(), sanitize_textarea_field($note), $child_id, $year_id, $revision
         ));
     }
 
@@ -62,7 +92,7 @@ class Psc_Assurances {
         $params = array_merge(array($year_id), $ids);
 
         $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT child_id,
+            "SELECT child_id, assurance_file_path, assurance_status, assurance_review_note,
                     assurance_file_path AS file_path,
                     assurance_original_filename AS original_filename,
                     assurance_uploaded_at AS uploaded_at
@@ -144,9 +174,8 @@ class Psc_Assurances {
      * Enregistre le justificatif d'assurance scolaire d'un enfant déjà
      * existant en base, pour l'année scolaire donnée (l'année active par
      * défaut ; la réinscription passe explicitement l'année en
-     * préparation, pas encore active). Auto-validé : aucune étape de
-     * vérification manuelle par la mairie pour l'instant (cf. Psc_Admin
-     * qui expose seulement une consultation en lecture seule). $file doit
+     * préparation, pas encore active). Chaque dépôt réinitialise la revue
+     * selon le mode configuré par la mairie. $file doit
      * être un upload de LA REQUÊTE EN COURS (move_uploaded_file() échoue
      * sinon) — cf. promote_pending() pour le cas d'un fichier
      * déplacé lors d'une requête précédente.
@@ -189,8 +218,7 @@ class Psc_Assurances {
             return 'failed';
         }
 
-        self::upsert_row($child_id, $rel_path, $file['name'], $year_id);
-        return true;
+        return self::upsert_row($child_id, $rel_path, $file['name'], $year_id) ? true : 'failed';
     }
 
     /**
@@ -239,18 +267,22 @@ class Psc_Assurances {
             'assurance_file_path'         => $rel_path,
             'assurance_original_filename' => sanitize_file_name($original_filename),
             'assurance_uploaded_at'       => current_time('mysql'),
+            'assurance_status'            => self::manual_review() ? 'pending' : 'approved',
+            'assurance_revision'          => wp_generate_uuid4(),
+            'assurance_reviewed_at'       => null,
+            'assurance_reviewed_by'       => null,
+            'assurance_review_note'       => null,
         );
 
         if ($existing) {
-            $wpdb->update($t_cy, $data, array('id' => $existing), array('%s', '%s', '%s'), array('%d'));
+            return false !== $wpdb->update($t_cy, $data, array('id' => $existing));
         } else {
             $data['child_id'] = $child_id;
             $data['school_year_id'] = $year_id;
             $data['statut'] = 'inscrit';
             $data['date_inscription'] = current_time('mysql');
-            $wpdb->insert($t_cy, $data, array('%s', '%s', '%s', '%d', '%d', '%s', '%s'));
+            return false !== $wpdb->insert($t_cy, $data);
         }
-        return true;
     }
 
     /**

@@ -379,6 +379,10 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
             wp_die(esc_html__('Aucun document pour cette année.', 'periscolaire-registration'), '', array('response' => 404));
         }
 
+        if (isset($_GET['revision']) && psc_get('revision') !== (string) $doc->assurance_revision) {
+            wp_die('Ce justificatif a été remplacé. Rechargez la page de revue.', '', array('response' => 409));
+        }
+
         Psc_Assurances::stream($doc->assurance_file_path, $doc->assurance_original_filename);
     }
 }

@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.5.17
+Stable tag: 5.5.18
 License: GPLv2 or later
 
 == Description ==
@@ -13,10 +13,14 @@ Remplace le fichier calendrier rempli à la main pour l'inscription aux services
 périscolaires (Garderie Matin, Cantine, Garderie Soir, Forfait journée).
 
 Une famille non connue de la mairie dépose une demande d'inscription en ligne
-(règlement intérieur, justificatif d'assurance scolaire par enfant et, si
+(règlement intérieur et, si
 elle règle par prélèvement, un mandat SEPA). Une fois la demande validée par
 la mairie, la famille se connecte sans mot de passe (lien reçu par e-mail) à
-son espace personnel : elle y déclare le RYTHME HABITUEL de chacun de ses
+son espace personnel. Elle dépose l'assurance de chaque enfant depuis Planning ;
+l'accès au calendrier est débloqué après acceptation automatique ou revue par
+la mairie (Périscolaire > Réglages). Les pièces se consultent et se valident
+dans Périscolaire > Assurances scolaires, avec une visionneuse PDF.
+Dans le calendrier, elle déclare le RYTHME HABITUEL de chacun de ses
 enfants pour toute l'année scolaire, puis ajuste jour par jour (exceptions)
 quand un imprévu survient — chaque case cochée est enregistrée immédiatement,
 pas de bouton "Envoyer" à chercher, pas de fichier à renvoyer par e-mail —
@@ -276,6 +280,15 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.5.18 =
+* Menus : labels Bio et Label Rouge, logos, aperçu de saisie et légende.
+* Première inscription : dépôt de la demande sans justificatif d'assurance.
+* Planning : dépôt des assurances, blocage jusqu'à acceptation pour tous les
+  enfants actifs, contrôle des modifications côté serveur.
+* Mairie : visionneuse PDF, validation ou refus motivé des justificatifs ;
+  acceptation automatique (par défaut) ou revue manuelle dans Réglages.
+* Les documents déjà fournis restent acceptés pour leur année scolaire.
 
 = 5.5.17 =
 * Intervenants : la vue Semaine propose la semaine en cours et les huit

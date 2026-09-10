@@ -183,11 +183,7 @@ test('onboarding — les habilitations se renseignent après inscription', async
   await page.locator('#psc-cn-0').fill('Onboarding');
   await page.locator('#psc-cc-0').selectOption('CP');
   await page.locator('#psc-cb-0').fill('2019-03-10');
-  await page.locator('#psc-ca-0').setInputFiles({
-    name: 'assurance.pdf',
-    mimeType: 'application/pdf',
-    buffer: Buffer.from('%PDF-1.4 e2e pickup-persons spec'),
-  });
+  await expect(page.locator('input[name^="child_assurance_"]')).toHaveCount(0);
 
   await expect(page.getByTestId('add-pickup-person-0')).toHaveCount(0);
 

@@ -2152,3 +2152,8 @@ button.psc-exc-locked[aria-pressed="false"] { background: transparent; border-co
     color: #746E67;
     cursor: not-allowed;
 }
+
+.psc-assurance-card { padding: 1.25rem 0; border-top: 1px solid #dce2e7; }
+.psc-assurance-card form { display: grid; gap: 1rem; }
+.psc-assurance-card input[type="file"] { max-width: 100%; min-width: 0; }
+.psc-assurance-card button { justify-self: start; }

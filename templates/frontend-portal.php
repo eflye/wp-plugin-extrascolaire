@@ -94,7 +94,7 @@
         'absence_cancelled' => array('ok',  __('Absence signalée : la mairie a été prévenue, ces prestations ne seront pas facturées.', 'periscolaire-registration')),
         'absence_invalid'   => array('err', __("Impossible d'annuler ces prestations (délai dépassé, déjà annulées ou sélection invalide). Rechargez la page.", 'periscolaire-registration')),
 
-        'assurance_uploaded'      => array('ok',  __("Justificatif d'assurance scolaire enregistré.", 'periscolaire-registration')),
+        'assurance_uploaded'      => array('ok',  Psc_Assurances::manual_review() ? 'Justificatif enregistré, en attente de validation par la mairie.' : 'Justificatif d’assurance scolaire accepté.'),
         'assurance_invalid'       => array('err', __('Enfant introuvable. Rechargez la page.', 'periscolaire-registration')),
         'assurance_upload_failed' => array('err', __("L'envoi du fichier a échoué. Merci de réessayer.", 'periscolaire-registration')),
         'assurance_too_large'     => array('err', __('Le fichier dépasse la taille maximale autorisée (1 Mo).', 'periscolaire-registration')),

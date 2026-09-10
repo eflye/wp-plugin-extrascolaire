@@ -134,7 +134,8 @@ if ($psc_active_year) {
         <td data-label="<?php esc_attr_e('Statut', 'periscolaire-registration'); ?>">
           <span class="psc-portal-cell-value">
           <?php if ($psc_a): ?>
-            <span class="psc-badge-ok" data-testid="assurance-status-<?php echo esc_attr($c->id); ?>"><?php esc_html_e('Fournie', 'periscolaire-registration'); ?></span>
+            <span class="<?php echo Psc_Assurances::status($psc_a) === 'approved' ? 'psc-badge-ok' : 'psc-badge-warn'; ?>" data-testid="assurance-status-<?php echo esc_attr($c->id); ?>"><?php echo esc_html(Psc_Assurances::status_label(Psc_Assurances::status($psc_a))); ?></span>
+            <?php if (Psc_Assurances::status($psc_a) === 'rejected' && $psc_a->assurance_review_note): ?><br><?php echo esc_html($psc_a->assurance_review_note); ?><br><?php endif; ?>
             <?php esc_html_e('le', 'periscolaire-registration'); ?> <?php echo esc_html(date_i18n('d/m/Y', strtotime($psc_a->uploaded_at))); ?>
             — <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=psc_parent_download_assurance&child_id=' . $c->id), 'psc_parent_download_assurance_' . $c->id)); ?>" target="_blank" rel="noopener" data-testid="assurance-view-<?php echo esc_attr($c->id); ?>"><?php esc_html_e('Voir le fichier', 'periscolaire-registration'); ?></a>
           <?php else: ?>

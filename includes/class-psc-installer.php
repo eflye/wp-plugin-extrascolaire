@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.4.2';
+    const DB_VERSION = '4.4.3';
     const ROLES_VERSION = '1.0.0';
 
     public static function activate() {
@@ -1048,6 +1048,11 @@ CREATE TABLE $t_cy (
             assurance_file_path VARCHAR(255) NULL,
             assurance_original_filename VARCHAR(191) NULL,
             assurance_uploaded_at DATETIME NULL,
+            assurance_status VARCHAR(20) NOT NULL DEFAULT 'approved',
+            assurance_revision VARCHAR(36) NOT NULL DEFAULT '',
+            assurance_reviewed_at DATETIME NULL,
+            assurance_reviewed_by BIGINT UNSIGNED NULL,
+            assurance_review_note TEXT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY child_year (child_id, school_year_id),
             KEY school_year_id (school_year_id)

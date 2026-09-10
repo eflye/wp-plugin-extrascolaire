@@ -20,13 +20,20 @@ class Psc_Frontend_Documents extends Psc_Frontend_Base {
         add_action('admin_post_psc_parent_download_invoice', array(__CLASS__, 'handle_parent_download_invoice'));
     }
 
+    protected static function upload_redirect($msg) {
+        $tab = psc_post('return_tab');
+        if (!in_array($tab, array('cantine', 'cantine2'), true)) $tab = 'enfants';
+        wp_safe_redirect(add_query_arg(array('psc_msg' => $msg, 'psc_tab' => $tab), Psc_Mailer::form_page_url()));
+        exit;
+    }
+
     /**
      * Upload par le parent du justificatif d'assurance scolaire d'un
      * enfant déjà existant (remplacement depuis « Mes enfants »).
      */
     public static function handle_parent_upload_assurance() {
         $parent = self::authed_parent('psc_parent_upload_assurance');
-        if (!$parent) self::parent_form_redirect('auth');
+        if (!$parent) self::upload_redirect('auth');
 
         global $wpdb;
         $child_id = psc_post_int('child_id');
@@ -34,15 +41,15 @@ class Psc_Frontend_Documents extends Psc_Frontend_Base {
         $owned = $wpdb->get_var($wpdb->prepare(
             "SELECT id FROM $t_child WHERE id = %d AND parent_id = %d", $child_id, $parent->id
         ));
-        if (!$owned) self::parent_form_redirect('assurance_invalid');
+        if (!$owned) self::upload_redirect('assurance_invalid');
 
         $result = Psc_Assurances::store_upload($child_id, isset($_FILES['assurance_file']) ? $_FILES['assurance_file'] : null);
         if ($result !== true) {
             $codes = array('too_large' => 'assurance_too_large', 'invalid_type' => 'assurance_invalid_type');
-            self::parent_form_redirect(isset($codes[$result]) ? $codes[$result] : 'assurance_upload_failed');
+            self::upload_redirect(isset($codes[$result]) ? $codes[$result] : 'assurance_upload_failed');
         }
 
-        self::parent_form_redirect('assurance_uploaded');
+        self::upload_redirect('assurance_uploaded');
     }
 
     /**

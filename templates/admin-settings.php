@@ -69,7 +69,7 @@ psc_admin_notice_map(array(
   </label>
   <p class="description">
     <?php esc_html_e('Désactivé par défaut : chaque demande reste soumise à la modération de la mairie (Périscolaire', 'periscolaire-registration'); ?>
-    &gt; <?php esc_html_e("Demandes) avant de créer la famille et ses enfants. Si activé, la famille est créée et le parent est connecté immédiatement à son espace dès qu'il confirme son adresse (redirection directe, sans attendre un second e-mail) — les informations saisies (dont le justificatif d'assurance) ne sont alors jamais relues avant l'ouverture de l'accès.", 'periscolaire-registration'); ?>
+    &gt; <?php esc_html_e("Demandes) avant de créer la famille et ses enfants. Si activé, la famille est créée et le parent est connecté immédiatement à son espace dès qu'il confirme son adresse (redirection directe, sans attendre un second e-mail) — les informations saisies ne sont alors jamais relues avant l'ouverture de l'accès.", 'periscolaire-registration'); ?>
   </p>
 </td>
 </tr>
@@ -94,6 +94,15 @@ psc_admin_notice_map(array(
 </td>
 </tr>
 </table>
+
+<h2>Assurances scolaires</h2>
+<table class="form-table"><tr><th><label for="psc-assurance-review">Validation des justificatifs</label></th><td>
+<select id="psc-assurance-review" name="assurance_review_mode">
+<option value="auto" <?php selected(!Psc_Assurances::manual_review()); ?>>Acceptation automatique après dépôt</option>
+<option value="manual" <?php selected(Psc_Assurances::manual_review()); ?>>Revue par la mairie avant accès au planning</option>
+</select>
+<p class="description">Le planning reste bloqué tant que les assurances des enfants actifs ne sont pas acceptées. Les documents déjà acceptés restent valables pour leur année scolaire. Un document refusé doit être remplacé.</p>
+</td></tr></table>
 
 <h2><?php esc_html_e('Fournisseur de repas', 'periscolaire-registration'); ?></h2>
 <table class="form-table">

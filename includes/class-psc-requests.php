@@ -303,8 +303,8 @@ class Psc_Requests {
             }
         }
 
-        // Enfants déclarés. Tous les champs (prénom, nom, classe, naissance,
-        // justificatif d'assurance) sont obligatoires pour chaque enfant
+        // Enfants déclarés. Tous les champs (prénom, nom, classe,
+        // date de naissance) sont obligatoires pour chaque enfant
         // réellement nommé : contrairement à une ligne entièrement vide
         // (ligne inutilisée, simplement ignorée — cf. le "+ Ajouter un
         // enfant" qui laisse des lignes en trop), un enfant explicitement
@@ -312,7 +312,6 @@ class Psc_Requests {
         // disparaître silencieusement de la demande serait trompeur pour le
         // parent qui a rempli sa ligne.
         $children = array();
-        $assurance_uploads = array(); // index dans $children => $_FILES entry validé
         for ($i = 0; $i < self::MAX_CHILDREN; $i++) {
             $cn = psc_post('child_nom_' . $i);
             $cp = psc_post('child_prenom_' . $i);
@@ -329,15 +328,6 @@ class Psc_Requests {
             // distinct du simple champ manquant ci-dessus.
             if (!psc_valid_child_birthdate($cb)) {
                 wp_safe_redirect(add_query_arg('psc_msg', 'child_bad_birthdate', $back));
-                exit;
-            }
-
-            $file = isset($_FILES['child_assurance_' . $i]) ? $_FILES['child_assurance_' . $i] : null;
-            $file_check = Psc_Assurances::validate_upload($file);
-            if ($file_check !== true) {
-                $codes = array('too_large' => 'assurance_too_large', 'invalid_type' => 'assurance_invalid_type', 'required' => 'assurance_required', 'partial' => 'assurance_partial', 'failed' => 'assurance_upload_failed');
-                error_log(sprintf('[PSC assurance] child_index=%d reason=%s upload_error=%d size=%d', $i, $file_check, (int) ($file['error'] ?? -1), (int) ($file['size'] ?? 0)));
-                wp_safe_redirect(add_query_arg('psc_msg', isset($codes[$file_check]) ? $codes[$file_check] : 'assurance_upload_failed', $back));
                 exit;
             }
 
@@ -366,7 +356,6 @@ class Psc_Requests {
                 'food_allergies'       => $allergies,
                 'personnes_autorisees' => array(),
             );
-            $assurance_uploads[count($children) - 1] = $file;
         }
 
         if (empty($children)) {
@@ -472,28 +461,8 @@ class Psc_Requests {
             $request_id = (int) $wpdb->insert_id;
         }
 
-        // Les chemins des justificatifs dépendent de $request_id, connu
-        // seulement maintenant : on les déplace en zone d'attente puis on
-        // recomplète children_json. En cas de resoumission (branche
-        // $existing ci-dessus), on purge d'abord l'éventuelle zone
-        // d'attente précédente pour éviter des fichiers orphelins si le
-        // nombre d'enfants a changé entre les deux soumissions.
+        // Nettoie les pièces d'une éventuelle ancienne demande resoumise.
         Psc_Assurances::delete_pending_files($request_id);
-        $pending_dir = Psc_Assurances::pending_dir($request_id);
-        wp_mkdir_p($pending_dir);
-        foreach ($assurance_uploads as $children_index => $file) {
-            $filetype = wp_check_filetype($file['name'], array(
-                'pdf'      => 'application/pdf',
-                'jpg|jpeg' => 'image/jpeg',
-                'png'      => 'image/png',
-            ));
-            $target = trailingslashit($pending_dir) . 'child-' . $children_index . '.' . $filetype['ext'];
-            if (move_uploaded_file($file['tmp_name'], $target)) {
-                $children[$children_index]['assurance_rel_path'] = Psc_Assurances::pending_rel_path($request_id, $children_index, $filetype['ext']);
-                $children[$children_index]['assurance_original_filename'] = sanitize_file_name($file['name']);
-            }
-        }
-        $wpdb->update($t, array('children_json' => wp_json_encode($children)), array('id' => $request_id));
 
         // Prélèvement : le mandat SEPA est généré tout de suite (la RUM ne
         // dépend que de l'id de la demande, déjà connu) et joint à l'e-mail

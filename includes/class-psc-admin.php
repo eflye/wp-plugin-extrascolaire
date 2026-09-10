@@ -24,6 +24,7 @@ class Psc_Admin extends Psc_Admin_Base {
         foreach (array(
             'Psc_Admin_School_Years',
             'Psc_Admin_Familles',
+            'Psc_Admin_Assurances',
             'Psc_Admin_Inscriptions',
             'Psc_Admin_Cantine',
             'Psc_Admin_Invoices',
@@ -81,6 +82,8 @@ class Psc_Admin extends Psc_Admin_Base {
         // Fiche "Personnes autorisées" d'un enfant — accessible uniquement
         // depuis la ligne de l'enfant dans Enfants, jamais dans le menu.
         add_submenu_page('psc_dashboard', __('Personnes autorisées', 'periscolaire-registration'), null, $cap, 'psc_pickup_persons', array('Psc_Admin_Familles', 'page_pickup_persons'));
+
+        add_submenu_page('psc_dashboard', 'Assurances scolaires', 'Assurances scolaires', $cap, 'psc_assurances', array('Psc_Admin_Assurances', 'page'));
 
         // Facturation
         add_submenu_page('psc_dashboard', __('Facturation', 'periscolaire-registration'), __('Facturation', 'periscolaire-registration'), $cap, 'psc_factures', array('Psc_Admin_Invoices', 'page_factures'));

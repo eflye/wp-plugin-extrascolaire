@@ -27,10 +27,6 @@ const CONTAINER = process.env.PSC_WP_CONTAINER ?? 'plugin-extrascolaire-wordpres
 const CONTAINER_WP_CLI = '/usr/local/bin/wp-cli.phar';
 
 const ALLERGIES = 'Arachides — PAI requis (E2E)';
-const PDF_BYTES = Buffer.from(
-  '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n',
-  'utf8'
-);
 
 function wpCli(args: string[]): string {
   return execFileSync(
@@ -98,11 +94,7 @@ async function submitRequest(page: Page, email: string, prenom: string, allergie
   await page.locator('#psc-cn-0').fill('TestDemande');
   await page.locator('#psc-cc-0').selectOption({ label: 'CP' });
   await page.locator('#psc-cb-0').fill('2020-03-01');
-  await page.locator('#psc-ca-0').setInputFiles({
-    name: 'assurance.pdf',
-    mimeType: 'application/pdf',
-    buffer: PDF_BYTES,
-  });
+  await expect(page.locator('input[name^="child_assurance_"]')).toHaveCount(0);
   if (allergies !== null) {
     await page.locator('input[name="child_has_allergy_0"]').check();
     await page.locator('textarea[name="child_food_allergies_0"]').fill(allergies);

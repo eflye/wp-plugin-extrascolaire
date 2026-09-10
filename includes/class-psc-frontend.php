@@ -331,7 +331,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
             'assurance_uploaded', 'assurance_invalid', 'assurance_upload_failed',
             'assurance_too_large', 'assurance_invalid_type', 'assurance_required',
         ), true)) {
-            $tab = 'enfants';
+            if (!in_array(psc_get('psc_tab'), array('cantine', 'cantine2'), true)) $tab = 'enfants';
         }
         // Personnes autorisées (ajout foyer, édition et retrait par ligne) :
         // le bloc vit dans l'onglet « Habilitations », les retours y reviennent.

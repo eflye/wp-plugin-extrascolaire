@@ -43,6 +43,7 @@ class Psc_Admin_Config extends Psc_Admin_Base {
 
         update_option('psc_notify_mairie', isset($_POST['notify_mairie']) ? 1 : 0);
         update_option('psc_auto_approve_requests', isset($_POST['auto_approve_requests']) ? 1 : 0);
+        update_option('psc_assurance_review_mode', psc_post('assurance_review_mode') === 'manual' ? 'manual' : 'auto');
 
         // Durées de validité des liens envoyés par e-mail, bornées pour
         // éviter une valeur absurde (lien de connexion : entre 5 min et

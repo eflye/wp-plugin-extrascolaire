@@ -98,59 +98,20 @@
         });
 
         // À l'envoi, revenir au champ invalide même si son étape est masquée.
-        // Lire les pièces jointes permet aussi de détecter un fichier mobile
-        // devenu inaccessible avant de quitter le formulaire et perdre la saisie.
         var form = wizard.querySelector('form');
-        var checkingFiles = false;
-        var readyToSubmit = false;
         if (form) {
             form.noValidate = true;
-            form.addEventListener('change', function (event) {
-                if (event.target.type === 'file') event.target.setCustomValidity('');
-            });
             form.addEventListener('submit', function (event) {
-                if (readyToSubmit) return;
-                event.preventDefault();
-                if (checkingFiles) return;
                 for (var i = 0; i < steps.length; i++) {
                     var invalid = steps[i].querySelector(':invalid');
                     if (invalid) {
+                        event.preventDefault();
                         current = i;
                         render();
                         invalid.reportValidity();
                         return;
                     }
                 }
-                checkingFiles = true;
-                var files = Array.prototype.slice.call(form.querySelectorAll('input[type="file"]'));
-                Promise.all(files.map(function (input) {
-                    var file = input.files && input.files[0];
-                    if (!file || input.disabled) return Promise.resolve();
-                    var readable = file.size > 0
-                        ? new Promise(function (resolve, reject) {
-                            var reader = new window.FileReader();
-                            reader.onload = function () { resolve(); };
-                            reader.onerror = reject;
-                            reader.onabort = reject;
-                            reader.readAsArrayBuffer(file);
-                        }) : Promise.reject();
-                    return readable.catch(function () {
-                        input.setCustomValidity(t('insurance_unreadable'));
-                        return input;
-                    });
-                })).then(function (results) {
-                    checkingFiles = false;
-                    var failed = results.find(function (input) { return !!input; });
-                    if (failed) {
-                        current = steps.indexOf(failed.closest('.psc-wizard-step'));
-                        render();
-                        failed.reportValidity();
-                        return;
-                    }
-                    readyToSubmit = true;
-                    form.requestSubmit(submitBtn);
-                    readyToSubmit = false;
-                });
             });
         }
 
@@ -299,8 +260,6 @@
                 '<select id="psc-cc-' + idx + '" class="psc-portal-field-underline" name="child_classe_' + idx + '" required>' + classeOptionsHTML + '</select></div>' +
                 '<div><label class="psc-portal-field-label" for="psc-cb-' + idx + '">' + t('child_birthdate') + '</label>' +
                 '<input id="psc-cb-' + idx + '" class="psc-portal-field-underline" type="date" name="child_naissance_' + idx + '" max="' + t('child_birthdate_max') + '" required></div>' +
-                '<div><label class="psc-portal-field-label" for="psc-ca-' + idx + '">' + t('insurance') + '</label>' +
-                '<input id="psc-ca-' + idx + '" type="file" name="child_assurance_' + idx + '" accept=".pdf,.jpg,.jpeg,.png" required></div>' +
                 '<div class="psc-wizard-diet-cell"><div class="psc-portal-field-label">' + t('diet') + '</div>' +
                 '<div class="psc-wizard-diet-group">' +
                 '<label class="psc-wizard-diet-check"><input type="checkbox" name="child_sans_porc_' + idx + '" value="1"> ' + t('diet_pork') + '</label>' +
