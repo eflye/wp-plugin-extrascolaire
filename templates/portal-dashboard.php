@@ -1,10 +1,9 @@
 <?php if (!defined('ABSPATH')) exit; ?>
-<?php if (!empty($psc_portal_dashboard['urgent_message'])): $urgent = $psc_portal_dashboard['urgent_message']; ?>
-<aside class="psc-message-urgent-banner" role="alert"><strong><?php echo esc_html($urgent->titre); ?></strong><a href="<?php echo esc_url(add_query_arg(array('psc_tab'=>'messages','message_id'=>(int)$urgent->id),Psc_Mailer::form_page_url())); ?>"><?php esc_html_e('Lire','periscolaire-registration'); ?></a></aside>
-<?php endif; ?>
 <div class="psc-portal-eyebrow"><?php esc_html_e('Bonjour', 'periscolaire-registration'); ?></div>
 <h1 class="psc-portal-h1 psc-portal-h1--dashboard" data-testid="dashboard-title"><?php echo esc_html($psc_portal_dashboard['title']); ?></h1>
-<p class="psc-portal-subtitle"><?php esc_html_e("Voici l'essentiel de votre espace périscolaire.", 'periscolaire-registration'); ?></p>
+<p class="psc-portal-subtitle psc-portal-subtitle--messages"><?php esc_html_e("Voici l'essentiel de votre espace périscolaire.", 'periscolaire-registration'); ?></p>
+
+<?php include PSC_PATH . 'templates/partials/dashboard-messages.php'; ?>
 
 <div class="psc-portal-cards">
   <div class="psc-portal-card">

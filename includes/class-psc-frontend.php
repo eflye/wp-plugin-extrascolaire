@@ -276,7 +276,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
         );
         $tabs['messages'] = array(
             'label' => __('Messages', 'periscolaire-registration'),
-            'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5h16v12H8l-4 4Z"/><path d="M8 9h8M8 13h5"/></svg>',
+            'icon'  => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="1"></rect><path d="m3.5 6 8.5 6.5L20.5 6"></path></svg>',
         );
         $tabs['enfants'] = array(
             'label' => __('Mes enfants', 'periscolaire-registration'),
@@ -631,6 +631,8 @@ class Psc_Frontend extends Psc_Frontend_Base {
         $psc_portal_tabs['messages']['badge'] = $psc_messages_data['unread'];
         $psc_portal_dashboard = self::dashboard_data($parent, $children, $psc_year_summary, $invoices);
         $psc_portal_dashboard['urgent_message'] = Psc_Messages_Frontend::urgent_for_family((int) $parent->id);
+        $psc_portal_dashboard['message_digest'] = $psc_messages_data['messages'];
+        $psc_portal_dashboard['message_unread'] = $psc_messages_data['unread'];
         $psc_assurance_map = Psc_Assurances::map_for($all_children);
 
         // Uniquement les enfants actifs : un enfant sorti disparaît du
