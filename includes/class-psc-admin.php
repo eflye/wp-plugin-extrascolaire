@@ -37,11 +37,10 @@ class Psc_Admin extends Psc_Admin_Base {
 
     /**
      * Regroupement du menu (du plus quotidien au plus occasionnel) :
-     * Tableau de bord, Calendrier en cours, Cantine, Demandes
-     * & suivi, Familles, Facturation, Configuration, puis Années scolaires
-     * — reléguée juste avant Réglages car utilisée seulement ~1 fois par an
-     * (création/activation d'année, passage de classe), loin des écrans
-     * consultés au quotidien. Le slug du menu de premier niveau est
+     * Tableau de bord, Messages, Cantine, Demandes & suivi, Familles,
+     * Facturation et Configuration. Le calendrier et les années scolaires
+     * sont regroupés en bas, juste avant Réglages, car utilisés plus
+     * ponctuellement. Le slug du menu de premier niveau est
      * 'psc_dashboard' (avant : 'psc_inscriptions', qui reste une page
      * valide — seule sa place dans l'arborescence change, aucun lien
      * existant vers admin.php?page=psc_inscriptions n'est cassé).
@@ -58,11 +57,10 @@ class Psc_Admin extends Psc_Admin_Base {
         add_menu_page(__('Périscolaire', 'periscolaire-registration'), __('Périscolaire', 'periscolaire-registration'), $cap, 'psc_dashboard', array(__CLASS__, 'page_dashboard'), 'dashicons-groups', 58);
         add_submenu_page('psc_dashboard', __('Tableau de bord', 'periscolaire-registration'), __('Tableau de bord', 'periscolaire-registration'), $cap, 'psc_dashboard', array(__CLASS__, 'page_dashboard'));
 
-        // Calendrier scolaire en cours (Psc_Admin_Calendar_V2, classe
-        // isolée) : enregistré ici plutôt que dans sa propre classe pour
-        // contrôler sa position dans le sous-menu (juste sous le tableau
-        // de bord, c'est l'écran le plus consulté au quotidien).
-        add_submenu_page('psc_dashboard', __('Calendrier scolaire en cours', 'periscolaire-registration'), __('Calendrier scolaire en cours', 'periscolaire-registration'), $cap, 'psc_school_calendar_v2', array('Psc_Admin_Calendar_V2', 'page_calendar_v2'));
+        // Communication descendante : accès direct juste après le tableau de
+        // bord. Les écrans d'édition et de suivi, sans libellé de menu, restent
+        // enregistrés par Psc_Messages_Admin.
+        add_submenu_page('psc_dashboard', __('Messages aux familles', 'periscolaire-registration'), __('Messages', 'periscolaire-registration'), 'psc_manage_messages', 'psc_messages', array('Psc_Messages_Admin', 'page_list'));
 
         // Cantine
         add_submenu_page('psc_dashboard', __('Menus cantine', 'periscolaire-registration'), __('Menus cantine', 'periscolaire-registration'), $cap, 'psc_menus', array('Psc_Admin_Cantine', 'page_menus'));
@@ -93,8 +91,9 @@ class Psc_Admin extends Psc_Admin_Base {
         // Configuration
         add_submenu_page('psc_dashboard', __('Modèles e-mails', 'periscolaire-registration'), __('Modèles e-mails', 'periscolaire-registration'), $cap, 'psc_email_templates', array('Psc_Admin_Config', 'page_email_templates'));
 
-        // Années scolaires : usage occasionnel (~1 fois par an), reléguée
-        // en bas du menu plutôt qu'à côté des écrans du quotidien.
+        // Outils scolaires ponctuels : le calendrier reste immédiatement lié
+        // à la gestion des années, dans l'ordre demandé par le back-office.
+        add_submenu_page('psc_dashboard', __('Calendrier scolaire en cours', 'periscolaire-registration'), __('Calendrier scolaire en cours', 'periscolaire-registration'), $cap, 'psc_school_calendar_v2', array('Psc_Admin_Calendar_V2', 'page_calendar_v2'));
         add_submenu_page('psc_dashboard', __('Années scolaires', 'periscolaire-registration'), __('Années scolaires', 'periscolaire-registration'), $cap, 'psc_school_years', array('Psc_Admin_School_Years', 'page_school_years'));
         // Écran intermédiaire du passage d'année (récapitulatif + confirmation) :
         // pas un lien de menu à part entière, seulement atteint depuis

@@ -23,7 +23,8 @@ class Psc_Messages_Admin extends Psc_Admin_Base {
     }
 
     public static function menu() {
-        add_submenu_page('psc_dashboard', __('Messages aux familles', 'periscolaire-registration'), __('Messages', 'periscolaire-registration'), 'psc_manage_messages', 'psc_messages', array(__CLASS__, 'page_list'));
+        // Le lien visible est enregistré par Psc_Admin::menu() afin que sa
+        // position reste déterministe juste sous le tableau de bord.
         add_submenu_page('psc_dashboard', __('Nouveau message', 'periscolaire-registration'), null, 'psc_manage_messages', 'psc_message_edit', array(__CLASS__, 'page_edit'));
         add_submenu_page('psc_dashboard', __('Suivi du message', 'periscolaire-registration'), null, 'psc_manage_messages', 'psc_message_stats', array(__CLASS__, 'page_stats'));
     }

@@ -105,4 +105,11 @@ test.describe('Messages aux familles', () => {
     const count = wpEval(`$id=Psc_Messages::save(array('titre'=>'Portail seul','corps'=>'<p>Info</p>','categorie'=>'information','statut'=>'brouillon','cible_type'=>'familles','cible_valeur'=>array('family_ids'=>array(${familyId})),'canaux'=>array('portail'=>true,'email'=>false,'push'=>false),'auteur_id'=>1)); Psc_Messages::send($id); echo Psc_Messages::resend_unread($id);`);
     expect(count).toBe('0');
   });
+
+  test('respecte l’ordre demandé dans le menu du back-office', () => {
+    const slugs = JSON.parse(wpEval(`wp_set_current_user(1); do_action('admin_menu'); global $submenu;
+      echo wp_json_encode(array_values(array_map(function($item){return $item[2];},$submenu['psc_dashboard'])));`));
+    expect(slugs.indexOf('psc_messages')).toBe(slugs.indexOf('psc_dashboard') + 1);
+    expect(slugs.indexOf('psc_school_calendar_v2')).toBe(slugs.indexOf('psc_school_years') - 1);
+  });
 });
