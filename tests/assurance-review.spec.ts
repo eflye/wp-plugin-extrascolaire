@@ -22,18 +22,20 @@ test('assurances : dépôt mobile, revue, refus, remplacement et acceptation aut
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(login);
     await page.goto('http://localhost:8080/?psc_tab=cantine2');
+    // L'assurance manquante de Chloé ne bloque plus Alice ni Bob.
+    await expect(page.getByTestId('exception-grid')).toBeVisible();
+    await page.getByTestId(`child-tab-${data.chloe_id}`).click();
     await expect(page.getByTestId('portal-section-cantine2').getByTestId('assurance-gate')).toBeVisible();
-    await expect(page.getByTestId('exception-grid')).toHaveCount(0);
-    // Le même verrou protège toutes les mutations, même avec des jetons valides.
-    for (const action of ['psc_toggle_pattern', 'psc_toggle_exception', 'psc_toggle_exception_bulk', 'psc_apply_pattern_to_siblings', 'psc_reset_month_exceptions']) {
-      const response = await page.evaluate(async action => {
+    await expect(page.getByTestId('exception-grid')).toBeHidden();
+    const load = async (childId: number) => page.evaluate(async childId => {
         const cfg = (window as any).PSC;
-        const r = await fetch(cfg.ajax_url, { method: 'POST', body: new URLSearchParams({ action, nonce: cfg.nonce, parent_nonce: cfg.parent_nonce }) });
+        const r = await fetch(cfg.ajax_url, { method: 'POST', body: new URLSearchParams({ action: 'psc_load_month', child_id: String(childId), month: '2026-09', nonce: cfg.nonce, parent_nonce: cfg.parent_nonce }) });
         return { status: r.status, json: await r.json() };
-      }, action);
-      expect(response.status, action).toBe(403);
-      expect(response.json.data.code, action).toBe('assurance_missing');
-    }
+      }, childId);
+    expect((await load(data.alice_id)).status).toBe(200);
+    const blocked = await load(data.chloe_id);
+    expect(blocked.status).toBe(403);
+    expect(blocked.json.data.code).toBe('assurance_missing');
     const upload = async () => {
       await page.getByTestId('portal-section-cantine2').locator('input[name="assurance_file"]').setInputFiles(pdf);
       await page.getByTestId('portal-section-cantine2').locator('.psc-assurance-card button[type="submit"]').click();
@@ -74,7 +76,7 @@ test('assurances : dépôt mobile, revue, refus, remplacement et acceptation aut
     await expect(page.getByTestId('exception-grid')).toBeVisible();
     // Nouvelle pièce en mode manuel : elle repasse en attente.
     wp('eval', `Psc_Assurances::upsert_row(${data.chloe_id}, 'test/assurance.pdf', 'assurance.pdf');`);
-    await page.reload();
+    await page.goto(`http://localhost:8080/?psc_tab=cantine2&psc_child=${data.chloe_id}`);
     await expect(page.getByTestId('portal-section-cantine2').getByTestId('assurance-gate')).toBeVisible();
     wp('option', 'update', 'psc_assurance_review_mode', 'auto');
     await page.reload();

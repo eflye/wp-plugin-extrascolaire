@@ -23,7 +23,10 @@ class Psc_Frontend_Documents extends Psc_Frontend_Base {
     protected static function upload_redirect($msg) {
         $tab = psc_post('return_tab');
         if (!in_array($tab, array('cantine', 'cantine2'), true)) $tab = 'enfants';
-        wp_safe_redirect(add_query_arg(array('psc_msg' => $msg, 'psc_tab' => $tab), Psc_Mailer::form_page_url()));
+        $args = array('psc_msg' => $msg, 'psc_tab' => $tab);
+        $return_child = psc_post_int('return_child');
+        if ($tab === 'cantine2' && $return_child) $args['psc_child'] = $return_child;
+        wp_safe_redirect(add_query_arg($args, Psc_Mailer::form_page_url()));
         exit;
     }
 

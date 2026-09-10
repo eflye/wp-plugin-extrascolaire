@@ -1,11 +1,5 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <?php
-$psc_blocked_children = Psc_Assurances::blocked_children($children);
-if ($psc_blocked_children) {
-    $psc_assurance_variant = 'cantine2';
-    include PSC_PATH . 'templates/portal-assurance-gate.php';
-    return;
-}
 /**
  * Planning — rythme + exceptions (maquette Family Portal v3, écran
  * « Cantine & Garderie »).
@@ -55,12 +49,14 @@ $psc_v2_boot = array(
 );
 foreach ($children as $c) {
     $cid = (int) $c->id;
+    $psc_doc = isset($psc_assurance_map[$cid]) ? $psc_assurance_map[$cid] : null;
     $psc_v2_boot['children'][] = array(
         'id'     => $cid,
         'name'   => trim($c->prenom . ' ' . $c->nom),
         'prenom' => $c->prenom,
         'cantine_sans_repas' => !empty($c->cantine_sans_repas),
         'classe' => Psc_School_Years::classe_for($cid),
+        'assurance_status' => Psc_Assurances::status($psc_doc),
     );
 }
 if (isset($psc_year_summary['months'][$psc_month_key]['per_child'])) {
@@ -102,6 +98,8 @@ $psc_display_columns = $psc_active_sans_repas ? $psc_without_meal_columns : $psc
 $psc_active_classe = Psc_School_Years::classe_for($psc_active_child_id);
 $psc_active_month = $psc_year_summary['months'][$psc_month_key]['per_child'][$psc_active_child_id] ?? array('days' => 0, 'amount' => 0.0);
 $psc_active_year = $psc_year_summary['year']['per_child'][$psc_active_child_id] ?? array('days' => 0, 'amount' => 0.0);
+$psc_active_doc = isset($psc_assurance_map[$psc_active_child_id]) ? $psc_assurance_map[$psc_active_child_id] : null;
+$psc_active_blocked = Psc_Assurances::status($psc_active_doc) !== 'approved';
 ?>
 <div class="psc-portal-eyebrow"><?php esc_html_e('Inscriptions', 'periscolaire-registration'); ?></div>
 <h1 class="psc-portal-h1" data-testid="cantine2-title"><?php esc_html_e('Planning cantine & garderie', 'periscolaire-registration'); ?></h1>
@@ -169,6 +167,13 @@ $psc_active_year = $psc_year_summary['year']['per_child'][$psc_active_child_id] 
     <?php endforeach; ?>
   </div>
 
+  <?php
+  $psc_blocked_children = Psc_Assurances::blocked_children($children);
+  $psc_assurance_variant = 'cantine2';
+  include PSC_PATH . 'templates/portal-assurance-gate.php';
+  ?>
+
+  <div data-planning-child-controls<?php echo $psc_active_blocked ? ' hidden' : ''; ?>>
   <p class="psc-badge psc-planning-sans-repas" data-testid="planning-sans-repas" role="status"<?php echo $psc_active_sans_repas ? '' : ' hidden'; ?>><?php esc_html_e('Cantine sans repas', 'periscolaire-registration'); ?></p>
   <div class="psc-planning-panels">
     <?php /* c. Étape 1 — rythme habituel (panneau gauche) */ ?>
@@ -332,6 +337,7 @@ $psc_active_year = $psc_year_summary['year']['per_child'][$psc_active_child_id] 
         <span><span class="psc-exc-swatch psc-exc-locked" aria-hidden="true"></span> <?php esc_html_e('Verrouillé (48 h)', 'periscolaire-registration'); ?></span>
       </div>
     </div>
+  </div>
   </div>
 
   <?php /* e. Récapitulatif fratrie */ ?>

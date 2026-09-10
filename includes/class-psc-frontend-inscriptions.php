@@ -73,9 +73,6 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         if (!psc_verify_parent_nonce('psc_front', $parent->id, psc_post('parent_nonce'))) {
             wp_send_json_error(array('code' => 'auth'), 403);
         }
-        if (Psc_Assurances::blocked_children(self::children_of($parent->id, true))) {
-            wp_send_json_error(array('code' => 'assurance_missing', 'message' => 'Déposez les assurances scolaires depuis Planning. Le calendrier sera accessible après leur acceptation.'), 403);
-        }
         return $parent;
     }
 
@@ -176,12 +173,14 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         $child = null;
         $children_list = array();
         foreach ($children as $c) {
+            $assurance_doc = Psc_School_Years::enrollment($c->id, Psc_School_Years::active_id());
             $children_list[] = array(
                 'id'     => (int) $c->id,
                 'name'   => trim($c->prenom . ' ' . $c->nom),
                 'prenom' => $c->prenom,
                 'cantine_sans_repas' => !empty($c->cantine_sans_repas),
                 'classe' => Psc_School_Years::classe_for($c->id),
+                'assurance_status' => Psc_Assurances::status($assurance_doc),
             );
             if ((int) $c->id === (int) $child_id) { $child = $c; }
         }
@@ -271,10 +270,7 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
             wp_send_json_error(array('code' => 'invalid'), 400);
         }
 
-        $child = self::owned_child($child_id, $parent->id);
-        if (!$child || $child->statut !== 'actif') {
-            wp_send_json_error(array('code' => 'notfound'), 404);
-        }
+        $child = self::ajax_owned_child($parent, $child_id);
 
         $result = Psc_Planning::toggle_exception($child_id, $date, $service, $checked);
 
@@ -404,7 +400,9 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         $children = self::children_of($parent->id, true);
         $target_ids = array();
         foreach ($children as $c) {
-            if ((int) $c->id !== (int) $source->id) $target_ids[] = (int) $c->id;
+            if ((int) $c->id !== (int) $source->id && Psc_Assurances::has_valid((int) $c->id)) {
+                $target_ids[] = (int) $c->id;
+            }
         }
         if (empty($target_ids)) {
             wp_send_json_error(array('code' => 'nochild'), 400);

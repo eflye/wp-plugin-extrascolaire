@@ -1,11 +1,5 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <?php
-$psc_blocked_children = Psc_Assurances::blocked_children($children);
-if ($psc_blocked_children) {
-    $psc_assurance_variant = 'cantine';
-    include PSC_PATH . 'templates/portal-assurance-gate.php';
-    return;
-}
 /**
  * Planning - 1 — saisie jour par jour.
  *
@@ -88,7 +82,8 @@ $psc_next_url = $psc_next_month ? add_query_arg(array('psc_tab' => 'cantine', 'p
   </div>
 
   <?php $child_index = 0; foreach ($children as $child):
-    $assurance_missing = empty($psc_assurance_map[$child->id]);
+    $assurance_doc = isset($psc_assurance_map[$child->id]) ? $psc_assurance_map[$child->id] : null;
+    $assurance_missing = Psc_Assurances::status($assurance_doc) !== 'approved';
     $child_map = isset($psc_explicit[(int) $child->id]) ? $psc_explicit[(int) $child->id] : array();
     $child_summary = isset($psc_year_summary['year']['per_child'][(int) $child->id]) ? $psc_year_summary['year']['per_child'][(int) $child->id] : array('days' => 0, 'amount' => 0.0);
     $child_month_summary = isset($psc_year_summary['months'][$psc_month_key]['per_child'][(int) $child->id]) ? $psc_year_summary['months'][$psc_month_key]['per_child'][(int) $child->id] : array('days' => 0, 'amount' => 0.0);

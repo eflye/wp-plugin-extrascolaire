@@ -37,6 +37,24 @@
         return null;
     }
 
+    function childHasValidInsurance(childId) {
+        for (var i = 0; i < boot.children.length; i++) {
+            if (boot.children[i].id === childId) return boot.children[i].assurance_status === 'approved';
+        }
+        return false;
+    }
+
+    function renderInsuranceGate() {
+        var valid = childHasValidInsurance(boot.active_child);
+        var gate = document.querySelector('[data-testid="assurance-gate"]');
+        var controls = document.querySelector('[data-planning-child-controls]');
+        if (gate) gate.hidden = valid;
+        if (controls) controls.hidden = !valid;
+        document.querySelectorAll('[data-assurance-child]').forEach(function (card) {
+            card.hidden = valid || parseInt(card.dataset.assuranceChild, 10) !== boot.active_child;
+        });
+    }
+
     /* ---------- Rendu ---------- */
 
     function renderServiceColumns() {
@@ -288,6 +306,7 @@
         renderExcBar(state);
         renderRecap(state);
         renderMonthLabel(state);
+        renderInsuranceGate();
     }
 
     function setBusy(busy) {
@@ -528,6 +547,9 @@
                     tb.classList.toggle('is-active', active);
                     tb.setAttribute('aria-selected', active ? 'true' : 'false');
                 });
+                boot.active_child = cid;
+                renderInsuranceGate();
+                if (!childHasValidInsurance(cid)) return;
                 loadMonth(cid, boot.month);
             });
         });
