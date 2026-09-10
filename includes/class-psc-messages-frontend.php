@@ -10,7 +10,11 @@ class Psc_Messages_Frontend {
     }
 
     public static function assets() {
-        wp_enqueue_style('psc-messages', PSC_URL . 'assets/css/psc-messages.css', array('psc-portal'), PSC_VERSION);
+        $email_view = isset($_GET['psc_msg'], $_GET['t']);
+        $post = is_singular() ? get_post() : null;
+        $portal = $post && has_shortcode($post->post_content, 'periscolaire_form') && Psc_Parents::current();
+        if (!$email_view && !$portal) return;
+        wp_enqueue_style('psc-messages', PSC_URL . 'assets/css/psc-messages.css', $email_view ? array() : array('psc-portal'), PSC_VERSION);
     }
 
     public static function data_for_family($family_id, $open_first = true) {
@@ -18,6 +22,9 @@ class Psc_Messages_Frontend {
         $requested = isset($_GET['message_id']) ? absint($_GET['message_id']) : 0;
         $selected = null;
         foreach ($messages as $message) if ((int) $message->id === $requested) { $selected = $message; break; }
+        if ($requested && !$selected) {
+            wp_die(esc_html__('Ce message ne vous est pas destiné.', 'periscolaire-registration'), '', array('response' => 403));
+        }
         if (!$selected && $messages && $open_first) $selected = $messages[0];
         if ($selected) {
             Psc_Messages::mark_seen((int) $selected->id, $family_id, 'portail');
@@ -27,8 +34,12 @@ class Psc_Messages_Frontend {
     }
 
     public static function urgent_for_family($family_id) {
-        foreach (Psc_Messages::for_family($family_id) as $message) if ($message->categorie === 'urgent' && !$message->vu_le) return $message;
-        return null;
+        $urgent = null;
+        foreach (Psc_Messages::for_family($family_id) as $message) {
+            if ($message->categorie !== 'urgent' || $message->vu_le) continue;
+            if (!$urgent || strtotime($message->date_envoi) > strtotime($urgent->date_envoi)) $urgent = $message;
+        }
+        return $urgent;
     }
 
     public static function handle_email_link() {
@@ -55,7 +66,8 @@ class Psc_Messages_Frontend {
         $id = isset($_POST['message_id']) ? absint($_POST['message_id']) : 0;
         $owned = false;
         foreach (Psc_Messages::for_family($parent->id) as $message) if ((int) $message->id === $id) { $owned = true; break; }
-        if ($owned) Psc_Messages::mark_ack($id, (int) $parent->id);
+        if (!$owned) wp_die(esc_html__('Ce message ne vous est pas destiné.', 'periscolaire-registration'), '', array('response' => 403));
+        Psc_Messages::mark_ack($id, (int) $parent->id);
         wp_safe_redirect(add_query_arg(array('psc_tab' => 'messages', 'message_id' => $id), Psc_Mailer::form_page_url())); exit;
     }
 }
