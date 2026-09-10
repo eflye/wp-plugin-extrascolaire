@@ -67,7 +67,7 @@ jobs:
       # archives locales, exports et rapports ne polluent pas le test.)
       - name: Vérifie la complétude du paquet
         run: |
-          EXCLUSIONS="|.env.example|.env.prod.example|.github|.gitignore|TODO.md|bin|composer.json|composer.lock|docker-compose.prod.yml|docker-compose.yml|docs|eslint.config.js|helpers|journeys|mu-plugins|package-lock.json|package.json|phpstan-bootstrap.php|phpstan.neon|playwright|playwright.config.ts|tests|theme|"
+          EXCLUSIONS="|.env.example|.env.prod.example|.github|.gitignore|REFACTORING_PLAN.md|TODO.md|bin|composer.json|composer.lock|docker-compose.prod.yml|docker-compose.yml|docs|eslint.config.js|helpers|journeys|mu-plugins|package-lock.json|package.json|phpstan-bootstrap.php|phpstan.neon|playwright|playwright.config.ts|tests|theme|"
           MISSING=0
           for entry in $(git ls-files | cut -d/ -f1 | sort -u); do
             case "$EXCLUSIONS" in *"|$entry|"*) continue ;; esac
