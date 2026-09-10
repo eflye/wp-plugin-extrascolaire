@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.8.1
+Stable tag: 5.9.0
 License: GPLv2 or later
 
 == Description ==
@@ -280,6 +280,11 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.9.0 =
+* Ajoute une preuve automatisée de sauvegarde et restauration MySQL dans une base isolée avant les migrations de CI.
+* Documente le filet de sécurité, la couverture fonctionnelle et l'inventaire du schéma observé.
+* Ajoute des compteurs techniques anonymes pour mesurer les usages legacy avant toute suppression future.
 
 = 5.8.1 =
 * Corrige le verrouillage du planning pour les familles ayant plusieurs enfants : seule la fiche de l'enfant sans assurance valide est bloquée.
