@@ -128,11 +128,12 @@ admin, e-mail). Le terminer normalement.
 ## 7. Activer et configurer le plugin
 
 1. **Extensions** → activer **Périscolaire — Inscriptions**.
-2. **Périscolaire > Calendrier scolaire** → « Charger le calendrier
+2. **Périscolaire > Années scolaires** → créer et activer l'année, puis
+   vérifier les dates, vacances, jours fériés et le délai de modification.
+3. **Périscolaire > Calendrier scolaire en cours** → « Charger le calendrier
    officiel » (si le conteneur a bien un accès sortant vers Internet —
    sinon, utiliser le bouton d'upload manuel d'un fichier `.ics` sur la
    même page).
-3. **Périscolaire > Trimestres** → créer un trimestre et l'activer.
 4. **Périscolaire > Réglages** → renseigner les informations de
    facturation (dont l'identifiant créancier SEPA si pertinent pour le
    test).
@@ -212,7 +213,7 @@ statut sain (« healthy »/« Up »).
 **Le calendrier scolaire officiel ne se télécharge pas** — le conteneur
 n'a pas d'accès sortant vers Internet (pare-feu, proxy...) ; utiliser le
 bouton d'upload manuel d'un fichier `.ics` sur **Périscolaire > Calendrier
-scolaire** (voir README).
+scolaire en cours** (voir README).
 
 **Un e-mail attendu n'apparaît pas dans Mailpit** — vérifier que la
 variable `MAILPIT_ENABLED` est bien à `"true"` pour le service
