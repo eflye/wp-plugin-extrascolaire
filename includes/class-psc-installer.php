@@ -3,8 +3,8 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.5.0';
-    const ROLES_VERSION = '1.1.0';
+    const DB_VERSION = '4.6.0';
+    const ROLES_VERSION = '1.2.0';
 
     public static function activate() {
         self::create_tables();
@@ -41,6 +41,12 @@ class Psc_Installer {
             $role = get_role($role_name);
             if ($role && !$role->has_cap('psc_manage_messages')) {
                 $role->add_cap('psc_manage_messages');
+            }
+        }
+        foreach (psc_manage_default_roles() as $role_name) {
+            $role = get_role($role_name);
+            if ($role && !$role->has_cap('psc_impersonate_family')) {
+                $role->add_cap('psc_impersonate_family');
             }
         }
     }
@@ -340,6 +346,7 @@ class Psc_Installer {
     private static function foreign_key_map() {
         return array(
             array('children',           'parent_id',      'parents',      'CASCADE'),
+            array('impersonations',      'family_id',      'parents',      'CASCADE'),
             // Ancienne table conservée en lecture seule le temps d'un cycle
             // de facturation : la cascade enfant continue de purger son
             // historique à la suppression d'un enfant.
@@ -928,6 +935,7 @@ class Psc_Installer {
         $t_svc    = psc_table('service_closures');
         $t_messages = psc_table('messages');
         $t_message_destinataires = psc_table('message_destinataires');
+        $t_impersonations = psc_table('impersonations');
         // v4.0 — année scolaire + rythme & exceptions.
         $t_sy   = psc_table('school_year');
         $t_hol  = psc_table('holidays');
@@ -1254,6 +1262,22 @@ CREATE TABLE $t_message_destinataires (
             UNIQUE KEY msg_fam (message_id, family_id),
             KEY vu_le (vu_le),
             KEY token (token)
+        ) $charset_collate;
+
+CREATE TABLE $t_impersonations (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            wp_user_id BIGINT UNSIGNED NOT NULL,
+            family_id BIGINT UNSIGNED NOT NULL,
+            motif_type VARCHAR(32) NOT NULL,
+            motif_detail VARCHAR(255) NULL,
+            started_at DATETIME NOT NULL,
+            expires_at DATETIME NOT NULL,
+            ended_at DATETIME NULL,
+            ended_reason VARCHAR(16) NULL,
+            ip VARCHAR(45) NULL,
+            PRIMARY KEY  (id),
+            KEY family_started (family_id, started_at),
+            KEY user_ended (wp_user_id, ended_at)
         ) $charset_collate;";
 
         // Tables LÉGACY (trimestres, calendar_days, registrations) : leur
