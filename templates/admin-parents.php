@@ -37,7 +37,9 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 <h2><?php esc_html_e('Modifier —', 'periscolaire-registration'); ?> <?php echo esc_html($edit_parent->nom ?: $edit_parent->email); ?></h2>
 <?php if ($edit_parent->active && current_user_can('psc_impersonate_family')): ?>
 <p><a class="button button-secondary" data-testid="impersonate-open-<?php echo (int) $edit_parent->id; ?>"
-      href="<?php echo esc_url(add_query_arg(array('page' => 'psc_impersonate', 'family_id' => (int) $edit_parent->id), admin_url('admin.php'))); ?>"><?php esc_html_e('Voir son espace', 'periscolaire-registration'); ?></a></p>
+      href="<?php echo esc_url(add_query_arg(array('page' => 'psc_impersonate', 'family_id' => (int) $edit_parent->id), admin_url('admin.php'))); ?>"><?php esc_html_e('Voir son espace', 'periscolaire-registration'); ?></a>
+<a class="button button-secondary" data-testid="conversation-new-<?php echo (int) $edit_parent->id; ?>"
+   href="<?php echo esc_url(add_query_arg(array('page' => 'psc_conversations', 'psc_new_family' => (int) $edit_parent->id), admin_url('admin.php')) . '#psc-conversation-new'); ?>"><?php esc_html_e('Nouvelle conversation', 'periscolaire-registration'); ?></a></p>
 <?php endif; ?>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
 <?php wp_nonce_field('psc_edit_parent'); ?>

@@ -56,6 +56,7 @@ class Psc_Messages_Admin extends Psc_Admin_Base {
             'canaux' => array('portail' => true, 'email' => !empty($_POST['canal_email']), 'push' => !empty($_POST['canal_push'])),
             'piece_jointe_id' => isset($_POST['piece_jointe_id']) ? absint($_POST['piece_jointe_id']) : 0,
             'epingle' => !empty($_POST['epingle']), 'accuse_requis' => !empty($_POST['accuse_requis']),
+            'reponses_autorisees' => !empty($_POST['reponses_autorisees']),
             'date_envoi_prevue' => isset($_POST['date_envoi_prevue']) ? sanitize_text_field(wp_unslash($_POST['date_envoi_prevue'])) : null,
         );
     }
@@ -64,7 +65,11 @@ class Psc_Messages_Admin extends Psc_Admin_Base {
         self::guard_messages('psc_save_message');
         $existing = Psc_Messages::get(isset($_POST['id']) ? absint($_POST['id']) : 0);
         if ($existing && $existing->statut === 'envoye') {
-            $result = Psc_Messages::save(array('id' => (int) $existing->id, 'epingle' => !empty($_POST['epingle'])));
+            $result = Psc_Messages::save(array(
+                'id' => (int) $existing->id,
+                'epingle' => !empty($_POST['epingle']),
+                'reponses_autorisees' => !empty($_POST['reponses_autorisees']),
+            ));
             self::finish_save($result, 'saved');
         }
         $status = isset($_POST['submit_action']) && $_POST['submit_action'] === 'schedule' ? 'programme' : 'brouillon';
@@ -171,6 +176,7 @@ class Psc_Messages_Admin extends Psc_Admin_Base {
         $stats = Psc_Messages::get_stats($message->id);
         $recipients = Psc_Messages::get_recipients($message->id, $filter);
         $author = get_userdata($message->auteur_id);
+        $conversations_count = Psc_Conversations::count_for_message($message->id);
         include PSC_PATH . 'templates/admin-messages-stats.php';
     }
 

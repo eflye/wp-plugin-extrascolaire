@@ -46,6 +46,7 @@ require_once PSC_PATH . 'includes/class-psc-messages.php';
 require_once PSC_PATH . 'includes/class-psc-messages-admin.php';
 require_once PSC_PATH . 'includes/class-psc-messages-frontend.php';
 require_once PSC_PATH . 'includes/class-psc-conversations.php';
+require_once PSC_PATH . 'includes/class-psc-conversations-admin.php';
 require_once PSC_PATH . 'includes/class-psc-supplier-orders.php';
 require_once PSC_PATH . 'includes/class-psc-school-calendar.php';
 require_once PSC_PATH . 'includes/class-psc-admin-calendar-v2.php';
@@ -98,6 +99,7 @@ add_action('plugins_loaded', function () {
     Psc_Requests::init();
     Psc_Messages_Admin::init();
     Psc_Messages_Frontend::init();
+    Psc_Conversations_Admin::init();
     Psc_Conversations_Frontend::init();
     Psc_Frontend::init();
     Psc_Sidscm::init();

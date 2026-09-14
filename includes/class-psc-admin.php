@@ -62,6 +62,21 @@ class Psc_Admin extends Psc_Admin_Base {
         // enregistrés par Psc_Messages_Admin.
         add_submenu_page('psc_dashboard', __('Messages aux familles', 'periscolaire-registration'), __('Messages', 'periscolaire-registration'), 'psc_manage_messages', 'psc_messages', array('Psc_Messages_Admin', 'page_list'));
 
+        // Conversations privées famille ↔ mairie : juste après les diffusions
+        // descendantes, dont c'est le complément. Même pattern de badge que
+        // « Demandes » ci-dessous, avec un texte accessible en plus (la
+        // bulle seule n'est pas lue par un lecteur d'écran).
+        $conv_unread = Psc_Conversations::unread_count_for_mairie();
+        $conv_label = $conv_unread
+            ? sprintf(
+                '%s <span class="awaiting-mod"><span class="pending-count" aria-hidden="true">%d</span><span class="screen-reader-text">%s</span></span>',
+                __('Échanges familles', 'periscolaire-registration'),
+                $conv_unread,
+                sprintf(_n('%d non lu', '%d non lus', $conv_unread, 'periscolaire-registration'), $conv_unread)
+            )
+            : __('Échanges familles', 'periscolaire-registration');
+        add_submenu_page('psc_dashboard', __('Échanges familles', 'periscolaire-registration'), $conv_label, 'psc_manage_messages', 'psc_conversations', array('Psc_Conversations_Admin', 'page_list'));
+
         // Cantine
         add_submenu_page('psc_dashboard', __('Menus cantine', 'periscolaire-registration'), __('Menus cantine', 'periscolaire-registration'), $cap, 'psc_menus', array('Psc_Admin_Cantine', 'page_menus'));
         add_submenu_page('psc_dashboard', __('Commande fournisseur', 'periscolaire-registration'), __('Commande fournisseur', 'periscolaire-registration'), $cap, 'psc_supplier_orders', array('Psc_Admin_Cantine', 'page_supplier_orders'));
@@ -309,6 +324,18 @@ class Psc_Admin extends Psc_Admin_Base {
             'done'  => $pending === 0,
             'url'   => admin_url('admin.php?page=psc_requests'),
         );
+
+        // Échanges familles : contrairement aux autres lignes, affichée
+        // seulement s'il y a effectivement quelque chose à traiter — pas de
+        // ligne "aucun échange non lu" à demeure.
+        $conv_unread = Psc_Conversations::unread_count_for_mairie();
+        if ($conv_unread > 0) {
+            $todos[] = array(
+                'label' => sprintf(_n('%d échange non lu', '%d échanges non lus', $conv_unread, 'periscolaire-registration'), $conv_unread),
+                'done'  => false,
+                'url'   => admin_url('admin.php?page=psc_conversations&filtre=non_lues'),
+            );
+        }
 
         // Semaine prochaine, ramenée à la prochaine semaine ayant au moins un
         // jour d'école ouvert : inutile de rappeler à l'admin de saisir un
