@@ -80,6 +80,9 @@ class Psc_Admin extends Psc_Admin_Base {
         // Fiche "Personnes autorisées" d'un enfant — accessible uniquement
         // depuis la ligne de l'enfant dans Enfants, jamais dans le menu.
         add_submenu_page('psc_dashboard', __('Personnes autorisées', 'periscolaire-registration'), null, $cap, 'psc_pickup_persons', array('Psc_Admin_Familles', 'page_pickup_persons'));
+        // Écran de confirmation d'une consultation : accessible depuis les
+        // fiches famille, jamais comme destination autonome du menu.
+        add_submenu_page('psc_dashboard', __('Consulter un espace famille', 'periscolaire-registration'), null, 'psc_impersonate_family', 'psc_impersonate', array('Psc_Admin_Familles', 'page_impersonate'));
 
         add_submenu_page('psc_dashboard', 'Assurances scolaires', 'Assurances scolaires', $cap, 'psc_assurances', array('Psc_Admin_Assurances', 'page'));
 

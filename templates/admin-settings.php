@@ -36,6 +36,21 @@ psc_admin_notice_map(array(
 </tr>
 </table>
 
+<h2><?php esc_html_e('Consultation des espaces famille', 'periscolaire-registration'); ?></h2>
+<table class="form-table">
+<tr>
+<th><?php esc_html_e('Transparence envers les familles', 'periscolaire-registration'); ?></th>
+<td>
+  <label>
+    <input type="checkbox" name="impersonation_visible_famille" value="1"
+           data-testid="impersonation-visible-family" <?php checked((bool) get_option('psc_impersonation_visible_famille', 1)); ?>>
+    <?php esc_html_e('Indiquer aux familles les consultations de leur espace par la mairie', 'periscolaire-registration'); ?>
+  </label>
+  <p class="description"><?php esc_html_e('Activé par défaut. Les familles verront uniquement la date et le motif générique, jamais le nom de l’agent.', 'periscolaire-registration'); ?></p>
+</td>
+</tr>
+</table>
+
 <h2><?php esc_html_e('Notifications', 'periscolaire-registration'); ?></h2>
 <table class="form-table">
 <tr>
