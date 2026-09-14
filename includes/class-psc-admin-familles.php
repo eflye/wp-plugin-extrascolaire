@@ -145,6 +145,9 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         }
         $wpdb->delete($t_inv, array('parent_id' => $id), array('%d'));
 
+        // Ne pas dépendre uniquement de la contrainte étrangère : certains
+        // hébergeurs ne permettent pas sa création (état déjà surveillé).
+        Psc_Impersonation::delete_for_family($id);
         $wpdb->delete($t_parent, array('id' => $id), array('%d'));
 
         self::redirect('psc_parents', 'family_deleted');

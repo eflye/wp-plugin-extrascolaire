@@ -26,6 +26,92 @@ class Psc_Impersonation {
         add_action('admin_post_psc_impersonate_start', array(__CLASS__, 'handle_start'));
         add_action('admin_post_psc_impersonate_stop', array(__CLASS__, 'handle_stop'));
         add_action('wp_logout', array(__CLASS__, 'handle_wp_logout'), 10, 1);
+        add_action('psc_cleanup_impersonations', array(__CLASS__, 'handle_cleanup'));
+        self::ensure_crons();
+    }
+
+    /** Garantit la purge quotidienne, y compris après une mise à jour par copie. */
+    public static function ensure_crons() {
+        if (!wp_next_scheduled('psc_cleanup_impersonations')) {
+            wp_schedule_event(time() + DAY_IN_SECONDS, 'daily', 'psc_cleanup_impersonations');
+        }
+    }
+
+    /**
+     * Consultations montrées à la famille sur les douze derniers mois.
+     *
+     * Seules les données utiles à cette vue sont lues : ni agent, ni adresse
+     * IP, ni détail libre du motif ne peuvent ainsi atteindre le template.
+     *
+     * @return array<int,object>
+     */
+    public static function history_for_family($family_id, $months = 12) {
+        $family_id = absint($family_id);
+        $months = max(1, absint($months));
+        if (!$family_id) return array();
+
+        global $wpdb;
+        $cutoff = gmdate('Y-m-d H:i:s', strtotime('-' . $months . ' months', current_time('timestamp')));
+        return $wpdb->get_results($wpdb->prepare(
+            'SELECT started_at, motif_type FROM ' . psc_table('impersonations') . ' WHERE family_id = %d AND started_at >= %s ORDER BY started_at DESC',
+            $family_id,
+            $cutoff
+        ));
+    }
+
+    /** Libellé volontairement générique présenté à la famille. */
+    public static function family_motif_label($motif_type) {
+        $labels = array(
+            'reclamation' => __('Réponse à une demande de la famille', 'periscolaire-registration'),
+            'verification' => __('Vérification du dossier', 'periscolaire-registration'),
+            'autre'        => __('Autre motif administratif', 'periscolaire-registration'),
+        );
+        return isset($labels[$motif_type])
+            ? $labels[$motif_type]
+            : __('Consultation administrative', 'periscolaire-registration');
+    }
+
+    /**
+     * Clôt les consultations expirées et efface les traces trop anciennes.
+     *
+     * @return array{closed:int,deleted:int}
+     */
+    public static function cleanup() {
+        global $wpdb;
+        $table = psc_table('impersonations');
+        $now = current_time('mysql');
+        $closed = $wpdb->query($wpdb->prepare(
+            "UPDATE $table SET ended_at = %s, ended_reason = 'expiration' WHERE ended_at IS NULL AND expires_at <= %s",
+            $now,
+            $now
+        ));
+
+        $retention_days = max(1, (int) apply_filters('psc_impersonation_retention_days', 365));
+        $cutoff = gmdate('Y-m-d H:i:s', current_time('timestamp') - $retention_days * DAY_IN_SECONDS);
+        $deleted = $wpdb->query($wpdb->prepare(
+            "DELETE FROM $table WHERE started_at < %s",
+            $cutoff
+        ));
+
+        return array(
+            'closed'  => $closed === false ? 0 : (int) $closed,
+            'deleted' => $deleted === false ? 0 : (int) $deleted,
+        );
+    }
+
+    /** Point d'entrée sans valeur de retour attendu par WP-Cron. */
+    public static function handle_cleanup() {
+        self::cleanup();
+    }
+
+    /** Purge explicite des consultations avant suppression d'une famille. */
+    public static function delete_for_family($family_id) {
+        global $wpdb;
+        return $wpdb->delete(
+            psc_table('impersonations'),
+            array('family_id' => absint($family_id)),
+            array('%d')
+        );
     }
 
     /** Durée fixe d'une consultation : elle n'est jamais prolongée. */

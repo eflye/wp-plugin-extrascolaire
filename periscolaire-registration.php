@@ -70,6 +70,7 @@ register_activation_hook(__FILE__, function () {
     Psc_Installer::activate();
     Psc_Requests::schedule_cleanup();
     Psc_Messages::ensure_crons();
+    Psc_Impersonation::ensure_crons();
 });
 
 register_deactivation_hook(__FILE__, function () {
@@ -77,6 +78,7 @@ register_deactivation_hook(__FILE__, function () {
     wp_clear_scheduled_hook('psc_send_message_emails');
     wp_clear_scheduled_hook('psc_send_scheduled_messages');
     wp_clear_scheduled_hook('psc_cleanup_message_receipts');
+    wp_clear_scheduled_hook('psc_cleanup_impersonations');
 });
 
 add_action('plugins_loaded', function () {

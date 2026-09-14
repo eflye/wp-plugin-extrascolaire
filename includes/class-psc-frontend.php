@@ -740,6 +740,10 @@ class Psc_Frontend extends Psc_Frontend_Base {
             );
         }
 
+        $psc_family_impersonations = null;
+        if ((bool) get_option('psc_impersonation_visible_famille', 1)) {
+            $psc_family_impersonations = Psc_Impersonation::history_for_family((int) $parent->id);
+        }
         $psc_impersonation = Psc_Impersonation::active();
         include PSC_PATH . 'templates/frontend-portal.php';
         return ob_get_clean();
