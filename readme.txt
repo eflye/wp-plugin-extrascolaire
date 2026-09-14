@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.9.0
+Stable tag: 5.10.0
 License: GPLv2 or later
 
 == Description ==
@@ -33,6 +33,12 @@ scolaire (import automatique zone C), configuration de l'année scolaire
 bascule de classe automatique à la rentrée), menus de cantine, commande
 fournisseur hebdomadaire, facturation mensuelle en PDF, et export CSV pour la
 comptabilité.
+
+Depuis une fiche famille, un agent habilité peut aussi ouvrir exactement son
+espace en lecture seule pendant 30 minutes afin de diagnostiquer un problème,
+sans demander le lien de connexion et sans pouvoir modifier les données. Chaque
+consultation est motivée, journalisée et visible de façon anonymisée par la
+famille si le réglage de transparence est actif.
 
 Aucun compte WordPress n'est nécessaire côté famille. Aucun paiement en ligne
 n'est intégré : le mode de paiement (chèque/espèces ou prélèvement SEPA) est
@@ -280,6 +286,13 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.10.0 =
+* Permet aux agents habilités de consulter temporairement le portail exact d’une famille active, en lecture seule stricte.
+* Journalise le motif, le début et la fin de chaque consultation, avec expiration automatique et historique sur la fiche famille.
+* Neutralise les écritures et effets de bord de lecture : messages non marqués comme lus, contrôles désactivés et aucune notification navigateur.
+* Informe la famille dans Mon profil avec une trace anonymisée et configurable, conservée douze mois à l’écran et purgée après 365 jours.
+* Ajoute les tests de sécurité, de session, d’expiration, de déconnexion, de transparence et d’accessibilité du parcours.
 
 = 5.9.0 =
 * Ajoute une preuve automatisée de sauvegarde et restauration MySQL dans une base isolée avant les migrations de CI.

@@ -2,7 +2,7 @@
 
 Plugin WordPress de gestion des services périscolaires municipaux : inscriptions des familles, planning annuel, garderies, cantine, midi sans repas, menus, commande fournisseur, pointage et facturation.
 
-**Version documentée : 5.9.0 — schéma de données 4.5.0 — 10 septembre 2026.** WordPress 5.8 minimum, PHP 7.4 minimum. L’environnement de développement local utilise **Podman**.
+**Version documentée : 5.10.0 — schéma de données 4.6.0 — 14 septembre 2026.** WordPress 5.8 minimum, PHP 7.4 minimum. L’environnement de développement local utilise **Podman**.
 
 Les familles utilisent un espace dédié sans compte WordPress. La mairie administre le service depuis le menu **Périscolaire**. Les intervenants disposent d’un écran de présence protégé par code. Aucun paiement en ligne ni émission de prélèvement bancaire n’est intégré.
 
@@ -24,6 +24,7 @@ Les familles utilisent un espace dédié sans compte WordPress. La mairie admini
 
 ## Fonctionnalités récentes
 
+- **5.10.0** : consultation temporaire et strictement en lecture seule d’un espace famille par un agent habilité, avec motif, traçabilité, expiration automatique et transparence configurable côté famille.
 - **5.9.0** : filet de sécurité du refactoring avec restauration MySQL isolée en CI, inventaire du schéma réel et compteurs anonymes des chemins legacy avant toute décision de retrait.
 - **5.8.1** : correction du verrouillage du planning par assurance : seul l'enfant dont le justificatif est manquant, en attente ou refusé est bloqué ; les autres enfants de la fratrie restent modifiables.
 - **5.8.0** : notifications navigateur optionnelles lorsqu'un espace famille reste ouvert, avec activation explicite par message et par navigateur ; correction des envois successifs du back-office.
@@ -111,7 +112,7 @@ Les confirmations s’affichent dans une popin qui se masque automatiquement. Le
 
 - **Menu de la semaine** : navigation hebdomadaire en AJAX, avec URL synchronisée et retour à la semaine courante. Le menu est aussi consultable publiquement, sans connexion, avec indication des jours sans école.
 - **Mes factures** : factures mensuelles, statut et téléchargement du PDF.
-- **Mon profil** : identité, contacts, adresse et second parent. Un changement d’e-mail nécessite une confirmation à la nouvelle adresse ; l’ancienne reste active jusque-là.
+- **Mon profil** : identité, contacts, adresse et second parent. Un changement d’e-mail nécessite une confirmation à la nouvelle adresse ; l’ancienne reste active jusque-là. Lorsque la transparence est activée, la famille y retrouve les consultations de son espace effectuées par la mairie au cours des douze derniers mois, sous un libellé générique qui ne révèle pas l’agent.
 - **Documents** : règlement intérieur et règlement de prélèvement en PDF, ou message si le document manque.
 - **Réinscription** : onglet visible pendant la campagne mairie. Confirmation des enfants, classe proposée, nouvelle assurance et acceptation du règlement. Décocher un enfant ne le marque pas automatiquement sorti.
 
@@ -144,7 +145,7 @@ Une fermeture avec des déclarations existantes présente son impact avant confi
 
 La mairie examine les coordonnées, dossiers enfants, allergies et informations de paiement, puis approuve ou refuse les demandes. Les IBAN sont masqués dans les listes et accessibles dans le formulaire de modification du foyer.
 
-Les fiches familles permettent édition, envoi du lien de connexion, activation/désactivation et suppression avec confirmation. Les enfants sont rattachés au foyer, avec classe et assurance pour l’année sélectionnée, et peuvent être marqués actifs ou sortis. Les habilitations et leur historique sont consultables.
+Les fiches familles permettent édition, envoi du lien de connexion, activation/désactivation et suppression avec confirmation. Un agent disposant de la capacité dédiée peut ouvrir le portail exact d’une famille active en lecture seule pendant 30 minutes : il choisit un motif avant l’ouverture, voit un bandeau permanent et quitte depuis le portail. La fiche conserve les 20 dernières consultations avec leur durée et leur raison de fin. Les enfants sont rattachés au foyer, avec classe et assurance pour l’année sélectionnée, et peuvent être marqués actifs ou sortis. Les habilitations et leur historique sont consultables.
 
 **Cantine sans repas (v5.2)** : l’indicateur mairie sur la fiche enfant est activable et retirable. Il convertit ses déclarations CANT en MSR lors de leur résolution, sans réécrire les choix de la famille : tarif MSR pour le midi seul, aucun repas fournisseur, présence maintenue dans la liste intervenants. Les garderies restent inchangées ; un forfait sélectionné est facturé au tarif « Forfait sans repas cantine » (9 € par défaut, configurable). Cet indicateur est distinct des allergies alimentaires.
 
@@ -178,7 +179,7 @@ Le forfait n'est pas facturé en plus de ses composantes. MSR possède son propr
 
 Les sujets et corps des e-mails transactionnels sont personnalisables avec les variables proposées et réinitialisables. Les récapitulatifs utilisent l’année scolaire. La commande fournisseur a aussi un pied de mail facultatif et les variables `{{site}}`, `{{semaine}}`, `{{total}}`, `{{gouters}}`, `{{standard}}`, `{{sans_porc}}`, `{{vegetarien}}`. Un pied vide est masqué. Les gabarits utilisent du HTML en tables et des styles en ligne.
 
-Réglages : tarifs des prestations et du forfait sans repas, préavis global de repli (la configuration annuelle prime), notifications mairie, coordonnées de facturation et créancier SEPA, documents PDF, validation automatique, campagne de réinscription et progression des classes, validité des liens, page et code SIDSCM. Le choix de variante Planning n’est plus proposé.
+Réglages : tarifs des prestations et du forfait sans repas, préavis global de repli (la configuration annuelle prime), notifications mairie, coordonnées de facturation et créancier SEPA, documents PDF, validation automatique, campagne de réinscription et progression des classes, validité des liens, transparence des consultations d’espace famille, page et code SIDSCM. Le choix de variante Planning n’est plus proposé.
 
 ## Listes intervenantes SIDSCM
 
@@ -243,9 +244,18 @@ Le préfixe `wp_` ci-dessous dépend de l’installation WordPress.
 | `wp_psc_menus` | Menus hebdomadaires |
 | `wp_psc_supplier_orders` | Commandes et e-mails archivés |
 | `wp_psc_invoices` | Factures et chemins PDF |
+| `wp_psc_impersonations` | Consultations temporaires des espaces familles : agent, motif, début, expiration et fin |
 | `wp_psc_registrations`, `wp_psc_trimestres`, `wp_psc_calendar_days` | Ancien modèle, conservé sur les installations migrées |
 
 ## Sécurité
+
+### Consultation d’un espace famille
+
+La consultation mairie repose sur un cookie distinct de la session famille, signé et lié à la session WordPress de l’agent. Elle n’ouvre, ne lit et ne révoque jamais une session famille. La base reste l’autorité : retirer la capacité, désactiver le foyer, fermer la consultation ou dépasser son expiration coupe immédiatement l’accès.
+
+Toutes les actions d’écriture du portail sont refusées côté serveur pendant la consultation, même avec des nonces valides ; l’interface désactive aussi les contrôles sans les masquer. Les lectures restent fidèles mais sans effet de bord : un message ouvert par la mairie reste non lu par la famille, aucun compteur de connexion n’est modifié et aucune notification navigateur n’est lancée.
+
+Chaque ouverture enregistre l’agent, la famille, un motif, les dates de début et de fin et la raison de clôture. Ces traces sont supprimées après 365 jours par WP-Cron. Si la transparence est activée — réglage par défaut — la famille voit seulement la date, « La mairie » et un motif générique pendant douze mois, jamais le nom de l’agent, son IP ou le détail libre.
 
 ### Messages aux familles et confidentialité
 
