@@ -45,6 +45,7 @@ require_once PSC_PATH . 'includes/class-psc-menus.php';
 require_once PSC_PATH . 'includes/class-psc-messages.php';
 require_once PSC_PATH . 'includes/class-psc-messages-admin.php';
 require_once PSC_PATH . 'includes/class-psc-messages-frontend.php';
+require_once PSC_PATH . 'includes/class-psc-conversations.php';
 require_once PSC_PATH . 'includes/class-psc-supplier-orders.php';
 require_once PSC_PATH . 'includes/class-psc-school-calendar.php';
 require_once PSC_PATH . 'includes/class-psc-admin-calendar-v2.php';

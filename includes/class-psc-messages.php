@@ -59,9 +59,12 @@ class Psc_Messages {
         $id = isset($data['id']) ? absint($data['id']) : 0;
         $existing = $id ? self::get($id) : null;
         if ($existing && $existing->statut === 'envoye') {
-            $only_pin = array_diff(array_keys($data), array('id', 'epingle')) === array();
+            $only_pin = array_diff(array_keys($data), array('id', 'epingle', 'reponses_autorisees')) === array();
             if (!$only_pin) return new WP_Error('psc_message_sent', __('Un message envoyé ne peut plus être modifié.', 'periscolaire-registration'));
-            $wpdb->update(psc_table('messages'), array('epingle' => empty($data['epingle']) ? 0 : 1, 'updated_at' => current_time('mysql')), array('id' => $id));
+            $update = array('updated_at' => current_time('mysql'));
+            if (array_key_exists('epingle', $data)) $update['epingle'] = empty($data['epingle']) ? 0 : 1;
+            if (array_key_exists('reponses_autorisees', $data)) $update['reponses_autorisees'] = empty($data['reponses_autorisees']) ? 0 : 1;
+            $wpdb->update(psc_table('messages'), $update, array('id' => $id));
             return $id;
         }
         $title = mb_substr(sanitize_text_field(isset($data['titre']) ? $data['titre'] : ''), 0, 160);
@@ -89,6 +92,7 @@ class Psc_Messages {
             'canaux' => wp_json_encode(array('portail' => true, 'email' => !empty($channels['email']), 'push' => !empty($channels['push']))),
             'piece_jointe_id' => $attachment_id ?: null,
             'epingle' => empty($data['epingle']) ? 0 : 1, 'accuse_requis' => empty($data['accuse_requis']) ? 0 : 1,
+            'reponses_autorisees' => empty($data['reponses_autorisees']) ? 0 : 1,
             'date_envoi_prevue' => $status === 'programme' ? $scheduled : null,
             'auteur_id' => $existing ? (int) $existing->auteur_id : get_current_user_id(), 'updated_at' => current_time('mysql'),
         );
@@ -261,6 +265,9 @@ class Psc_Messages {
         global $wpdb;
         self::log_action('suppression', $message_id);
         $wpdb->delete(psc_table('message_destinataires'), array('message_id' => absint($message_id)));
+        // Les conversations rattachées à cette diffusion restent : seul le
+        // lien vers la diffusion supprimée disparaît (cf. Psc_Conversations).
+        $wpdb->update(psc_table('conversations'), array('message_id' => null), array('message_id' => absint($message_id)));
         return $wpdb->delete(psc_table('messages'), array('id' => absint($message_id))) !== false;
     }
 

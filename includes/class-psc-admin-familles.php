@@ -147,7 +147,12 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
 
         // Ne pas dépendre uniquement de la contrainte étrangère : certains
         // hébergeurs ne permettent pas sa création (état déjà surveillé).
+        // Constat hors périmètre (non corrigé ici) : cette méthode ne
+        // supprime pas non plus les lignes de psc_message_destinataires de
+        // la famille — un oubli antérieur aux conversations, laissé pour
+        // une correction dédiée.
         Psc_Impersonation::delete_for_family($id);
+        Psc_Conversations::delete_for_family($id);
         $wpdb->delete($t_parent, array('id' => $id), array('%d'));
 
         self::redirect('psc_parents', 'family_deleted');
