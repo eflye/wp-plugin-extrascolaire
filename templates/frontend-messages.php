@@ -4,8 +4,26 @@ $data = isset($psc_messages_data) ? $psc_messages_data : array('messages' => arr
 $selected = $data['selected'];
 $categories = Psc_Messages::get_categories();
 $unread = (int) $data['unread'];
+$conv_data = isset($psc_conversations_data) ? $psc_conversations_data : array('unread' => 0);
+$vue = isset($psc_messages_vue) ? $psc_messages_vue : 'informations';
 ?>
 <div class="psc-family-messages<?php echo !empty($data['standalone']) ? ' is-standalone' : ''; ?>">
+  <?php if (empty($data['standalone'])): ?>
+  <nav class="psc-message-vue-nav" aria-label="<?php esc_attr_e('Vue des messages', 'periscolaire-registration'); ?>">
+    <a href="<?php echo esc_url(add_query_arg(array('psc_tab' => 'messages', 'psc_vue' => 'informations'), Psc_Mailer::form_page_url())); ?>"
+       <?php if ($vue === 'informations') echo 'aria-current="page"'; ?>
+       data-testid="messages-vue-informations"><?php esc_html_e('Informations de la mairie', 'periscolaire-registration'); ?></a>
+    <a href="<?php echo esc_url(add_query_arg(array('psc_tab' => 'messages', 'psc_vue' => 'echanges'), Psc_Mailer::form_page_url())); ?>"
+       <?php if ($vue === 'echanges') echo 'aria-current="page"'; ?>
+       data-testid="messages-vue-echanges">
+       <?php echo esc_html(sprintf(__('Mes échanges (%d non lus)', 'periscolaire-registration'), (int) $conv_data['unread'])); ?>
+    </a>
+  </nav>
+  <?php endif; ?>
+
+  <?php if ($vue === 'echanges' && empty($data['standalone'])): ?>
+    <?php include PSC_PATH . 'templates/frontend-conversations.php'; ?>
+  <?php else: ?>
   <header>
     <span class="psc-message-kicker"><?php esc_html_e('Informations de la mairie', 'periscolaire-registration'); ?></span>
     <h2><?php esc_html_e('Messages', 'periscolaire-registration'); ?></h2>
@@ -48,8 +66,12 @@ $unread = (int) $data['unread'];
             <?php if (!$selected->accuse_le): ?><form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"><input type="hidden" name="action" value="psc_message_ack"><input type="hidden" name="message_id" value="<?php echo (int) $selected->id; ?>"><?php wp_nonce_field('psc_message_ack'); ?><button class="psc-message-ack"><?php esc_html_e("J'ai pris connaissance", 'periscolaire-registration'); ?></button></form>
             <?php else: ?><span class="psc-message-ack-sent"><?php printf(esc_html__('Accusé de lecture envoyé le %s', 'periscolaire-registration'), esc_html(date_i18n('d/m', strtotime($selected->accuse_le)))); ?></span><?php endif; ?>
           <?php endif; ?>
+          <?php if (empty($data['standalone']) && !empty($selected->reponses_autorisees) && class_exists('Psc_Conversations_Frontend') && Psc_Parents::current()): ?>
+            <a class="psc-message-reply" data-testid="message-reply" href="<?php echo esc_url(Psc_Conversations_Frontend::reply_url($selected, (int) Psc_Parents::current()->id)); ?>"><?php esc_html_e('Répondre à la mairie', 'periscolaire-registration'); ?></a>
+          <?php endif; ?>
         </footer>
       </article>
     <?php endif; ?>
   </div>
+  <?php endif; ?>
 </div>

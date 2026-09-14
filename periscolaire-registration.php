@@ -58,6 +58,7 @@ require_once PSC_PATH . 'includes/class-psc-pickup-persons.php';
 // une classe par domaine métier. Psc_Frontend::init() déclare les siennes.
 require_once PSC_PATH . 'includes/class-psc-frontend-base.php';
 require_once PSC_PATH . 'includes/class-psc-frontend.php';
+require_once PSC_PATH . 'includes/class-psc-conversations-frontend.php';
 require_once PSC_PATH . 'includes/class-psc-frontend-inscriptions.php';
 require_once PSC_PATH . 'includes/class-psc-frontend-enfants.php';
 require_once PSC_PATH . 'includes/class-psc-frontend-documents.php';
@@ -97,6 +98,7 @@ add_action('plugins_loaded', function () {
     Psc_Requests::init();
     Psc_Messages_Admin::init();
     Psc_Messages_Frontend::init();
+    Psc_Conversations_Frontend::init();
     Psc_Frontend::init();
     Psc_Sidscm::init();
 });

@@ -645,10 +645,17 @@ class Psc_Frontend extends Psc_Frontend_Base {
         $active_tab       = self::resolve_active_tab($psc_msg);
         $psc_portal_tabs  = self::portal_tabs_data();
         $psc_portal_menu  = Psc_Frontend_Menus::portal_menu_data();
+        // Sous-navigation de l'onglet Messages : « Informations de la
+        // mairie » (comportement historique, inchangé) ou « Mes échanges »
+        // (conversations privées). Seulement pertinente onglet actif — une
+        // valeur ailleurs dans l'URL ne doit ni ouvrir ni marquer la lecture
+        // d'une conversation (cf. Psc_Conversations_Frontend::data_for_family).
+        $psc_messages_vue = $active_tab === 'messages' && isset($_GET['psc_vue']) && $_GET['psc_vue'] === 'echanges' ? 'echanges' : 'informations';
         // Pour une vraie famille, ouvrir un message marque sa lecture ; en
         // consultation, data_for_family() conserve au contraire son état réel.
-        $psc_messages_data = Psc_Messages_Frontend::data_for_family((int) $parent->id, $active_tab === 'messages');
-        $psc_portal_tabs['messages']['badge'] = $psc_messages_data['unread'];
+        $psc_messages_data = Psc_Messages_Frontend::data_for_family((int) $parent->id, $active_tab === 'messages' && $psc_messages_vue === 'informations');
+        $psc_conversations_data = Psc_Conversations_Frontend::data_for_family((int) $parent->id, $psc_messages_vue === 'echanges');
+        $psc_portal_tabs['messages']['badge'] = $psc_messages_data['unread'] + $psc_conversations_data['unread'];
         $psc_portal_dashboard = self::dashboard_data($parent, $children, $psc_year_summary, $invoices);
         $psc_portal_dashboard['urgent_message'] = Psc_Messages_Frontend::urgent_for_family((int) $parent->id);
         $psc_portal_dashboard['message_digest'] = $psc_messages_data['messages'];

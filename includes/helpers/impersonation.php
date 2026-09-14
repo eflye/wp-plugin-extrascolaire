@@ -57,5 +57,9 @@ function psc_impersonation_action_policy() {
         'psc_parent_remove_pickup_person'        => 'ecriture',
         'psc_parent_add_household_pickup_person' => 'ecriture',
         'psc_parent_upload_assurance'            => 'ecriture',
+
+        // Conversations privées famille ↔ mairie.
+        'psc_parent_conversation_create'         => 'ecriture',
+        'psc_parent_conversation_reply'          => 'ecriture',
     );
 }
