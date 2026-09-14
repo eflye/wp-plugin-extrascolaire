@@ -23,6 +23,7 @@ require_once PSC_PATH . 'includes/class-psc-installer.php';
 require_once PSC_PATH . 'includes/class-psc-mailer.php';
 require_once PSC_PATH . 'includes/class-psc-assurances.php';
 require_once PSC_PATH . 'includes/class-psc-parents.php';
+require_once PSC_PATH . 'includes/class-psc-impersonation.php';
 require_once PSC_PATH . 'includes/class-psc-requests.php';
 require_once PSC_PATH . 'includes/class-psc-email-templates.php';
 // Administration : un socle commun, un noyau (menu, tableau de bord) et
@@ -88,6 +89,7 @@ add_action('plugins_loaded', function () {
     Psc_Installer::maybe_upgrade();
     Psc_Admin::init();
     Psc_Admin_Calendar_V2::init();
+    Psc_Impersonation::init();
     Psc_Parents::init();
     Psc_Requests::init();
     Psc_Messages_Admin::init();

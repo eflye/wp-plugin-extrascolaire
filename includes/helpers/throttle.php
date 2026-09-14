@@ -72,8 +72,9 @@ function psc_rate_limit_by_ip($prefix, $max, $window) {
 }
 
 /**
- * Adresse IP de la requête, utilisée uniquement pour la limitation de
- * fréquence. Volontairement non stockée en base (donnée personnelle).
+ * Adresse IP de la requête, utilisée pour la limitation de fréquence et la
+ * trace de sécurité d'une consultation mairie. Elle n'est stockée que dans
+ * ce journal borné, dont la conservation sera gérée avec les consultations.
  *
  * REMOTE_ADDR par défaut : c'est la seule valeur que l'appelant ne choisit
  * pas. Un en-tête « X-Forwarded-For » est envoyé par le client lui-même —

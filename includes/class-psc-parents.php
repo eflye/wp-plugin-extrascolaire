@@ -392,6 +392,21 @@ class Psc_Parents {
         static $cache = false;
         if ($cache !== false) return $cache;
 
+        // La consultation mairie est une identité séparée et prioritaire :
+        // ne jamais lire le cookie famille tant qu'elle est active. Un agent
+        // peut ainsi dépanner un foyer depuis un navigateur où sa propre
+        // session famille existe, sans l'utiliser ni la révoquer.
+        if (class_exists('Psc_Impersonation')) {
+            $impersonation = Psc_Impersonation::active();
+            if ($impersonation) {
+                $cache = self::get_by_id((int) $impersonation->family_id);
+                if (!$cache) {
+                    Psc_Impersonation::end((int) $impersonation->id, 'revoquee');
+                }
+                return $cache;
+            }
+        }
+
         $cache = null;
         $session = self::read_session_cookie();
         if (!$session) return null;
@@ -405,6 +420,11 @@ class Psc_Parents {
 
         $cache = self::get_by_id($session['parent_id']);
         return $cache;
+    }
+
+    /** Vrai lorsque le foyer courant est consulté par un agent de la mairie. */
+    public static function is_impersonated() {
+        return class_exists('Psc_Impersonation') && Psc_Impersonation::active() !== null;
     }
 
     /**
@@ -489,6 +509,14 @@ class Psc_Parents {
 
     public static function handle_logout() {
         check_admin_referer('psc_logout');
+        if (self::is_impersonated()) {
+            $family_id = Psc_Impersonation::stop_current('manuel');
+            wp_safe_redirect(add_query_arg(
+                array('page' => 'psc_parents', 'edit' => $family_id, 'psc_msg' => 'impersonation_stopped'),
+                admin_url('admin.php')
+            ));
+            exit;
+        }
         self::close_session();
         wp_safe_redirect(add_query_arg('psc_msg', 'logged_out', Psc_Mailer::form_page_url()));
         exit;
