@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.10.0
+Stable tag: 5.10.1
 License: GPLv2 or later
 
 == Description ==
@@ -287,12 +287,16 @@ release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
 
-= 5.10.0 =
+= 5.10.1 =
 * Permet aux agents habilités de consulter temporairement le portail exact d’une famille active, en lecture seule stricte.
 * Journalise le motif, le début et la fin de chaque consultation, avec expiration automatique et historique sur la fiche famille.
 * Neutralise les écritures et effets de bord de lecture : messages non marqués comme lus, contrôles désactivés et aucune notification navigateur.
 * Informe la famille dans Mon profil avec une trace anonymisée et configurable, conservée douze mois à l’écran et purgée après 365 jours.
 * Ajoute les tests de sécurité, de session, d’expiration, de déconnexion, de transparence et d’accessibilité du parcours.
+
+= 5.10.0 =
+* Ajoute la table de traçabilité des consultations et la capacité WordPress dédiée.
+* Classe exhaustivement les actions du portail famille pour préparer leur exécution en lecture seule.
 
 = 5.9.0 =
 * Ajoute une preuve automatisée de sauvegarde et restauration MySQL dans une base isolée avant les migrations de CI.
