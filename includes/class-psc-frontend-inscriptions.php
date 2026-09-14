@@ -64,6 +64,17 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
     protected static function ajax_parent() {
         check_ajax_referer('psc_front', 'nonce');
 
+        if (Psc_Parents::is_impersonated()) {
+            $policies = psc_impersonation_action_policy();
+            $requested = Psc_Impersonation::requested_action();
+            if (!isset($policies[$requested]) || $policies[$requested] !== 'lecture') {
+                wp_send_json_error(array(
+                    'code'    => 'impersonation_readonly',
+                    'message' => __('Mode consultation : aucune modification n’est possible.', 'periscolaire-registration'),
+                ), 403);
+            }
+        }
+
         $parent = Psc_Parents::current();
         if (!$parent) {
             wp_send_json_error(array('code' => 'auth'), 403);

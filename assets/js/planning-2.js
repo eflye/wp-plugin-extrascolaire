@@ -14,6 +14,21 @@
         return s;
     }
 
+    function refuseWriteInConsultation() {
+        if (!window.PscReadonly || !window.PscReadonly.active()) return false;
+        window.PscReadonly.announce();
+        return true;
+    }
+
+    function enforceReadonlyControls() {
+        if (!window.PscReadonly || !window.PscReadonly.active()) return;
+        document.querySelectorAll(
+            '.psc-pat-btn, .psc-exc-cell, .psc-exc-tout, #psc-exc-reset, #psc-apply-siblings, #psc-confirm-2'
+        ).forEach(function (control) {
+            window.PscReadonly.markControl(control);
+        });
+    }
+
     function post(payload) {
         var params = { nonce: window.PSC.nonce, parent_nonce: window.PSC.parent_nonce || '' };
         Object.keys(payload).forEach(function (k) { params[k] = payload[k]; });
@@ -307,6 +322,9 @@
         renderRecap(state);
         renderMonthLabel(state);
         renderInsuranceGate();
+        // loadMonth() reconstruit les cases : réappliquer la lecture seule
+        // après chaque chargement autorisé, pas seulement au premier rendu.
+        enforceReadonlyControls();
     }
 
     function setBusy(busy) {
@@ -344,6 +362,7 @@
     }
 
     function onExceptionClick(e) {
+        if (refuseWriteInConsultation()) return;
         var btn = e.currentTarget;
         var declared = btn.getAttribute('aria-pressed') === 'true';
         var target = !declared;
@@ -371,6 +390,7 @@
     }
 
     function onPatternClick(e) {
+        if (refuseWriteInConsultation()) return;
         var btn = e.currentTarget;
         var target = btn.getAttribute('aria-pressed') !== 'true';
         btn.disabled = true;
@@ -400,6 +420,7 @@
     }
 
     function onToutClick(e) {
+        if (refuseWriteInConsultation()) return;
         var btn = e.currentTarget;
         var dates = (btn.dataset.dates || '').split(',').filter(Boolean);
         if (!dates.length || btn.disabled) return;
@@ -430,6 +451,7 @@
 
     function onReset(e) {
         e.preventDefault();
+        if (refuseWriteInConsultation()) return;
         var link = e.currentTarget;
         if (!parseInt(link.dataset.count, 10)) return;
         if (!window.confirm(t('exc_reset_confirm'))) return;
@@ -455,6 +477,7 @@
     }
 
     function onApplySiblings() {
+        if (refuseWriteInConsultation()) return;
         var mine = (boot.patterns && boot.patterns[boot.active_child]) || {};
         var sourcePatterns = (mine && mine[boot.year_key]) || {};
         var sourceNonEmpty = Object.keys(sourcePatterns).some(function (wd) {
@@ -569,6 +592,7 @@
     }
 
     function onConfirm(btn, feedback) {
+        if (refuseWriteInConsultation()) return;
         btn.disabled = true;
         var original = btn.textContent;
         btn.textContent = t('sending');
@@ -632,5 +656,6 @@
         if (btn && feedback) {
             btn.addEventListener('click', function () { onConfirm(btn, feedback); });
         }
+        enforceReadonlyControls();
     });
 })();

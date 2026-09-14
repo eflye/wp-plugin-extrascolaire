@@ -25,6 +25,14 @@ abstract class Psc_Frontend_Base {
     protected static function authed_parent($action) {
         check_admin_referer($action);
 
+        if (Psc_Parents::is_impersonated()) {
+            $policies = psc_impersonation_action_policy();
+            $requested = Psc_Impersonation::requested_action();
+            if (!isset($policies[$requested]) || $policies[$requested] !== 'lecture') {
+                return null;
+            }
+        }
+
         $parent = Psc_Parents::current();
         if (!$parent) return null;
 

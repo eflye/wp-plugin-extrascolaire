@@ -112,6 +112,10 @@ function psc_record_legacy_usage($key) {
         'trimestres_migration_read',
     );
     if (!in_array($key, $allowed, true) || isset($recorded[$key])) return;
+
+    // Ces compteurs techniques ne doivent pas être gonflés par un agent qui
+    // observe simplement le portail d'une famille en lecture seule.
+    if (class_exists('Psc_Parents') && Psc_Parents::is_impersonated()) return;
     $recorded[$key] = true;
 
     $counts = get_option('psc_legacy_usage_counts', array());

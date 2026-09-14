@@ -27,6 +27,7 @@ foreach (array(
     'banking',
     'crypto',
     'session',
+    'impersonation',
     'throttle',
     'files',
     'ods',

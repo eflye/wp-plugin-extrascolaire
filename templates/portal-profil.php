@@ -68,6 +68,39 @@
   </form>
 </div>
 
+<?php if (isset($psc_family_impersonations) && is_array($psc_family_impersonations)): ?>
+<div class="psc-portal-panel" data-testid="profil-impersonation-history">
+  <div class="psc-portal-panel-title"><?php esc_html_e('Consultations de votre espace par la mairie', 'periscolaire-registration'); ?></div>
+  <p class="psc-portal-intro"><?php esc_html_e('Retrouvez ici les consultations effectuées par la mairie au cours des 12 derniers mois. Le nom de l’agent et les informations techniques ne sont jamais affichés.', 'periscolaire-registration'); ?></p>
+
+  <?php if (!$psc_family_impersonations): ?>
+    <p data-testid="profil-impersonation-empty"><?php esc_html_e('La mairie n’a pas consulté votre espace au cours des 12 derniers mois.', 'periscolaire-registration'); ?></p>
+  <?php else: ?>
+    <div class="psc-portal-table-scroll">
+      <table class="psc-portal-table">
+        <caption class="screen-reader-text"><?php esc_html_e('Consultations de votre espace par la mairie au cours des 12 derniers mois', 'periscolaire-registration'); ?></caption>
+        <thead>
+          <tr>
+            <th scope="col"><?php esc_html_e('Intervenant', 'periscolaire-registration'); ?></th>
+            <th scope="col"><?php esc_html_e('Date', 'periscolaire-registration'); ?></th>
+            <th scope="col"><?php esc_html_e('Motif', 'periscolaire-registration'); ?></th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($psc_family_impersonations as $psc_family_impersonation): ?>
+            <tr data-testid="profil-impersonation-row">
+              <td><?php esc_html_e('La mairie', 'periscolaire-registration'); ?></td>
+              <td><time datetime="<?php echo esc_attr(mysql2date('c', $psc_family_impersonation->started_at)); ?>"><?php echo esc_html(mysql2date(get_option('date_format') . ' ' . get_option('time_format'), $psc_family_impersonation->started_at)); ?></time></td>
+              <td><?php echo esc_html(Psc_Impersonation::family_motif_label($psc_family_impersonation->motif_type)); ?></td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
+
 <div class="psc-portal-panel" data-testid="profil-payment-panel">
   <div class="psc-portal-panel-title"><?php esc_html_e('Mode de paiement', 'periscolaire-registration'); ?></div>
   <?php if (($parent->payment_mode ?? 'autre') === 'prelevement'): ?>

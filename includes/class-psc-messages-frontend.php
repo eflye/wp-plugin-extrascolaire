@@ -17,7 +17,10 @@ class Psc_Messages_Frontend {
         $portal = $post && has_shortcode($post->post_content, 'periscolaire_form') && Psc_Parents::current();
         if (!$email_view && !$portal) return;
         wp_enqueue_style('psc-messages', PSC_URL . 'assets/css/psc-messages.css', $email_view ? array() : array('psc-portal'), PSC_VERSION);
-        if ($portal) {
+        // Une consultation restitue les messages tels que la famille les a
+        // laissés. Le polling navigateur n'y apporte rien et pourrait
+        // déclencher une notification au nom de la famille consultée.
+        if ($portal && !Psc_Parents::is_impersonated()) {
             $parent = Psc_Parents::current();
             $messages = Psc_Messages::for_family((int) $parent->id);
             $known_ids = array();
@@ -76,7 +79,7 @@ class Psc_Messages_Frontend {
             wp_die(esc_html__('Ce message ne vous est pas destiné.', 'periscolaire-registration'), '', array('response' => 403));
         }
         if (!$selected && $messages && $open_first) $selected = $messages[0];
-        if ($selected) {
+        if ($selected && !Psc_Parents::is_impersonated()) {
             Psc_Messages::mark_seen((int) $selected->id, $family_id, 'portail');
             foreach ($messages as $message) if ((int) $message->id === (int) $selected->id && !$message->vu_le) { $message->vu_le = current_time('mysql'); $message->vu_canal = 'portail'; }
         }
@@ -97,13 +100,25 @@ class Psc_Messages_Frontend {
         $id = absint($_GET['psc_msg']); $token = sanitize_text_field(wp_unslash($_GET['t']));
         $recipient = Psc_Messages::recipient($id, $token);
         if (!$recipient) { wp_safe_redirect(Psc_Mailer::form_page_url()); exit; }
-        Psc_Messages::mark_seen($id, (int) $recipient->family_id, 'email');
+        // Un lien de message ouvert depuis un navigateur où une consultation
+        // est active ne doit jamais produire une lecture au nom de la famille.
+        $impersonated = Psc_Parents::is_impersonated();
+        if (!$impersonated) {
+            Psc_Messages::mark_seen($id, (int) $recipient->family_id, 'email');
+        }
         $parent = Psc_Parents::current();
         if ($parent && (int) $parent->id === (int) $recipient->family_id) {
             wp_safe_redirect(add_query_arg(array('psc_tab' => 'messages', 'message_id' => $id), Psc_Mailer::form_page_url())); exit;
         }
         $message = Psc_Messages::get($id);
         if (!$message) { wp_safe_redirect(Psc_Mailer::form_page_url()); exit; }
+        // get() lit la table des messages, qui ne porte pas vu_le. Recopier
+        // l'état du destinataire permet au template de rester fidèle, y
+        // compris lorsqu'une consultation ouvre exceptionnellement ce lien.
+        $message->vu_le = $recipient->vu_le;
+        if (!$impersonated && !$message->vu_le) {
+            $message->vu_le = current_time('mysql');
+        }
         nocache_headers();
         $psc_messages_data = array('messages' => array($message), 'selected' => $message, 'unread' => 0, 'standalone' => true, 'recipient' => $recipient);
         status_header(200); get_header(); include PSC_PATH . 'templates/frontend-messages.php'; get_footer(); exit;
@@ -111,6 +126,10 @@ class Psc_Messages_Frontend {
 
     public static function handle_ack() {
         check_admin_referer('psc_message_ack');
+        if (Psc_Parents::is_impersonated()) {
+            wp_safe_redirect(add_query_arg('psc_msg', 'impersonation_readonly', Psc_Mailer::form_page_url()));
+            exit;
+        }
         $parent = Psc_Parents::current();
         if (!$parent) { wp_safe_redirect(Psc_Mailer::form_page_url()); exit; }
         $id = isset($_POST['message_id']) ? absint($_POST['message_id']) : 0;

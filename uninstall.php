@@ -29,7 +29,10 @@ if (!defined('WP_UNINSTALL_PLUGIN')) exit;
 // orpheline sur les rôles une fois le plugin supprimé).
 foreach (array('administrator', 'editor') as $role_name) {
     $role = get_role($role_name);
-    if ($role) $role->remove_cap('psc_manage_periscolaire');
+    if ($role) {
+        $role->remove_cap('psc_manage_periscolaire');
+        $role->remove_cap('psc_impersonate_family');
+    }
 }
 foreach (array('administrator', 'gestionnaire_periscolaire') as $role_name) {
     $role = get_role($role_name);

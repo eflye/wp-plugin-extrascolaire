@@ -31,6 +31,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
         // ne peut pas l'atteindre. On ajoute une classe sur <body> pour le
         // masquer en CSS uniquement quand le portail est affiché.
         add_filter('body_class', array(__CLASS__, 'add_portal_body_class'));
+        add_filter('document_title_parts', array(__CLASS__, 'prefix_impersonation_title'));
 
         foreach (array(
             'Psc_Frontend_Inscriptions',
@@ -68,6 +69,14 @@ class Psc_Frontend extends Psc_Frontend_Base {
         return $classes;
     }
 
+    /** Rend le contexte mairie impossible à confondre dans l'onglet. */
+    public static function prefix_impersonation_title($parts) {
+        if (!Psc_Parents::is_impersonated() || !self::portal_takes_over_page()) return $parts;
+        $prefix = __('[Consultation]', 'periscolaire-registration');
+        $parts['title'] = $prefix . ' ' . (isset($parts['title']) ? $parts['title'] : '');
+        return $parts;
+    }
+
     /** Vrai si la page courante affiche le portail famille connecté (donc
      *  doit céder toute la page — titre et texte d'intro compris). */
     protected static function portal_takes_over_page() {
@@ -95,6 +104,10 @@ class Psc_Frontend extends Psc_Frontend_Base {
             'ajax_url'     => admin_url('admin-ajax.php'),
             'nonce'        => wp_create_nonce('psc_front'),
             'parent_nonce' => $psc_parent ? psc_parent_nonce('psc_front', $psc_parent->id) : '',
+            'readonly'     => Psc_Parents::is_impersonated(),
+            'read_actions' => array_keys(array_filter(psc_impersonation_action_policy(), function ($policy) {
+                return $policy === 'lecture';
+            })),
             // Chaînes traduites côté serveur, consommées par frontend.js,
             // guest.js et portal.js : les codes d'erreur restent ceux
             // renvoyés par l'AJAX, seuls les libellés passent par ici.
@@ -114,6 +127,8 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 'mail'              => __("L'envoi de l'e-mail a échoué.", 'periscolaire-registration'),
                 'network'           => __('Erreur réseau. Vérifiez votre connexion et réessayez.', 'periscolaire-registration'),
                 'generic'           => __("Une erreur est survenue. Merci de réessayer.", 'periscolaire-registration'),
+                'impersonation_readonly' => __('Mode consultation : aucune modification n’est possible.', 'periscolaire-registration'),
+                'readonly_attempt'  => __('Mode consultation : modification impossible', 'periscolaire-registration'),
                 'summary_none'      => __('Aucun jour déclaré', 'periscolaire-registration'),
                 'day'               => __('jour', 'periscolaire-registration'),
                 'days'              => __('jours', 'periscolaire-registration'),
@@ -584,10 +599,12 @@ class Psc_Frontend extends Psc_Frontend_Base {
             return ob_get_clean();
         }
 
-        // Ceinture de sécurité : la configuration du planning de l'année
-        // en cours doit exister (dates, fériés) même si la mairie n'a rien
-        // fait depuis la mise à jour.
-        Psc_School_Year::ensure_default();
+        // La ceinture de sécurité historique peut créer une année scolaire.
+        // En consultation, le portail doit refléter l'état réel sans réparer
+        // silencieusement la configuration lors d'un simple affichage.
+        if (!Psc_Parents::is_impersonated()) {
+            Psc_School_Year::ensure_default();
+        }
 
         $all_children = self::children_of($parent->id);               // pour la section "Mes enfants"
         $children     = self::children_of($parent->id, true);         // uniquement actifs → planning
@@ -628,8 +645,8 @@ class Psc_Frontend extends Psc_Frontend_Base {
         $active_tab       = self::resolve_active_tab($psc_msg);
         $psc_portal_tabs  = self::portal_tabs_data();
         $psc_portal_menu  = Psc_Frontend_Menus::portal_menu_data();
-        // Ouvrir un message marque sa lecture : calculer ces données avant la
-        // bannière afin qu'une urgence lue disparaisse immédiatement.
+        // Pour une vraie famille, ouvrir un message marque sa lecture ; en
+        // consultation, data_for_family() conserve au contraire son état réel.
         $psc_messages_data = Psc_Messages_Frontend::data_for_family((int) $parent->id, $active_tab === 'messages');
         $psc_portal_tabs['messages']['badge'] = $psc_messages_data['unread'];
         $psc_portal_dashboard = self::dashboard_data($parent, $children, $psc_year_summary, $invoices);
@@ -723,6 +740,11 @@ class Psc_Frontend extends Psc_Frontend_Base {
             );
         }
 
+        $psc_family_impersonations = null;
+        if ((bool) get_option('psc_impersonation_visible_famille', 1)) {
+            $psc_family_impersonations = Psc_Impersonation::history_for_family((int) $parent->id);
+        }
+        $psc_impersonation = Psc_Impersonation::active();
         include PSC_PATH . 'templates/frontend-portal.php';
         return ob_get_clean();
     }

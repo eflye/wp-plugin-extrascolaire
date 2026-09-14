@@ -145,6 +145,9 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         }
         $wpdb->delete($t_inv, array('parent_id' => $id), array('%d'));
 
+        // Ne pas dépendre uniquement de la contrainte étrangère : certains
+        // hébergeurs ne permettent pas sa création (état déjà surveillé).
+        Psc_Impersonation::delete_for_family($id);
         $wpdb->delete($t_parent, array('id' => $id), array('%d'));
 
         self::redirect('psc_parents', 'family_deleted');
@@ -353,12 +356,40 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
 
     public static function page_parents() {
         if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        global $wpdb;
         $parents     = Psc_Parents::all();
         $awaiting_confirmation = Psc_Requests::awaiting_confirmation();
         $psc_msg     = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         $edit_id     = psc_get_int('edit');
         $edit_parent = $edit_id ? Psc_Parents::get_by_id($edit_id) : null;
+        $impersonation_history = $edit_parent ? $wpdb->get_results($wpdb->prepare(
+            'SELECT i.*, u.display_name AS agent_name, u.user_login AS agent_login
+             FROM ' . psc_table('impersonations') . " i
+             LEFT JOIN {$wpdb->users} u ON u.ID = i.wp_user_id
+             WHERE i.family_id = %d
+             ORDER BY i.started_at DESC, i.id DESC
+             LIMIT 20",
+            $edit_id
+        )) : array();
         include PSC_PATH . 'templates/admin-parents.php';
+    }
+
+    /** Écran intermédiaire qui explicite la portée avant toute consultation. */
+    public static function page_impersonate() {
+        if (!current_user_can('psc_impersonate_family')) {
+            wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        }
+
+        global $wpdb;
+        $family_id = psc_get_int('family_id');
+        $family = $family_id ? Psc_Parents::get_by_id($family_id) : null;
+        $active_children = $family ? (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM " . psc_table('children') . " WHERE parent_id = %d AND statut = 'actif'",
+            $family_id
+        )) : 0;
+        $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
+
+        include PSC_PATH . 'templates/admin-impersonate.php';
     }
 
     /**

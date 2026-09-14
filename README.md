@@ -4,7 +4,7 @@
 
 Périscolaire centralise les inscriptions, le planning annuel, la cantine, les garderies, les présences et la facturation. Les familles gèrent leurs besoins en ligne ; la mairie, les intervenants et le fournisseur travaillent à partir des mêmes données.
 
-[![Version 5.9.0](https://img.shields.io/badge/version-5.9.0-24405C)](readme.txt)
+[![Version 5.10.1](https://img.shields.io/badge/version-5.10.1-24405C)](readme.txt)
 ![WordPress 5.8+](https://img.shields.io/badge/WordPress-5.8%2B-21759B?logo=wordpress&logoColor=white)
 ![PHP 7.4+](https://img.shields.io/badge/PHP-7.4%2B-777BB4?logo=php&logoColor=white)
 [![Licence GPLv2+](https://img.shields.io/badge/licence-GPLv2%2B-E08A5F)](LICENSE)
@@ -33,6 +33,7 @@ Moins de fichiers à maintenir, moins de doubles saisies et une information coh�
 - Estimation des montants pour le mois et l’année.
 - Dépôt de l’assurance scolaire et suivi de sa validation.
 - Menus, messages de la mairie, factures PDF, profil et documents au même endroit.
+- Historique anonymisé des consultations de l’espace effectuées par la mairie.
 - Gestion du second parent et des personnes autorisées à récupérer les enfants.
 - Réinscription annuelle simplifiée pendant la campagne municipale.
 
@@ -42,6 +43,7 @@ Le menu de la cantine peut aussi être publié sur la page d’accueil du servic
 
 - Tableau de bord avec les actions à traiter.
 - Validation des demandes, des familles, des enfants et des assurances.
+- Consultation temporaire du portail exact d’une famille, strictement en lecture seule.
 - Années scolaires, vacances, jours fériés, fermetures et délai de modification configurables.
 - Menus de cantine et commandes fournisseur calculées depuis le planning.
 - Messages ciblés ou programmés, avec suivi de la première consultation.
@@ -101,12 +103,15 @@ Le plugin conserve les données sur le site WordPress de la collectivité. Il co
 
 - des liens de connexion temporaires dont les jetons sont stockés sous forme hachée ;
 - des sessions révocables et des contrôles d’accès côté serveur ;
+- un mode de consultation mairie lié à la session de l’agent, limité à 30 minutes et journalisé ;
 - le chiffrement des IBAN au repos avec libsodium ou OpenSSL ;
 - le stockage des assurances et factures hors de la médiathèque publique ;
 - la limitation des tentatives sur les formulaires publics ;
 - des protections WordPress contre les requêtes non autorisées et les injections.
 
 Ces mécanismes techniques ne remplacent pas le travail de la collectivité sur l’hébergement, l’information des familles, les durées de conservation et son registre de traitements.
+
+Pendant une consultation mairie, les contrôles restent visibles mais sont désactivés et toute écriture est aussi refusée côté serveur. Ouvrir un message ne le marque pas comme lu par la famille. Les traces sont purgées après 365 jours ; la famille peut voir pendant douze mois une mention générique « La mairie », sans nom d’agent ni détail technique, si la transparence est activée.
 
 ## À savoir avant de l’adopter
 

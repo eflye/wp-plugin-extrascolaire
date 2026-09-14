@@ -20,6 +20,7 @@ $psc_notices = array(
     'bad_bic'     => array('error', __('BIC invalide.', 'periscolaire-registration')),
     'bad_code_postal' => array('error', __('Code postal invalide.', 'periscolaire-registration')),
     'family_deleted' => array('success', __('Famille supprimée définitivement, avec ses enfants, inscriptions, justificatifs et factures.', 'periscolaire-registration')),
+    'impersonation_stopped' => array('success', __('Consultation terminée.', 'periscolaire-registration')),
 );
 psc_admin_notice_map($psc_notices, $psc_msg); ?>
 
@@ -34,6 +35,10 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 <?php if (!empty($edit_parent)): ?>
 <div class="psc-box">
 <h2><?php esc_html_e('Modifier —', 'periscolaire-registration'); ?> <?php echo esc_html($edit_parent->nom ?: $edit_parent->email); ?></h2>
+<?php if ($edit_parent->active && current_user_can('psc_impersonate_family')): ?>
+<p><a class="button button-secondary" data-testid="impersonate-open-<?php echo (int) $edit_parent->id; ?>"
+      href="<?php echo esc_url(add_query_arg(array('page' => 'psc_impersonate', 'family_id' => (int) $edit_parent->id), admin_url('admin.php'))); ?>"><?php esc_html_e('Voir son espace', 'periscolaire-registration'); ?></a></p>
+<?php endif; ?>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
 <?php wp_nonce_field('psc_edit_parent'); ?>
 <input type="hidden" name="action" value="psc_edit_parent">
@@ -86,6 +91,54 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 <?php submit_button(__('Enregistrer les modifications', 'periscolaire-registration')); ?>
 </form>
 </div>
+
+<div class="psc-box">
+<h2><?php esc_html_e('Consultations de l’espace famille', 'periscolaire-registration'); ?></h2>
+<table class="widefat striped">
+<caption class="screen-reader-text"><?php esc_html_e('Les 20 dernières consultations de cet espace famille par la mairie', 'periscolaire-registration'); ?></caption>
+<thead><tr>
+  <th scope="col"><?php esc_html_e('Agent', 'periscolaire-registration'); ?></th>
+  <th scope="col"><?php esc_html_e('Début', 'periscolaire-registration'); ?></th>
+  <th scope="col"><?php esc_html_e('Durée', 'periscolaire-registration'); ?></th>
+  <th scope="col"><?php esc_html_e('Motif', 'periscolaire-registration'); ?></th>
+  <th scope="col"><?php esc_html_e('Fin', 'periscolaire-registration'); ?></th>
+</tr></thead>
+<tbody>
+<?php if (empty($impersonation_history)): ?>
+<tr><td colspan="5"><?php esc_html_e('Aucune consultation enregistrée.', 'periscolaire-registration'); ?></td></tr>
+<?php else:
+    $psc_motif_labels = array(
+        'reclamation' => __('Problème signalé par la famille', 'periscolaire-registration'),
+        'verification' => __('Vérification avant de répondre', 'periscolaire-registration'),
+        'autre' => __('Autre', 'periscolaire-registration'),
+    );
+    $psc_end_labels = array(
+        'manuel' => __('Terminée manuellement', 'periscolaire-registration'),
+        'expiration' => __('Expiration', 'periscolaire-registration'),
+        'deconnexion' => __('Déconnexion', 'periscolaire-registration'),
+        'remplacee' => __('Remplacée', 'periscolaire-registration'),
+        'revoquee' => __('Révoquée', 'periscolaire-registration'),
+    );
+    foreach ($impersonation_history as $psc_consultation):
+        $psc_end_at = $psc_consultation->ended_at ?: min($psc_consultation->expires_at, current_time('mysql'));
+        $psc_duration_minutes = max(0, (int) floor((strtotime($psc_end_at) - strtotime($psc_consultation->started_at)) / MINUTE_IN_SECONDS));
+        $psc_duration = $psc_duration_minutes < 1
+            ? __('Moins d’une minute', 'periscolaire-registration')
+            : sprintf(_n('%d minute', '%d minutes', $psc_duration_minutes, 'periscolaire-registration'), $psc_duration_minutes);
+        $psc_motif = isset($psc_motif_labels[$psc_consultation->motif_type]) ? $psc_motif_labels[$psc_consultation->motif_type] : $psc_consultation->motif_type;
+        if ($psc_consultation->motif_type === 'autre' && $psc_consultation->motif_detail) $psc_motif .= ' — ' . $psc_consultation->motif_detail;
+?>
+<tr>
+  <td><?php echo esc_html($psc_consultation->agent_name ?: ($psc_consultation->agent_login ?: __('Compte supprimé', 'periscolaire-registration'))); ?></td>
+  <td><?php echo esc_html(date_i18n('d/m/Y H:i', strtotime($psc_consultation->started_at))); ?></td>
+  <td><?php echo esc_html($psc_duration); ?></td>
+  <td><?php echo esc_html($psc_motif); ?></td>
+  <td><?php echo esc_html($psc_consultation->ended_at ? (isset($psc_end_labels[$psc_consultation->ended_reason]) ? $psc_end_labels[$psc_consultation->ended_reason] : $psc_consultation->ended_reason) : __('En cours', 'periscolaire-registration')); ?></td>
+</tr>
+<?php endforeach; endif; ?>
+</tbody>
+</table>
+</div>
 <?php endif; ?>
 
 <div class="psc-box">
@@ -126,6 +179,10 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
   <a href="<?php echo esc_url(add_query_arg(array('page' => 'psc_parents', 'edit' => $p->id), admin_url('admin.php'))); ?>"
      class="button"><?php esc_html_e('Éditer', 'periscolaire-registration'); ?></a>
   <?php if ($p->active): ?>
+  <?php if (current_user_can('psc_impersonate_family')): ?>
+  <a href="<?php echo esc_url(add_query_arg(array('page' => 'psc_impersonate', 'family_id' => (int) $p->id), admin_url('admin.php'))); ?>"
+     class="button" data-testid="impersonate-open-<?php echo (int) $p->id; ?>"><?php esc_html_e('Voir son espace', 'periscolaire-registration'); ?></a>
+  <?php endif; ?>
   <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
     <?php wp_nonce_field('psc_send_link'); ?>
     <input type="hidden" name="action" value="psc_send_link">

@@ -200,19 +200,24 @@ function psc_log_download($kind, $rel_path) {
     // téléchargement anonyme est précisément ce que le journal doit
     // révéler, jamais ce qu'il doit taire.
     $qui = 'inconnu';
+    $impersonation = class_exists('Psc_Impersonation') ? Psc_Impersonation::active() : null;
     if (is_user_logged_in()) {
         $qui = 'agent:' . wp_get_current_user()->user_login;
     } elseif (class_exists('Psc_Parents') && ($parent = Psc_Parents::current())) {
         $qui = 'famille:' . (int) $parent->id . ':' . $parent->email;
     }
 
-    $entry = wp_json_encode(array(
+    $data = array(
         'horodatage' => current_time('mysql'),
         'qui'        => $qui,
         'type'       => (string) $kind,
         'fichier'    => (string) $rel_path,
         'ip'         => psc_client_ip(),
-    )) . "\n";
+    );
+    if ($impersonation) {
+        $data['impersonation_id'] = (int) $impersonation->id;
+    }
+    $entry = wp_json_encode($data) . "\n";
 
     $log_path = psc_private_path('journal-acces.log');
     if ($log_path) {
