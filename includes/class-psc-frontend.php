@@ -584,10 +584,12 @@ class Psc_Frontend extends Psc_Frontend_Base {
             return ob_get_clean();
         }
 
-        // Ceinture de sécurité : la configuration du planning de l'année
-        // en cours doit exister (dates, fériés) même si la mairie n'a rien
-        // fait depuis la mise à jour.
-        Psc_School_Year::ensure_default();
+        // La ceinture de sécurité historique peut créer une année scolaire.
+        // En consultation, le portail doit refléter l'état réel sans réparer
+        // silencieusement la configuration lors d'un simple affichage.
+        if (!Psc_Parents::is_impersonated()) {
+            Psc_School_Year::ensure_default();
+        }
 
         $all_children = self::children_of($parent->id);               // pour la section "Mes enfants"
         $children     = self::children_of($parent->id, true);         // uniquement actifs → planning
@@ -628,8 +630,8 @@ class Psc_Frontend extends Psc_Frontend_Base {
         $active_tab       = self::resolve_active_tab($psc_msg);
         $psc_portal_tabs  = self::portal_tabs_data();
         $psc_portal_menu  = Psc_Frontend_Menus::portal_menu_data();
-        // Ouvrir un message marque sa lecture : calculer ces données avant la
-        // bannière afin qu'une urgence lue disparaisse immédiatement.
+        // Pour une vraie famille, ouvrir un message marque sa lecture ; en
+        // consultation, data_for_family() conserve au contraire son état réel.
         $psc_messages_data = Psc_Messages_Frontend::data_for_family((int) $parent->id, $active_tab === 'messages');
         $psc_portal_tabs['messages']['badge'] = $psc_messages_data['unread'];
         $psc_portal_dashboard = self::dashboard_data($parent, $children, $psc_year_summary, $invoices);
