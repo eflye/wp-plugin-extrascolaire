@@ -11,6 +11,65 @@
         return s;
     }
 
+    function isReadonly() {
+        return !!(window.PscReadonly && window.PscReadonly.active());
+    }
+
+    /**
+     * Rend les écritures visibles mais inertes. Les liens de navigation,
+     * téléchargements, changements de mois et le bouton de sortie de la
+     * consultation restent actifs.
+     */
+    function initReadonlyPortal() {
+        var root = document.querySelector('[data-psc-readonly="1"]');
+        if (!root || !window.PscReadonly) return;
+
+        var allowedActions = ['psc_logout', 'psc_impersonate_stop'];
+        root.querySelectorAll('form').forEach(function (form) {
+            var actionField = form.querySelector('input[name="action"]');
+            var action = actionField ? actionField.value : '';
+            if (!action || allowedActions.indexOf(action) !== -1) return;
+            form.dataset.pscReadonlyForm = '1';
+            form.querySelectorAll('button, input:not([type="hidden"]), select, textarea').forEach(function (control) {
+                window.PscReadonly.markControl(control);
+            });
+        });
+
+        var writeControls = [
+            '.psc-check', '.psc-tout-btn', '#psc-confirm',
+            '.psc-pat-btn', '.psc-exc-cell', '.psc-exc-tout',
+            '#psc-exc-reset', '#psc-apply-siblings', '#psc-confirm-2',
+            '#psc-absence-trigger', '[data-child-edit-trigger]',
+            '[data-assurance-upload-trigger]', '[data-pickup-add-all-trigger]',
+            '[data-pickup-edit-trigger]', '#psc-add-second-parent',
+            '#psc-profile-pm-autre', '#psc-profile-pm-prelevement'
+        ].join(',');
+        root.querySelectorAll(writeControls).forEach(function (control) {
+            window.PscReadonly.markControl(control);
+        });
+
+        // Le pointerdown précède le clic natif : il permet d'annoncer la
+        // raison même lorsqu'un bouton HTML réellement disabled n'émet pas
+        // ensuite d'événement click.
+        root.addEventListener('pointerdown', function (e) {
+            if (e.target.closest('[data-psc-readonly-control="1"]')) {
+                window.PscReadonly.announce();
+            }
+        }, true);
+        root.addEventListener('click', function (e) {
+            if (!e.target.closest('[data-psc-readonly-control="1"]')) return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            window.PscReadonly.announce();
+        }, true);
+        root.addEventListener('submit', function (e) {
+            if (!e.target.matches('[data-psc-readonly-form="1"]')) return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            window.PscReadonly.announce();
+        }, true);
+    }
+
     // Bascule d'onglets côté client : chaque lien (sidebar + accès rapide
     // du tableau de bord) reste un vrai <a href="?psc_tab=..."> — rendu
     // côté serveur avec la bonne section déjà visible (progressive
@@ -434,18 +493,23 @@
         // serveur, cf. Psc_Frontend_Profil::handle_parent_dismiss_onboarding()) —
         // même formulaire que "Passer", qui saute directement à la fin
         // sans repasser par les étapes intermédiaires.
+        function finish() {
+            if (isReadonly()) window.PscDialog.close(overlay);
+            else dismissForm.submit();
+        }
+
         nextBtn.addEventListener('click', function () {
             if (current < steps.length - 1) { current++; render(); }
-            else { dismissForm.submit(); }
+            else { finish(); }
         });
-        skipBtn.addEventListener('click', function () { dismissForm.submit(); });
+        skipBtn.addEventListener('click', finish);
 
         // Le tour est ouvert dès le chargement (première connexion) : la
         // sémantique de dialogue y est posée immédiatement. Échap vaut
         // "Passer" — seule fermeture possible, elle persiste le seen_at.
         window.PscDialog.open(overlay, {
             focus: '#psc-onboarding-next',
-            onEscape: function () { dismissForm.submit(); }
+            onEscape: finish
         });
 
         render();
@@ -463,5 +527,6 @@
         initToggleAddBlock('psc-add-second-parent', 'psc-second-parent-block');
         initProfileSepa();
         initOnboardingTour();
+        initReadonlyPortal();
     });
 })();

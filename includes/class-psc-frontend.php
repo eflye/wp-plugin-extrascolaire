@@ -31,6 +31,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
         // ne peut pas l'atteindre. On ajoute une classe sur <body> pour le
         // masquer en CSS uniquement quand le portail est affiché.
         add_filter('body_class', array(__CLASS__, 'add_portal_body_class'));
+        add_filter('document_title_parts', array(__CLASS__, 'prefix_impersonation_title'));
 
         foreach (array(
             'Psc_Frontend_Inscriptions',
@@ -68,6 +69,14 @@ class Psc_Frontend extends Psc_Frontend_Base {
         return $classes;
     }
 
+    /** Rend le contexte mairie impossible à confondre dans l'onglet. */
+    public static function prefix_impersonation_title($parts) {
+        if (!Psc_Parents::is_impersonated() || !self::portal_takes_over_page()) return $parts;
+        $prefix = __('[Consultation]', 'periscolaire-registration');
+        $parts['title'] = $prefix . ' ' . (isset($parts['title']) ? $parts['title'] : '');
+        return $parts;
+    }
+
     /** Vrai si la page courante affiche le portail famille connecté (donc
      *  doit céder toute la page — titre et texte d'intro compris). */
     protected static function portal_takes_over_page() {
@@ -95,6 +104,10 @@ class Psc_Frontend extends Psc_Frontend_Base {
             'ajax_url'     => admin_url('admin-ajax.php'),
             'nonce'        => wp_create_nonce('psc_front'),
             'parent_nonce' => $psc_parent ? psc_parent_nonce('psc_front', $psc_parent->id) : '',
+            'readonly'     => Psc_Parents::is_impersonated(),
+            'read_actions' => array_keys(array_filter(psc_impersonation_action_policy(), function ($policy) {
+                return $policy === 'lecture';
+            })),
             // Chaînes traduites côté serveur, consommées par frontend.js,
             // guest.js et portal.js : les codes d'erreur restent ceux
             // renvoyés par l'AJAX, seuls les libellés passent par ici.
@@ -114,6 +127,8 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 'mail'              => __("L'envoi de l'e-mail a échoué.", 'periscolaire-registration'),
                 'network'           => __('Erreur réseau. Vérifiez votre connexion et réessayez.', 'periscolaire-registration'),
                 'generic'           => __("Une erreur est survenue. Merci de réessayer.", 'periscolaire-registration'),
+                'impersonation_readonly' => __('Mode consultation : aucune modification n’est possible.', 'periscolaire-registration'),
+                'readonly_attempt'  => __('Mode consultation : modification impossible', 'periscolaire-registration'),
                 'summary_none'      => __('Aucun jour déclaré', 'periscolaire-registration'),
                 'day'               => __('jour', 'periscolaire-registration'),
                 'days'              => __('jours', 'periscolaire-registration'),
@@ -725,6 +740,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
             );
         }
 
+        $psc_impersonation = Psc_Impersonation::active();
         include PSC_PATH . 'templates/frontend-portal.php';
         return ob_get_clean();
     }

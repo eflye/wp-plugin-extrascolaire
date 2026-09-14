@@ -26,7 +26,58 @@
 (function () {
     'use strict';
 
+    var readonlyAnnounced = false;
+
+    function readonlyRoot() {
+        return document.querySelector('[data-psc-readonly="1"]');
+    }
+
+    function readonlyLabel() {
+        return window.PSC && window.PSC.i18n && window.PSC.i18n.readonly_attempt
+            ? window.PSC.i18n.readonly_attempt
+            : 'Mode consultation : modification impossible';
+    }
+
+    function announceReadonly() {
+        if (readonlyAnnounced) return;
+        var region = document.getElementById('psc-readonly-live');
+        if (!region) return;
+        region.textContent = readonlyLabel();
+        readonlyAnnounced = true;
+    }
+
+    function isReadAction(action) {
+        var allowed = window.PSC && Array.isArray(window.PSC.read_actions)
+            ? window.PSC.read_actions
+            : ['psc_load_month', 'psc_menu_week', 'psc_message_notifications'];
+        return allowed.indexOf(action) !== -1;
+    }
+
+    function blocksAction(action) {
+        return !!readonlyRoot() && !!action && !isReadAction(action);
+    }
+
+    function markControl(control) {
+        if (!control) return;
+        control.dataset.pscReadonlyControl = '1';
+        control.setAttribute('aria-disabled', 'true');
+        if ('disabled' in control) control.disabled = true;
+    }
+
     function send(url, params) {
+        if (blocksAction(params && params.action)) {
+            announceReadonly();
+            return Promise.resolve({
+                success: false,
+                data: {
+                    code: 'impersonation_readonly',
+                    message: window.PSC && window.PSC.i18n
+                        ? window.PSC.i18n.impersonation_readonly
+                        : readonlyLabel()
+                }
+            });
+        }
+
         var body = new URLSearchParams();
         Object.keys(params || {}).forEach(function (k) {
             if (params[k] !== undefined && params[k] !== null) body.set(k, params[k]);
@@ -76,5 +127,14 @@
                 return json.data;
             });
         }
+    };
+
+    // Partagé par les scripts du portail : une seule détection, une seule
+    // annonce et le même marquage accessible pour tous les contrôles.
+    window.PscReadonly = {
+        active: function () { return !!readonlyRoot(); },
+        announce: announceReadonly,
+        blocksAction: blocksAction,
+        markControl: markControl
     };
 })();

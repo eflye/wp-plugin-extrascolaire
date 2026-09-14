@@ -1,5 +1,26 @@
 <?php if (!defined('ABSPATH')) exit; ?>
-<div class="psc-portal alignfull" data-testid="portal-root">
+<div class="psc-portal alignfull" data-testid="portal-root"<?php echo $psc_impersonation ? ' data-psc-readonly="1"' : ''; ?>>
+
+  <?php if ($psc_impersonation): ?>
+  <div class="psc-impersonation-banner" role="region" aria-label="<?php esc_attr_e('Mode consultation mairie', 'periscolaire-registration'); ?>" data-testid="impersonation-banner">
+    <div class="psc-impersonation-banner-text">
+      <span class="psc-impersonation-banner-icon" aria-hidden="true">&#128065;</span>
+      <strong><?php esc_html_e('Lecture seule', 'periscolaire-registration'); ?></strong>
+      <span><?php echo esc_html(sprintf(
+          __('Vous consultez l’espace de la famille %1$s en lecture seule. Fin automatique à %2$s.', 'periscolaire-registration'),
+          $parent->nom ?: $parent->email,
+          date_i18n('H:i', strtotime($psc_impersonation->expires_at))
+      )); ?></span>
+    </div>
+    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+      <?php wp_nonce_field('psc_impersonate_stop'); ?>
+      <input type="hidden" name="action" value="psc_impersonate_stop">
+      <input type="hidden" name="family_id" value="<?php echo (int) $parent->id; ?>">
+      <button type="submit" class="psc-impersonation-stop" data-testid="impersonation-stop"><?php esc_html_e('Quitter la consultation', 'periscolaire-registration'); ?></button>
+    </form>
+  </div>
+  <p id="psc-readonly-live" class="screen-reader-text" role="status" aria-live="polite" aria-atomic="true"></p>
+  <?php endif; ?>
 
   <?php if (empty($parent->onboarding_seen_at)): ?>
   <div class="psc-portal-modal-overlay psc-onboarding-overlay" id="psc-onboarding-overlay" data-testid="onboarding-overlay">
