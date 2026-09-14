@@ -18,6 +18,7 @@ function wpEval(php: string): string {
 
 function cleanup(): void {
   wpEval(`global $wpdb;
+    update_option('psc_impersonation_visible_famille',1);
     $pid=(int)$wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}psc_parents WHERE email=%s",'${EMAIL}'));
     if($pid){
       $wpdb->delete($wpdb->prefix.'psc_impersonations',array('family_id'=>$pid));
@@ -74,6 +75,16 @@ test.describe('Consultation d’un espace famille', () => {
 
     await page.getByTestId('portal-nav-profil').click();
     await expect(page.getByTestId('profil-submit')).toBeDisabled();
+    const familyHistory = page.getByTestId('profil-impersonation-history');
+    await expect(familyHistory).toBeVisible();
+    await expect(familyHistory).toContainText('La mairie');
+    await expect(familyHistory).toContainText('Réponse à une demande de la famille');
+
+    wpEval("update_option('psc_impersonation_visible_famille',0); echo 'ok';");
+    await page.reload();
+    await page.getByTestId('portal-nav-profil').click();
+    await expect(page.getByTestId('profil-impersonation-history')).toHaveCount(0);
+    wpEval("update_option('psc_impersonation_visible_famille',1); echo 'ok';");
 
     await page.getByTestId('portal-nav-cantine2').click();
     const planningCell = page.locator('.psc-pat-btn').first();
