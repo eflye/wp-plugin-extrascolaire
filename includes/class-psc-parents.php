@@ -298,6 +298,11 @@ class Psc_Parents {
     public static function handle_cancel_email_change() {
         check_admin_referer('psc_cancel_email_change');
 
+        if (self::is_impersonated()) {
+            wp_safe_redirect(add_query_arg('psc_msg', 'impersonation_readonly', Psc_Mailer::form_page_url()));
+            exit;
+        }
+
         $parent = self::current();
         if (!$parent) {
             wp_safe_redirect(Psc_Mailer::form_page_url());

@@ -94,6 +94,7 @@
         'child_bad_birthdate' => array('err', __('La date de naissance est incohérente : jamais dans le futur, et au moins 3 ans au 1er septembre de l\'année en cours.', 'periscolaire-registration')),
         'absence_cancelled' => array('ok',  __('Absence signalée : la mairie a été prévenue, ces prestations ne seront pas facturées.', 'periscolaire-registration')),
         'absence_invalid'   => array('err', __("Impossible d'annuler ces prestations (délai dépassé, déjà annulées ou sélection invalide). Rechargez la page.", 'periscolaire-registration')),
+        'impersonation_readonly' => array('err', __('Mode consultation : aucune modification n’est possible.', 'periscolaire-registration')),
 
         'assurance_uploaded'      => array('ok',  Psc_Assurances::manual_review() ? 'Justificatif enregistré, en attente de validation par la mairie.' : 'Justificatif d’assurance scolaire accepté.'),
         'assurance_invalid'       => array('err', __('Enfant introuvable. Rechargez la page.', 'periscolaire-registration')),

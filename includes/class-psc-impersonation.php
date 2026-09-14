@@ -19,6 +19,10 @@ class Psc_Impersonation {
     private static $active_cache_set = false;
 
     public static function init() {
+        // admin-post.php et admin-ajax.php déclenchent admin_init avant de
+        // remettre la main aux handlers : une seule garde couvre ainsi les
+        // routes famille actuelles et celles ajoutées plus tard.
+        add_action('admin_init', array(__CLASS__, 'guard_read_only'), 0);
         add_action('admin_post_psc_impersonate_start', array(__CLASS__, 'handle_start'));
         add_action('admin_post_psc_impersonate_stop', array(__CLASS__, 'handle_stop'));
         add_action('wp_logout', array(__CLASS__, 'handle_wp_logout'), 10, 1);
@@ -32,6 +36,52 @@ class Psc_Impersonation {
     /** Empreinte courte de la session WordPress courante. */
     private static function session_hash() {
         return substr(hash('sha256', (string) wp_get_session_token()), 0, 16);
+    }
+
+    /** Action demandée à admin-post.php ou admin-ajax.php. */
+    public static function requested_action() {
+        return isset($_REQUEST['action']) ? sanitize_key(wp_unslash($_REQUEST['action'])) : '';
+    }
+
+    /**
+     * Garde centrale du mode consultation.
+     *
+     * Une action inconnue est refusée par défaut uniquement si WordPress
+     * expose aussi sa variante publique famille. Les outils purement admin
+     * restent donc utilisables dans un autre onglet du même navigateur.
+     */
+    public static function guard_read_only() {
+        if (!Psc_Parents::is_impersonated()) return;
+
+        $action = self::requested_action();
+        if ($action === '') return;
+
+        // Le handler psc_logout vérifie son nonce puis transforme déjà cette
+        // action en arrêt manuel de la consultation, sans fermer la session
+        // famille. Le laisser poursuivre conserve cette protection CSRF.
+        if ($action === 'psc_logout') return;
+
+        $policies = psc_impersonation_action_policy();
+        $policy = isset($policies[$action]) ? $policies[$action] : null;
+        $family_hook = has_action('admin_post_nopriv_' . $action)
+            || has_action('wp_ajax_nopriv_' . $action);
+
+        if ($policy !== 'ecriture' && !($policy === null && $family_hook)) return;
+
+        $message = __('Mode consultation : aucune modification n’est possible.', 'periscolaire-registration');
+        if (wp_doing_ajax()) {
+            wp_send_json_error(array(
+                'code'    => 'impersonation_readonly',
+                'message' => $message,
+            ), 403);
+        }
+
+        wp_safe_redirect(add_query_arg(
+            'psc_msg',
+            'impersonation_readonly',
+            Psc_Mailer::form_page_url()
+        ));
+        exit;
     }
 
     /** Pose ou retire le cookie distinct de toute session famille. */

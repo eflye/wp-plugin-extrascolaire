@@ -111,6 +111,10 @@ class Psc_Messages_Frontend {
 
     public static function handle_ack() {
         check_admin_referer('psc_message_ack');
+        if (Psc_Parents::is_impersonated()) {
+            wp_safe_redirect(add_query_arg('psc_msg', 'impersonation_readonly', Psc_Mailer::form_page_url()));
+            exit;
+        }
         $parent = Psc_Parents::current();
         if (!$parent) { wp_safe_redirect(Psc_Mailer::form_page_url()); exit; }
         $id = isset($_POST['message_id']) ? absint($_POST['message_id']) : 0;
