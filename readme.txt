@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.10.1
+Stable tag: 5.11.0
 License: GPLv2 or later
 
 == Description ==
@@ -286,6 +286,11 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.11.0 =
+* Ajoute des conversations privées entre une famille et la mairie, en plus des diffusions descendantes existantes : une famille peut écrire à la mairie, répondre à une diffusion quand celle-ci l'autorise, et la mairie peut ouvrir, répondre, clore ou rouvrir un échange.
+* Notifie par e-mail les nouveaux messages d'un échange, sans jamais révéler leur contenu, avec un regroupement des envois rapprochés.
+* Purge automatiquement les échanges anciens et supprime les conversations d'une famille supprimée.
 
 = 5.10.1 =
 * Permet aux agents habilités de consulter temporairement le portail exact d’une famille active, en lecture seule stricte.
