@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.6.0';
+    const DB_VERSION = '4.7.0';
     const ROLES_VERSION = '1.2.0';
 
     public static function activate() {
@@ -347,6 +347,9 @@ class Psc_Installer {
         return array(
             array('children',           'parent_id',      'parents',      'CASCADE'),
             array('impersonations',      'family_id',      'parents',      'CASCADE'),
+            array('conversations',      'family_id',      'parents',      'CASCADE'),
+            array('conversations',      'message_id',     'messages',     'SET NULL'),
+            array('conversation_messages', 'conversation_id', 'conversations', 'CASCADE'),
             // Ancienne table conservée en lecture seule le temps d'un cycle
             // de facturation : la cascade enfant continue de purger son
             // historique à la suppression d'un enfant.
@@ -936,6 +939,8 @@ class Psc_Installer {
         $t_messages = psc_table('messages');
         $t_message_destinataires = psc_table('message_destinataires');
         $t_impersonations = psc_table('impersonations');
+        $t_conversations = psc_table('conversations');
+        $t_conv_messages = psc_table('conversation_messages');
         // v4.0 — année scolaire + rythme & exceptions.
         $t_sy   = psc_table('school_year');
         $t_hol  = psc_table('holidays');
@@ -1238,6 +1243,7 @@ CREATE TABLE $t_messages (
             piece_jointe_id BIGINT UNSIGNED NULL,
             epingle TINYINT(1) NOT NULL DEFAULT 0,
             accuse_requis TINYINT(1) NOT NULL DEFAULT 0,
+            reponses_autorisees TINYINT(1) NOT NULL DEFAULT 0,
             date_envoi_prevue DATETIME NULL,
             date_envoi DATETIME NULL,
             auteur_id BIGINT UNSIGNED NOT NULL,
@@ -1278,6 +1284,40 @@ CREATE TABLE $t_impersonations (
             PRIMARY KEY  (id),
             KEY family_started (family_id, started_at),
             KEY user_ended (wp_user_id, ended_at)
+        ) $charset_collate;
+
+CREATE TABLE $t_conversations (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            family_id BIGINT UNSIGNED NOT NULL,
+            message_id BIGINT UNSIGNED NULL,
+            sujet VARCHAR(160) NOT NULL,
+            statut VARCHAR(16) NOT NULL DEFAULT 'ouverte',
+            initiee_par VARCHAR(16) NOT NULL,
+            dernier_message_at DATETIME NOT NULL,
+            dernier_auteur VARCHAR(16) NOT NULL,
+            famille_dernier_lu_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            mairie_dernier_lu_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            famille_notifie_le DATETIME NULL,
+            mairie_notifie_le DATETIME NULL,
+            close_le DATETIME NULL,
+            close_par BIGINT UNSIGNED NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY fam_msg (family_id, message_id),
+            KEY family_date (family_id, dernier_message_at),
+            KEY statut_date (statut, dernier_message_at)
+        ) $charset_collate;
+
+CREATE TABLE $t_conv_messages (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            conversation_id BIGINT UNSIGNED NOT NULL,
+            auteur_type VARCHAR(16) NOT NULL,
+            auteur_user_id BIGINT UNSIGNED NULL,
+            corps TEXT NOT NULL,
+            created_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            KEY conv_id (conversation_id, id)
         ) $charset_collate;";
 
         // Tables LÉGACY (trimestres, calendar_days, registrations) : leur
