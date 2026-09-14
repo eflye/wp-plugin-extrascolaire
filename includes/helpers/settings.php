@@ -71,6 +71,15 @@ function psc_mairie_email() {
     return $mail;
 }
 
+/** Destinataire des notifications d'échange famille → mairie (Réglages > Notifications des échanges familles). */
+function psc_conversations_email() {
+    $mail = get_option('psc_conversations_email', '');
+    if (!$mail || !is_email($mail)) {
+        $mail = get_option('admin_email');
+    }
+    return $mail;
+}
+
 /**
  * Variante(s) de l'écran Planning exposée(s) aux familles.
  *

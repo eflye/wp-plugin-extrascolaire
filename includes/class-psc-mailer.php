@@ -774,6 +774,61 @@ class Psc_Mailer {
         return self::send(psc_mairie_email(), $subject, self::layout($body, $subject));
     }
 
+    /* ------------------------------------------------------------------ */
+    /* Conversations privées famille ↔ mairie                               */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Notification d'un nouveau message dans un échange — sans jamais en
+     * reproduire le sujet ni le contenu (limitation des données
+     * personnelles dans les e-mails, cf. TODO.md). $side : le côté qui
+     * vient de recevoir un message non lu ('famille' ou 'mairie').
+     */
+    public static function send_conversation_notification($conversation, $side) {
+        global $wpdb;
+        $site = self::site_name();
+        $url = add_query_arg(
+            array('psc_tab' => 'messages', 'psc_vue' => 'echanges', 'conversation_id' => (int) $conversation->id),
+            self::form_page_url()
+        );
+
+        if ($side === 'famille') {
+            $family = $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . psc_table('parents') . ' WHERE id=%d', (int) $conversation->family_id));
+            if (!$family || !is_email($family->email)) return false;
+            $emails = array($family->email);
+            if (!empty($family->second_parent_email) && is_email($family->second_parent_email) && strcasecmp($family->second_parent_email, $family->email) !== 0) {
+                $emails[] = $family->second_parent_email;
+            }
+
+            $subject = Psc_Email_Templates::subject('conversation_famille', array('site' => $site));
+            $intro = Psc_Email_Templates::body_html('conversation_famille', array('site' => $site));
+            $body = self::h2(__('Nouveau message de la mairie', 'periscolaire-registration'))
+                . '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 12px;">' . $intro . '</p>'
+                . self::btn($url, __('Lire dans mon espace famille', 'periscolaire-registration'));
+            $html = self::layout($body, $subject);
+
+            $sent = false;
+            foreach (array_unique($emails) as $email) {
+                $sent = self::send($email, $subject, $html) || $sent;
+            }
+            return $sent;
+        }
+
+        $email = psc_conversations_email();
+        if (!is_email($email)) return false;
+        $family = $wpdb->get_row($wpdb->prepare('SELECT nom,prenom,email FROM ' . psc_table('parents') . ' WHERE id=%d', (int) $conversation->family_id));
+        $family_label = $family ? (trim($family->prenom . ' ' . $family->nom) ?: $family->email) : ('#' . (int) $conversation->family_id);
+        $admin_link = add_query_arg(array('page' => 'psc_conversation', 'id' => (int) $conversation->id), admin_url('admin.php'));
+
+        $subject = Psc_Email_Templates::subject('conversation_mairie', array('site' => $site, 'famille' => $family_label));
+        $intro = Psc_Email_Templates::body_html('conversation_mairie', array('site' => $site, 'famille' => $family_label));
+        $body = self::h2(__('Nouveau message d’une famille', 'periscolaire-registration'))
+            . '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 12px;">' . $intro . '</p>'
+            . self::btn($admin_link, __('Ouvrir la conversation', 'periscolaire-registration'));
+
+        return self::send($email, $subject, self::layout($body, $subject));
+    }
+
     public static function send_request_rejected($email, $note = '') {
         $site    = self::site_name();
         $subject = Psc_Email_Templates::subject('request_rejected', array('site' => $site));

@@ -82,6 +82,7 @@ register_deactivation_hook(__FILE__, function () {
     wp_clear_scheduled_hook('psc_send_scheduled_messages');
     wp_clear_scheduled_hook('psc_cleanup_message_receipts');
     wp_clear_scheduled_hook('psc_cleanup_impersonations');
+    wp_clear_scheduled_hook('psc_conversation_notify');
 });
 
 add_action('plugins_loaded', function () {

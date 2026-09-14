@@ -61,6 +61,9 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         $mairie_mail = isset($_POST['mairie_email']) ? sanitize_email(wp_unslash($_POST['mairie_email'])) : '';
         update_option('psc_mairie_email', is_email($mairie_mail) ? $mairie_mail : '');
 
+        $conversations_mail = isset($_POST['conversations_email']) ? sanitize_email(wp_unslash($_POST['conversations_email'])) : '';
+        update_option('psc_conversations_email', is_email($conversations_mail) ? $conversations_mail : '');
+
         $supplier_mail = isset($_POST['supplier_email']) ? sanitize_email(wp_unslash($_POST['supplier_email'])) : '';
         update_option('psc_supplier_email', is_email($supplier_mail) ? $supplier_mail : '');
 

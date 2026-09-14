@@ -86,6 +86,20 @@ class Psc_Email_Templates {
                 'has_footer' => true,
                 'footer'  => __('Service périscolaire — Montgeroult Courcelles', 'periscolaire-registration'),
             ),
+            'conversation_famille' => array(
+                'label'   => __('Échange famille — nouveau message de la mairie', 'periscolaire-registration'),
+                'subject' => __('[{{site}}] Nouveau message de la mairie', 'periscolaire-registration'),
+                'body'    => __("La mairie vous a répondu dans votre espace famille.\n\nAucun contenu n'est reproduit ici : consultez le message directement dans votre espace.", 'periscolaire-registration'),
+                'vars'    => array('{{site}}'),
+                'note'    => __('Le bouton vers la conversation est ajouté automatiquement. Ni le sujet ni le contenu du message ne figurent dans cet e-mail.', 'periscolaire-registration'),
+            ),
+            'conversation_mairie' => array(
+                'label'   => __('Échange famille — nouveau message d’une famille', 'periscolaire-registration'),
+                'subject' => __('[{{site}}] Nouveau message d’une famille', 'periscolaire-registration'),
+                'body'    => __("{{famille}} vient d'écrire dans un échange.\n\nAucun contenu n'est reproduit ici : ouvrez la conversation dans le backoffice.", 'periscolaire-registration'),
+                'vars'    => array('{{site}}', '{{famille}}'),
+                'note'    => __('Le bouton vers la conversation est ajouté automatiquement. Ni le sujet ni le contenu du message ne figurent dans cet e-mail.', 'periscolaire-registration'),
+            ),
             'invoice' => array(
                 'label'   => __('Envoi de facture', 'periscolaire-registration'),
                 'subject' => __('Facture périscolaire — {{mois}}', 'periscolaire-registration'),

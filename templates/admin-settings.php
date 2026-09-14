@@ -71,6 +71,15 @@ psc_admin_notice_map(array(
   <p class="description"><?php esc_html_e("Laisser vide pour utiliser l'adresse d'administration du site.", 'periscolaire-registration'); ?></p>
 </td>
 </tr>
+<tr>
+<th><label for="psc-conversations-mail"><?php esc_html_e('Notifications des échanges familles', 'periscolaire-registration'); ?></label></th>
+<td>
+  <input id="psc-conversations-mail" type="email" name="conversations_email" class="regular-text"
+         value="<?php echo esc_attr(get_option('psc_conversations_email', '')); ?>"
+         placeholder="<?php echo esc_attr(get_option('admin_email')); ?>">
+  <p class="description"><?php esc_html_e("Adresse prévenue quand une famille écrit dans un échange. Laisser vide pour utiliser l'adresse d'administration du site.", 'periscolaire-registration'); ?></p>
+</td>
+</tr>
 </table>
 
 <h2><?php esc_html_e("Demandes d'inscription", 'periscolaire-registration'); ?></h2>
