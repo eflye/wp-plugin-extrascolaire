@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-15T15:34:25Z",
+  "title": "Design System: Périscolaire — Inscriptions",
+  "extensions": {
+    "colorMeta": {
+      "forest": { "role": "primary", "displayName": "Bleu encre", "canonical": "#24405C", "tonalRamp": ["#0E1A26", "#152A3B", "#1C3A50", "#24405C", "#3E5872", "#5C7389", "#8398A9", "#B4C2CE"] },
+      "moss": { "role": "secondary", "displayName": "Bleu doux", "canonical": "#4E6C8D", "tonalRamp": ["#1E2C3B", "#2C4054", "#3A5470", "#4E6C8D", "#6D87A3", "#8DA2B9", "#B0BFD0", "#D6DEE7"] },
+      "gold": { "role": "accent", "displayName": "Abricot", "canonical": "#E08A5F", "tonalRamp": ["#4D2A17", "#7A421F", "#A65A29", "#C67540", "#E08A5F", "#E9A57F", "#F1C2A6", "#F9E1D2"] },
+      "gold-ink": { "role": "accent-deep", "displayName": "Abricot encré", "canonical": "#9A5B2E" },
+      "cream": { "role": "neutral-bg", "displayName": "Crème", "canonical": "#FAF6F1" },
+      "paper": { "role": "neutral-surface", "displayName": "Papier", "canonical": "#F5E7DC" },
+      "stone": { "role": "neutral-muted", "displayName": "Pierre", "canonical": "#8B8279" },
+      "danger": { "role": "danger", "displayName": "Rouge alerte", "canonical": "#9E4A4A" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Titres de page (h1 tableau de bord, Messages)." },
+      "title": { "displayName": "Title", "purpose": "Titres de carte, sujets de conversation." },
+      "label": { "displayName": "Label", "purpose": "Éyebrows, libellés de champ, texte de bouton." },
+      "body": { "displayName": "Body", "purpose": "Texte courant." }
+    },
+    "shadows": [
+      { "name": "overlay-floating", "value": "0 4px 16px rgba(36,64,92,0.08)", "purpose": "Réservée aux éléments réellement flottants : menu déroulant d'autocomplétion, bannière de consultation fixe." },
+      { "name": "toast", "value": "0 8px 30px rgba(26,26,26,0.25)", "purpose": "Toast de confirmation transitoire uniquement." }
+    ],
+    "motion": [],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "900px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Bouton primaire",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Action principale d'un écran (Envoyer, Écrire à la mairie, Déclarer un jour).",
+      "html": "<button class=\"ds-btn-primary\">Écrire à la mairie</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;gap:8px;background:#E08A5F;border:none;border-bottom:3px solid #9A5B2E;color:#1A1A1A;font-family:'Public Sans',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:12px 20px 9px;cursor:pointer}.ds-btn-primary:hover{background:#d19a1f}.ds-btn-primary:disabled{background:#E6DED4;border-bottom-color:transparent;color:#9A9086;cursor:not-allowed}.ds-btn-primary:focus-visible{outline:2px solid #24405C;outline-offset:2px}"
+    },
+    {
+      "name": "Bouton secondaire",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Action secondaire (Joindre un fichier, Annuler).",
+      "html": "<button class=\"ds-btn-secondary\">Joindre un fichier</button>",
+      "css": ".ds-btn-secondary{display:inline-flex;align-items:center;gap:7px;background:none;border:1px solid rgba(36,64,92,.3);color:#24405C;font-family:'Public Sans',Helvetica,Arial,sans-serif;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:9px 13px;cursor:pointer}.ds-btn-secondary:hover{background:rgba(36,64,92,.06)}.ds-btn-secondary:focus-visible{outline:2px solid #24405C;outline-offset:2px}"
+    },
+    {
+      "name": "Pastille de filtre",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Sélecteur d'objet, d'enfant ou de filtre (Tous / En cours / Clos).",
+      "html": "<label class=\"ds-chip\"><input type=\"radio\" name=\"demo\" checked><span>Cantine</span></label>",
+      "css": ".ds-chip{position:relative;display:inline-block}.ds-chip input{position:absolute;opacity:0;pointer-events:none}.ds-chip span{display:inline-block;font-family:'Public Sans',Helvetica,Arial,sans-serif;font-size:12px;font-weight:600;padding:7px 13px;border:1px solid rgba(36,64,92,.28);background:transparent;color:#4E6C8D;cursor:pointer}.ds-chip:has(input:checked) span{background:#24405C;color:#FAF6F1;border-color:#24405C}.ds-chip input:focus-visible+span{outline:2px solid #24405C;outline-offset:2px}"
+    },
+    {
+      "name": "Badge de statut — réponse reçue",
+      "kind": "chip",
+      "refersTo": "status-recue",
+      "description": "Seul statut en aplat plein — le seul qu'une famille doit repérer sans lire le texte.",
+      "html": "<span class=\"ds-status ds-status-recue\">Réponse reçue</span>",
+      "css": ".ds-status{font-family:'Public Sans',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;display:inline-block;border:1px solid currentColor}.ds-status-recue{background:#24405C;color:#fff;border-color:#24405C}"
+    },
+    {
+      "name": "Badge de statut — en attente",
+      "kind": "chip",
+      "refersTo": "status-attente",
+      "description": "Statut en contour, fond blanc — traitement par défaut de tous les statuts sauf « réponse reçue ».",
+      "html": "<span class=\"ds-status ds-status-attente\">En attente de réponse</span>",
+      "css": ".ds-status{font-family:'Public Sans',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;display:inline-block;border:1px solid currentColor}.ds-status-attente{background:#fff;color:#8A4B25}"
+    },
+    {
+      "name": "Carte",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Conteneur générique (tableau de bord, liste de messages) — plat, sans ombre.",
+      "html": "<div class=\"ds-card\"><span class=\"ds-card-label\">Année scolaire</span><strong class=\"ds-card-value\">12 jours</strong></div>",
+      "css": ".ds-card{background:#fff;border:1px solid rgba(36,64,92,.15);padding:22px 24px;font-family:'Public Sans',Helvetica,Arial,sans-serif}.ds-card-label{display:block;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#8B8279;font-weight:600;margin-bottom:10px}.ds-card-value{display:block;font-weight:700;font-size:26px;color:#24405C}"
+    },
+    {
+      "name": "En-tête de fil (signature)",
+      "kind": "custom",
+      "refersTo": "thread-head",
+      "description": "Bandeau plein encre portant le sujet d'un échange — la seule zone où l'encre couvre une surface entière plutôt qu'un texte ou un filet.",
+      "html": "<div class=\"ds-thread-head\"><span class=\"ds-status ds-status-recue-inv\">Réponse reçue</span><h3>Léa ne mange pas de porc — comment le signaler ?</h3></div>",
+      "css": ".ds-thread-head{background:#24405C;padding:20px 24px;font-family:'Public Sans',Helvetica,Arial,sans-serif}.ds-thread-head h3{margin:8px 0 0;color:#fff;font-size:22px;font-weight:700}.ds-status-recue-inv{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;display:inline-block;background:#fff;color:#24405C;border:1px solid #fff}"
+    }
+  ],
+  "narrative": {
+    "northStar": "L'Habit de Marianne",
+    "overview": "Ce n'est pas la charte du Système de Design de l'État — c'est ce qu'un service intercommunal a de plus proche sans emprunter la police Marianne ni le bleu France : la discipline d'un service public numérique français (aplat total, une seule famille de caractères, hiérarchie par la graisse et non par l'ornement, réserve du RGAA) appliquée à la palette bleu encre / abricot déjà propre à Montgeroult–Courcelles. Le système précédent (Fraunces, italique Cormorant Garamond, ombre « tampon ») a été traité comme preuve et contre-référence, pas comme point de départ : ce qui restait décoratif a été retiré, ce qui portait une vraie information a été conservé et reconstruit dans le nouveau vocabulaire.\n\nUne seule famille — Public Sans (USWDS, licence SIL OFL), auto-hébergée en variable woff2 comme les précédentes — fait tout le travail : titres, corps, libellés. Aucun corps italique nulle part. Le bleu encre devient le fond dominant des zones qui font autorité. L'abricot ne reste que là où une action est réellement possible. L'ombre « tampon » à décalage plat disparaît au profit d'une bordure basse nette de 3px.",
+    "keyCharacteristics": [
+      "Aplats stricts : aucune ombre décorative, uniquement des ombres fonctionnelles sur les éléments qui flottent réellement",
+      "Une seule famille de caractères pour tout l'écran, hiérarchie par la graisse (400 à 800)",
+      "Encre dominante sur les zones d'autorité, abricot réservé aux actions",
+      "Statuts en contour par défaut ; seul le plus important reste en aplat",
+      "Coins carrés partout, sans exception décorative"
+    ],
+    "rules": [
+      { "name": "La règle du fond d'autorité", "body": "Une zone qui fait autorité sur l'écran prend l'encre en fond plein, texte en blanc ou en bleu doux clair — jamais l'encre en simple filet sur fond clair quand la zone porte une décision ou un statut.", "section": "colors" },
+      { "name": "La règle de l'abricot rare", "body": "L'abricot ne colore qu'un élément sur lequel on peut agir. Un badge, un fond de carte informative ou un filet ne l'utilisent jamais.", "section": "colors" },
+      { "name": "La règle sans italique", "body": "Aucun texte n'est mis en italique nulle part dans le produit.", "section": "typography" },
+      { "name": "La règle de la ledge, pas du tampon", "body": "Un élément actionnable ne projette jamais d'ombre : il porte une bordure basse plus sombre, comme le bord d'une marche, jamais comme le décalage d'un cachet encreur.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do garder Public Sans comme unique famille, du titre de page au libellé de champ",
+      "Do réserver l'aplat de statut au seul état qu'une famille doit repérer sans lire le texte",
+      "Do utiliser la bordure basse 3px comme seul signal de relief sur un élément actionnable",
+      "Do garder l'encre en fond plein réservée aux zones qui font réellement autorité"
+    ],
+    "donts": [
+      "Don't réintroduire une police serif ou un corps italique nulle part",
+      "Don't ajouter une ombre douce décorative à un bouton ou une carte statique",
+      "Don't arrondir un coin par habitude",
+      "Don't charger une police via Google Fonts sur un écran authentifié"
+    ]
+  }
+}
