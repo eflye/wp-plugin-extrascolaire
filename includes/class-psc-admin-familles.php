@@ -89,12 +89,13 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
     /**
      * Purge complète d'un enfant : justificatifs d'assurance sur disque,
      * puis toutes les lignes le concernant (inscriptions, pointage SIDSCM,
-     * historique des personnes autorisées). Utilisé à la fois par la
-     * suppression d'un enfant seul et par la suppression complète d'une
-     * famille (cf. handle_delete_family) — un seul endroit qui sait purger
-     * un enfant, pour ne jamais oublier une table dans l'un des deux chemins.
+     * historique des personnes autorisées). Utilisé par la suppression d'un
+     * enfant seul, par la suppression complète d'une famille (cf.
+     * handle_delete_family) et par l'effaceur RGPD (Psc_Privacy) — un seul
+     * endroit qui sait purger un enfant, pour ne jamais oublier une table
+     * dans l'un de ces chemins. Public pour cette dernière raison.
      */
-    protected static function purge_child($child_id) {
+    public static function purge_child($child_id) {
         global $wpdb;
         $t_cy = psc_table('child_school_years');
 

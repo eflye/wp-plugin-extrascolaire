@@ -21,6 +21,7 @@ define('PSC_FILE', __FILE__);
 require_once PSC_PATH . 'includes/helpers.php';
 require_once PSC_PATH . 'includes/class-psc-installer.php';
 require_once PSC_PATH . 'includes/class-psc-audit.php';
+require_once PSC_PATH . 'includes/class-psc-privacy.php';
 require_once PSC_PATH . 'includes/class-psc-mailer.php';
 require_once PSC_PATH . 'includes/class-psc-assurances.php';
 require_once PSC_PATH . 'includes/class-psc-parents.php';
@@ -100,6 +101,7 @@ add_action('plugins_loaded', function () {
 
     Psc_Installer::maybe_upgrade();
     Psc_Audit::init();
+    Psc_Privacy::init();
     Psc_Admin::init();
     Psc_Admin_Audit::init();
     Psc_Admin_Calendar_V2::init();
