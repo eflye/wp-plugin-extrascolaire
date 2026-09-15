@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.14.1
+Stable tag: 5.15.0
 License: GPLv2 or later
 
 == Description ==
@@ -334,6 +334,12 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.15.0 =
+* Intègre les outils natifs de confidentialité de WordPress : Outils > Exporter les données personnelles et Outils > Effacer les données personnelles retrouvent un foyer par e-mail (les familles n'ont pas de compte WordPress) et couvrent profil, enfants, planning, factures et échanges. L'effacement anonymise la fiche famille plutôt que de la supprimer, pour que les factures restent conservées dix ans comme l'exige la loi comptable, sans laisser de facture orpheline.
+* Suggère automatiquement un texte pour la page de confidentialité (Réglages > Confidentialité), à relire et publier par un administrateur.
+* Exige désormais une case de consentement dédiée, distincte et horodatée avant d'enregistrer une allergie alimentaire déclarée par une famille (page d'inscription et portail famille) — une donnée de santé, pas une simple case à cocher parmi d'autres.
+* Purge automatiquement, chaque jour, la fiche d'un enfant sorti du service depuis plus de 400 jours (identité, planning, personnes autorisées, allergies) : plus aucun dossier ne traîne indéfiniment une fois la relation terminée.
 
 = 5.14.1 =
 * Corrige la direction « L'Habit de Marianne » : le fond de page et les encarts secondaires n'avaient pas suivi le refroidissement de teinte validé (crème/papier chauds oubliés lors du déploiement 5.14.0), et le bandeau de délai / la bulle famille gardaient une bordure pleine au lieu du liseré prévu.
