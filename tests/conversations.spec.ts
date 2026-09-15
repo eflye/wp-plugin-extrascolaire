@@ -169,7 +169,11 @@ test.describe('Échanges familles ↔ mairie', () => {
     await expect(page.getByTestId('portal-root')).toBeVisible();
     await expect(page.getByTestId('portal-nav-messages').locator('.psc-message-nav-badge')).toHaveText('1');
     await openEchanges(page);
-    await expect(page.getByText('Nouveau message de la mairie')).toBeVisible();
+    // Refonte front : le non-lu n'est plus signalé par une phrase dédiée
+    // mais par le style de la ligne (fond, liseré, sujet en gras) — on
+    // vérifie ici que l'aperçu du dernier message (la réponse de la
+    // mairie) est bien remonté dans la liste.
+    await expect(page.getByText('Bonjour, merci pour votre message.', { exact: false })).toBeVisible();
   });
 
   test('isole les foyers : accès direct et réponse forgée refusés', async ({ page, browser }) => {
@@ -245,7 +249,7 @@ test.describe('Échanges familles ↔ mairie', () => {
     await page.goto(`${readFormPageUrl()}${readFormPageUrl().includes('?') ? '&' : '?'}psc_tab=messages&message_id=${openId}`);
     await page.getByTestId('message-reply').click();
     await page.locator('#psc-conversation-reply-body').fill('Un complément.');
-    await page.getByRole('button', { name: 'Répondre' }).click();
+    await page.getByRole('button', { name: 'Envoyer la réponse' }).click();
     expect(conversationCountForFamily(familyIdA)).toBe(1);
 
     const context = await browser.newContext();
@@ -287,41 +291,56 @@ test.describe('Échanges familles ↔ mairie', () => {
     await page.locator('#psc-conversation-reply-body').fill('Je clos cet échange.');
     await page.getByRole('button', { name: 'Répondre et clore' }).click();
 
+    // Refonte front : une conversation close masque entièrement la zone de
+    // réponse (« Cet échange est clos. » + lien vers une nouvelle demande) —
+    // le formulaire n'existe plus dans le DOM pour ce cas. La capacité
+    // serveur de réouverture par réponse (Psc_Conversations::reply(), hors
+    // périmètre de cette refonte front) reste néanmoins active : on la
+    // vérifie ci-dessous par requêtes forgées, avec des jetons valides
+    // récupérés sur une seconde conversation ouverte (même doctrine que le
+    // test d'isolation entre foyers ci-dessus — un jeton d'action n'est pas
+    // lié à un identifiant de conversation précis).
     await page.goto(`${readFormPageUrl()}${readFormPageUrl().includes('?') ? '&' : '?'}psc_tab=messages&psc_vue=echanges&conversation_id=${conversationId}`);
-    await expect(page.getByText('Échange clos par la mairie le', { exact: false })).toBeVisible();
+    await expect(page.getByText('Cet échange est clos.', { exact: false })).toBeVisible();
+    await expect(page.locator('#psc-conversation-reply-body')).toHaveCount(0);
 
-    // Corps vide refusé.
-    await page.locator('#psc-conversation-reply-body').evaluate((el: HTMLTextAreaElement) => el.removeAttribute('required'));
-    await page.locator('#psc-conversation-reply-body').fill('');
-    await page.getByRole('button', { name: 'Répondre' }).click();
-    await expect(page.getByRole('alert')).toBeVisible();
-
-    // Corps trop long refusé (maxlength HTML retiré : c'est la validation
-    // serveur qu'on vérifie ici, pas la limite du navigateur).
-    await page.locator('#psc-conversation-reply-body').evaluate((el: HTMLTextAreaElement) => el.removeAttribute('maxlength'));
-    await page.locator('#psc-conversation-reply-body').fill('x'.repeat(2001));
-    await page.getByRole('button', { name: 'Répondre' }).click();
-    await expect(page.getByRole('alert')).toBeVisible();
-
-    // Réponse valide : réouvre la conversation.
-    await page.locator('#psc-conversation-reply-body').fill('Une nouvelle question.');
-    await page.getByRole('button', { name: 'Répondre' }).click();
-    const statut = wpEval(`global $wpdb; echo (string)$wpdb->get_var($wpdb->prepare("SELECT statut FROM {$wpdb->prefix}psc_conversations WHERE id=%d",${conversationId}));`);
-    expect(statut).toBe('ouverte');
-
-    // Double soumission identique en moins de 30 secondes : un seul message créé.
-    const before = Number(wpEval(`global $wpdb; echo (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}psc_conversation_messages WHERE conversation_id=%d",${conversationId}));`));
+    const familyIdOfConversation = Number(wpEval(`global $wpdb; echo (int)$wpdb->get_var($wpdb->prepare("SELECT family_id FROM {$wpdb->prefix}psc_conversations WHERE id=%d",${conversationId}));`));
+    const scratchId = Number(wpEval(`echo Psc_Conversations::create_by_family(${familyIdOfConversation}, 'Jeton', 'Message pour récupérer un jeton valide.');`));
+    await page.goto(`${readFormPageUrl()}${readFormPageUrl().includes('?') ? '&' : '?'}psc_tab=messages&psc_vue=echanges&conversation_id=${scratchId}`);
     const form = page.locator('#psc-conversation-reply-form');
     const nonceValues = await form.evaluate((el: HTMLFormElement) => ({
       wp: (el.elements.namedItem('_wpnonce') as HTMLInputElement).value,
       family: (el.elements.namedItem('psc_nonce') as HTMLInputElement).value,
     }));
-    const dupBody = { action: 'psc_parent_conversation_reply', conversation_id: String(conversationId), corps: 'Message en double.', _wpnonce: nonceValues.wp, psc_nonce: nonceValues.family };
+
+    // Corps vide refusé.
+    const emptyResp = await page.request.post(`${APP_BASE}/wp-admin/admin-post.php`, {
+      form: { action: 'psc_parent_conversation_reply', conversation_id: String(conversationId), corps: '', _wpnonce: nonceValues.wp, psc_nonce: nonceValues.family },
+      maxRedirects: 0,
+    });
+    expect(new URL(emptyResp.headers()['location']).searchParams.get('psc_msg')).toBe('psc_conversation_body');
+
+    // Corps trop long refusé.
+    const longResp = await page.request.post(`${APP_BASE}/wp-admin/admin-post.php`, {
+      form: { action: 'psc_parent_conversation_reply', conversation_id: String(conversationId), corps: 'x'.repeat(2001), _wpnonce: nonceValues.wp, psc_nonce: nonceValues.family },
+      maxRedirects: 0,
+    });
+    expect(new URL(longResp.headers()['location']).searchParams.get('psc_msg')).toBe('psc_conversation_body');
+
+    // Réponse valide : réouvre la conversation close.
+    const dupBody = { action: 'psc_parent_conversation_reply', conversation_id: String(conversationId), corps: 'Une nouvelle question.', _wpnonce: nonceValues.wp, psc_nonce: nonceValues.family };
+    await page.request.post(`${APP_BASE}/wp-admin/admin-post.php`, { form: dupBody, maxRedirects: 0 });
+    const statut = wpEval(`global $wpdb; echo (string)$wpdb->get_var($wpdb->prepare("SELECT statut FROM {$wpdb->prefix}psc_conversations WHERE id=%d",${conversationId}));`);
+    expect(statut).toBe('ouverte');
+
+    // Double soumission identique en moins de 30 secondes : un seul message créé.
+    const before = Number(wpEval(`global $wpdb; echo (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}psc_conversation_messages WHERE conversation_id=%d",${conversationId}));`));
+    const dupBody2 = { action: 'psc_parent_conversation_reply', conversation_id: String(conversationId), corps: 'Message en double.', _wpnonce: nonceValues.wp, psc_nonce: nonceValues.family };
     // Séquentiel, pas Promise.all : reproduit un double-clic (deux requêtes
     // qui se suivent), pas une vraie collision concurrente au niveau SQL —
     // la garde anti-doublon est un SELECT puis INSERT, pas un verrou.
-    await page.request.post(`${APP_BASE}/wp-admin/admin-post.php`, { form: dupBody, maxRedirects: 0 });
-    await page.request.post(`${APP_BASE}/wp-admin/admin-post.php`, { form: dupBody, maxRedirects: 0 });
+    await page.request.post(`${APP_BASE}/wp-admin/admin-post.php`, { form: dupBody2, maxRedirects: 0 });
+    await page.request.post(`${APP_BASE}/wp-admin/admin-post.php`, { form: dupBody2, maxRedirects: 0 });
     const after = Number(wpEval(`global $wpdb; echo (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}psc_conversation_messages WHERE conversation_id=%d",${conversationId}));`));
     expect(after - before).toBe(1);
   });
@@ -407,7 +426,7 @@ test.describe('Échanges familles ↔ mairie', () => {
 
     await page.locator('#psc-conversation-reply-body').focus();
     await page.keyboard.type('Merci pour votre réponse.');
-    await page.getByRole('button', { name: 'Répondre' }).focus();
+    await page.getByRole('button', { name: 'Envoyer la réponse' }).focus();
     await page.keyboard.press('Enter');
     await expect(page.getByTestId('notice-conversation_sent')).toBeVisible();
     await expect(page.getByText('Merci pour votre réponse.')).toBeVisible();

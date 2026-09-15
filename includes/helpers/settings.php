@@ -80,6 +80,34 @@ function psc_conversations_email() {
     return $mail;
 }
 
+/** Délai de réponse annoncé aux familles sur l'écran « Mes échanges » (Réglages > Notifications des échanges familles). */
+function psc_conversations_delai_heures() {
+    return max(1, (int) get_option('psc_conversations_delai_heures', 48));
+}
+
+/** Téléphone d'urgence affiché à côté du délai de réponse ci-dessus — vide par défaut, la mairie doit le renseigner. */
+function psc_conversations_telephone_urgence() {
+    return trim((string) get_option('psc_conversations_telephone_urgence', ''));
+}
+
+/**
+ * Phrase affichée en tête de « Mes échanges » et en sous-titre du
+ * formulaire « Écrire à la mairie » — un seul texte pour les deux écrans
+ * (cf. tâche de refonte messagerie, §4.2 et §6.1).
+ */
+function psc_conversations_delai_note() {
+    $delai = psc_conversations_delai_heures();
+    $tel = psc_conversations_telephone_urgence();
+    if ($tel !== '') {
+        return sprintf(
+            __('Le service périscolaire répond sous %d h ouvrées. Pour une urgence du jour, appelez le %s.', 'periscolaire-registration'),
+            $delai,
+            $tel
+        );
+    }
+    return sprintf(__('Le service périscolaire répond sous %d h ouvrées.', 'periscolaire-registration'), $delai);
+}
+
 /**
  * Variante(s) de l'écran Planning exposée(s) aux familles.
  *
