@@ -20,6 +20,15 @@
         ],
         "createdAt": "2026-09-15T15:38:11.427Z",
         "reason": "false positive: .psc-btn sets border-radius:0 explicitly (square) in the same declaration as the border-bottom:3px accent — element is not rounded, detector matched on token presence not value"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "assets/css/psc-messages.css"
+        ],
+        "createdAt": "2026-09-15T16:10:42.349Z",
+        "reason": "user confirmed: the left-border accent on .psc-conv-delay (L42) and the family bubble .psc-conv-bubble-wrap.is-famille .psc-conv-bubble (L80) is the deliberate 'liseré, pas d'encadré' treatment from the approved Habit de Marianne comp (https://claude.ai/artifact/DE3Afh4hAE4mQv4ptfAV5y), which the user explicitly locked in via AskUserQuestion and then asked to be applied after spotting it missing from the first rollout — not an unreviewed AI default"
       }
     ]
   }
