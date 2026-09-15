@@ -125,15 +125,61 @@ Les mesures suivantes sont appliquées :
   contenant réellement le formulaire.
 - Fichiers index.php dans chaque répertoire (anti-listing).
 
-== Suppression des données (RGPD) ==
+== RGPD ==
 
-Ce plugin stocke des données concernant des mineurs (nom, prénom, classe,
-présences, justificatifs d'assurance) et des coordonnées bancaires. Ces
-données doivent être conservées le temps nécessaire à la gestion du service
-et à la facturation, puis supprimées.
+Ce plugin stocke des données concernant des mineurs (identité, classe,
+présences, planning, personnes autorisées, justificatifs d'assurance),
+une catégorie particulière de données (allergies alimentaires, traitées
+comme une information de santé) et des coordonnées bancaires.
 
-Par défaut, supprimer le plugin ne détruit PAS les données, afin d'éviter
-une perte irréversible lors d'une manipulation involontaire. Pour que la
+Intégration aux outils natifs de confidentialité de WordPress :
+- Outils > Exporter les données personnelles retrouve un foyer par
+  adresse e-mail (les familles n'ont pas de compte WordPress) et exporte
+  l'intégralité de ses données : profil, IBAN déchiffré, enfants,
+  allergies, scolarité par année, planning, personnes autorisées,
+  factures envoyées, échanges avec la mairie.
+- Outils > Effacer les données personnelles applique le droit à
+  l'effacement — cf. « Durées de conservation » ci-dessous pour son
+  périmètre exact (les factures n'en font pas partie).
+- Réglages > Confidentialité propose un texte suggéré (finalités,
+  catégories de données, durées de conservation, droits) à relire et
+  publier sur la page de confidentialité du site — rien n'est publié
+  automatiquement.
+
+Consentement pour les allergies (donnée de santé) : la case « cet enfant
+a une allergie alimentaire » rend la description obligatoire mais n'est
+pas un consentement — une case dédiée, distincte, doit être cochée
+explicitement (page d'inscription, portail famille), horodatée en base.
+Elle n'est redemandée à une correction ultérieure que si la description
+change ou n'a jamais été consentie (une simple faute de frappe sur le nom
+d'un enfant ne remet pas en cause un consentement déjà valablement donné).
+
+Durées de conservation — deux régimes distincts, à ne pas confondre :
+- Fiche enfant (identité, allergies, planning, personnes autorisées) :
+  purgée automatiquement (cron quotidien) 400 jours après le passage à
+  « sorti » (dernière classe, déménagement, retrait), un délai qui
+  couvre la fin de l'année scolaire en cours quel que soit le moment de
+  la sortie. Aucune obligation légale ne justifie une conservation plus
+  longue : c'est le principe de minimisation du RGPD (art. 5.1.e) qui
+  s'applique, pas une durée choisie arbitrairement. Réglable par filtre
+  (psc_children_retention_days) pour l'intégrateur qui en aurait besoin.
+- Factures : conservées dix ans même après une demande d'effacement RGPD
+  sur le foyer, car l'obligation légale de conservation des pièces
+  comptables (Code de commerce, art. L123-22) prévaut ici sur le droit à
+  l'effacement (RGPD art. 17§3-b — l'effacement ne s'applique pas quand
+  le traitement reste nécessaire au respect d'une obligation légale).
+  Concrètement, l'effaceur RGPD ne supprime jamais la ligne « famille » :
+  il l'anonymise sur place (nom, coordonnées, IBAN supprimés) pour que
+  chaque facture conserve une référence valide sans exposer l'identité
+  de la famille au-delà du nécessaire — plutôt que de la supprimer, ce
+  qui laisserait des factures orphelines pendant dix ans.
+- Journal d'audit et échanges famille/mairie : durées de rétention et
+  purge automatique déjà en place, documentées plus haut (cf. le
+  changelog des versions correspondantes) et non modifiées ici.
+
+Suppression totale du plugin (hors cycle de vie ci-dessus) : par défaut,
+supprimer le plugin ne détruit PAS les données, afin d'éviter une perte
+irréversible lors d'une manipulation involontaire. Pour que la
 suppression du plugin efface réellement les données, ajouter dans
 wp-config.php avant de supprimer le plugin :
 
@@ -141,13 +187,15 @@ wp-config.php avant de supprimer le plugin :
 
 L'effacement porte alors sur la totalité : toutes les tables du plugin,
 toutes ses options et transients, ainsi que les fichiers déposés par les
-familles (justificatifs d'assurance, factures PDF). Les tables et options
-de WordPress lui-même ne sont jamais touchées.
+familles (justificatifs d'assurance, factures PDF), factures comprises —
+cette bascule est un choix explicite et déclaré de la mairie, pas un
+effacement RGPD au cas par cas, elle n'est donc pas soumise à la même
+retenue. Les tables et options de WordPress lui-même ne sont jamais
+touchées.
 
 Points à traiter côté mairie, hors plugin :
-- Mentionner ce traitement dans le registre des traitements de la commune.
-- Informer les familles (finalité, durée de conservation, droits d'accès
-  et de rectification) sur la page d'inscription.
+- Mentionner ce traitement dans le registre des traitements de la
+  commune, en s'appuyant sur le texte suggéré (Réglages > Confidentialité).
 - Le site doit être en HTTPS : sans cela, identifiants et données
   transitent en clair.
 
