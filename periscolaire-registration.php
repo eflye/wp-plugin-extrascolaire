@@ -56,6 +56,7 @@ require_once PSC_PATH . 'includes/class-psc-admin-calendar-v2.php';
 require_once PSC_PATH . 'includes/class-psc-school-year.php';
 require_once PSC_PATH . 'includes/class-psc-planning.php';
 require_once PSC_PATH . 'includes/class-psc-school-years.php';
+require_once PSC_PATH . 'includes/class-psc-retention.php';
 require_once PSC_PATH . 'includes/class-psc-pickup-persons.php';
 // Portail famille : même modèle que l'administration — un socle commun,
 // un noyau (prise de contrôle de la page, shortcode, tableau de bord) et
@@ -79,6 +80,7 @@ register_activation_hook(__FILE__, function () {
     Psc_Impersonation::ensure_crons();
     Psc_Conversations::ensure_crons();
     Psc_Audit::ensure_crons();
+    Psc_Retention::ensure_crons();
 });
 
 register_deactivation_hook(__FILE__, function () {
@@ -90,6 +92,7 @@ register_deactivation_hook(__FILE__, function () {
     wp_clear_scheduled_hook('psc_conversation_notify');
     wp_clear_scheduled_hook('psc_purge_conversations');
     wp_clear_scheduled_hook('psc_purge_audit_log');
+    wp_clear_scheduled_hook('psc_purge_departed_children');
 });
 
 add_action('plugins_loaded', function () {
@@ -106,6 +109,7 @@ add_action('plugins_loaded', function () {
     Psc_Admin_Audit::init();
     Psc_Admin_Calendar_V2::init();
     Psc_Impersonation::init();
+    Psc_Retention::init();
     Psc_Parents::init();
     Psc_Requests::init();
     Psc_Messages_Admin::init();

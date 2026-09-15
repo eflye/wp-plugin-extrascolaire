@@ -233,18 +233,38 @@ class Psc_School_Years {
 
     /* ---------------- Statut de l'enfant (actif | sorti) ---------------- */
 
+    /**
+     * sorti_le démarre le délai de conservation RGPD (cf. Psc_Retention) :
+     * sans cet horodatage, rien ne permettrait de distinguer un enfant
+     * sorti hier d'un enfant sorti il y a cinq ans, et la purge
+     * automatique n'aurait aucun point de départ fiable.
+     */
     public static function mark_sorti($child_id) {
         global $wpdb;
         $child_id = absint($child_id);
         if (!$child_id) return false;
-        return (bool) $wpdb->update(psc_table('children'), array('statut' => 'sorti'), array('id' => $child_id), array('%s'), array('%d'));
+        return (bool) $wpdb->update(
+            psc_table('children'),
+            array('statut' => 'sorti', 'sorti_le' => current_time('mysql')),
+            array('id' => $child_id), array('%s', '%s'), array('%d')
+        );
     }
 
+    /**
+     * Réactivation : efface sorti_le pour retirer l'enfant de la file de
+     * purge automatique — une famille qui revient avant l'échéance de
+     * conservation ne doit pas voir la fiche de son enfant disparaître
+     * sous elle au premier passage du cron suivant.
+     */
     public static function mark_actif($child_id) {
         global $wpdb;
         $child_id = absint($child_id);
         if (!$child_id) return false;
-        return (bool) $wpdb->update(psc_table('children'), array('statut' => 'actif'), array('id' => $child_id), array('%s'), array('%d'));
+        return (bool) $wpdb->update(
+            psc_table('children'),
+            array('statut' => 'actif', 'sorti_le' => null),
+            array('id' => $child_id), array('%s', '%s'), array('%d')
+        );
     }
 
     /* ---------------- Passage d'année ---------------- */
