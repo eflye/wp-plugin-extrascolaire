@@ -12,6 +12,10 @@ if (!defined('ABSPATH')) exit;
 class Psc_Conversations {
     const STATUSES = array('ouverte', 'close');
     const SIDES = array('famille', 'mairie');
+    /** Catégorie de routage saisie par la famille à l'ouverture d'un échange (écran « Écrire à la mairie »). */
+    const OBJETS = array('cantine', 'planning', 'facturation', 'habilitations', 'autre');
+    /** Pièce jointe d'un message : mêmes types que les diffusions (cf. Psc_Assurances::validate_upload), taille plus généreuse (documents/factures). */
+    const ATTACHMENT_MAX_SIZE = 5242880; // 5 Mo
 
     /* ------------------------------------------------------------------ */
     /* Création                                                            */
@@ -24,13 +28,15 @@ class Psc_Conversations {
      * (reply()) au lieu de créer un doublon — la contrainte UNIQUE
      * (family_id, message_id) fait de ce cas normal, pas d'une erreur.
      */
-    public static function create_by_family($family_id, $sujet, $corps, $message_id = null) {
+    public static function create_by_family($family_id, $sujet, $corps, $message_id = null, $objet = null, $enfant_id = null, $attachment = null) {
         global $wpdb;
         $family_id = absint($family_id);
         if (!$family_id) return new WP_Error('psc_conversation_family', __('Famille introuvable.', 'periscolaire-registration'));
 
         $corps = self::sanitize_body($corps);
         if (is_wp_error($corps)) return $corps;
+        $objet = self::sanitize_objet($objet);
+        $enfant_id = $enfant_id ? absint($enfant_id) : null;
 
         if ($message_id) {
             $message_id = absint($message_id);
@@ -59,7 +65,7 @@ class Psc_Conversations {
             if (is_wp_error($sujet)) return $sujet;
         }
 
-        return self::insert_conversation($family_id, $message_id ?: null, $sujet, 'famille', $corps, null);
+        return self::insert_conversation($family_id, $message_id ?: null, $sujet, 'famille', $corps, null, $objet, $enfant_id, $attachment);
     }
 
     /** Écriture de la mairie : ouverture d'un échange vers un foyer actif. */
@@ -77,7 +83,7 @@ class Psc_Conversations {
         return self::insert_conversation($family_id, null, $sujet, 'mairie', $corps, absint($wp_user_id));
     }
 
-    private static function insert_conversation($family_id, $message_id, $sujet, $auteur_type, $corps, $wp_user_id) {
+    private static function insert_conversation($family_id, $message_id, $sujet, $auteur_type, $corps, $wp_user_id, $objet = null, $enfant_id = null, $attachment = null) {
         global $wpdb;
         $now = current_time('mysql');
         $wpdb->query('START TRANSACTION');
@@ -86,6 +92,8 @@ class Psc_Conversations {
             'family_id'             => $family_id,
             'message_id'            => $message_id,
             'sujet'                 => $sujet,
+            'objet'                 => $objet,
+            'enfant_id'             => $enfant_id,
             'statut'                => 'ouverte',
             'initiee_par'           => $auteur_type,
             'dernier_message_at'    => $now,
@@ -101,7 +109,7 @@ class Psc_Conversations {
         }
         $conversation_id = (int) $wpdb->insert_id;
 
-        $message_id_inserted = self::insert_message($conversation_id, $auteur_type, $corps, $wp_user_id);
+        $message_id_inserted = self::insert_message($conversation_id, $auteur_type, $corps, $wp_user_id, $attachment);
         if (is_wp_error($message_id_inserted)) {
             $wpdb->query('ROLLBACK');
             return $message_id_inserted;
@@ -115,15 +123,21 @@ class Psc_Conversations {
         return $conversation_id;
     }
 
-    private static function insert_message($conversation_id, $auteur_type, $corps, $wp_user_id) {
+    private static function insert_message($conversation_id, $auteur_type, $corps, $wp_user_id, $attachment = null) {
         global $wpdb;
-        $ok = $wpdb->insert(psc_table('conversation_messages'), array(
+        $row = array(
             'conversation_id' => $conversation_id,
             'auteur_type'     => $auteur_type,
             'auteur_user_id'  => $wp_user_id ?: null,
             'corps'           => $corps,
             'created_at'      => current_time('mysql'),
-        ));
+        );
+        if (is_array($attachment) && !empty($attachment['path'])) {
+            $row['piece_jointe_path']   = $attachment['path'];
+            $row['piece_jointe_nom']    = isset($attachment['nom']) ? $attachment['nom'] : '';
+            $row['piece_jointe_taille'] = isset($attachment['taille']) ? (int) $attachment['taille'] : null;
+        }
+        $ok = $wpdb->insert(psc_table('conversation_messages'), $row);
         if ($ok === false) {
             return new WP_Error('psc_conversation_db', __('Impossible d’enregistrer le message.', 'periscolaire-registration'));
         }
@@ -140,7 +154,7 @@ class Psc_Conversations {
      * réponse de la mairie ne rouvre jamais d'elle-même (l'écran propose
      * « Répondre et rouvrir » explicitement).
      */
-    public static function reply($conversation_id, $auteur_type, $corps, $wp_user_id = null) {
+    public static function reply($conversation_id, $auteur_type, $corps, $wp_user_id = null, $attachment = null) {
         global $wpdb;
         $conversation_id = absint($conversation_id);
         if (!in_array($auteur_type, self::SIDES, true)) {
@@ -159,7 +173,7 @@ class Psc_Conversations {
             return new WP_Error('psc_conversation_missing', __('Conversation introuvable.', 'periscolaire-registration'));
         }
 
-        $message_id = self::insert_message($conversation_id, $auteur_type, $corps, $wp_user_id);
+        $message_id = self::insert_message($conversation_id, $auteur_type, $corps, $wp_user_id, $attachment);
         if (is_wp_error($message_id)) {
             $wpdb->query('ROLLBACK');
             return $message_id;
@@ -504,6 +518,11 @@ class Psc_Conversations {
         return $corps;
     }
 
+    /** Catégorie de routage : valeur invalide ou absente silencieusement ramenée à null, jamais bloquante (champ d'aide au tri, pas de contrôle métier). */
+    private static function sanitize_objet($objet) {
+        return in_array($objet, self::OBJETS, true) ? $objet : null;
+    }
+
     /** Même principe que sanitize_body() : texte brut préservé, sujet ramené sur une seule ligne. */
     private static function sanitize_sujet($sujet) {
         $sujet = trim(wp_check_invalid_utf8((string) $sujet));
@@ -526,5 +545,98 @@ class Psc_Conversations {
             $corps,
             $since
         )) > 0;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Pièce jointe (un document par message, famille ou mairie)          */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Mêmes types que Psc_Assurances::validate_upload(), plafond plus
+     * généreux (documents/factures plutôt que justificatifs scannés).
+     * $file absent ou vide n'est pas une erreur : la pièce jointe est
+     * facultative sur un message.
+     *
+     * @return true|string true si absent ou valide, sinon un code d'erreur
+     *         (« too_large », « invalid_type », « failed », « partial »).
+     */
+    public static function validate_attachment($file) {
+        if (empty($file) || (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) return true;
+        $error = $file['error'];
+        if ($error === UPLOAD_ERR_INI_SIZE || $error === UPLOAD_ERR_FORM_SIZE) return 'too_large';
+        if ($error === UPLOAD_ERR_PARTIAL) return 'partial';
+        if ($error !== UPLOAD_ERR_OK) return 'failed';
+        if (empty($file['size'])) return 'partial';
+        if ($file['size'] > self::ATTACHMENT_MAX_SIZE) return 'too_large';
+
+        $filetype = wp_check_filetype($file['name'], array(
+            'pdf'      => 'application/pdf',
+            'jpg|jpeg' => 'image/jpeg',
+            'png'      => 'image/png',
+        ));
+        return $filetype['ext'] ? true : 'invalid_type';
+    }
+
+    /**
+     * Déplace l'upload de LA REQUÊTE EN COURS vers le répertoire privé
+     * (cf. psc_private_dir() — jamais servi en direct, seul
+     * Psc_Conversations_Frontend::handle_download_attachment() y donne
+     * accès, après vérification que la conversation appartient au foyer
+     * qui la demande).
+     *
+     * @return array{path:string,nom:string,taille:int}|string Métadonnées à
+     *         passer en $attachment de create_by_family()/reply(), ou un
+     *         code d'erreur si validate_attachment() n'a pas déjà été
+     *         appelé (l'appelant est censé l'avoir fait avant tout autre
+     *         traitement de la requête).
+     */
+    public static function store_attachment($file) {
+        $check = self::validate_attachment($file);
+        if ($check !== true) return $check;
+        if (empty($file) || (int) $file['error'] === UPLOAD_ERR_NO_FILE) return 'required';
+
+        $filetype = wp_check_filetype($file['name'], array(
+            'pdf' => 'application/pdf', 'jpg|jpeg' => 'image/jpeg', 'png' => 'image/png',
+        ));
+        $rel_dir = 'conversations/' . gmdate('Y/m');
+        $dir = psc_private_path($rel_dir);
+        if (!wp_mkdir_p($dir)) return 'failed';
+
+        $rel_path = $rel_dir . '/' . wp_generate_password(24, false) . '.' . $filetype['ext'];
+        $dest = psc_private_path($rel_path);
+        if (!@move_uploaded_file($file['tmp_name'], $dest)) { // phpcs:ignore WordPress.PHP.NoSilencedErrors
+            return 'failed';
+        }
+
+        return array(
+            'path'   => $rel_path,
+            'nom'    => sanitize_file_name($file['name']),
+            'taille' => (int) $file['size'],
+        );
+    }
+
+    /**
+     * Sert un document déposé dans une conversation. Appelant responsable
+     * de la vérification de propriété AVANT d'appeler cette méthode (cf.
+     * Psc_Conversations_Frontend::handle_download_attachment()) — cette
+     * méthode ne fait que streamer un chemin déjà autorisé, comme
+     * Psc_Assurances::stream().
+     */
+    public static function stream_attachment($rel_path, $filename) {
+        $path = psc_private_path($rel_path);
+        if (!$rel_path || !file_exists($path)) {
+            wp_die(esc_html__('Fichier introuvable.', 'periscolaire-registration'));
+        }
+
+        psc_log_download('conversation_attachment', $rel_path);
+
+        $filetype = wp_check_filetype($path);
+        nocache_headers();
+        header('Content-Type: ' . ($filetype['type'] ?: 'application/octet-stream'));
+        header('Content-Disposition: inline; filename="' . sanitize_file_name($filename) . '"');
+        header('Content-Length: ' . filesize($path));
+        header('X-Content-Type-Options: nosniff');
+        readfile($path); // phpcs:ignore WordPress.WP.AlternativeFunctions
+        exit;
     }
 }

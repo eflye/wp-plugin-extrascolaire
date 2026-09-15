@@ -236,6 +236,9 @@ function psc_audit_action_registry() {
         'psc_parent_conversation_create' => array(
             'action' => 'conversation.creation', 'categorie' => 'communication', 'objet' => 'conversation', 'niveau' => 'normal',
         ),
+        'psc_parent_download_conversation_attachment' => array(
+            'action' => 'conversation.piece_jointe_telechargement', 'categorie' => 'communication', 'objet' => 'conversation', 'niveau' => 'normal',
+        ),
 
         /* ---------------- Cantine ---------------- */
         'psc_save_menu' => array(

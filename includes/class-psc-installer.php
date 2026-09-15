@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.8.0';
+    const DB_VERSION = '4.9.0';
     const ROLES_VERSION = '1.3.0';
 
     public static function activate() {
@@ -369,6 +369,7 @@ class Psc_Installer {
             array('impersonations',      'family_id',      'parents',      'CASCADE'),
             array('conversations',      'family_id',      'parents',      'CASCADE'),
             array('conversations',      'message_id',     'messages',     'SET NULL'),
+            array('conversations',      'enfant_id',      'children',     'SET NULL'),
             array('conversation_messages', 'conversation_id', 'conversations', 'CASCADE'),
             // Ancienne table conservée en lecture seule le temps d'un cycle
             // de facturation : la cascade enfant continue de purger son
@@ -1312,6 +1313,8 @@ CREATE TABLE $t_conversations (
             family_id BIGINT UNSIGNED NOT NULL,
             message_id BIGINT UNSIGNED NULL,
             sujet VARCHAR(160) NOT NULL,
+            objet VARCHAR(20) NULL,
+            enfant_id BIGINT UNSIGNED NULL,
             statut VARCHAR(16) NOT NULL DEFAULT 'ouverte',
             initiee_par VARCHAR(16) NOT NULL,
             dernier_message_at DATETIME NOT NULL,
@@ -1336,6 +1339,9 @@ CREATE TABLE $t_conv_messages (
             auteur_type VARCHAR(16) NOT NULL,
             auteur_user_id BIGINT UNSIGNED NULL,
             corps TEXT NOT NULL,
+            piece_jointe_path VARCHAR(255) NULL,
+            piece_jointe_nom VARCHAR(191) NULL,
+            piece_jointe_taille BIGINT UNSIGNED NULL,
             created_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
             KEY conv_id (conversation_id, id)
