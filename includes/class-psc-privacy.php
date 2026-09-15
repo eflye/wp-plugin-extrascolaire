@@ -453,6 +453,7 @@ class Psc_Privacy {
             array('name' => __('Régime végétalien', 'periscolaire-registration'), 'value' => $child->vegan ? __('oui', 'periscolaire-registration') : __('non', 'periscolaire-registration')),
             array('name' => __('Cantine sans repas fourni', 'periscolaire-registration'), 'value' => $child->cantine_sans_repas ? __('oui', 'periscolaire-registration') : __('non', 'periscolaire-registration')),
             array('name' => __('Allergies alimentaires déclarées', 'periscolaire-registration'), 'value' => (string) $child->food_allergies),
+            array('name' => __('Consentement au traitement de cette allergie donné le', 'periscolaire-registration'), 'value' => (string) $child->food_allergy_consent_at),
             array('name' => __('Fiche créée le', 'periscolaire-registration'), 'value' => (string) $child->created_at),
         );
     }

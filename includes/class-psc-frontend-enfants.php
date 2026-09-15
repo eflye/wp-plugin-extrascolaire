@@ -58,16 +58,36 @@ class Psc_Frontend_Enfants extends Psc_Frontend_Base {
 
         $allergies = self::food_allergies_post('food_allergies');
 
+        // Une donnée de santé (allergie) exige un consentement explicite,
+        // distinct du reste du formulaire. Il n'est redemandé que lorsque
+        // la déclaration est nouvelle ou modifiée : rouvrir cette fiche
+        // pour corriger une simple faute de frappe sur le nom ne doit pas
+        // remettre en cause un consentement déjà valablement recueilli.
+        $previous = trim((string) $existing->food_allergies);
+        $allergy_consent_at = $existing->food_allergy_consent_at;
+        if ($allergies !== null) {
+            $needs_new_consent = ($allergies !== $previous) || empty($existing->food_allergy_consent_at);
+            if ($needs_new_consent) {
+                if (empty($_POST['food_allergy_consent'])) {
+                    self::parent_form_redirect('child_allergy_consent_required');
+                }
+                $allergy_consent_at = current_time('mysql');
+            }
+        } else {
+            $allergy_consent_at = null;
+        }
+
         $updated = $wpdb->update(
             $t_child,
             array(
-                'prenom'         => mb_substr($prenom, 0, 190),
-                'nom'            => mb_substr($nom, 0, 190),
-                'date_naissance' => $naissance ?: null,
-                'food_allergies' => $allergies,
+                'prenom'                  => mb_substr($prenom, 0, 190),
+                'nom'                     => mb_substr($nom, 0, 190),
+                'date_naissance'          => $naissance ?: null,
+                'food_allergies'          => $allergies,
+                'food_allergy_consent_at' => $allergy_consent_at,
             ),
             array('id' => $child_id),
-            array('%s', '%s', '%s', '%s'),
+            array('%s', '%s', '%s', '%s', '%s'),
             array('%d')
         );
 
@@ -97,7 +117,6 @@ class Psc_Frontend_Enfants extends Psc_Frontend_Base {
         // déclencher la prise de contact PAI. Sans ce déclencheur, la
         // promesse faite au parent ("la mairie vous contactera") n'est
         // tenue par personne.
-        $previous = trim((string) $existing->food_allergies);
         if ($allergies !== null && $allergies !== $previous) {
             Psc_Mailer::notify_food_allergy($parent, $child_id, $allergies, $previous);
         }
@@ -130,6 +149,16 @@ class Psc_Frontend_Enfants extends Psc_Frontend_Base {
             self::parent_form_redirect('child_allergy_required');
         }
 
+        // Donnée de santé : consentement explicite obligatoire, distinct
+        // de la simple description de l'allergie.
+        $allergy_consent_at = null;
+        if ($allergies !== null) {
+            if (empty($_POST['new_food_allergy_consent'])) {
+                self::parent_form_redirect('child_allergy_consent_required');
+            }
+            $allergy_consent_at = current_time('mysql');
+        }
+
         // Le justificatif d'assurance scolaire est obligatoire dès la
         // création de la fiche enfant, quel que soit le point d'entrée
         // (ici le portail connecté ; cf. Psc_Requests::handle_submit()
@@ -155,16 +184,17 @@ class Psc_Frontend_Enfants extends Psc_Frontend_Base {
         if ($count >= psc_max_children_per_user()) self::parent_form_redirect('child_limit');
 
         $wpdb->insert($t_child, array(
-            'parent_id'      => $parent->id,
-            'nom'            => mb_substr($nom, 0, 190),
-            'prenom'         => mb_substr($prenom, 0, 190),
-            'date_naissance' => $naissance ?: null,
-            'sans_porc'      => $sans_porc,
-            'vegan'          => $vegan,
-            'food_allergies' => $allergies,
-            'statut'         => 'actif',
-            'created_at'     => current_time('mysql'),
-        ), array('%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s'));
+            'parent_id'               => $parent->id,
+            'nom'                     => mb_substr($nom, 0, 190),
+            'prenom'                  => mb_substr($prenom, 0, 190),
+            'date_naissance'          => $naissance ?: null,
+            'sans_porc'               => $sans_porc,
+            'vegan'                   => $vegan,
+            'food_allergies'          => $allergies,
+            'food_allergy_consent_at' => $allergy_consent_at,
+            'statut'                  => 'actif',
+            'created_at'              => current_time('mysql'),
+        ), array('%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s'));
         $child_id = (int) $wpdb->insert_id;
 
         Psc_School_Years::enroll($child_id, $year_id, $classe, 'inscrit', current_time('mysql'));

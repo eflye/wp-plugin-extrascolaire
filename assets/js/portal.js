@@ -259,6 +259,21 @@
         var nomField = document.getElementById('psc-child-edit-nom');
         var naissanceField = document.getElementById('psc-child-edit-naissance');
         var allergiesField = document.getElementById('psc-child-edit-allergies');
+        var consentLine = document.getElementById('psc-child-edit-allergy-consent-line');
+        var consentField = document.getElementById('psc-child-edit-allergy-consent');
+
+        // Une allergie déjà déclarée et consentie ne redemande pas la case
+        // tant que sa description n'est pas modifiée : seule une allergie
+        // nouvelle ou changée redéclenche l'obligation de consentement
+        // (même logique côté serveur, cf. Psc_Frontend_Enfants).
+        function syncAllergyConsent() {
+            if (!allergiesField || !consentLine || !consentField) return;
+            var current = allergiesField.value.trim();
+            var needsConsent = current !== '' && (current !== allergiesField.dataset.original || allergiesField.dataset.consented !== '1');
+            consentLine.hidden = !needsConsent;
+            consentField.required = needsConsent;
+            if (!needsConsent) consentField.checked = false;
+        }
 
         function open(childId) {
             var c = data[childId];
@@ -267,9 +282,16 @@
             prenomField.value = c.prenom || '';
             nomField.value = c.nom || '';
             naissanceField.value = c.naissance || '';
-            if (allergiesField) allergiesField.value = c.allergies || '';
+            if (allergiesField) {
+                allergiesField.value = c.allergies || '';
+                allergiesField.dataset.original = c.allergies || '';
+                allergiesField.dataset.consented = c.consented ? '1' : '0';
+            }
+            if (consentField) consentField.checked = false;
+            syncAllergyConsent();
             window.PscDialog.open(overlay, { focus: '#psc-child-edit-prenom' });
         }
+        if (allergiesField) allergiesField.addEventListener('input', syncAllergyConsent);
         function close() { window.PscDialog.close(overlay); }
 
         document.querySelectorAll('[data-child-edit-trigger]').forEach(function (btn) {

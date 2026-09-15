@@ -82,6 +82,11 @@
                 placeholder="<?php esc_attr_e('Aliments à exclure des repas, réaction en cas d\'ingestion, conduite à tenir.', 'periscolaire-registration'); ?>"
                 style="width:100%;resize:vertical;border:1px solid rgba(36,64,92,0.3);background:#fff;font-size:13px;padding:8px;"></textarea>
       <p class="psc-portal-field-help" style="font-size:11px;color:#8B8279;margin:6px 0 0;"><?php esc_html_e("Strictement alimentaire. La mairie vous contactera si un PAI (projet d'accueil individualisé) doit être mis en place. Aucun menu différencié n'est proposé : l'enfant déjeune à la cantine avec son propre repas fourni par la famille.", 'periscolaire-registration'); ?></p>
+      <label class="psc-wizard-check-line" id="psc-child-edit-allergy-consent-line" style="margin-top:10px;" hidden>
+        <input type="checkbox" id="psc-child-edit-allergy-consent" name="food_allergy_consent">
+        <?php esc_html_e("J'autorise la mairie à traiter cette information de santé, dans le seul but d'assurer la sécurité de mon enfant sur les temps périscolaires.", 'periscolaire-registration'); ?>
+        <span class="psc-req">*</span>
+      </label>
 
       <div class="psc-portal-modal-actions">
         <button type="button" class="psc-portal-btn-outline-ink" data-child-edit-close><?php esc_html_e('Annuler', 'periscolaire-registration'); ?></button>
@@ -94,10 +99,11 @@
   $psc_child_edit_data = array();
   foreach ($all_children as $c) {
       $psc_child_edit_data[$c->id] = array(
-          'prenom'    => $c->prenom,
-          'nom'       => $c->nom,
-          'naissance' => $c->date_naissance,
-          'allergies' => trim((string) $c->food_allergies),
+          'prenom'     => $c->prenom,
+          'nom'        => $c->nom,
+          'naissance'  => $c->date_naissance,
+          'allergies'  => trim((string) $c->food_allergies),
+          'consented'  => !empty($c->food_allergy_consent_at),
       );
   }
   echo wp_json_encode($psc_child_edit_data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
@@ -233,6 +239,11 @@ if ($psc_active_year) {
           <p class="psc-portal-field-help" style="font-size:11px;color:#8B8279;margin:6px 0 0;">
             <?php esc_html_e("Strictement alimentaire. La mairie vous contactera si un PAI (projet d'accueil individualisé) doit être mis en place. Aucun menu différencié n'est proposé : l'enfant déjeune à la cantine avec son propre repas fourni par la famille.", 'periscolaire-registration'); ?>
           </p>
+          <label class="psc-wizard-check-line" style="margin-top:10px;">
+            <input type="checkbox" id="psc-new-food-allergy-consent" name="new_food_allergy_consent">
+            <?php esc_html_e("J'autorise la mairie à traiter cette information de santé, dans le seul but d'assurer la sécurité de mon enfant sur les temps périscolaires.", 'periscolaire-registration'); ?>
+            <span class="psc-req">*</span>
+          </label>
         </div>
       </div>
     </div>
@@ -245,15 +256,24 @@ if ($psc_active_year) {
     var toggle = document.getElementById('psc-new-food-allergy-toggle');
     var field = document.getElementById('psc-new-food-allergy-field');
     var textarea = document.getElementById('psc-new-food-allergies');
+    var consent = document.getElementById('psc-new-food-allergy-consent');
     if (!toggle || !field) return;
     toggle.addEventListener('change', function () {
         field.hidden = !toggle.checked;
-        if (!toggle.checked) textarea.value = '';
-        else textarea.required = true;
+        if (!toggle.checked) {
+            textarea.value = '';
+            if (consent) consent.checked = false;
+        } else {
+            textarea.required = true;
+            if (consent) consent.required = true;
+        }
     });
     var form = toggle.closest('form');
     form.addEventListener('submit', function (e) {
-        if (!toggle.checked) textarea.disabled = true;
+        if (!toggle.checked) {
+            textarea.disabled = true;
+            if (consent) consent.disabled = true;
+        }
     });
 })();
 </script>

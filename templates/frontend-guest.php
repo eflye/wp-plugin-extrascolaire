@@ -20,6 +20,8 @@
         'need_child'    => array('err', __('Merci d\'indiquer au moins un enfant (nom et prénom).', 'periscolaire-registration')),
         'child_incomplete' => array('err', __('Merci de renseigner tous les champs de chaque enfant (prénom, nom, classe, date de naissance).', 'periscolaire-registration')),
         'child_bad_birthdate' => array('err', __('La date de naissance d\'un enfant est incohérente : jamais dans le futur, et au moins 3 ans au 1er septembre de l\'année en cours.', 'periscolaire-registration')),
+        'child_allergy_required' => array('err', __("La case « cet enfant a une allergie alimentaire » est cochée : merci de décrire l'allergie (aliments à exclure, réaction, conduite à tenir).", 'periscolaire-registration')),
+        'child_allergy_consent_required' => array('err', __("Merci de cocher la case autorisant le traitement de l'information de santé (allergie) que vous venez de décrire.", 'periscolaire-registration')),
         'pickup_person_incomplete' => array('err', __('Merci de renseigner le prénom, le nom et un téléphone valide pour chaque personne autorisée.', 'periscolaire-registration')),
         'assurance_partial' => array('err', __('Le transfert du justificatif est incomplet. Sélectionnez à nouveau le PDF depuis les fichiers de votre appareil, puis renvoyez la demande.', 'periscolaire-registration')),
         'assurance_upload_failed' => array('err', __('Le serveur n’a pas pu recevoir le justificatif. Réessayez ; si le problème persiste, contactez la mairie.', 'periscolaire-registration')),
@@ -47,7 +49,7 @@
     $psc_toast_messages = array('link_sent', 'logged_out', 'bad_token', 'expired_token', 'request_sent');
     $psc_wizard_messages = array(
         'coordonnees_incomplete',
-        'need_child', 'child_incomplete', 'child_bad_birthdate', 'pickup_person_incomplete',
+        'need_child', 'child_incomplete', 'child_bad_birthdate', 'child_allergy_required', 'child_allergy_consent_required', 'pickup_person_incomplete',
         'assurance_required', 'assurance_too_large', 'assurance_invalid_type', 'assurance_partial', 'assurance_upload_failed',
         'reglement_required', 'sepa_reglement_required',
         'sepa_missing', 'bad_iban', 'bad_bic', 'bad_code_postal', 'crypto_unavailable',

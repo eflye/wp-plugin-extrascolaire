@@ -214,6 +214,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 'allergy_toggle'     => __('Cet enfant a une allergie alimentaire', 'periscolaire-registration'),
                 'allergy_placeholder' => __('Aliments à exclure des repas, réaction en cas d\'ingestion, conduite à tenir.', 'periscolaire-registration'),
                 'allergy_help'       => __("Strictement alimentaire. La mairie vous contactera si un PAI (projet d'accueil individualisé) doit être mis en place. Aucun menu différencié n'est proposé : l'enfant déjeune à la cantine avec son propre repas fourni par la famille.", 'periscolaire-registration'),
+                'allergy_consent'    => __("J'autorise la mairie à traiter cette information de santé, dans le seul but d'assurer la sécurité de mon enfant sur les temps périscolaires.", 'periscolaire-registration'),
             ),
         ));
 
@@ -542,6 +543,8 @@ class Psc_Frontend extends Psc_Frontend_Base {
             'need_child'               => array('step' => 1, 'sepa' => false),
             'child_incomplete'         => array('step' => 1, 'sepa' => false),
             'child_bad_birthdate'      => array('step' => 1, 'sepa' => false),
+            'child_allergy_required'         => array('step' => 1, 'sepa' => false),
+            'child_allergy_consent_required' => array('step' => 1, 'sepa' => false),
             'pickup_person_incomplete' => array('step' => 1, 'sepa' => false),
             'assurance_required'       => array('step' => 1, 'sepa' => false),
             'assurance_partial'        => array('step' => 1, 'sepa' => false),

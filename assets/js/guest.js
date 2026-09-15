@@ -202,14 +202,21 @@
                     var idx = cb.dataset.toggle;
                     var field = list.querySelector('.psc-child-allergy-field[data-field="' + idx + '"]');
                     var textarea = field ? field.querySelector('textarea') : null;
+                    var consent = field ? field.querySelector('.psc-child-allergy-consent') : null;
                     if (!field || !textarea) return;
                     field.hidden = !cb.checked;
                     textarea.required = cb.checked;
+                    if (consent) consent.required = cb.checked;
                     if (!cb.checked) {
                         textarea.value = '';
                         textarea.disabled = true;
+                        if (consent) {
+                            consent.checked = false;
+                            consent.disabled = true;
+                        }
                     } else {
                         textarea.disabled = false;
+                        if (consent) consent.disabled = false;
                     }
                 });
             });
@@ -270,6 +277,9 @@
                 '<div class="psc-child-allergy-field" data-field="' + idx + '" hidden>' +
                 '<textarea name="child_food_allergies_' + idx + '" rows="2" maxlength="1000" placeholder="' + t('allergy_placeholder') + '" style="width:100%;resize:vertical;border:1px solid rgba(36,64,92,0.3);background:#fff;font-size:13px;padding:8px;"></textarea>' +
                 '<p class="psc-child-allergy-help" style="font-size:11px;color:#8B8279;margin:6px 0 0;">' + t('allergy_help') + '</p>' +
+                '<label class="psc-wizard-check-line" style="margin-top:10px;">' +
+                '<input type="checkbox" class="psc-child-allergy-consent" name="child_allergy_consent_' + idx + '"> ' + t('allergy_consent') + ' <span class="psc-req">*</span>' +
+                '</label>' +
                 '</div></div>' +
                 '<button type="button" class="psc-wizard-remove-btn" aria-label="' + t('child_remove') + '">' + t('remove') + '</button>';
 

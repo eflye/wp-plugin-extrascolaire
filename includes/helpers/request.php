@@ -51,6 +51,27 @@ function psc_valid_date($date) {
 }
 
 /**
+ * Valide strictement un horodatage au format MySQL Y-m-d H:i:s. Utilisé
+ * pour relire un consentement (ex : allergie alimentaire) stocké dans une
+ * source non fiable (children_json d'une demande) sans jamais faire
+ * confiance à une chaîne arbitraire.
+ */
+function psc_valid_mysql_datetime($value) {
+    if (!is_string($value) || !preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $value)) {
+        return null;
+    }
+    $d = DateTime::createFromFormat('Y-m-d H:i:s', $value);
+    if (!$d || $d->format('Y-m-d H:i:s') !== $value) {
+        return null;
+    }
+    $year = (int) substr($value, 0, 4);
+    if ($year < 2000 || $year > 2100) {
+        return null;
+    }
+    return $value;
+}
+
+/**
  * Valide un numéro de téléphone FRANÇAIS : mobile ou fixe, avec
  * séparateurs (espaces, points, tirets, parenthèses) ou indicatif
  * (+33 / 00 33). Renvoie le numéro normalisé (chiffres seuls) ou false.

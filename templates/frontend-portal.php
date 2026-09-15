@@ -110,6 +110,7 @@
         'child_updated'     => array('ok',  __("Informations de l'enfant mises à jour.", 'periscolaire-registration')),
         'child_added'       => array('ok',  __('Enfant ajouté à votre compte.', 'periscolaire-registration')),
         'child_allergy_required' => array('err', __("La case « cet enfant a une allergie alimentaire » est cochée : merci de décrire l'allergie (aliments à exclure, réaction, conduite à tenir).", 'periscolaire-registration')),
+        'child_allergy_consent_required' => array('err', __("Merci de cocher la case autorisant le traitement de l'information de santé (allergie) que vous venez de renseigner.", 'periscolaire-registration')),
         'child_invalid'     => array('err', __('Merci de renseigner le prénom et le nom.', 'periscolaire-registration')),
         'child_limit'       => array('err', __("Nombre maximum d'enfants atteint.", 'periscolaire-registration')),
         'child_bad_birthdate' => array('err', __('La date de naissance est incohérente : jamais dans le futur, et au moins 3 ans au 1er septembre de l\'année en cours.', 'periscolaire-registration')),
