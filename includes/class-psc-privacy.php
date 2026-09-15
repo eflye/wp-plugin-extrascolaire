@@ -12,14 +12,56 @@ if (!defined('ABSPATH')) exit;
  * depuis wp-admin ; ce n'est pas une action que la famille fait elle-même.
  *
  * Cette classe couvre également l'outil natif « Effacer les données
- * personnelles » (Outils > Effacer les données personnelles). Le texte
- * suggéré pour la page de confidentialité (wp_add_privacy_policy_content)
- * fait l'objet d'une étape suivante du plan validé.
+ * personnelles » (Outils > Effacer les données personnelles), ainsi que le
+ * texte suggéré injecté dans le brouillon de la page de confidentialité
+ * (Réglages > Confidentialité) via wp_add_privacy_policy_content().
  */
 class Psc_Privacy {
     public static function init() {
         add_filter('wp_privacy_personal_data_exporters', array(__CLASS__, 'register_exporter'));
         add_filter('wp_privacy_personal_data_erasers', array(__CLASS__, 'register_eraser'));
+        add_action('admin_init', array(__CLASS__, 'add_privacy_policy_content'));
+    }
+
+    /**
+     * wp_add_privacy_policy_content() n'affiche rien tant qu'un administrateur
+     * n'a pas cliqué sur « Copier le texte suggéré » depuis Réglages >
+     * Confidentialité : le texte reste une suggestion à relire, adapter (nom
+     * de la mairie, coordonnées du DPO) et publier soi-même, jamais publié
+     * automatiquement à la place de l'équipe.
+     */
+    public static function add_privacy_policy_content() {
+        if (!function_exists('wp_add_privacy_policy_content')) return;
+
+        $content = '<p class="privacy-policy-tutorial">' . esc_html__('Ce texte est une suggestion à adapter (coordonnées de la mairie, du délégué à la protection des données) puis à publier sur votre page de confidentialité.', 'periscolaire-registration') . '</p>';
+
+        $content .= '<h3>' . esc_html__('Inscriptions périscolaires', 'periscolaire-registration') . '</h3>';
+
+        $content .= '<p>' . esc_html__('Lorsque vous inscrivez un enfant aux services périscolaires (garderie, cantine, accueil du soir), nous collectons et conservons les données suivantes :', 'periscolaire-registration') . '</p>';
+        $content .= '<ul>'
+            . '<li>' . esc_html__('Identité et coordonnées du ou des responsables légaux (nom, prénom, adresse, téléphone, e-mail).', 'periscolaire-registration') . '</li>'
+            . '<li>' . esc_html__('Identité de l’enfant, sa classe et son année de scolarité.', 'periscolaire-registration') . '</li>'
+            . '<li>' . esc_html__('Régimes alimentaires et allergies déclarés par la famille, y compris les informations de santé strictement nécessaires à la sécurité de l’enfant sur le temps périscolaire (repas sans porc, régime végétalien, allergies alimentaires).', 'periscolaire-registration') . '</li>'
+            . '<li>' . esc_html__('Rythme de fréquentation et présences (planning, pointage).', 'periscolaire-registration') . '</li>'
+            . '<li>' . esc_html__('Personnes autorisées à récupérer l’enfant.', 'periscolaire-registration') . '</li>'
+            . '<li>' . esc_html__('Justificatifs d’assurance scolaire déposés par la famille.', 'periscolaire-registration') . '</li>'
+            . '<li>' . esc_html__('Données de facturation et, en cas de paiement par prélèvement, l’IBAN et le mandat SEPA associés (chiffrés).', 'periscolaire-registration') . '</li>'
+            . '<li>' . esc_html__('Échanges écrits entre la famille et la mairie via la messagerie du portail.', 'periscolaire-registration') . '</li>'
+            . '</ul>';
+
+        $content .= '<p><strong>' . esc_html__('Pourquoi collectons-nous ces données ?', 'periscolaire-registration') . '</strong> '
+            . esc_html__('Ces informations sont nécessaires à la gestion de l’inscription, à la sécurité et au bien-être de l’enfant (notamment les allergies, qui relèvent d’une catégorie particulière de données et ne sont collectées qu’avec le consentement explicite de la famille), à l’organisation du service et à sa facturation.', 'periscolaire-registration') . '</p>';
+
+        $content .= '<p><strong>' . esc_html__('Combien de temps conservons-nous ces données ?', 'periscolaire-registration') . '</strong> '
+            . esc_html__('Les données de scolarité et de santé sont conservées le temps de la relation avec le service périscolaire. Les pièces comptables (factures) sont conservées dix ans, conformément à l’obligation légale de conservation des documents comptables, même après la fin de l’inscription.', 'periscolaire-registration') . '</p>';
+
+        $content .= '<p><strong>' . esc_html__('Vos droits.', 'periscolaire-registration') . '</strong> '
+            . esc_html__('Conformément au Règlement Général sur la Protection des Données, vous disposez d’un droit d’accès, de rectification et d’effacement de vos données. Une demande d’export ou d’effacement peut être traitée depuis les outils de confidentialité de ce site (Outils > Exporter/Effacer les données personnelles) ; le droit à l’effacement ne s’applique pas aux pièces comptables dont la conservation est une obligation légale.', 'periscolaire-registration') . '</p>';
+
+        wp_add_privacy_policy_content(
+            __('Inscriptions périscolaires', 'periscolaire-registration'),
+            wp_kses_post($content)
+        );
     }
 
     public static function register_exporter($exporters) {
