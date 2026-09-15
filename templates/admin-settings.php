@@ -80,6 +80,22 @@ psc_admin_notice_map(array(
   <p class="description"><?php esc_html_e("Adresse prévenue quand une famille écrit dans un échange. Laisser vide pour utiliser l'adresse d'administration du site.", 'periscolaire-registration'); ?></p>
 </td>
 </tr>
+<tr>
+<th><label for="psc-conversations-delai"><?php esc_html_e('Délai de réponse annoncé', 'periscolaire-registration'); ?></label></th>
+<td>
+  <input id="psc-conversations-delai" type="number" name="conversations_delai_heures" class="small-text" min="1" max="240"
+         value="<?php echo esc_attr(psc_conversations_delai_heures()); ?>"> <?php esc_html_e('heures ouvrées', 'periscolaire-registration'); ?>
+  <p class="description"><?php esc_html_e('Affiché aux familles sur « Mes échanges » et sur le formulaire « Écrire à la mairie ».', 'periscolaire-registration'); ?></p>
+</td>
+</tr>
+<tr>
+<th><label for="psc-conversations-tel-urgence"><?php esc_html_e('Téléphone d’urgence du jour', 'periscolaire-registration'); ?></label></th>
+<td>
+  <input id="psc-conversations-tel-urgence" type="text" name="conversations_telephone_urgence" class="regular-text" maxlength="40"
+         value="<?php echo esc_attr(psc_conversations_telephone_urgence()); ?>" placeholder="01 23 45 67 89">
+  <p class="description"><?php esc_html_e('Affiché à côté du délai de réponse. Laisser vide pour ne pas afficher de numéro.', 'periscolaire-registration'); ?></p>
+</td>
+</tr>
 </table>
 
 <h2><?php esc_html_e("Demandes d'inscription", 'periscolaire-registration'); ?></h2>
