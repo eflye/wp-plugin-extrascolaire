@@ -34,6 +34,7 @@ foreach (array(
     'pdf',
     'settings',
     'admin-ui',
+    'audit',
 ) as $psc_helper) {
     require_once PSC_PATH . 'includes/helpers/' . $psc_helper . '.php';
 }

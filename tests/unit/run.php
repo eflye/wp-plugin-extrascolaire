@@ -495,6 +495,13 @@ $assert('logo carré : hauteur = max, largeur proportionnelle', array($sw, $sh),
 $assert('logo indéterminable : boîte entière', psc_logo_fit_dimensions(0, 0, 35, 25), array(35.0, 25.0));
 
 /* ---------------------------------------------------------------- */
+/* audit.php — journal d'audit : rédaction et chaînage d'intégrité     */
+/* ---------------------------------------------------------------- */
+// Dépend de psc_mask_iban() (banking.php, déjà chargé ci-dessus).
+require __DIR__ . '/../../includes/helpers/audit.php';
+require __DIR__ . '/audit-redaction.php';
+
+/* ---------------------------------------------------------------- */
 
 if ($failures) {
     foreach ($failures as $f) {

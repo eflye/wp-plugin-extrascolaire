@@ -3,8 +3,8 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.7.0';
-    const ROLES_VERSION = '1.2.0';
+    const DB_VERSION = '4.8.0';
+    const ROLES_VERSION = '1.3.0';
 
     public static function activate() {
         self::create_tables();
@@ -47,6 +47,17 @@ class Psc_Installer {
             $role = get_role($role_name);
             if ($role && !$role->has_cap('psc_impersonate_family')) {
                 $role->add_cap('psc_impersonate_family');
+            }
+        }
+        // Le journal d'audit agrège les actions de TOUTES les familles et de
+        // TOUS les agents : contrairement à psc_manage_periscolaire (accordée
+        // aussi aux éditeurs), cette capacité reste réservée aux
+        // administrateurs — un agent au périmètre restreint ne doit pas
+        // pouvoir consulter l'activité de ses collègues.
+        foreach (array('administrator') as $role_name) {
+            $role = get_role($role_name);
+            if ($role && !$role->has_cap('psc_view_audit')) {
+                $role->add_cap('psc_view_audit');
             }
         }
     }
@@ -115,6 +126,15 @@ class Psc_Installer {
 
             if (!self::remove_pickup_identity_data()) return;
             update_option('psc_db_version', self::DB_VERSION);
+
+            if (class_exists('Psc_Audit')) {
+                Psc_Audit::log('systeme.montee_de_version', array(
+                    'objet_type' => 'reglage',
+                    'meta' => array('ancienne_version' => $current ?: null, 'nouvelle_version' => self::DB_VERSION),
+                    'resume' => sprintf(__('Schéma de la base mis à jour (%s → %s).', 'periscolaire-registration'), $current ?: '—', self::DB_VERSION),
+                    'acteur' => array('type' => 'systeme', 'id' => null, 'libelle' => 'mise-a-jour-plugin', 'pour_le_compte_de' => null),
+                ));
+            }
         }
 
         // Hors bloc de version : le répertoire privé doit exister (et porter
@@ -941,6 +961,7 @@ class Psc_Installer {
         $t_impersonations = psc_table('impersonations');
         $t_conversations = psc_table('conversations');
         $t_conv_messages = psc_table('conversation_messages');
+        $t_audit_log = psc_table('audit_log');
         // v4.0 — année scolaire + rythme & exceptions.
         $t_sy   = psc_table('school_year');
         $t_hol  = psc_table('holidays');
@@ -1318,6 +1339,35 @@ CREATE TABLE $t_conv_messages (
             created_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
             KEY conv_id (conversation_id, id)
+        ) $charset_collate;
+
+CREATE TABLE $t_audit_log (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            horodatage DATETIME NOT NULL,
+            requete_id CHAR(13) NOT NULL,
+            acteur_type VARCHAR(16) NOT NULL,
+            acteur_id BIGINT UNSIGNED NULL,
+            acteur_libelle VARCHAR(191) NOT NULL,
+            pour_le_compte_de BIGINT UNSIGNED NULL,
+            action VARCHAR(64) NOT NULL,
+            categorie VARCHAR(24) NOT NULL,
+            resultat VARCHAR(16) NOT NULL,
+            objet_type VARCHAR(32) NULL,
+            objet_id BIGINT UNSIGNED NULL,
+            famille_id BIGINT UNSIGNED NULL,
+            enfant_id BIGINT UNSIGNED NULL,
+            resume VARCHAR(255) NOT NULL,
+            details TEXT NULL,
+            ip VARCHAR(45) NULL,
+            canal VARCHAR(16) NOT NULL,
+            empreinte CHAR(64) NULL,
+            PRIMARY KEY  (id),
+            KEY horodatage (horodatage),
+            KEY famille_horodatage (famille_id, horodatage),
+            KEY acteur (acteur_type, acteur_id, horodatage),
+            KEY action_horodatage (action, horodatage),
+            KEY categorie_horodatage (categorie, horodatage),
+            KEY requete_id (requete_id)
         ) $charset_collate;";
 
         // Tables LÉGACY (trimestres, calendar_days, registrations) : leur

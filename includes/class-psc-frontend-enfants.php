@@ -58,7 +58,7 @@ class Psc_Frontend_Enfants extends Psc_Frontend_Base {
 
         $allergies = self::food_allergies_post('food_allergies');
 
-        $wpdb->update(
+        $updated = $wpdb->update(
             $t_child,
             array(
                 'prenom'         => mb_substr($prenom, 0, 190),
@@ -70,6 +70,27 @@ class Psc_Frontend_Enfants extends Psc_Frontend_Base {
             array('%s', '%s', '%s', '%s'),
             array('%d')
         );
+
+        if ($updated !== false) {
+            Psc_Audit::log('enfant.modification', array(
+                'objet_type' => 'enfant',
+                'objet_id'   => $child_id,
+                'famille_id' => (int) $parent->id,
+                'enfant_id'  => $child_id,
+                'avant'      => array(
+                    'prenom'        => $existing->prenom,
+                    'nom'           => $existing->nom,
+                    'date_naissance' => $existing->date_naissance,
+                    'allergies'     => $existing->food_allergies,
+                ),
+                'apres'      => array(
+                    'prenom'        => mb_substr($prenom, 0, 190),
+                    'nom'           => mb_substr($nom, 0, 190),
+                    'date_naissance' => $naissance ?: null,
+                    'allergies'     => $allergies,
+                ),
+            ));
+        }
 
         // Alerte mairie : à l'enregistrement d'un food_allergies non vide
         // (nouveau ou modifié), notifier le service périscolaire pour

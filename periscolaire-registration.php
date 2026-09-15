@@ -20,6 +20,7 @@ define('PSC_FILE', __FILE__);
 
 require_once PSC_PATH . 'includes/helpers.php';
 require_once PSC_PATH . 'includes/class-psc-installer.php';
+require_once PSC_PATH . 'includes/class-psc-audit.php';
 require_once PSC_PATH . 'includes/class-psc-mailer.php';
 require_once PSC_PATH . 'includes/class-psc-assurances.php';
 require_once PSC_PATH . 'includes/class-psc-parents.php';
@@ -37,6 +38,7 @@ require_once PSC_PATH . 'includes/class-psc-admin-inscriptions.php';
 require_once PSC_PATH . 'includes/class-psc-admin-cantine.php';
 require_once PSC_PATH . 'includes/class-psc-admin-invoices.php';
 require_once PSC_PATH . 'includes/class-psc-admin-config.php';
+require_once PSC_PATH . 'includes/class-psc-admin-audit.php';
 require_once PSC_PATH . 'includes/class-psc-admin-requests.php';
 require_once PSC_PATH . 'includes/class-psc-invoices.php';
 require_once PSC_PATH . 'includes/class-psc-sepa-export.php';
@@ -75,6 +77,7 @@ register_activation_hook(__FILE__, function () {
     Psc_Messages::ensure_crons();
     Psc_Impersonation::ensure_crons();
     Psc_Conversations::ensure_crons();
+    Psc_Audit::ensure_crons();
 });
 
 register_deactivation_hook(__FILE__, function () {
@@ -85,6 +88,7 @@ register_deactivation_hook(__FILE__, function () {
     wp_clear_scheduled_hook('psc_cleanup_impersonations');
     wp_clear_scheduled_hook('psc_conversation_notify');
     wp_clear_scheduled_hook('psc_purge_conversations');
+    wp_clear_scheduled_hook('psc_purge_audit_log');
 });
 
 add_action('plugins_loaded', function () {
@@ -95,7 +99,9 @@ add_action('plugins_loaded', function () {
     load_plugin_textdomain('periscolaire-registration', false, dirname(plugin_basename(PSC_FILE)) . '/languages');
 
     Psc_Installer::maybe_upgrade();
+    Psc_Audit::init();
     Psc_Admin::init();
+    Psc_Admin_Audit::init();
     Psc_Admin_Calendar_V2::init();
     Psc_Impersonation::init();
     Psc_Parents::init();

@@ -93,10 +93,20 @@ class Psc_Impersonation {
             $cutoff
         ));
 
-        return array(
+        $result = array(
             'closed'  => $closed === false ? 0 : (int) $closed,
             'deleted' => $deleted === false ? 0 : (int) $deleted,
         );
+
+        if ($result['closed'] > 0 || $result['deleted'] > 0) {
+            Psc_Audit::log('systeme.purge', array(
+                'objet_type' => 'consultation',
+                'meta' => array('portee' => 'consultations', 'closes_par_expiration' => $result['closed'], 'supprimees' => $result['deleted']),
+                'resume' => sprintf(__('%d consultation(s) close(s) par expiration, %d supprimée(s) (rétention).', 'periscolaire-registration'), $result['closed'], $result['deleted']),
+            ));
+        }
+
+        return $result;
     }
 
     /** Point d'entrée sans valeur de retour attendu par WP-Cron. */

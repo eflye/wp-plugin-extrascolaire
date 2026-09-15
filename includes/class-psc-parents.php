@@ -101,7 +101,13 @@ class Psc_Parents {
             Psc_Mailer::form_page_url()
         );
 
-        return Psc_Mailer::send_login_link($to_email, $url, $context);
+        $sent = Psc_Mailer::send_login_link($to_email, $url, $context);
+        Psc_Audit::log('famille.lien_envoye', array(
+            'objet_type' => 'famille', 'objet_id' => $parent->id, 'famille_id' => $parent->id,
+            'resultat' => $sent ? 'succes' : 'erreur',
+            'resume' => sprintf(__('Lien de connexion envoyé à %s.', 'periscolaire-registration'), $to_email),
+        ));
+        return $sent;
     }
 
     public static function handle_request_link() {
@@ -122,6 +128,14 @@ class Psc_Parents {
 
         if ($ok_mail && $ok_ip) {
             self::send_login_link($email);
+        } else {
+            $parent = self::get_by_email($email);
+            Psc_Audit::log('famille.lien_envoye', array(
+                'objet_type' => 'famille', 'objet_id' => $parent ? $parent->id : null,
+                'famille_id' => $parent ? $parent->id : null,
+                'resultat' => 'refus',
+                'resume' => sprintf(__('Demande de lien de connexion bloquée par la limite de débit (%s).', 'periscolaire-registration'), $email),
+            ));
         }
 
         // Message identique dans tous les cas.
@@ -161,11 +175,20 @@ class Psc_Parents {
         $redirect = remove_query_arg(array('psc_token', 'psc_pid'));
 
         if (!$parent || empty($parent->token_hash) || empty($parent->token_expires)) {
+            Psc_Audit::log('famille.connexion_echouee', array(
+                'objet_type' => 'famille', 'objet_id' => $parent ? $parent->id : null,
+                'famille_id' => $parent ? $parent->id : null, 'resultat' => 'refus',
+                'resume' => __('Tentative de connexion avec un jeton inconnu.', 'periscolaire-registration'),
+            ));
             wp_safe_redirect(add_query_arg('psc_msg', 'bad_token', $redirect));
             exit;
         }
 
         if (strtotime($parent->token_expires . ' UTC') < time()) {
+            Psc_Audit::log('famille.connexion_echouee', array(
+                'objet_type' => 'famille', 'objet_id' => $parent->id, 'famille_id' => $parent->id, 'resultat' => 'refus',
+                'resume' => sprintf(__('Tentative de connexion avec un jeton expiré (%s).', 'periscolaire-registration'), $parent->email),
+            ));
             wp_safe_redirect(add_query_arg('psc_msg', 'expired_token', $redirect));
             exit;
         }
@@ -173,6 +196,10 @@ class Psc_Parents {
         // hash_equals : comparaison à temps constant, protège contre les
         // attaques par mesure du temps de réponse.
         if (!hash_equals($parent->token_hash, psc_hash_token($token))) {
+            Psc_Audit::log('famille.connexion_echouee', array(
+                'objet_type' => 'famille', 'objet_id' => $parent->id, 'famille_id' => $parent->id, 'resultat' => 'refus',
+                'resume' => sprintf(__('Tentative de connexion avec un jeton invalide (%s).', 'periscolaire-registration'), $parent->email),
+            ));
             wp_safe_redirect(add_query_arg('psc_msg', 'bad_token', $redirect));
             exit;
         }
@@ -188,6 +215,16 @@ class Psc_Parents {
         );
 
         self::open_session($parent->id);
+
+        // L'acteur est forcé : la session vient tout juste d'être ouverte,
+        // et la résolution automatique lirait un cookie posé par setcookie()
+        // mais pas encore reflété dans $_COOKIE pour cette même requête.
+        $libelle = trim((string) $parent->nom) !== '' ? sprintf('%s (%s)', $parent->nom, $parent->email) : $parent->email;
+        Psc_Audit::log('famille.connexion', array(
+            'objet_type' => 'famille', 'objet_id' => $parent->id, 'famille_id' => $parent->id,
+            'resume' => sprintf(__('Connexion de %s.', 'periscolaire-registration'), $libelle),
+            'acteur' => array('type' => 'famille', 'id' => (int) $parent->id, 'libelle' => $libelle, 'pour_le_compte_de' => null),
+        ));
 
         wp_safe_redirect(add_query_arg('psc_msg', 'welcome', $redirect));
         exit;
@@ -233,6 +270,10 @@ class Psc_Parents {
         );
 
         Psc_Mailer::send_email_change_confirmation($parent, $new_email, $url);
+        Psc_Audit::log('famille.email_change_demande', array(
+            'objet_type' => 'famille', 'objet_id' => $parent_id, 'famille_id' => $parent_id,
+            'resume' => __('Changement d’adresse e-mail demandé (confirmation envoyée à la nouvelle adresse).', 'periscolaire-registration'),
+        ));
         return true;
     }
 
@@ -290,6 +331,11 @@ class Psc_Parents {
         // détenir un lien de connexion valable, et les sessions ouvertes
         // survivent au changement sans cela. Révocation durable.
         self::revoke_access((int) $parent->id);
+
+        Psc_Audit::log('famille.email_change_confirme', array(
+            'objet_type' => 'famille', 'objet_id' => $parent->id, 'famille_id' => $parent->id,
+            'resume' => __('Nouvelle adresse e-mail confirmée.', 'periscolaire-registration'),
+        ));
 
         wp_safe_redirect(add_query_arg('psc_msg', 'email_changed', $redirect));
         exit;
@@ -589,13 +635,32 @@ class Psc_Parents {
             return new WP_Error('psc_create_failed', __('Création du foyer impossible.', 'periscolaire-registration'));
         }
 
-        return (int) $wpdb->insert_id;
+        $new_id = (int) $wpdb->insert_id;
+        Psc_Audit::log('famille.creation', array(
+            'objet_type' => 'famille', 'objet_id' => $new_id, 'famille_id' => $new_id,
+            // IBAN en clair ici (avant chiffrement au-dessus) : c'est la seule
+            // valeur exploitable par le masquage de psc_audit_redact_diff() —
+            // celle stockée en base est un chiffré, pas un IBAN.
+            'apres' => array(
+                'email' => $email, 'nom' => $data['nom'], 'prenom' => $data['prenom'],
+                'adresse' => $data['adresse'], 'code_postal' => $data['code_postal'], 'ville' => $data['ville'],
+                'active' => 1, 'payment_mode' => $payment_mode,
+                'sepa_iban' => isset($extra['sepa_iban']) ? $extra['sepa_iban'] : null,
+                'second_parent_nom' => $data['second_parent_nom'], 'second_parent_prenom' => $data['second_parent_prenom'],
+                'second_parent_email' => $data['second_parent_email'], 'second_parent_telephone' => $data['second_parent_telephone'],
+            ),
+            'resume' => sprintf(__('Famille %s (%s) créée.', 'periscolaire-registration'), trim($data['nom'] . ' ' . $data['prenom']), $email),
+        ));
+
+        return $new_id;
     }
 
     public static function update($parent_id, $data) {
         global $wpdb;
         $parent_id = absint($parent_id);
         if (!$parent_id) return false;
+
+        $before_row = $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . psc_table('parents') . ' WHERE id = %d', $parent_id));
 
         $allowed = array(
             'nom'                   => 190,
@@ -691,7 +756,33 @@ class Psc_Parents {
 
         if (empty($set)) return false;
 
-        return $wpdb->update(psc_table('parents'), $set, array('id' => $parent_id), $formats, array('%d'));
+        $result = $wpdb->update(psc_table('parents'), $set, array('id' => $parent_id), $formats, array('%d'));
+
+        if ($result !== false && $before_row) {
+            // $set contient parfois des colonnes hors liste blanche (référence
+            // de mandat, dates d'acceptation…) : psc_audit_redact_diff() les
+            // ignore silencieusement (fail-closed), inutile de les filtrer ici.
+            $avant = array();
+            $apres = array();
+            foreach ($set as $field => $value) {
+                if ($field === 'sepa_iban') {
+                    // La colonne porte un chiffré : seule la valeur en clair
+                    // (déjà validée plus haut dans $iban) est exploitable par
+                    // le masquage de psc_audit_redact_diff().
+                    $avant[$field] = psc_read_iban($before_row);
+                    $apres[$field] = isset($iban) ? $iban : null;
+                    continue;
+                }
+                $avant[$field] = isset($before_row->$field) ? $before_row->$field : null;
+                $apres[$field] = $value;
+            }
+            Psc_Audit::log('famille.modification', array(
+                'objet_type' => 'famille', 'objet_id' => $parent_id, 'famille_id' => $parent_id,
+                'avant' => $avant, 'apres' => $apres,
+            ));
+        }
+
+        return $result;
     }
 
     public static function all() {

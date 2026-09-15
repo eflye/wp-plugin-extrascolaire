@@ -174,6 +174,16 @@ class Psc_Sidscm {
     }
 
     /**
+     * Le code de la requête AJAX courante est-il valide ? Utilisé par
+     * Psc_Audit pour attribuer une action à « écran intervenants » sans
+     * dupliquer la comparaison hash_equals() de code_valid() ailleurs
+     * dans le plugin — une seule vérité sur ce qui authentifie cet écran.
+     */
+    public static function is_authenticated_request() {
+        return self::code_valid(psc_post('code'));
+    }
+
+    /**
      * Le code est la seule barrière des endpoints anonymes de cet écran
      * (pas d'authentification WordPress) : chaque tentative à code
      * erroné, sur n'importe quel endpoint, alimente le même seau —
@@ -253,9 +263,11 @@ class Psc_Sidscm {
             if (!psc_rate_limit_by_ip('sidscm_bad_', 20, HOUR_IN_SECONDS)) {
                 wp_send_json_error(array('code' => 'rate'), 429);
             }
+            Psc_Audit::log('intervenant.deverrouillage', array('resultat' => 'refus', 'resume' => __('Code d’accès intervenants invalide.', 'periscolaire-registration')));
             wp_send_json_error(array('code' => 'bad_code'), 403);
         }
 
+        Psc_Audit::log('intervenant.deverrouillage', array('resume' => __('Écran intervenants déverrouillé.', 'periscolaire-registration')));
         wp_send_json_success();
     }
 
@@ -483,6 +495,11 @@ class Psc_Sidscm {
             ), array('%d', '%s', '%s', '%d', '%s'));
         }
 
+        Psc_Audit::log('presence.pointage', array(
+            'objet_type' => 'presence', 'objet_id' => $child_id, 'enfant_id' => $child_id,
+            'meta' => array('date' => $date, 'service' => $service, 'present' => (bool) $present),
+        ));
+
         wp_send_json_success();
     }
 
@@ -530,6 +547,11 @@ class Psc_Sidscm {
                 'pointed_at'  => $now,
             ), array('%d', '%s', '%s', '%s', '%s'));
         }
+
+        Psc_Audit::log('presence.pointage', array(
+            'objet_type' => 'presence', 'objet_id' => $child_id, 'enfant_id' => $child_id,
+            'meta' => array('date' => $date, 'service' => 'GM', 'type' => 'arrivee'),
+        ));
 
         wp_send_json_success();
     }
@@ -597,6 +619,11 @@ class Psc_Sidscm {
                 'pointed_at'     => $now,
             ), array('%d', '%s', '%s', '%s', '%s'));
         }
+
+        Psc_Audit::log('presence.pointage', array(
+            'objet_type' => 'presence', 'objet_id' => $child_id, 'enfant_id' => $child_id,
+            'meta' => array('date' => $date, 'service' => 'GS', 'type' => 'depart'),
+        ));
 
         wp_send_json_success();
     }

@@ -15,6 +15,13 @@ class Psc_Admin_Assurances {
         $note = sanitize_textarea_field(wp_unslash($_POST['review_note'] ?? ''));
         if ($status === 'rejected' && trim($note) === '') wp_die('Précisez le motif du refus pour la famille.');
         $ok = Psc_Assurances::review($child_id, $year_id, psc_post('revision'), $status, $note);
+        if ($ok) {
+            Psc_Audit::log('assurance.validation', array(
+                'objet_type' => 'assurance', 'objet_id' => $child_id, 'enfant_id' => $child_id,
+                'apres' => array('statut' => $status),
+                'resume' => sprintf($status === 'rejected' ? __('Justificatif d’assurance refusé (enfant #%d).', 'periscolaire-registration') : __('Justificatif d’assurance validé (enfant #%d).', 'periscolaire-registration'), $child_id),
+            ));
+        }
         wp_safe_redirect(add_query_arg(array('page' => 'psc_assurances', 'child_id' => $child_id, 'review' => $ok ? 'saved' : 'stale'), admin_url('admin.php')));
         exit;
     }

@@ -20,6 +20,7 @@ class Psc_Admin extends Psc_Admin_Base {
         add_action('admin_enqueue_scripts', array(__CLASS__, 'assets'));
         add_action('admin_notices', array(__CLASS__, 'notice_private_dir_exposed'));
         add_action('admin_notices', array(__CLASS__, 'notice_db_constraints'));
+        add_action('admin_notices', array(__CLASS__, 'notice_audit_health'));
 
         foreach (array(
             'Psc_Admin_School_Years',
@@ -118,6 +119,12 @@ class Psc_Admin extends Psc_Admin_Base {
         // "Années scolaires" — menu_title à null pour ne pas apparaître dans
         // la barre latérale.
         add_submenu_page('psc_dashboard', __('Passage d\'année', 'periscolaire-registration'), null, $cap, 'psc_passage_annee', array('Psc_Admin_School_Years', 'page_passage_annee'));
+
+        // Journal d'audit : capacité dédiée, plus restreinte que $cap (cf.
+        // Psc_Installer::sync_roles()) — le journal agrège l'activité de
+        // toutes les familles et de tous les agents, pas seulement le
+        // périmètre courant d'un éditeur.
+        add_submenu_page('psc_dashboard', __('Journal d\'audit', 'periscolaire-registration'), __('Journal d\'audit', 'periscolaire-registration'), 'psc_view_audit', 'psc_audit', array('Psc_Admin_Audit', 'page_list'));
 
         add_submenu_page('psc_dashboard', __('Réglages', 'periscolaire-registration'), __('Réglages', 'periscolaire-registration'), $cap, 'psc_settings', array('Psc_Admin_Config', 'page_settings'));
     }
@@ -259,6 +266,45 @@ class Psc_Admin extends Psc_Admin_Base {
             </ul>
             <p>
                 <?php esc_html_e('Une nouvelle tentative est faite à chaque ouverture du backoffice : cet avertissement disparaîtra seul dès que la contrainte sera posée. S\'il persiste, la cause est côté hébergement (dépassement de quota, moteur de table non transactionnel) ou une donnée à corriger dans la liste ci-dessus.', 'periscolaire-registration'); ?>
+            </p>
+        </div>
+        <?php
+    }
+
+    /**
+     * Une défaillance silencieuse du journal d'audit est le pire des cas :
+     * elle doit se voir. Deux signaux distincts, cf. Psc_Audit::log() et
+     * Psc_Audit::capture_generic() : des insertions qui échouent
+     * (psc_audit_failures) et des actions absentes du registre
+     * (psc_audit_unknown_actions, journalisées sous 'inconnu.action').
+     */
+    public static function notice_audit_health() {
+        if (!current_user_can('psc_view_audit')) return;
+
+        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+        $on_psc = $screen && strpos((string) $screen->id, 'psc_') !== false;
+        if (!$on_psc && !($screen && $screen->id === 'dashboard')) return;
+
+        $failures = (int) get_option('psc_audit_failures', 0);
+        $unknown = get_option('psc_audit_unknown_actions', array());
+        if (!is_array($unknown)) $unknown = array();
+        if ($failures === 0 && !$unknown) return;
+        ?>
+        <div class="notice notice-warning">
+            <p><strong><?php esc_html_e('Périscolaire — le journal d’audit signale un problème.', 'periscolaire-registration'); ?></strong></p>
+            <?php if ($failures > 0): ?>
+            <p><?php echo esc_html(sprintf(_n('%d écriture du journal a échoué (repli sur le fichier journal-acces.log).', '%d écritures du journal ont échoué (repli sur le fichier journal-acces.log).', $failures, 'periscolaire-registration'), $failures)); ?></p>
+            <?php endif; ?>
+            <?php if ($unknown): ?>
+            <p><?php esc_html_e('Actions non classées dans le registre d’audit (journalisées sous « inconnu.action ») :', 'periscolaire-registration'); ?> <code><?php echo esc_html(implode(', ', $unknown)); ?></code></p>
+            <?php endif; ?>
+            <p>
+                <a class="button" href="<?php echo esc_url(add_query_arg(array('page' => 'psc_audit'), admin_url('admin.php'))); ?>"><?php esc_html_e('Voir le journal filtré', 'periscolaire-registration'); ?></a>
+                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline-block;margin-left:8px;">
+                    <?php wp_nonce_field('psc_audit_reset_failures'); ?>
+                    <input type="hidden" name="action" value="psc_audit_reset_failures">
+                    <button type="submit" class="button"><?php esc_html_e('Remettre le compteur à zéro', 'periscolaire-registration'); ?></button>
+                </form>
             </p>
         </div>
         <?php

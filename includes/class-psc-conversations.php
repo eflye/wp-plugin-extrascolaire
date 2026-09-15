@@ -407,6 +407,13 @@ class Psc_Conversations {
         $placeholders = implode(',', array_fill(0, count($ids), '%d'));
         $wpdb->query($wpdb->prepare('DELETE FROM ' . psc_table('conversation_messages') . " WHERE conversation_id IN ($placeholders)", $ids));
         $wpdb->query($wpdb->prepare('DELETE FROM ' . psc_table('conversations') . " WHERE id IN ($placeholders)", $ids));
+
+        Psc_Audit::log('systeme.purge', array(
+            'objet_type' => 'conversation',
+            'meta' => array('portee' => 'conversations', 'supprimees' => count($ids)),
+            'resume' => sprintf(__('%d conversation(s) purgée(s) (rétention).', 'periscolaire-registration'), count($ids)),
+        ));
+
         return count($ids);
     }
 

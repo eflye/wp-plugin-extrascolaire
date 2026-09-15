@@ -182,45 +182,29 @@ function psc_private_dir_url() {
  * et pas à chaque site d'appel : toute voie de lecture ajoutée plus tard
  * sera vue de ce point, ou n'existera pas.
  *
- * Une ligne JSON par téléchargement dans journal-acces.log, déposé dans
- * le répertoire privé lui-même — mêmes garde-fous .htaccess/web.config
- * que les documents journalisés.
+ * Route vers le journal d'audit unifié (Psc_Audit, catégorie documents) —
+ * qui identifie déjà l'agent, la famille ou la consultation en cours plus
+ * précisément que le "qui" texte libre d'origine. L'écriture directe dans
+ * journal-acces.log n'est plus faite ici : Psc_Audit::log() y bascule
+ * elle-même, au même format, si l'insertion en base échoue (cf. sa
+ * documentation) — un seul repli à maintenir, pas deux.
  *
- * Un échec d'écriture est silencieux (même règle que
- * psc_ensure_private_dir) : ne jamais empêcher un téléchargement
- * légitime parce que le journal ne peut pas écrire.
- *
- * @param string $kind     Nature du document (« assurance », « facture »).
+ * @param string $kind     Nature du document (« assurance », « facture », « factures », « prelevements »).
  * @param string $rel_path Chemin relatif stocké en base.
  */
 function psc_log_download($kind, $rel_path) {
-    // Identité du demandeur : agent connecté au backoffice, sinon famille
-    // connectée au portail. Les deux flux de lecture sont gardés en amont —
-    // si aucun des deux n'est identifiable, la ligne le dit : un
-    // téléchargement anonyme est précisément ce que le journal doit
-    // révéler, jamais ce qu'il doit taire.
-    $qui = 'inconnu';
-    $impersonation = class_exists('Psc_Impersonation') ? Psc_Impersonation::active() : null;
-    if (is_user_logged_in()) {
-        $qui = 'agent:' . wp_get_current_user()->user_login;
-    } elseif (class_exists('Psc_Parents') && ($parent = Psc_Parents::current())) {
-        $qui = 'famille:' . (int) $parent->id . ':' . $parent->email;
-    }
-
-    $data = array(
-        'horodatage' => current_time('mysql'),
-        'qui'        => $qui,
-        'type'       => (string) $kind,
-        'fichier'    => (string) $rel_path,
-        'ip'         => psc_client_ip(),
+    $actions = array(
+        'assurance'    => array('action' => 'assurance.telechargement', 'objet' => 'assurance'),
+        'facture'      => array('action' => 'facture.telechargement', 'objet' => 'facture'),
+        'factures'     => array('action' => 'facture.export', 'objet' => null),
+        'prelevements' => array('action' => 'sepa.export', 'objet' => null),
     );
-    if ($impersonation) {
-        $data['impersonation_id'] = (int) $impersonation->id;
-    }
-    $entry = wp_json_encode($data) . "\n";
+    $entry = isset($actions[$kind]) ? $actions[$kind] : array('action' => 'inconnu.action', 'objet' => null);
 
-    $log_path = psc_private_path('journal-acces.log');
-    if ($log_path) {
-        @file_put_contents($log_path, $entry, FILE_APPEND | LOCK_EX); // phpcs:ignore WordPress.WP.AlternativeFunctions,WordPress.PHP.NoSilencedErrors
+    if (class_exists('Psc_Audit')) {
+        Psc_Audit::log($entry['action'], array(
+            'objet_type' => $entry['objet'],
+            'meta'       => array('type' => (string) $kind, 'fichier' => (string) $rel_path),
+        ));
     }
 }

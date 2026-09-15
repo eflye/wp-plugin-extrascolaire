@@ -62,14 +62,27 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
             Psc_School_Years::enroll($child_id, $year_id, $classe, 'inscrit');
         }
 
+        Psc_Audit::log('enfant.creation', array(
+            'objet_type' => 'enfant', 'objet_id' => $child_id, 'famille_id' => $parent_id, 'enfant_id' => $child_id,
+            'apres' => array('nom' => $nom, 'prenom' => $prenom, 'date_naissance' => $naissance ?: null, 'statut' => 'actif', 'classe' => $classe),
+            'resume' => sprintf(__('Enfant %s %s ajouté par la mairie.', 'periscolaire-registration'), $prenom, $nom),
+        ));
+
         self::redirect('psc_children', 'added');
     }
 
     public static function handle_delete_child() {
         self::guard('psc_delete_child');
+        global $wpdb;
         $id = psc_post_int('id');
         if (!$id) self::redirect('psc_children', 'invalid');
+        $child = $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . psc_table('children') . ' WHERE id = %d', $id));
         self::purge_child($id);
+        Psc_Audit::log('enfant.suppression', array(
+            'objet_type' => 'enfant', 'objet_id' => $id, 'famille_id' => $child ? (int) $child->parent_id : null, 'enfant_id' => $id,
+            'avant' => $child ? array('nom' => $child->nom, 'prenom' => $child->prenom, 'date_naissance' => $child->date_naissance, 'statut' => $child->statut) : null,
+            'resume' => $child ? sprintf(__('Enfant %s %s supprimé.', 'periscolaire-registration'), $child->prenom, $child->nom) : null,
+        ));
         self::redirect('psc_children', 'deleted');
     }
 
@@ -124,13 +137,16 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
 
         $id = psc_post_int('id');
         $t_parent = psc_table('parents');
-        $exists = $id ? $wpdb->get_var($wpdb->prepare("SELECT id FROM $t_parent WHERE id = %d", $id)) : null;
-        if (!$exists) self::redirect('psc_parents', 'invalid');
+        $family_row = $id ? $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_parent WHERE id = %d", $id)) : null;
+        if (!$family_row) self::redirect('psc_parents', 'invalid');
 
         $t_child = psc_table('children');
-        $child_ids = $wpdb->get_col($wpdb->prepare("SELECT id FROM $t_child WHERE parent_id = %d", $id));
-        foreach ($child_ids as $child_id) {
-            self::purge_child($child_id);
+        // Noms des enfants capturés avant purge_child() (qui supprime la
+        // fiche) : nécessaires ensuite pour repérer, dans le journal
+        // d'audit, les résumés qui les nomment (cf. Psc_Audit::forget_family()).
+        $children_rows = $wpdb->get_results($wpdb->prepare("SELECT id, nom, prenom FROM $t_child WHERE parent_id = %d", $id));
+        foreach ($children_rows as $child) {
+            self::purge_child((int) $child->id);
         }
 
         $t_inv = psc_table('invoices');
@@ -155,12 +171,43 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         Psc_Conversations::delete_for_family($id);
         $wpdb->delete($t_parent, array('id' => $id), array('%d'));
 
+        // Dernière trace avant disparition : avant complet en liste blanche
+        // (cf. psc_audit_field_policy()), pas seulement l'identifiant.
+        Psc_Audit::log('famille.suppression', array(
+            'objet_type' => 'famille', 'objet_id' => $id, 'famille_id' => $id,
+            'avant' => (array) $family_row,
+            'resume' => sprintf(__('Famille %s (%s) supprimée.', 'periscolaire-registration'), trim($family_row->nom . ' ' . $family_row->prenom), $family_row->email),
+        ));
+
+        // Droit à l'oubli : le journal garde la trace des actions passées
+        // (obligation de traçabilité) mais plus l'identité de la famille
+        // (cf. Psc_Audit::forget_family()) — y compris la ligne ci-dessus,
+        // qui vient elle-même d'être écrite avec famille_id = $id.
+        $needles = array(
+            $family_row->nom, $family_row->prenom, $family_row->email,
+            trim($family_row->nom . ' ' . $family_row->prenom),
+            $family_row->second_parent_nom, $family_row->second_parent_prenom, $family_row->second_parent_email,
+        );
+        foreach ($children_rows as $child) {
+            $needles[] = $child->nom;
+            $needles[] = $child->prenom;
+        }
+        $anonymized = Psc_Audit::forget_family($id, array_filter($needles, function ($n) { return $n !== null && trim((string) $n) !== ''; }));
+        if ($anonymized > 0) {
+            Psc_Audit::log('audit.purge', array(
+                'meta'   => array('operation' => 'oubli_famille', 'famille_id' => $id, 'lignes_anonymisees' => $anonymized),
+                'resume' => sprintf(__('%d ligne(s) du journal d’audit anonymisée(s) suite à la suppression de la famille #%d.', 'periscolaire-registration'), $anonymized, $id),
+            ));
+        }
+
         self::redirect('psc_parents', 'family_deleted');
     }
 
     public static function handle_mark_child_sorti() {
         self::guard('psc_mark_child_sorti');
-        if (!Psc_School_Years::mark_sorti(psc_post_int('id'))) self::redirect('psc_children', 'invalid');
+        $id = psc_post_int('id');
+        if (!Psc_School_Years::mark_sorti($id)) self::redirect('psc_children', 'invalid');
+        Psc_Audit::log('enfant.sortie', array('objet_type' => 'enfant', 'objet_id' => $id, 'enfant_id' => $id));
         self::redirect('psc_children', 'marked_sorti');
     }
 
@@ -196,12 +243,19 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         );
         Psc_Planning::flush_cache();
 
+        Psc_Audit::log('enfant.modification', array(
+            'objet_type' => 'enfant', 'objet_id' => $child_id, 'enfant_id' => $child_id,
+            'avant' => array('cantine_sans_repas' => $current), 'apres' => array('cantine_sans_repas' => $current ? 0 : 1),
+        ));
+
         self::redirect('psc_children', $current ? 'csr_off' : 'csr_on');
     }
 
     public static function handle_mark_child_actif() {
         self::guard('psc_mark_child_actif');
-        if (!Psc_School_Years::mark_actif(psc_post_int('id'))) self::redirect('psc_children', 'invalid');
+        $id = psc_post_int('id');
+        if (!Psc_School_Years::mark_actif($id)) self::redirect('psc_children', 'invalid');
+        Psc_Audit::log('enfant.reactivation', array('objet_type' => 'enfant', 'objet_id' => $id, 'enfant_id' => $id));
         self::redirect('psc_children', 'marked_actif');
     }
 
@@ -300,6 +354,15 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
             array('%d'),
             array('%d')
         );
+        Psc_Audit::log('famille.desactivation', array(
+            'objet_type' => 'famille', 'objet_id' => $id, 'famille_id' => $id,
+            'avant' => array('active' => (int) $parent->active), 'apres' => array('active' => $parent->active ? 0 : 1),
+            'meta' => array('vers' => $parent->active ? 'inactif' : 'actif'),
+            'resume' => sprintf(
+                $parent->active ? __('Famille %s désactivée.', 'periscolaire-registration') : __('Famille %s réactivée.', 'periscolaire-registration'),
+                trim($parent->nom . ' ' . $parent->prenom) ?: $parent->email
+            ),
+        ));
         self::redirect('psc_parents', $parent->active ? 'deactivated' : 'reactivated');
     }
 

@@ -149,6 +149,15 @@ class Psc_Admin_Inscriptions extends Psc_Admin_Base {
             Psc_Mailer::send_admin_correction($parent, Psc_School_Year::year_key_for_date($dates[0]), $children, psc_services(), $diff_added, $diff_removed);
         }
 
+        // Regroupement par requête : la correction porte potentiellement sur
+        // plusieurs enfants, jours et services — une seule ligne, le détail
+        // (nombre d'ajouts/retraits) en meta plutôt qu'une ligne par triplet.
+        Psc_Audit::log('planning.correction_mairie', array(
+            'objet_type' => 'planning', 'famille_id' => $parent_id,
+            'meta' => array('mois' => $mois, 'ajouts' => count($diff_added), 'retraits' => count($diff_removed)),
+            'resume' => sprintf(__('Correction du planning de %s pour %s (%d ajout(s), %d retrait(s)).', 'periscolaire-registration'), trim($parent->nom . ' ' . $parent->prenom) ?: $parent->email, $mois, count($diff_added), count($diff_removed)),
+        ));
+
         self::redirect_to_inscriptions($parent_id, $mois, 'saved');
     }
 

@@ -125,6 +125,16 @@ class Psc_Frontend_Profil extends Psc_Frontend_Base {
             self::parent_form_redirect('profil_sepa_error');
         }
 
+        // Code dédié (catégorie bancaire, rétention longue) : update()
+        // journalise déjà le diff de champs sous famille.modification, mais
+        // sans ce code-ci une activation de mandat resterait retenue comme
+        // une simple modification de fiche (rétention normale, pas bancaire).
+        Psc_Audit::log('sepa.mandat_active', array(
+            'objet_type' => 'famille', 'objet_id' => (int) $parent->id, 'famille_id' => (int) $parent->id,
+            'apres' => array('payment_mode' => 'prelevement', 'sepa_iban' => $iban),
+            'resume' => sprintf(__('Prélèvement SEPA activé pour %s.', 'periscolaire-registration'), $parent->email),
+        ));
+
         Psc_Mailer::send_sepa_enabled($parent, $mandate ? array($mandate) : array());
         if ($mandate && file_exists($mandate)) unlink($mandate);
         self::parent_form_redirect('profil_sepa_enabled');

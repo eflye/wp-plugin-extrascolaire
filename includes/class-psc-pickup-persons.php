@@ -314,5 +314,22 @@ class Psc_Pickup_Persons {
             'acteur_label'      => $actor['label'],
             'created_at'        => current_time('mysql'),
         ), array('%d', '%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s'));
+        $history_id = (int) $wpdb->insert_id;
+
+        // Pointeur vers l'historique dédié, jamais de doublon de l'instantané
+        // (déjà en liste blanche stricte dans person_snapshot, hors du
+        // périmètre de psc_audit_field_policy()) : l'audit dit QUE quelque
+        // chose a changé sur cette personne, pickup_history dit QUOI.
+        $action_codes = array('ajout' => 'personne_autorisee.creation', 'modification' => 'personne_autorisee.modification', 'retrait' => 'personne_autorisee.retrait');
+        $child = $wpdb->get_row($wpdb->prepare('SELECT parent_id FROM ' . psc_table('children') . ' WHERE id = %d', $child_id));
+        Psc_Audit::log(isset($action_codes[$action]) ? $action_codes[$action] : 'inconnu.action', array(
+            'objet_type' => 'personne_autorisee', 'objet_id' => $person_id,
+            'famille_id' => $child ? (int) $child->parent_id : null, 'enfant_id' => $child_id,
+            'meta' => array('pickup_history_id' => $history_id),
+            'resume' => sprintf(
+                $action === 'ajout' ? __('Personne autorisée ajoutée (%s).', 'periscolaire-registration') : ($action === 'retrait' ? __('Personne autorisée retirée (%s).', 'periscolaire-registration') : __('Personne autorisée modifiée (%s).', 'periscolaire-registration')),
+                $actor['label']
+            ),
+        ));
     }
 }

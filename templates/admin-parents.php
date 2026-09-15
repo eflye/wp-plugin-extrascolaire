@@ -41,6 +41,10 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 <a class="button button-secondary" data-testid="conversation-new-<?php echo (int) $edit_parent->id; ?>"
    href="<?php echo esc_url(add_query_arg(array('page' => 'psc_conversations', 'psc_new_family' => (int) $edit_parent->id), admin_url('admin.php')) . '#psc-conversation-new'); ?>"><?php esc_html_e('Nouvelle conversation', 'periscolaire-registration'); ?></a></p>
 <?php endif; ?>
+<?php if (current_user_can('psc_view_audit')): ?>
+<p><a class="button button-secondary" data-testid="audit-view-<?php echo (int) $edit_parent->id; ?>"
+      href="<?php echo esc_url(add_query_arg(array('page' => 'psc_audit', 'famille_id' => (int) $edit_parent->id), admin_url('admin.php'))); ?>"><?php esc_html_e('Voir le journal de cette famille', 'periscolaire-registration'); ?></a></p>
+<?php endif; ?>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
 <?php wp_nonce_field('psc_edit_parent'); ?>
 <input type="hidden" name="action" value="psc_edit_parent">

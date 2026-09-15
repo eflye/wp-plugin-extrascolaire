@@ -177,9 +177,21 @@ class Psc_Messages {
         global $wpdb;
         $message = self::get($message_id); if (!$message || $message->statut !== 'envoye') return;
         $rows = $wpdb->get_results($wpdb->prepare('SELECT d.*,p.email FROM ' . psc_table('message_destinataires') . ' d LEFT JOIN ' . psc_table('parents') . ' p ON p.id=d.family_id WHERE d.message_id=%d AND d.email_statut=%s ORDER BY d.id LIMIT 50', $message_id, 'non_envoye'));
+        $failures = 0;
         foreach ($rows as $row) {
             $ok = is_email($row->email) && Psc_Mailer::send_family_message($message, $row);
+            if (!$ok) $failures++;
             $wpdb->update(psc_table('message_destinataires'), array('email_statut' => $ok ? 'envoye' : 'echec', 'email_erreur' => $ok ? null : (is_email($row->email) ? 'Échec wp_mail' : 'Adresse invalide')), array('id' => (int) $row->id));
+        }
+        // Un échec isolé n'est pas anormal (adresse invalide déjà connue) ;
+        // ce qui mérite l'audit, c'est le lot qui en compte au moins un —
+        // pas une ligne par destinataire, qui noierait le signal.
+        if ($failures > 0) {
+            Psc_Audit::log('message.envoi', array(
+                'objet_type' => 'message', 'objet_id' => (int) $message_id, 'resultat' => 'erreur',
+                'meta' => array('lot' => true, 'echecs' => $failures, 'total_lot' => count($rows)),
+                'resume' => sprintf(__('%d échec(s) d’envoi sur le lot d’e-mails du message #%d.', 'periscolaire-registration'), $failures, $message_id),
+            ));
         }
         $remaining = (int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM ' . psc_table('message_destinataires') . ' WHERE message_id=%d AND email_statut=%s', $message_id, 'non_envoye'));
         if ($remaining) wp_schedule_single_event(time() + 30, 'psc_send_message_emails', array((int) $message_id));
@@ -271,11 +283,31 @@ class Psc_Messages {
         return $wpdb->delete(psc_table('messages'), array('id' => absint($message_id))) !== false;
     }
 
+    /**
+     * Route vers le journal d'audit unifié (Psc_Audit, catégorie
+     * communication) — journal-messages.log n'est plus écrit ici :
+     * Psc_Audit::log() bascule elle-même sur son propre repli fichier si
+     * l'insertion en base échoue.
+     */
     private static function log_action($action, $message_id, $extra = array()) {
         $author_id = get_current_user_id();
         if (!$author_id) { $message = self::get($message_id); $author_id = $message ? (int) $message->auteur_id : 0; }
-        $entry = wp_json_encode(array_merge(array('action' => $action, 'message_id' => (int) $message_id, 'auteur_id' => $author_id, 'date' => current_time('mysql')), $extra)) . "\n";
-        $path = psc_private_path('journal-messages.log');
-        if ($path) @file_put_contents($path, $entry, FILE_APPEND | LOCK_EX); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+
+        $map = array(
+            'creation'    => 'message.creation',
+            'envoi'       => 'message.envoi',
+            'suppression' => 'message.suppression',
+            'relance'     => 'message.envoi',
+        );
+        $action_code = isset($map[$action]) ? $map[$action] : 'inconnu.action';
+
+        Psc_Audit::log($action_code, array(
+            'objet_type' => 'message',
+            'objet_id'   => (int) $message_id,
+            // auteur_id conservé même quand l'acteur résolu est "systeme"
+            // (envoi programmé par cron) : sinon on perdrait la trace de
+            // qui avait programmé l'envoi à l'origine.
+            'meta'       => array_merge(array('auteur_id' => $author_id), $extra),
+        ));
     }
 }

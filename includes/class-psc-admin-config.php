@@ -110,6 +110,14 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         update_option('psc_reinscription_debut', $reins_debut ?: '');
         update_option('psc_reinscription_fin', $reins_fin ?: '');
 
+        // La liste des clés modifiées (noms de champs, jamais leur valeur —
+        // certaines portent des coordonnées bancaires ou un code d'accès)
+        // suffit à documenter QUOI a changé sans y exposer de secret.
+        Psc_Audit::log('reglage.modification', array(
+            'objet_type' => 'reglage',
+            'meta' => array('champs' => array_values(array_diff(array_keys($_POST), array('action', '_wpnonce', '_wp_http_referer')))),
+        ));
+
         self::redirect('psc_settings', 'saved');
     }
 
@@ -125,6 +133,10 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         self::guard('psc_save_email_templates');
         $input = isset($_POST['templates']) ? wp_unslash($_POST['templates']) : array();
         Psc_Email_Templates::save(is_array($input) ? $input : array());
+        Psc_Audit::log('reglage.modele_email', array(
+            'objet_type' => 'reglage', 'meta' => array('modeles' => is_array($input) ? array_keys($input) : array()),
+            'resume' => __('Modèles d’e-mails modifiés.', 'periscolaire-registration'),
+        ));
         self::redirect('psc_email_templates', 'saved');
     }
 
@@ -136,6 +148,10 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         check_admin_referer('psc_reset_email_template_' . $key);
         if ($key) {
             Psc_Email_Templates::reset($key);
+            Psc_Audit::log('reglage.modele_email', array(
+                'objet_type' => 'reglage', 'meta' => array('modele_reinitialise' => $key),
+                'resume' => sprintf(__('Modèle d’e-mail « %s » réinitialisé.', 'periscolaire-registration'), $key),
+            ));
         }
         self::redirect('psc_email_templates', 'reset_one');
     }
@@ -146,6 +162,10 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         }
         check_admin_referer('psc_reset_email_templates');
         Psc_Email_Templates::reset();
+        Psc_Audit::log('reglage.modele_email', array(
+            'objet_type' => 'reglage', 'meta' => array('modeles_reinitialises' => 'tous'),
+            'resume' => __('Tous les modèles d’e-mails réinitialisés.', 'periscolaire-registration'),
+        ));
         self::redirect('psc_email_templates', 'reset_all');
     }
 

@@ -49,8 +49,16 @@ class Psc_Frontend_Documents extends Psc_Frontend_Base {
         $result = Psc_Assurances::store_upload($child_id, isset($_FILES['assurance_file']) ? $_FILES['assurance_file'] : null);
         if ($result !== true) {
             $codes = array('too_large' => 'assurance_too_large', 'invalid_type' => 'assurance_invalid_type');
+            Psc_Audit::log('assurance.depot', array(
+                'objet_type' => 'assurance', 'objet_id' => $child_id, 'famille_id' => (int) $parent->id, 'enfant_id' => $child_id,
+                'resultat' => 'erreur', 'resume' => sprintf(__('Dépôt de justificatif refusé (%s).', 'periscolaire-registration'), $result),
+            ));
             self::upload_redirect(isset($codes[$result]) ? $codes[$result] : 'assurance_upload_failed');
         }
+
+        Psc_Audit::log('assurance.depot', array(
+            'objet_type' => 'assurance', 'objet_id' => $child_id, 'famille_id' => (int) $parent->id, 'enfant_id' => $child_id,
+        ));
 
         self::upload_redirect('assurance_uploaded');
     }

@@ -76,6 +76,15 @@ class Psc_Requests {
             "DELETE FROM $t WHERE status IN ('approved','rejected') AND decided_at < %s",
             gmdate('Y-m-d H:i:s', time() - 90 * DAY_IN_SECONDS)
         ));
+
+        $total = count($unverified_ids) + count($stale_ids);
+        if ($total > 0) {
+            Psc_Audit::log('systeme.purge', array(
+                'objet_type' => 'demande',
+                'meta' => array('portee' => 'demandes', 'non_verifiees' => count($unverified_ids), 'traitees' => count($stale_ids)),
+                'resume' => sprintf(__('%d demande(s) d’inscription purgée(s).', 'periscolaire-registration'), $total),
+            ));
+        }
     }
 
     /* ---------------- Lecture ---------------- */
@@ -628,6 +637,12 @@ class Psc_Requests {
             Psc_Admin::redirect_public('psc_requests', 'invalid');
         }
 
+        Psc_Audit::log('demande.validation', array(
+            'objet_type' => 'demande', 'objet_id' => (int) $req->id,
+            'meta' => array('enfants' => count($children)),
+            'resume' => sprintf(__('Demande d’inscription de %s validée.', 'periscolaire-registration'), $req->email),
+        ));
+
         Psc_Admin::redirect_public('psc_requests', 'approved');
     }
 
@@ -753,6 +768,12 @@ class Psc_Requests {
                 Psc_Mailer::notify_food_allergy($parent_row, $f['child_id'], $f['allergies'], null);
             }
         }
+
+        Psc_Audit::log('demande.allergies_reconciliees', array(
+            'objet_type' => 'demande', 'objet_id' => (int) $req->id, 'famille_id' => (int) $parent_row->id,
+            'meta' => array('enfants_completes' => $filled),
+            'resume' => sprintf(__('Rapprochement des allergies pour %s : %d fiche(s) complétée(s).', 'periscolaire-registration'), $req->email, $filled),
+        ));
 
         Psc_Admin::redirect_public('psc_requests', $filled ? 'allergies_reconciled' : 'allergies_nothing');
     }
@@ -980,6 +1001,11 @@ class Psc_Requests {
             Psc_Mailer::send_request_rejected($req->email, $note);
         }
 
+        Psc_Audit::log('demande.refus', array(
+            'objet_type' => 'demande', 'objet_id' => (int) $req->id,
+            'resume' => sprintf(__('Demande d’inscription de %s refusée.', 'periscolaire-registration'), $req->email),
+        ));
+
         Psc_Admin::redirect_public('psc_requests', 'rejected');
     }
 
@@ -1005,6 +1031,9 @@ class Psc_Requests {
             if ($from_families && !$deleted) {
                 Psc_Admin::redirect_public('psc_parents', 'request_delete_failed');
                 return;
+            }
+            if ($deleted) {
+                Psc_Audit::log('demande.suppression', array('objet_type' => 'demande', 'objet_id' => $id));
             }
         }
         Psc_Admin::redirect_public($from_families ? 'psc_parents' : 'psc_requests', $from_families ? 'request_deleted' : 'deleted');

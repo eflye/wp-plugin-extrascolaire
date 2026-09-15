@@ -111,6 +111,13 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
 
         Psc_School_Years::apply_promotion($staged['to_year_id'], $staged['plan'], $overrides);
         Psc_School_Years::clear_staged_promotion();
+
+        Psc_Audit::log('annee.passage', array(
+            'objet_type' => 'annee', 'objet_id' => (int) $staged['to_year_id'],
+            'meta' => array('enfants' => count($staged['plan']), 'corrections_manuelles' => count($overrides)),
+            'resume' => sprintf(__('Passage d’année appliqué à %d enfant(s).', 'periscolaire-registration'), count($staged['plan'])),
+        ));
+
         self::redirect('psc_school_years', 'promoted');
     }
 

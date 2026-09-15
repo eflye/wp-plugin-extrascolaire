@@ -301,6 +301,11 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
             wp_send_json_error(array('code' => 'invalid'), 400);
         }
 
+        Psc_Audit::log('planning.exception_modifiee', array(
+            'objet_type' => 'planning', 'objet_id' => $child_id, 'famille_id' => (int) $parent->id, 'enfant_id' => $child_id,
+            'meta' => array('jours' => 1, 'service' => $service, 'mois' => substr($date, 0, 7), 'date' => $date, 'statut' => $result['status']),
+        ));
+
         wp_send_json_success(array(
             'status' => $result['status'],
             'state'  => self::planning_state($parent, $child_id, substr($date, 0, 7)),
@@ -350,6 +355,15 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         // et produirait un état vide. Premier élément = premier jour touché.
         $first = reset($dates);
 
+        // Regroupement par requête : un clic « Tout / Retirer » touche
+        // potentiellement des dizaines de jours — une seule ligne d'audit,
+        // avec le compte en meta, jamais une par jour (cf. cahier des charges).
+        Psc_Audit::log('planning.exception_modifiee', array(
+            'objet_type' => 'planning', 'objet_id' => $child_id, 'famille_id' => (int) $parent->id, 'enfant_id' => $child_id,
+            'meta' => array('jours' => count($dates), 'service' => $service, 'mois' => substr($first, 0, 7), 'statut' => $checked ? 'ajout' : 'retrait'),
+            'resume' => sprintf(__('%d jour(s) modifié(s) en bloc pour le service %s.', 'periscolaire-registration'), count($dates), $service),
+        ));
+
         wp_send_json_success(array(
             'applied' => $applied,
             'state'   => self::planning_state($parent, $child_id, substr($first, 0, 7)),
@@ -382,6 +396,15 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         if ($result['status'] === 'invalid') {
             wp_send_json_error(array('code' => 'invalid'), 400);
         }
+
+        Psc_Audit::log('planning.rythme_modifie', array(
+            'objet_type' => 'planning', 'objet_id' => $child_id, 'famille_id' => (int) $parent->id, 'enfant_id' => $child_id,
+            'meta' => array(
+                'weekday' => $weekday, 'service' => $service, 'statut' => $result['status'],
+                'jours_geles' => isset($result['frozen']) ? (int) $result['frozen'] : 0,
+                'exceptions_purgees' => isset($result['purged']) ? (int) $result['purged'] : 0,
+            ),
+        ));
 
         wp_send_json_success(array(
             'status'  => $result['status'],
@@ -421,6 +444,14 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
 
         $results = Psc_Planning::apply_pattern_to_siblings($source->id, $target_ids);
 
+        // Une ligne pour toute la fratrie, pas une par enfant destinataire :
+        // même principe de regroupement que le basculement en bloc ci-dessus.
+        Psc_Audit::log('planning.rythme_modifie', array(
+            'objet_type' => 'planning', 'objet_id' => (int) $source->id, 'famille_id' => (int) $parent->id, 'enfant_id' => (int) $source->id,
+            'meta' => array('fratrie' => true, 'source_enfant_id' => (int) $source->id, 'cibles' => count($target_ids)),
+            'resume' => sprintf(__('Rythme appliqué à %d enfant(s) de la fratrie.', 'periscolaire-registration'), count($target_ids)),
+        ));
+
         wp_send_json_success(array(
             'results' => $results,
             'state'   => self::planning_state($parent, (int) $source->id, self::ajax_month($year)),
@@ -444,6 +475,12 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         self::ajax_owned_child($parent, $child_id);
 
         $deleted = Psc_Planning::reset_month_exceptions($child_id, $ym);
+
+        Psc_Audit::log('planning.remise_a_zero', array(
+            'objet_type' => 'planning', 'objet_id' => $child_id, 'famille_id' => (int) $parent->id, 'enfant_id' => $child_id,
+            'meta' => array('mois' => $ym, 'exceptions_supprimees' => (int) $deleted),
+            'resume' => sprintf(__('%d exception(s) supprimée(s) pour revenir au rythme (%s).', 'periscolaire-registration'), (int) $deleted, $ym),
+        ));
 
         wp_send_json_success(array(
             'deleted' => (int) $deleted,
@@ -506,6 +543,12 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
                 'message' => __('L\'envoi de l\'e-mail a échoué. Vos inscriptions sont bien enregistrées ; contactez la mairie si besoin.', 'periscolaire-registration'),
             ), 500);
         }
+
+        Psc_Audit::log('planning.confirmation', array(
+            'objet_type' => 'planning', 'famille_id' => (int) $parent->id,
+            'meta' => array('enfants' => count($child_ids)),
+            'resume' => __('Récapitulatif annuel du planning envoyé.', 'periscolaire-registration'),
+        ));
 
         wp_send_json_success(array(
             'message' => sprintf(__('Récapitulatif envoyé à %s.', 'periscolaire-registration'), $parent->email),
@@ -572,6 +615,12 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         foreach ($cancelled_by_date as $date => $services) {
             Psc_Mailer::notify_absence_cancelled($parent, $child, $date, $services);
         }
+
+        Psc_Audit::log('planning.annulation', array(
+            'objet_type' => 'planning', 'objet_id' => $child_id, 'famille_id' => (int) $parent->id, 'enfant_id' => $child_id,
+            'meta' => array('jours' => count($cancelled_by_date), 'dates' => array_keys($cancelled_by_date)),
+            'resume' => sprintf(__('Absence signalée pour %s sur %d jour(s).', 'periscolaire-registration'), trim($child->prenom . ' ' . $child->nom), count($cancelled_by_date)),
+        ));
 
         self::parent_form_redirect('absence_cancelled');
     }

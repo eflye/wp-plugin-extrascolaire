@@ -22,8 +22,14 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
         self::guard('psc_payment_received');
         $received = psc_post('received');
         if (!in_array($received, array('0', '1'), true)) self::redirect('psc_factures', 'invalid');
-        $month = Psc_Invoices::set_payment_received(absint(psc_post('invoice_id')), $received === '1');
+        $invoice_id = absint(psc_post('invoice_id'));
+        $month = Psc_Invoices::set_payment_received($invoice_id, $received === '1');
         if (is_wp_error($month)) wp_die(esc_html($month->get_error_message()), '', array('response' => 400));
+        Psc_Audit::log('facture.paiement_enregistre', array(
+            'objet_type' => 'facture', 'objet_id' => $invoice_id,
+            'apres' => array('paiement_recu' => $received === '1'),
+            'resume' => sprintf($received === '1' ? __('Facture #%d marquée payée.', 'periscolaire-registration') : __('Facture #%d marquée non payée.', 'periscolaire-registration'), $invoice_id),
+        ));
         wp_safe_redirect(add_query_arg(array('page' => 'psc_factures', 'mois' => $month, 'psc_msg' => 'payment_saved'), admin_url('admin.php')));
         exit;
     }
@@ -67,6 +73,11 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
         if (is_wp_error($result)) {
             self::redirect('psc_factures', 'invalid');
         }
+
+        Psc_Audit::log('facture.suppression', array(
+            'objet_type' => 'facture', 'meta' => array('mois' => $mois, 'supprimees' => is_int($result) ? $result : null),
+            'resume' => sprintf(__('Factures du mois %s supprimées.', 'periscolaire-registration'), $mois),
+        ));
 
         wp_safe_redirect(add_query_arg(
             array('page' => 'psc_factures', 'mois' => $mois, 'psc_msg' => 'deleted'),
@@ -171,6 +182,11 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
             self::redirect('psc_factures', 'gen_error');
         }
 
+        Psc_Audit::log('facture.generation', array(
+            'objet_type' => 'facture', 'meta' => array('mois' => $mois, 'factures' => (int) $count),
+            'resume' => sprintf(__('%d facture(s) générée(s) pour %s.', 'periscolaire-registration'), (int) $count, $mois),
+        ));
+
         wp_safe_redirect(add_query_arg(
             array('page' => 'psc_factures', 'mois' => $mois, 'psc_msg' => ($count > 0 ? 'generated' : 'gen_zero')),
             admin_url('admin.php')
@@ -193,6 +209,12 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
             $msg = 'mail_failed';
         }
 
+        Psc_Audit::log('facture.envoi', array(
+            'objet_type' => 'facture', 'objet_id' => $invoice_id,
+            'resultat' => is_wp_error($result) ? 'erreur' : 'succes',
+            'resume' => sprintf(__('Envoi de la facture #%d.', 'periscolaire-registration'), $invoice_id),
+        ));
+
         wp_safe_redirect(add_query_arg(
             array('page' => 'psc_factures', 'mois' => $mois, 'psc_msg' => $msg),
             admin_url('admin.php')
@@ -209,11 +231,21 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
         }
 
         $invoices = Psc_Invoices::get_for_month($mois);
+        $sent_count = 0;
+        $failed_count = 0;
         foreach ($invoices as $inv) {
             if (!$inv->sent_at) {
-                Psc_Invoices::send((int) $inv->id);
+                $result = Psc_Invoices::send((int) $inv->id);
+                if (is_wp_error($result)) $failed_count++; else $sent_count++;
             }
         }
+
+        // Une ligne pour tout l'envoi groupé, pas une par facture.
+        Psc_Audit::log('facture.envoi', array(
+            'objet_type' => 'facture',
+            'meta' => array('mois' => $mois, 'lot' => true, 'envoyees' => $sent_count, 'echecs' => $failed_count),
+            'resume' => sprintf(__('Envoi groupé des factures de %s : %d envoyée(s), %d échec(s).', 'periscolaire-registration'), $mois, $sent_count, $failed_count),
+        ));
 
         wp_safe_redirect(add_query_arg(
             array('page' => 'psc_factures', 'mois' => $mois, 'psc_msg' => 'sent_all'),

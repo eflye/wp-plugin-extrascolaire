@@ -1,0 +1,42 @@
+{
+  "famille_complete": {
+    "avant": {
+      "email": "famille@example.test",
+      "nom": "Dupont",
+      "prenom": "Jean",
+      "telephone_mobile": "0611223344",
+      "adresse": "1 rue Test",
+      "code_postal": "95000",
+      "ville": "Montgeroult",
+      "active": 1,
+      "payment_mode": "autre",
+      "sepa_iban": null,
+      "sepa_bic": null,
+      "sepa_titulaire": null,
+      "token_hash": "0000000000000000000000000000000000000000000000000000000000000",
+      "token_expires": "2025-01-01 00:00:00",
+      "pending_email_token_hash": null
+    },
+    "apres": {
+      "email": "famille@example.test",
+      "nom": "Dupont",
+      "prenom": "Jean",
+      "telephone_mobile": "0699887766",
+      "adresse": "1 rue Test",
+      "code_postal": "95000",
+      "ville": "Montgeroult",
+      "active": 1,
+      "payment_mode": "sepa",
+      "sepa_iban": "FR7630006000011234567890189",
+      "sepa_bic": "AGRIFRPP",
+      "sepa_titulaire": "Jean Dupont",
+      "token_hash": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef01234567",
+      "token_expires": "2026-06-01 00:00:00",
+      "pending_email_token_hash": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba98765432"
+    }
+  },
+  "enfant_allergies": {
+    "avant": { "allergies": "aucune", "nom": "Martin" },
+    "apres": { "allergies": "arachides, lait", "nom": "Martin" }
+  }
+}

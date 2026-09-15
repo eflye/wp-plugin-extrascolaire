@@ -115,6 +115,9 @@ echo $diet ? esc_html(implode(' · ', $diet)) : '—';
 </td>
 <td style="white-space:nowrap">
 <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=psc_pickup_persons&child_id=' . $c->id)); ?>"><?php esc_html_e('Personnes autorisées', 'periscolaire-registration'); ?></a>
+<?php if (current_user_can('psc_view_audit')): ?>
+<a class="button" href="<?php echo esc_url(add_query_arg(array('page' => 'psc_audit', 'enfant_id' => (int) $c->id), admin_url('admin.php'))); ?>"><?php esc_html_e('Journal', 'periscolaire-registration'); ?></a>
+<?php endif; ?>
 <?php if ($c->statut === 'actif'): ?>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
 <?php wp_nonce_field('psc_mark_child_sorti'); ?>

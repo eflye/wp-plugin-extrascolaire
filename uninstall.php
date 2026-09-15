@@ -38,6 +38,8 @@ foreach (array('administrator', 'gestionnaire_periscolaire') as $role_name) {
     $role = get_role($role_name);
     if ($role) $role->remove_cap('psc_manage_messages');
 }
+$admin_role = get_role('administrator');
+if ($admin_role) $admin_role->remove_cap('psc_view_audit');
 delete_option('psc_roles_version');
 
 // Tâche planifiée (purge RGPD des demandes) : retirée dans tous les cas,
@@ -48,6 +50,10 @@ wp_clear_scheduled_hook('psc_cleanup_requests');
 wp_clear_scheduled_hook('psc_send_message_emails');
 wp_clear_scheduled_hook('psc_send_scheduled_messages');
 wp_clear_scheduled_hook('psc_cleanup_message_receipts');
+wp_clear_scheduled_hook('psc_cleanup_impersonations');
+wp_clear_scheduled_hook('psc_conversation_notify');
+wp_clear_scheduled_hook('psc_purge_conversations');
+wp_clear_scheduled_hook('psc_purge_audit_log');
 
 if (!defined('PSC_REMOVE_DATA_ON_UNINSTALL') || !PSC_REMOVE_DATA_ON_UNINSTALL) {
     return;
