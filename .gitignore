@@ -59,3 +59,8 @@ claude-export/
 rapport-audit-*.html
 /*.zip
 theme/Archive/Archive.zip
+
+# Cache local de l'outillage de design (Impeccable) : par session/poste,
+# jamais un artefact du dépôt. .impeccable/design.json reste versionné.
+.impeccable/hook.cache.json
+.impeccable/config.local.json
