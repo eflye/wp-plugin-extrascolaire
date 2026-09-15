@@ -1,0 +1,26 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": [
+          "assets/css/psc-messages.css"
+        ],
+        "createdAt": "2026-09-15T15:38:04.088Z",
+        "reason": "false positive: line-based scan conflates unrelated rules sharing a minified source line — .psc-message-list-top i (border-radius:50%, no border, a 7px unread dot) has no relation to .psc-message-ack/.psc-btn-primary (border-bottom:3px accent, no radius set, square by default) further along the same physical line"
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": [
+          "theme/Archive/assets/css/psc-theme.css"
+        ],
+        "createdAt": "2026-09-15T15:38:11.427Z",
+        "reason": "false positive: .psc-btn sets border-radius:0 explicitly (square) in the same declaration as the border-bottom:3px accent — element is not rounded, detector matched on token presence not value"
+      }
+    ]
+  }
+}
