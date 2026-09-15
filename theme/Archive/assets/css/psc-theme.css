@@ -6,7 +6,7 @@
  */
 :root{
   --forest:#24405C; --moss:#4E6C8D; --gold:#E08A5F; --ink:#1A1A1A;
-  --cream:#FAF6F1; --paper:#F5E7DC; --stone:#8B8279; --rule:rgba(36,64,92,0.22);
+  --cream:#F2F3F5; --paper:#EAEFF4; --stone:#8B8279; --rule:rgba(36,64,92,0.22);
 }
 
 .psc-wrap { font-family: 'Public Sans', sans-serif; color: var(--ink); }

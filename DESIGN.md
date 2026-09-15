@@ -7,9 +7,9 @@ colors:
     moss: "#4E6C8D"
     black: "#1A1A1A"
   neutral:
-    cream: "#FAF6F1"
-    paper: "#F5E7DC"
-    paper-line: "#E9D5C2"
+    cream: "#F2F3F5"
+    paper: "#EAEFF4"
+    paper-line: "#D7DEE8"
     stone: "#8B8279"
     line: "rgba(36,64,92,0.15)"
     line-soft: "rgba(36,64,92,0.1)"
@@ -107,14 +107,15 @@ Palette héritée du système précédent (les valeurs n'ont pas changé), mais 
 - **Abricot encré** (`#9A5B2E`) : bordure basse des surfaces abricot — le seul relief du système, jamais une ombre.
 
 ### Neutral
-- **Crème** (`#FAF6F1`) : fond de page.
-- **Papier** (`#F5E7DC`) : encarts d'information, bulle famille dans un fil.
+- **Gris-bleu très clair** (`#F2F3F5`) : fond de page — volontairement froid, jamais le crème chaud de l'ancien système.
+- **Papier froid** (`#EAEFF4`, filet `#D7DEE8`) : encarts d'information et bulle famille dans un fil — toujours associé à un liseré gauche encre plutôt qu'à une bordure pleine (cf. règle ci-dessous).
 - **Pierre** (`#8B8279`) : texte tertiaire, métadonnées.
 - **Filet** (`rgba(36,64,92,0.15)` / `0.1`) : bordures de carte, séparateurs de ligne.
 
 ### Named Rules
 **La règle du fond d'autorité.** Une zone qui fait autorité sur l'écran (un en-tête de fil, un bandeau de site) prend l'encre en fond plein, texte en blanc ou en bleu doux clair — jamais l'encre en simple filet sur fond clair quand la zone porte une décision ou un statut.
 **La règle de l'abricot rare.** L'abricot ne colore qu'un élément sur lequel on peut agir. Un badge, un fond de carte informative ou un filet ne l'utilisent jamais.
+**La règle du liseré, pas de l'encadré.** Un encart informatif ou un message de la famille dans un fil ne porte jamais de bordure pleine autour d'un fond papier : un seul liseré encre à gauche (3–4px) suffit à le signaler, sur un fond blanc (bandeau de délai) ou papier froid (bulle famille) selon le poids de l'information.
 
 ## Typography
 

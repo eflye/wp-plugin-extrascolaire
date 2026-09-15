@@ -8,8 +8,8 @@
       "moss": { "role": "secondary", "displayName": "Bleu doux", "canonical": "#4E6C8D", "tonalRamp": ["#1E2C3B", "#2C4054", "#3A5470", "#4E6C8D", "#6D87A3", "#8DA2B9", "#B0BFD0", "#D6DEE7"] },
       "gold": { "role": "accent", "displayName": "Abricot", "canonical": "#E08A5F", "tonalRamp": ["#4D2A17", "#7A421F", "#A65A29", "#C67540", "#E08A5F", "#E9A57F", "#F1C2A6", "#F9E1D2"] },
       "gold-ink": { "role": "accent-deep", "displayName": "Abricot encré", "canonical": "#9A5B2E" },
-      "cream": { "role": "neutral-bg", "displayName": "Crème", "canonical": "#FAF6F1" },
-      "paper": { "role": "neutral-surface", "displayName": "Papier", "canonical": "#F5E7DC" },
+      "cream": { "role": "neutral-bg", "displayName": "Gris-bleu très clair", "canonical": "#F2F3F5" },
+      "paper": { "role": "neutral-surface", "displayName": "Papier froid", "canonical": "#EAEFF4" },
       "stone": { "role": "neutral-muted", "displayName": "Pierre", "canonical": "#8B8279" },
       "danger": { "role": "danger", "displayName": "Rouge alerte", "canonical": "#9E4A4A" }
     },
@@ -52,7 +52,7 @@
       "refersTo": "chip",
       "description": "Sélecteur d'objet, d'enfant ou de filtre (Tous / En cours / Clos).",
       "html": "<label class=\"ds-chip\"><input type=\"radio\" name=\"demo\" checked><span>Cantine</span></label>",
-      "css": ".ds-chip{position:relative;display:inline-block}.ds-chip input{position:absolute;opacity:0;pointer-events:none}.ds-chip span{display:inline-block;font-family:'Public Sans',Helvetica,Arial,sans-serif;font-size:12px;font-weight:600;padding:7px 13px;border:1px solid rgba(36,64,92,.28);background:transparent;color:#4E6C8D;cursor:pointer}.ds-chip:has(input:checked) span{background:#24405C;color:#FAF6F1;border-color:#24405C}.ds-chip input:focus-visible+span{outline:2px solid #24405C;outline-offset:2px}"
+      "css": ".ds-chip{position:relative;display:inline-block}.ds-chip input{position:absolute;opacity:0;pointer-events:none}.ds-chip span{display:inline-block;font-family:'Public Sans',Helvetica,Arial,sans-serif;font-size:12px;font-weight:600;padding:7px 13px;border:1px solid rgba(36,64,92,.28);background:transparent;color:#4E6C8D;cursor:pointer}.ds-chip:has(input:checked) span{background:#24405C;color:#F2F3F5;border-color:#24405C}.ds-chip input:focus-visible+span{outline:2px solid #24405C;outline-offset:2px}"
     },
     {
       "name": "Badge de statut — réponse reçue",
@@ -100,6 +100,7 @@
     "rules": [
       { "name": "La règle du fond d'autorité", "body": "Une zone qui fait autorité sur l'écran prend l'encre en fond plein, texte en blanc ou en bleu doux clair — jamais l'encre en simple filet sur fond clair quand la zone porte une décision ou un statut.", "section": "colors" },
       { "name": "La règle de l'abricot rare", "body": "L'abricot ne colore qu'un élément sur lequel on peut agir. Un badge, un fond de carte informative ou un filet ne l'utilisent jamais.", "section": "colors" },
+      { "name": "La règle du liseré, pas de l'encadré", "body": "Un encart informatif ou un message de la famille dans un fil ne porte jamais de bordure pleine autour d'un fond papier : un seul liseré encre à gauche (3–4px) suffit, sur fond blanc ou papier froid selon le poids de l'information.", "section": "colors" },
       { "name": "La règle sans italique", "body": "Aucun texte n'est mis en italique nulle part dans le produit.", "section": "typography" },
       { "name": "La règle de la ledge, pas du tampon", "body": "Un élément actionnable ne projette jamais d'ombre : il porte une bordure basse plus sombre, comme le bord d'une marche, jamais comme le décalage d'un cachet encreur.", "section": "elevation" }
     ],

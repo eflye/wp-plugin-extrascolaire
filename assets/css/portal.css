@@ -109,8 +109,8 @@ body.psc-portal-active main.site-main > .psc-portal {
        posée dessus (~6,6:1). */
     --psc-gold-ink: #9A5B2E;
     --psc-ink: #1A1A1A;
-    --psc-cream: #FAF6F1;
-    --psc-paper: #F5E7DC;
+    --psc-cream: #F2F3F5;
+    --psc-paper: #EAEFF4;
     --psc-stone: #8B8279;
     --psc-rule: rgba(36, 64, 92, 0.22);
     --psc-rule-light: rgba(36, 64, 92, 0.15);
@@ -1848,7 +1848,7 @@ a.psc-portal-switch-link:focus-visible {
 .psc-child-tab.is-active {
     background: #24405C;
     border-color: #24405C;
-    color: #FAF6F1;
+    color: #F2F3F5;
 }
 .psc-child-tab.is-active .psc-child-tab-meta { color: rgba(250, 246, 241, 0.75); }
 
@@ -2002,7 +2002,7 @@ a.psc-portal-switch-link:focus-visible {
     justify-content: space-between;
     gap: 12px;
     padding: 9px 18px;
-    background: #F5E7DC;
+    background: #EAEFF4;
     font-size: 11.5px;
     color: #4E6C8D;
 }
@@ -2208,7 +2208,7 @@ button.psc-exc-locked[aria-pressed="false"] { background: transparent; border-co
     margin: 20px 0;
     padding: 16px 20px;
     border-left: 3px solid #E08A5F;
-    background: #FAF6F1;
+    background: #F2F3F5;
     color: #24405C;
     overflow-wrap: anywhere;
 }
