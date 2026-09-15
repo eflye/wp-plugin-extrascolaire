@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.12.0
+Stable tag: 5.13.0
 License: GPLv2 or later
 
 == Description ==
@@ -286,6 +286,10 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.13.0 =
+* Refond le design des échanges familles–mairie : vrais onglets avec badges de non-lus, liste des échanges avec filtres et statuts (réponse reçue, en attente, lu par la mairie, clos), fil de conversation en bulles asymétriques, et formulaire « Écrire à la mairie » avec objet de routage, enfant concerné et pièce jointe.
+* Ajoute un délai de réponse et un numéro d'urgence configurables, affichés aux familles sur l'écran des échanges et sur le formulaire.
 
 = 5.12.0 =
 * Ajoute un journal d'audit du plugin : chaque action sensible (agents, familles, système) est tracée dans une table chaînée par empreinte cryptographique, avec rédaction des données sensibles (IBAN, jeton, allergies…) et un écran d'administration dédié (filtres, export CSV/ODS, vérification d'intégrité).
