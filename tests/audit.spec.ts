@@ -268,6 +268,7 @@ test.describe('Journal d’audit', () => {
     await page.goto(`${APP_BASE}/?psc_tab=enfants`);
     await page.locator(`[data-child-edit-trigger][data-child-id="${childId}"]`).click();
     await page.locator('#psc-child-edit-allergies').fill(secretAllergy);
+    await page.locator('#psc-child-edit-allergy-consent').check();
     await page.getByTestId('child-edit-submit').click();
     await page.waitForURL(/psc_msg=child_updated/);
 

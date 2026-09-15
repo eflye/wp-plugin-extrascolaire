@@ -98,6 +98,7 @@ async function submitRequest(page: Page, email: string, prenom: string, allergie
   if (allergies !== null) {
     await page.locator('input[name="child_has_allergy_0"]').check();
     await page.locator('textarea[name="child_food_allergies_0"]').fill(allergies);
+    await page.locator('input[name="child_allergy_consent_0"]').check();
   }
   await page.getByTestId('wizard-next').click();
 
