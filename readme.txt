@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.11.0
+Stable tag: 5.12.0
 License: GPLv2 or later
 
 == Description ==
@@ -286,6 +286,10 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.12.0 =
+* Ajoute un journal d'audit du plugin : chaque action sensible (agents, familles, système) est tracée dans une table chaînée par empreinte cryptographique, avec rédaction des données sensibles (IBAN, jeton, allergies…) et un écran d'administration dédié (filtres, export CSV/ODS, vérification d'intégrité).
+* Applique une durée de rétention par niveau de sensibilité, avec purge quotidienne automatique et anonymisation de l'historique lors de la suppression d'une famille.
 
 = 5.11.0 =
 * Ajoute des conversations privées entre une famille et la mairie, en plus des diffusions descendantes existantes : une famille peut écrire à la mairie, répondre à une diffusion quand celle-ci l'autorise, et la mairie peut ouvrir, répondre, clore ou rouvrir un échange.
