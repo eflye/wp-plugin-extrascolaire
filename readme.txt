@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.13.0
+Stable tag: 5.14.0
 License: GPLv2 or later
 
 == Description ==
@@ -286,6 +286,10 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.14.0 =
+* Refond le système visuel du portail famille, de la messagerie et de l'écran intervenants : direction « L'Habit de Marianne », proche de la discipline du Système de Design de l'État sans en reprendre la police ni la charte — une seule famille de caractères (Public Sans, auto-hébergée), aucun corps italique, coins carrés, ombres décoratives remplacées par une bordure basse nette sur les éléments actionnables.
+* Documente le contexte produit (PRODUCT.md) et le système de design (DESIGN.md) pour guider les prochains écrans.
 
 = 5.13.0 =
 * Refond le design des échanges familles–mairie : vrais onglets avec badges de non-lus, liste des échanges avec filtres et statuts (réponse reçue, en attente, lu par la mairie, clos), fil de conversation en bulles asymétriques, et formulaire « Écrire à la mairie » avec objet de routage, enfant concerné et pièce jointe.
