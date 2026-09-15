@@ -13,8 +13,8 @@
   <tbody>
   <?php foreach ($invoices as $inv): ?>
     <tr data-testid="portal-invoice-row-<?php echo esc_attr($inv->id); ?>">
-      <td style="font-family:'Fraunces',serif;font-weight:600;"><?php echo esc_html(Psc_Invoices::month_label($inv->mois)); ?></td>
-      <td style="font-family:'Fraunces',serif;font-weight:700;"><?php echo esc_html(number_format_i18n((float) $inv->total, 2)); ?> €</td>
+      <td style="font-family:'Public Sans',sans-serif;font-weight:600;"><?php echo esc_html(Psc_Invoices::month_label($inv->mois)); ?></td>
+      <td style="font-family:'Public Sans',sans-serif;font-weight:700;font-variant-numeric:tabular-nums;"><?php echo esc_html(number_format_i18n((float) $inv->total, 2)); ?> €</td>
       <td><span class="psc-portal-pill"><?php esc_html_e('Envoyée le', 'periscolaire-registration'); ?> <?php echo esc_html(date_i18n('d/m/Y', strtotime($inv->sent_at))); ?></span></td>
       <td>
         <?php if ($inv->pdf_path): ?>

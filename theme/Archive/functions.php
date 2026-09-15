@@ -21,7 +21,7 @@ if (!function_exists('montgeroult_fallback_menu')) {
 function montgeroult_assets() {
     wp_enqueue_style(
         'montgeroult-fonts',
-        'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,500;1,600&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,800&family=Work+Sans:wght@400;500;600;700&display=swap',
+        'https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap',
         array(),
         null
     );

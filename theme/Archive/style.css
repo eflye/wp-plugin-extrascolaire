@@ -3,7 +3,7 @@ Theme Name: Montgeroult Familles
 Theme URI: https://montgeroult.fr
 Author: Mairie de Montgeroult
 Author URI: https://montgeroult.fr
-Description: Thème institutionnel du site de la commune de Montgeroult, avec un habillage dédié au portail familles (inscriptions périscolaires, cantine, garderie). Restyle automatiquement le plugin "Périscolaire - Inscriptions" (classes .psc-*) avec la même charte : bleu encre / abricot terracotta, Fraunces + Work Sans. Compatible WordPress 5.8+.
+Description: Thème institutionnel du site de la commune de Montgeroult, avec un habillage dédié au portail familles (inscriptions périscolaires, cantine, garderie). Restyle automatiquement le plugin "Périscolaire - Inscriptions" (classes .psc-*) avec la même charte : bleu encre / abricot terracotta, Public Sans. Compatible WordPress 5.8+.
 Version: 1.0.0
 Requires PHP: 7.4
 License: GNU General Public License v2 or later
@@ -27,12 +27,12 @@ html, body { margin: 0; padding: 0; }
 body {
   background: var(--cream);
   color: var(--ink);
-  font-family: 'Work Sans', -apple-system, sans-serif;
+  font-family: 'Public Sans', -apple-system, sans-serif;
   line-height: 1.6;
   font-size: 16px;
 }
 h1, h2, h3, h4 {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: 'Public Sans', -apple-system, sans-serif;
   color: var(--forest);
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -42,7 +42,7 @@ p { margin: 0 0 1em; }
 a { color: var(--forest); text-decoration: underline; text-underline-offset: 2px; }
 a:hover { color: var(--gold); }
 img { max-width: 100%; height: auto; }
-button, input, select, textarea { font-family: 'Work Sans', sans-serif; }
+button, input, select, textarea { font-family: 'Public Sans', sans-serif; }
 
 .screen-reader-text {
   position: absolute; width: 1px; height: 1px; overflow: hidden;
@@ -61,7 +61,7 @@ button, input, select, textarea { font-family: 'Work Sans', sans-serif; }
   color: var(--gold); font-weight: 600; margin-bottom: 2px;
 }
 .site-title {
-  font-family: 'Fraunces', serif; font-weight: 700; font-size: 20px;
+  font-family: 'Public Sans', sans-serif; font-weight: 800; font-size: 19px; letter-spacing: -0.01em;
   color: var(--cream); text-decoration: none; line-height: 1;
 }
 .site-title:hover { color: var(--gold); }

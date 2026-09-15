@@ -127,9 +127,9 @@ class Psc_Sidscm {
         $post = get_post();
         if (!$post || !has_shortcode($post->post_content, 'periscolaire_sidscm')) return;
 
-        // Dépend de psc-portal uniquement pour réutiliser ses @font-face
-        // auto-hébergées (Fraunces/Work Sans/Cormorant Garamond) sans les
-        // dupliquer — jamais de requête vers Google Fonts.
+        // Dépend de psc-portal uniquement pour réutiliser sa @font-face
+        // auto-hébergée (Public Sans) sans la dupliquer — jamais de requête
+        // vers Google Fonts.
         wp_enqueue_style('psc-portal', PSC_URL . 'assets/css/portal.css', array(), PSC_VERSION);
         wp_enqueue_style('psc-sidscm', PSC_URL . 'assets/css/sidscm.css', array('psc-portal'), PSC_VERSION);
         // Mécanique AJAX commune (assets/js/psc-ajax.js) : déclarée en

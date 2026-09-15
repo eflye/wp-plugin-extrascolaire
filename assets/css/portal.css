@@ -8,32 +8,32 @@
    .psc-notice, .psc-error, .psc-row-locked, #psc-confirm(-feedback).
    =================================================================== */
 
-/* ---- Polices auto-hébergées (jamais de requête vers Google Fonts —
+/* ---- Police auto-hébergée (jamais de requête vers Google Fonts —
    cohérent avec la position RGPD du projet : aucune donnée envoyée à un
-   tiers). Fichiers variables, un seul par famille. ---- */
+   tiers). Une seule famille pour tout le portail (titres compris) —
+   direction "Habit de Marianne" : discipline proche du Système de Design
+   de l'État sans en reprendre la police Marianne elle-même. Public Sans
+   (USWDS, SIL OFL) est son équivalent le plus proche déjà disponible :
+   même filiation grotesque humaniste pensée pour un service public.
+   Fichier variable converti depuis la version officielle
+   github.com/uswds/public-sans (v2.001, licence OFL). L'italique n'est
+   plus utilisé nulle part dans cette direction ; le fichier reste
+   chargé pour ne pas casser un <em>/<i> égaré. ---- */
 @font-face {
-    font-family: 'Fraunces';
+    font-family: 'Public Sans';
     font-style: normal;
-    font-weight: 500 800;
+    font-weight: 100 900;
     font-display: swap;
-    src: url('../fonts/fraunces-variable.woff2') format('woff2-variations'),
-         url('../fonts/fraunces-variable.woff2') format('woff2');
+    src: url('../fonts/publicsans-variable.woff2') format('woff2-variations'),
+         url('../fonts/publicsans-variable.woff2') format('woff2');
 }
 @font-face {
-    font-family: 'Work Sans';
-    font-style: normal;
-    font-weight: 400 700;
-    font-display: swap;
-    src: url('../fonts/worksans-variable.woff2') format('woff2-variations'),
-         url('../fonts/worksans-variable.woff2') format('woff2');
-}
-@font-face {
-    font-family: 'Cormorant Garamond';
+    font-family: 'Public Sans';
     font-style: italic;
-    font-weight: 500 600;
+    font-weight: 100 900;
     font-display: swap;
-    src: url('../fonts/cormorant-italic-variable.woff2') format('woff2-variations'),
-         url('../fonts/cormorant-italic-variable.woff2') format('woff2');
+    src: url('../fonts/publicsans-italic-variable.woff2') format('woff2-variations'),
+         url('../fonts/publicsans-italic-variable.woff2') format('woff2');
 }
 
 /* Le titre de page (H1 "wp-block-post-title") vient du modèle de page,
@@ -117,7 +117,7 @@ body.psc-portal-active main.site-main > .psc-portal {
     --psc-rule-lighter: rgba(36, 64, 92, 0.1);
 
     background: var(--psc-cream);
-    font-family: 'Work Sans', sans-serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     color: var(--psc-ink);
     box-sizing: border-box;
 }
@@ -189,7 +189,7 @@ body.admin-bar .psc-impersonation-banner { top: 32px; }
     box-sizing: border-box;
 }
 .psc-portal button, .psc-guest button {
-    font-family: 'Work Sans', sans-serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
 }
 
 /* ---- Sidebar ---- */
@@ -260,7 +260,7 @@ body.admin-bar .psc-impersonation-banner { top: 32px; }
     margin-bottom: 4px;
 }
 .psc-portal-account-email {
-    font-family: 'Fraunces', serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     font-size: 13px;
     color: var(--psc-cream);
     margin-bottom: 10px;
@@ -325,7 +325,7 @@ a.psc-portal-switch-link:focus-visible {
     margin: 0 0 8px;
 }
 .psc-portal-h1 {
-    font-family: 'Fraunces', serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     font-weight: 700;
     font-size: 34px;
     color: var(--psc-forest);
@@ -334,8 +334,9 @@ a.psc-portal-switch-link:focus-visible {
 }
 .psc-portal-h1--dashboard { font-size: 38px; margin-bottom: 6px; }
 .psc-portal-subtitle {
-    font-family: 'Cormorant Garamond', serif;
-    font-style: italic;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
+    font-style: normal;
+    font-weight: 500;
     font-size: 19px;
     color: var(--psc-ink);
     margin: 0 0 34px;
@@ -349,11 +350,14 @@ a.psc-portal-switch-link:focus-visible {
     margin-bottom: 16px;
 }
 .psc-portal-numeral {
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-weight: 600;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: 0.04em;
     color: var(--psc-gold-ink);
-    font-size: 14px;
+    font-size: 12px;
+    border: 1px solid var(--psc-gold-ink);
+    padding: 1px 6px;
 }
 .psc-portal-heading-label {
     font-size: 12px;
@@ -368,16 +372,16 @@ a.psc-portal-switch-link:focus-visible {
     background: var(--psc-gold);
     color: var(--psc-ink);
     border: none;
-    padding: 11px 22px;
+    border-bottom: 3px solid #9A5B2E;
+    padding: 11px 22px 8px;
     font-size: 12px;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
     font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 2px 0 var(--psc-ink);
 }
 .psc-portal-btn-gold:hover { background: #d19a1f; }
-.psc-portal-btn-gold:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+.psc-portal-btn-gold:disabled { opacity: 0.6; cursor: not-allowed; border-bottom-color: transparent; }
 .psc-portal-btn-ink {
     background: var(--psc-ink);
     color: var(--psc-cream);
@@ -433,7 +437,7 @@ a.psc-portal-switch-link:focus-visible {
     margin-bottom: 10px;
 }
 .psc-portal-card-value {
-    font-family: 'Fraunces', serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     font-weight: 700;
     font-size: 26px;
     color: var(--psc-forest);
@@ -446,8 +450,8 @@ a.psc-portal-switch-link:focus-visible {
 .psc-portal-card--gold {
     background: var(--psc-gold);
     padding: 22px 24px;
-    box-shadow: 0 2px 0 var(--psc-ink);
     border: none;
+    border-bottom: 3px solid #9A5B2E;
 }
 .psc-portal-card--gold .psc-portal-card-label { color: var(--psc-ink); font-weight: 700; }
 .psc-portal-card--gold .psc-portal-btn-ink,
@@ -486,8 +490,9 @@ a.psc-portal-switch-link:focus-visible {
 }
 .psc-portal-dash-menu-empty {
     grid-column: 1 / -1;
-    font-family: 'Cormorant Garamond', serif;
-    font-style: italic;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
+    font-style: normal;
+    font-weight: 500;
     font-size: 15px;
     color: var(--psc-stone);
 }
@@ -504,7 +509,7 @@ a.psc-portal-switch-link:focus-visible {
     min-width: 220px;
 }
 .psc-portal-dash-child-name {
-    font-family: 'Fraunces', serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     font-weight: 700;
     font-size: 16px;
     color: var(--psc-ink);
@@ -544,7 +549,7 @@ a.psc-portal-switch-link:focus-visible {
     max-width: 420px;
 }
 .psc-portal-modal-title {
-    font-family: 'Fraunces', serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     font-weight: 700;
     font-size: 19px;
     color: var(--psc-forest);
@@ -675,7 +680,7 @@ a.psc-portal-switch-link:focus-visible {
     margin-bottom: 14px;
 }
 .psc-portal-child-header h2 {
-    font-family: 'Fraunces', serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     font-weight: 700;
     font-size: 19px;
     color: var(--psc-ink);
@@ -685,12 +690,12 @@ a.psc-portal-switch-link:focus-visible {
     font-size: 12px;
     color: var(--psc-stone);
     font-weight: 400;
-    font-family: 'Work Sans', sans-serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
 }
 .psc-portal-pickup-child-block { margin: 20px 0 24px; }
 .psc-portal-pickup-child-block:last-of-type { margin-bottom: 12px; }
 .psc-portal-pickup-child-name {
-    font-family: 'Fraunces', serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     font-weight: 700;
     font-size: 15px;
     color: var(--psc-ink);
@@ -857,7 +862,7 @@ a.psc-portal-switch-link:focus-visible {
     margin-top: 8px;
 }
 .psc-portal-confirm-title {
-    font-family: 'Fraunces', serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     font-weight: 700;
     font-size: 15px;
     color: var(--psc-ink);
@@ -905,7 +910,7 @@ a.psc-portal-switch-link:focus-visible {
 .psc-portal-menu-nav-btn:hover { background: var(--psc-paper); }
 .psc-portal-menu-week { text-align: center; flex: 1; min-width: 160px; }
 .psc-portal-menu-week-label {
-    font-family: 'Fraunces', serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     font-weight: 700;
     font-size: 17px;
     color: var(--psc-forest);
@@ -955,8 +960,9 @@ a.psc-portal-switch-link:focus-visible {
     padding: 40px;
     text-align: center;
     color: var(--psc-stone);
-    font-family: 'Cormorant Garamond', serif;
-    font-style: italic;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
+    font-style: normal;
+    font-weight: 500;
     font-size: 17px;
     margin: 0;
 }
@@ -1018,7 +1024,7 @@ a.psc-portal-switch-link:focus-visible {
     max-width: none;
 }
 .psc-portal-panel-title {
-    font-family: 'Fraunces', serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     font-weight: 700;
     font-size: 17px;
     color: var(--psc-ink);
@@ -1032,7 +1038,7 @@ a.psc-portal-switch-link:focus-visible {
 }
 .psc-portal-reins-child:last-of-type { border-bottom: none; margin-bottom: 8px; }
 .psc-portal-reins-child legend {
-    font-family: 'Fraunces', serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     font-weight: 700;
     font-size: 15px;
     color: var(--psc-ink);
@@ -1061,7 +1067,7 @@ a.psc-portal-switch-link:focus-visible {
     background: transparent;
     padding: 6px 2px;
     font-size: 14px;
-    font-family: 'Work Sans', sans-serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     color: var(--psc-ink);
     border-radius: 0;
 }
@@ -1107,7 +1113,7 @@ a.psc-portal-switch-link:focus-visible {
     border: none;
     padding: 0;
     margin-top: 6px;
-    font-family: 'Work Sans', sans-serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     font-size: 12.5px;
     color: var(--psc-forest);
     text-decoration: underline;
@@ -1324,7 +1330,7 @@ a.psc-portal-switch-link:focus-visible {
     margin-bottom: 2px;
 }
 .psc-guest-menu-week {
-    font-family: 'Fraunces', serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     font-weight: 700;
     font-size: 16px;
     color: var(--psc-forest);
@@ -1363,8 +1369,9 @@ a.psc-portal-switch-link:focus-visible {
     padding: 28px;
     text-align: center;
     color: var(--psc-stone);
-    font-family: 'Cormorant Garamond', serif;
-    font-style: italic;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
+    font-style: normal;
+    font-weight: 500;
     font-size: 15px;
     margin: 0 0 44px;
 }
@@ -1395,15 +1402,16 @@ a.psc-portal-switch-link:focus-visible {
     margin: 0 0 10px;
 }
 .psc-guest-h1 {
-    font-family: 'Fraunces', serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     font-weight: 700;
     font-size: 27px;
     color: var(--psc-forest);
     margin: 0 0 8px;
 }
 .psc-guest-intro {
-    font-family: 'Cormorant Garamond', serif;
-    font-style: italic;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
+    font-style: normal;
+    font-weight: 500;
     font-size: 17px;
     color: var(--psc-ink);
     margin: 0 0 18px;
@@ -1473,7 +1481,7 @@ a.psc-portal-switch-link:focus-visible {
     font-weight: 700;
     font-size: 13px;
     cursor: pointer;
-    font-family: 'Fraunces', serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     padding: 0;
 }
 .psc-wizard-circle.is-current { border: none; background: var(--psc-gold); color: var(--psc-ink); }
@@ -1624,7 +1632,7 @@ a.psc-portal-switch-link:focus-visible {
     color: var(--psc-ink);
 }
 .psc-wizard-payment-card.is-active { background: rgba(224, 138, 95, 0.12); border-color: var(--psc-gold); }
-.psc-wizard-payment-card-title { font-family: 'Fraunces', serif; font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+.psc-wizard-payment-card-title { font-family: 'Public Sans', Helvetica, Arial, sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 4px; }
 .psc-wizard-payment-card-sub { font-size: 12px; color: var(--psc-moss); }
 
 .psc-wizard-sepa-panel { background: var(--psc-paper); padding: 22px 24px; margin-bottom: 8px; }
@@ -1821,7 +1829,7 @@ a.psc-portal-switch-link:focus-visible {
     background: #fff;
     border: 1px solid rgba(36, 64, 92, 0.18);
     color: #1A1A1A;
-    font-family: 'Fraunces', serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     font-weight: 700;
     font-size: 15px;
     line-height: 1.25;
@@ -1830,7 +1838,7 @@ a.psc-portal-switch-link:focus-visible {
 .psc-child-tab .psc-child-tab-meta {
     display: block;
     margin-top: 3px;
-    font-family: 'Work Sans', sans-serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     font-weight: 500;
     font-size: 11px;
     letter-spacing: 0.06em;
@@ -1872,7 +1880,7 @@ a.psc-portal-switch-link:focus-visible {
     margin-bottom: 3px;
 }
 .psc-panel-title {
-    font-family: 'Fraunces', serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     font-weight: 700;
     font-size: 17px;
     color: #24405C;
@@ -2165,13 +2173,13 @@ button.psc-exc-locked[aria-pressed="false"] { background: transparent; border-co
     min-width: 0;
 }
 .psc-sibling-card-name {
-    font-family: 'Fraunces', serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     font-weight: 700;
     font-size: 14px;
     color: #1A1A1A;
 }
 .psc-sibling-card-name span {
-    font-family: 'Work Sans', sans-serif;
+    font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     font-weight: 400;
     font-size: 11px;
     color: #8B8279;

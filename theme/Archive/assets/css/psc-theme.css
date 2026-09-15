@@ -9,15 +9,15 @@
   --cream:#FAF6F1; --paper:#F5E7DC; --stone:#8B8279; --rule:rgba(36,64,92,0.22);
 }
 
-.psc-wrap { font-family: 'Work Sans', sans-serif; color: var(--ink); }
+.psc-wrap { font-family: 'Public Sans', sans-serif; color: var(--ink); }
 .psc-wrap a { color: var(--forest); }
 .psc-wrap a:hover { color: var(--gold); }
 
 /* Cartes communes (login, première inscription) */
 .psc-card { background: #fff; border: 1px solid rgba(36,64,92,0.15); border-radius: 0; box-shadow: none; }
-.psc-card h2 { font-family: 'Fraunces', serif; color: var(--forest); font-weight: 700; }
+.psc-card h2 { font-family: 'Public Sans', sans-serif; color: var(--forest); font-weight: 700; }
 .psc-card-intro { color: var(--ink); }
-.psc-lead { color: var(--forest); font-family: 'Fraunces', serif; font-weight: 600; }
+.psc-lead { color: var(--forest); font-family: 'Public Sans', sans-serif; font-weight: 600; }
 .psc-form-hint { color: var(--stone); }
 .psc-steps { color: var(--ink); }
 .psc-login-card { box-shadow: none; }
@@ -38,8 +38,8 @@
 /* Boutons */
 .psc-btn {
   background: var(--gold); color: var(--ink); border-radius: 0;
-  box-shadow: 0 2px 0 var(--ink); font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.06em; font-size: 0.8em; padding: 11px 22px; border: none;
+  border: none; border-bottom: 3px solid #9A5B2E; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.04em; font-size: 0.8em; padding: 11px 22px 8px;
 }
 .psc-btn:hover { background: #d59a1f; }
 .psc-btn-sm {
@@ -58,7 +58,7 @@
 .psc-glossary { background: var(--paper); border: 1px solid rgba(36,64,92,0.2); border-radius: 0; color: var(--ink); }
 
 /* Calendrier de déclaration */
-.psc-child-name { font-family: 'Fraunces', serif; color: var(--ink); border-bottom: 2px solid var(--gold); font-size: 1.3em; }
+.psc-child-name { font-family: 'Public Sans', sans-serif; color: var(--ink); border-bottom: 2px solid var(--gold); font-size: 1.3em; }
 .psc-classe { color: var(--stone); }
 .psc-calendar th {
   background: var(--paper); color: var(--moss); font-weight: 600;
@@ -75,14 +75,14 @@
 /* Mois repliables */
 .psc-month-block { background: #fff; border: 1px solid rgba(36,64,92,0.15); border-radius: 0; }
 .psc-month-chevron::before, .psc-month-chevron::after { background: var(--forest); }
-.psc-month-name { font-family: 'Fraunces', serif; color: var(--ink); font-weight: 600; }
+.psc-month-name { font-family: 'Public Sans', sans-serif; color: var(--ink); font-weight: 600; }
 .psc-badge { background: var(--paper); color: var(--forest); border-radius: 0; text-transform: uppercase; font-size: 0.65em; letter-spacing: 0.05em; }
 .psc-month-summary { color: var(--stone); }
 .psc-month-summary-active { color: var(--forest); }
 
 /* Bloc de confirmation */
 .psc-confirm-block { background: var(--paper); border: none; border-left: 3px solid var(--gold); border-radius: 0; }
-.psc-confirm-block h3 { font-family: 'Fraunces', serif; color: var(--ink); }
+.psc-confirm-block h3 { font-family: 'Public Sans', sans-serif; color: var(--ink); }
 .psc-ok-text { color: var(--moss); }
 .psc-err-text { color: #b32d2e; }
 
@@ -90,14 +90,14 @@
 .psc-menu-widget { background: #fff; border: 1px solid rgba(36,64,92,0.15); border-radius: 0; padding: 20px 24px; }
 .psc-menu-nav-btn { border: 1px solid var(--forest); border-radius: 0; color: var(--forest); background: #fff; }
 .psc-menu-nav-btn:hover { background: var(--paper); }
-.psc-menu-week-label { font-family: 'Fraunces', serif; color: var(--forest); }
+.psc-menu-week-label { font-family: 'Public Sans', sans-serif; color: var(--forest); }
 .psc-menu-today-link { color: var(--gold); }
 .psc-menu-table th { background: var(--paper); color: var(--moss); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.72em; }
 .psc-menu-table th, .psc-menu-table td { border-color: rgba(36,64,92,0.15); }
-.psc-menu-empty { color: var(--stone); font-family: 'Cormorant Garamond', serif; font-style: italic; }
+.psc-menu-empty { color: var(--stone); font-family: 'Public Sans', sans-serif; }
 
 /* Demande de première inscription */
-.psc-request-block > summary { font-family: 'Fraunces', serif; color: var(--forest); }
+.psc-request-block > summary { font-family: 'Public Sans', sans-serif; color: var(--forest); }
 .psc-request-form fieldset { border: 1px solid rgba(36,64,92,0.2); border-radius: 0; }
 .psc-request-form legend { color: var(--moss); text-transform: uppercase; font-size: 0.78em; letter-spacing: 0.08em; font-weight: 600; }
 .psc-request-form input[type="text"],
@@ -116,7 +116,7 @@
 
 /* Gestion des enfants / factures */
 .psc-children-mgmt, .psc-invoices-mgmt { border: 1px solid rgba(36,64,92,0.15); border-radius: 0; }
-.psc-children-mgmt > summary, .psc-invoices-mgmt > summary { color: var(--forest); font-family: 'Fraunces', serif; font-weight: 700; }
+.psc-children-mgmt > summary, .psc-invoices-mgmt > summary { color: var(--forest); font-family: 'Public Sans', sans-serif; font-weight: 700; }
 .psc-children-table th, .psc-invoices-table th { color: var(--moss); }
 .psc-invoices-table .psc-active { color: var(--forest); }
 .psc-toggle-track { background: #ccc; }
