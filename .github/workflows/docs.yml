@@ -1,0 +1,73 @@
+# Documentation administrateur (MkDocs Material), cf. docs-plan/PLAN.md
+#
+# Deux jobs, volontairement séparés : `build` s'exécute aussi bien sur une
+# pull request que sur `main`, il ne porte donc aucune permission
+# d'écriture — une PR ne doit jamais pouvoir déployer quoi que ce soit.
+# `deploy` ne tourne que sur push `main`, une fois `build` passé, et c'est
+# le seul des deux à recevoir `pages: write` / `id-token: write`.
+
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "documentation/**"
+      - "mkdocs.yml"
+      - "requirements.txt"
+  pull_request:
+    paths:
+      - "documentation/**"
+      - "mkdocs.yml"
+      - "requirements.txt"
+
+# Une pull request mise à jour plusieurs fois de suite n'a besoin que du
+# dernier build ; un déploiement sur main non plus.
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build MkDocs (--strict)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installe MkDocs Material
+        run: pip install -r requirements.txt
+
+      - name: Build strict
+        run: mkdocs build --strict
+
+      - name: Prépare l'artefact Pages
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: Déploie sur GitHub Pages
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Déploiement
+        id: deployment
+        uses: actions/deploy-pages@v4
