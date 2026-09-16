@@ -142,6 +142,11 @@ test.describe('Échanges familles ↔ mairie', () => {
     expect(mairieMail.Subject).not.toContain('Une question sur le portail');
     expect(mairieMail.Text).not.toContain('Bonjour, une question pour vous.');
 
+    // Le compteur du menu est mis en cache 60 s (réorganisation du menu,
+    // §7) : sans purge explicite, cette assertion dépendrait de l'instant
+    // où un chargement d'admin précédent (dans ce test ou un autre) a pu
+    // peupler le cache avant l'envoi du message ci-dessus.
+    wpEval(`delete_transient('psc_menu_count_conversations'); echo 'ok';`);
     await loginAsAdmin(page);
     await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_conversations`);
     const conversationsMenuLink = page.locator('#adminmenu').getByRole('link', { name: /Échanges familles/ });
@@ -150,6 +155,10 @@ test.describe('Échanges familles ↔ mairie', () => {
     await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_conversation&id=${conversationId}`);
     await expect(page.getByRole('heading', { name: 'Une question sur le portail' })).toBeVisible();
 
+    // Idem : la lecture ci-dessus vient de faire tomber le compteur à
+    // zéro, mais le cache 60 s du menu ignore ce changement tant qu'il
+    // n'a pas expiré.
+    wpEval(`delete_transient('psc_menu_count_conversations'); echo 'ok';`);
     await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_conversations`);
     await expect(conversationsMenuLink.locator('.pending-count')).toHaveCount(0);
 

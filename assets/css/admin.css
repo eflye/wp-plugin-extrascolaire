@@ -155,3 +155,23 @@
 .psc-assurance-review { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(0, 2fr); gap: 24px; margin: 24px 0; }
 .psc-assurance-preview { width: 100%; height: 720px; border: 1px solid #c3c4c7; background: #fff; }
 @media (max-width: 900px) { .psc-assurance-review { grid-template-columns: 1fr; } }
+
+/* Intitulés de section du sous-menu Périscolaire (réorganisation du menu,
+   §3) : entrées de sous-menu non cliquables, rendues purement par CSS —
+   WordPress n'a pas de troisième niveau de menu natif. */
+#adminmenu .psc-menu-section {
+    display: block;
+    padding: 10px 0 3px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #8c8f94;
+    cursor: default;
+    pointer-events: none;
+}
+/* La ligne de sous-menu entière ne réagit plus au survol. */
+#adminmenu li a:has(.psc-menu-section) {
+    cursor: default;
+    background: none !important;
+}

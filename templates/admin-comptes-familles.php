@@ -1,6 +1,6 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="wrap psc-admin">
-<h1><?php esc_html_e('État des comptes familles', 'periscolaire-registration'); ?></h1>
+<h1><?php esc_html_e('État des comptes', 'periscolaire-registration'); ?></h1>
 <p><?php echo esc_html(sprintf(__('Situation au %s — factures générées jusqu’au mois en cours, hors mois futurs.', 'periscolaire-registration'), date_i18n('d/m/Y', strtotime($as_of)))); ?></p>
 <p class="description"><?php esc_html_e('Les prélèvements sont considérés comme payés par défaut selon le mode de paiement actuel de la famille. Les chèques et espèces sont payés lorsqu’ils sont marqués reçus dans Facturation.', 'periscolaire-registration'); ?></p>
 <?php if (!$accounts): ?>

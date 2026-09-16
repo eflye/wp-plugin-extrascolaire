@@ -130,11 +130,40 @@ test.describe('Messages aux familles', () => {
     expect(count).toBe('0');
   });
 
-  test('respecte l’ordre demandé dans le menu du back-office', () => {
-    const slugs = JSON.parse(wpEval(`wp_set_current_user(1); do_action('admin_menu'); global $submenu;
-      echo wp_json_encode(array_values(array_map(function($item){return $item[2];},$submenu['psc_dashboard'])));`));
-    expect(slugs.indexOf('psc_messages')).toBe(slugs.indexOf('psc_dashboard') + 1);
-    expect(slugs.indexOf('psc_school_calendar_v2')).toBe(slugs.indexOf('psc_school_years') - 1);
+  test('respecte l’ordre demandé dans le menu du back-office (réorganisation par sections)', () => {
+    // Slug + libellé (nettoyé du markup des intitulés de section) de
+    // chaque entrée du sous-menu, dans l'ordre d'enregistrement — les
+    // entrées cachées (menu_title vide : personnes autorisées, passage
+    // d'année...) sont filtrées, elles ne font pas partie de la structure
+    // demandée.
+    const entries: Array<{ slug: string; label: string }> = JSON.parse(wpEval(`wp_set_current_user(1); do_action('admin_menu'); global $submenu;
+      $out = array();
+      foreach ($submenu['psc_dashboard'] as $item) {
+        $label = trim(html_entity_decode(wp_strip_all_tags((string) $item[0]), ENT_QUOTES));
+        if ($label === '') continue;
+        $out[] = array('slug' => $item[2], 'label' => $label);
+      }
+      echo wp_json_encode(array_values($out));`));
+
+    const slugs = entries.map((e) => e.slug);
+    const labels = entries.map((e) => e.label);
+
+    expect(slugs).toEqual([
+      'psc-section-a-traiter', 'psc_dashboard', 'psc_requests', 'psc_conversations',
+      'psc-section-cantine', 'psc_menus', 'psc_supplier_orders', 'psc_inscriptions',
+      'psc-section-familles', 'psc_parents', 'psc_children', 'psc_assurances',
+      'psc-section-facturation', 'psc_factures', 'psc_comptes_familles',
+      'psc-section-communication', 'psc_messages',
+      'psc-section-configuration', 'psc_school_calendar_v2', 'psc_email_templates', 'psc_settings', 'psc_audit',
+    ]);
+    expect(labels).toEqual([
+      'À traiter', 'Tableau de bord', "Demandes d'inscription", 'Échanges familles',
+      'Cantine & garderie', 'Menus', 'Commande fournisseur', 'Présences déclarées',
+      'Familles', 'Familles', 'Enfants', 'Assurances scolaires',
+      'Facturation', 'Factures', 'État des comptes',
+      'Communication', 'Messages aux familles',
+      'Configuration', 'Année scolaire', "Modèles d'e-mails", 'Réglages', "Journal d'audit",
+    ]);
   });
 
   test('laisse les canaux e-mail et navigateur décochés sur un nouveau message', async ({ page }) => {

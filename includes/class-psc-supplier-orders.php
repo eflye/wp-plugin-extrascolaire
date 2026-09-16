@@ -171,7 +171,7 @@ class Psc_Supplier_Orders {
         if (!$supplier_email || !is_email($supplier_email)) {
             return new WP_Error(
                 'psc_no_supplier_email',
-                __("Aucune adresse e-mail fournisseur n'est configurée (Périscolaire > Réglages).", 'periscolaire-registration')
+                __("Aucune adresse e-mail fournisseur n'est configurée (Périscolaire > Commande fournisseur > Réglages).", 'periscolaire-registration')
             );
         }
 

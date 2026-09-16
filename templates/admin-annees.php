@@ -1,8 +1,8 @@
 <?php if (!defined('ABSPATH')) exit; ?>
-<div class="wrap psc-admin">
-<h1><?php esc_html_e('Années scolaires', 'periscolaire-registration'); ?></h1>
-
 <?php
+/* Rendu comme onglet « Historique » de la page fusionnée « Année scolaire »
+   (cf. Psc_Admin_Calendar_V2::page_calendar_v2()) : ni wrap ni <h1> ici,
+   fournis par la page hôte. */
 $psc_notices = array(
     'created'             => array('success', __('Année scolaire créée.', 'periscolaire-registration')),
     'updated'             => array('success', __('Année scolaire modifiée.', 'periscolaire-registration')),
@@ -371,7 +371,6 @@ if ($planning_year):
 <?php submit_button(__('Préparer le passage d\'année', 'periscolaire-registration'), 'primary', 'submit', true, array('data-testid' => 'promotion-stage-submit')); ?>
 </form>
 <?php endif; ?>
-</div>
 </div>
 
 <script>

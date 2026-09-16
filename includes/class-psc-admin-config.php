@@ -69,8 +69,10 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         $conv_tel = isset($_POST['conversations_telephone_urgence']) ? sanitize_text_field(wp_unslash($_POST['conversations_telephone_urgence'])) : '';
         update_option('psc_conversations_telephone_urgence', mb_substr(trim($conv_tel), 0, 40));
 
-        $supplier_mail = isset($_POST['supplier_email']) ? sanitize_email(wp_unslash($_POST['supplier_email'])) : '';
-        update_option('psc_supplier_email', is_email($supplier_mail) ? $supplier_mail : '');
+        // psc_supplier_email : déplacé vers Commande fournisseur > Réglages
+        // (réorganisation du menu, §6) — cf.
+        // Psc_Admin_Cantine::handle_save_supplier_settings(), qui seul
+        // écrit désormais cette option.
 
         $ics_url = isset($_POST['school_calendar_ics_url']) ? esc_url_raw(wp_unslash($_POST['school_calendar_ics_url'])) : '';
         update_option('psc_school_calendar_ics_url', $ics_url);

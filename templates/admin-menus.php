@@ -1,6 +1,6 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="wrap psc-admin">
-<h1><?php esc_html_e('Menus cantine', 'periscolaire-registration'); ?></h1>
+<h1><?php esc_html_e('Menus', 'periscolaire-registration'); ?></h1>
 
 <?php
 $psc_notices = array(

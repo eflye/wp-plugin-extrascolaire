@@ -220,7 +220,7 @@ test('passage d\'année — admin prépare, corrige et confirme', async ({ page 
   const data = seed();
 
   await loginAsAdmin(page);
-  await page.goto(`${ADMIN_BASE}/admin.php?page=psc_school_years`);
+  await page.goto(`${ADMIN_BASE}/admin.php?page=psc_school_calendar_v2&tab=historique`);
 
   await expect(page.getByTestId(`year-row-${data.year_a_id}`)).toContainText('Active');
   await expect(page.getByTestId(`year-row-${data.year_b_id}`)).toContainText('préparation');
@@ -300,6 +300,14 @@ test('passage d\'année — admin prépare, corrige et confirme', async ({ page 
     ));`
   );
   expect(yearBStatut, "le passage d'année n'active jamais l'année cible automatiquement").toBe('preparation');
+});
+
+test('l\'ancienne URL "Années scolaires" redirige vers l\'onglet Historique', async ({ page }) => {
+  await loginAsAdmin(page);
+  await page.goto(`${ADMIN_BASE}/admin.php?page=psc_school_years`);
+  await expect(page).toHaveURL(/page=psc_school_calendar_v2.*tab=historique/);
+  await expect(page.getByRole('heading', { name: 'Année scolaire', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Historique' })).toHaveClass(/nav-tab-active/);
 });
 
 });

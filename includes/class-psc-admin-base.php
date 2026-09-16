@@ -27,9 +27,9 @@ abstract class Psc_Admin_Base {
         self::redirect($page, $msg);
     }
 
-    protected static function redirect($page, $msg) {
+    protected static function redirect($page, $msg, $extra = array()) {
         wp_safe_redirect(add_query_arg(
-            array('page' => $page, 'psc_msg' => $msg),
+            array_merge(array('page' => $page, 'psc_msg' => $msg), $extra),
             admin_url('admin.php')
         ));
         exit;

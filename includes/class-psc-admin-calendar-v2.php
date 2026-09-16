@@ -2,15 +2,26 @@
 if (!defined('ABSPATH')) exit;
 
 /**
- * "Calendrier scolaire en cours" (slug psc_school_calendar_v2, inchangé)
- * — vue visuelle mois/semaine (façon Google Calendar) du calendrier
- * scolaire, avec le statut de chaque jour ET de chacune des 3 prestations
- * du jour (garderie matin, cantine, garderie soir), fermables/réouvrables
- * individuellement en plus de la fermeture du jour entier déjà proposée
- * par la page "Années scolaires". Classe volontairement isolée (page,
- * assets, endpoints AJAX propres) pour limiter les risques de régression
- * sur Psc_Admin — seul l'enregistrement du menu vit dans Psc_Admin::menu()
- * pour pouvoir contrôler sa position dans le sous-menu Périscolaire.
+ * « Année scolaire » (slug psc_school_calendar_v2, conservé de l'ancien
+ * « Calendrier scolaire en cours » — réorganisation du menu, §5) : deux
+ * écrans historiques réunis sous une barre d'onglets WordPress native
+ * (nav-tab-wrapper) plutôt que deux entrées de menu distinctes.
+ *
+ *   - ?tab=calendrier (défaut) : vue visuelle mois/semaine (façon Google
+ *     Calendar) du calendrier scolaire, avec le statut de chaque jour ET
+ *     de chacune des 3 prestations du jour (garderie matin, cantine,
+ *     garderie soir), fermables/réouvrables individuellement en plus de
+ *     la fermeture du jour entier proposée par l'onglet Historique.
+ *   - ?tab=historique : l'ancien écran « Années scolaires », rendu par
+ *     Psc_Admin_School_Years::page_school_years() — création/activation/
+ *     archivage des années, import du calendrier officiel, passage
+ *     d'année, configuration du planning.
+ *
+ * Le contenu de chaque onglet est inchangé (cf. templates/admin-calendar-v2.php
+ * et templates/admin-annees.php, simplement privés de leur wrap/<h1> propre
+ * — fournis ici). Classe volontairement isolée (assets, endpoints AJAX
+ * propres) pour limiter les risques de régression sur Psc_Admin — seul
+ * l'enregistrement du menu vit dans Psc_Admin::menu().
  */
 class Psc_Admin_Calendar_V2 {
 
@@ -69,6 +80,25 @@ class Psc_Admin_Calendar_V2 {
     public static function page_calendar_v2() {
         if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
 
+        $tab = (isset($_GET['tab']) && sanitize_key(wp_unslash($_GET['tab'])) === 'historique') ? 'historique' : 'calendrier';
+
+        echo '<div class="wrap psc-admin">';
+        echo '<h1>' . esc_html__('Année scolaire', 'periscolaire-registration') . '</h1>';
+        psc_admin_tab_nav('psc_school_calendar_v2', array(
+            'calendrier' => __('Calendrier', 'periscolaire-registration'),
+            'historique' => __('Historique', 'periscolaire-registration'),
+        ), $tab);
+
+        if ($tab === 'historique') {
+            Psc_Admin_School_Years::page_school_years();
+        } else {
+            self::render_calendrier_tab();
+        }
+
+        echo '</div>';
+    }
+
+    private static function render_calendrier_tab() {
         $view = (isset($_GET['view']) && sanitize_key(wp_unslash($_GET['view'])) === 'week') ? 'week' : 'month';
 
         if ($view === 'week') {

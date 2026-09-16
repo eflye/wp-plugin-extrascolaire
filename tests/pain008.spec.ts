@@ -64,7 +64,7 @@ test.describe('Export bancaire pain.008', () => {
     await page.locator('#user_pass').fill('admin');
     await page.locator('#wp-submit').click();
     await page.goto(base + '/wp-admin/admin.php?page=psc_factures&mois=2099-11');
-    await expect(page.getByRole('heading', { name: 'Facturation', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Factures', exact: true })).toBeVisible();
     const block = page.getByRole('region', { name: 'Exports par mois' });
     await expect(block.getByRole('button', { name: 'Export prélèvements (SEPA, .csv)', exact: true })).toBeVisible();
     await expect(block.getByRole('button', { name: 'Export prélèvements (SEPA, .ods)', exact: true })).toBeVisible();
@@ -93,7 +93,7 @@ test.describe('Export bancaire pain.008', () => {
     await page.locator('#user_pass').fill('admin');
     await page.locator('#wp-submit').click();
     await page.goto(base + '/wp-admin/admin.php?page=psc_comptes_familles');
-    await expect(page.getByRole('heading', { name: 'État des comptes familles' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'État des comptes', exact: true })).toBeVisible();
     const row = page.getByRole('row').filter({ hasText: 'TestExport' });
     await expect(row).toContainText('1 payée(s), 1 non payée(s)');
     await expect(row.locator('td').last()).toHaveText('20,50 €');

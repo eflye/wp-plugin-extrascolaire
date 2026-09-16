@@ -1,12 +1,12 @@
 <?php if (!defined('ABSPATH')) exit; ?>
-<div class="wrap psc-admin">
-<h1><?php esc_html_e('Commande fournisseur', 'periscolaire-registration'); ?></h1>
-
 <?php
+/* Rendu comme onglet « Commande » de la page « Commande fournisseur »
+   (cf. Psc_Admin_Cantine::page_supplier_orders()) : ni wrap ni <h1> ici,
+   fournis par la page hôte. */
 $psc_notices = array(
     'sent'                    => array('updated',  __('Commande envoyée au fournisseur.', 'periscolaire-registration')),
     'psc_invalid_week'        => array('error',    __('Date de semaine invalide.', 'periscolaire-registration')),
-    'psc_no_supplier_email'   => array('error',    __("Aucune adresse e-mail fournisseur n'est configurée. Renseignez-la dans Périscolaire > Réglages.", 'periscolaire-registration')),
+    'psc_no_supplier_email'   => array('error',    __("Aucune adresse e-mail fournisseur n'est configurée. Renseignez-la dans l'onglet Réglages ci-dessus.", 'periscolaire-registration')),
     'psc_mail_failed'         => array('error',    __("L'envoi du mail a échoué. Vérifiez la configuration e-mail.", 'periscolaire-registration')),
     'error'                   => array('error',    __('Une erreur est survenue.', 'periscolaire-registration')),
     'cantine_invalid'         => array('error',    __('Date invalide.', 'periscolaire-registration')),
@@ -245,5 +245,4 @@ psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
 </tbody>
 </table>
 <?php endif; ?>
-</div>
 </div>

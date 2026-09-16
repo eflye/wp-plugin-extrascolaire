@@ -379,6 +379,15 @@ function psc_audit_action_registry() {
         'psc_save_settings' => array(
             'action' => 'reglage.modification', 'categorie' => 'configuration', 'objet' => 'reglage', 'niveau' => 'critique',
         ),
+        // Code distinct, même logique que psc_save_email_templates
+        // ci-dessous : l'adresse du fournisseur n'a pas la sensibilité
+        // d'un réglage bancaire/code d'accès (niveau normal, pas
+        // critique). Déplacé depuis Réglages vers Commande fournisseur >
+        // Réglages (réorganisation du menu, §6) — action dédiée créée à
+        // cette occasion, l'option elle-même ne change pas.
+        'psc_save_supplier_settings' => array(
+            'action' => 'reglage.fournisseur', 'categorie' => 'configuration', 'objet' => 'reglage', 'niveau' => 'normal',
+        ),
         // Code distinct de reglage.modification : une modification de
         // modèle d'e-mail n'a pas la sensibilité d'un changement de
         // réglages bancaires/codes d'accès, donc pas la même rétention

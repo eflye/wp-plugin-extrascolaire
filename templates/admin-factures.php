@@ -1,6 +1,6 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="wrap psc-admin">
-<h1><?php esc_html_e('Facturation', 'periscolaire-registration'); ?></h1>
+<h1><?php esc_html_e('Factures', 'periscolaire-registration'); ?></h1>
 
 <?php
 $psc_notices = array(

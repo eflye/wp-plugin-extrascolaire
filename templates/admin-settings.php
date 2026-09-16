@@ -144,19 +144,6 @@ psc_admin_notice_map(array(
 <p class="description">Le planning reste bloqué tant que les assurances des enfants actifs ne sont pas acceptées. Les documents déjà acceptés restent valables pour leur année scolaire. Un document refusé doit être remplacé.</p>
 </td></tr></table>
 
-<h2><?php esc_html_e('Fournisseur de repas', 'periscolaire-registration'); ?></h2>
-<table class="form-table">
-<tr>
-<th><label for="psc-supplier-mail"><?php esc_html_e('Adresse du fournisseur', 'periscolaire-registration'); ?></label></th>
-<td>
-  <input id="psc-supplier-mail" type="email" name="supplier_email" class="regular-text"
-         value="<?php echo esc_attr(get_option('psc_supplier_email', '')); ?>"
-         placeholder="cuisine@prestataire.example">
-  <p class="description"><?php esc_html_e('Destinataire de la commande hebdomadaire (Périscolaire', 'periscolaire-registration'); ?> &gt; <?php esc_html_e('Commande fournisseur).', 'periscolaire-registration'); ?></p>
-</td>
-</tr>
-</table>
-
 <h2><?php esc_html_e('Calendrier scolaire', 'periscolaire-registration'); ?></h2>
 <table class="form-table">
 <tr>

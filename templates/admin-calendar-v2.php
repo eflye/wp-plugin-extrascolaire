@@ -1,10 +1,13 @@
 <?php if (!defined('ABSPATH')) exit; ?>
-<div class="wrap psc-admin">
-<h1><?php esc_html_e('Calendrier scolaire en cours', 'periscolaire-registration'); ?></h1>
+<?php
+/* Rendu comme onglet « Calendrier » de la page fusionnée « Année scolaire »
+   (cf. Psc_Admin_Calendar_V2::page_calendar_v2()) : ni wrap ni <h1> ici,
+   fournis par la page hôte. */
+?>
 <p class="description">
     <?php esc_html_e('Vue visuelle du calendrier — pour fermer une', 'periscolaire-registration'); ?>
-    <strong><?php esc_html_e('plage de dates', 'periscolaire-registration'); ?></strong><?php esc_html_e(', faire une correction texte, ou recharger le calendrier officiel, utilisez', 'periscolaire-registration'); ?>
-    <a href="<?php echo esc_url(admin_url('admin.php?page=psc_school_years')); ?>"><?php esc_html_e('Années scolaires', 'periscolaire-registration'); ?></a>.
+    <strong><?php esc_html_e('plage de dates', 'periscolaire-registration'); ?></strong><?php esc_html_e(', faire une correction texte, ou recharger le calendrier officiel, utilisez l\'onglet', 'periscolaire-registration'); ?>
+    <a href="<?php echo esc_url(add_query_arg(array('page' => 'psc_school_calendar_v2', 'tab' => 'historique'), admin_url('admin.php'))); ?>"><?php esc_html_e('Historique', 'periscolaire-registration'); ?></a>.
 </p>
 
 <div class="psc-box" style="max-width:none;">
@@ -80,7 +83,6 @@
 <?php endforeach; ?>
 </div>
 
-</div>
 </div>
 
 <div id="psc-cal2-modal-backdrop" class="psc-cal2-modal-backdrop" hidden></div>

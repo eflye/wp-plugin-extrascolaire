@@ -13,6 +13,25 @@ class Psc_Admin_Cantine extends Psc_Admin_Base {
         add_action('admin_post_psc_send_supplier_order', array(__CLASS__, 'handle_send_supplier_order'));
         add_action('admin_post_psc_cancel_class_meals', array(__CLASS__, 'handle_cancel_class_meals'));
         add_action('admin_post_psc_dismiss_cancel_class_meals', array(__CLASS__, 'handle_dismiss_cancel_class_meals'));
+        add_action('admin_post_psc_save_supplier_settings', array(__CLASS__, 'handle_save_supplier_settings'));
+    }
+
+    /**
+     * Réglages fournisseur (réorganisation du menu, §6) : action dédiée,
+     * distincte de Psc_Admin_Config::handle_save_settings(). Ce champ
+     * vivait dans le même <form> géant que tous les autres réglages ; le
+     * déplacer vers l'onglet Réglages de cette page sans lui donner sa
+     * propre action aurait signifié soit soumettre à nouveau les ~30
+     * autres champs à l'aveugle (impossible depuis cette page), soit les
+     * voir réinitialisés à vide au premier enregistrement (isset($_POST[...])
+     * absent => valeur par défaut). Le nom de l'option et sa validation ne
+     * changent pas.
+     */
+    public static function handle_save_supplier_settings() {
+        self::guard('psc_save_supplier_settings');
+        $supplier_mail = isset($_POST['supplier_email']) ? sanitize_email(wp_unslash($_POST['supplier_email'])) : '';
+        update_option('psc_supplier_email', is_email($supplier_mail) ? $supplier_mail : '');
+        self::redirect('psc_supplier_orders', 'settings_saved', array('tab' => 'reglages'));
     }
 
     public static function handle_save_menu() {
@@ -168,9 +187,39 @@ class Psc_Admin_Cantine extends Psc_Admin_Base {
         self::redirect('psc_supplier_orders', 'cantine_dismissed');
     }
 
+    /**
+     * « Commande fournisseur » réunit désormais deux onglets (réorganisation
+     * du menu, §6) : ?tab=commande (défaut, écran inchangé de préparation /
+     * envoi) et ?tab=reglages (destinataire de la commande, déplacé
+     * depuis Réglages — cf. handle_save_supplier_settings()).
+     */
     public static function page_supplier_orders() {
         if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
 
+        $tab = (isset($_GET['tab']) && sanitize_key(wp_unslash($_GET['tab'])) === 'reglages') ? 'reglages' : 'commande';
+
+        echo '<div class="wrap psc-admin">';
+        echo '<h1>' . esc_html__('Commande fournisseur', 'periscolaire-registration') . '</h1>';
+        psc_admin_tab_nav('psc_supplier_orders', array(
+            'commande' => __('Commande', 'periscolaire-registration'),
+            'reglages' => __('Réglages', 'periscolaire-registration'),
+        ), $tab);
+
+        if ($tab === 'reglages') {
+            self::render_reglages_tab();
+        } else {
+            self::render_commande_tab();
+        }
+
+        echo '</div>';
+    }
+
+    private static function render_reglages_tab() {
+        $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
+        include PSC_PATH . 'templates/admin-supplier-settings.php';
+    }
+
+    private static function render_commande_tab() {
         $requested     = isset($_GET['semaine_debut']) ? sanitize_text_field(wp_unslash($_GET['semaine_debut'])) : '';
         $semaine_debut = psc_week_start($requested) ?: psc_next_open_week(gmdate('Y-m-d', strtotime('+7 days')));
 

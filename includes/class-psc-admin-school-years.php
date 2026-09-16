@@ -4,11 +4,25 @@ if (!defined('ABSPATH')) exit;
 /**
  * Années scolaires, calendrier officiel et passage d'année.
  *
- * Une seule page les réunit (psc_school_years) : créer une année, en
- * importer le calendrier et faire monter les enfants de classe sont trois
- * moments du même geste annuel.
+ * Rendu sous l'onglet Historique de la page fusionnée « Année scolaire »
+ * (slug psc_school_calendar_v2, cf. Psc_Admin_Calendar_V2::page_calendar_v2())
+ * : créer une année, en importer le calendrier et faire monter les enfants
+ * de classe sont trois moments du même geste annuel.
  */
 class Psc_Admin_School_Years extends Psc_Admin_Base {
+
+    /**
+     * Toutes les actions de ce domaine retombent sur l'onglet Historique
+     * de la page fusionnée « Année scolaire » (réorganisation du menu,
+     * §5) — jamais sur l'onglet Calendrier, qui n'a pas de contenu à
+     * afficher pour ces messages. Le slug survivant est celui de l'ancien
+     * « Calendrier scolaire en cours » (psc_school_calendar_v2) ; l'ancien
+     * slug psc_school_years n'est plus qu'une redirection de compatibilité
+     * (cf. Psc_Admin::redirect_legacy_urls()).
+     */
+    protected static function redirect_years($msg, $extra = array()) {
+        self::redirect('psc_school_calendar_v2', $msg, array_merge(array('tab' => 'historique'), $extra));
+    }
 
     public static function init() {
         add_action('admin_post_psc_add_school_year', array(__CLASS__, 'handle_add_school_year'));
@@ -34,34 +48,34 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
     public static function handle_add_school_year() {
         self::guard('psc_add_school_year');
         $result = Psc_School_Years::create(psc_post('label'), psc_post('date_debut'), psc_post('date_fin'));
-        if (is_wp_error($result)) self::redirect('psc_school_years', $result->get_error_code());
-        self::redirect('psc_school_years', 'created');
+        if (is_wp_error($result)) self::redirect_years($result->get_error_code());
+        self::redirect_years('created');
     }
 
     public static function handle_activate_school_year() {
         self::guard('psc_activate_school_year');
-        if (!Psc_School_Years::activate(psc_post_int('id'))) self::redirect('psc_school_years', 'invalid');
-        self::redirect('psc_school_years', 'activated');
+        if (!Psc_School_Years::activate(psc_post_int('id'))) self::redirect_years('invalid');
+        self::redirect_years('activated');
     }
 
     public static function handle_archive_school_year() {
         self::guard('psc_archive_school_year');
-        if (!Psc_School_Years::archive(psc_post_int('id'))) self::redirect('psc_school_years', 'invalid');
-        self::redirect('psc_school_years', 'archived');
+        if (!Psc_School_Years::archive(psc_post_int('id'))) self::redirect_years('invalid');
+        self::redirect_years('archived');
     }
 
     public static function handle_update_school_year() {
         self::guard('psc_update_school_year');
         $result = Psc_School_Years::update(psc_post_int('id'), psc_post('label'), psc_post('date_debut'), psc_post('date_fin'));
-        if (is_wp_error($result)) self::redirect('psc_school_years', $result->get_error_code());
-        self::redirect('psc_school_years', 'updated');
+        if (is_wp_error($result)) self::redirect_years($result->get_error_code());
+        self::redirect_years('updated');
     }
 
     public static function handle_delete_school_year() {
         self::guard('psc_delete_school_year');
         $result = Psc_School_Years::delete(psc_post_int('id'));
-        if (is_wp_error($result)) self::redirect('psc_school_years', $result->get_error_code());
-        self::redirect('psc_school_years', 'year_deleted');
+        if (is_wp_error($result)) self::redirect_years($result->get_error_code());
+        self::redirect_years('year_deleted');
     }
 
     /**
@@ -77,7 +91,7 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
         $from_year_id = psc_post_int('from_year_id');
         $to_year_id   = psc_post_int('to_year_id');
         if (!$from_year_id || !$to_year_id || $from_year_id === $to_year_id) {
-            self::redirect('psc_school_years', 'invalid');
+            self::redirect_years('invalid');
         }
 
         $plan = Psc_School_Years::build_promotion_plan($from_year_id, $to_year_id);
@@ -99,7 +113,7 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
         self::guard('psc_confirm_promotion');
 
         $staged = Psc_School_Years::staged_promotion();
-        if (!$staged) self::redirect('psc_school_years', 'invalid');
+        if (!$staged) self::redirect_years('invalid');
 
         $overrides = array();
         foreach ($staged['plan'] as $row) {
@@ -118,13 +132,13 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
             'resume' => sprintf(__('Passage d’année appliqué à %d enfant(s).', 'periscolaire-registration'), count($staged['plan'])),
         ));
 
-        self::redirect('psc_school_years', 'promoted');
+        self::redirect_years('promoted');
     }
 
     public static function handle_cancel_promotion() {
         self::guard('psc_cancel_promotion');
         Psc_School_Years::clear_staged_promotion();
-        self::redirect('psc_school_years', 'promotion_cancelled');
+        self::redirect_years('promotion_cancelled');
     }
 
     /* ------------------------------------------------------------------
@@ -142,7 +156,7 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
 
         Psc_School_Year::ensure_default();
         $year = Psc_School_Year::active();
-        if (!$year) self::redirect('psc_school_years', 'year_invalid');
+        if (!$year) self::redirect_years('year_invalid');
 
         $start = isset($_POST['date_start']) ? sanitize_text_field(wp_unslash($_POST['date_start'])) : '';
         $end   = isset($_POST['date_end']) ? sanitize_text_field(wp_unslash($_POST['date_end'])) : '';
@@ -165,7 +179,7 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
 
         $result = Psc_School_Year::save($year->year_key, $start, $end, wp_json_encode($ranges), $lock);
         if (is_wp_error($result)) {
-            self::redirect('psc_school_years', 'year_config_invalid');
+            self::redirect_years('year_config_invalid');
         }
 
         // Les vacances peuvent couvrir des jours déclarés : la résolution
@@ -173,7 +187,7 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
         Psc_School_Year::flush_cache();
         Psc_Planning::flush_cache();
 
-        self::redirect('psc_school_years', 'year_config_saved');
+        self::redirect_years('year_config_saved');
     }
 
     /** Ajoute un jour férié (ou pont) à exclure pour l'année courante. */
@@ -182,15 +196,15 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
 
         Psc_School_Year::ensure_default();
         $year = Psc_School_Year::active();
-        if (!$year) self::redirect('psc_school_years', 'year_invalid');
+        if (!$year) self::redirect_years('year_invalid');
 
         $date = isset($_POST['jour_date']) ? sanitize_text_field(wp_unslash($_POST['jour_date'])) : '';
         $label = isset($_POST['label']) ? sanitize_text_field(wp_unslash($_POST['label'])) : '';
-        if (!psc_valid_date($date)) self::redirect('psc_school_years', 'year_config_invalid');
+        if (!psc_valid_date($date)) self::redirect_years('year_config_invalid');
 
         Psc_School_Year::add_holiday($year->year_key, $date, $label);
         Psc_Planning::flush_cache();
-        self::redirect('psc_school_years', 'year_config_saved');
+        self::redirect_years('year_config_saved');
     }
 
     /** Retire un jour férié de l'année courante (le jour redevient scolaire). */
@@ -198,12 +212,12 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
         self::guard('psc_remove_school_holiday');
 
         $year = Psc_School_Year::active();
-        if (!$year) self::redirect('psc_school_years', 'year_invalid');
+        if (!$year) self::redirect_years('year_invalid');
 
         $date = isset($_POST['jour_date']) ? sanitize_text_field(wp_unslash($_POST['jour_date'])) : '';
         Psc_School_Year::remove_holiday($year->year_key, $date);
         Psc_Planning::flush_cache();
-        self::redirect('psc_school_years', 'year_config_saved');
+        self::redirect_years('year_config_saved');
     }
 
     public static function page_school_years() {        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
@@ -267,13 +281,9 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
 
         $result = Psc_School_Calendar::import();
         if (is_wp_error($result)) {
-            self::redirect('psc_school_years', 'import_failed');
+            self::redirect_years('import_failed');
         }
-        wp_safe_redirect(add_query_arg(
-            array('page' => 'psc_school_years', 'psc_msg' => 'imported', 'n' => (int) $result),
-            admin_url('admin.php')
-        ));
-        exit;
+        self::redirect_years('imported', array('n' => (int) $result));
     }
 
     /**
@@ -284,29 +294,25 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
         self::guard('psc_upload_school_calendar');
 
         if (empty($_FILES['ics_file']) || !isset($_FILES['ics_file']['error']) || $_FILES['ics_file']['error'] !== UPLOAD_ERR_OK) {
-            self::redirect('psc_school_years', 'upload_failed');
+            self::redirect_years('upload_failed');
         }
 
         $file     = $_FILES['ics_file'];
         $filetype = wp_check_filetype($file['name'], array('ics' => 'text/calendar'));
         if ($filetype['ext'] !== 'ics') {
-            self::redirect('psc_school_years', 'upload_invalid_type');
+            self::redirect_years('upload_invalid_type');
         }
         if ($file['size'] > 2 * MB_IN_BYTES) {
-            self::redirect('psc_school_years', 'upload_too_large');
+            self::redirect_years('upload_too_large');
         }
 
         $body = file_get_contents($file['tmp_name']);
         $result = Psc_School_Calendar::import_from_upload($body);
         if (is_wp_error($result)) {
-            self::redirect('psc_school_years', 'upload_failed');
+            self::redirect_years('upload_failed');
         }
 
-        wp_safe_redirect(add_query_arg(
-            array('page' => 'psc_school_years', 'psc_msg' => 'uploaded', 'n' => (int) $result),
-            admin_url('admin.php')
-        ));
-        exit;
+        self::redirect_years('uploaded', array('n' => (int) $result));
     }
 
     /**
@@ -327,29 +333,29 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
         $confirm    = psc_post_int('confirm');
 
         if (!$date_debut || !$date_fin || strtotime($date_fin) < strtotime($date_debut)) {
-            self::redirect('psc_school_years', 'invalid_date');
+            self::redirect_years('invalid_date');
         }
         $span = (strtotime($date_fin) - strtotime($date_debut)) / DAY_IN_SECONDS;
         if ($span > psc_max_school_days()) {
-            self::redirect('psc_school_years', 'invalid_date');
+            self::redirect_years('invalid_date');
         }
 
         $affected = Psc_School_Calendar::affected_families_range($date_debut, $date_fin);
 
         if ($affected['registrations'] > 0 && !$confirm) {
             set_transient(self::pending_close_key(), array('date_debut' => $date_debut, 'date_fin' => $date_fin, 'label' => $label), 10 * MINUTE_IN_SECONDS);
-            self::redirect('psc_school_years', 'confirm_needed');
+            self::redirect_years('confirm_needed');
         }
 
         delete_transient(self::pending_close_key());
         Psc_School_Calendar::close_range($date_debut, $date_fin, $label);
-        self::redirect('psc_school_years', 'closed');
+        self::redirect_years('closed');
     }
 
     public static function handle_cancel_school_day_close() {
         self::guard('psc_cancel_school_day_close');
         delete_transient(self::pending_close_key());
-        self::redirect('psc_school_years', 'cancelled');
+        self::redirect_years('cancelled');
     }
 
     public static function handle_open_school_day() {
@@ -357,11 +363,11 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
 
         $date = psc_valid_date(psc_post('date'));
         if (!$date) {
-            self::redirect('psc_school_years', 'invalid_date');
+            self::redirect_years('invalid_date');
         }
 
         Psc_School_Calendar::open_day($date);
-        self::redirect('psc_school_years', 'opened');
+        self::redirect_years('opened');
     }
 
     /**

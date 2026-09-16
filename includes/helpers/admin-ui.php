@@ -50,3 +50,26 @@ function psc_admin_notice_map($map, $msg, $testid = '') {
     list($type, $text) = $map[$msg];
     psc_admin_notice($text, $type, true, $testid);
 }
+
+/**
+ * Barre d'onglets WordPress native (nav-tab-wrapper / nav-tab /
+ * nav-tab-active), pour une page qui réunit plusieurs écrans historiques
+ * sous un même slug + paramètre ?tab= (cf. réorganisation du menu :
+ * Année scolaire, Commande fournisseur — §5/§6).
+ *
+ * @param string $page    Slug de la page admin (add_query_arg 'page').
+ * @param array  $tabs    Carte tab_key => libellé, dans l'ordre d'affichage.
+ * @param string $current Onglet actif.
+ */
+function psc_admin_tab_nav($page, $tabs, $current) {
+    echo '<h2 class="nav-tab-wrapper">';
+    foreach ($tabs as $key => $label) {
+        printf(
+            '<a href="%1$s" class="nav-tab%2$s">%3$s</a>',
+            esc_url(add_query_arg(array('page' => $page, 'tab' => $key), admin_url('admin.php'))),
+            $key === $current ? ' nav-tab-active' : '',
+            esc_html($label)
+        );
+    }
+    echo '</h2>';
+}

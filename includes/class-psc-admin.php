@@ -11,12 +11,46 @@ if (!defined('ABSPATH')) exit;
 class Psc_Admin extends Psc_Admin_Base {
 
     /**
+     * Slugs des 6 intitulés de section (§3) — non cliquables, jamais
+     * marqués courants (cf. le filtre submenu_file dans menu()) — vers la
+     * première entrée réelle de chacune, seule source de vérité pour
+     * section_redirect() ET pour l'interception précoce
+     * redirect_section_slugs() (cf. son docblock : la redirection posée
+     * comme simple $callback de la page ne suffit pas).
+     */
+    const SECTION_TARGETS = array(
+        'psc-section-a-traiter'     => 'psc_dashboard',
+        'psc-section-cantine'       => 'psc_menus',
+        'psc-section-familles'      => 'psc_parents',
+        'psc-section-facturation'   => 'psc_factures',
+        'psc-section-communication' => 'psc_messages',
+        'psc-section-configuration' => 'psc_school_calendar_v2',
+    );
+
+    /**
      * Enregistre les écrans communs, puis délègue à chaque domaine le soin
      * de déclarer ses propres routes. Le point d'entrée du plugin n'a donc
      * pas à connaître le découpage interne de l'administration.
      */
     public static function init() {
         add_action('admin_menu', array(__CLASS__, 'menu'));
+        // wp-admin/menu.php vérifie user_can_access_admin_page() et meurt
+        // en 403 pour un slug qui n'existe plus DU TOUT dans le menu — et
+        // ce, avant même que admin_init ne se déclenche (require
+        // wp-admin/menu.php précède do_action('admin_init') dans
+        // wp-admin/admin.php). Un ancien slug totalement supprimé
+        // (psc_school_years) doit donc être intercepté ICI, pendant
+        // admin_menu lui-même — jamais sur admin_init, trop tard pour ce
+        // cas précis (cf. redirect_legacy_urls()).
+        add_action('admin_menu', array(__CLASS__, 'redirect_legacy_urls'), 20);
+        // À l'inverse, les intitulés de section restent des pages
+        // valablement enregistrées : leur rediriger depuis leur propre
+        // $callback (section_redirect()) échoue avec "headers already
+        // sent", ce callback s'exécutant après que wp-admin a déjà
+        // commencé à écrire la page (en-tête, menu). admin_init reste ici
+        // le bon moment — avant tout octet de sortie pour une page qui,
+        // elle, existe bel et bien (cf. redirect_section_slugs()).
+        add_action('admin_init', array(__CLASS__, 'redirect_section_slugs'));
         add_action('admin_enqueue_scripts', array(__CLASS__, 'assets'));
         add_action('admin_notices', array(__CLASS__, 'notice_private_dir_exposed'));
         add_action('admin_notices', array(__CLASS__, 'notice_db_constraints'));
@@ -37,62 +71,68 @@ class Psc_Admin extends Psc_Admin_Base {
     }
 
     /**
-     * Regroupement du menu (du plus quotidien au plus occasionnel) :
-     * Tableau de bord, Messages, Cantine, Demandes & suivi, Familles,
-     * Facturation et Configuration. Le calendrier et les années scolaires
-     * sont regroupés en bas, juste avant Réglages, car utilisés plus
-     * ponctuellement. Le slug du menu de premier niveau est
-     * 'psc_dashboard' (avant : 'psc_inscriptions', qui reste une page
-     * valide — seule sa place dans l'arborescence change, aucun lien
-     * existant vers admin.php?page=psc_inscriptions n'est cassé).
-     * "Inscriptions" est renommé "Présences déclarées" dans le menu : le
-     * libellé prêtait à confusion avec "Demandes d'inscription" juste à
-     * côté, alors que ce sont deux écrans très différents (vue calendrier
-     * des présences déjà déclarées, vs file de modération des nouvelles
-     * familles). Les séparateurs visuels entre blocs sont en CSS
-     * (assets/css/admin.css), WordPress ne proposant pas de séparateur
-     * natif dans un sous-menu de plugin.
+     * Réorganisation du menu (2026) : les 17 entrées à plat d'origine sont
+     * regroupées en 6 sections, dans l'ordre où une mairie les consulte au
+     * quotidien — ce qui attend une action humaine d'abord (À traiter,
+     * seul endroit à porter des compteurs), ce qui se consulte
+     * ponctuellement en dernier (Configuration). Le slug du menu de
+     * premier niveau reste 'psc_dashboard' ; tous les slugs, capabilities
+     * et callbacks des entrées réelles sont inchangés — seuls l'ordre, le
+     * regroupement et (pour 6 d'entre elles, §4) l'intitulé affiché
+     * changent. Aucun lien existant vers une de ces URL n'est cassé.
+     *
+     * Les intitulés de section (À TRAITER, CANTINE & GARDERIE...) sont des
+     * entrées de sous-menu à part entière — WordPress n'a pas de troisième
+     * niveau — rendues non cliquables par CSS (cf. .psc-menu-section dans
+     * assets/css/admin.css) et dont le callback se contente de rediriger
+     * vers la première entrée réelle de la section (sécurité : un accès
+     * direct à l'URL ne tombe jamais sur une page blanche).
      */
     public static function menu() {
         $cap = psc_manage_cap();
-        add_menu_page(__('Périscolaire', 'periscolaire-registration'), __('Périscolaire', 'periscolaire-registration'), $cap, 'psc_dashboard', array(__CLASS__, 'page_dashboard'), 'dashicons-groups', 58);
+
+        $pending     = self::cached_count('psc_menu_count_requests', array('Psc_Requests', 'pending_count'));
+        $conv_unread = self::cached_count('psc_menu_count_conversations', array('Psc_Conversations', 'unread_count_for_mairie'));
+
+        add_menu_page(
+            __('Périscolaire', 'periscolaire-registration'),
+            __('Périscolaire', 'periscolaire-registration') . self::count_badge($pending + $conv_unread),
+            $cap, 'psc_dashboard', array(__CLASS__, 'page_dashboard'), 'dashicons-groups', 58
+        );
+
+        /* ---------------- À TRAITER ---------------- */
+        // Capability la plus permissive de la section : $cap (Tableau de
+        // bord, Demandes) est un sur-ensemble de psc_manage_messages
+        // (Échanges familles) sous la répartition de rôles par défaut
+        // (Psc_Installer::sync_roles()) — un utilisateur avec
+        // psc_manage_messages mais sans $cap ne verrait de toute façon
+        // aucune des deux autres entrées de la section.
+        //
+        // "Tableau de bord" (slug psc_dashboard, identique au parent) doit
+        // impérativement être le TOUT PREMIER add_submenu_page() enregistré
+        // pour ce parent, section comprise : WordPress (add_submenu_page(),
+        // wp-admin/includes/plugin.php) injecte sinon automatiquement un
+        // lien dupliqué vers le sommet du menu comme premier élément du
+        // sous-menu, dès lors que le tout premier appel enregistré porte un
+        // slug différent de celui du parent. La section "À traiter" doit
+        // malgré tout apparaître AU-DESSUS de "Tableau de bord" à l'écran :
+        // on l'insère donc explicitement en position 0 juste après.
         add_submenu_page('psc_dashboard', __('Tableau de bord', 'periscolaire-registration'), __('Tableau de bord', 'periscolaire-registration'), $cap, 'psc_dashboard', array(__CLASS__, 'page_dashboard'));
+        add_submenu_page('psc_dashboard', __('À traiter', 'periscolaire-registration'), '<span class="psc-menu-section">' . esc_html__('À traiter', 'periscolaire-registration') . '</span>', $cap, 'psc-section-a-traiter', self::section_redirect('psc_dashboard'), 0);
+        add_submenu_page('psc_dashboard', __('Demandes d\'inscription', 'periscolaire-registration'), __('Demandes d\'inscription', 'periscolaire-registration') . self::count_badge($pending), $cap, 'psc_requests', array('Psc_Admin_Requests', 'page_requests'));
+        add_submenu_page('psc_dashboard', __('Échanges familles', 'periscolaire-registration'), __('Échanges familles', 'periscolaire-registration') . self::count_badge($conv_unread), 'psc_manage_messages', 'psc_conversations', array('Psc_Conversations_Admin', 'page_list'));
 
-        // Communication descendante : accès direct juste après le tableau de
-        // bord. Les écrans d'édition et de suivi, sans libellé de menu, restent
-        // enregistrés par Psc_Messages_Admin.
-        add_submenu_page('psc_dashboard', __('Messages aux familles', 'periscolaire-registration'), __('Messages', 'periscolaire-registration'), 'psc_manage_messages', 'psc_messages', array('Psc_Messages_Admin', 'page_list'));
-
-        // Conversations privées famille ↔ mairie : juste après les diffusions
-        // descendantes, dont c'est le complément. Même pattern de badge que
-        // « Demandes » ci-dessous, avec un texte accessible en plus (la
-        // bulle seule n'est pas lue par un lecteur d'écran).
-        $conv_unread = Psc_Conversations::unread_count_for_mairie();
-        $conv_label = $conv_unread
-            ? sprintf(
-                '%s <span class="awaiting-mod"><span class="pending-count" aria-hidden="true">%d</span><span class="screen-reader-text">%s</span></span>',
-                __('Échanges familles', 'periscolaire-registration'),
-                $conv_unread,
-                sprintf(_n('%d non lu', '%d non lus', $conv_unread, 'periscolaire-registration'), $conv_unread)
-            )
-            : __('Échanges familles', 'periscolaire-registration');
-        add_submenu_page('psc_dashboard', __('Échanges familles', 'periscolaire-registration'), $conv_label, 'psc_manage_messages', 'psc_conversations', array('Psc_Conversations_Admin', 'page_list'));
-
-        // Cantine
-        add_submenu_page('psc_dashboard', __('Menus cantine', 'periscolaire-registration'), __('Menus cantine', 'periscolaire-registration'), $cap, 'psc_menus', array('Psc_Admin_Cantine', 'page_menus'));
+        /* ---------------- CANTINE & GARDERIE ---------------- */
+        add_submenu_page('psc_dashboard', __('Cantine & garderie', 'periscolaire-registration'), '<span class="psc-menu-section">' . esc_html__('Cantine & garderie', 'periscolaire-registration') . '</span>', $cap, 'psc-section-cantine', self::section_redirect('psc_menus'));
+        add_submenu_page('psc_dashboard', __('Menus', 'periscolaire-registration'), __('Menus', 'periscolaire-registration'), $cap, 'psc_menus', array('Psc_Admin_Cantine', 'page_menus'));
         add_submenu_page('psc_dashboard', __('Commande fournisseur', 'periscolaire-registration'), __('Commande fournisseur', 'periscolaire-registration'), $cap, 'psc_supplier_orders', array('Psc_Admin_Cantine', 'page_supplier_orders'));
-
-        // Demandes & suivi
-        $pending = Psc_Requests::pending_count();
-        $req_label = $pending
-            ? sprintf(__('Demandes <span class="awaiting-mod"><span class="pending-count">%d</span></span>', 'periscolaire-registration'), $pending)
-            : __('Demandes', 'periscolaire-registration');
-        add_submenu_page('psc_dashboard', __('Demandes d\'inscription', 'periscolaire-registration'), $req_label, $cap, 'psc_requests', array('Psc_Admin_Requests', 'page_requests'));
         add_submenu_page('psc_dashboard', __('Présences déclarées', 'periscolaire-registration'), __('Présences déclarées', 'periscolaire-registration'), $cap, 'psc_inscriptions', array('Psc_Admin_Inscriptions', 'page_inscriptions'));
 
-        // Familles
+        /* ---------------- FAMILLES ---------------- */
+        add_submenu_page('psc_dashboard', __('Familles', 'periscolaire-registration'), '<span class="psc-menu-section">' . esc_html__('Familles', 'periscolaire-registration') . '</span>', $cap, 'psc-section-familles', self::section_redirect('psc_parents'));
         add_submenu_page('psc_dashboard', __('Familles', 'periscolaire-registration'), __('Familles', 'periscolaire-registration'), $cap, 'psc_parents', array('Psc_Admin_Familles', 'page_parents'));
         add_submenu_page('psc_dashboard', __('Enfants', 'periscolaire-registration'), __('Enfants', 'periscolaire-registration'), $cap, 'psc_children', array('Psc_Admin_Familles', 'page_children'));
+        add_submenu_page('psc_dashboard', 'Assurances scolaires', 'Assurances scolaires', $cap, 'psc_assurances', array('Psc_Admin_Assurances', 'page'));
         // Fiche "Personnes autorisées" d'un enfant — accessible uniquement
         // depuis la ligne de l'enfant dans Enfants, jamais dans le menu.
         add_submenu_page('psc_dashboard', __('Personnes autorisées', 'periscolaire-registration'), null, $cap, 'psc_pickup_persons', array('Psc_Admin_Familles', 'page_pickup_persons'));
@@ -100,33 +140,128 @@ class Psc_Admin extends Psc_Admin_Base {
         // fiches famille, jamais comme destination autonome du menu.
         add_submenu_page('psc_dashboard', __('Consulter un espace famille', 'periscolaire-registration'), null, 'psc_impersonate_family', 'psc_impersonate', array('Psc_Admin_Familles', 'page_impersonate'));
 
-        add_submenu_page('psc_dashboard', 'Assurances scolaires', 'Assurances scolaires', $cap, 'psc_assurances', array('Psc_Admin_Assurances', 'page'));
+        /* ---------------- FACTURATION ---------------- */
+        add_submenu_page('psc_dashboard', __('Facturation', 'periscolaire-registration'), '<span class="psc-menu-section">' . esc_html__('Facturation', 'periscolaire-registration') . '</span>', $cap, 'psc-section-facturation', self::section_redirect('psc_factures'));
+        add_submenu_page('psc_dashboard', __('Factures', 'periscolaire-registration'), __('Factures', 'periscolaire-registration'), $cap, 'psc_factures', array('Psc_Admin_Invoices', 'page_factures'));
+        add_submenu_page('psc_dashboard', __('État des comptes', 'periscolaire-registration'), __('État des comptes', 'periscolaire-registration'), $cap, 'psc_comptes_familles', array('Psc_Admin_Invoices', 'page_comptes_familles'));
 
-        // Facturation
-        add_submenu_page('psc_dashboard', __('Facturation', 'periscolaire-registration'), __('Facturation', 'periscolaire-registration'), $cap, 'psc_factures', array('Psc_Admin_Invoices', 'page_factures'));
+        /* ---------------- COMMUNICATION ---------------- */
+        // Une seule entrée réelle aujourd'hui : la capability de la section
+        // est directement celle de cette entrée (psc_manage_messages).
+        add_submenu_page('psc_dashboard', __('Communication', 'periscolaire-registration'), '<span class="psc-menu-section">' . esc_html__('Communication', 'periscolaire-registration') . '</span>', 'psc_manage_messages', 'psc-section-communication', self::section_redirect('psc_messages'));
+        // Communication descendante. Les écrans d'édition et de suivi, sans
+        // libellé de menu, restent enregistrés par Psc_Messages_Admin.
+        add_submenu_page('psc_dashboard', __('Messages aux familles', 'periscolaire-registration'), __('Messages aux familles', 'periscolaire-registration'), 'psc_manage_messages', 'psc_messages', array('Psc_Messages_Admin', 'page_list'));
 
-        add_submenu_page('psc_dashboard', __('État des comptes familles', 'periscolaire-registration'), __('État des comptes familles', 'periscolaire-registration'), $cap, 'psc_comptes_familles', array('Psc_Admin_Invoices', 'page_comptes_familles'));
-
-        // Configuration
-        add_submenu_page('psc_dashboard', __('Modèles e-mails', 'periscolaire-registration'), __('Modèles e-mails', 'periscolaire-registration'), $cap, 'psc_email_templates', array('Psc_Admin_Config', 'page_email_templates'));
-
-        // Outils scolaires ponctuels : le calendrier reste immédiatement lié
-        // à la gestion des années, dans l'ordre demandé par le back-office.
-        add_submenu_page('psc_dashboard', __('Calendrier scolaire en cours', 'periscolaire-registration'), __('Calendrier scolaire en cours', 'periscolaire-registration'), $cap, 'psc_school_calendar_v2', array('Psc_Admin_Calendar_V2', 'page_calendar_v2'));
-        add_submenu_page('psc_dashboard', __('Années scolaires', 'periscolaire-registration'), __('Années scolaires', 'periscolaire-registration'), $cap, 'psc_school_years', array('Psc_Admin_School_Years', 'page_school_years'));
+        /* ---------------- CONFIGURATION ---------------- */
+        // Capability la plus permissive : $cap, sur-ensemble de
+        // psc_view_audit (Journal d'audit) sous la répartition par défaut
+        // (administrateur a toujours $cap ET psc_view_audit).
+        add_submenu_page('psc_dashboard', __('Configuration', 'periscolaire-registration'), '<span class="psc-menu-section">' . esc_html__('Configuration', 'periscolaire-registration') . '</span>', $cap, 'psc-section-configuration', self::section_redirect('psc_school_calendar_v2'));
+        // « Année scolaire » réunit désormais Calendrier scolaire en cours
+        // et Années scolaires sous une barre d'onglets (§5) — slug
+        // conservé de l'ancien "Calendrier scolaire en cours".
+        add_submenu_page('psc_dashboard', __('Année scolaire', 'periscolaire-registration'), __('Année scolaire', 'periscolaire-registration'), $cap, 'psc_school_calendar_v2', array('Psc_Admin_Calendar_V2', 'page_calendar_v2'));
         // Écran intermédiaire du passage d'année (récapitulatif + confirmation) :
         // pas un lien de menu à part entière, seulement atteint depuis
-        // "Années scolaires" — menu_title à null pour ne pas apparaître dans
+        // "Année scolaire" — menu_title à null pour ne pas apparaître dans
         // la barre latérale.
         add_submenu_page('psc_dashboard', __('Passage d\'année', 'periscolaire-registration'), null, $cap, 'psc_passage_annee', array('Psc_Admin_School_Years', 'page_passage_annee'));
-
+        add_submenu_page('psc_dashboard', __('Modèles d\'e-mails', 'periscolaire-registration'), __('Modèles d\'e-mails', 'periscolaire-registration'), $cap, 'psc_email_templates', array('Psc_Admin_Config', 'page_email_templates'));
+        add_submenu_page('psc_dashboard', __('Réglages', 'periscolaire-registration'), __('Réglages', 'periscolaire-registration'), $cap, 'psc_settings', array('Psc_Admin_Config', 'page_settings'));
         // Journal d'audit : capacité dédiée, plus restreinte que $cap (cf.
         // Psc_Installer::sync_roles()) — le journal agrège l'activité de
         // toutes les familles et de tous les agents, pas seulement le
         // périmètre courant d'un éditeur.
         add_submenu_page('psc_dashboard', __('Journal d\'audit', 'periscolaire-registration'), __('Journal d\'audit', 'periscolaire-registration'), 'psc_view_audit', 'psc_audit', array('Psc_Admin_Audit', 'page_list'));
 
-        add_submenu_page('psc_dashboard', __('Réglages', 'periscolaire-registration'), __('Réglages', 'periscolaire-registration'), $cap, 'psc_settings', array('Psc_Admin_Config', 'page_settings'));
+        // Les intitulés de section redirigent avant tout rendu (cf.
+        // section_redirect()) : dans l'usage normal, WordPress ne les
+        // marque donc jamais "courants" (aucune page ne reste affichée le
+        // temps qu'ils soient sélectionnés). Filet de sécurité explicite
+        // demandé par la réorganisation malgré tout, au cas où un contexte
+        // d'affichage inhabituel (aperçu, cache) contournerait la
+        // redirection.
+        add_filter('submenu_file', array(__CLASS__, 'never_highlight_sections'));
+    }
+
+    public static function never_highlight_sections($submenu_file) {
+        return isset(self::SECTION_TARGETS[$submenu_file]) ? '' : $submenu_file;
+    }
+
+    /**
+     * Interception précoce (admin_init, avant tout octet de sortie) des
+     * intitulés de section : leur propre $callback (section_redirect())
+     * arrive trop tard dans le cycle de wp-admin pour pouvoir rediriger
+     * (l'en-tête d'administration est déjà envoyé) — cf. le commentaire
+     * dans init(). C'est donc ici, et non dans le callback de la page, que
+     * la redirection a réellement lieu en pratique.
+     */
+    public static function redirect_section_slugs() {
+        if (!isset($_GET['page'])) return;
+        $page = sanitize_key(wp_unslash($_GET['page']));
+        if (!isset(self::SECTION_TARGETS[$page])) return;
+
+        wp_safe_redirect(admin_url('admin.php?page=' . self::SECTION_TARGETS[$page]));
+        exit;
+    }
+
+    /**
+     * Callback d'un intitulé de section : redirige immédiatement vers la
+     * première entrée réelle de la section, pour qu'un accès direct à
+     * l'URL (favori, lien copié) n'affiche jamais une page blanche.
+     */
+    protected static function section_redirect($target_page) {
+        return function () use ($target_page) {
+            wp_safe_redirect(admin_url('admin.php?page=' . $target_page));
+            exit;
+        };
+    }
+
+    /**
+     * Compteur mis en cache 60 secondes (réorganisation du menu, §7) :
+     * Psc_Requests::pending_count() et Psc_Conversations::unread_count_for_mairie()
+     * sont chacun une requête SQL triviale (COUNT() simple), la mise en
+     * cache est donc un confort plutôt qu'une nécessité de performance —
+     * elle évite surtout de recalculer à chaque affichage de sous-menu
+     * (rendu sur CHAQUE écran d'administration, pas seulement les écrans
+     * du plugin).
+     */
+    protected static function cached_count($transient_key, $callback) {
+        $count = get_transient($transient_key);
+        if ($count === false) {
+            $count = (int) call_user_func($callback);
+            set_transient($transient_key, $count, 60);
+        }
+        return (int) $count;
+    }
+
+    /**
+     * Bulle de comptage WordPress standard, ajoutée à un $menu_title —
+     * jamais de style maison. Rien n'est affiché si $count est à zéro.
+     */
+    protected static function count_badge($count) {
+        if ($count <= 0) return '';
+        return sprintf(' <span class="awaiting-mod"><span class="pending-count">%d</span></span>', $count);
+    }
+
+    /**
+     * Compatibilité des anciennes URL (réorganisation du menu, §8) :
+     * "Années scolaires" n'est plus une page autonome, fusionnée dans
+     * "Année scolaire" (cf. §5). Aucun ancien slug de réglages fournisseur
+     * n'a jamais existé en tant que page à part entière — ces réglages
+     * vivaient comme simple section de la page Réglages (psc_settings),
+     * jamais derrière leur propre ?page=, donc rien à rediriger pour eux.
+     */
+    public static function redirect_legacy_urls() {
+        if (!isset($_GET['page'])) return;
+        if (sanitize_key(wp_unslash($_GET['page'])) !== 'psc_school_years') return;
+
+        wp_safe_redirect(add_query_arg(
+            array('page' => 'psc_school_calendar_v2', 'tab' => 'historique'),
+            admin_url('admin.php')
+        ), 302);
+        exit;
     }
 
     public static function assets($hook) {
@@ -425,7 +560,7 @@ class Psc_Admin extends Psc_Admin_Base {
             $todos[] = array(
                 'label' => __('Aucune année scolaire configurée — définissez dates, vacances et fériés pour ouvrir le planning', 'periscolaire-registration'),
                 'done'  => false,
-                'url'   => admin_url('admin.php?page=psc_school_years'),
+                'url'   => admin_url('admin.php?page=psc_school_calendar_v2&tab=historique'),
             );
         } else {
             $days_left = (int) floor((strtotime($annee->date_end) - strtotime(current_time('Y-m-d'))) / DAY_IN_SECONDS);
@@ -435,7 +570,7 @@ class Psc_Admin extends Psc_Admin_Base {
                         ? sprintf(__('L\'année scolaire se termine dans %d jour(s) — préparez la suivante (dates, vacances, fériés)', 'periscolaire-registration'), $days_left)
                         : __('L\'année scolaire est terminée — configurez la suivante', 'periscolaire-registration'),
                     'done' => false,
-                    'url'  => admin_url('admin.php?page=psc_school_years'),
+                    'url'  => admin_url('admin.php?page=psc_school_calendar_v2&tab=historique'),
                 );
             }
         }

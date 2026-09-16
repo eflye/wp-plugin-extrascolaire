@@ -1,8 +1,9 @@
 <?php if (!defined('ABSPATH')) exit;
 /**
- * Bloc "Calendrier officiel (zone C)" — inclus depuis "Années scolaires"
- * (seule page à proposer le chargement/rechargement du calendrier du
- * ministère, dont on déduit aussi des années scolaires candidates).
+ * Bloc "Calendrier officiel (zone C)" — inclus depuis l'onglet Historique
+ * de "Année scolaire" (seul endroit à proposer le chargement/rechargement
+ * du calendrier du ministère, dont on déduit aussi des années scolaires
+ * candidates).
  * Variable attendue, déjà disponible dans la portée de la page incluante :
  * - $imported_at : date du dernier import (option 'psc_school_calendar_imported_at')
  */

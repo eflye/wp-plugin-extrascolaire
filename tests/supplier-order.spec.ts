@@ -120,7 +120,7 @@ test.describe.serial('Commande fournisseur (backoffice)', () => {
     await loginAsAdmin(page);
 
     /* ---------------- 1. Réglages : e-mail fournisseur configurable ---------------- */
-    await page.goto(`${ADMIN_BASE}/admin.php?page=psc_settings`);
+    await page.goto(`${ADMIN_BASE}/admin.php?page=psc_supplier_orders&tab=reglages`);
     await page.locator('#psc-supplier-mail').fill(SUPPLIER_EMAIL);
     await page.getByRole('button', { name: 'Enregistrer' }).click();
     await expect(page.locator('.notice-success')).toBeVisible();
@@ -235,7 +235,7 @@ test.describe.serial('Commande fournisseur (backoffice)', () => {
     await expect(page.locator('.notice-success, .updated').first()).toBeVisible();
 
     /* ---------------- 2. Envoyer : le pied interpole les variables ---------------- */
-    await page.goto(`${ADMIN_BASE}/admin.php?page=psc_settings`);
+    await page.goto(`${ADMIN_BASE}/admin.php?page=psc_supplier_orders&tab=reglages`);
     await page.locator('#psc-supplier-mail').fill(SUPPLIER_EMAIL);
     await page.getByRole('button', { name: 'Enregistrer' }).click();
     await expect(page.locator('.notice-success')).toBeVisible();

@@ -4,7 +4,7 @@
 
 <?php if (!$from_year || !$to_year || empty($plan)): ?>
 <div class="psc-box" data-testid="promotion-empty">
-<p><?php esc_html_e("Aucun passage d'année en attente de confirmation.", 'periscolaire-registration'); ?> <a href="<?php echo esc_url(admin_url('admin.php?page=psc_school_years')); ?>"><?php esc_html_e('Retour aux années scolaires', 'periscolaire-registration'); ?></a>.</p>
+<p><?php esc_html_e("Aucun passage d'année en attente de confirmation.", 'periscolaire-registration'); ?> <a href="<?php echo esc_url(add_query_arg(array('page' => 'psc_school_calendar_v2', 'tab' => 'historique'), admin_url('admin.php'))); ?>"><?php esc_html_e("Retour à l'année scolaire", 'periscolaire-registration'); ?></a>.</p>
 </div>
 <?php else: ?>
 

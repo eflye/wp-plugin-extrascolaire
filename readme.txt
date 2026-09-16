@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.15.0
+Stable tag: 5.16.0
 License: GPLv2 or later
 
 == Description ==
@@ -334,6 +334,12 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.16.0 =
+* Réorganise le sous-menu Périscolaire, jusqu'ici 17 entrées à plat : six sections (À traiter, Cantine & garderie, Familles, Facturation, Communication, Configuration), avec les demandes d'inscription et les échanges familles non traités en tête, portant désormais un compteur.
+* Fusionne « Calendrier scolaire en cours » et « Années scolaires » en une seule page « Année scolaire » à onglets ; l'ancienne adresse continue de fonctionner (redirection automatique).
+* Déplace l'adresse du fournisseur de repas depuis Réglages vers un onglet dédié de Commande fournisseur.
+* Renomme plusieurs entrées pour lever des ambiguïtés : Messages devient Messages aux familles, Demandes devient Demandes d'inscription, Facturation (la liste) devient Factures.
 
 = 5.15.0 =
 * Intègre les outils natifs de confidentialité de WordPress : Outils > Exporter les données personnelles et Outils > Effacer les données personnelles retrouvent un foyer par e-mail (les familles n'ont pas de compte WordPress) et couvrent profil, enfants, planning, factures et échanges. L'effacement anonymise la fiche famille plutôt que de la supprimer, pour que les factures restent conservées dix ans comme l'exige la loi comptable, sans laisser de facture orpheline.

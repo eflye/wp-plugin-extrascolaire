@@ -1,6 +1,6 @@
 <?php if (!defined('ABSPATH')) exit; $cats = Psc_Messages::get_categories(); ?>
 <div class="wrap psc-messages-admin">
-  <h1 class="wp-heading-inline"><?php esc_html_e('Messages', 'periscolaire-registration'); ?></h1>
+  <h1 class="wp-heading-inline"><?php esc_html_e('Messages aux familles', 'periscolaire-registration'); ?></h1>
   <a href="<?php echo esc_url(admin_url('admin.php?page=psc_message_edit')); ?>" class="page-title-action"><?php esc_html_e('Nouveau message', 'periscolaire-registration'); ?></a>
   <hr class="wp-header-end">
   <?php if (!empty($_GET['psc_msg'])): ?><div class="notice notice-success is-dismissible"><p><?php esc_html_e('Action effectuée.', 'periscolaire-registration'); ?></p></div><?php endif; ?>
