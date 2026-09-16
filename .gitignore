@@ -46,6 +46,11 @@ yarn-error.log*
 # dépendance au runtime — cf. composer.json)
 vendor/
 
+# MkDocs (documentation administrateur, cf. docs-plan/PLAN.md) : site/ est
+# reconstruit par la CI (.github/workflows/docs.yml) à chaque déploiement,
+# jamais versionné.
+site/
+
 # WordPress
 wp-cli.local.yml
 
