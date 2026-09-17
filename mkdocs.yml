@@ -50,5 +50,7 @@ nav:
       - Services et tarifs: configuration/services-tarifs.md
       - Régimes alimentaires: configuration/regimes-alimentaires.md
       - Modèles d'e-mails: configuration/modeles-emails.md
+  - Gestion au quotidien:
+      - Tableau de bord: gestion-quotidienne/tableau-de-bord.md
   - Glossaire: glossaire.md
   - Contribuer à la documentation: contribuer.md
