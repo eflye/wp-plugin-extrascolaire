@@ -47,5 +47,6 @@ nav:
   - Configuration:
       - Année scolaire: configuration/annee-scolaire.md
       - Calendrier et vacances: configuration/calendrier-vacances.md
+      - Services et tarifs: configuration/services-tarifs.md
   - Glossaire: glossaire.md
   - Contribuer à la documentation: contribuer.md
