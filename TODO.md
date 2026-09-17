@@ -102,7 +102,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Réalisé côté développement :** registre serveur `psc_sidscm_intervenants` (code haché, actif/révoqué, date d’expiration), jeton de session opaque à durée limitée et conservé uniquement en mémoire JavaScript, choix d’identité dans l’écran public, et auteur individuel dans l’audit. Le code partagé reste uniquement un mode de migration tant qu’aucune identité n’est enregistrée. La validation métier du périmètre d’accès et le choix éventuel d’une authentification renforcée restent manuels (mairie/DPO).
 
-**À faire :** comptes ou invitations nominatifs avec session serveur expirante ; permissions par fonction/périmètre ; verrouillage des postes partagés ; journalisation de l’auteur. Réserver les données sanitaires aux personnes qui en ont besoin. Évaluer l’authentification renforcée selon l’AIPD, notamment pour les accès privilégiés.
+**Reste à faire :** valider les permissions par fonction/périmètre, le verrouillage des postes partagés et le besoin d’une authentification renforcée selon l’AIPD. Les accès individuels, la session expirante et l’auteur d’audit sont implémentés.
 
 **Acceptation :** départ d’un intervenant → accès coupé pour lui seul ; expiration après inactivité ; aucun secret durable dans `localStorage` ; opérations attribuables. **Développement + mairie ; L.**
 
@@ -112,7 +112,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Réalisé côté développement :** capacités métier cumulables (`familles`, `présences`, `facturation`, `messages`, `configuration`, `données sanitaires`, `audit`), contrôlées par les gardes serveur et éditables individuellement sur le profil WordPress. La capacité globale est retirée du rôle éditeur lors de la synchronisation. L’inventaire des comptes existants et la revue périodique des habilitations restent des étapes manuelles d’administration.
 
-**À faire :** droits distincts et attribution explicite ; migration des capacités déjà accordées ; revue régulière des comptes. Sur le serveur distant, inventorier qui possède effectivement ces droits avant de les modifier.
+**Reste à faire :** inventorier les comptes existants avant migration, attribuer explicitement les capacités et organiser leur revue périodique. Les gardes serveur et la matrice composable sont implémentés.
 
 **Acceptation :** un éditeur de contenus sans mission périscolaire n’accède pas aux dossiers ; le rôle facturation ne consulte pas automatiquement les allergies ; tests de refus sur les URL et endpoints. **Développement + administrateur WordPress ; M.**
 
@@ -228,7 +228,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 - [ ] **Rendre les écritures fichier/base et les reprises d’échec fiables.**
 
-**Constaté :** `class-psc-assurances.php:151` supprime l’ancien fichier d’une autre extension avant d’avoir réussi le nouveau dépôt ; `upsert_row():224` renvoie vrai sans vérifier chaque résultat SQL. Après approbation, `class-psc-requests.php:825` ignore le résultat de `promote_pending()` puis supprime tous les fichiers d’attente. Une promotion ratée peut donc supprimer sa propre source. La réinscription (`class-psc-frontend-reinscription.php:43`) ignore également les retours d’inscription et de stockage, puis annonce un succès.
+**État initial (corrigé côté développement) :** les uploads, promotions et réinscriptions ignoraient certains retours d’erreur et pouvaient perdre la source. Ces chemins sont désormais protégés par écriture temporaire/rollback et vérification des retours.
 
 **Avancement technique :** dépôt enfant écrit dans un fichier temporaire puis publié après succès SQL, avec restauration de l’ancien fichier en cas d’échec ; promotion d’une demande vérifie désormais l’écriture SQL et conserve la zone d’attente si un rattachement échoue ; réinscription vérifie les retours d’inscription et de stockage. La reprise complète multi-enfants et la recette disque/SQL restent à tester.
 
@@ -238,7 +238,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 - [ ] **Comparer des timestamps Unix réels et afficher le même instant que celui contrôlé.**
 
-**Reproduit :** `includes/helpers/lock.php:24` utilise `current_time('timestamp')`, valeur décalée par WordPress ; `psc_lock_deadline_ts():64` renvoie un timestamp Unix réel. Avec un maintenant simulé au 5 septembre 2026 à 23 h à Paris et un service le 8 septembre, le verrou 48 h est déjà vrai alors qu’il devrait rester faux jusqu’à minuit.
+**État initial (corrigé côté développement) :** `psc_now_ts()` utilisait un timestamp WordPress décalé, alors que la date limite était Unix réelle. La comparaison utilise désormais un timestamp Unix cohérent.
 
 **Avancement technique :** `psc_now_ts()` utilise désormais un timestamp Unix réel construit dans le fuseau WordPress, tandis que l’affichage reste localisé. Les tests exhaustifs autour des transitions d’heure et des purges restent à compléter.
 
@@ -248,7 +248,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 - [ ] **Définir puis partager une règle unique de prestation facturable.**
 
-**Reproduit / constaté :** `includes/helpers/planning.php:228` renvoie encore `[FORF, GM, GS, MSR]` pour un forfait avec exception MSR chez un enfant non flagué. Le correctif du forfait avec repas n’a pas couvert ce scénario. `class-psc-admin-inscriptions.php:235` appelle `psc_billing_services()` sans le flag enfant : le CSV d’un forfait sans repas diverge du PDF FSR. `class-psc-mailer.php:161` rend les rythmes bruts avec les libellés génériques, sans adapter le forfait au profil sans repas.
+**État initial (partiellement corrigé côté développement) :** l’export CSV appelait auparavant `psc_billing_services()` sans le flag enfant, ce qui pouvait diverger du calcul FSR. Il transmet désormais ce flag ; les cas métier forfait/retraits/fermetures et les libellés de récapitulatif restent à valider.
 
 **Avancement technique :** l’export CSV des inscriptions transmet désormais le flag enfant sans repas à la même fonction `psc_billing_services()` que les factures et le planning. La matrice métier forfait/retraits/fermetures et la vérification des historiques restent à finaliser avec la facturation.
 
