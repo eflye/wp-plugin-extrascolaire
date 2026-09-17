@@ -2,7 +2,9 @@
 
 **Date : 6 septembre 2026 — Extension v5.4.1 — Référence : `39e657a`.**
 
-**Statut : liste arbitrée et en cours de traitement.** Traité en v5.4.2 (P0-01 allergies + rapprochement, P0-02 présence midi) et v5.4.3 (P1-03 anti-cache, P1-05 révocation durable des sessions, P1-12 chiffrement fail-closed). Les cases cochées portent la preuve de test correspondante (E2E ou sonde) ; les tickets d’hébergement et DPO restent ouverts.
+**Statut : liste arbitrée et en cours de traitement.** Mise à jour le **17 septembre 2026** après la publication de la documentation et l’ajout de la messagerie, du journal d’audit, de la rétention et des outils de confidentialité. Les cases cochées portent la preuve de test correspondante (E2E ou sonde) ; les éléments marqués « partiellement avancé » ne sont pas considérés comme terminés tant que leur critère d’acceptation n’est pas rempli. Les tickets d’hébergement et DPO restent ouverts.
+
+**État P1 après cette mise à jour :** P1-03 et P1-05 restent traités ; P1-12 est traité techniquement mais nécessite encore sa validation opérationnelle ; P1-06, P1-07, P1-08, P1-09 et P1-11 sont partiellement avancés ; les autres P1 restent ouverts.
 
 ## Périmètre et limites
 
@@ -144,7 +146,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** ancien cookie et ancien lien refusés après retrait du second parent, changement d’identifiant ou révocation ; refus maintenu après purge du cache. **Développement + mairie ; L.**
 
-### P1-06 — Encadrer juridiquement et techniquement les allergies
+### P1-06 — PARTIELLEMENT AVANCÉ — Encadrer juridiquement et techniquement les allergies
 
 - [ ] **Faire valider le traitement des données de santé avant de considérer ce volet conforme.**
 
@@ -154,7 +156,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** circuit PAI, habilitations et conservation validés ; collecte minimale ; aucun consentement « global RGPD » ajouté par défaut comme solution universelle. L’exigence HDS éventuelle dépend du contexte juridique réel et doit être examinée, pas déduite du seul champ allergies. Référence : [RGPD, articles 5, 6 et 9](https://www.cnil.fr/fr/reglement-europeen-protection-donnees/chapitre2). **DPO + métier + développement ; L.**
 
-### P1-07 — Compléter l’information des familles et des tiers
+### P1-07 — PARTIELLEMENT AVANCÉ — Compléter l’information des familles et des tiers
 
 - [ ] **Rédiger une notice de confidentialité paramétrable et accessible aux points de collecte.**
 
@@ -164,7 +166,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** texte relu par le DPO, coordonnées réelles, accès sans connexion et information des tiers documentée. Référence : [RGPD, articles 12 à 14](https://www.cnil.fr/fr/reglement-europeen-protection-donnees/chapitre3). **DPO + développement ; M.**
 
-### P1-08 — Définir puis appliquer une politique complète de conservation
+### P1-08 — PARTIELLEMENT AVANCÉ — Définir puis appliquer une politique complète de conservation
 
 - [ ] **Couvrir toutes les tables, pièces, messages, journaux et sauvegardes.**
 
@@ -174,7 +176,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** simulation des suppressions, rapport sans contenu sensible, exécution contrôlée et test horloge figée. Ne pas appliquer arbitrairement « tout effacer après un an » ou un délai comptable unique. Référence : [CNIL — conservation et articulation avec les archives publiques](https://www.cnil.fr/fr/passer-laction/les-durees-de-conservation-des-donnees). **DPO + archives + développement ; L.**
 
-### P1-09 — Outiller l’exercice des droits sans destruction comptable aveugle
+### P1-09 — PARTIELLEMENT AVANCÉ — Outiller l’exercice des droits sans destruction comptable aveugle
 
 - [ ] **Prévoir export de dossier, rectification, limitation et effacement encadré.**
 
@@ -194,9 +196,11 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** registre à jour, décision AIPD motivée, contrats/garanties disponibles, exercice d’incident et arbitrage formalisé des risques résiduels. Références : [RGPD, chapitre IV](https://www.cnil.fr/fr/reglement-europeen-protection-donnees/chapitre4), [CNIL — AIPD](https://www.cnil.fr/fr/ce-quil-faut-savoir-sur-lanalyse-dimpact-relative-la-protection-des-donnees-aipd). **Mairie + DPO + prestataires ; L.**
 
-### P1-11 — Étendre et maîtriser la journalisation
+### P1-11 — PARTIELLEMENT AVANCÉ — Étendre et maîtriser la journalisation
 
 - [ ] **Tracer les opérations sensibles avec une identité fiable et une durée définie.**
+
+**Avancement depuis l’audit :** le journal d’audit unifié est maintenant en place (actions génériques et registre d’actions, acteur, résultat, empreinte chaînée, rédaction des données sensibles, écran d’administration, export et vérification d’intégrité). La couverture métier fine, la rotation/rétention complète et la surveillance des échecs restent à valider.
 
 **Constaté :** `includes/helpers/files.php:196` journalise uniquement les téléchargements de documents, avec e-mail, IP et chemin ; écriture silencieuse en cas d’échec, sans rotation. `pickup_history` conserve des changements, mais les modifications de profil du second parent qui influencent les autorisations ne suivent pas ce même historique. Le code commun SIDSCM ne permet pas de distinguer les intervenants.
 
@@ -204,7 +208,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** reconstitution d’un incident fictif, auteurs identifiables, journal protégé et rétention appliquée, consultation elle-même limitée. Référence : [CNIL — tracer les opérations](https://www.cnil.fr/fr/securite-tracer-les-operations). **Développement + exploitation + DPO ; M/L.**
 
-### P1-12 — TRAITÉ (v5.4.2/v5.4.3) — Interdire le repli bancaire silencieux en clair
+### P1-12 — TRAITÉ TECHNIQUEMENT (v5.4.2/v5.4.3) — Validation opérationnelle encore ouverte — Interdire le repli bancaire silencieux en clair
 
 - [x] **Faire échouer explicitement un enregistrement bancaire si le chiffrement est indisponible.**
 
