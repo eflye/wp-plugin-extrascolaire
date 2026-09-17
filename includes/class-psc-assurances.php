@@ -247,12 +247,19 @@ class Psc_Assurances {
         $rel_path = self::rel_path($child_id, $rentree_year, $ext);
         $target   = psc_private_path($rel_path);
 
-        if (!rename($abs_source_path, $target)) return false;
+        $backup = $target . '.previous';
+        if (file_exists($target) && !@rename($target, $backup)) return false;
+        if (!rename($abs_source_path, $target)) {
+            if (file_exists($backup)) @rename($backup, $target);
+            return false;
+        }
 
         if (!self::upsert_row($child_id, $rel_path, $original_filename ?: basename($abs_source_path))) {
             @rename($target, $abs_source_path);
+            if (file_exists($backup)) @rename($backup, $target);
             return false;
         }
+        if (file_exists($backup)) @unlink($backup);
         return true;
     }
 

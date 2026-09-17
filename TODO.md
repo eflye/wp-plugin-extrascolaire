@@ -230,7 +230,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **État initial (corrigé côté développement) :** les uploads, promotions et réinscriptions ignoraient certains retours d’erreur et pouvaient perdre la source. Ces chemins sont désormais protégés par écriture temporaire/rollback et vérification des retours.
 
-**Avancement technique :** dépôt enfant écrit dans un fichier temporaire puis publié après succès SQL, avec restauration de l’ancien fichier en cas d’échec ; promotion d’une demande vérifie désormais l’écriture SQL et conserve la zone d’attente si un rattachement échoue ; réinscription vérifie les retours d’inscription et de stockage. La reprise complète multi-enfants et la recette disque/SQL restent à tester.
+**Avancement technique :** dépôt enfant et promotion d’une demande écrivent avec sauvegarde/restauration de l’ancien fichier, vérifient l’écriture SQL et conservent la zone d’attente si un rattachement échoue ; réinscription vérifie les retours d’inscription et de stockage. La reprise complète multi-enfants et la recette disque/SQL restent à tester.
 
 **Acceptation :** disque plein, accès refusé, échec SQL, deuxième enfant invalide → ancien document préservé et résultat explicite ; reprise sans perte ni doublon. **Développement ; M/L.**
 
@@ -240,7 +240,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **État initial (corrigé côté développement) :** `psc_now_ts()` utilisait un timestamp WordPress décalé, alors que la date limite était Unix réelle. La comparaison utilise désormais un timestamp Unix cohérent.
 
-**Avancement technique :** `psc_now_ts()` utilise désormais un timestamp Unix réel construit dans le fuseau WordPress, tandis que l’affichage reste localisé. Les tests exhaustifs autour des transitions d’heure et des purges restent à compléter.
+**Avancement technique :** `psc_now_ts()` utilise désormais un timestamp Unix réel construit dans le fuseau WordPress ; une sonde vérifie le comportement juste avant et à l’échéance. Les tests exhaustifs autour des transitions d’heure et des purges restent à compléter.
 
 **Acceptation :** tests juste avant/à/après échéance, Paris hiver/été, transitions d’heure, fuseau UTC et délai zéro. **Développement ; S/M.**
 
@@ -270,7 +270,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Constaté :** `class-psc-installer.php:46` lance les migrations au chargement et enregistre `psc_db_version` sans bilan de tous les retours SQL. Aucun verrou global de migration n’est visible. `move_tree():569` ignore les erreurs de déplacement et supprime la source lorsqu’un nom existe déjà à destination sans vérifier que les contenus sont identiques. `sync_private_dir():140` mémorise ensuite le nouveau chemin.
 
-**Avancement technique :** un verrou d’exécution avec reprise après expiration empêche désormais les migrations concurrentes. Les migrations restent idempotentes et la version n’avance pas si le nettoyage préalable échoue ; les contrôles de contenu lors des conflits de fichiers et la recette interruption/reprise restent à compléter.
+**Avancement technique :** un verrou d’exécution avec reprise après expiration empêche désormais les migrations concurrentes ; un conflit de contenu conserve la source et signale l’échec. Les migrations restent idempotentes et la version n’avance pas si le nettoyage préalable échoue ; la recette interruption/reprise reste à compléter.
 
 **Acceptation :** migrations ancienne version → actuelle avec interruption/permission refusée/conflit de fichier ; aucun document perdu, version non avancée à tort, reprise vérifiable. **Développement + exploitation ; L.**
 

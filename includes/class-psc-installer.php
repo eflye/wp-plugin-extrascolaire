@@ -633,10 +633,11 @@ class Psc_Installer {
         );
     }
 
-    /** Déplace récursivement le contenu de $src vers $dst, puis retire les dossiers vidés. */
+    /** Déplace récursivement le contenu de $src vers $dst, sans perdre un conflit. */
     private static function move_tree($src, $dst) {
-        if (!is_dir($src)) return;
-        if (!is_dir($dst) && !wp_mkdir_p($dst)) return;
+        if (!is_dir($src)) return true;
+        if (!is_dir($dst) && !wp_mkdir_p($dst)) return false;
+        $ok = true;
 
         foreach (scandir($src) as $entry) {
             if ($entry === '.' || $entry === '..') continue;
@@ -644,16 +645,19 @@ class Psc_Installer {
             $to   = trailingslashit($dst) . $entry;
 
             if (is_dir($from)) {
-                self::move_tree($from, $to);
+                if (!self::move_tree($from, $to)) $ok = false;
                 continue;
             }
             if (!file_exists($to)) {
-                @rename($from, $to); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+                if (!@rename($from, $to)) $ok = false; // phpcs:ignore WordPress.PHP.NoSilencedErrors
             } else {
-                @unlink($from); // phpcs:ignore WordPress.PHP.NoSilencedErrors — déjà migré
+                $same = is_file($to) && hash_file('sha256', $from) === hash_file('sha256', $to);
+                if ($same) @unlink($from); // phpcs:ignore WordPress.PHP.NoSilencedErrors — déjà migré
+                else $ok = false;
             }
         }
-        @rmdir($src); // phpcs:ignore WordPress.PHP.NoSilencedErrors — ne vide que si plus rien dedans
+        if ($ok && count(scandir($src)) === 2) @rmdir($src); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        return $ok;
     }
 
     /**
