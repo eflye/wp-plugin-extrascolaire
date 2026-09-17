@@ -43,3 +43,4 @@ markdown_extensions:
 
 nav:
   - Accueil: index.md
+  - Glossaire: glossaire.md
