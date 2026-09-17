@@ -60,5 +60,7 @@ nav:
   - Facturation:
       - Factures PDF: facturation/factures-pdf.md
       - Mandats SEPA: facturation/mandats-sepa.md
+  - Cycle annuel:
+      - Campagne de réinscription: cycle-annuel/reinscription.md
   - Glossaire: glossaire.md
   - Contribuer à la documentation: contribuer.md
