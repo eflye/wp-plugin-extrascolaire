@@ -1,8 +1,6 @@
 (function () {
     'use strict';
 
-    var STORAGE_KEY = 'psc_sidscm_code';
-
     // Chaînes traduites côté serveur (PSC_SIDSCM.i18n, cf. Psc_Sidscm::assets())
     // : t('cle', args…) remplace les %s dans l'ordre des arguments.
     function t(key) {
@@ -89,11 +87,9 @@
     function unlock(code, silent) {
         return ajax('psc_sidscm_unlock', { code: code }).then(function () {
             state.code = code;
-            localStorage.setItem(STORAGE_KEY, code);
             els.codeError.hidden = true;
             return fetchData().then(showApp);
         }).catch(function () {
-            localStorage.removeItem(STORAGE_KEY);
             if (!silent) {
                 els.codeError.hidden = false;
             }
@@ -101,7 +97,6 @@
     }
 
     function lock() {
-        localStorage.removeItem(STORAGE_KEY);
         state.code = '';
         els.codeInput.value = '';
         showLock();
@@ -495,9 +490,7 @@
         });
         els.lockBtn.addEventListener('click', lock);
 
-        var stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-            unlock(stored, true);
-        }
+        // Le code n’est conservé ni dans localStorage ni dans sessionStorage.
+        // Un rechargement de la page impose une nouvelle authentification.
     });
 })();
