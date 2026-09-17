@@ -234,13 +234,13 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** disque plein, accès refusé, échec SQL, deuxième enfant invalide → ancien document préservé et résultat explicite ; reprise sans perte ni doublon. **Développement ; M/L.**
 
-### P1-14 — Corriger les référentiels de temps du verrou de modification
+### P1-14 — PARTIELLEMENT AVANCÉ — Corriger les référentiels de temps du verrou de modification
 
 - [ ] **Comparer des timestamps Unix réels et afficher le même instant que celui contrôlé.**
 
 **Reproduit :** `includes/helpers/lock.php:24` utilise `current_time('timestamp')`, valeur décalée par WordPress ; `psc_lock_deadline_ts():64` renvoie un timestamp Unix réel. Avec un maintenant simulé au 5 septembre 2026 à 23 h à Paris et un service le 8 septembre, le verrou 48 h est déjà vrai alors qu’il devrait rester faux jusqu’à minuit.
 
-**À faire :** unifier UTC pour la comparaison et timezone WordPress pour l’affichage ; revoir les dates de purge qui mélangent `current_time('mysql')` et `gmdate()`.
+**Avancement technique :** `psc_now_ts()` utilise désormais un timestamp Unix réel construit dans le fuseau WordPress, tandis que l’affichage reste localisé. Les tests exhaustifs autour des transitions d’heure et des purges restent à compléter.
 
 **Acceptation :** tests juste avant/à/après échéance, Paris hiver/été, transitions d’heure, fuseau UTC et délai zéro. **Développement ; S/M.**
 

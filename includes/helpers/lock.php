@@ -22,7 +22,11 @@ if (!defined('ABSPATH')) exit;
  * En production rien ne s'abonne à ce filtre : le comportement est inchangé.
  */
 function psc_now_ts() {
-    return (int) apply_filters('psc_now_ts', (int) current_time('timestamp'));
+    // current_time('timestamp') ajoute le décalage du site à time() et ne
+    // constitue donc pas un timestamp Unix réel. DateTime conserve le même
+    // instant absolu quel que soit le fuseau configuré.
+    $now = new DateTimeImmutable('now', wp_timezone());
+    return (int) apply_filters('psc_now_ts', $now->getTimestamp());
 }
 
 /**
