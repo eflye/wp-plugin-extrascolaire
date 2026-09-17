@@ -44,5 +44,7 @@ markdown_extensions:
 nav:
   - Accueil: index.md
   - Démarrage rapide: demarrage-rapide.md
+  - Configuration:
+      - Année scolaire: configuration/annee-scolaire.md
   - Glossaire: glossaire.md
   - Contribuer à la documentation: contribuer.md
