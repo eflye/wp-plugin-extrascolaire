@@ -1,8 +1,8 @@
-# P1-06 à P1-11 — Protection des données automatisable
+# P1-01 à P1-18 — Sécurité, protection des données et intégrité automatisables
 
 ## Objectif
 
-Compléter les protections techniques liées aux allergies, à l’information des personnes, à la conservation, à l’exercice des droits et à la journalisation, sans prétendre déterminer la base légale, remplacer le DPO ou certifier l’hébergement distant.
+Compléter les protections techniques liées aux accès intervenants, habilitations, stockage, allergies, information des personnes, conservation, exercice des droits, journalisation, justificatifs, temps, facturation et migrations, sans prétendre déterminer la base légale, remplacer le DPO ou certifier l’hébergement distant.
 
 Le résultat doit être déployable sur l’installation WordPress actuelle, compatible PHP 7.4+/WordPress 5.8+, et testable uniquement avec des données fictives.
 
@@ -10,11 +10,16 @@ Le résultat doit être déployable sur l’installation WordPress actuelle, com
 
 ### Inclus
 
+- P1-01 : accès intervenants individuels, sessions expirantes et révocation par personne.
+- P1-02 : capacités WordPress séparées et contrôles serveur par domaine métier.
+- P1-04 : garde-fous applicatifs du répertoire privé et sonde de recette HTTP.
 - P1-06 : collecte minimale des allergies, consentement distinct et traçable, suppression du détail médical des flux qui n’en ont pas besoin.
 - P1-07 : notice de confidentialité paramétrable, affichable au formulaire public et au portail, avec liens vers les droits et le contact configuré.
 - P1-08 : politique de rétention explicite par catégorie, simulation puis purge idempotente des données applicatives et fichiers associés, avec rapport d’exécution.
 - P1-09 : export et effacement WordPress couvrant les données effectivement stockées, procédure serveur pour les fichiers et conservation des factures conforme à la règle métier décidée.
 - P1-11 : journal d’audit des opérations sensibles, identité minimale, rédaction des valeurs sensibles, intégrité chaînée, contrôle d’accès, rétention et alerte d’échec.
+- P1-13 à P1-17 : écritures de justificatifs vérifiées, référentiel de temps unifié, calcul de facturation partagé, factures historisées et migrations idempotentes.
+- P1-18 : contrôles automatisables de prérequis et rapport de recette exportable, sans exécuter de changement sur le serveur distant.
 
 ### Hors périmètre et validations manuelles
 

@@ -1,8 +1,8 @@
-# P1-06 à P1-11 — Protection des données automatisable Implementation Plan
+# P1-01 à P1-18 — Sécurité, protection des données et intégrité automatisables Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Finaliser les protections techniques liées aux allergies, à l’information, à la conservation, aux droits des personnes et à l’audit, sans fermer les validations manuelles DPO ou hébergeur.
+**Goal:** Finaliser les protections techniques P1 restantes, sans fermer les validations manuelles DPO, mairie ou hébergeur.
 
 **Architecture:** Conserver `Psc_Privacy`, `Psc_Retention` et `Psc_Audit` comme frontières publiques. Ajouter des fonctions ciblées, idempotentes et testables, en partageant les helpers de rédaction, de politique de conservation et de résolution d’acteur plutôt qu’en réécrivant les parcours existants.
 
@@ -129,6 +129,75 @@
 - [ ] **Step 4: Update `TODO.md`** only for criteria demonstrated by tests; leave DPO/server acceptance explicitly open and link each completed item to its test/commit.
 - [ ] **Step 5: Update the changelog** with technical safeguards and the remaining manual validations; do not claim RGPD compliance.
 - [ ] **Step 6: Commit** with `git add TODO.md readme.txt documentation/rgpd.md tests/integration/p1-data-protection-summary.php && git commit -m "docs: consigne les preuves et validations restantes P1"`.
+
+### Task 6: Accès intervenants individuels et habilitations WordPress (P1-01/P1-02)
+
+**Files:**
+- Modify: `includes/class-psc-sidscm.php`
+- Modify: `assets/js/sidscm.js`
+- Modify: `includes/helpers/core.php`
+- Modify: `includes/class-psc-installer.php`
+- Modify: `includes/class-psc-admin-config.php`
+- Test: `tests/integration/intervenants-capacites.php`
+
+- [ ] **Step 1: Écrire les tests d’accès** : deux intervenants distincts, révocation d’un seul, expiration d’inactivité, absence de secret dans `localStorage`, éditeur sans capacité sensible.
+- [ ] **Step 2: Implémenter le registre serveur des intervenants** avec identifiant, empreinte de code individuel, rôle/périmètre, expiration et révocation persistante.
+- [ ] **Step 3: Remplacer le code côté JavaScript** par un cookie/session opaque non persistant et supprimer la conservation dans `localStorage`.
+- [ ] **Step 4: Séparer les capacités WordPress** pour familles, facturation, données sanitaires, audit et configuration ; refuser chaque écran et endpoint côté serveur.
+- [ ] **Step 5: Ajouter audit et tests de refus**, exécuter la sonde et le lint.
+- [ ] **Step 6: Commit** `feat: individualise les accès intervenants et les habilitations`.
+
+### Task 7: Stockage privé et preuves de recette (P1-04/P1-18)
+
+**Files:**
+- Modify: `includes/helpers/files.php`
+- Modify: `includes/class-psc-admin-config.php`
+- Create: `tests/integration/private-storage-receipt.php`
+- Modify: `documentation/installation/installation-activation.md`
+- Modify: `documentation/installation/sauvegarde-mise-a-jour.md`
+
+- [ ] **Step 1: Écrire la sonde** de containment, refus des chemins traversants, fichier témoin inaccessible et diagnostic sans données métier.
+- [ ] **Step 2: Refuser ou signaler explicitement** un `PSC_PRIVATE_DIR` sous racine lorsque la protection serveur équivalente n’est pas vérifiable.
+- [ ] **Step 3: Ajouter une fiche de recette** listant PHP/WordPress, TLS/cookies, droits, SMTP, cron, cache, stockage, sauvegardes et restauration, avec statut `à vérifier` par défaut.
+- [ ] **Step 4: Documenter la sauvegarde** de la base, du répertoire privé et de la clé, puis la restauration isolée avec e-mails neutralisés.
+- [ ] **Step 5: Exécuter la sonde locale et le lint**, sans conclure sur le serveur distant.
+- [ ] **Step 6: Commit** `feat: renforce les garde-fous du stockage privé`.
+
+### Task 8: Justificatifs, temps, facturation et migrations (P1-13 à P1-17)
+
+**Files:**
+- Modify: `includes/class-psc-assurances.php`
+- Modify: `includes/class-psc-frontend-reinscription.php`
+- Modify: `includes/helpers/lock.php`
+- Modify: `includes/helpers/planning.php`
+- Modify: `includes/class-psc-admin-inscriptions.php`
+- Modify: `includes/class-psc-mailer.php`
+- Modify: `includes/class-psc-invoices.php`
+- Modify: `includes/class-psc-installer.php`
+- Test: `tests/integration/p1-integrity.php`
+
+- [ ] **Step 1: Écrire les cas d’échec** disque plein, SQL refusé, enfant invalide, échéance, forfait sans repas, tarif modifié après émission et migration interrompue.
+- [ ] **Step 2: Rendre les dépôts atomiques** : fichier temporaire, vérification MIME/taille, SQL contrôlé, source conservée et reprise idempotente.
+- [ ] **Step 3: Unifier les timestamps** sur des instants Unix pour les comparaisons et timezone WordPress pour l’affichage.
+- [ ] **Step 4: Extraire une décision unique de prestation facturable** et l’utiliser par planning, CSV, e-mail, PDF et commandes.
+- [ ] **Step 5: Ajouter un snapshot immuable** des lignes/tarifs/flags à l’émission d’une facture ; une correction crée une nouvelle version traçable.
+- [ ] **Step 6: Protéger les migrations** par verrou, postconditions, journal technique, conservation des sources et reprise sans double déplacement.
+- [ ] **Step 7: Exécuter tests d’intégrité et lint**, puis commit `feat: fiabilise justificatifs facturation et migrations`.
+
+### Task 9: Dossier de preuves P1 et synchronisation du suivi (P1-10/P1-18)
+
+**Files:**
+- Modify: `TODO.md`
+- Modify: `documentation/rgpd.md`
+- Modify: `documentation/installation/installation-activation.md`
+- Create: `documentation/installation/fiche-recette-p1.md`
+- Test: `tests/integration/p1-final-summary.php`
+
+- [ ] **Step 1: Écrire la sonde finale** non destructive des contrats automatisés.
+- [ ] **Step 2: Documenter les décisions manuelles** : registre, AIPD, contrats, base légale, durées, PAI, stockage, sauvegardes, restauration et responsables.
+- [ ] **Step 3: Mettre à jour `TODO.md`** uniquement pour les critères prouvés ; conserver les validations externes ouvertes.
+- [ ] **Step 4: Exécuter lint PHP, tests unitaires, sondes, build documentation et audit axe**.
+- [ ] **Step 5: Commit** `docs: rassemble les preuves et recettes P1`.
 
 ## Final verification
 
