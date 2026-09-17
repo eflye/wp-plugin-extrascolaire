@@ -320,9 +320,8 @@ class Psc_Mailer {
     }
 
     /**
-     * Alerte mairie : une allergie alimentaire vient d'être enregistrée
-     * (ajout d'enfant, édition, ou approbation d'une demande d'inscription).
-     * Déclenche la prise de contact PAI promise à la famille.
+     * Alerte mairie : la famille demande un échange oral sur l'alimentation
+     * (aucun détail médical n'est transmis ni stocké par ce parcours).
      * $previous : valeur précédente (null si aucune) — l'alerte part sur un
      * contenu nouveau ou modifié, jamais sur une saisie inchangée.
      */
@@ -339,9 +338,7 @@ class Psc_Mailer {
         $subject = Psc_Email_Templates::subject('food_allergy', array('site' => $site, 'child' => $child_name));
         $intro   = Psc_Email_Templates::body_html('food_allergy', array('site' => $site, 'child' => $child_name));
 
-        // Le détail libre est une donnée de santé : l'e-mail ne le recopie
-        // plus. L'agent ouvre la fiche protégée après authentification.
-        $body = self::h2(__('Allergie alimentaire déclarée', 'periscolaire-registration'));
+        $body = self::h2(__('Échange à prévoir sur l’alimentation', 'periscolaire-registration'));
         $body .= '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 12px;">' . $intro . '</p>';
         $body .= self::info_box(
             '<strong>' . esc_html(__('Enfant :', 'periscolaire-registration')) . '</strong> ' . esc_html($child_name) . '<br>'

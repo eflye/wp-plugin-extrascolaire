@@ -56,7 +56,7 @@ La réponse 200 d’un répertoire historique sous `uploads/periscolaire/` ne d�
 | Dossier famille | `parents` : identité, coordonnées, adresses, second parent | Famille via cookie dédié ; mairie | Désactivation et suppression manuelles ; pas de durée générale automatique. |
 | Connexion | Empreintes de liens dans `parents`/`requests`, cookie signé, révocations en transients | E-mail du titulaire ou second parent ; session au niveau du foyer | Lien 30 min par défaut, session 12 h ; liens réglables ; effacement des empreintes expirées non systématique. |
 | Enfants / accueil | `children`, `child_school_years`, `pattern`, `exception`, `attendance` | Famille, mairie, intervenants pour les listes utiles | Historique annuel ; pas de politique globale de purge. |
-| Allergies / régime | `children.food_allergies`, copie dans `requests.children_json`, indicateurs de régime | Famille, backoffice, SIDSCM ; description également envoyée par e-mail à la mairie | Pas de durée dédiée, ni circuit distinct pour les données de santé. |
+| Alimentation / signalement | `children.food_allergy_signal`, régimes et décision mairie `cantine_sans_repas` | Famille, mairie, intervenants pour les listes utiles | Le nouveau parcours ne collecte aucun détail médical ; les anciennes valeurs `food_allergies` restent historiques et restreintes. |
 | Personnes autorisées | `pickup_persons`, `pickup_history`, second parent dans `parents` | Famille ; mairie ; intervenants GS, coordonnées incluses | Retrait logique ; historique jusqu’à suppression de l’enfant. |
 | Échanges familles / mairie | `conversations`, `conversation_messages` : sujet, contenu en texte brut, pointeurs de lecture par côté | Famille via son espace ; mairie via le backoffice ; e-mails de notification sans sujet ni contenu | Purge quotidienne 395 jours après le dernier message (filtre `psc_conversations_retention_days`) ; supprimées avec la famille. |
 | Assurance | Fichier nominatif et chemin dans `child_school_years`, fichiers de demandes en attente | Téléchargements contrôlés parent/mairie | Remplacement annuel et suppressions manuelles ; nettoyage des demandes limité à certains statuts. |
@@ -146,15 +146,15 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** ancien cookie et ancien lien refusés après retrait du second parent, changement d’identifiant ou révocation ; refus maintenu après purge du cache. **Développement + mairie ; L.**
 
-### P1-06 — PARTIELLEMENT AVANCÉ — Encadrer juridiquement et techniquement les allergies
+### P1-06 — PARTIELLEMENT AVANCÉ — Remplacer la collecte d’allergies par un signalement alimentaire minimal
 
-- [ ] **Faire valider le traitement des données de santé avant de considérer ce volet conforme.**
+- [x] **Ne plus demander de détail d’allergie dans le parcours famille ; déclencher un échange avec la mairie.**
 
-**Constaté / à documenter :** texte libre d’allergies dans `children` et `requests`, répliqué dans les e-mails (`class-psc-mailer.php:311`). L’acceptation du règlement intérieur n’établit pas, à elle seule, la condition juridique autorisant ces données de santé. Depuis lors, une case de consentement dédiée et horodatée (distincte du règlement intérieur) est désormais exigée à la déclaration ou à la modification d’une allergie, page d’inscription et portail famille (`class-psc-privacy.php`, `class-psc-requests.php`, `class-psc-frontend-enfants.php` ; cf. readme.txt § RGPD) — ceci documente et trace le consentement, ça ne détermine pas la base légale de l’article 9 à sa place ni ne couvre le circuit PAI ou la protection au repos.
+**Réalisé côté développement :** le parcours famille recueille seulement un booléen `food_allergy_signal`, sans description ni consentement « donnée de santé ». Une notification sans détail invite la mairie à contacter oralement la famille ; la mairie décide ensuite d’activer `cantine_sans_repas`. Les anciennes données détaillées restent conservées uniquement pour l’historique et les usages restreints existants.
 
-**À faire :** le DPO détermine la base de l’article 6 et la condition applicable de l’article 9 ; documenter finalité, données strictement nécessaires, destinataires et durée. Séparer signalement opérationnel et détails médicaux ; privilégier une alerte avec lien sécurisé plutôt que recopier descriptions actuelle et précédente dans la messagerie ; examiner la protection au repos selon les risques.
+**Reste à faire :** valider avec le DPO la notice, les anciennes données historiques, les destinataires et la durée de conservation ; confirmer la procédure orale et les responsabilités de la mairie.
 
-**Avancement technique :** le consentement dédié est obligatoire lors d’une déclaration ou modification d’allergie, et les notifications e-mail indiquent désormais uniquement l’enfant et un accès protégé, sans recopier la description médicale. La base légale, le circuit PAI et la durée restent à valider avec le DPO.
+**Avancement technique :** le signalement est minimal et la notification ne contient aucun détail médical. Le statut « cantine sans repas » n’est jamais activé automatiquement par la famille.
 
 **Acceptation :** circuit PAI, habilitations et conservation validés ; collecte minimale ; aucun consentement « global RGPD » ajouté par défaut comme solution universelle. L’exigence HDS éventuelle dépend du contexte juridique réel et doit être examinée, pas déduite du seul champ allergies. Référence : [RGPD, articles 5, 6 et 9](https://www.cnil.fr/fr/reglement-europeen-protection-donnees/chapitre2). **DPO + métier + développement ; L.**
 

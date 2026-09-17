@@ -37,13 +37,8 @@
           <span class="psc-portal-muted">—</span>
         <?php endif; ?>
       </td>
-      <td data-label="<?php esc_attr_e('Allergies alimentaires', 'periscolaire-registration'); ?>">
-        <?php $psc_allergies = trim((string) $c->food_allergies); ?>
-        <?php if ($psc_allergies !== ''): ?>
-          <div style="max-width:220px;line-height:1.45;font-size:13px;"><?php echo esc_html($psc_allergies); ?></div>
-        <?php else: ?>
-          <span class="psc-portal-muted">—</span>
-        <?php endif; ?>
+      <td data-label="<?php esc_attr_e('Alimentation à signaler', 'periscolaire-registration'); ?>">
+        <?php if (!empty($c->food_allergy_signal)): ?><span class="psc-badge-warn"><?php esc_html_e('Échange mairie à prévoir', 'periscolaire-registration'); ?></span><?php else: ?><span class="psc-portal-muted">—</span><?php endif; ?>
       </td>
       <td data-label="<?php esc_attr_e('Actif', 'periscolaire-registration'); ?>">
         <?php if ($c->statut === 'actif'): ?>
@@ -78,16 +73,7 @@
       <label class="psc-portal-field-label" for="psc-child-edit-naissance" style="margin-top:16px;"><?php esc_html_e('Date de naissance', 'periscolaire-registration'); ?></label>
       <input type="date" id="psc-child-edit-naissance" name="naissance" max="<?php echo esc_attr(psc_child_birthdate_max()); ?>" class="psc-portal-field-underline">
 
-      <label class="psc-portal-field-label" for="psc-child-edit-allergies" style="margin-top:16px;display:block;"><?php esc_html_e('Allergies alimentaires', 'periscolaire-registration'); ?></label>
-      <textarea id="psc-child-edit-allergies" name="food_allergies" rows="2" maxlength="1000"
-                placeholder="<?php esc_attr_e('Aliments à exclure des repas, réaction en cas d\'ingestion, conduite à tenir.', 'periscolaire-registration'); ?>"
-                style="width:100%;resize:vertical;border:1px solid rgba(36,64,92,0.3);background:#fff;font-size:13px;padding:8px;"></textarea>
-      <p class="psc-portal-field-help" style="font-size:11px;color:#8B8279;margin:6px 0 0;"><?php esc_html_e("Strictement alimentaire. La mairie vous contactera si un PAI (projet d'accueil individualisé) doit être mis en place. Aucun menu différencié n'est proposé : l'enfant déjeune à la cantine avec son propre repas fourni par la famille.", 'periscolaire-registration'); ?></p>
-      <label class="psc-wizard-check-line" id="psc-child-edit-allergy-consent-line" style="margin-top:10px;" hidden>
-        <input type="checkbox" id="psc-child-edit-allergy-consent" name="food_allergy_consent">
-        <?php esc_html_e("J'autorise la mairie à traiter cette information de santé, dans le seul but d'assurer la sécurité de mon enfant sur les temps périscolaires.", 'periscolaire-registration'); ?>
-        <span class="psc-req">*</span>
-      </label>
+      <label class="psc-wizard-check-line" style="margin-top:16px;"><input type="checkbox" name="food_allergy_signal" value="1"> <?php esc_html_e('La mairie doit échanger avec nous au sujet de l’alimentation de cet enfant', 'periscolaire-registration'); ?></label>
 
       <div class="psc-portal-modal-actions">
         <button type="button" class="psc-portal-btn-outline-ink" data-child-edit-close><?php esc_html_e('Annuler', 'periscolaire-registration'); ?></button>
@@ -232,20 +218,8 @@ if ($psc_active_year) {
         </div>
       </div>
       <div style="grid-column: 1 / -1;">
-        <label><input type="checkbox" id="psc-new-food-allergy-toggle" name="new_food_allergy" value="1"> <strong style="font-weight:600;"><?php esc_html_e('Cet enfant a une allergie alimentaire', 'periscolaire-registration'); ?></strong></label>
-        <div id="psc-new-food-allergy-field" hidden style="margin-top:10px;">
-          <textarea id="psc-new-food-allergies" name="new_food_allergies" rows="2" maxlength="1000"
-                    placeholder="<?php esc_attr_e('Aliments à exclure des repas, réaction en cas d\'ingestion, conduite à tenir.', 'periscolaire-registration'); ?>"
-                    style="width:100%;resize:vertical;border:1px solid rgba(36,64,92,0.3);background:#fff;font-size:13px;padding:8px;"></textarea>
-          <p class="psc-portal-field-help" style="font-size:11px;color:#8B8279;margin:6px 0 0;">
-            <?php esc_html_e("Strictement alimentaire. La mairie vous contactera si un PAI (projet d'accueil individualisé) doit être mis en place. Aucun menu différencié n'est proposé : l'enfant déjeune à la cantine avec son propre repas fourni par la famille.", 'periscolaire-registration'); ?>
-          </p>
-          <label class="psc-wizard-check-line" style="margin-top:10px;">
-            <input type="checkbox" id="psc-new-food-allergy-consent" name="new_food_allergy_consent">
-            <?php esc_html_e("J'autorise la mairie à traiter cette information de santé, dans le seul but d'assurer la sécurité de mon enfant sur les temps périscolaires.", 'periscolaire-registration'); ?>
-            <span class="psc-req">*</span>
-          </label>
-        </div>
+        <label><input type="checkbox" name="new_food_signal" value="1"> <strong style="font-weight:600;"><?php esc_html_e('La mairie doit échanger avec nous au sujet de l’alimentation de cet enfant', 'periscolaire-registration'); ?></strong></label>
+        <p class="psc-portal-field-help" style="font-size:11px;color:#8B8279;margin:6px 0 0;"><?php esc_html_e('Ne renseignez aucun détail médical ici. La mairie décidera ensuite, si nécessaire, du statut « cantine sans repas ».', 'periscolaire-registration'); ?></p>
       </div>
     </div>
     <button type="submit" class="psc-portal-btn-gold"><?php esc_html_e('Ajouter', 'periscolaire-registration'); ?></button>

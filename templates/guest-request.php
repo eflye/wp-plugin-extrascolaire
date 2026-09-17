@@ -155,18 +155,8 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
           </div>
 
           <div class="psc-wizard-allergy-cell" style="grid-column: 1 / -1;">
-            <label class="psc-wizard-diet-check" style="font-weight:600;"><input type="checkbox" class="psc-child-allergy-toggle" data-toggle="0" name="child_has_allergy_0" value="1"> <?php esc_html_e('Cet enfant a une allergie alimentaire', 'periscolaire-registration'); ?></label>
-            <div class="psc-child-allergy-field" data-field="0" hidden>
-              <textarea name="child_food_allergies_0" rows="2" maxlength="1000"
-                        placeholder="<?php esc_attr_e('Aliments à exclure des repas, réaction en cas d\'ingestion, conduite à tenir.', 'periscolaire-registration'); ?>"
-                        style="width:100%;resize:vertical;border:1px solid rgba(36,64,92,0.3);background:#fff;font-size:13px;padding:8px;"></textarea>
-              <p class="psc-child-allergy-help" style="font-size:11px;color:#8B8279;margin:6px 0 0;"><?php esc_html_e("Strictement alimentaire. La mairie vous contactera si un PAI (projet d'accueil individualisé) doit être mis en place. Aucun menu différencié n'est proposé : l'enfant déjeune à la cantine avec son propre repas fourni par la famille.", 'periscolaire-registration'); ?></p>
-              <label class="psc-wizard-check-line" style="margin-top:10px;">
-                <input type="checkbox" class="psc-child-allergy-consent" name="child_allergy_consent_0">
-                <?php esc_html_e("J'autorise la mairie à traiter cette information de santé, dans le seul but d'assurer la sécurité de mon enfant sur les temps périscolaires.", 'periscolaire-registration'); ?>
-                <span class="psc-req">*</span>
-              </label>
-            </div>
+            <label class="psc-wizard-diet-check" style="font-weight:600;"><input type="checkbox" name="child_food_signal_0" value="1"> <?php esc_html_e("La mairie doit échanger avec nous au sujet de l’alimentation de cet enfant", 'periscolaire-registration'); ?></label>
+            <p class="psc-child-allergy-help" style="font-size:11px;color:#8B8279;margin:6px 0 0;"><?php esc_html_e("Ne renseignez aucun détail médical ici. La mairie vous contactera oralement et décidera ensuite, si nécessaire, du statut « cantine sans repas ».", 'periscolaire-registration'); ?></p>
           </div>
 
 

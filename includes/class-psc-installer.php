@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.11.0';
+    const DB_VERSION = '4.12.0';
     const ROLES_VERSION = '1.4.0';
 
     public static function activate() {
@@ -1098,6 +1098,7 @@ CREATE TABLE $t_child (
             vegan TINYINT(1) NOT NULL DEFAULT 0,
             cantine_sans_repas TINYINT(1) NOT NULL DEFAULT 0,
             food_allergies TEXT NULL,
+            food_allergy_signal TINYINT(1) NOT NULL DEFAULT 0,
             food_allergy_consent_at DATETIME NULL,
             statut VARCHAR(20) NOT NULL DEFAULT 'actif',
             sorti_le DATETIME NULL,

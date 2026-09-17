@@ -41,9 +41,9 @@ class Psc_Email_Templates {
                 'note'    => __('Le rythme habituel de chaque enfant, les écarts à venir, l\'estimation annuelle et le lien de modification sont ajoutés automatiquement.', 'periscolaire-registration'),
             ),
             'food_allergy' => array(
-                'label'   => __('Alerte mairie — allergies alimentaires (PAI)', 'periscolaire-registration'),
+                'label'   => __('Signalement alimentation — échange à prévoir', 'periscolaire-registration'),
                 'subject' => __('[{{site}}] Allergie alimentaire déclarée — {{child}}', 'periscolaire-registration'),
-                'body'    => __("Une allergie alimentaire a été déclarée pour {{child}}. Conformément à l'engagement fait à la famille, le service périscolaire la contactera si un PAI (projet d'accueil individualisé) doit être mis en place.", 'periscolaire-registration'),
+                'body'    => __("La famille de {{child}} demande un échange oral avec le service périscolaire au sujet de l'alimentation. Merci de la contacter ; si nécessaire, activez ensuite le statut « cantine sans repas ». Aucun détail médical n'est transmis par cet e-mail.", 'periscolaire-registration'),
                 'vars'    => array('{{site}}', '{{child}}'),
                 'note'    => __('La description saisie par la famille et les coordonnées de contact sont ajoutées automatiquement.', 'periscolaire-registration'),
             ),

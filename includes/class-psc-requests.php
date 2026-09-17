@@ -159,6 +159,7 @@ class Psc_Requests {
                 // de validation mairie, ni l'approbation (fiche enfant,
                 // alerte PAI, listes intervenants) ne la voyaient plus.
                 'food_allergies'               => self::revalidate_allergies($c['food_allergies'] ?? ''),
+                'food_allergy_signal'          => !empty($c['food_allergy_signal']) ? 1 : 0,
                 // Consentement à la collecte de cette donnée de santé,
                 // horodaté à la déclaration (handle_submit) — jamais
                 // recalculé ici : une allergie sans date de consentement
@@ -346,29 +347,10 @@ class Psc_Requests {
                 exit;
             }
 
-            // Allergies alimentaires : la case précède le champ — cochée,
-            // le champ libre est requis (une allergie déclarée sans
-            // description n'est pas exploitable par la restauration). Une
-            // donnée de santé (allergie) ne peut être collectée sans un
-            // consentement explicite et distinct du règlement intérieur —
-            // la case « description » n'en tient pas lieu.
-            $has_allergy = !empty($_POST['child_has_allergy_' . $i]);
-            $allergies = null;
-            $allergy_consent_at = null;
-            if ($has_allergy) {
-                $raw_allergies = isset($_POST['child_food_allergies_' . $i]) ? wp_unslash($_POST['child_food_allergies_' . $i]) : '';
-                $raw_allergies = is_string($raw_allergies) ? trim(sanitize_textarea_field($raw_allergies)) : '';
-                if ($raw_allergies === '') {
-                    wp_safe_redirect(add_query_arg('psc_msg', 'child_allergy_required', $back));
-                    exit;
-                }
-                if (empty($_POST['child_allergy_consent_' . $i])) {
-                    wp_safe_redirect(add_query_arg('psc_msg', 'child_allergy_consent_required', $back));
-                    exit;
-                }
-                $allergies = mb_substr($raw_allergies, 0, 1000);
-                $allergy_consent_at = current_time('mysql');
-            }
+            // Signalement minimal : aucun détail médical n'est collecté.
+            // La mairie échange oralement avec la famille puis décide, sur
+            // la fiche enfant, d'activer « cantine sans repas ».
+            $food_signal = !empty($_POST['child_food_signal_' . $i]) ? 1 : 0;
 
             $children[] = array(
                 'nom'                     => mb_substr($cn, 0, 190),
@@ -377,8 +359,9 @@ class Psc_Requests {
                 'date_naissance'          => $cb ?: '',
                 'sans_porc'               => isset($_POST['child_sans_porc_' . $i]) ? 1 : 0,
                 'vegan'                   => isset($_POST['child_vegan_' . $i]) ? 1 : 0,
-                'food_allergies'          => $allergies,
-                'food_allergy_consent_at' => $allergy_consent_at,
+                'food_allergies'          => null,
+                'food_allergy_signal'     => $food_signal,
+                'food_allergy_consent_at' => null,
                 'personnes_autorisees'    => array(),
             );
         }
@@ -638,6 +621,7 @@ class Psc_Requests {
                 // sinon l'édition mairie des autres champs effacerait
                 // l'allergie déclarée par la famille.
                 'food_allergies'               => $req_children[$i]['food_allergies'] ?? '',
+                'food_allergy_signal'          => !empty($req_children[$i]['food_allergy_signal']) ? 1 : 0,
                 // Même principe : le consentement va toujours de pair avec
                 // la donnée de santé qu'il couvre, jamais avec la relecture
                 // qu'en fait la mairie.
@@ -898,6 +882,7 @@ class Psc_Requests {
                 'sans_porc'               => !empty($c['sans_porc']) ? 1 : 0,
                 'vegan'                   => !empty($c['vegan']) ? 1 : 0,
                 'food_allergies'          => !empty($c['food_allergies']) ? $c['food_allergies'] : null,
+                'food_allergy_signal'     => !empty($c['food_allergy_signal']) ? 1 : 0,
                 // Peut rester NULL pour une demande déposée avant l'ajout
                 // de cette case de consentement dédiée : on ne supprime
                 // jamais rétroactivement une allergie déjà déclarée
@@ -906,7 +891,7 @@ class Psc_Requests {
                 'food_allergy_consent_at' => !empty($c['food_allergies']) ? ($c['food_allergy_consent_at'] ?? null) : null,
                 'statut'                  => 'actif',
                 'created_at'              => current_time('mysql'),
-            ), array('%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s'));
+            ), array('%d', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%s', '%s'));
             if (false === $inserted) {
                 return $rollback(__('Création de l\'enfant impossible.', 'periscolaire-registration'));
             }
@@ -920,12 +905,12 @@ class Psc_Requests {
 
             // Allergie alimentaire déclarée à l'inscription : le service
             // périscolaire doit déclencher la prise de contact PAI.
-            if (!empty($c['food_allergies'])) {
+            if (!empty($c['food_allergy_signal'])) {
                 $parent_row = $wpdb->get_row($wpdb->prepare(
                     'SELECT * FROM ' . psc_table('parents') . ' WHERE id = %d', $parent_id
                 ));
                 if ($parent_row) {
-                    Psc_Mailer::notify_food_allergy($parent_row, $child_id, $c['food_allergies'], null);
+                    Psc_Mailer::notify_food_allergy($parent_row, $child_id, '', null);
                 }
             }
 

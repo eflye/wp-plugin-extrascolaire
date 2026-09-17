@@ -92,7 +92,7 @@ class Psc_Privacy {
         $content .= '<ul>'
             . '<li>' . esc_html__('Identité et coordonnées du ou des responsables légaux (nom, prénom, adresse, téléphone, e-mail).', 'periscolaire-registration') . '</li>'
             . '<li>' . esc_html__('Identité de l’enfant, sa classe et son année de scolarité.', 'periscolaire-registration') . '</li>'
-            . '<li>' . esc_html__('Régimes alimentaires et allergies déclarés par la famille, y compris les informations de santé strictement nécessaires à la sécurité de l’enfant sur le temps périscolaire (repas sans porc, régime végétalien, allergies alimentaires).', 'periscolaire-registration') . '</li>'
+            . '<li>' . esc_html__('Régimes alimentaires déclarés et signalement, par la famille, d’un échange à prévoir avec la mairie au sujet de l’alimentation (aucun détail médical n’est demandé dans ce parcours).', 'periscolaire-registration') . '</li>'
             . '<li>' . esc_html__('Rythme de fréquentation et présences (planning, pointage).', 'periscolaire-registration') . '</li>'
             . '<li>' . esc_html__('Personnes autorisées à récupérer l’enfant.', 'periscolaire-registration') . '</li>'
             . '<li>' . esc_html__('Justificatifs d’assurance scolaire déposés par la famille.', 'periscolaire-registration') . '</li>'
@@ -101,7 +101,7 @@ class Psc_Privacy {
             . '</ul>';
 
         $content .= '<p><strong>' . esc_html__('Pourquoi collectons-nous ces données ?', 'periscolaire-registration') . '</strong> '
-            . esc_html__('Ces informations sont nécessaires à la gestion de l’inscription, à la sécurité et au bien-être de l’enfant (notamment les allergies, qui relèvent d’une catégorie particulière de données et ne sont collectées qu’avec le consentement explicite de la famille), à l’organisation du service et à sa facturation.', 'periscolaire-registration') . '</p>';
+            . esc_html__('Ces informations sont nécessaires à la gestion de l’inscription, à l’organisation du service et à sa facturation. Le signalement alimentaire sert uniquement à déclencher un échange oral avec la mairie ; la décision opérationnelle « cantine sans repas » est ensuite prise par la mairie.', 'periscolaire-registration') . '</p>';
 
         $content .= '<p><strong>' . esc_html__('Combien de temps conservons-nous ces données ?', 'periscolaire-registration') . '</strong> '
             . esc_html__('Les données de scolarité et de santé sont conservées le temps de la relation avec le service périscolaire. Les pièces comptables (factures) sont conservées dix ans, conformément à l’obligation légale de conservation des documents comptables, même après la fin de l’inscription.', 'periscolaire-registration') . '</p>';
@@ -512,6 +512,7 @@ class Psc_Privacy {
             array('name' => __('Régime sans porc', 'periscolaire-registration'), 'value' => $child->sans_porc ? __('oui', 'periscolaire-registration') : __('non', 'periscolaire-registration')),
             array('name' => __('Régime végétalien', 'periscolaire-registration'), 'value' => $child->vegan ? __('oui', 'periscolaire-registration') : __('non', 'periscolaire-registration')),
             array('name' => __('Cantine sans repas fourni', 'periscolaire-registration'), 'value' => $child->cantine_sans_repas ? __('oui', 'periscolaire-registration') : __('non', 'periscolaire-registration')),
+            array('name' => __('Signalement alimentaire à traiter par la mairie', 'periscolaire-registration'), 'value' => !empty($child->food_allergy_signal) ? __('oui', 'periscolaire-registration') : __('non', 'periscolaire-registration')),
             array('name' => __('Allergies alimentaires déclarées', 'periscolaire-registration'), 'value' => trim((string) $child->food_allergies) !== '' ? __('Donnée de santé présente — détail non inclus dans l’export technique.', 'periscolaire-registration') : ''),
             array('name' => __('Consentement au traitement de cette allergie donné le', 'periscolaire-registration'), 'value' => (string) $child->food_allergy_consent_at),
             array('name' => __('Fiche créée le', 'periscolaire-registration'), 'value' => (string) $child->created_at),
