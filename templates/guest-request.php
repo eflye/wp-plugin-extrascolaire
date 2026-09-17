@@ -14,6 +14,7 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
   <div class="psc-guest-eyebrow"><?php esc_html_e('Première inscription', 'periscolaire-registration'); ?></div>
   <h2 class="psc-guest-h1"><?php esc_html_e('Déposer une demande', 'periscolaire-registration'); ?></h2>
   <p class="psc-guest-intro"><?php esc_html_e("Votre famille n'est pas encore connue du service périscolaire. Une fois la demande envoyée, vous recevrez un e-mail pour confirmer votre adresse, puis la mairie l'examinera avant de vous donner accès à votre espace famille.", 'periscolaire-registration'); ?></p>
+  <?php if (class_exists('Psc_Privacy')) echo Psc_Privacy::privacy_notice_html('guest'); ?>
 
   <?php if ($psc_wizard_ctx['has_error'] && !empty($psc_msg) && isset($psc_notices[$psc_msg])):
       list($psc_wm_type, $psc_wm_text) = $psc_notices[$psc_msg];

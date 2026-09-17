@@ -24,6 +24,57 @@ class Psc_Privacy {
     }
 
     /**
+     * Réglages normalisés utilisés par les points de collecte et la notice.
+     * Les valeurs par défaut sont volontairement marquées « à adapter » :
+     * elles ne constituent jamais une notice juridique prête à publier.
+     */
+    public static function privacy_settings() {
+        $settings = array(
+            'municipality' => trim((string) get_option('psc_privacy_municipality', __('Collectivité (à adapter)', 'periscolaire-registration'))),
+            'dpo_email'    => sanitize_email((string) get_option('psc_privacy_dpo_email', '')),
+            'rights_email' => sanitize_email((string) get_option('psc_privacy_rights_email', '')),
+            'policy_url'   => esc_url_raw((string) get_option('psc_privacy_policy_url', '')),
+        );
+
+        if ($settings['municipality'] === '') {
+            $settings['municipality'] = __('Collectivité (à adapter)', 'periscolaire-registration');
+        }
+        if ($settings['dpo_email'] === '') {
+            $settings['dpo_email'] = sanitize_email((string) get_option('admin_email', ''));
+        }
+        if ($settings['rights_email'] === '') {
+            $settings['rights_email'] = $settings['dpo_email'];
+        }
+
+        return apply_filters('psc_privacy_settings', $settings);
+    }
+
+    /** Notice courte, réutilisable au formulaire public et dans le portail. */
+    public static function privacy_notice_html($context = 'guest') {
+        $settings = self::privacy_settings();
+        $html = '<p class="psc-privacy-notice">'
+            . esc_html(sprintf(
+                __('Les données sont traitées par %s pour gérer les inscriptions périscolaires, la sécurité des enfants et la facturation.', 'periscolaire-registration'),
+                $settings['municipality']
+            ))
+            . '</p>';
+
+        if ($settings['policy_url'] !== '') {
+            $html .= '<p class="psc-privacy-notice-link"><a href="' . esc_url($settings['policy_url']) . '">'
+                . esc_html__('Lire la notice de confidentialité', 'periscolaire-registration')
+                . '</a></p>';
+        }
+
+        if ($settings['rights_email'] !== '') {
+            $html .= '<p class="psc-privacy-notice-contact">'
+                . esc_html__('Pour exercer vos droits :', 'periscolaire-registration') . ' '
+                . '<a href="mailto:' . esc_attr($settings['rights_email']) . '">' . esc_html($settings['rights_email']) . '</a></p>';
+        }
+
+        return apply_filters('psc_privacy_notice_html', $html, $context);
+    }
+
+    /**
      * wp_add_privacy_policy_content() n'affiche rien tant qu'un administrateur
      * n'a pas cliqué sur « Copier le texte suggéré » depuis Réglages >
      * Confidentialité : le texte reste une suggestion à relire, adapter (nom

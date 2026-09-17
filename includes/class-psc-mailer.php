@@ -339,17 +339,16 @@ class Psc_Mailer {
         $subject = Psc_Email_Templates::subject('food_allergy', array('site' => $site, 'child' => $child_name));
         $intro   = Psc_Email_Templates::body_html('food_allergy', array('site' => $site, 'child' => $child_name));
 
+        // Le détail libre est une donnée de santé : l'e-mail ne le recopie
+        // plus. L'agent ouvre la fiche protégée après authentification.
         $body = self::h2(__('Allergie alimentaire déclarée', 'periscolaire-registration'));
         $body .= '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 12px;">' . $intro . '</p>';
         $body .= self::info_box(
             '<strong>' . esc_html(__('Enfant :', 'periscolaire-registration')) . '</strong> ' . esc_html($child_name) . '<br>'
             . '<strong>' . esc_html(__('Famille :', 'periscolaire-registration')) . '</strong> ' . esc_html(trim($parent->prenom . ' ' . $parent->nom)) . ' — ' . esc_html($parent->email) . '<br>'
             . '<strong>' . esc_html(__('Classe :', 'periscolaire-registration')) . '</strong> ' . esc_html($child ? Psc_School_Years::classe_for($child->id) : '—') . '<br>'
-            . '<strong>' . esc_html(__('Description saisie :', 'periscolaire-registration')) . '</strong><br>' . nl2br(esc_html($allergies))
+            . esc_html(__('Une information de santé a été ajoutée ou modifiée. Consultez la fiche enfant dans le backoffice pour lire le détail après authentification.', 'periscolaire-registration'))
         );
-        if ($previous !== null && $previous !== '') {
-            $body .= self::p(__('Description précédemment enregistrée : ', 'periscolaire-registration') . '« ' . $previous . ' »');
-        }
         $body .= self::warning_box(
             __('Rappel de la promesse de service : ', 'periscolaire-registration')
             . __('la mairie prend l\'initiative du contact, et aucun menu différencié n\'est proposé — l\'enfant déjeune à la cantine avec son propre repas fourni par la famille.', 'periscolaire-registration')

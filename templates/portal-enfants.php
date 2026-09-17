@@ -1,6 +1,7 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="psc-portal-eyebrow"><?php esc_html_e('Famille', 'periscolaire-registration'); ?></div>
 <h1 class="psc-portal-h1" data-testid="enfants-title"><?php esc_html_e('Mes enfants', 'periscolaire-registration'); ?></h1>
+<?php if (class_exists('Psc_Privacy')) echo Psc_Privacy::privacy_notice_html('family'); ?>
 
 <?php if (!empty($all_children)): ?>
 <div class="psc-portal-table-scroll">
