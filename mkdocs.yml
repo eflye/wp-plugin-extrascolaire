@@ -66,5 +66,6 @@ nav:
   - Données personnelles (RGPD): rgpd.md
   - Installation & maintenance:
       - Prérequis: installation/prerequis.md
+      - Installation et activation: installation/installation-activation.md
   - Glossaire: glossaire.md
   - Contribuer à la documentation: contribuer.md
