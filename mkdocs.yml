@@ -64,5 +64,7 @@ nav:
       - Campagne de réinscription: cycle-annuel/reinscription.md
       - Passage de classe: cycle-annuel/passage-de-classe.md
   - Données personnelles (RGPD): rgpd.md
+  - Installation & maintenance:
+      - Prérequis: installation/prerequis.md
   - Glossaire: glossaire.md
   - Contribuer à la documentation: contribuer.md
