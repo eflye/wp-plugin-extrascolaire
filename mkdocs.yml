@@ -70,5 +70,6 @@ nav:
       - Envoi des e-mails (SMTP): installation/emails-smtp.md
       - Tâches planifiées: installation/taches-planifiees.md
       - Sauvegarde et mise à jour: installation/sauvegarde-mise-a-jour.md
+      - Dépannage et FAQ: installation/depannage-faq.md
   - Glossaire: glossaire.md
   - Contribuer à la documentation: contribuer.md
