@@ -156,7 +156,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Avancement technique :** le signalement est minimal et la notification ne contient aucun détail médical. Le statut « cantine sans repas » n’est jamais activé automatiquement par la famille.
 
-**Acceptation :** circuit PAI, habilitations et conservation validés ; collecte minimale ; aucun consentement « global RGPD » ajouté par défaut comme solution universelle. L’exigence HDS éventuelle dépend du contexte juridique réel et doit être examinée, pas déduite du seul champ allergies. Référence : [RGPD, articles 5, 6 et 9](https://www.cnil.fr/fr/reglement-europeen-protection-donnees/chapitre2). **DPO + métier + développement ; L.**
+**Acceptation :** signalement sans détail, échange oral réalisé, décision mairie tracée par l’activation éventuelle de `cantine_sans_repas`, et durée des anciennes données historiques arbitrée. Aucun consentement « global RGPD » n’est ajouté par défaut. La qualification juridique des anciennes données éventuellement conservées reste à valider par le DPO ; elle ne doit pas être déduite du nouveau signalement minimal. Référence : [RGPD, articles 5, 6 et 9](https://www.cnil.fr/fr/reglement-europeen-protection-donnees/chapitre2). **DPO + métier + développement ; L.**
 
 ### P1-07 — PARTIELLEMENT AVANCÉ — Compléter l’information des familles et des tiers
 
