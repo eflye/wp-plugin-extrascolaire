@@ -130,7 +130,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 - [ ] **Valider l’inaccessibilité HTTP des documents, des journaux et des anciens emplacements.**
 
-**Constaté / conditionnel :** `includes/helpers/files.php:31` choisit par défaut `wp-content/psc-private`, donc **sous la racine web**, malgré certains commentaires « hors racine ». Les protections `.htaccess`/`web.config` existent, ainsi qu’un témoin et une alerte d’administration ; nginx ne lit pas `.htaccess`. Sur le laptop Apache, le témoin est bien refusé (403). Cela ne prouve rien pour l’hébergement distant.
+**Avancement technique :** le défaut vise désormais le parent de `ABSPATH`, donc un répertoire hors racine HTTP ; un repli vers `uploads/psc-private` reste possible uniquement si ce parent n’est pas inscriptible, avec protections `.htaccess`/`web.config`, témoin et alerte d’administration. La validation HTTP effective sur l’hébergement distant reste manuelle.
 
 **À faire :** privilégier `PSC_PRIVATE_DIR` hors racine web quand l’hébergement le permet ; sinon règle serveur explicite vérifiée. Contrôler chemins historiques, sauvegardes, prévisualisations et accès direct aux noms prévisibles. Rendre les échecs de création des protections détectables ; vérifier la détermination d’URL pour les emplacements personnalisés.
 

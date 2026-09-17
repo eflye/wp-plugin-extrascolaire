@@ -40,10 +40,15 @@ function psc_private_dir() {
         return apply_filters('psc_private_dir', rtrim(PSC_PRIVATE_DIR, '/\\'));
     }
 
-    $dir = WP_CONTENT_DIR . '/psc-private';
+    // Défaut hors racine HTTP : ABSPATH pointe sur la racine WordPress,
+    // son parent est donc inatteignable par une URL même si le serveur
+    // ignore les fichiers .htaccess.
+    $dir = dirname(rtrim(ABSPATH, '/\\')) . '/psc-private';
 
-    // Repli : wp-content/ non inscriptible et dossier pas déjà créé.
-    if (!is_dir($dir) && !wp_is_writable(WP_CONTENT_DIR)) {
+    // Repli : le parent hors racine n'est pas inscriptible. Dans ce cas,
+    // uploads/ reste acceptable uniquement avec les garde-fous serveur et
+    // l'alerte d'administration qui vérifie l'accès HTTP.
+    if (!is_dir($dir) && !wp_is_writable(dirname($dir))) {
         $upload = wp_upload_dir();
         $dir = trailingslashit($upload['basedir']) . 'psc-private';
     }
