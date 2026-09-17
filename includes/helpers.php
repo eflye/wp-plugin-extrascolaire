@@ -35,6 +35,7 @@ foreach (array(
     'settings',
     'admin-ui',
     'audit',
+    'retention',
 ) as $psc_helper) {
     require_once PSC_PATH . 'includes/helpers/' . $psc_helper . '.php';
 }

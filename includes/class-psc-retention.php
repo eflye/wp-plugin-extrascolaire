@@ -18,6 +18,32 @@ if (!defined('ABSPATH')) exit;
  */
 class Psc_Retention {
 
+    /** Exécute le registre en simulation par défaut, sans mutation implicite. */
+    public static function run($mode = 'simulation', $now = null) {
+        $mode = $mode === 'execution' ? 'execution' : 'simulation';
+        $now = $now === null ? time() : (int) $now;
+        $report = array('mode' => $mode, 'categories' => array(), 'examined' => 0, 'removed' => 0, 'retained' => 0, 'errors' => array(), 'next_run' => gmdate('c', $now + DAY_IN_SECONDS));
+
+        foreach (psc_retention_policies() as $key => $policy) {
+            $entry = array('key' => $key, 'label' => $policy['label'], 'examined' => 0, 'removed' => 0, 'retained' => 0, 'status' => 'retenu', 'reason' => 'durée non validée');
+            if ($key === 'departed_children') {
+                $entry['examined'] = self::count_departed_children($now);
+                $entry['status'] = $mode === 'execution' ? 'exécuté' : 'simulation';
+                $entry['reason'] = $mode === 'execution' ? 'purge des fiches sorties' : 'aucune écriture en mode simulation';
+                if ($mode === 'execution' && $entry['examined'] > 0) {
+                    $entry['removed'] = self::purge_departed_children($now);
+                }
+            } else {
+                $entry['retained'] = $entry['examined'];
+            }
+            $report['categories'][] = $entry;
+            $report['examined'] += $entry['examined'];
+            $report['removed'] += $entry['removed'];
+            $report['retained'] += $entry['retained'];
+        }
+        return $report;
+    }
+
     public static function init() {
         add_action('psc_purge_departed_children', array(__CLASS__, 'purge_departed_children'));
         self::ensure_crons();
@@ -38,10 +64,11 @@ class Psc_Retention {
      * une fratrie encore active, ou des factures à conserver, peuvent y être
      * rattachées.
      */
-    public static function purge_departed_children() {
+    public static function purge_departed_children($now = null) {
         global $wpdb;
         $retention_days = max(1, (int) apply_filters('psc_children_retention_days', 400));
-        $cutoff = gmdate('Y-m-d H:i:s', current_time('timestamp') - $retention_days * DAY_IN_SECONDS);
+        $now = $now === null ? current_time('timestamp') : (int) $now;
+        $cutoff = gmdate('Y-m-d H:i:s', $now - $retention_days * DAY_IN_SECONDS);
 
         $rows = $wpdb->get_results($wpdb->prepare(
             'SELECT id, parent_id, nom, prenom FROM ' . psc_table('children') . "
@@ -66,5 +93,15 @@ class Psc_Retention {
         }
 
         return count($rows);
+    }
+
+    private static function count_departed_children($now) {
+        global $wpdb;
+        $retention_days = max(1, (int) apply_filters('psc_children_retention_days', 400));
+        $cutoff = gmdate('Y-m-d H:i:s', (int) $now - $retention_days * DAY_IN_SECONDS);
+        return (int) $wpdb->get_var($wpdb->prepare(
+            'SELECT COUNT(*) FROM ' . psc_table('children') . " WHERE statut = 'sorti' AND sorti_le IS NOT NULL AND sorti_le < %s",
+            $cutoff
+        ));
     }
 }
