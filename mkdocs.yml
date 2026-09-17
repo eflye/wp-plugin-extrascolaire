@@ -59,5 +59,6 @@ nav:
       - Personnes autorisées: gestion-quotidienne/personnes-autorisees.md
   - Facturation:
       - Factures PDF: facturation/factures-pdf.md
+      - Mandats SEPA: facturation/mandats-sepa.md
   - Glossaire: glossaire.md
   - Contribuer à la documentation: contribuer.md
