@@ -69,5 +69,6 @@ nav:
       - Installation et activation: installation/installation-activation.md
       - Envoi des e-mails (SMTP): installation/emails-smtp.md
       - Tâches planifiées: installation/taches-planifiees.md
+      - Sauvegarde et mise à jour: installation/sauvegarde-mise-a-jour.md
   - Glossaire: glossaire.md
   - Contribuer à la documentation: contribuer.md
