@@ -49,5 +49,6 @@ nav:
       - Calendrier et vacances: configuration/calendrier-vacances.md
       - Services et tarifs: configuration/services-tarifs.md
       - Régimes alimentaires: configuration/regimes-alimentaires.md
+      - Modèles d'e-mails: configuration/modeles-emails.md
   - Glossaire: glossaire.md
   - Contribuer à la documentation: contribuer.md
