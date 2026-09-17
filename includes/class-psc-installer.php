@@ -81,6 +81,13 @@ class Psc_Installer {
      * de fichiers (cas fréquent : le hook d'activation n'est pas rejoué).
      */
     public static function maybe_upgrade() {
+        // Verrou inter-processus : deux requêtes simultanées (ou cron +
+        // admin) ne doivent pas déplacer les mêmes fichiers ni exécuter les
+        // DDL en concurrence. Un verrou abandonné est repris après 10 min.
+        $lock = (int) get_option('psc_migration_lock', 0);
+        if ($lock && (time() - $lock) < 600) return;
+        update_option('psc_migration_lock', time(), false);
+
         $roles_current = get_option('psc_roles_version');
         if ($roles_current !== self::ROLES_VERSION) {
             self::sync_roles();
@@ -137,16 +144,17 @@ class Psc_Installer {
             // verrouille ce cas en intégration continue).
             self::create_tables();
 
-            if (!self::remove_pickup_identity_data()) return;
-            update_option('psc_db_version', self::DB_VERSION);
+            if (self::remove_pickup_identity_data()) {
+                update_option('psc_db_version', self::DB_VERSION);
 
-            if (class_exists('Psc_Audit')) {
-                Psc_Audit::log('systeme.montee_de_version', array(
+                if (class_exists('Psc_Audit')) {
+                    Psc_Audit::log('systeme.montee_de_version', array(
                     'objet_type' => 'reglage',
                     'meta' => array('ancienne_version' => $current ?: null, 'nouvelle_version' => self::DB_VERSION),
                     'resume' => sprintf(__('Schéma de la base mis à jour (%s → %s).', 'periscolaire-registration'), $current ?: '—', self::DB_VERSION),
                     'acteur' => array('type' => 'systeme', 'id' => null, 'libelle' => 'mise-a-jour-plugin', 'pour_le_compte_de' => null),
-                ));
+                    ));
+                }
             }
         }
 
@@ -167,6 +175,7 @@ class Psc_Installer {
         if (is_admin()) {
             self::store_constraints_state();
         }
+        delete_option('psc_migration_lock');
     }
 
     /**

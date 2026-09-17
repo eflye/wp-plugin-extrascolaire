@@ -264,13 +264,13 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** changer un tarif, sortir un enfant ou modifier son flag en octobre n’altère pas une facture de septembre déjà émise ; correction identifiable et archive conservée selon la politique validée. La qualification comptable exacte du PDF doit être confirmée par la mairie. **Développement + facturation/archives ; L.**
 
-### P1-17 — Sécuriser les migrations et déplacements du stockage
+### P1-17 — PARTIELLEMENT AVANCÉ — Sécuriser les migrations et déplacements du stockage
 
 - [ ] **N’enregistrer une migration comme réussie qu’après vérification complète.**
 
 **Constaté :** `class-psc-installer.php:46` lance les migrations au chargement et enregistre `psc_db_version` sans bilan de tous les retours SQL. Aucun verrou global de migration n’est visible. `move_tree():569` ignore les erreurs de déplacement et supprime la source lorsqu’un nom existe déjà à destination sans vérifier que les contenus sont identiques. `sync_private_dir():140` mémorise ensuite le nouveau chemin.
 
-**À faire :** verrou, étapes idempotentes, journal technique sans données métier, contrôles de postconditions, reprise explicite ; en déplacement, vérifier les contenus avant suppression et conserver les sources en échec. Les DDL MySQL ne doivent pas être traités comme entièrement annulables par une simple transaction.
+**Avancement technique :** un verrou d’exécution avec reprise après expiration empêche désormais les migrations concurrentes. Les migrations restent idempotentes et la version n’avance pas si le nettoyage préalable échoue ; les contrôles de contenu lors des conflits de fichiers et la recette interruption/reprise restent à compléter.
 
 **Acceptation :** migrations ancienne version → actuelle avec interruption/permission refusée/conflit de fichier ; aucun document perdu, version non avancée à tort, reprise vérifiable. **Développement + exploitation ; L.**
 
