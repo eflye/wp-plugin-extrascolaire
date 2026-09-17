@@ -43,5 +43,6 @@ markdown_extensions:
 
 nav:
   - Accueil: index.md
+  - Démarrage rapide: demarrage-rapide.md
   - Glossaire: glossaire.md
   - Contribuer à la documentation: contribuer.md
