@@ -6,11 +6,10 @@ if (!defined('ABSPATH')) exit;
  * WordPress) pour les intervenants sur le terrain (garderie/cantine) :
  * qui est attendu aujourd'hui/cette semaine, par service, avec pointage
  * de présence réelle. Protégée par un code d'accès unique configuré en
- * Réglages (psc_sidscm_access_code) — pas d'authentification WordPress,
- * volontairement léger, mais le code est revérifié côté serveur à
- * chaque appel AJAX (rien n'est jamais envoyé au navigateur avant
- * vérification, contrairement à une simple bascule d'affichage
- * côté client).
+ * Registre serveur d'identités individuelles (psc_sidscm_intervenants) —
+ * pas d'authentification WordPress, mais un code propre à chaque personne,
+ * révocable et expirant. Un jeton opaque éphémère est conservé uniquement
+ * en mémoire JavaScript puis revérifié côté serveur à chaque appel AJAX.
  *
  * Les enfants attendus viennent des inscriptions réelles déjà
  * enregistrées (wp_psc_registrations) — aucune nouvelle saisie de
@@ -22,6 +21,9 @@ if (!defined('ABSPATH')) exit;
  * et l'onglet Garderie soir l'heure de départ (departure_time).
  */
 class Psc_Sidscm {
+
+    const SESSION_TTL = 28800;
+    private static $request_actor = null;
 
 
     public static function init() {
@@ -142,6 +144,7 @@ class Psc_Sidscm {
             // Transmise plutôt que redéclarée côté navigateur : la liste des
             // prestations élémentaires n'a qu'une seule source (psc_unit_services()).
             'services' => psc_unit_services(),
+            'intervenants' => self::public_intervenants(),
             // Libellés affichés par sidscm.js (vues Jour et Semaine) :
             // traduits côté serveur, codes et attributs techniques restent bruts.
             'i18n'     => array(
@@ -161,7 +164,75 @@ class Psc_Sidscm {
         ));
     }
 
-    /* ---------------- Code d'accès ---------------- */
+    /* ---------------- Identités et code d'accès ---------------- */
+
+    public static function intervenants() {
+        $rows = get_option('psc_sidscm_intervenants', array());
+        return is_array($rows) ? array_values(array_filter($rows, function ($row) {
+            return is_array($row) && !empty($row['id']) && !empty($row['nom']);
+        })) : array();
+    }
+
+    public static function public_intervenants() {
+        return array_values(array_map(function ($row) {
+            return array('id' => (string) $row['id'], 'nom' => (string) $row['nom']);
+        }, array_filter(self::intervenants(), function ($row) {
+            return !empty($row['active']) && empty($row['revoked_at']) && (empty($row['expires_at']) || $row['expires_at'] >= current_time('Y-m-d'));
+        })));
+    }
+
+    public static function sanitize_intervenants($raw) {
+        $out = array();
+        foreach (is_array($raw) ? $raw : array() as $row) {
+            if (!is_array($row)) continue;
+            $nom = sanitize_text_field($row['nom'] ?? '');
+            $id = sanitize_key($row['id'] ?? '');
+            $code = trim(sanitize_text_field($row['code'] ?? ''));
+            if ($nom === '') continue;
+            if ($id === '') $id = sanitize_key(substr(md5($nom . wp_generate_uuid4()), 0, 12));
+            $old = null;
+            foreach (self::intervenants() as $candidate) if ((string) $candidate['id'] === $id) { $old = $candidate; break; }
+            $hash = $code !== '' ? wp_hash_password($code) : (!empty($old['code_hash']) ? $old['code_hash'] : '');
+            if ($hash === '') continue;
+            $out[] = array(
+                'id' => $id, 'nom' => mb_substr($nom, 0, 120), 'code_hash' => $hash,
+                'active' => !empty($row['active']) ? 1 : 0,
+                'expires_at' => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($row['expires_at'] ?? '')) ? (string) $row['expires_at'] : '',
+                'revoked_at' => !empty($row['revoked_at']) ? sanitize_text_field($row['revoked_at']) : '',
+                'created_at' => !empty($old['created_at']) ? $old['created_at'] : current_time('mysql'),
+            );
+        }
+        return $out;
+    }
+
+    private static function session_key($token) { return 'psc_sidscm_session_' . hash('sha256', (string) $token); }
+
+    public static function current_intervenant() { return self::$request_actor; }
+
+    private static function authenticate($token, $id, $code) {
+        if ($token !== '') {
+            $actor = get_transient(self::session_key($token));
+            if (is_array($actor) && !empty($actor['id'])) { set_transient(self::session_key($token), $actor, self::SESSION_TTL); self::$request_actor = $actor; return $actor; }
+        }
+        $rows = self::intervenants();
+        foreach ($rows as $row) {
+            if (empty($row['active']) || !empty($row['revoked_at']) || ($row['expires_at'] !== '' && $row['expires_at'] < current_time('Y-m-d'))) continue;
+            if ($id !== '' && (string) $row['id'] !== $id) continue;
+            if (!empty($row['code_hash']) && wp_check_password($code, $row['code_hash'])) {
+                $actor = array('id' => (string) $row['id'], 'nom' => (string) $row['nom']);
+                self::$request_actor = $actor;
+                return $actor;
+            }
+        }
+        // Migration fallback: the legacy shared code is accepted only until
+        // the first individual identity is configured.
+        if (!$rows && self::code_valid($code)) {
+            $actor = array('id' => null, 'nom' => __('écran intervenants (ancien code partagé)', 'periscolaire-registration'));
+            self::$request_actor = $actor;
+            return $actor;
+        }
+        return false;
+    }
 
     /**
      * Aucun code configuré = accès désactivé pour tout le monde (pas de
@@ -180,7 +251,7 @@ class Psc_Sidscm {
      * dans le plugin — une seule vérité sur ce qui authentifie cet écran.
      */
     public static function is_authenticated_request() {
-        return self::code_valid(psc_post('code'));
+        return (bool) self::authenticate((string) psc_post('session_token'), sanitize_key((string) psc_post('intervenant_id')), (string) psc_post('code'));
     }
 
     /**
@@ -199,7 +270,8 @@ class Psc_Sidscm {
      * rafale de pointage ne peut pas s'y faire bloquer.
      */
     protected static function require_code() {
-        if (self::code_valid(psc_post('code'))) return;
+        $actor = self::authenticate((string) psc_post('session_token'), sanitize_key((string) psc_post('intervenant_id')), (string) psc_post('code'));
+        if ($actor) return $actor;
 
         if (!psc_rate_limit_by_ip('sidscm_bad_', 20, HOUR_IN_SECONDS)) {
             wp_send_json_error(array('code' => 'rate'), 429);
@@ -256,7 +328,8 @@ class Psc_Sidscm {
             wp_send_json_error(array('code' => 'rate'), 429);
         }
 
-        if (!self::code_valid(psc_post('code'))) {
+        $actor = self::authenticate('', sanitize_key((string) psc_post('intervenant_id')), (string) psc_post('code'));
+        if (!$actor) {
             // Les échecs de déverrouillage comptent aussi dans le seau
             // partagé des mauvais codes (cf. require_code()) : 20 essais
             // ratés par heure et par IP, sur l'ensemble des endpoints.
@@ -267,8 +340,10 @@ class Psc_Sidscm {
             wp_send_json_error(array('code' => 'bad_code'), 403);
         }
 
-        Psc_Audit::log('intervenant.deverrouillage', array('resume' => __('Écran intervenants déverrouillé.', 'periscolaire-registration')));
-        wp_send_json_success();
+        $token = wp_generate_password(48, false, false);
+        set_transient(self::session_key($token), $actor, self::SESSION_TTL);
+        Psc_Audit::log('intervenant.deverrouillage', array('acteur' => array('type' => 'intervenant', 'id' => $actor['id'], 'libelle' => $actor['nom'], 'pour_le_compte_de' => null), 'resume' => __('Écran intervenants déverrouillé.', 'periscolaire-registration')));
+        wp_send_json_success(array('session_token' => $token, 'intervenant' => $actor));
     }
 
     /* ---------------- Données : semaine en cours ---------------- */

@@ -389,6 +389,27 @@ $doc_rp_id = (int) get_option('psc_doc_reglement_prelevement_id', 0);
   </p>
 </td>
 </tr>
+<tr>
+<th scope="row"><?php esc_html_e('Identités intervenantes', 'periscolaire-registration'); ?></th>
+<td>
+  <p class="description"><?php esc_html_e('Chaque intervenant dispose d’un identifiant et d’un code individuel. Laisser le code vide conserve le code existant ; décocher désactive l’accès. Dès qu’une identité est enregistrée, l’ancien code partagé n’est plus accepté.', 'periscolaire-registration'); ?></p>
+  <?php $psc_intervenants = class_exists('Psc_Sidscm') ? Psc_Sidscm::intervenants() : array(); foreach ($psc_intervenants as $i => $intervenant): ?>
+    <p style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input type="hidden" name="sidscm_intervenants[<?php echo (int) $i; ?>][id]" value="<?php echo esc_attr($intervenant['id']); ?>">
+      <input type="text" name="sidscm_intervenants[<?php echo (int) $i; ?>][nom]" value="<?php echo esc_attr($intervenant['nom']); ?>" placeholder="<?php esc_attr_e('Nom', 'periscolaire-registration'); ?>" maxlength="120">
+      <input type="password" name="sidscm_intervenants[<?php echo (int) $i; ?>][code]" value="" placeholder="<?php esc_attr_e('Nouveau code (facultatif)', 'periscolaire-registration'); ?>" autocomplete="new-password">
+      <input type="date" name="sidscm_intervenants[<?php echo (int) $i; ?>][expires_at]" value="<?php echo esc_attr($intervenant['expires_at'] ?? ''); ?>" aria-label="<?php esc_attr_e('Expiration', 'periscolaire-registration'); ?>">
+      <label><input type="checkbox" name="sidscm_intervenants[<?php echo (int) $i; ?>][active]" value="1" <?php checked(!empty($intervenant['active'])); ?>> <?php esc_html_e('Actif', 'periscolaire-registration'); ?></label>
+    </p>
+  <?php endforeach; $new_index = count($psc_intervenants); ?>
+  <p style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <input type="text" name="sidscm_intervenants[<?php echo (int) $new_index; ?>][nom]" value="" placeholder="<?php esc_attr_e('Nouvel intervenant', 'periscolaire-registration'); ?>" maxlength="120">
+    <input type="password" name="sidscm_intervenants[<?php echo (int) $new_index; ?>][code]" value="" placeholder="<?php esc_attr_e('Code individuel', 'periscolaire-registration'); ?>" autocomplete="new-password">
+    <input type="date" name="sidscm_intervenants[<?php echo (int) $new_index; ?>][expires_at]" value="" aria-label="<?php esc_attr_e('Expiration', 'periscolaire-registration'); ?>">
+    <label><input type="checkbox" name="sidscm_intervenants[<?php echo (int) $new_index; ?>][active]" value="1" checked> <?php esc_html_e('Actif', 'periscolaire-registration'); ?></label>
+  </p>
+</td>
+</tr>
 </table>
 
 <?php submit_button(__('Enregistrer', 'periscolaire-registration')); ?>

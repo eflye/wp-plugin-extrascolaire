@@ -16,6 +16,8 @@
 
     var state = {
         code: '',
+        sessionToken: '',
+        intervenantId: '',
         viewMode: 'day',
         week: null,
         currentWeek: null,
@@ -66,7 +68,9 @@
             // Psc_Sidscm::code_valid) : toujours envoyé depuis l'état courant,
             // sauf si l'appelant fournit le sien explicitement (unlock, avant
             // que state.code ne soit renseigné).
-            code: state.code
+            code: state.code,
+            session_token: state.sessionToken,
+            intervenant_id: state.intervenantId
         };
         Object.keys(params || {}).forEach(function (k) { all[k] = params[k]; });
         return window.PscAjax.data(PSC_SIDSCM.ajax_url, all);
@@ -85,8 +89,10 @@
     }
 
     function unlock(code, silent) {
-        return ajax('psc_sidscm_unlock', { code: code }).then(function () {
-            state.code = code;
+        return ajax('psc_sidscm_unlock', { code: code, intervenant_id: els.intervenantId ? els.intervenantId.value : '' }).then(function (data) {
+            state.code = '';
+            state.sessionToken = data.session_token || '';
+            state.intervenantId = data.intervenant ? data.intervenant.id : '';
             els.codeError.hidden = true;
             return fetchData().then(showApp);
         }).catch(function () {
@@ -98,6 +104,8 @@
 
     function lock() {
         state.code = '';
+        state.sessionToken = '';
+        state.intervenantId = '';
         els.codeInput.value = '';
         showLock();
     }
@@ -460,6 +468,7 @@
         els.app = document.getElementById('psc-sidscm-app');
         els.codeForm = document.getElementById('psc-sidscm-code-form');
         els.codeInput = document.getElementById('psc-sidscm-code-input');
+        els.intervenantId = document.getElementById('psc-sidscm-intervenant-id');
         els.codeError = document.getElementById('psc-sidscm-code-error');
         els.modeDay = document.getElementById('psc-sidscm-mode-day');
         els.modeWeek = document.getElementById('psc-sidscm-mode-week');
@@ -471,7 +480,7 @@
         els.codeForm.addEventListener('submit', function (e) {
             e.preventDefault();
             var code = els.codeInput.value.trim();
-            if (!code) return;
+            if (!code || (els.intervenantId && !els.intervenantId.value)) return;
             unlock(code, false);
         });
 

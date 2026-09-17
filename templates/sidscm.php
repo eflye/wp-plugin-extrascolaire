@@ -17,8 +17,15 @@
         <div class="psc-sidscm-lock-card">
           <div class="psc-sidscm-eyebrow"><?php esc_html_e('SIDSCM · Montgeroult', 'periscolaire-registration'); ?></div>
           <h1 class="psc-sidscm-lock-title"><?php esc_html_e('Accès intervenants', 'periscolaire-registration'); ?></h1>
-          <p class="psc-sidscm-lock-intro"><?php esc_html_e('Saisissez le code communiqué par la mairie pour consulter les listes des enfants attendus.', 'periscolaire-registration'); ?></p>
+          <p class="psc-sidscm-lock-intro"><?php esc_html_e('Sélectionnez votre identité puis saisissez le code communiqué par la mairie pour consulter les listes des enfants attendus.', 'periscolaire-registration'); ?></p>
           <form id="psc-sidscm-code-form" data-testid="sidscm-code-form">
+            <?php if (class_exists('Psc_Sidscm') && Psc_Sidscm::public_intervenants()): ?>
+            <label class="screen-reader-text" for="psc-sidscm-intervenant-id"><?php esc_html_e('Intervenant', 'periscolaire-registration'); ?></label>
+            <select id="psc-sidscm-intervenant-id" class="psc-sidscm-code-input" data-testid="sidscm-intervenant-id" required>
+              <option value=""><?php esc_html_e('Choisir votre identité', 'periscolaire-registration'); ?></option>
+              <?php foreach (Psc_Sidscm::public_intervenants() as $intervenant): ?><option value="<?php echo esc_attr($intervenant['id']); ?>"><?php echo esc_html($intervenant['nom']); ?></option><?php endforeach; ?>
+            </select>
+            <?php endif; ?>
             <label class="screen-reader-text" for="psc-sidscm-code-input"><?php esc_html_e('Code d\'accès', 'periscolaire-registration'); ?></label>
             <input type="text" id="psc-sidscm-code-input" class="psc-sidscm-code-input" placeholder="<?php esc_attr_e('Code d\'accès', 'periscolaire-registration'); ?>" autocomplete="off" data-testid="sidscm-code-input">
             <p class="psc-sidscm-code-error" id="psc-sidscm-code-error" hidden data-testid="sidscm-code-error"><?php esc_html_e('Code incorrect. Réessayez.', 'periscolaire-registration'); ?></p>

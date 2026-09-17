@@ -98,9 +98,9 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 ### P1-01 — Remplacer le secret partagé des intervenants SIDSCM
 
-- [ ] **Mettre en place des accès intervenants individuels, limités et révocables.**
+- [x] **Mettre en place des accès intervenants individuels, limités et révocables.**
 
-**Constaté :** `includes/class-psc-sidscm.php:154` vérifie un code commun, stocké dans une option WordPress ; `assets/js/sidscm.js:92` le conserve dans `localStorage` et le renvoie aux requêtes. Aucun minimum de robustesse n’est imposé à l’enregistrement (`class-psc-admin-config.php:43`). Ce secret ouvre les listes nominatives, allergies et coordonnées de tiers, ainsi que le pointage. La limitation par IP existe, mais ne permet ni révocation individuelle ni attribution des actions.
+**Réalisé côté développement :** registre serveur `psc_sidscm_intervenants` (code haché, actif/révoqué, date d’expiration), jeton de session opaque à durée limitée et conservé uniquement en mémoire JavaScript, choix d’identité dans l’écran public, et auteur individuel dans l’audit. Le code partagé reste uniquement un mode de migration tant qu’aucune identité n’est enregistrée. La validation métier du périmètre d’accès et le choix éventuel d’une authentification renforcée restent manuels (mairie/DPO).
 
 **À faire :** comptes ou invitations nominatifs avec session serveur expirante ; permissions par fonction/périmètre ; verrouillage des postes partagés ; journalisation de l’auteur. Réserver les données sanitaires aux personnes qui en ont besoin. Évaluer l’authentification renforcée selon l’AIPD, notamment pour les accès privilégiés.
 
@@ -108,9 +108,9 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 ### P1-02 — Réduire les droits accordés par défaut aux éditeurs WordPress
 
-- [ ] **Créer une matrice d’habilitations mairie, facturation et données sanitaires.**
+- [x] **Créer une matrice d’habilitations mairie, facturation et données sanitaires.**
 
-**Constaté :** `includes/helpers/core.php:37` attribue par défaut la capacité globale aux administrateurs **et aux éditeurs**. `Psc_Installer::sync_roles()` l’ajoute sans la retirer. La même capacité ouvre les familles, pièces, réglages, exports et suppressions.
+**Réalisé côté développement :** capacités métier cumulables (`familles`, `présences`, `facturation`, `messages`, `configuration`, `données sanitaires`, `audit`), contrôlées par les gardes serveur et éditables individuellement sur le profil WordPress. La capacité globale est retirée du rôle éditeur lors de la synchronisation. L’inventaire des comptes existants et la revue périodique des habilitations restent des étapes manuelles d’administration.
 
 **À faire :** droits distincts et attribution explicite ; migration des capacités déjà accordées ; revue régulière des comptes. Sur le serveur distant, inventorier qui possède effectivement ces droits avant de les modifier.
 

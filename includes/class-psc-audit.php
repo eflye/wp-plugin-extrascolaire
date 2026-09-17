@@ -271,10 +271,11 @@ class Psc_Audit {
             }
         }
 
-        // Écran intervenants : code partagé, aucune identité individuelle
-        // n'est disponible — ne pas en inventer une.
+        // Écran intervenants : l'identité est issue du registre serveur et
+        // de la session éphémère (jamais d'un libellé fourni par le client).
         if (class_exists('Psc_Sidscm') && method_exists('Psc_Sidscm', 'is_authenticated_request') && Psc_Sidscm::is_authenticated_request()) {
-            return array('type' => 'intervenant', 'id' => null, 'libelle' => __('écran intervenants', 'periscolaire-registration'), 'pour_le_compte_de' => null);
+            $intervenant = method_exists('Psc_Sidscm', 'current_intervenant') ? Psc_Sidscm::current_intervenant() : null;
+            return array('type' => 'intervenant', 'id' => $intervenant['id'] ?? null, 'libelle' => $intervenant['nom'] ?? __('écran intervenants', 'periscolaire-registration'), 'pour_le_compte_de' => null);
         }
 
         return array('type' => 'public', 'id' => null, 'libelle' => __('visiteur non identifié', 'periscolaire-registration'), 'pour_le_compte_de' => null);

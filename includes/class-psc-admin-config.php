@@ -56,6 +56,10 @@ class Psc_Admin_Config extends Psc_Admin_Base {
 
         $sidscm_code = isset($_POST['sidscm_access_code']) ? sanitize_text_field(wp_unslash($_POST['sidscm_access_code'])) : '';
         update_option('psc_sidscm_access_code', mb_substr(trim($sidscm_code), 0, 40));
+        if (class_exists('Psc_Sidscm')) {
+            $rows = isset($_POST['sidscm_intervenants']) && is_array($_POST['sidscm_intervenants']) ? wp_unslash($_POST['sidscm_intervenants']) : array();
+            update_option('psc_sidscm_intervenants', Psc_Sidscm::sanitize_intervenants($rows));
+        }
         update_option('psc_sidscm_page_id', psc_post_int('sidscm_page_id', 0));
 
         $mairie_mail = isset($_POST['mairie_email']) ? sanitize_email(wp_unslash($_POST['mairie_email'])) : '';
