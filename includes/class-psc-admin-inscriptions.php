@@ -233,7 +233,7 @@ class Psc_Admin_Inscriptions extends Psc_Admin_Base {
         ), ';');
         foreach ($children as $row) {
             foreach ($dates as $date) {
-                foreach (psc_billing_services(isset($declared[$row->id][$date]) ? $declared[$row->id][$date] : array()) as $svc) {
+                foreach (psc_billing_services(isset($declared[$row->id][$date]) ? $declared[$row->id][$date] : array(), !empty($row->cantine_sans_repas)) as $svc) {
                     // psc_csv_escape() neutralise les formules Excel : les noms
                     // proviennent d'une saisie parent, donc de données non fiables.
                     fputcsv($out, array(

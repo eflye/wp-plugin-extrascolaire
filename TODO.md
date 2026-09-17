@@ -244,13 +244,13 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** tests juste avant/à/après échéance, Paris hiver/été, transitions d’heure, fuseau UTC et délai zéro. **Développement ; S/M.**
 
-### P1-15 — Supprimer les cumuls restants et aligner CSV, courriels et forfait sans repas
+### P1-15 — PARTIELLEMENT AVANCÉ — Supprimer les cumuls restants et aligner CSV, courriels et forfait sans repas
 
 - [ ] **Définir puis partager une règle unique de prestation facturable.**
 
 **Reproduit / constaté :** `includes/helpers/planning.php:228` renvoie encore `[FORF, GM, GS, MSR]` pour un forfait avec exception MSR chez un enfant non flagué. Le correctif du forfait avec repas n’a pas couvert ce scénario. `class-psc-admin-inscriptions.php:235` appelle `psc_billing_services()` sans le flag enfant : le CSV d’un forfait sans repas diverge du PDF FSR. `class-psc-mailer.php:161` rend les rythmes bruts avec les libellés génériques, sans adapter le forfait au profil sans repas.
 
-**À faire :** arbitrer forfait/modification ponctuelle/fermeture, conserver la séparation présence vs facturation, propager le flag et le tarif partout ; vérifier les journées historiques concernées avant une éventuelle régénération.
+**Avancement technique :** l’export CSV des inscriptions transmet désormais le flag enfant sans repas à la même fonction `psc_billing_services()` que les factures et le planning. La matrice métier forfait/retraits/fermetures et la vérification des historiques restent à finaliser avec la facturation.
 
 **Acceptation :** matrice FORF/CANT/MSR/FSR avec retraits et fermetures ; une seule facturation du créneau ; PDF, CSV et totaux cohérents ; récapitulatif intelligible. **Développement + facturation ; M.**
 
