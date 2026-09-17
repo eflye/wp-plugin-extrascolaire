@@ -5,6 +5,7 @@
   "description": "Plugin WordPress pour la gestion des inscriptions aux services périscolaires municipaux (garderie matin, cantine, garderie soir, forfait journée).",
   "scripts": {
     "docs:screenshots": "playwright test --config=playwright.screenshots.config.ts",
+    "docs:a11y": "mkdocs build --strict && node scripts/docs-a11y/check.mjs",
     "test:e2e": "playwright test --project=test",
     "test:backup-restore": "bash bin/verify-database-backup.sh",
     "demo:e2e": "playwright test --project=demo",
@@ -14,6 +15,8 @@
   "license": "GPL-2.0-or-later",
   "type": "commonjs",
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.62.1",
     "eslint": "^9.0.0"
   }
