@@ -67,5 +67,6 @@ nav:
   - Installation & maintenance:
       - Prérequis: installation/prerequis.md
       - Installation et activation: installation/installation-activation.md
+      - Envoi des e-mails (SMTP): installation/emails-smtp.md
   - Glossaire: glossaire.md
   - Contribuer à la documentation: contribuer.md
