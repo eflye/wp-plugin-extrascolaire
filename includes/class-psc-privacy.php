@@ -136,6 +136,10 @@ class Psc_Privacy {
             return array('data' => array(), 'done' => true);
         }
 
+        if (class_exists('Psc_Audit')) {
+            Psc_Audit::log('privacy.export', array('famille_id' => (int) $parent->id, 'objet_type' => 'famille', 'objet_id' => (int) $parent->id));
+        }
+
         $items = array();
 
         $items[] = array(
@@ -251,10 +255,14 @@ class Psc_Privacy {
             && $email === strtolower((string) $parent->second_parent_email);
 
         if ($is_second_parent_request) {
-            return self::erase_second_parent($parent);
+            $result = self::erase_second_parent($parent);
+            if (class_exists('Psc_Audit')) Psc_Audit::log('privacy.effacement', array('objet_type' => 'famille', 'objet_id' => (int) $parent->id, 'famille_id' => (int) $parent->id, 'meta' => array('portee' => 'second_parent')));
+            return $result;
         }
 
-        return self::erase_household($parent);
+        $result = self::erase_household($parent);
+        if (class_exists('Psc_Audit')) Psc_Audit::log('privacy.effacement', array('objet_type' => 'famille', 'objet_id' => (int) $parent->id, 'famille_id' => (int) $parent->id, 'meta' => array('portee' => 'foyer')));
+        return $result;
     }
 
     private static function erase_second_parent($parent) {
