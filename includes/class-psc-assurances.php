@@ -202,23 +202,29 @@ class Psc_Assurances {
             return 'failed';
         }
 
-        // Nettoie un fichier d'une extension différente laissé par un
-        // précédent upload la même année (ex : remplacement JPG → PDF).
-        foreach (array('pdf', 'jpg', 'jpeg', 'png') as $ext) {
-            $stale = trailingslashit($dir) . 'child-' . $child_id . '.' . $ext;
-            if ($ext !== $filetype['ext'] && file_exists($stale)) {
-                @unlink($stale); // phpcs:ignore WordPress.PHP.NoSilencedErrors
-            }
-        }
-
         $rel_path = self::rel_path($child_id, $rentree_year, $filetype['ext']);
         $target   = psc_private_path($rel_path);
+        $temp = trailingslashit($dir) . '.upload-' . wp_generate_uuid4() . '.' . $filetype['ext'];
 
-        if (!move_uploaded_file($file['tmp_name'], $target)) {
+        if (!move_uploaded_file($file['tmp_name'], $temp)) {
             return 'failed';
         }
 
-        return self::upsert_row($child_id, $rel_path, $file['name'], $year_id) ? true : 'failed';
+        $backup = $target . '.previous';
+        if (file_exists($target) && !@rename($target, $backup)) { @unlink($temp); return 'failed'; }
+        if (!@rename($temp, $target) || !self::upsert_row($child_id, $rel_path, $file['name'], $year_id)) {
+            @unlink($target);
+            if (file_exists($backup)) @rename($backup, $target);
+            return 'failed';
+        }
+        if (file_exists($backup)) @unlink($backup);
+        // Supprime les anciennes extensions seulement après publication et
+        // écriture SQL réussies : une panne ne peut plus perdre le document.
+        foreach (array('pdf', 'jpg', 'jpeg', 'png') as $ext) {
+            $stale = trailingslashit($dir) . 'child-' . $child_id . '.' . $ext;
+            if ($ext !== $filetype['ext'] && file_exists($stale)) @unlink($stale);
+        }
+        return true;
     }
 
     /**
@@ -243,7 +249,10 @@ class Psc_Assurances {
 
         if (!rename($abs_source_path, $target)) return false;
 
-        self::upsert_row($child_id, $rel_path, $original_filename ?: basename($abs_source_path));
+        if (!self::upsert_row($child_id, $rel_path, $original_filename ?: basename($abs_source_path))) {
+            @rename($target, $abs_source_path);
+            return false;
+        }
         return true;
     }
 

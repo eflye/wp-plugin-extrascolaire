@@ -982,10 +982,18 @@ class Psc_Requests {
         // reprennent. Un échec ici ne laisse qu'un état rattrapable
         // manuellement (justificatif encore en zone d'attente), jamais
         // une famille amputée de ses enfants.
+        $promotion_failed = false;
         foreach ($promotions as $promotion) {
-            Psc_Assurances::promote_pending($promotion[0], $promotion[1], $promotion[2]);
+            if (!Psc_Assurances::promote_pending($promotion[0], $promotion[1], $promotion[2])) $promotion_failed = true;
         }
-        Psc_Assurances::delete_pending_files($req->id);
+        // Ne jamais supprimer la zone d'attente si un rattachement a
+        // échoué : elle constitue la source de reprise idempotente pour la
+        // mairie. Les fichiers déjà promus sont traités normalement.
+        if (!$promotion_failed) {
+            Psc_Assurances::delete_pending_files($req->id);
+        } else {
+            Psc_Audit::log('assurance.promotion_echec', array('objet_type' => 'demande', 'objet_id' => (int) $req->id, 'resume' => __('Un justificatif n’a pas pu être rattaché ; la zone d’attente est conservée pour reprise.', 'periscolaire-registration')));
+        }
 
         // Le parent reçoit directement son lien d'accès — sauf s'il est
         // déjà connecté (validation automatique, cf. maybe_verify()).

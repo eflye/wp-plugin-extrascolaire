@@ -224,13 +224,13 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** absence/échec des primitives → refus sans écriture en clair ; rotation/restauration testées ; zéro IBAN complet dans logs ou erreurs. **Développement + hébergeur ; M.**
 
-### P1-13 — Éviter la perte silencieuse des justificatifs
+### P1-13 — PARTIELLEMENT AVANCÉ — Éviter la perte silencieuse des justificatifs
 
 - [ ] **Rendre les écritures fichier/base et les reprises d’échec fiables.**
 
 **Constaté :** `class-psc-assurances.php:151` supprime l’ancien fichier d’une autre extension avant d’avoir réussi le nouveau dépôt ; `upsert_row():224` renvoie vrai sans vérifier chaque résultat SQL. Après approbation, `class-psc-requests.php:825` ignore le résultat de `promote_pending()` puis supprime tous les fichiers d’attente. Une promotion ratée peut donc supprimer sa propre source. La réinscription (`class-psc-frontend-reinscription.php:43`) ignore également les retours d’inscription et de stockage, puis annonce un succès.
 
-**À faire :** validation préalable de la fratrie, écriture temporaire, publication atomique, vérification SQL, conservation de la source jusqu’au succès et reprise idempotente. Ne pas déclarer une assurance valide sur la seule présence d’un chemin si le fichier manque.
+**Avancement technique :** dépôt enfant écrit dans un fichier temporaire puis publié après succès SQL, avec restauration de l’ancien fichier en cas d’échec ; promotion d’une demande vérifie désormais l’écriture SQL et conserve la zone d’attente si un rattachement échoue ; réinscription vérifie les retours d’inscription et de stockage. La reprise complète multi-enfants et la recette disque/SQL restent à tester.
 
 **Acceptation :** disque plein, accès refusé, échec SQL, deuxième enfant invalide → ancien document préservé et résultat explicite ; reprise sans perte ni doublon. **Développement ; M/L.**
 

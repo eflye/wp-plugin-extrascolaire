@@ -70,8 +70,12 @@ class Psc_Frontend_Reinscription extends Psc_Frontend_Base {
                 self::parent_form_redirect('reinscription_required');
             }
 
-            Psc_School_Years::enroll($child->id, $target_year->id, $classe_proposee, 'inscrit', $reglement_accepted_at);
-            Psc_Assurances::store_upload($child->id, $file, $target_year->id);
+            if (!Psc_School_Years::enroll($child->id, $target_year->id, $classe_proposee, 'inscrit', $reglement_accepted_at)) {
+                self::parent_form_redirect('reinscription_invalid');
+            }
+            if (Psc_Assurances::store_upload($child->id, $file, $target_year->id) !== true) {
+                self::parent_form_redirect('reinscription_invalid');
+            }
             $confirmed_count++;
         }
 
