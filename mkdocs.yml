@@ -46,5 +46,6 @@ nav:
   - Démarrage rapide: demarrage-rapide.md
   - Configuration:
       - Année scolaire: configuration/annee-scolaire.md
+      - Calendrier et vacances: configuration/calendrier-vacances.md
   - Glossaire: glossaire.md
   - Contribuer à la documentation: contribuer.md
