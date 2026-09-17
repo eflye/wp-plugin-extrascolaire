@@ -469,6 +469,7 @@ function psc_audit_semantic_extra() {
         'audit.export'                  => array('categorie' => 'securite', 'niveau' => 'critique'),
         'privacy.export'                => array('categorie' => 'donnees_famille', 'niveau' => 'critique'),
         'privacy.effacement'            => array('categorie' => 'donnees_famille', 'niveau' => 'critique'),
+        'utilisateur.habilitations_modifiees' => array('categorie' => 'securite', 'niveau' => 'critique'),
         'audit.purge'                   => array('categorie' => 'systeme', 'niveau' => 'critique'),
         // Angle mort signalé (cf. Psc_Audit::capture_generic()) : classé au
         // niveau le plus prudent puisque sa nature réelle est inconnue.

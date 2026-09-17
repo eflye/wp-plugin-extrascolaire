@@ -28,6 +28,31 @@ function psc_manage_cap() {
     return apply_filters('psc_manage_capability', 'psc_manage_periscolaire');
 }
 
+/** Capacités métier indépendantes, cumulables sur un même utilisateur. */
+function psc_domain_capabilities() {
+    return array(
+        'psc_manage_families'   => __('Familles, enfants et assurances', 'periscolaire-registration'),
+        'psc_manage_presence'   => __('Planning, menus et présences', 'periscolaire-registration'),
+        'psc_manage_billing'    => __('Facturation et prélèvements', 'periscolaire-registration'),
+        'psc_manage_messages'   => __('Messages aux familles', 'periscolaire-registration'),
+        'psc_manage_config'     => __('Configuration du service', 'periscolaire-registration'),
+        'psc_view_health'       => __('Données de santé (allergies)', 'periscolaire-registration'),
+        'psc_view_audit'        => __('Journal d’audit', 'periscolaire-registration'),
+    );
+}
+
+/** Associe un nonce d’action ou un slug admin à sa capacité minimale. */
+function psc_required_capability($context) {
+    $context = sanitize_key((string) $context);
+    if (strpos($context, 'audit') !== false) return 'psc_view_audit';
+    if (strpos($context, 'invoice') !== false || strpos($context, 'factur') !== false || strpos($context, 'sepa') !== false) return 'psc_manage_billing';
+    if (strpos($context, 'message') !== false || strpos($context, 'conversation') !== false) return 'psc_manage_messages';
+    if (strpos($context, 'setting') !== false || strpos($context, 'email_template') !== false || strpos($context, 'calendar') !== false || strpos($context, 'school_year') !== false || strpos($context, 'config') !== false) return 'psc_manage_config';
+    if (strpos($context, 'inscription') !== false || strpos($context, 'attendance') !== false || strpos($context, 'menu') !== false || strpos($context, 'supplier') !== false) return 'psc_manage_presence';
+    if (strpos($context, 'parent') !== false || strpos($context, 'family') !== false || strpos($context, 'child') !== false || strpos($context, 'assurance') !== false || strpos($context, 'pickup') !== false || strpos($context, 'request') !== false || strpos($context, 'impersonate') !== false) return 'psc_manage_families';
+    return psc_manage_cap();
+}
+
 /**
  * Rôles WordPress auxquels psc_manage_cap() est accordée par défaut à
  * l'activation/mise à jour du plugin. Filtrable : retourner un tableau

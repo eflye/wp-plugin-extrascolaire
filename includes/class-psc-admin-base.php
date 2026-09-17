@@ -17,7 +17,8 @@ abstract class Psc_Admin_Base {
      * la capacité seule ne suffit pas non plus (elle n'empêche pas le CSRF).
      */
     protected static function guard($nonce_action) {
-        if (!psc_user_can_manage()) {
+        $required = psc_required_capability($nonce_action);
+        if (!current_user_can($required)) {
             wp_die(esc_html__('Vous n\'avez pas les droits nécessaires.', 'periscolaire-registration'), '', array('response' => 403));
         }
         check_admin_referer($nonce_action);

@@ -4,7 +4,7 @@ if (!defined('ABSPATH')) exit;
 class Psc_Installer {
 
     const DB_VERSION = '4.11.0';
-    const ROLES_VERSION = '1.3.0';
+    const ROLES_VERSION = '1.4.0';
 
     public static function activate() {
         self::create_tables();
@@ -36,6 +36,19 @@ class Psc_Installer {
             if ($role && !$role->has_cap($cap)) {
                 $role->add_cap($cap);
             }
+        }
+        // Capacités composables : l'administrateur peut cumuler tous les
+        // domaines ; le rôle éditeur ne reçoit plus l'accès global implicite.
+        $domain_caps = array_keys(psc_domain_capabilities());
+        $administrator = get_role('administrator');
+        if ($administrator) {
+            foreach ($domain_caps as $domain_cap) $administrator->add_cap($domain_cap);
+        }
+        $editor = get_role('editor');
+        if ($editor) $editor->remove_cap($cap);
+        $manager = get_role('gestionnaire_periscolaire');
+        if ($manager) {
+            foreach (array('psc_manage_families', 'psc_manage_presence', 'psc_manage_messages') as $domain_cap) $manager->add_cap($domain_cap);
         }
         foreach (array('administrator', 'gestionnaire_periscolaire') as $role_name) {
             $role = get_role($role_name);

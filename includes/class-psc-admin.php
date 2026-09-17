@@ -55,6 +55,10 @@ class Psc_Admin extends Psc_Admin_Base {
         add_action('admin_notices', array(__CLASS__, 'notice_private_dir_exposed'));
         add_action('admin_notices', array(__CLASS__, 'notice_db_constraints'));
         add_action('admin_notices', array(__CLASS__, 'notice_audit_health'));
+        add_action('show_user_profile', array(__CLASS__, 'user_capabilities_fields'));
+        add_action('edit_user_profile', array(__CLASS__, 'user_capabilities_fields'));
+        add_action('personal_options_update', array(__CLASS__, 'save_user_capabilities'));
+        add_action('edit_user_profile_update', array(__CLASS__, 'save_user_capabilities'));
 
         foreach (array(
             'Psc_Admin_School_Years',
@@ -68,6 +72,31 @@ class Psc_Admin extends Psc_Admin_Base {
         ) as $domain) {
             call_user_func(array($domain, 'init'));
         }
+    }
+
+    public static function user_capabilities_fields($user) {
+        if (!current_user_can('edit_user', $user->ID) || !current_user_can('psc_manage_config')) return;
+        $caps = psc_domain_capabilities();
+        wp_nonce_field('psc_user_capabilities', 'psc_user_capabilities_nonce');
+        echo '<h2>' . esc_html__('Habilitations périscolaires', 'periscolaire-registration') . '</h2><p>' . esc_html__('Une personne peut cumuler plusieurs habilitations. Les cases contrôlent les accès métier côté serveur.', 'periscolaire-registration') . '</p><table class="form-table" role="presentation"><tbody>';
+        foreach ($caps as $cap => $label) {
+            printf('<tr><th scope="row"><label for="psc-cap-%1$s">%2$s</label></th><td><label><input type="checkbox" id="psc-cap-%1$s" name="psc_caps[]" value="%1$s" %3$s> %4$s</label></td></tr>', esc_attr($cap), esc_html($cap), checked($user->has_cap($cap), true, false), esc_html($label));
+        }
+        echo '</tbody></table>';
+    }
+
+    public static function save_user_capabilities($user_id) {
+        if (!current_user_can('edit_user', $user_id) || !current_user_can('psc_manage_config')) return;
+        if (empty($_POST['psc_user_capabilities_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['psc_user_capabilities_nonce'])), 'psc_user_capabilities')) return;
+        $user = get_user_by('id', $user_id);
+        if (!$user) return;
+        $allowed = array_keys(psc_domain_capabilities());
+        $selected = isset($_POST['psc_caps']) && is_array($_POST['psc_caps']) ? array_map('sanitize_key', wp_unslash($_POST['psc_caps'])) : array();
+        foreach ($allowed as $cap) {
+            if (in_array($cap, $selected, true)) $user->add_cap($cap);
+            else $user->remove_cap($cap);
+        }
+        Psc_Audit::log('utilisateur.habilitations_modifiees', array('objet_type' => 'utilisateur', 'objet_id' => (int) $user_id, 'meta' => array('nombre' => count(array_intersect($selected, $allowed)))));
     }
 
     /**
