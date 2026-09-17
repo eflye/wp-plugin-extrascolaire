@@ -53,5 +53,6 @@ nav:
   - Gestion au quotidien:
       - Tableau de bord: gestion-quotidienne/tableau-de-bord.md
       - Modération des inscriptions: gestion-quotidienne/moderation-inscriptions.md
+      - Annulations et absences: gestion-quotidienne/annulations-absences.md
   - Glossaire: glossaire.md
   - Contribuer à la documentation: contribuer.md
