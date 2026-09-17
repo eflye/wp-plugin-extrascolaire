@@ -154,6 +154,8 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **À faire :** le DPO détermine la base de l’article 6 et la condition applicable de l’article 9 ; documenter finalité, données strictement nécessaires, destinataires et durée. Séparer signalement opérationnel et détails médicaux ; privilégier une alerte avec lien sécurisé plutôt que recopier descriptions actuelle et précédente dans la messagerie ; examiner la protection au repos selon les risques.
 
+**Avancement technique :** le consentement dédié est obligatoire lors d’une déclaration ou modification d’allergie, et les notifications e-mail indiquent désormais uniquement l’enfant et un accès protégé, sans recopier la description médicale. La base légale, le circuit PAI et la durée restent à valider avec le DPO.
+
 **Acceptation :** circuit PAI, habilitations et conservation validés ; collecte minimale ; aucun consentement « global RGPD » ajouté par défaut comme solution universelle. L’exigence HDS éventuelle dépend du contexte juridique réel et doit être examinée, pas déduite du seul champ allergies. Référence : [RGPD, articles 5, 6 et 9](https://www.cnil.fr/fr/reglement-europeen-protection-donnees/chapitre2). **DPO + métier + développement ; L.**
 
 ### P1-07 — PARTIELLEMENT AVANCÉ — Compléter l’information des familles et des tiers
@@ -174,6 +176,8 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **À faire :** tableau validé avec le DPO et le service d’archives : finalité, point de départ, durée en base active, archivage intermédiaire, sort final, exceptions justifiées. Prévoir relances puis clôture des demandes pendantes, nettoyage des fichiers orphelins, surveillance du cron et réapplication des suppressions après restauration.
 
+**Avancement technique :** un registre de catégories et un rapport `simulation`/`execution` existent ; les catégories non validées restent bloquées. Seule la purge des enfants sortis, déjà validée, est active par défaut. Les durées restantes et l’activation opérationnelle sont manuelles.
+
 **Acceptation :** simulation des suppressions, rapport sans contenu sensible, exécution contrôlée et test horloge figée. Ne pas appliquer arbitrairement « tout effacer après un an » ou un délai comptable unique. Référence : [CNIL — conservation et articulation avec les archives publiques](https://www.cnil.fr/fr/passer-laction/les-durees-de-conservation-des-donnees). **DPO + archives + développement ; L.**
 
 ### P1-09 — PARTIELLEMENT AVANCÉ — Outiller l’exercice des droits sans destruction comptable aveugle
@@ -183,6 +187,8 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 **Constaté :** pas d’intégration aux exporteurs/effaceurs de données personnelles WordPress trouvée ; la modification de profil et la suppression mairie couvrent seulement une partie du besoin. `class-psc-admin-familles.php:121` détruit aussi les factures/PDF d’une famille, mais pas ses demandes ; `purge_child():84` ne retire pas son nom des PDF familiaux existants. Depuis lors, `Psc_Privacy` intègre `wp_privacy_personal_data_exporters`/`erasers` (Outils > Exporter/Effacer) : l’export couvre foyer, enfants, planning, factures et échanges ; l’effaceur purge le foyer (enfants, planning, personnes autorisées, échanges, traces d’impersonation) et anonymise la ligne parent sur place plutôt que la supprimer, précisément pour garder les factures rattachées à une référence valide sans les détruire — l’obligation comptable prévalant sur l’effacement pour ce périmètre (cf. readme.txt § RGPD). Cela reste distinct du bouton de suppression manuelle mairie ci-dessus (toujours destructeur des factures, non harmonisé avec l’effaceur — écart connu, non traité). Et **`purge_child():84` ne retire toujours pas son nom des PDF de facture déjà générés** : une facture conservée après effacement RGPD du foyer garde donc, dans son PDF, l’identité que la ligne parent en base n’affiche plus — écart réel, non résolu par ce qui précède.
 
 **À faire :** procédure de vérification d’identité, réponse suivie, export couvrant tables/fichiers/tiers/historiques, décisions d’effacement ou de conservation motivées ; séparer données opérationnelles et archives légalement nécessaires. Des outils WordPress sont une option pratique, pas une obligation en soi. L’effacement n’est pas absolu et la portabilité ne s’applique pas automatiquement à une mission d’intérêt public.
+
+**Avancement technique :** les exports masquent l’IBAN, signalent la présence d’une allergie sans son détail et ne recopient pas le contenu des conversations. Les opérations d’export/effacement sont auditées ; l’effacement WordPress conserve les factures selon la règle comptable documentée. La procédure d’identité et la validation du périmètre par la mairie restent à formaliser.
 
 **Acceptation :** exercice complet sur famille fictive et second parent, périmètre des enfants autorisés vérifié, absence de divulgation des autres familles, décision et délai tracés. Référence : [RGPD, articles 15 à 21](https://www.cnil.fr/fr/reglement-europeen-protection-donnees/chapitre3). **DPO + développement ; L.**
 
