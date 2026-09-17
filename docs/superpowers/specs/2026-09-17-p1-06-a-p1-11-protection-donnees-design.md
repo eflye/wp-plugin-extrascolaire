@@ -38,6 +38,10 @@ Les classes existantes restent les frontières publiques :
 
 Les handlers sont idempotents : une seconde exécution ne recrée pas d’erreur et ne supprime pas une donnée hors périmètre. Toute opération de fichier vérifie l’appartenance au répertoire privé et conserve la source tant que la cible n’est pas validée.
 
+### Habilitations composables
+
+Les habilitations sont des capacités indépendantes attribuables directement à un utilisateur WordPress. Une personne peut cumuler plusieurs capacités (familles, présence, facturation, santé, audit, configuration) ; les rôles ne sont que des ensembles initiaux pratiques et ne sont jamais exclusifs. Une interface sur la fiche utilisateur permet de cocher/décocher chaque capacité, et chaque écran ou endpoint vérifie la capacité correspondante côté serveur.
+
 ## Données et flux
 
 ### Allergies

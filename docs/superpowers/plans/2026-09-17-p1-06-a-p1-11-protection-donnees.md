@@ -144,6 +144,7 @@
 - [ ] **Step 2: Implémenter le registre serveur des intervenants** avec identifiant, empreinte de code individuel, rôle/périmètre, expiration et révocation persistante.
 - [ ] **Step 3: Remplacer le code côté JavaScript** par un cookie/session opaque non persistant et supprimer la conservation dans `localStorage`.
 - [ ] **Step 4: Séparer les capacités WordPress** pour familles, facturation, données sanitaires, audit et configuration ; refuser chaque écran et endpoint côté serveur.
+- [ ] **Step 4b: Ajouter sur la fiche utilisateur WordPress** des cases indépendantes pour ces capacités ; enregistrer avec nonce/capacité et permettre plusieurs cases simultanément, sans remplacer les rôles existants.
 - [ ] **Step 5: Ajouter audit et tests de refus**, exécuter la sonde et le lint.
 - [ ] **Step 6: Commit** `feat: individualise les accès intervenants et les habilitations`.
 
