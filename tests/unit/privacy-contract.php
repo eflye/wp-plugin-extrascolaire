@@ -38,6 +38,11 @@ $notice = Psc_Privacy::privacy_notice_html('guest');
 $assert('notice échappée', strpos($notice, '&lt;Ville&gt;') !== false, true);
 $assert('notice sans case globale', strpos($notice, 'consentement global') === false, true);
 
+$mask = new ReflectionMethod('Psc_Privacy', 'mask_iban');
+$mask->setAccessible(true);
+$masked = $mask->invoke(null, 'FR7630006000011234567890189');
+$assert('IBAN exporté masqué', strpos($masked, 'FR76') === 0 && substr($masked, -4) === '0189' && strpos($masked, '300060') === false, true);
+
 if ($failures) {
     fwrite(STDERR, implode("\n", $failures) . "\n");
     exit(1);

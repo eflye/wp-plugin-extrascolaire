@@ -484,7 +484,8 @@ class Psc_Privacy {
         // cet export — on la déchiffre, on ne renvoie jamais le chiffré tel
         // quel, illisible et sans valeur pour elle.
         if (!empty($parent->sepa_iban) && function_exists('psc_decrypt')) {
-            $fields[] = array('name' => __('IBAN', 'periscolaire-registration'), 'value' => (string) psc_decrypt($parent->sepa_iban));
+            $iban = (string) psc_decrypt($parent->sepa_iban);
+            $fields[] = array('name' => __('IBAN (partiellement masqué)', 'periscolaire-registration'), 'value' => function_exists('psc_mask_iban') ? psc_mask_iban($iban) : self::mask_iban($iban));
             $fields[] = array('name' => __('BIC', 'periscolaire-registration'), 'value' => (string) $parent->sepa_bic);
             $fields[] = array('name' => __('Titulaire du compte', 'periscolaire-registration'), 'value' => (string) $parent->sepa_titulaire);
             $fields[] = array('name' => __('Référence du mandat SEPA', 'periscolaire-registration'), 'value' => (string) $parent->sepa_mandate_ref);
@@ -503,7 +504,7 @@ class Psc_Privacy {
             array('name' => __('Régime sans porc', 'periscolaire-registration'), 'value' => $child->sans_porc ? __('oui', 'periscolaire-registration') : __('non', 'periscolaire-registration')),
             array('name' => __('Régime végétalien', 'periscolaire-registration'), 'value' => $child->vegan ? __('oui', 'periscolaire-registration') : __('non', 'periscolaire-registration')),
             array('name' => __('Cantine sans repas fourni', 'periscolaire-registration'), 'value' => $child->cantine_sans_repas ? __('oui', 'periscolaire-registration') : __('non', 'periscolaire-registration')),
-            array('name' => __('Allergies alimentaires déclarées', 'periscolaire-registration'), 'value' => (string) $child->food_allergies),
+            array('name' => __('Allergies alimentaires déclarées', 'periscolaire-registration'), 'value' => trim((string) $child->food_allergies) !== '' ? __('Donnée de santé présente — détail non inclus dans l’export technique.', 'periscolaire-registration') : ''),
             array('name' => __('Consentement au traitement de cette allergie donné le', 'periscolaire-registration'), 'value' => (string) $child->food_allergy_consent_at),
             array('name' => __('Fiche créée le', 'periscolaire-registration'), 'value' => (string) $child->created_at),
         );
@@ -540,9 +541,15 @@ class Psc_Privacy {
         foreach ($messages as $i => $message) {
             $fields[] = array(
                 'name'  => sprintf(__('Message %1$d (%2$s, %3$s)', 'periscolaire-registration'), $i + 1, $message->auteur_type, $message->created_at),
-                'value' => (string) $message->corps,
+                'value' => __('Contenu omis de l’export technique ; la demande doit être traitée selon la procédure d’accès validée par la mairie.', 'periscolaire-registration'),
             );
         }
         return $fields;
+    }
+
+    private static function mask_iban($iban) {
+        $iban = preg_replace('/\s+/', '', (string) $iban);
+        if (strlen($iban) < 8) return str_repeat('•', strlen($iban));
+        return substr($iban, 0, 4) . str_repeat('•', max(0, strlen($iban) - 8)) . substr($iban, -4);
     }
 }
