@@ -52,5 +52,6 @@ nav:
       - Modèles d'e-mails: configuration/modeles-emails.md
   - Gestion au quotidien:
       - Tableau de bord: gestion-quotidienne/tableau-de-bord.md
+      - Modération des inscriptions: gestion-quotidienne/moderation-inscriptions.md
   - Glossaire: glossaire.md
   - Contribuer à la documentation: contribuer.md
