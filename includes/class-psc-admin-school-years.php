@@ -123,7 +123,11 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
             }
         }
 
-        Psc_School_Years::apply_promotion($staged['to_year_id'], $staged['plan'], $overrides);
+        $applied = Psc_School_Years::apply_promotion($staged['to_year_id'], $staged['plan'], $overrides);
+        if (is_wp_error($applied)) {
+            // Rien n'a été écrit : le plan reste en attente pour être rejoué.
+            self::redirect_years('promotion_failed');
+        }
         Psc_School_Years::clear_staged_promotion();
 
         Psc_Audit::log('annee.passage', array(
