@@ -341,6 +341,11 @@ complet, commit par commit, reste dans le dépôt git.
 * Ajoute une fiche de recette de l'hébergement à la documentation : ce qu'il faut constater sur le serveur lui-même (inaccessibilité réelle des documents, cache, cron, sauvegardes, restauration), que le plugin ne peut pas vérifier depuis son propre code.
 * Met la documentation en accord avec le signalement alimentaire minimal introduit en 5.17.0.
 * Bascule la recherche d'adresse du formulaire d'inscription vers le service de géocodage de la Géoplateforme (IGN). L'ancienne adresse de l'API annonçait sa propre fin depuis le 31 janvier 2026 et pouvait cesser de répondre sans préavis, ce qui aurait privé les familles de l'autocomplétion. Les données restent celles de la Base Adresse Nationale et la saisie manuelle reste disponible ; rien ne change pour la famille, hormis le nom du service indiqué sous le champ.
+* Corrige la correction d'un enfant depuis l'espace familles : enregistrer la fiche effaçait le signalement alimentaire déjà déclaré. La case est désormais présente dans la fenêtre de modification, pré-cochée selon la déclaration existante.
+* L'espace intervenants s'ouvre de nouveau avec le code partagé tant qu'aucun intervenant individuel n'est enregistré ; il renvoyait à la saisie du code juste après l'avoir accepté.
+* Dans Planning 2, cocher ou décocher un jour du rythme habituel laisse l'affichage sur le mois consulté, au lieu de ramener au mois en cours.
+* L'objet du courriel envoyé à la mairie lors d'un signalement alimentaire ne mentionne plus d'allergie : il annonce seulement un échange à prévoir, sans information de santé visible dans une boîte de réception.
+* Une commande WP-CLI lancée en root par l'hébergeur ne peut plus déplacer les documents des familles vers un dossier que le serveur web ne peut pas écrire.
 
 = 5.18.0 =
 * Finalise les protections techniques P1-13, P1-14, P1-15 et P1-17 : uploads avec reprise, horloge de verrou cohérente, export sans repas aligné et migrations protégées contre les conflits/concurrences.
