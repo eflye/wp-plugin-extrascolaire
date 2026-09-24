@@ -121,7 +121,8 @@ Le plugin ne propose pas de paiement en ligne. Il génère les factures et prép
 
 ## Documentation
 
-- [Documentation administrateur](https://eflye.github.io/wp-plugin-extrascolaire/)
+- [Guide de la mairie (back office)](https://eflye.github.io/wp-plugin-extrascolaire/mairie/)
+- [Guide des familles (espace familles)](https://eflye.github.io/wp-plugin-extrascolaire/familles/)
 - [Historique des versions](readme.txt)
 - [Export des ordres de prélèvement SEPA](docs/export-pain008.md)
 - [Exemple d’auto-hébergement avec Docker](docs/self-hosting-docker.md)
