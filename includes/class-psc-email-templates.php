@@ -42,7 +42,7 @@ class Psc_Email_Templates {
             ),
             'food_allergy' => array(
                 'label'   => __('Signalement alimentation — échange à prévoir', 'periscolaire-registration'),
-                'subject' => __('[{{site}}] Allergie alimentaire déclarée — {{child}}', 'periscolaire-registration'),
+                'subject' => __('[{{site}}] Échange à prévoir sur l’alimentation — {{child}}', 'periscolaire-registration'),
                 'body'    => __("La famille de {{child}} demande un échange oral avec le service périscolaire au sujet de l'alimentation. Merci de la contacter ; si nécessaire, activez ensuite le statut « cantine sans repas ». Aucun détail médical n'est transmis par cet e-mail.", 'periscolaire-registration'),
                 'vars'    => array('{{site}}', '{{child}}'),
                 'note'    => __('La description saisie par la famille et les coordonnées de contact sont ajoutées automatiquement.', 'periscolaire-registration'),

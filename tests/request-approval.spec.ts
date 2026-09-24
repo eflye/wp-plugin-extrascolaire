@@ -27,6 +27,9 @@ const CONTAINER = process.env.PSC_WP_CONTAINER ?? 'plugin-extrascolaire-wordpres
 const CONTAINER_WP_CLI = '/usr/local/bin/wp-cli.phar';
 
 const FOOD_SIGNAL = true;
+// Texte libre d'avant le signalement alimentaire : seules les demandes
+// anciennes en portent encore, et le rapprochement doit toujours les reporter.
+const LEGACY_ALLERGIES = 'Arachides — PAI requis (E2E)';
 
 function wpCli(args: string[]): string {
   return execFileSync(
@@ -359,7 +362,7 @@ test.describe('P0-01 — signalement alimentaire et approbation des demandes', (
        $pid = (int) $wpdb->insert_id;
        $wpdb->insert($wpdb->prefix.'psc_children', array('parent_id' => $pid, 'nom' => 'Rapproch', 'prenom' => 'Mila', 'statut' => 'actif', 'created_at' => current_time('mysql')), array('%d','%s','%s','%s','%s'));
        $cid = (int) $wpdb->insert_id;
-       $json = json_encode(array(array('nom' => 'Rapproch', 'prenom' => 'Mila', 'classe' => 'CP', 'date_naissance' => '2020-03-01', 'sans_porc' => 0, 'vegan' => 0, 'food_allergies' => '${ALLERGIES}', 'personnes_autorisees' => array())));
+       $json = json_encode(array(array('nom' => 'Rapproch', 'prenom' => 'Mila', 'classe' => 'CP', 'date_naissance' => '2020-03-01', 'sans_porc' => 0, 'vegan' => 0, 'food_allergies' => '${LEGACY_ALLERGIES}', 'personnes_autorisees' => array())));
        $wpdb->insert($wpdb->prefix.'psc_requests', array('email' => '${email}', 'children_json' => $json, 'status' => 'approved', 'verified' => 1, 'decided_at' => current_time('mysql'), 'created_at' => current_time('mysql')), array('%s','%s','%s','%d','%s','%s'));
        $wpdb->query('COMMIT');
        echo (string) $cid;`
@@ -388,7 +391,7 @@ test.describe('P0-01 — signalement alimentaire et approbation des demandes', (
     // La fiche est complétée, l'alerte PAI partie ; un second passage
     // n'a plus rien à faire (idempotent).
     expect(childAllergies(email, 'Mila')).toContain('Arachides');
-    await findLatestMessage(mairieEmail(), 'Allergie alimentaire déclarée');
+    await findLatestMessage(mairieEmail(), 'Échange à prévoir sur l’alimentation');
     await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_requests`);
     await expect(
       page
