@@ -581,7 +581,7 @@ function psc_audit_field_policy() {
         ),
         'enfant' => array(
             'enregistres' => array('nom', 'prenom', 'date_naissance', 'statut', 'classe', 'cantine_sans_repas'),
-            'exclus'      => array('allergies', 'regime', 'remarques'),
+            'exclus'      => array('allergies', 'food_signal', 'regime', 'remarques'),
         ),
     );
 }

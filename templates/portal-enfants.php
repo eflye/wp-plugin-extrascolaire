@@ -73,7 +73,7 @@
       <label class="psc-portal-field-label" for="psc-child-edit-naissance" style="margin-top:16px;"><?php esc_html_e('Date de naissance', 'periscolaire-registration'); ?></label>
       <input type="date" id="psc-child-edit-naissance" name="naissance" max="<?php echo esc_attr(psc_child_birthdate_max()); ?>" class="psc-portal-field-underline">
 
-      <label class="psc-wizard-check-line" style="margin-top:16px;"><input type="checkbox" name="food_allergy_signal" value="1"> <?php esc_html_e('La mairie doit échanger avec nous au sujet de l’alimentation de cet enfant', 'periscolaire-registration'); ?></label>
+      <label class="psc-wizard-check-line" style="margin-top:16px;"><input type="checkbox" id="psc-child-edit-food-signal" name="food_allergy_signal" value="1" data-testid="child-edit-food-signal"> <?php esc_html_e('La mairie doit échanger avec nous au sujet de l’alimentation de cet enfant', 'periscolaire-registration'); ?></label>
 
       <div class="psc-portal-modal-actions">
         <button type="button" class="psc-portal-btn-outline-ink" data-child-edit-close><?php esc_html_e('Annuler', 'periscolaire-registration'); ?></button>
@@ -89,8 +89,9 @@
           'prenom'     => $c->prenom,
           'nom'        => $c->nom,
           'naissance'  => $c->date_naissance,
-          'allergies'  => trim((string) $c->food_allergies),
-          'consented'  => !empty($c->food_allergy_consent_at),
+          // La case est renvoyée à chaque enregistrement : non pré-cochée,
+          // une simple correction de prénom effacerait le signalement.
+          'food_signal' => !empty($c->food_allergy_signal),
       );
   }
   echo wp_json_encode($psc_child_edit_data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
