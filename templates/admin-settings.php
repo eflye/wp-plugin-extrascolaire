@@ -4,6 +4,7 @@
 <?php
 psc_admin_notice_map(array(
     'saved' => array('success', __('Tarifs enregistrés.', 'periscolaire-registration')),
+    'privacy_refused' => array('error', __('Réglages enregistrés, sauf un champ de la rubrique Confidentialité : une adresse e-mail ou l’adresse de la notice n’est pas valide. La valeur précédente est conservée.', 'periscolaire-registration')),
     'ics_url_refused' => array('error', __('Réglages enregistrés, sauf l’adresse du calendrier scolaire : elle doit être une adresse web publique (http ou https). L’adresse précédente est conservée.', 'periscolaire-registration')),
 ), $psc_msg);
 ?>
@@ -276,6 +277,54 @@ $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
            value="<?php echo esc_attr(get_option('psc_billing_footer', '')); ?>"
            placeholder="<?php esc_attr_e('Ex : Cette somme sera prélevée le 15 du mois suivant.', 'periscolaire-registration'); ?>">
     <p class="description"><?php esc_html_e('Affiché en bas de chaque facture PDF.', 'periscolaire-registration'); ?></p>
+</td>
+</tr>
+</table>
+
+<h2 id="psc-confidentialite"><?php esc_html_e('Confidentialité', 'periscolaire-registration'); ?></h2>
+<p><?php esc_html_e('Notice affichée aux familles au formulaire d’inscription et dans « Mes enfants ». À faire valider par le délégué à la protection des données (DPO) de la collectivité.', 'periscolaire-registration'); ?></p>
+<table class="form-table">
+<tr>
+<th><label for="psc-privacy-municipality"><?php esc_html_e('Responsable du traitement', 'periscolaire-registration'); ?></label></th>
+<td>
+  <input id="psc-privacy-municipality" type="text" name="privacy_municipality" class="regular-text" maxlength="190"
+         value="<?php echo esc_attr(get_option('psc_privacy_municipality', '')); ?>"
+         placeholder="<?php esc_attr_e('Ex. : Commune de Montgeroult', 'periscolaire-registration'); ?>" aria-describedby="psc-privacy-municipality-help">
+  <p class="description" id="psc-privacy-municipality-help"><?php esc_html_e('Nom de la collectivité qui traite les données. Laissé vide, la notice affiche « Collectivité (à adapter) ».', 'periscolaire-registration'); ?></p>
+</td>
+</tr>
+<tr>
+<th><label for="psc-privacy-dpo-email"><?php esc_html_e('E-mail du DPO', 'periscolaire-registration'); ?></label></th>
+<td>
+  <input id="psc-privacy-dpo-email" type="email" name="privacy_dpo_email" class="regular-text"
+         value="<?php echo esc_attr(get_option('psc_privacy_dpo_email', '')); ?>" aria-describedby="psc-privacy-dpo-help">
+  <p class="description" id="psc-privacy-dpo-help"><?php esc_html_e('Laissé vide : l’adresse d’administration du site est utilisée.', 'periscolaire-registration'); ?></p>
+</td>
+</tr>
+<tr>
+<th><label for="psc-privacy-rights-email"><?php esc_html_e('E-mail pour exercer ses droits', 'periscolaire-registration'); ?></label></th>
+<td>
+  <input id="psc-privacy-rights-email" type="email" name="privacy_rights_email" class="regular-text"
+         value="<?php echo esc_attr(get_option('psc_privacy_rights_email', '')); ?>" aria-describedby="psc-privacy-rights-help">
+  <p class="description" id="psc-privacy-rights-help"><?php esc_html_e('Adresse affichée aux familles après « Pour exercer vos droits : ». Laissé vide : l’e-mail du DPO.', 'periscolaire-registration'); ?></p>
+</td>
+</tr>
+<tr>
+<th><label for="psc-privacy-policy-url"><?php esc_html_e('Adresse de la notice complète', 'periscolaire-registration'); ?></label></th>
+<td>
+  <input id="psc-privacy-policy-url" type="url" name="privacy_policy_url" class="regular-text"
+         value="<?php echo esc_attr(get_option('psc_privacy_policy_url', '')); ?>"
+         placeholder="https://" aria-describedby="psc-privacy-url-help">
+  <p class="description" id="psc-privacy-url-help"><?php esc_html_e('Page de la politique de confidentialité du site (http ou https). Renseignée, elle ajoute le lien « Lire la notice de confidentialité ».', 'periscolaire-registration'); ?></p>
+</td>
+</tr>
+<tr>
+<th scope="row"><?php esc_html_e('Aperçu', 'periscolaire-registration'); ?></th>
+<td>
+  <div class="psc-privacy-preview" data-testid="privacy-preview" role="group" aria-label="<?php esc_attr_e('Aperçu de la notice telle que les familles la voient', 'periscolaire-registration'); ?>" style="max-width:640px;padding:12px 16px;background:#fff;border:1px solid #dcdcde;border-left:4px solid #24405C;">
+    <?php echo Psc_Privacy::privacy_notice_html('preview'); // phpcs:ignore WordPress.Security.EscapeOutput -- échappé par privacy_notice_html() ?>
+  </div>
+  <p class="description"><?php esc_html_e('Telle que les familles la voient, avec les valeurs enregistrées : enregistrez pour mettre l’aperçu à jour.', 'periscolaire-registration'); ?></p>
 </td>
 </tr>
 </table>

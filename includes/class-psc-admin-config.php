@@ -78,6 +78,29 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         // Psc_Admin_Cantine::handle_save_supplier_settings(), qui seul
         // écrit désormais cette option.
 
+        // Confidentialité : notice des familles (cf. Psc_Privacy). Une valeur
+        // invalide n'écrase pas la précédente et l'écran le signale.
+        $privacy_refused = false;
+        $municipality = isset($_POST['privacy_municipality']) ? sanitize_text_field(wp_unslash($_POST['privacy_municipality'])) : '';
+        update_option('psc_privacy_municipality', mb_substr(trim($municipality), 0, 190));
+        foreach (array('privacy_dpo_email' => 'psc_privacy_dpo_email', 'privacy_rights_email' => 'psc_privacy_rights_email') as $field => $option) {
+            $raw = isset($_POST[$field]) ? trim((string) wp_unslash($_POST[$field])) : '';
+            if ($raw === '') {
+                update_option($option, '');
+            } elseif (is_email($raw)) {
+                update_option($option, sanitize_email($raw));
+            } else {
+                $privacy_refused = true;
+            }
+        }
+        $policy_raw = isset($_POST['privacy_policy_url']) ? trim((string) wp_unslash($_POST['privacy_policy_url'])) : '';
+        $policy_url = $policy_raw === '' ? '' : esc_url_raw($policy_raw, array('http', 'https'));
+        if ($policy_raw !== '' && !preg_match('#^https?://[^\s/]+#i', $policy_url)) {
+            $privacy_refused = true;
+        } else {
+            update_option('psc_privacy_policy_url', $policy_url);
+        }
+
         // Adresse du calendrier : refusée (et l'ancienne conservée) si elle
         // n'est pas une adresse web publique — cf. validate_ics_url().
         $ics_url = isset($_POST['school_calendar_ics_url']) ? esc_url_raw(wp_unslash($_POST['school_calendar_ics_url'])) : '';
@@ -136,7 +159,7 @@ class Psc_Admin_Config extends Psc_Admin_Base {
             'meta' => array('champs' => array_values(array_diff(array_keys($_POST), array('action', '_wpnonce', '_wp_http_referer')))),
         ));
 
-        self::redirect('psc_settings', $ics_refused ? 'ics_url_refused' : 'saved');
+        self::redirect('psc_settings', $ics_refused ? 'ics_url_refused' : ($privacy_refused ? 'privacy_refused' : 'saved'));
     }
 
     public static function page_settings() {
