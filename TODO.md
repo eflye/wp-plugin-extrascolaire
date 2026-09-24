@@ -315,9 +315,9 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** chaque case visible peut être modifiée conformément à son état réel et une case cachée ne maintient pas une inscription incompréhensible ; retraits sous exception FORF persistants. **Développement ; M.**
 
-### P2-02 — PARTIELLEMENT AVANCÉ — Gérer concurrence et échecs des écritures métier
+### P2-02 — TRAITÉ (après v5.20.0) — Gérer concurrence et échecs des écritures métier
 
-- [ ] **Rendre atomiques les opérations composées et vérifier les retours SQL.**
+- [x] **Rendre atomiques les opérations composées et vérifier les retours SQL.**
 
 **Constaté :** `toggle_pattern()` supprime les conflits, écrit puis fige les dates en plusieurs requêtes non transactionnelles ; de nombreux retours SQL ne conditionnent pas le succès. `approve_request()` utilise une transaction, mais ne verrouille pas la demande ni ne la réclame atomiquement avant création. Deux validations simultanées d’une demande pendante ne sont pas explicitement sérialisées. L’unicité du second e-mail de parent repose sur une lecture préalable entre deux colonnes, pas sur une identité normalisée unique.
 
@@ -329,7 +329,9 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 - **Écritures du planning :** `toggle_pattern()` et `toggle_exception()` se font en transaction, sous verrou de la ligne enfant. Chaque retour SQL est vérifié ; tout échec annule l’ensemble et répond `error`, que l’AJAX transmet (500) au lieu d’un succès.
 - **Preuve :** `bin/verify-write-integrity.php`, lancé en CI. La concurrence est jouée par une seconde connexion MySQL qui tient le verrou ; l’échec intermédiaire, par une requête sabotée. Il couvre la double validation, la validation concurrente, l’échec au second enfant (ni famille, ni enfant, ni e-mail), le refus d’une demande déjà validée, l’échec au milieu d’un changement de rythme, et un clic concurrent sur le même enfant. Vérifié par mutation : sans la réclamation ni le refus conditionnel, 6 cas échouent.
 
-**Reste :** l’unicité du second e-mail de parent (identité normalisée contrainte en base, migration de schéma) ; la même discipline sur les autres écritures composées (messages, conversations, passage d’année, factures).
+- **Identités de connexion (24/09/2026) :** un index UNIQUE sur `second_parent_email` est posé comme les autres contraintes (hors dbDelta, retenté à chaque écran admin, signalé s’il est refusé ou si des doublons existent). Le croisement avec l’adresse du titulaire d’un autre foyer, qu’aucun index ne peut exprimer, passe par un verrou nommé MySQL (`Psc_Parents::identity_lock()`) et une lecture verrouillante (`email_in_use()`) : vérification et écriture sont sérialisées dans `create()`, `update()` et la confirmation de changement d’adresse, et voient le dernier état validé même depuis une transaction ouverte plus tôt. Vérifié par `verify-write-integrity` (30 vérifications au total), y compris par mutation : sans verrou ni lecture verrouillante, 3 cas échouent.
+
+**Hors périmètre de l’acceptation, à reprendre au fil de l’eau :** appliquer la même discipline (transaction, retours SQL vérifiés, transition conditionnelle) aux autres écritures composées — passage d’année et génération des factures ; les messages et conversations sont déjà transactionnels.
 
 **Acceptation :** deux validations/clics concurrents, échec d’une requête intermédiaire → aucune famille dupliquée, aucun rythme partiellement détruit, réponse fidèle à l’état enregistré. **Développement ; L.**
 

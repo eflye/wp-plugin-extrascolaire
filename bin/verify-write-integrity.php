@@ -42,7 +42,8 @@ WP_CLI::add_command('verify-write-integrity', function () {
     $t_child  = psc_table('children');
     $t_pat    = psc_table('pattern');
     $t_exc    = psc_table('exception');
-    $emails   = array('verify-integrity-a@example.invalid', 'verify-integrity-b@example.invalid', 'verify-integrity-c@example.invalid');
+    $emails   = array('verify-integrity-a@example.invalid', 'verify-integrity-b@example.invalid', 'verify-integrity-c@example.invalid',
+                      'verify-integrity-d@example.invalid', 'verify-integrity-e@example.invalid', 'verify-integrity-f@example.invalid');
 
     $purge = function () use ($wpdb, $emails, $t_req, $t_parent, $t_child, $t_pat, $t_exc) {
         foreach ($emails as $email) {
@@ -58,6 +59,7 @@ WP_CLI::add_command('verify-write-integrity', function () {
             }
             $wpdb->delete($t_req, array('email' => $email));
         }
+        $wpdb->query($wpdb->prepare("DELETE FROM $t_parent WHERE second_parent_email LIKE %s", 'verify-integrity-%'));
     };
     $purge();
 
@@ -193,6 +195,47 @@ WP_CLI::add_command('verify-write-integrity', function () {
         // Et sans concurrence, la même écriture réussit.
         $result = Psc_Planning::toggle_pattern($cid, $year->year_key, 1, 'GS', true);
         $check($result['status'] === 'ok', 'rythme : écriture normale en échec (' . $result['status'] . ')');
+
+        // 7. Identités : une adresse n'ouvre qu'un seul foyer, titulaire ou second parent.
+        list(, , , $mail_d, $mail_e, $mail_f) = $emails;
+        $family_d = Psc_Parents::create($mail_d, 'Integrity', array('second_parent_email' => $mail_e));
+        $check(!is_wp_error($family_d), 'identité : création du foyer de référence refusée');
+        $dup_main = Psc_Parents::create($mail_e, 'Integrity');
+        $check(is_wp_error($dup_main) && $dup_main->get_error_code() === 'psc_exists', 'identité : titulaire créé sur l’adresse d’un second parent');
+        $family_f = Psc_Parents::create($mail_f, 'Integrity');
+        $taken = Psc_Parents::update($family_f, array('second_parent_email' => strtoupper($mail_d)));
+        $check(is_wp_error($taken) && $taken->get_error_code() === 'psc_second_parent_email_taken', 'identité : second parent enregistré sur l’adresse d’un autre titulaire');
+        $taken = Psc_Parents::update($family_f, array('second_parent_email' => $mail_e));
+        $check(is_wp_error($taken), 'identité : même second parent pour deux foyers');
+
+        // 8. Garantie en base : l'index refuse un doublon écrit à côté du code.
+        $installer = new ReflectionMethod('Psc_Installer', 'store_constraints_state');
+        $installer->setAccessible(true);
+        $installer->invoke(null);
+        $check((int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND INDEX_NAME = 'second_parent_email'", $t_parent
+        )) > 0, 'identité : index d’unicité du second parent absent');
+        $raw = $wpdb->query($wpdb->prepare("UPDATE $t_parent SET second_parent_email = %s WHERE id = %d", strtoupper($mail_e), $family_f));
+        $check($raw === false, 'identité : la base accepte deux foyers avec le même second parent');
+
+        // 9. Concurrence : une autre requête tient le verrou d'identité.
+        $lock_name = (new ReflectionMethod('Psc_Parents', 'identity_lock_name'));
+        $lock_name->setAccessible(true);
+        $other->get_var($other->prepare('SELECT GET_LOCK(%s, 1)', $lock_name->invoke(null)));
+        add_filter('psc_identity_lock_timeout', function () { return 1; });
+        $busy = Psc_Parents::update($family_f, array('second_parent_email' => 'verify-integrity-g@example.invalid'));
+        $other->query($other->prepare('SELECT RELEASE_LOCK(%s)', $lock_name->invoke(null)));
+        $check(is_wp_error($busy) && $busy->get_error_code() === 'psc_identity_busy', 'identité : écriture passée outre le verrou');
+        $check($wpdb->get_var($wpdb->prepare("SELECT second_parent_email FROM $t_parent WHERE id = %d", $family_f)) === null, 'identité : adresse écrite malgré le verrou');
+
+        // 10. Instantané périmé : une transaction ouverte avant qu'un autre
+        //     foyer ne prenne l'adresse doit quand même la voir prise.
+        $wpdb->query('START TRANSACTION');
+        $wpdb->get_var("SELECT COUNT(*) FROM $t_parent");
+        $other->query($other->prepare("UPDATE $t_parent SET second_parent_email = %s WHERE id = %d", 'verify-integrity-h@example.invalid', $family_d));
+        $late = Psc_Parents::update($family_f, array('second_parent_email' => 'verify-integrity-h@example.invalid'));
+        $wpdb->query('ROLLBACK');
+        $check(is_wp_error($late), 'identité : adresse prise pendant la transaction non détectée');
     } finally {
         $wpdb->suppress_errors($suppress);
         $other->close();

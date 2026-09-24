@@ -493,6 +493,12 @@ class Psc_Admin extends Psc_Admin_Base {
             );
         }
 
+        if ($type === 'unique') {
+            return isset($constraint['reason']) && $constraint['reason'] === 'dirty'
+                ? __('Unicité de l’e-mail du second parent : plusieurs foyers partagent la même adresse de second parent, à corriger dans Familles avant la pose.', 'periscolaire-registration')
+                : __('Unicité de l’e-mail du second parent entre foyers.', 'periscolaire-registration');
+        }
+
         if ($type === 'check' && isset($constraint['reason']) && $constraint['reason'] === 'dirty') {
             return __('Contrainte CHECK sur registrations.service : des lignes portent une prestation inconnue de la liste actuelle, à corriger avant la pose.', 'periscolaire-registration');
         }
