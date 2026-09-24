@@ -390,6 +390,10 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **À faire :** famille A/B/anonyme, rôles mairie/intervenants, nonce absent/étranger/expiré, documents, révocation, uploads, conservation, échecs disque/SQL, concurrence, profils repas/forfait et changements d’heure. Créer une stack jetable dédiée ; interdire les seed destructifs sur une instance contenant des données réelles.
 
+**Avancement technique (24/09/2026) :** le constat ci-dessus n’est plus exact sur deux points. Les droits RGPD et la rétention sont désormais couverts : `tests/integration/privacy-rights.php` (conservation des pièces comptables lors des deux chemins de suppression, PDF sur disque compris), `tests/unit/retention-policy.php`, `tests/integration/impersonation-retention.php` et `tests/integration/p1-data-protection-summary.php`. S’y ajoutent le confinement du stockage privé (`private-storage-receipt.php`), le gel des factures émises (`invoice-snapshot.php`), la couverture du registre d’audit (`audit-registry.php`) et le relevé de contrats `p1-final-summary.php`. Trois de ces sondes ont été vérifiées par mutation — leur assertion centrale échoue quand on neutralise le correctif —, ce qui satisfait déjà le critère « capturés par des tests qui échouent avant correction » pour les défauts concernés.
+
+**Restant :** la matrice d’accès inter-familles (famille A/B/anonyme), les nonces absents/étrangers/expirés, la révocation vue depuis le cache, la concurrence, les profils repas/forfait et les changements d’heure ne sont couverts par aucune sonde. Le profil de sécurité représentatif reste entier : la CI conserve `WP_ENVIRONMENT_TYPE=local`, donc la limitation de fréquence n’est toujours pas testée telle qu’elle se comporte en production.
+
 **Acceptation :** les défauts P0/P1 sont capturés par des tests qui échouent avant correction ; un profil de sécurité garde rate-limit/cache/TLS représentatifs ; CI obligatoire avant release. **Développement ; L, au fil des corrections.**
 
 ### P2-11 — Conditionner la release aux contrôles et traiter le nouveau TODO dans le packaging
@@ -398,7 +402,11 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Constaté :** `.github/workflows/release.yml` vérifie la version et l’installation/activation du ZIP, mais ne dépend pas du succès des workflows lint/E2E. Ces derniers tournent sur branches/PR ; un tag déclenche sa release séparément. La vérification de complétude échouera si `TODO.md` est ajouté à Git sans être explicitement inclus ou exclu : il ne figure pas dans la liste actuelle.
 
-**À faire :** gating des résultats du commit exact, tests de migration du paquet, archive et somme de contrôle ; **exclure explicitement ce TODO d’audit du ZIP de production** lors de la future implémentation du packaging. Ne pas le publier accidentellement comme fichier accessible sur le site.
+**À faire :** gating des résultats du commit exact, tests de migration du paquet, archive et somme de contrôle.
+
+**Traité depuis :** le volet packaging est réglé — `TODO.md` figure explicitement dans la liste d’exclusion de `release.yml`, et l’étape « Vérifie la complétude du paquet » échoue bruyamment sur toute entrée racine suivie par git qui ne serait ni copiée ni exclue. Le rapport d’audit ne peut donc plus partir en production par omission.
+
+**Restant, et constaté en conditions réelles le 24/09/2026 :** le gating. Un tag déclenche `release.yml` sans aucune dépendance au succès de `lint.yml` et `e2e.yml` — or c’est `e2e.yml` qui exécute `verify-migrations`, seul contrôle de la montée de version par bonds. Lors de la préparation de la 5.19.0, qui portait un changement de schéma (DB_VERSION 4.13.0), la seule parade disponible a été de pousser `main`, d’attendre la CI à la main, puis de taguer. Tant que le gating n’existe pas, publier une release reste une séquence manuelle que rien n’empêche de rater.
 
 **Acceptation :** tests en échec → aucune release publiée ; ZIP propre et installable ; ajout du TODO suivi n’entraîne ni exposition du rapport ni échec inattendu. **Aucune modification du workflow effectuée pendant cet audit. Développement ; S/M.**
 
