@@ -260,24 +260,34 @@ test.describe('Journal d’audit', () => {
     expect(bodyText.match(/modifié/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
   });
 
-  test('modification d’enfant : une allergie est signalée comme modifiée sans jamais être journalisée en clair', async ({ page }) => {
-    const secretAllergy = 'Arachides et lait — donnée médicale AuditE2E';
+  test('modification d’enfant : le signalement alimentaire est journalisé comme modifié, sans valeur, et survit à une correction de prénom', async ({ page }) => {
     const { familyId, childId } = seedFamilyWithChild(EMAIL_ALLERGY);
+    const signal = (): string => wpEval(
+      `global $wpdb; echo (string) $wpdb->get_var("SELECT food_allergy_signal FROM {$wpdb->prefix}psc_children WHERE id=${childId}");`
+    ).trim().split('\n').pop() ?? '';
 
     await loginAsFamily(page, EMAIL_ALLERGY);
     await page.goto(`${APP_BASE}/?psc_tab=enfants`);
     await page.locator(`[data-child-edit-trigger][data-child-id="${childId}"]`).click();
-    await page.locator('#psc-child-edit-allergies').fill(secretAllergy);
-    await page.locator('#psc-child-edit-allergy-consent').check();
+    await page.getByTestId('child-edit-food-signal').check();
     await page.getByTestId('child-edit-submit').click();
     await page.waitForURL(/psc_msg=child_updated/);
+    expect(signal()).toBe('1');
 
     const row = latestAuditRow('enfant.modification', `AND enfant_id=${childId}`);
     expect(row?.acteur_type).toBe('famille');
     expect(row?.famille_id).toBe(String(familyId));
     const serialized = String(row?.details ?? '');
-    expect(serialized).toContain('"allergies":"modifié"');
-    expect(serialized).not.toContain(secretAllergy);
+    expect(serialized).toContain('"food_signal":"modifié"');
+
+    // La modale rouvre la case cochée : corriger le prénom ne doit pas
+    // effacer le signalement en silence.
+    await page.locator(`[data-child-edit-trigger][data-child-id="${childId}"]`).click();
+    await expect(page.getByTestId('child-edit-food-signal')).toBeChecked();
+    await page.locator('#psc-child-edit-prenom').fill('Prénom-Corrigé');
+    await page.getByTestId('child-edit-submit').click();
+    await page.waitForURL(/psc_msg=child_updated/);
+    expect(signal()).toBe('1');
   });
 
   test('connexion : jeton invalide journalisé en refus, connexion réussie journalisée avec le bon acteur', async ({ page }) => {
