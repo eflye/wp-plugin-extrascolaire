@@ -72,6 +72,7 @@ require_once PSC_PATH . 'includes/class-psc-frontend-profil.php';
 require_once PSC_PATH . 'includes/class-psc-frontend-reinscription.php';
 require_once PSC_PATH . 'includes/class-psc-frontend-menus.php';
 require_once PSC_PATH . 'includes/class-psc-sidscm.php';
+require_once PSC_PATH . 'includes/class-psc-envois.php';
 
 register_activation_hook(__FILE__, function () {
     Psc_Installer::activate();
@@ -81,6 +82,7 @@ register_activation_hook(__FILE__, function () {
     Psc_Conversations::ensure_crons();
     Psc_Audit::ensure_crons();
     Psc_Retention::ensure_crons();
+    Psc_Envois::ensure_crons();
 });
 
 register_deactivation_hook(__FILE__, function () {
@@ -93,6 +95,7 @@ register_deactivation_hook(__FILE__, function () {
     wp_clear_scheduled_hook('psc_purge_conversations');
     wp_clear_scheduled_hook('psc_purge_audit_log');
     wp_clear_scheduled_hook('psc_purge_departed_children');
+    wp_clear_scheduled_hook('psc_envois_reprise');
 });
 
 add_action('plugins_loaded', function () {
@@ -118,4 +121,5 @@ add_action('plugins_loaded', function () {
     Psc_Conversations_Frontend::init();
     Psc_Frontend::init();
     Psc_Sidscm::init();
+    Psc_Envois::init();
 });
