@@ -150,9 +150,9 @@ test('onboarding — les habilitations se renseignent après inscription', async
     ],
   };
   // Interception AVANT le premier goto : aucune requête sortante réelle.
-  // Le glob finit en ** car l'URL réelle porte un slash (search/?q=…),
+  // Le glob finit en ** pour couvrir la chaîne de requête (search?q=…),
   // qu'un * final ne traverse pas.
-  await page.route('**/api-adresse.data.gouv.fr/search**', (route) =>
+  await page.route('**/data.geopf.fr/geocodage/search**', (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(BAN_FIXTURE) })
   );
 

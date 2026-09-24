@@ -170,7 +170,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 'address_service_error'      => __('Recherche d\'adresse momentanément indisponible. Vous pouvez saisir votre adresse manuellement.', 'periscolaire-registration'),
                 'address_toggle_manual'      => __('Saisir l\'adresse manuellement', 'periscolaire-registration'),
                 'address_toggle_search'      => __('Rechercher mon adresse', 'periscolaire-registration'),
-                'address_attribution'        => __('Recherche d\'adresse propulsée par la Base Adresse Nationale (adresse.data.gouv.fr)', 'periscolaire-registration'),
+                'address_attribution'        => __('Recherche d\'adresse propulsée par la Base Adresse Nationale, via la Géoplateforme de l\'IGN (data.geopf.fr)', 'periscolaire-registration'),
                 // Messages natifs de validation (attributs pattern/max/title).
                 'phone_pattern_title'   => __('Format attendu : 06 12 34 56 78 ou +33 6 12 34 56 78.', 'periscolaire-registration'),
                 'postcode_pattern_title' => __('Format attendu : 5 chiffres.', 'periscolaire-registration'),

@@ -315,7 +315,13 @@
 
         var ADDRESS_MIN_CHARS  = 3;
         var ADDRESS_DEBOUNCE_MS = 250;
-        var ADDRESS_API = 'https://api-adresse.data.gouv.fr/search/';
+        // Géocodage de la Géoplateforme (IGN). La donnée reste celle de la
+        // Base Adresse Nationale, seul le service change : l'ancienne URL
+        // api-adresse.data.gouv.fr répond encore, mais elle annonce
+        // elle-même sa fin (en-têtes deprecation et sunset au 31/01/2026,
+        // déjà dépassés) — elle peut disparaître sans préavis. Réponse
+        // identique champ pour champ, mêmes paramètres, même CORS.
+        var ADDRESS_API = 'https://data.geopf.fr/geocodage/search';
 
         var lastLabel = '';  // Dernier libellé sélectionné : retaper autre chose vide le trio.
         var options   = [];  // Résultats courants (propriétés BAN filtrées).
@@ -384,7 +390,7 @@
             aborter = new AbortController();
             fetch(ADDRESS_API + '?q=' + encodeURIComponent(q) + '&limit=5', { signal: aborter.signal })
                 .then(function (r) {
-                    if (!r.ok) throw new Error('BAN http ' + r.status);
+                    if (!r.ok) throw new Error('geocodage http ' + r.status);
                     return r.json();
                 })
                 .then(function (data) {
