@@ -464,9 +464,9 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** budget convenu et mesuré, absence de N+1 dominant, mémoire bornée, génération reprenable. Aucun résultat de test de charge n’est revendiqué ici. **Développement ; M.**
 
-### P2-10 — Ajouter une suite de sécurité et de régression métier représentative
+### P2-10 — TRAITÉ POUR L’ESSENTIEL (après v5.22.0) — Ajouter une suite de sécurité et de régression métier représentative
 
-- [ ] **Compléter les tests qui passent aujourd’hui sans couvrir les défauts prioritaires.**
+- [x] **Compléter les tests qui passent aujourd’hui sans couvrir les défauts prioritaires.**
 
 **Constaté :** tests unitaires/E2E/migrations existants utiles, mais pas de suite systématique identifiée pour la matrice d’accès inter-familles, la révocation/cache, les droits RGPD et la rétention. Les E2E CI utilisent `WP_ENVIRONMENT_TYPE=local`, ce qui désactive la limitation de fréquence ; ils ne valident donc pas son comportement de production.
 
@@ -474,7 +474,12 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Avancement technique (24/09/2026) :** le constat ci-dessus n’est plus exact sur deux points. Les droits RGPD et la rétention sont désormais couverts : `tests/integration/privacy-rights.php` (conservation des pièces comptables lors des deux chemins de suppression, PDF sur disque compris), `tests/unit/retention-policy.php`, `tests/integration/impersonation-retention.php` et `tests/integration/p1-data-protection-summary.php`. S’y ajoutent le confinement du stockage privé (`private-storage-receipt.php`), le gel des factures émises (`invoice-snapshot.php`), la couverture du registre d’audit (`audit-registry.php`) et le relevé de contrats `p1-final-summary.php`. Trois de ces sondes ont été vérifiées par mutation — leur assertion centrale échoue quand on neutralise le correctif —, ce qui satisfait déjà le critère « capturés par des tests qui échouent avant correction » pour les défauts concernés.
 
-**Restant :** la matrice d’accès inter-familles (famille A/B/anonyme), les nonces absents/étrangers/expirés, la révocation vue depuis le cache, la concurrence, les profils repas/forfait et les changements d’heure ne sont couverts par aucune sonde. Le profil de sécurité représentatif reste entier : la CI conserve `WP_ENVIRONMENT_TYPE=local`, donc la limitation de fréquence n’est toujours pas testée telle qu’elle se comporte en production.
+**Complété le 24/09/2026 :**
+- **Matrice d’accès inter-familles :** `tests/family-isolation.spec.ts`, en vraies requêtes HTTP. Connectée, la famille A vise les données de la famille B par les 6 appels AJAX du planning, 3 formulaires (identité d’un enfant, modification et retrait d’une personne autorisée) et 2 téléchargements (assurance, facture) : tout est refusé et la base de B est vérifiée intacte. Un visiteur anonyme n’atteint ni le planning ni les documents. Sur ses propres données, A est refusée avec un jeton famille absent, étranger (celui de B) ou périmé, ou sans nonce WordPress ; un contrôle positif vérifie que les bons jetons passent. Vérifié par mutation : sans contrôle d’appartenance, les tests échouent.
+- **Profil de sécurité (limitation de fréquence) :** le filtre `psc_rate_limit_enabled` peut désormais aussi réactiver la limitation en local. `bin/verify-rate-limit.php`, lancé en CI, vérifie son comportement de production : quota, fenêtre fixe non prolongeable, remise à zéro, compteur par IP, IP indéterminable, en-tête `X-Forwarded-For` forgé ignoré, maillon de confiance lu. Vérifié par mutation.
+- **Déjà couverts par les lots précédents :** concurrence (`verify-write-integrity`, P2-02), profils repas et forfait (`verify-planning-states`, P2-01), changements d’heure (`verify-lock-clock`, P1-14).
+
+**Restant :** une stack de CI en `WP_ENVIRONMENT_TYPE=production` avec cache et TLS représentatifs ; la révocation vue depuis un cache objet externe (Redis ou Memcached absents de la stack de test).
 
 **Acceptation :** les défauts P0/P1 sont capturés par des tests qui échouent avant correction ; un profil de sécurité garde rate-limit/cache/TLS représentatifs ; CI obligatoire avant release. **Développement ; L, au fil des corrections.**
 
