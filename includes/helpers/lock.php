@@ -43,20 +43,22 @@ function psc_now_ts() {
  */
 function psc_lock_hours() {
     static $cache = null;
-    if ($cache !== null) return $cache;
-
-    $h = null;
-    $year = class_exists('Psc_School_Year') ? Psc_School_Year::active() : null;
-    if ($year && $year->lock_hours !== null) {
-        $h = (int) $year->lock_hours;
+    if ($cache === null) {
+        $h = null;
+        $year = class_exists('Psc_School_Year') ? Psc_School_Year::active() : null;
+        if ($year && $year->lock_hours !== null) {
+            $h = (int) $year->lock_hours;
+        }
+        if ($h === null) {
+            $h = (int) get_option('psc_lock_hours', 48);
+        }
+        if ($h < 0) $h = 0;
+        if ($h > 720) $h = 720; // 30 jours max
+        $cache = $h;
     }
-    if ($h === null) {
-        $h = (int) get_option('psc_lock_hours', 48);
-    }
-    if ($h < 0) $h = 0;
-    if ($h > 720) $h = 720; // 30 jours max
-    $cache = $h;
-    return $cache;
+    // Filtrable comme psc_now_ts(), à chaque appel et non une seule fois :
+    // bin/verify-lock-clock.php fait varier le délai dans un même processus.
+    return max(0, (int) apply_filters('psc_lock_hours', $cache));
 }
 
 /**
@@ -64,6 +66,13 @@ function psc_lock_hours() {
  * Le décompte part du début du jour de service (00:00), pas de l'heure
  * de la prestation : c'est plus simple à expliquer aux familles et cela
  * couvre la garderie du matin.
+ *
+ * Le délai se compte en heures réellement écoulées. Quand un changement
+ * d'heure tombe dans l'intervalle, l'échéance n'est donc pas à minuit
+ * (48 h avant le lundi qui suit le passage à l'heure d'hiver, c'est le
+ * samedi à 01:00). L'arithmétique en heure légale donnerait minuit, mais
+ * son comportement varie selon les versions de PHP ; psc_lock_message()
+ * affiche toujours l'instant exact contrôlé ici.
  */
 function psc_lock_deadline_ts($date_str) {
     $tz = wp_timezone();
@@ -86,8 +95,12 @@ function psc_is_locked($date_str) {
  */
 function psc_lock_message($date_str) {
     $deadline = psc_lock_deadline_ts($date_str);
+    // wp_date() et non date_i18n() : ce dernier attend un timestamp déjà
+    // décalé du fuseau du site, et affichait l'échéance une à deux heures
+    // plus tôt que l'instant contrôlé par psc_is_locked().
     return sprintf(
-        'Modifiable jusqu\'au %s',
-        date_i18n('j F Y à H:i', $deadline)
+        /* translators: %s: date et heure limites de modification. */
+        __('Modifiable jusqu’au %s', 'periscolaire-registration'),
+        wp_date(__('j F Y à H:i', 'periscolaire-registration'), $deadline)
     );
 }

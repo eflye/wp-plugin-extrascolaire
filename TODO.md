@@ -236,13 +236,17 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** disque plein, accès refusé, échec SQL, deuxième enfant invalide → ancien document préservé et résultat explicite ; reprise sans perte ni doublon. **Développement ; M/L.**
 
-### P1-14 — PARTIELLEMENT AVANCÉ — Corriger les référentiels de temps du verrou de modification
+### P1-14 — TRAITÉ (après v5.20.0) — Corriger les référentiels de temps du verrou de modification
 
-- [ ] **Comparer des timestamps Unix réels et afficher le même instant que celui contrôlé.**
+- [x] **Comparer des timestamps Unix réels et afficher le même instant que celui contrôlé.**
 
 **État initial (corrigé côté développement) :** `psc_now_ts()` utilisait un timestamp WordPress décalé, alors que la date limite était Unix réelle. La comparaison utilise désormais un timestamp Unix cohérent.
 
-**Avancement technique :** `psc_now_ts()` utilise désormais un timestamp Unix réel construit dans le fuseau WordPress ; une sonde vérifie le comportement juste avant et à l’échéance. Les tests exhaustifs autour des transitions d’heure et des purges restent à compléter.
+**Constaté le 24/09/2026 :** l’affichage restait faux. `psc_lock_message()` passait le timestamp Unix réel à `date_i18n()`, qui attend un timestamp décalé du fuseau du site : à Paris, « Modifiable jusqu’au 12 janvier à 23:00 » pour une échéance réellement contrôlée le 13 à 00:00, soit 1 h plus tôt en hiver et 2 h en été.
+
+**Traité le 24/09/2026 :** affichage par `wp_date()`, qui montre l’instant contrôlé en heure du site. Le délai reste compté en heures réellement écoulées : aux changements d’heure, l’échéance n’est donc pas à minuit (27 mars 23:00 avant le lundi qui suit le passage à l’heure d’été, 24 octobre 01:00 avant celui qui suit le passage à l’heure d’hiver), mais l’affichage correspond exactement à ce qui est contrôlé. Choix documenté dans `psc_lock_deadline_ts()` : l’arithmétique en heure légale varie selon les versions de PHP (7.4 à 8.3). `psc_lock_hours()` devient filtrable pour les tests. **Preuve :** `bin/verify-lock-clock.php`, lancé en CI (37 vérifications) — une seconde avant, à l’échéance et une seconde après ; Paris en hiver et en été ; les deux changements d’heure ; un site en UTC ; un délai nul ; `psc_now_ts()` aligné sur `time()`. Vérifiée par mutation : avec `date_i18n()`, 4 cas échouent. Elle remplace `tests/integration/planning-lock-clock.php`, qui ne couvrait que l’instant juste avant l’échéance et l’échéance elle-même.
+
+**Hors périmètre, à reprendre avec P1-08 :** plusieurs purges (conversations, consultations d’espace famille, rétention) calculent encore leur seuil avec `current_time('timestamp')`. Cela reste cohérent tant que les colonnes comparées sont écrites en heure locale, mais aucun test ne couvre les changements d’heure pour elles.
 
 **Acceptation :** tests juste avant/à/après échéance, Paris hiver/été, transitions d’heure, fuseau UTC et délai zéro. **Développement ; S/M.**
 
@@ -416,7 +420,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Constaté en conditions réelles le 24/09/2026 :** un tag déclenchait `release.yml` sans aucune dépendance au succès de `lint.yml` et `e2e.yml` — or c’est `e2e.yml` qui exécute `verify-migrations`, seul contrôle de la montée de version par bonds. Pour la 5.19.0, qui portait un changement de schéma (DB_VERSION 4.13.0), la seule parade a été de pousser `main`, d’attendre la CI à la main, puis de taguer.
 
-**Traité le 24/09/2026 :** `lint.yml` et `e2e.yml` acceptent `workflow_call` ; `release.yml` les rejoue sur le commit exact du tag (jobs `lint` et `e2e`) et le job de publication en dépend (`needs`) — un échec n’aboutit à aucune release. Les permissions d’écriture sont restreintes au job de publication. Le fumage couvre désormais aussi la **mise à jour** : dernière release publiée installée puis nouveau zip par-dessus, `psc_db_version` devant atteindre la `DB_VERSION` du paquet (vérifié localement sous Podman : 5.18.0 → 5.19.0, 4.12.0 → 4.13.0). La release publie un fichier `SHA256SUMS` à côté des zips. `actionlint` ne relève aucune erreur. **Reste à constater au prochain tag :** l’enchaînement complet sur GitHub (jobs appelés, étape de mise à jour, somme de contrôle attachée).
+**Traité le 24/09/2026 :** `lint.yml` et `e2e.yml` acceptent `workflow_call` ; `release.yml` les rejoue sur le commit exact du tag (jobs `lint` et `e2e`) et le job de publication en dépend (`needs`) — un échec n’aboutit à aucune release. Les permissions d’écriture sont restreintes au job de publication. Le fumage couvre désormais aussi la **mise à jour** : dernière release publiée installée puis nouveau zip par-dessus, `psc_db_version` devant atteindre la `DB_VERSION` du paquet (vérifié localement sous Podman : 5.18.0 → 5.19.0, 4.12.0 → 4.13.0). La release publie un fichier `SHA256SUMS` à côté des zips. `actionlint` ne relève aucune erreur. **Constaté avec v5.20.0 (24/09/2026) :** lint, PHPStan et E2E rejoués dans la release, fumage de mise à jour v5.19.0 → 5.20.0 réussi, `SHA256SUMS` publié avec les deux zips.
 
 **Acceptation :** tests en échec → aucune release publiée ; ZIP propre et installable ; ajout du TODO suivi n’entraîne ni exposition du rapport ni échec inattendu. **Aucune modification du workflow effectuée pendant cet audit. Développement ; S/M.**
 
