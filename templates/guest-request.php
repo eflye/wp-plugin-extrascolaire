@@ -156,7 +156,7 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
 
           <div class="psc-wizard-allergy-cell" style="grid-column: 1 / -1;">
             <label class="psc-wizard-diet-check" style="font-weight:600;"><input type="checkbox" name="child_food_signal_0" value="1"> <?php esc_html_e("La mairie doit échanger avec nous au sujet de l’alimentation de cet enfant", 'periscolaire-registration'); ?></label>
-            <p class="psc-child-allergy-help" style="font-size:11px;color:#8B8279;margin:6px 0 0;"><?php esc_html_e("Ne renseignez aucun détail médical ici. La mairie vous contactera oralement et décidera ensuite, si nécessaire, du statut « cantine sans repas ».", 'periscolaire-registration'); ?></p>
+            <p class="psc-child-allergy-help" style="font-size:11px;color:#665F58;margin:6px 0 0;"><?php esc_html_e("Ne renseignez aucun détail médical ici. La mairie vous contactera oralement et décidera ensuite, si nécessaire, du statut « cantine sans repas ».", 'periscolaire-registration'); ?></p>
           </div>
 
 

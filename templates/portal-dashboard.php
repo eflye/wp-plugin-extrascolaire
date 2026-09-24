@@ -17,7 +17,7 @@
     <div class="psc-portal-card-value" data-testid="dashboard-next-invoice"><?php echo esc_html($psc_portal_dashboard['next_invoice']['mois_label']); ?></div>
     <div class="psc-portal-card-sub"><?php echo esc_html($psc_portal_dashboard['next_invoice']['status_label']); ?></div>
     <?php else: ?>
-    <div class="psc-portal-card-value psc-portal-card-value--empty" style="font-size:17px;color:#8B8279;"><?php esc_html_e('Aucune', 'periscolaire-registration'); ?></div>
+    <div class="psc-portal-card-value psc-portal-card-value--empty" style="font-size:17px;color:#665F58;"><?php esc_html_e('Aucune', 'periscolaire-registration'); ?></div>
     <div class="psc-portal-card-sub"><?php esc_html_e('Rien à régler pour le moment', 'periscolaire-registration'); ?></div>
     <?php endif; ?>
   </div>

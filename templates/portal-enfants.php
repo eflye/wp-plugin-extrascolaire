@@ -188,28 +188,28 @@ if ($psc_active_year) {
     <input type="hidden" name="action" value="psc_parent_add_child">
     <div class="psc-portal-field-grid">
       <div>
-        <div class="psc-portal-field-label"><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></div>
-        <input type="text" name="new_prenom" placeholder="<?php esc_attr_e('Prénom', 'periscolaire-registration'); ?>" maxlength="190" required class="psc-portal-field-underline">
+        <label class="psc-portal-field-label" for="psc-new-prenom"><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></label>
+        <input id="psc-new-prenom" type="text" name="new_prenom" placeholder="<?php esc_attr_e('Prénom', 'periscolaire-registration'); ?>" maxlength="190" required class="psc-portal-field-underline">
       </div>
       <div>
-        <div class="psc-portal-field-label"><?php esc_html_e('Nom', 'periscolaire-registration'); ?></div>
-        <input type="text" name="new_nom" placeholder="<?php esc_attr_e('Nom', 'periscolaire-registration'); ?>" maxlength="190" required class="psc-portal-field-underline">
+        <label class="psc-portal-field-label" for="psc-new-nom"><?php esc_html_e('Nom', 'periscolaire-registration'); ?></label>
+        <input id="psc-new-nom" type="text" name="new_nom" placeholder="<?php esc_attr_e('Nom', 'periscolaire-registration'); ?>" maxlength="190" required class="psc-portal-field-underline">
       </div>
       <div>
-        <div class="psc-portal-field-label"><?php esc_html_e('Classe', 'periscolaire-registration'); ?></div>
-        <select name="new_classe" class="psc-portal-field-underline">
+        <label class="psc-portal-field-label" for="psc-new-classe"><?php esc_html_e('Classe', 'periscolaire-registration'); ?></label>
+        <select id="psc-new-classe" name="new_classe" class="psc-portal-field-underline">
           <?php foreach (Psc_School_Years::classe_options() as $v => $l): ?>
           <option value="<?php echo esc_attr($v); ?>"><?php echo esc_html($l); ?></option>
           <?php endforeach; ?>
         </select>
       </div>
       <div>
-        <div class="psc-portal-field-label"><?php esc_html_e('Date de naissance', 'periscolaire-registration'); ?></div>
-        <input type="date" name="new_naissance" max="<?php echo esc_attr(psc_child_birthdate_max()); ?>" class="psc-portal-field-underline">
+        <label class="psc-portal-field-label" for="psc-new-naissance"><?php esc_html_e('Date de naissance', 'periscolaire-registration'); ?></label>
+        <input id="psc-new-naissance" type="date" name="new_naissance" max="<?php echo esc_attr(psc_child_birthdate_max()); ?>" class="psc-portal-field-underline">
       </div>
       <div>
-        <div class="psc-portal-field-label"><?php esc_html_e("Justificatif d'assurance scolaire (PDF)", 'periscolaire-registration'); ?></div>
-        <input type="file" name="new_assurance_file" accept=".pdf,.jpg,.jpeg,.png" required class="psc-portal-field-underline">
+        <label class="psc-portal-field-label" for="psc-new-assurance-file"><?php esc_html_e("Justificatif d'assurance scolaire (PDF)", 'periscolaire-registration'); ?></label>
+        <input id="psc-new-assurance-file" type="file" name="new_assurance_file" accept=".pdf,.jpg,.jpeg,.png" required class="psc-portal-field-underline">
       </div>
       <div>
         <div class="psc-portal-field-label"><?php esc_html_e('Régime alimentaire', 'periscolaire-registration'); ?></div>
@@ -220,7 +220,7 @@ if ($psc_active_year) {
       </div>
       <div style="grid-column: 1 / -1;">
         <label><input type="checkbox" name="new_food_signal" value="1"> <strong style="font-weight:600;"><?php esc_html_e('La mairie doit échanger avec nous au sujet de l’alimentation de cet enfant', 'periscolaire-registration'); ?></strong></label>
-        <p class="psc-portal-field-help" style="font-size:11px;color:#8B8279;margin:6px 0 0;"><?php esc_html_e('Ne renseignez aucun détail médical ici. La mairie décidera ensuite, si nécessaire, du statut « cantine sans repas ».', 'periscolaire-registration'); ?></p>
+        <p class="psc-portal-field-help" style="font-size:11px;color:#665F58;margin:6px 0 0;"><?php esc_html_e('Ne renseignez aucun détail médical ici. La mairie décidera ensuite, si nécessaire, du statut « cantine sans repas ».', 'periscolaire-registration'); ?></p>
       </div>
     </div>
     <button type="submit" class="psc-portal-btn-gold"><?php esc_html_e('Ajouter', 'periscolaire-registration'); ?></button>

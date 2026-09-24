@@ -243,7 +243,7 @@ $psc_active_blocked = Psc_Assurances::status($psc_active_doc) !== 'approved';
 
       <div class="psc-exc-bar">
         <span data-exc-bar-summary><?php echo esc_html($psc_active_name); ?> · <?php echo esc_html((int) $psc_active_month['days']); ?> <?php echo esc_html(_n('jour', 'jours', (int) $psc_active_month['days'], 'periscolaire-registration')); ?> · <strong><?php echo esc_html(number_format_i18n((float) $psc_active_month['amount'], 2)); ?> €</strong> <?php esc_html_e('ce mois', 'periscolaire-registration'); ?></span>
-        <a href="#" class="psc-exc-reset" id="psc-exc-reset" data-testid="exc-reset" data-count="0"></a>
+        <a href="#" class="psc-exc-reset" id="psc-exc-reset" data-testid="exc-reset" data-count="0" hidden></a>
       </div>
 
       <div class="psc-exc-scroll">

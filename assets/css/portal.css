@@ -111,7 +111,10 @@ body.psc-portal-active main.site-main > .psc-portal {
     --psc-ink: #1A1A1A;
     --psc-cream: #F2F3F5;
     --psc-paper: #EAEFF4;
-    --psc-stone: #8B8279;
+    /* Texte secondaire : #8B8279 ne tenait que 3,3 à 3,8:1 selon le fond
+       (relevé axe, P2-15) ; #665F58, même teinte, tient ≥ 4,9:1 sur blanc,
+       crème, papier et carte de paiement. */
+    --psc-stone: #665F58;
     --psc-rule: rgba(36, 64, 92, 0.22);
     --psc-rule-light: rgba(36, 64, 92, 0.15);
     --psc-rule-lighter: rgba(36, 64, 92, 0.1);
@@ -211,7 +214,7 @@ body.admin-bar .psc-impersonation-banner { top: 32px; }
     font-size: 10px;
     letter-spacing: 0.28em;
     text-transform: uppercase;
-    color: rgba(250, 246, 241, 0.45);
+    color: rgba(250, 246, 241, 0.75); /* ≥ 4,5:1 sur l'encre */
     font-weight: 600;
     padding: 4px 8px 24px;
     margin-bottom: 20px;
@@ -256,7 +259,7 @@ body.admin-bar .psc-impersonation-banner { top: 32px; }
     font-size: 9px;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: rgba(250, 246, 241, 0.4);
+    color: rgba(250, 246, 241, 0.75); /* ≥ 4,5:1 sur l'encre */
     margin-bottom: 4px;
 }
 .psc-portal-account-email {
@@ -1397,7 +1400,7 @@ a.psc-portal-switch-link:focus-visible {
     font-size: 11px;
     letter-spacing: 0.28em;
     text-transform: uppercase;
-    color: var(--psc-gold);
+    color: var(--psc-gold-ink);
     font-weight: 700;
     margin: 0 0 10px;
 }
@@ -1633,7 +1636,7 @@ a.psc-portal-switch-link:focus-visible {
 }
 .psc-wizard-payment-card.is-active { background: rgba(224, 138, 95, 0.12); border-color: var(--psc-gold); }
 .psc-wizard-payment-card-title { font-family: 'Public Sans', Helvetica, Arial, sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 4px; }
-.psc-wizard-payment-card-sub { font-size: 12px; color: var(--psc-moss); }
+.psc-wizard-payment-card-sub { font-size: 12px; color: #3F5A77; /* moss assombri : ≥ 4,5:1 sur la carte sélectionnée */ }
 
 .psc-wizard-sepa-panel { background: var(--psc-paper); padding: 22px 24px; margin-bottom: 8px; }
 .psc-wizard-sepa-creditor { padding: 8px 2px; font-size: 14px; color: var(--psc-ink); }
@@ -1749,7 +1752,7 @@ a.psc-portal-switch-link:focus-visible {
     padding: 8px 0;
     font-size: 12px;
 }
-.psc-planning-switch-current { color: #8B8279; font-weight: 500; }
+.psc-planning-switch-current { color: var(--psc-stone); font-weight: 500; }
 .psc-planning-switch-link {
     color: #24405C;
     font-weight: 600;
@@ -1842,7 +1845,7 @@ a.psc-portal-switch-link:focus-visible {
     font-weight: 500;
     font-size: 11px;
     letter-spacing: 0.06em;
-    color: #8B8279;
+    color: var(--psc-stone);
 }
 .psc-child-tab:hover { border-color: #E08A5F; }
 .psc-child-tab.is-active {
@@ -1875,7 +1878,7 @@ a.psc-portal-switch-link:focus-visible {
     font-size: 9px;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: #E08A5F;
+    color: var(--psc-gold-ink);
     font-weight: 700;
     margin-bottom: 3px;
 }
@@ -2032,7 +2035,7 @@ a.psc-portal-switch-link:focus-visible {
 }
 .psc-exception-grid thead .psc-exc-price {
     font-weight: 400;
-    color: #8B8279;
+    color: var(--psc-stone);
     text-transform: none;
     letter-spacing: 0;
 }
@@ -2042,7 +2045,7 @@ a.psc-portal-switch-link:focus-visible {
     font-size: 9px;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: #8B8279;
+    color: var(--psc-stone);
     font-weight: 500;
     border-bottom: 1px solid rgba(36, 64, 92, 0.22);
 }
@@ -2071,7 +2074,7 @@ a.psc-portal-switch-link:focus-visible {
     border-bottom: 1px solid rgba(36, 64, 92, 0.1);
     white-space: nowrap;
 }
-.psc-exception-grid tbody .psc-exc-day.is-locked { color: #8B8279; }
+.psc-exception-grid tbody .psc-exc-day.is-locked { color: var(--psc-stone); }
 .psc-exception-grid td {
     text-align: center;
     padding: 5px 6px;
@@ -2108,7 +2111,7 @@ a.psc-portal-switch-link:focus-visible {
 .psc-exc-locked {
     background: #DCD3C9;
     border-color: #DCD3C9;
-    color: #8B8279;
+    color: var(--psc-stone);
 }
 .psc-exc-cell.psc-exc-none.psc-exc-locked,
 button.psc-exc-locked[aria-pressed="false"] { background: transparent; border-color: #DCD3C9; }
@@ -2124,7 +2127,7 @@ button.psc-exc-locked[aria-pressed="false"] { background: transparent; border-co
     padding: 11px 18px;
     border-top: 1px solid rgba(36, 64, 92, 0.15);
     font-size: 11px;
-    color: #8B8279;
+    color: var(--psc-stone);
 }
 .psc-exc-legend span { display: flex; align-items: center; gap: 6px; }
 .psc-exc-swatch {
@@ -2182,7 +2185,7 @@ button.psc-exc-locked[aria-pressed="false"] { background: transparent; border-co
     font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     font-weight: 400;
     font-size: 11px;
-    color: #8B8279;
+    color: var(--psc-stone);
 }
 .psc-sibling-card-month {
     font-size: 11.5px;
@@ -2191,7 +2194,7 @@ button.psc-exc-locked[aria-pressed="false"] { background: transparent; border-co
 }
 .psc-sibling-card-year {
     font-size: 11px;
-    color: #8B8279;
+    color: var(--psc-stone);
 }
 
 @media (max-width: 620px) {
@@ -2225,7 +2228,7 @@ button.psc-exc-locked[aria-pressed="false"] { background: transparent; border-co
    mais non modifiable tant que la case reste cochée. */
 .psc-portal-field-underline[readonly] {
     background-color: #F0EDE8;
-    color: #746E67;
+    color: #5F5A54; /* ≥ 4,5:1 sur ce fond comme sur le papier */
     cursor: not-allowed;
 }
 
