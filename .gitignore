@@ -48,8 +48,10 @@ vendor/
 
 # MkDocs (documentation administrateur, cf. docs-plan/PLAN.md) : site/ est
 # reconstruit par la CI (.github/workflows/docs.yml) à chaque déploiement,
-# jamais versionné.
+# jamais versionné. L'environnement virtuel Python local ne l'est pas non
+# plus (requirements.txt suffit à le recréer).
 site/
+.venv*/
 
 # WordPress
 wp-cli.local.yml
