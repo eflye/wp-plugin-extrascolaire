@@ -475,6 +475,14 @@ class Psc_Mailer {
      * blush ni de titre dupliquant l'objet : l'objet et le corps
      * configurable portent l'intitulé.
      */
+    /**
+     * Envoie un sujet et un HTML déjà construits (commande fournisseur
+     * enregistrée avant son envoi, cf. Psc_Supplier_Orders::deliver()).
+     */
+    public static function send_raw($to, $subject, $html) {
+        return (bool) self::send($to, $subject, $html);
+    }
+
     public static function send_supplier_order($supplier_email, $data) {
         $built = self::build_supplier_order($data);
         $sent  = self::send($supplier_email, $built['subject'], $built['html']);

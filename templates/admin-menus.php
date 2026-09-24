@@ -7,6 +7,7 @@ $psc_notices = array(
     'saved'     => array('updated',  __('Menu enregistré.', 'periscolaire-registration')),
     'sent'      => array('updated',  __('Menu envoyé aux familles.', 'periscolaire-registration')),
     'sent_zero' => array('warning',  __("Aucune famille active à notifier (vérifiez qu'il y a des enfants actifs).", 'periscolaire-registration')),
+    'sent_partial' => array('error', __('Le menu n’a pas pu être envoyé à toutes les familles : consultez le bilan dans la liste et relancez les échecs.', 'periscolaire-registration')),
     'deleted'   => array('updated',  __('Menu supprimé.', 'periscolaire-registration')),
     'invalid'   => array('error',    __('Paramètre invalide.', 'periscolaire-registration')),
 );
@@ -92,11 +93,21 @@ psc_admin_notice_map($psc_notices, $psc_msg);
         echo $preview ? esc_html(implode(', ', $preview) . ' ' . __('renseigné(s)', 'periscolaire-registration')) : '<em>' . esc_html__('vide', 'periscolaire-registration') . '</em>';
         ?>
     </td>
-    <td>
+    <td data-testid="menu-envoi-<?php echo esc_attr($m->id); ?>">
+        <?php $bilan = $menu_bilans[(int) $m->id] ?? null; ?>
         <?php if ($m->sent_at): ?>
-            <span style="color:#46b450">✔ <?php echo esc_html(date_i18n('d/m/Y H:i', strtotime($m->sent_at))); ?></span>
-        <?php else: ?>
-            <span style="color:#999"><?php esc_html_e('Non envoyé', 'periscolaire-registration'); ?></span>
+            <span style="color:#2E7D32">✔ <?php echo esc_html(date_i18n('d/m/Y H:i', strtotime($m->sent_at))); ?></span>
+        <?php elseif (!$bilan): ?>
+            <span style="color:#666"><?php esc_html_e('Non envoyé', 'periscolaire-registration'); ?></span>
+        <?php endif; ?>
+        <?php if ($bilan && ($bilan[Psc_Envois::ECHEC] > 0 || $bilan[Psc_Envois::A_ENVOYER] > 0)): ?>
+            <br><span style="color:#B32D2E" data-testid="menu-bilan-<?php echo esc_attr($m->id); ?>">
+                <?php printf(
+                    /* translators: 1: envois acceptés, 2: total, 3: échecs, 4: en attente. */
+                    esc_html__('Dernier envoi : %1$d/%2$d accepté(s), %3$d échec(s), %4$d en attente', 'periscolaire-registration'),
+                    (int) $bilan[Psc_Envois::ACCEPTE], (int) $bilan['total'], (int) $bilan[Psc_Envois::ECHEC], (int) $bilan[Psc_Envois::A_ENVOYER]
+                ); ?>
+            </span>
         <?php endif; ?>
     </td>
     <td style="white-space:nowrap">
@@ -107,12 +118,24 @@ psc_admin_notice_map($psc_notices, $psc_msg);
         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline;">
             <input type="hidden" name="action" value="psc_send_menu">
             <input type="hidden" name="id" value="<?php echo esc_attr($m->id); ?>">
+            <input type="hidden" name="lot" value="<?php echo esc_attr(wp_generate_uuid4()); ?>">
             <?php wp_nonce_field('psc_send_menu'); ?>
             <button type="submit" class="button button-small <?php echo $m->sent_at ? '' : 'button-primary'; ?>"
                     onclick="return confirm('<?php echo esc_js(__('Envoyer ce menu à toutes les familles actives ?', 'periscolaire-registration')); ?>');">
                 &#9993; <?php echo $m->sent_at ? esc_html__('Renvoyer', 'periscolaire-registration') : esc_html__('Envoyer aux familles', 'periscolaire-registration'); ?>
             </button>
         </form>
+        <?php if ($bilan && $bilan[Psc_Envois::ECHEC] > 0): ?>
+        &nbsp;
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline;">
+            <input type="hidden" name="action" value="psc_retry_menu">
+            <input type="hidden" name="id" value="<?php echo esc_attr($m->id); ?>">
+            <?php wp_nonce_field('psc_retry_menu'); ?>
+            <button type="submit" class="button button-small" data-testid="menu-relancer-<?php echo esc_attr($m->id); ?>">
+                <?php printf(esc_html__('Relancer les échecs (%d)', 'periscolaire-registration'), (int) $bilan[Psc_Envois::ECHEC]); ?>
+            </button>
+        </form>
+        <?php endif; ?>
         &nbsp;
         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline;" onsubmit="return confirm('<?php echo esc_js(__('Supprimer ce menu ?', 'periscolaire-registration')); ?>');">
             <input type="hidden" name="action" value="psc_delete_menu">

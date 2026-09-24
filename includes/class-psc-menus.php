@@ -216,24 +216,49 @@ class Psc_Menus {
      * Envoie le menu à toutes les familles concernées et marque sent_at.
      * Renvoie le nombre d'e-mails effectivement envoyés.
      */
-    public static function send($menu) {
+    /**
+     * Envoie le menu aux familles actives, par lot suivi destinataire par
+     * destinataire (cf. Psc_Envois) : un double clic ne renvoie rien, un
+     * échec est compté et relançable, et le menu n'est marqué « envoyé »
+     * que si toutes les familles l'ont reçu.
+     *
+     * @param object $menu
+     * @param string $lot Jeton du formulaire d'envoi (cf. Psc_Envois::lot()).
+     * @return array Bilan du lot (cf. Psc_Envois::bilan()).
+     */
+    public static function send($menu, $lot = '') {
+        $famille_ids = array_map('intval', wp_list_pluck(self::recipients(), 'id'));
+        $bilan = Psc_Envois::lancer('menu', (int) $menu->id, Psc_Envois::lot($lot), $famille_ids);
+        self::sync_sent_at((int) $menu->id, $bilan['lot']);
+        return $bilan;
+    }
+
+    /** Relance les seuls échecs du dernier envoi du menu. */
+    public static function relancer($menu) {
+        $bilan = Psc_Envois::relancer_echecs('menu', (int) $menu->id);
+        if ($bilan['lot'] !== null) self::sync_sent_at((int) $menu->id, $bilan['lot']);
+        return $bilan;
+    }
+
+    /** Marque le menu envoyé quand tout le lot est accepté (jamais avant). */
+    public static function sync_sent_at($menu_id, $lot) {
         global $wpdb;
-
-        $sent_count = 0;
-        foreach (self::recipients() as $parent) {
-            if (Psc_Mailer::send_weekly_menu($parent, $menu)) {
-                $sent_count++;
-            }
+        $bilan = Psc_Envois::bilan('menu', (int) $menu_id, $lot);
+        if ($bilan['total'] > 0 && $bilan[Psc_Envois::ACCEPTE] === $bilan['total']) {
+            $wpdb->update(psc_table('menus'), array('sent_at' => current_time('mysql')), array('id' => (int) $menu_id), array('%s'), array('%d'));
         }
+    }
 
-        $wpdb->update(
-            psc_table('menus'),
-            array('sent_at' => current_time('mysql')),
-            array('id' => (int) $menu->id),
-            array('%s'),
-            array('%d')
-        );
-
-        return $sent_count;
+    /**
+     * Expéditeur d'un envoi de menu (cf. Psc_Envois::sender()) : relit le
+     * menu et la famille au moment de l'envoi.
+     */
+    public static function deliver($menu_id, $famille_id) {
+        $menu = self::get($menu_id);
+        if (!$menu) return new WP_Error('menu_introuvable', 'Menu introuvable');
+        $parent = Psc_Parents::get_by_id($famille_id);
+        if (!$parent) return new WP_Error('famille_inactive', 'Famille inactive ou supprimée');
+        if (!is_email($parent->email)) return new WP_Error('adresse_invalide', 'Adresse invalide');
+        return Psc_Mailer::send_weekly_menu($parent, $menu) ? true : new WP_Error('mail_refuse', 'Envoi refusé');
     }
 }

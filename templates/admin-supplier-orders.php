@@ -7,7 +7,8 @@ $psc_notices = array(
     'sent'                    => array('updated',  __('Commande envoyée au fournisseur.', 'periscolaire-registration')),
     'psc_invalid_week'        => array('error',    __('Date de semaine invalide.', 'periscolaire-registration')),
     'psc_no_supplier_email'   => array('error',    __("Aucune adresse e-mail fournisseur n'est configurée. Renseignez-la dans l'onglet Réglages ci-dessus.", 'periscolaire-registration')),
-    'psc_mail_failed'         => array('error',    __("L'envoi du mail a échoué. Vérifiez la configuration e-mail.", 'periscolaire-registration')),
+    'psc_mail_failed'         => array('error',    __("L'envoi du mail a échoué. La commande est enregistrée dans l'historique : relancez-la une fois la configuration e-mail vérifiée.", 'periscolaire-registration')),
+    'psc_order_not_saved'     => array('error',    __('La commande n’a pas pu être enregistrée : rien n’a été envoyé au fournisseur.', 'periscolaire-registration')),
     'error'                   => array('error',    __('Une erreur est survenue.', 'periscolaire-registration')),
     'cantine_invalid'         => array('error',    __('Date invalide.', 'periscolaire-registration')),
     'cantine_reason_required' => array('error',    __("Merci d'indiquer un motif.", 'periscolaire-registration')),
@@ -108,6 +109,7 @@ psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
                 <?php wp_nonce_field('psc_send_supplier_order'); ?>
                 <input type="hidden" name="action" value="psc_send_supplier_order">
                 <input type="hidden" name="semaine_debut" value="<?php echo esc_attr($preview['semaine_debut']); ?>">
+                <input type="hidden" name="lot" value="<?php echo esc_attr(wp_generate_uuid4()); ?>">
                 <button type="submit" class="button button-primary" data-testid="supplier-modal-confirm"><?php esc_html_e('Confirmer l’envoi', 'periscolaire-registration'); ?></button>
             </form>
         </div>
@@ -211,7 +213,7 @@ psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
 <div class="psc-box">
 <h2><?php esc_html_e('Historique des envois', 'periscolaire-registration'); ?></h2>
 <?php if (empty($recent)): ?>
-<p data-testid="supplier-history-empty"><?php esc_html_e('Aucune commande envoyée pour le moment.', 'periscolaire-registration'); ?></p>
+<p data-testid="supplier-history-empty"><?php esc_html_e('Aucune commande pour le moment.', 'periscolaire-registration'); ?></p>
 <?php else: ?>
 <table class="widefat striped" data-testid="supplier-history-table">
 <thead>
@@ -229,12 +231,29 @@ psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
     <td data-testid="supplier-history-semaine-<?php echo esc_attr($h->id); ?>"><?php echo esc_html(date_i18n('d/m/Y', strtotime($h->semaine_debut))); ?></td>
     <td data-testid="supplier-history-total-<?php echo esc_attr($h->id); ?>"><?php echo (int) $h->total_repas; ?></td>
     <td data-testid="supplier-history-email-<?php echo esc_attr($h->id); ?>"><?php echo esc_html($h->supplier_email); ?></td>
-    <td data-testid="supplier-history-date-<?php echo esc_attr($h->id); ?>"><?php echo esc_html(date_i18n('d/m/Y H:i', strtotime($h->sent_at))); ?></td>
+    <td data-testid="supplier-history-date-<?php echo esc_attr($h->id); ?>">
+        <?php if ($h->sent_at): ?>
+            <?php echo esc_html(date_i18n('d/m/Y H:i', strtotime($h->sent_at))); ?>
+        <?php else: ?>
+            <?php $sup_bilan = $supplier_bilans[(int) $h->id] ?? null; ?>
+            <span style="color:#B32D2E" data-testid="supplier-history-statut-<?php echo esc_attr($h->id); ?>">
+                <?php echo ($sup_bilan && $sup_bilan[Psc_Envois::ECHEC] > 0) ? esc_html__('Échec de l’envoi', 'periscolaire-registration') : esc_html__('En attente d’envoi', 'periscolaire-registration'); ?>
+            </span>
+            <?php if ($sup_bilan && $sup_bilan[Psc_Envois::ECHEC] > 0): ?>
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin-top:4px;">
+                <input type="hidden" name="action" value="psc_retry_supplier_order">
+                <input type="hidden" name="id" value="<?php echo esc_attr($h->id); ?>">
+                <?php wp_nonce_field('psc_retry_supplier_order'); ?>
+                <button type="submit" class="button button-small" data-testid="supplier-history-relancer-<?php echo esc_attr($h->id); ?>"><?php esc_html_e('Relancer l’envoi', 'periscolaire-registration'); ?></button>
+            </form>
+            <?php endif; ?>
+        <?php endif; ?>
+    </td>
     <td>
         <details data-testid="supplier-history-details-<?php echo esc_attr($h->id); ?>">
             <summary><?php esc_html_e('Voir le contenu envoyé', 'periscolaire-registration'); ?></summary>
             <p><strong><?php esc_html_e('Sujet :', 'periscolaire-registration'); ?></strong> <span data-testid="supplier-history-subject-<?php echo esc_attr($h->id); ?>"><?php echo esc_html($h->email_subject); ?></span></p>
-            <iframe title="<?php esc_attr_e("Contenu de l'e-mail envoyé le", 'periscolaire-registration'); ?> <?php echo esc_attr(date_i18n('d/m/Y H:i', strtotime($h->sent_at))); ?>"
+            <iframe title="<?php esc_attr_e("Contenu de l'e-mail de la commande du", 'periscolaire-registration'); ?> <?php echo esc_attr(date_i18n('d/m/Y', strtotime($h->semaine_debut))); ?>"
                     data-testid="supplier-history-iframe-<?php echo esc_attr($h->id); ?>"
                     srcdoc="<?php echo esc_attr($h->email_body); ?>"
                     style="width:100%;max-width:700px;height:420px;border:1px solid #dcdcde;margin-top:8px;"></iframe>
