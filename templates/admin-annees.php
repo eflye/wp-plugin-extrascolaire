@@ -10,6 +10,7 @@ $psc_notices = array(
     'activated'           => array('success', __("Année activée : c'est désormais celle visible par les familles.", 'periscolaire-registration')),
     'archived'            => array('success', __('Année archivée.', 'periscolaire-registration')),
     'promoted'            => array('success', __("Passage d'année effectué.", 'periscolaire-registration')),
+    'promotion_failed'    => array('error', __("Le passage d'année n'a pas pu être enregistré : rien n'a été modifié. Le récapitulatif reste disponible pour réessayer.", 'periscolaire-registration')),
     'promotion_cancelled' => array('success', __("Passage d'année annulé.", 'periscolaire-registration')),
     'invalid'             => array('error', __('Opération impossible : élément introuvable ou invalide.', 'periscolaire-registration')),
     'order_dates'         => array('error', __('La date de fin doit être postérieure à la date de début.', 'periscolaire-registration')),

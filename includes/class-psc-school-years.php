@@ -147,16 +147,53 @@ class Psc_School_Years {
         return true;
     }
 
-    /** Une seule année active à la fois. */
+    /**
+     * Active une année : une seule année active à la fois, tout ou rien.
+     *
+     * Archiver l'ancienne puis activer la nouvelle se faisait en deux
+     * écritures indépendantes : un échec entre les deux laissait le site
+     * sans année active (portail des familles vide). Les deux se font
+     * désormais dans une transaction, sous verrou des années, et le
+     * résultat est vérifié avant validation. Réactiver l'année déjà
+     * active ne change rien.
+     *
+     * L'année d'inscription (school_years) a pour pendant la configuration
+     * du calendrier (school_year, dates, vacances, délai) portant la même
+     * clé que son libellé : elle est créée si elle manque, pour que planning
+     * et verrous voient l'année que voient classes et assurances.
+     */
     public static function activate($id) {
         global $wpdb;
         $id = absint($id);
         $t_years = psc_table('school_years');
-        $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM $t_years WHERE id = %d", $id));
-        if (!$exists) return false;
+        if (!$id) return false;
 
-        $wpdb->query("UPDATE $t_years SET statut = 'archivee' WHERE statut = 'active'");
-        $wpdb->update($t_years, array('statut' => 'active'), array('id' => $id), array('%s'), array('%d'));
+        $wpdb->query('START TRANSACTION');
+        $rows = $wpdb->get_results("SELECT id, label, statut FROM $t_years FOR UPDATE");
+        $target = null;
+        foreach ((array) $rows as $row) {
+            if ((int) $row->id === $id) $target = $row;
+        }
+        if (!$target) {
+            $wpdb->query('ROLLBACK');
+            return false;
+        }
+
+        $ok = $wpdb->query($wpdb->prepare("UPDATE $t_years SET statut = 'archivee' WHERE statut = 'active' AND id <> %d", $id)) !== false
+            && $wpdb->update($t_years, array('statut' => 'active'), array('id' => $id), array('%s'), array('%d')) !== false;
+        $actives = $ok ? $wpdb->get_col("SELECT id FROM $t_years WHERE statut = 'active'") : array();
+        if (!$ok || count($actives) !== 1 || (int) $actives[0] !== $id) {
+            $wpdb->query('ROLLBACK');
+            return false;
+        }
+        if ($wpdb->query('COMMIT') === false) {
+            $wpdb->query('ROLLBACK');
+            return false;
+        }
+
+        if (Psc_School_Year::sanitize_key($target->label) !== '' && class_exists('Psc_Planning')) {
+            Psc_Planning::ensure_year_config($target->label);
+        }
         return true;
     }
 
@@ -243,7 +280,8 @@ class Psc_School_Years {
         global $wpdb;
         $child_id = absint($child_id);
         if (!$child_id) return false;
-        return (bool) $wpdb->update(
+        // 0 ligne modifiée (déjà sorti) est un succès ; seul false est un échec.
+        return false !== $wpdb->update(
             psc_table('children'),
             array('statut' => 'sorti', 'sorti_le' => current_time('mysql')),
             array('id' => $child_id), array('%s', '%s'), array('%d')
@@ -328,21 +366,42 @@ class Psc_School_Years {
      * enfant promu dans $to_year_id, sort les enfants dont la classe
      * proposée est 'sortie'.
      */
+    /**
+     * Applique un plan de passage d'année, tout ou rien : une écriture en
+     * échec annule l'ensemble (aucun enfant à moitié promu) et renvoie
+     * WP_Error ; le plan reste alors en attente, prêt à être rejoué. Les
+     * écritures sont idempotentes (enroll() met à jour une ligne
+     * existante), rejouer un plan déjà appliqué ne duplique rien.
+     *
+     * @return int|WP_Error Nombre d'enfants inscrits dans l'année cible.
+     */
     public static function apply_promotion($to_year_id, $plan, $overrides = array()) {
+        global $wpdb;
         $to_year_id = absint($to_year_id);
-        if (!$to_year_id) return 0;
+        if (!$to_year_id || !self::get($to_year_id)) {
+            return new WP_Error('psc_promotion_year', __('Année cible introuvable.', 'periscolaire-registration'));
+        }
 
+        $wpdb->query('START TRANSACTION');
         $count = 0;
         foreach ($plan as $row) {
             $child_id = (int) $row['child_id'];
             $classe = array_key_exists($child_id, $overrides) ? $overrides[$child_id] : $row['classe_proposee'];
 
             if ($classe === 'sortie' || $classe === '') {
-                self::mark_sorti($child_id);
-                continue;
+                $ok = self::mark_sorti($child_id) !== false;
+            } else {
+                $ok = self::enroll($child_id, $to_year_id, $classe, 'inscrit');
+                if ($ok) $count++;
             }
-            self::enroll($child_id, $to_year_id, $classe, 'inscrit');
-            $count++;
+            if (!$ok) {
+                $wpdb->query('ROLLBACK');
+                return new WP_Error('psc_promotion_failed', __('Le passage d’année n’a pas pu être enregistré : rien n’a été modifié.', 'periscolaire-registration'));
+            }
+        }
+        if ($wpdb->query('COMMIT') === false) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('psc_promotion_failed', __('Le passage d’année n’a pas pu être enregistré : rien n’a été modifié.', 'periscolaire-registration'));
         }
         return $count;
     }
