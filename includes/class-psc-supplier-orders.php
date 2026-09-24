@@ -154,16 +154,33 @@ class Psc_Supplier_Orders {
     public static function recent($limit = 20) {
         global $wpdb;
         $limit = max(1, min(100, (int) $limit));
-        return $wpdb->get_results('SELECT * FROM ' . psc_table('supplier_orders') . " ORDER BY sent_at DESC LIMIT $limit");
+        // Par id : une commande en attente ou en échec (sent_at NULL) reste
+        // à sa place dans l'historique au lieu de tomber en fin de liste.
+        return $wpdb->get_results('SELECT * FROM ' . psc_table('supplier_orders') . " ORDER BY id DESC LIMIT $limit");
     }
 
     /**
-     * Calcule, envoie au fournisseur et archive un instantané de la
-     * commande de la semaine donnée. Renvoie l'id de l'entrée
-     * d'historique créée, ou WP_Error (mail non envoyé => pas d'entrée
-     * d'historique, l'admin peut réessayer).
+     * Calcule la commande de la semaine, l'ENREGISTRE (instantané des
+     * quantités et du mail, sent_at NULL), puis l'envoie par Psc_Envois.
+     * Enregistrer d'abord : si l'écriture échoue, rien n'est parti ; si le
+     * mail échoue, la commande reste dans l'historique, en échec et
+     * relançable, sans nouveau calcul. Le même formulaire soumis deux fois
+     * (même $lot) ne crée ni ne renvoie une seconde commande.
+     *
+     * Renvoie l'id de la commande, ou WP_Error.
      */
-    public static function send($semaine_debut) {
+    public static function send($semaine_debut, $lot = '') {
+        global $wpdb;
+        $lot = Psc_Envois::lot($lot);
+
+        $existing = $wpdb->get_var($wpdb->prepare(
+            'SELECT objet_id FROM ' . psc_table('envois') . ' WHERE objet_type = %s AND lot = %s LIMIT 1',
+            'commande_fournisseur', $lot
+        ));
+        if ($existing) {
+            return self::finish((int) $existing, Psc_Envois::bilan('commande_fournisseur', (int) $existing, $lot));
+        }
+
         $data = self::compute_counts($semaine_debut);
         if (is_wp_error($data)) return $data;
 
@@ -175,23 +192,48 @@ class Psc_Supplier_Orders {
             );
         }
 
-        $rendered = Psc_Mailer::send_supplier_order($supplier_email, $data);
-        if (!$rendered['sent']) {
-            return new WP_Error('psc_mail_failed', __("L'envoi du mail a échoué.", 'periscolaire-registration'));
-        }
-
-        global $wpdb;
-        $wpdb->insert(psc_table('supplier_orders'), array(
+        $built = Psc_Mailer::build_supplier_order($data);
+        $inserted = $wpdb->insert(psc_table('supplier_orders'), array(
             'semaine_debut'  => $data['semaine_debut'],
             'counts_json'    => wp_json_encode($data),
             'total_repas'    => $data['total'],
             'supplier_email' => $supplier_email,
-            'email_subject'  => $rendered['subject'],
-            'email_body'     => $rendered['html'],
-            'sent_at'        => current_time('mysql'),
+            'email_subject'  => $built['subject'],
+            'email_body'     => $built['html'],
+            'sent_at'        => null,
         ), array('%s', '%s', '%d', '%s', '%s', '%s', '%s'));
+        if (false === $inserted) {
+            return new WP_Error('psc_order_not_saved', __('La commande n’a pas pu être enregistrée : rien n’a été envoyé.', 'periscolaire-registration'));
+        }
+        $order_id = (int) $wpdb->insert_id;
 
-        return (int) $wpdb->insert_id;
+        return self::finish($order_id, Psc_Envois::lancer('commande_fournisseur', $order_id, $lot, null));
+    }
+
+    /** Relance l'envoi d'une commande en échec (même contenu, même lot). */
+    public static function relancer($order_id) {
+        return self::finish((int) $order_id, Psc_Envois::relancer_echecs('commande_fournisseur', (int) $order_id));
+    }
+
+    private static function finish($order_id, $bilan) {
+        if ($bilan['total'] > 0 && $bilan[Psc_Envois::ACCEPTE] === $bilan['total']) return $order_id;
+        return new WP_Error('psc_mail_failed', __("L'envoi du mail a échoué.", 'periscolaire-registration'));
+    }
+
+    /**
+     * Expéditeur d'une commande (cf. Psc_Envois::sender()) : renvoie le
+     * contenu enregistré, puis date l'envoi.
+     */
+    public static function deliver($order_id, $famille_id = null) {
+        global $wpdb;
+        $order = self::get($order_id);
+        if (!$order) return new WP_Error('commande_introuvable', 'Commande introuvable');
+        if (!is_email($order->supplier_email)) return new WP_Error('adresse_invalide', 'Adresse invalide');
+        if (!Psc_Mailer::send_raw($order->supplier_email, $order->email_subject, $order->email_body)) {
+            return new WP_Error('mail_refuse', 'Envoi refusé');
+        }
+        $wpdb->update(psc_table('supplier_orders'), array('sent_at' => current_time('mysql')), array('id' => (int) $order_id), array('%s'), array('%d'));
+        return true;
     }
 
     /* ------------------------------------------------------------------

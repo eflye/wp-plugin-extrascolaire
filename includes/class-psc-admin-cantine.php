@@ -10,6 +10,8 @@ class Psc_Admin_Cantine extends Psc_Admin_Base {
         add_action('admin_post_psc_save_menu', array(__CLASS__, 'handle_save_menu'));
         add_action('admin_post_psc_send_menu', array(__CLASS__, 'handle_send_menu'));
         add_action('admin_post_psc_delete_menu', array(__CLASS__, 'handle_delete_menu'));
+        add_action('admin_post_psc_retry_menu', array(__CLASS__, 'handle_retry_menu'));
+        add_action('admin_post_psc_retry_supplier_order', array(__CLASS__, 'handle_retry_supplier_order'));
         add_action('admin_post_psc_send_supplier_order', array(__CLASS__, 'handle_send_supplier_order'));
         add_action('admin_post_psc_cancel_class_meals', array(__CLASS__, 'handle_cancel_class_meals'));
         add_action('admin_post_psc_dismiss_cancel_class_meals', array(__CLASS__, 'handle_dismiss_cancel_class_meals'));
@@ -64,8 +66,25 @@ class Psc_Admin_Cantine extends Psc_Admin_Base {
         $menu = Psc_Menus::get($id);
         if (!$menu) self::redirect('psc_menus', 'invalid');
 
-        $count = Psc_Menus::send($menu);
-        self::redirect_to_menu($menu->semaine_debut, $count > 0 ? 'sent' : 'sent_zero');
+        $bilan = Psc_Menus::send($menu, psc_post('lot'));
+        self::redirect_to_menu($menu->semaine_debut, self::menu_bilan_msg($bilan));
+    }
+
+    public static function handle_retry_menu() {
+        self::guard('psc_retry_menu');
+
+        $menu = Psc_Menus::get(psc_post_int('id'));
+        if (!$menu) self::redirect('psc_menus', 'invalid');
+
+        $bilan = Psc_Menus::relancer($menu);
+        self::redirect_to_menu($menu->semaine_debut, self::menu_bilan_msg($bilan));
+    }
+
+    /** Message fidèle au bilan : jamais « envoyé » s'il reste un échec. */
+    private static function menu_bilan_msg($bilan) {
+        if ($bilan['total'] === 0) return 'sent_zero';
+        if ($bilan[Psc_Envois::ECHEC] > 0 || $bilan[Psc_Envois::A_ENVOYER] > 0) return 'sent_partial';
+        return 'sent';
     }
 
     public static function handle_delete_menu() {
@@ -100,6 +119,7 @@ class Psc_Admin_Cantine extends Psc_Admin_Base {
         $editing   = Psc_Menus::get_by_week($target_week);
 
         $recent  = Psc_Menus::recent(12);
+        $menu_bilans = Psc_Envois::bilans('menu', wp_list_pluck((array) $recent, 'id'));
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
 
         include PSC_PATH . 'templates/admin-menus.php';
@@ -109,10 +129,10 @@ class Psc_Admin_Cantine extends Psc_Admin_Base {
         self::guard('psc_send_supplier_order');
 
         $semaine = psc_post('semaine_debut');
-        $result  = Psc_Supplier_Orders::send($semaine);
+        $result  = Psc_Supplier_Orders::send($semaine, psc_post('lot'));
 
         if (is_wp_error($result)) {
-            $known = array('psc_invalid_week', 'psc_no_supplier_email', 'psc_mail_failed');
+            $known = array('psc_invalid_week', 'psc_no_supplier_email', 'psc_mail_failed', 'psc_order_not_saved');
             $msg   = in_array($result->get_error_code(), $known, true) ? $result->get_error_code() : 'error';
             wp_safe_redirect(add_query_arg(
                 array('page' => 'psc_supplier_orders', 'semaine_debut' => $semaine, 'psc_msg' => $msg),
@@ -123,6 +143,20 @@ class Psc_Admin_Cantine extends Psc_Admin_Base {
 
         wp_safe_redirect(add_query_arg(
             array('page' => 'psc_supplier_orders', 'semaine_debut' => $semaine, 'psc_msg' => 'sent'),
+            admin_url('admin.php')
+        ));
+        exit;
+    }
+
+    public static function handle_retry_supplier_order() {
+        self::guard('psc_retry_supplier_order');
+
+        $order = Psc_Supplier_Orders::get(psc_post_int('id'));
+        if (!$order) self::redirect('psc_supplier_orders', 'error');
+
+        $result = Psc_Supplier_Orders::relancer((int) $order->id);
+        wp_safe_redirect(add_query_arg(
+            array('page' => 'psc_supplier_orders', 'semaine_debut' => $order->semaine_debut, 'psc_msg' => is_wp_error($result) ? 'psc_mail_failed' : 'sent'),
             admin_url('admin.php')
         ));
         exit;
@@ -229,6 +263,7 @@ class Psc_Admin_Cantine extends Psc_Admin_Base {
         // fournisseur recevra). Aucun envoi à ce stade.
         $email_preview = is_wp_error($preview) ? null : Psc_Mailer::build_supplier_order($preview);
         $recent  = Psc_Supplier_Orders::recent(20);
+        $supplier_bilans = Psc_Envois::bilans('commande_fournisseur', wp_list_pluck((array) $recent, 'id'));
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         $cantine_n = psc_get_int('n');
 

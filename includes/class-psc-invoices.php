@@ -733,9 +733,34 @@ class Psc_Invoices {
     }
 
     /**
-     * Envoie la facture par e-mail avec le PDF en pièce jointe.
+     * Envoie la facture par e-mail avec le PDF en pièce jointe, suivie par
+     * Psc_Envois : le même formulaire soumis deux fois (même $lot) ne
+     * renvoie pas une facture déjà acceptée ; « Renvoyer » ouvre un nouveau
+     * lot. Retourne true si le mail est accepté, sinon WP_Error ('no_file',
+     * 'mail_failed', 'not_found').
      */
-    public static function send($invoice_id) {
+    public static function send($invoice_id, $lot = '') {
+        $invoice = self::get($invoice_id);
+        if (!$invoice) {
+            return new WP_Error('not_found', __('Facture introuvable.', 'periscolaire-registration'));
+        }
+        $bilan = Psc_Envois::lancer('facture', (int) $invoice_id, Psc_Envois::lot($lot), array((int) $invoice->parent_id));
+        if ($bilan['total'] > 0 && $bilan[Psc_Envois::ACCEPTE] === $bilan['total']) {
+            return true;
+        }
+        if (Psc_Envois::derniere_erreur('facture', (int) $invoice_id, $bilan['lot']) === 'no_file') {
+            return new WP_Error('no_file', __('Le fichier PDF est introuvable. Regénérez la facture.', 'periscolaire-registration'));
+        }
+        return new WP_Error('mail_failed', __('L\'envoi du mail a échoué.', 'periscolaire-registration'));
+    }
+
+    /**
+     * Expéditeur d'un envoi de facture (cf. Psc_Envois::sender()) : relit la
+     * facture et l'adresse de la famille au moment de l'envoi, envoie le
+     * PDF, puis date l'envoi. Si cette datation échoue, l'envoi reste
+     * accepté dans Psc_Envois : la facture ne sera pas renvoyée en double.
+     */
+    public static function deliver($invoice_id, $famille_id = null) {
         $invoice = self::get($invoice_id);
         if (!$invoice) {
             return new WP_Error('not_found', __('Facture introuvable.', 'periscolaire-registration'));

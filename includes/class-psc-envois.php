@@ -162,6 +162,16 @@ class Psc_Envois {
         return count((array) $rows);
     }
 
+    /** Cause du dernier échec d'un lot (code, jamais une adresse), ou null. */
+    public static function derniere_erreur($type, $objet_id, $lot) {
+        global $wpdb;
+        $err = $wpdb->get_var($wpdb->prepare(
+            'SELECT erreur FROM ' . psc_table('envois') . ' WHERE objet_type = %s AND objet_id = %d AND lot = %s AND statut = %s ORDER BY updated_at DESC, id DESC LIMIT 1',
+            $type, (int) $objet_id, $lot, self::ECHEC
+        ));
+        return $err === null ? null : (string) $err;
+    }
+
     /* ------------------------------------------------------------------ */
 
     private static function bilan_vide() {

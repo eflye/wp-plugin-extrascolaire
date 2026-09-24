@@ -203,7 +203,7 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
             self::redirect('psc_factures', 'invalid');
         }
 
-        $result = Psc_Invoices::send($invoice_id);
+        $result = Psc_Invoices::send($invoice_id, psc_post('lot'));
         $msg    = is_wp_error($result) ? $result->get_error_code() : 'sent';
         if ($msg !== 'no_file' && is_wp_error($result)) {
             $msg = 'mail_failed';
@@ -230,12 +230,15 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
             self::redirect('psc_factures', 'invalid');
         }
 
+        // Un seul lot pour tout l'envoi groupé : soumettre deux fois le même
+        // formulaire ne renvoie aucune facture déjà acceptée.
+        $lot = Psc_Envois::lot(psc_post('lot'));
         $invoices = Psc_Invoices::get_for_month($mois);
         $sent_count = 0;
         $failed_count = 0;
         foreach ($invoices as $inv) {
             if (!$inv->sent_at) {
-                $result = Psc_Invoices::send((int) $inv->id);
+                $result = Psc_Invoices::send((int) $inv->id, $lot);
                 if (is_wp_error($result)) $failed_count++; else $sent_count++;
             }
         }
@@ -247,8 +250,13 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
             'resume' => sprintf(__('Envoi groupé des factures de %s : %d envoyée(s), %d échec(s).', 'periscolaire-registration'), $mois, $sent_count, $failed_count),
         ));
 
+        // Bilan fidèle : « toutes envoyées » seulement s'il n'y a aucun échec.
         wp_safe_redirect(add_query_arg(
-            array('page' => 'psc_factures', 'mois' => $mois, 'psc_msg' => 'sent_all'),
+            array(
+                'page' => 'psc_factures', 'mois' => $mois,
+                'psc_msg' => $failed_count ? 'sent_all_partial' : 'sent_all',
+                'psc_ok' => $sent_count, 'psc_ko' => $failed_count,
+            ),
             admin_url('admin.php')
         ));
         exit;
@@ -279,6 +287,9 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
             $selected_mois = $all_months[0];
         }
         $invoices = $selected_mois ? Psc_Invoices::get_for_month($selected_mois) : array();
+        $invoice_bilans = Psc_Envois::bilans('facture', wp_list_pluck((array) $invoices, 'id'));
+        $psc_ok = isset($_GET['psc_ok']) ? absint($_GET['psc_ok']) : 0;
+        $psc_ko = isset($_GET['psc_ko']) ? absint($_GET['psc_ko']) : 0;
         $psc_msg  = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
 
         include PSC_PATH . 'templates/admin-factures.php';
