@@ -764,6 +764,13 @@ class Psc_Planning {
             }
         }
 
+        // Les lectures qui fondent la décision se font sous le verrou.
+        $refused = self::begin_child_write($child_id);
+        if ($refused !== null) {
+            return array('status' => $refused);
+        }
+        self::flush_cache();
+
         $patterns = self::load_patterns(array($child_id));
         $year_key = Psc_School_Year::year_key_for_date($date);
         $weekday  = (int) date('N', strtotime($date));
@@ -785,10 +792,12 @@ class Psc_Planning {
             // retirée quand la famille retire son midi : la cantine de cet
             // enfant n'est plus lue qu'à travers la conversion.
             if (!$on && array_key_exists('CANT', $day_exceptions) && $day_exceptions['CANT']) {
-                $wpdb->delete($t_exc,
+                if (false === $wpdb->delete($t_exc,
                     array('child_id' => $child_id, 'jour_date' => $date, 'service_code' => 'CANT'),
                     array('%d', '%s', '%s')
-                );
+                )) {
+                    return self::abort_write();
+                }
                 unset($day_exceptions['CANT']);
             }
             // Base = état du midi SANS l'exception MSR du jour, calculé par
@@ -822,19 +831,22 @@ class Psc_Planning {
         }
 
         if ($decision === 'delete') {
-            $wpdb->delete($t_exc,
+            $written = $wpdb->delete($t_exc,
                 array('child_id' => $child_id, 'jour_date' => $date, 'service_code' => $service_code),
                 array('%d', '%s', '%s')
             );
             $status = 'removed';
         } else {
-            $wpdb->query($wpdb->prepare(
+            $written = $wpdb->query($wpdb->prepare(
                 "INSERT INTO $t_exc (child_id, jour_date, service_code, `value`, created_at)
                  VALUES (%d, %s, %s, %d, %s)
                  ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
                 $child_id, $date, $service_code, $on ? 1 : 0, current_time('mysql')
             ));
             $status = 'added';
+        }
+        if (false === $written) {
+            return self::abort_write();
         }
 
         // Un ajout rend caduques les exceptions positives conflictuelles du
@@ -843,13 +855,18 @@ class Psc_Planning {
         // créneau si le navigateur n'a pas envoyé la cascade de décochage.
         if ($on && $decision === 'upsert') {
             foreach (psc_conflicting_services($service_code) as $conf) {
-                $wpdb->delete($t_exc,
+                if (false === $wpdb->delete($t_exc,
                     array('child_id' => $child_id, 'jour_date' => $date, 'service_code' => $conf, 'value' => 1),
                     array('%d', '%s', '%s', '%d')
-                );
+                )) {
+                    return self::abort_write();
+                }
             }
         }
 
+        if (false === $wpdb->query('COMMIT')) {
+            return self::abort_write();
+        }
         self::flush_cache();
         return array('status' => $status, 'declared' => (bool) $on);
     }
@@ -897,6 +914,16 @@ class Psc_Planning {
         $t_exc = psc_table('exception');
         $forf  = psc_forfait_code();
 
+        // Toute l'écriture — exclusivités, rythme, gel des jours verrouillés,
+        // purge — se fait sous le verrou de l'enfant et dans une transaction :
+        // un échec à mi-course laissait un rythme partiellement détruit
+        // (conflits déjà supprimés, nouvelle ligne absente).
+        $refused = self::begin_child_write($child_id);
+        if ($refused !== null) {
+            return array('status' => $refused);
+        }
+        self::flush_cache();
+
         // Rien à faire si l'état demandé est déjà celui du rythme : pas de
         // gel ni de purge à déclencher pour un non-changement.
         $existing = (bool) $wpdb->get_var($wpdb->prepare(
@@ -904,6 +931,7 @@ class Psc_Planning {
             $child_id, $year_key, $weekday, $service_code
         ));
         if ($existing === $on) {
+            $wpdb->query('COMMIT');
             return array('status' => 'unchanged');
         }
 
@@ -921,25 +949,30 @@ class Psc_Planning {
         //    entre aussi en conflit avec MSR.
         if ($on) {
             foreach (psc_conflicting_services($service_code) as $conf) {
-                $wpdb->delete($t_pat, array(
+                if (false === $wpdb->delete($t_pat, array(
                     'child_id' => $child_id, 'school_year' => $year_key, 'weekday' => $weekday, 'service_code' => $conf,
-                ), array('%d', '%s', '%d', '%s'));
+                ), array('%d', '%s', '%d', '%s'))) {
+                    return self::abort_write();
+                }
             }
         }
 
         // 2. Écriture du pattern (une ligne de pattern ne porte que du vrai :
         //    retirer = supprimer la ligne, l'absence vaut false).
         if ($on) {
-            $wpdb->query($wpdb->prepare(
+            $written = $wpdb->query($wpdb->prepare(
                 "INSERT INTO $t_pat (child_id, school_year, weekday, service_code, created_at, updated_at)
                  VALUES (%d, %s, %d, %s, %s, %s)
                  ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at)",
                 $child_id, $year_key, $weekday, $service_code, current_time('mysql'), current_time('mysql')
             ));
         } else {
-            $wpdb->delete($t_pat, array(
+            $written = $wpdb->delete($t_pat, array(
                 'child_id' => $child_id, 'school_year' => $year_key, 'weekday' => $weekday, 'service_code' => $service_code,
             ), array('%d', '%s', '%d', '%s'));
+        }
+        if (false === $written) {
+            return self::abort_write();
         }
 
         // 3. Gel des jours verrouillés + purge du bruit.
@@ -988,10 +1021,12 @@ class Psc_Planning {
                         // Invariant : cette exception est devenue du bruit —
                         // sa valeur égale le rythme. La supprimer ne change
                         // rien à l'état effectif, y compris sur un jour verrouillé.
-                        $wpdb->delete($t_exc,
+                        if (false === $wpdb->delete($t_exc,
                             array('child_id' => $child_id, 'jour_date' => $day, 'service_code' => $svc),
                             array('%d', '%s', '%s')
-                        );
+                        )) {
+                            return self::abort_write();
+                        }
                         $purged++;
                     }
                     // Sinon l'exception fige déjà son état : elle gagne sur
@@ -1002,18 +1037,23 @@ class Psc_Planning {
                         // Verrou 48 h, écriture n°2 : le changement de rythme
                         // ne repropage pas sur ce jour déjà transmis — on
                         // matérialise son état d'avant en exception figée.
-                        $wpdb->query($wpdb->prepare(
+                        if (false === $wpdb->query($wpdb->prepare(
                             "INSERT INTO $t_exc (child_id, jour_date, service_code, `value`, created_at)
                              VALUES (%d, %s, %s, %d, %s)
                              ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
                             $child_id, $day, $svc, $was ? 1 : 0, current_time('mysql')
-                        ));
+                        ))) {
+                            return self::abort_write();
+                        }
                         $frozen++;
                     }
                 }
             }
         }
 
+        if (false === $wpdb->query('COMMIT')) {
+            return self::abort_write();
+        }
         self::flush_cache();
         return array('status' => 'ok', 'frozen' => $frozen, 'purged' => $purged);
     }
@@ -1435,6 +1475,37 @@ class Psc_Planning {
      * requête pour les résolutions en masse (declared_map).
      */
     private static $csr_flag_cache = array();
+
+    /**
+     * Ouvre la transaction d'une écriture de planning et verrouille la ligne
+     * de l'enfant jusqu'au commit : deux clics simultanés sur le planning
+     * d'un même enfant (double clic, deux onglets, deux parents) lisaient
+     * le même état avant d'écrire chacun le leur. Renvoie null quand la
+     * transaction est ouverte, sinon le statut à renvoyer ('invalid' :
+     * enfant inconnu ; 'error' : verrou non obtenu à temps) — la
+     * transaction est alors déjà annulée.
+     */
+    protected static function begin_child_write($child_id) {
+        global $wpdb;
+        $wpdb->query('START TRANSACTION');
+        $found = $wpdb->get_var($wpdb->prepare(
+            'SELECT id FROM ' . psc_table('children') . ' WHERE id = %d FOR UPDATE', $child_id
+        ));
+        if (!$found) {
+            $failed = $wpdb->last_error !== '';
+            $wpdb->query('ROLLBACK');
+            return $failed ? 'error' : 'invalid';
+        }
+        return null;
+    }
+
+    /** Annule l'écriture en cours : rien de ce qu'elle a déjà fait ne reste. */
+    protected static function abort_write() {
+        global $wpdb;
+        $wpdb->query('ROLLBACK');
+        self::flush_cache();
+        return array('status' => 'error');
+    }
 
     /** Enfant flagué « cantine sans repas » ? (lut et mis en cache) */
     protected static function cantine_sans_repas_flag($child_id) {
