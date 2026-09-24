@@ -26,6 +26,7 @@ Les enfants confirmés disposent d'une inscription et d'un justificatif d'assura
 
 ## Pour aller plus loin
 
+- Côté famille : [Réinscription](../familles/reinscription.md) (guide des familles)
 - [Passage de classe](passage-de-classe.md)
 - [Année scolaire](../configuration/annee-scolaire.md)
 - [Documents (assurance)](../gestion-quotidienne/documents-assurance.md)

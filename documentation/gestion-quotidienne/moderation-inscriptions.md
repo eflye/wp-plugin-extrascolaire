@@ -28,6 +28,7 @@ Chaque demande confirmée reçoit une décision tracée, les familles validées 
 
 ## Pour aller plus loin
 
+- Côté famille : [Demander une inscription](../familles/inscription.md) (guide des familles)
 - [Tableau de bord](tableau-de-bord.md)
 - [Régimes alimentaires](../configuration/regimes-alimentaires.md)
 - [Démarrage rapide](../demarrage-rapide.md)

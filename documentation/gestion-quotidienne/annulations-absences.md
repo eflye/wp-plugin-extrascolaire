@@ -26,6 +26,7 @@ Les annulations valides sont retirées du planning et de la facturation, la fami
 
 ## Pour aller plus loin
 
+- Côté famille : [Tableau de bord](../familles/tableau-de-bord.md) (guide des familles)
 - [Services et tarifs](../configuration/services-tarifs.md)
 - [Tableau de bord](tableau-de-bord.md)
 - [Menus de cantine](menus-cantine.md)

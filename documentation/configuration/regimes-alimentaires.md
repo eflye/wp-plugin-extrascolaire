@@ -33,6 +33,7 @@ Chaque fiche enfant indique les régimes utiles à la préparation des repas. Le
 
 ## Pour aller plus loin
 
+- Côté famille : [Mes enfants et assurance](../familles/enfants.md) (guide des familles)
 - [Services et tarifs](services-tarifs.md)
 - [Documents (assurance)](../gestion-quotidienne/documents-assurance.md)
 - [Année scolaire](annee-scolaire.md)
