@@ -509,13 +509,20 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** versions distantes recensées, calendrier de maintenance, dépendances identifiées et alertes traitées. Les anciennes versions PHP ne reçoivent plus les corrections du projet PHP : [PHP — versions supportées](https://www.php.net/supported-versions.php), [versions abandonnées](https://www.php.net/eol.php). **Développement + hébergeur ; M.**
 
-### P2-13 — Isoler le développement sur le laptop
+### P2-13 — TRAITÉ CÔTÉ DÉPÔT (après v5.22.0) — Isoler le développement sur le laptop
 
-- [ ] **Limiter les ports locaux et éviter le service HTTP des fichiers de travail.**
+- [x] **Limiter les ports locaux et éviter le service HTTP des fichiers de travail.**
 
 **Reproduit, laptop uniquement :** ports Podman annoncés `0.0.0.0:8080` et `0.0.0.0:8025` ; le dépôt complet est monté sous le répertoire public du plugin (`docker-compose.yml`). Les HEAD de `.env`, `.git/HEAD` et `claude-export.zip` répondent 200 ; Mailpit répond sans authentification. L’accessibilité effective depuis un autre appareil dépend du réseau, de Podman/macOS et du pare-feu ; aucune exposition Internet ni consultation par un tiers n’est établie.
 
 **À faire :** lier à loopback quand aucun partage n’est nécessaire ; ne servir que les fichiers runtime ou bloquer les fichiers de travail ; données synthétiques dans Mailpit/tests, chiffrement/verrouillage du laptop, règles pour exports et sauvegardes locales. Si des secrets réels ont pu être consultés, évaluer leur rotation après confinement.
+
+**Traité le 24/09/2026 :**
+- **Ports :** WordPress (8080) et Mailpit (8025) sont liés à `127.0.0.1` dans `docker-compose.yml`, donc joignables seulement depuis le poste, plus depuis le réseau local. Effet à la recréation des conteneurs (`podman compose up -d`).
+- **Fichiers de travail :** un `.htaccess` de développement à la racine du dépôt refuse tout sauf les fichiers statiques chargés par le navigateur (css, js, images, polices). Constaté localement : `.env`, `.git/HEAD`, `TODO.md`, l’export zip et les sources PHP passent de 200 à 403, les assets restent à 200. Exclu du zip publié (liste de `release.yml`).
+- **Preuve :** `tests/dev-isolation.spec.ts` couvre ces deux points en CI.
+
+**Reste (hors code, poste de travail) :** chiffrement et verrouillage du laptop, données synthétiques seulement dans Mailpit, règles pour les exports et sauvegardes locales (`claude-export.zip` et les anciennes archives à la racine du dépôt sont à ranger hors du dépôt). Si des secrets réels ont pu être consultés via le réseau local avant ce correctif, envisager leur rotation.
 
 **Acceptation :** navigation locale et tests fonctionnels préservés ; fichiers de travail refusés par HTTP ; pas de partage involontaire des mails. **Le ZIP v5.4.1 inspecté n’embarque aucun de ces fichiers : ne pas présenter ce point comme une faille démontrée du serveur distant. Développement ; S.**
 

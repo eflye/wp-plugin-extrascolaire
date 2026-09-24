@@ -1,0 +1,18 @@
+# Environnement de développement uniquement — ce fichier n'entre jamais
+# dans le zip publié (cf. liste d'exclusion de .github/workflows/release.yml).
+#
+# En local, le dépôt entier est monté comme dossier du plugin
+# (docker-compose.yml) : .env, .git, exports, rapports et TODO y étaient
+# servis en HTTP. Seuls les fichiers statiques réellement chargés par le
+# navigateur (feuilles de style, scripts, images, polices) restent
+# accessibles ; tout le reste est refusé. WordPress inclut les fichiers
+# PHP du plugin depuis le disque, jamais par une URL.
+<IfModule mod_authz_core.c>
+    Require all denied
+    <FilesMatch "\.(css|js|png|jpe?g|gif|svg|webp|woff2?)$">
+        Require all granted
+    </FilesMatch>
+    <FilesMatch "^\.">
+        Require all denied
+    </FilesMatch>
+</IfModule>

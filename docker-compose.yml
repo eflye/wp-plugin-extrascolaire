@@ -15,7 +15,9 @@ services:
     image: axllent/mailpit:latest
     restart: unless-stopped
     ports:
-      - "8025:8025"
+      # Loopback : Mailpit (sans authentification) n'est joignable que
+      # depuis ce poste, pas depuis le réseau local.
+      - "127.0.0.1:8025:8025"
 
   wordpress:
     image: wordpress:latest
@@ -23,7 +25,8 @@ services:
     depends_on:
       - db
     ports:
-      - "8080:80"
+      # Loopback : le site de développement n'est joignable que depuis ce poste.
+      - "127.0.0.1:8080:80"
     environment:
       WORDPRESS_DB_HOST: db:3306
       WORDPRESS_DB_NAME: wordpress
