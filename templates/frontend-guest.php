@@ -67,6 +67,11 @@
       <?php endif; ?>
     <?php endif; ?>
 
+    <p class="psc-guest-help">
+      <?php esc_html_e('Première visite ou une question ?', 'periscolaire-registration'); ?>
+      <?php psc_family_guide_link('psc-guest-help-link', __('Consultez le guide des familles', 'periscolaire-registration'), 'guest-help-link'); ?>
+    </p>
+
     <?php include PSC_PATH . 'templates/guest-login.php'; ?>
 
     <div class="psc-guest-divider">
