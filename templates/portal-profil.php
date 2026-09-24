@@ -23,44 +23,44 @@
 
     <div class="psc-portal-field-grid">
       <div>
-        <div class="psc-portal-field-label"><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></div>
-        <input type="text" name="profil_prenom" value="<?php echo esc_attr($parent->prenom); ?>" maxlength="190" class="psc-portal-field-underline">
+        <label class="psc-portal-field-label" for="psc-profil-prenom"><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></label>
+        <input id="psc-profil-prenom" type="text" name="profil_prenom" value="<?php echo esc_attr($parent->prenom); ?>" maxlength="190" class="psc-portal-field-underline">
       </div>
       <div>
-        <div class="psc-portal-field-label"><?php esc_html_e('Nom', 'periscolaire-registration'); ?></div>
-        <input type="text" name="profil_nom" value="<?php echo esc_attr($parent->nom); ?>" maxlength="190" class="psc-portal-field-underline">
+        <label class="psc-portal-field-label" for="psc-profil-nom"><?php esc_html_e('Nom', 'periscolaire-registration'); ?></label>
+        <input id="psc-profil-nom" type="text" name="profil_nom" value="<?php echo esc_attr($parent->nom); ?>" maxlength="190" class="psc-portal-field-underline">
       </div>
     </div>
 
     <div class="psc-portal-panel-title" style="margin-top:28px;"><?php esc_html_e('Coordonnées', 'periscolaire-registration'); ?></div>
     <div class="psc-portal-field-grid">
       <div>
-        <div class="psc-portal-field-label"><?php esc_html_e('Téléphone mobile', 'periscolaire-registration'); ?></div>
-        <input type="tel" name="profil_tel_mobile" value="<?php echo esc_attr($parent->telephone_mobile); ?>" maxlength="40" pattern="<?php echo esc_attr(psc_tel_pattern()); ?>" title="<?php esc_attr_e('Format attendu : 06 12 34 56 78 ou +33 6 12 34 56 78.', 'periscolaire-registration'); ?>" class="psc-portal-field-underline">
+        <label class="psc-portal-field-label" for="psc-profil-tel-mobile"><?php esc_html_e('Téléphone mobile', 'periscolaire-registration'); ?></label>
+        <input id="psc-profil-tel-mobile" type="tel" name="profil_tel_mobile" value="<?php echo esc_attr($parent->telephone_mobile); ?>" maxlength="40" pattern="<?php echo esc_attr(psc_tel_pattern()); ?>" title="<?php esc_attr_e('Format attendu : 06 12 34 56 78 ou +33 6 12 34 56 78.', 'periscolaire-registration'); ?>" class="psc-portal-field-underline">
       </div>
       <div>
-        <div class="psc-portal-field-label"><?php esc_html_e('Téléphone fixe', 'periscolaire-registration'); ?></div>
-        <input type="tel" name="profil_tel_fixe" value="<?php echo esc_attr($parent->telephone_fixe); ?>" maxlength="40" pattern="<?php echo esc_attr(psc_tel_pattern()); ?>" title="<?php esc_attr_e('Format attendu : 06 12 34 56 78 ou +33 6 12 34 56 78.', 'periscolaire-registration'); ?>" class="psc-portal-field-underline">
+        <label class="psc-portal-field-label" for="psc-profil-tel-fixe"><?php esc_html_e('Téléphone fixe', 'periscolaire-registration'); ?></label>
+        <input id="psc-profil-tel-fixe" type="tel" name="profil_tel_fixe" value="<?php echo esc_attr($parent->telephone_fixe); ?>" maxlength="40" pattern="<?php echo esc_attr(psc_tel_pattern()); ?>" title="<?php esc_attr_e('Format attendu : 06 12 34 56 78 ou +33 6 12 34 56 78.', 'periscolaire-registration'); ?>" class="psc-portal-field-underline">
       </div>
       <div>
-        <div class="psc-portal-field-label"><?php esc_html_e('Adresse e-mail', 'periscolaire-registration'); ?></div>
-        <input type="email" name="profil_email" value="<?php echo esc_attr($parent->email); ?>" maxlength="191" required class="psc-portal-field-underline">
+        <label class="psc-portal-field-label" for="psc-profil-email"><?php esc_html_e('Adresse e-mail', 'periscolaire-registration'); ?></label>
+        <input id="psc-profil-email" type="email" name="profil_email" value="<?php echo esc_attr($parent->email); ?>" maxlength="191" required class="psc-portal-field-underline">
       </div>
     </div>
 
     <div class="psc-portal-panel-title" style="margin-top:28px;"><?php esc_html_e('Adresse du foyer', 'periscolaire-registration'); ?></div>
     <div class="psc-portal-field-grid">
       <div>
-        <div class="psc-portal-field-label"><?php esc_html_e('Adresse', 'periscolaire-registration'); ?></div>
-        <input type="text" name="profil_adresse" value="<?php echo esc_attr($parent->adresse); ?>" maxlength="255" class="psc-portal-field-underline">
+        <label class="psc-portal-field-label" for="psc-profil-adresse"><?php esc_html_e('Adresse', 'periscolaire-registration'); ?></label>
+        <input id="psc-profil-adresse" type="text" name="profil_adresse" value="<?php echo esc_attr($parent->adresse); ?>" maxlength="255" class="psc-portal-field-underline">
       </div>
       <div>
-        <div class="psc-portal-field-label"><?php esc_html_e('Code postal', 'periscolaire-registration'); ?></div>
-        <input type="text" name="profil_code_postal" value="<?php echo esc_attr($parent->code_postal); ?>" maxlength="10" pattern="[0-9]{5}" title="<?php esc_attr_e('Format attendu : 5 chiffres.', 'periscolaire-registration'); ?>" class="psc-portal-field-underline">
+        <label class="psc-portal-field-label" for="psc-profil-code-postal"><?php esc_html_e('Code postal', 'periscolaire-registration'); ?></label>
+        <input id="psc-profil-code-postal" type="text" name="profil_code_postal" value="<?php echo esc_attr($parent->code_postal); ?>" maxlength="10" pattern="[0-9]{5}" title="<?php esc_attr_e('Format attendu : 5 chiffres.', 'periscolaire-registration'); ?>" class="psc-portal-field-underline">
       </div>
       <div>
-        <div class="psc-portal-field-label"><?php esc_html_e('Ville', 'periscolaire-registration'); ?></div>
-        <input type="text" name="profil_ville" value="<?php echo esc_attr($parent->ville); ?>" maxlength="100" class="psc-portal-field-underline">
+        <label class="psc-portal-field-label" for="psc-profil-ville"><?php esc_html_e('Ville', 'periscolaire-registration'); ?></label>
+        <input id="psc-profil-ville" type="text" name="profil_ville" value="<?php echo esc_attr($parent->ville); ?>" maxlength="100" class="psc-portal-field-underline">
       </div>
     </div>
 
@@ -210,20 +210,20 @@
       <input type="hidden" name="action" value="psc_parent_update_second_parent">
       <div class="psc-portal-field-grid">
         <div>
-          <div class="psc-portal-field-label"><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></div>
-          <input type="text" name="second_parent_prenom" value="<?php echo esc_attr($parent->second_parent_prenom); ?>" maxlength="190" class="psc-portal-field-underline">
+          <label class="psc-portal-field-label" for="psc-second-parent-prenom"><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></label>
+          <input id="psc-second-parent-prenom" type="text" name="second_parent_prenom" value="<?php echo esc_attr($parent->second_parent_prenom); ?>" maxlength="190" class="psc-portal-field-underline">
         </div>
         <div>
-          <div class="psc-portal-field-label"><?php esc_html_e('Nom', 'periscolaire-registration'); ?></div>
-          <input type="text" name="second_parent_nom" value="<?php echo esc_attr($parent->second_parent_nom); ?>" maxlength="190" class="psc-portal-field-underline">
+          <label class="psc-portal-field-label" for="psc-second-parent-nom"><?php esc_html_e('Nom', 'periscolaire-registration'); ?></label>
+          <input id="psc-second-parent-nom" type="text" name="second_parent_nom" value="<?php echo esc_attr($parent->second_parent_nom); ?>" maxlength="190" class="psc-portal-field-underline">
         </div>
         <div>
-          <div class="psc-portal-field-label"><?php esc_html_e('E-mail', 'periscolaire-registration'); ?></div>
-          <input type="email" name="second_parent_email" value="<?php echo esc_attr($parent->second_parent_email); ?>" class="psc-portal-field-underline">
+          <label class="psc-portal-field-label" for="psc-second-parent-email"><?php esc_html_e('E-mail', 'periscolaire-registration'); ?></label>
+          <input id="psc-second-parent-email" type="email" name="second_parent_email" value="<?php echo esc_attr($parent->second_parent_email); ?>" class="psc-portal-field-underline">
         </div>
         <div>
-          <div class="psc-portal-field-label"><?php esc_html_e('Téléphone', 'periscolaire-registration'); ?></div>
-          <input type="tel" name="second_parent_telephone" value="<?php echo esc_attr($parent->second_parent_telephone); ?>" maxlength="40" pattern="<?php echo esc_attr(psc_tel_pattern()); ?>" title="<?php esc_attr_e('Format attendu : 06 12 34 56 78 ou +33 6 12 34 56 78.', 'periscolaire-registration'); ?>" class="psc-portal-field-underline">
+          <label class="psc-portal-field-label" for="psc-second-parent-telephone"><?php esc_html_e('Téléphone', 'periscolaire-registration'); ?></label>
+          <input id="psc-second-parent-telephone" type="tel" name="second_parent_telephone" value="<?php echo esc_attr($parent->second_parent_telephone); ?>" maxlength="40" pattern="<?php echo esc_attr(psc_tel_pattern()); ?>" title="<?php esc_attr_e('Format attendu : 06 12 34 56 78 ou +33 6 12 34 56 78.', 'periscolaire-registration'); ?>" class="psc-portal-field-underline">
         </div>
       </div>
       <p style="margin-top:16px;"><button type="submit" class="psc-portal-btn-gold" data-testid="profil-second-parent-submit"><?php esc_html_e('Enregistrer', 'periscolaire-registration'); ?></button></p>

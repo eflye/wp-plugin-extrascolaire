@@ -276,7 +276,7 @@
                 '<label class="psc-wizard-diet-check" style="font-weight:600;"><input type="checkbox" class="psc-child-allergy-toggle" data-toggle="' + idx + '" name="child_has_allergy_' + idx + '" value="1"> ' + t('allergy_toggle') + '</label>' +
                 '<div class="psc-child-allergy-field" data-field="' + idx + '" hidden>' +
                 '<textarea name="child_food_allergies_' + idx + '" rows="2" maxlength="1000" placeholder="' + t('allergy_placeholder') + '" style="width:100%;resize:vertical;border:1px solid rgba(36,64,92,0.3);background:#fff;font-size:13px;padding:8px;"></textarea>' +
-                '<p class="psc-child-allergy-help" style="font-size:11px;color:#8B8279;margin:6px 0 0;">' + t('allergy_help') + '</p>' +
+                '<p class="psc-child-allergy-help" style="font-size:11px;color:#665F58;margin:6px 0 0;">' + t('allergy_help') + '</p>' +
                 '<label class="psc-wizard-check-line" style="margin-top:10px;">' +
                 '<input type="checkbox" class="psc-child-allergy-consent" name="child_allergy_consent_' + idx + '"> ' + t('allergy_consent') + ' <span class="psc-req">*</span>' +
                 '</label>' +

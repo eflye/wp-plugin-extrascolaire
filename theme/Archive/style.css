@@ -18,7 +18,7 @@ Text Domain: montgeroult
   --ink:#1A1A1A;
   --cream:#F2F3F5;
   --paper:#EAEFF4;
-  --stone:#8B8279;
+  --stone:#665F58;
   --rule:rgba(36,64,92,0.22);
 }
 
@@ -58,7 +58,8 @@ button, input, select, textarea { font-family: 'Public Sans', sans-serif; }
 .site-branding { display: flex; align-items: center; gap: 14px; }
 .site-tagline {
   font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase;
-  color: var(--gold); font-weight: 600; margin-bottom: 2px;
+  /* Or éclairci pour tenir 4,5:1 sur l'encre en 10 px (P2-15). */
+  color: #F2A983; font-weight: 600; margin-bottom: 2px;
 }
 .site-title {
   font-family: 'Public Sans', sans-serif; font-weight: 800; font-size: 19px; letter-spacing: -0.01em;

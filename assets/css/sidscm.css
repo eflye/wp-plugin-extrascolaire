@@ -44,7 +44,7 @@ body.psc-sidscm-active main.site-main .entry-content {
     --psc-ink: #1A1A1A;
     --psc-cream: #F2F3F5;
     --psc-paper: #EAEFF4;
-    --psc-stone: #8B8279;
+    --psc-stone: #665F58; /* ≥ 4,5:1, cf. portal.css */
     --psc-line-light: #DCD3C9;
     --psc-error: #9E4A4A;
     --psc-rule: rgba(36, 64, 92, 0.22);
