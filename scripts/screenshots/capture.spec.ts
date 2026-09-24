@@ -138,22 +138,16 @@ test.describe.serial('Captures de la documentation administrateur', () => {
     await capture(page, 'services-tarifs.png');
   });
 
-  test('portail — allergie alimentaire consentie', async ({ page }) => {
+  test('portail — signalement alimentaire', async ({ page }) => {
     await loginAsFamily(page);
     const url = new URL(seed().form_page_url);
     url.searchParams.set('psc_tab', 'enfants');
     await page.goto(url.toString());
-    const allergy = page.locator('#psc-new-food-allergy-toggle');
-    await allergy.check();
-    const details = page.locator('textarea[name="new_food_allergies"]');
-    await expect(details).toBeVisible();
-    await details.fill('Arachides, réaction cutanée');
-    const consent = page.locator('input[name="new_food_allergy_consent"]');
-    await consent.check();
-    await expect(allergy).toBeChecked();
-    await expect(consent).toBeChecked();
-    await frame(page, allergy);
-    await capture(page, 'regimes-case-allergie.png');
+    const signal = page.locator('input[name="new_food_signal"]');
+    await signal.check();
+    await expect(signal).toBeChecked();
+    await frame(page, signal);
+    await capture(page, 'regimes-signalement-alimentaire.png');
   });
 
   test("modèles d'e-mails — liste complète", async ({ page }) => {

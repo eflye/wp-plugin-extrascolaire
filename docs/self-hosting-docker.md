@@ -187,6 +187,39 @@ docker run --rm --volumes-from "$(docker compose -f docker-compose.prod.yml ps -
 Pour automatiser, ajouter ces deux commandes dans un script et le
 planifier via `cron` (ex. une fois par jour).
 
+### Ce que ces deux commandes ne couvrent pas
+
+`uploads/` ne contient **pas** les documents privés du plugin (justificatifs
+d'assurance, factures PDF) : le plugin les range hors de la racine web, donc
+hors du volume `wp_data` monté sur `/var/www/html`.
+
+Repérer d'abord le chemin réellement utilisé :
+
+```bash
+docker compose -f docker-compose.prod.yml exec -T wordpress \
+  php -r 'require "/var/www/html/wp-load.php"; echo psc_private_dir(), "\n";'
+```
+
+Puis sauvegarder ce dossier, en remplaçant `/var/www/psc-private` par le
+chemin obtenu :
+
+```bash
+docker compose -f docker-compose.prod.yml exec -T wordpress \
+  tar czf - /var/www/psc-private > psc-private-$(date +%F).tar.gz
+```
+
+**Attention :** un chemin situé hors d'un volume nommé disparaît à la
+recréation du conteneur, c'est-à-dire au premier `docker compose up -d`
+suivant un `pull`. Si la commande ci-dessus renvoie un chemin hors de
+`/var/www/html`, déclarer un volume dédié pour ce dossier — ou fixer
+`PSC_PRIVATE_DIR` sur un emplacement déjà monté — avant de considérer
+l'installation comme durable.
+
+Sauvegarder enfin `wp-config.php`, **séparément du dump SQL** : il porte la
+clé qui déchiffre les IBAN (`PSC_ENCRYPTION_KEY`, ou à défaut les sels
+WordPress). Une base restaurée sans cette clé rend les IBAN illisibles, et
+une archive contenant les deux annule l'intérêt du chiffrement.
+
 ---
 
 ## 11. Mettre à jour
