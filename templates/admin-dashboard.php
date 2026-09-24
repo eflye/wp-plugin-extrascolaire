@@ -1,7 +1,7 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="wrap psc-admin">
 <h1><?php esc_html_e('Tableau de bord', 'periscolaire-registration'); ?></h1>
-<p><a href="https://eflye.github.io/wp-plugin-extrascolaire/" target="_blank" rel="noopener noreferrer"><?php esc_html_e('Documentation administrateur (lien à valider)', 'periscolaire-registration'); ?></a></p>
+<p><a href="https://eflye.github.io/wp-plugin-extrascolaire/mairie/" target="_blank" rel="noopener noreferrer"><?php esc_html_e('Guide de la mairie (documentation)', 'periscolaire-registration'); ?></a></p>
 
 <div class="psc-dash-stats">
     <div class="psc-dash-card">
