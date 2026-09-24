@@ -18,12 +18,30 @@ Utilisez un compte administrateur WordPress et vérifiez l'adresse e-mail exacte
 3. Pour une demande d'effacement, ouvrez **Outils › Effacer les données personnelles**, saisissez la même adresse e-mail et confirmez l'opération.
 
    !!! warning
-       L'effacement est irréversible. L'outil WordPress anonymise le foyer et supprime ses coordonnées et données opérationnelles. Les factures sont conservées lorsqu'une obligation comptable s'applique et gardent une référence technique vers une ligne anonymisée. Vérifiez le périmètre avec la mairie avant toute suppression manuelle depuis le backoffice.
+       L'effacement est irréversible. L'outil WordPress anonymise le foyer et supprime ses coordonnées et données opérationnelles. Les factures sont conservées lorsqu'une obligation comptable s'applique et gardent une référence technique vers une ligne anonymisée. La suppression manuelle depuis **Périscolaire › Familles** suit exactement la même règle : elle ne détruit aucune facture, et anonymise la fiche au lieu de la supprimer tant qu'il en reste une.
 
-4. Informez la famille du périmètre réellement effacé et, si nécessaire, relisez le texte suggéré dans **Réglages › Confidentialité** avant de le publier. Ce texte n'est jamais publié automatiquement.
+4. Informez la famille du périmètre réellement effacé. Précisez que les factures déjà émises sont conservées, et qu'elles portent toujours l'identité sous laquelle elles ont été établies : une pièce comptable ne se réécrit pas, sans quoi elle perdrait la valeur probante qui justifie précisément sa conservation. Cette identité disparaît avec la facture, au terme de la durée de conservation retenue. Si nécessaire, relisez le texte suggéré dans **Réglages › Confidentialité** avant de le publier ; il n'est jamais publié automatiquement.
 5. Laissez la purge automatique traiter les enfants sortis : chaque jour, les fiches d'enfants marqués **Sorti** depuis plus de 400 jours sont purgées sans action humaine. Cette purge ne supprime pas le foyer ni les factures conservées.
 
 6. Avant d'activer une nouvelle durée, faites exécuter le rapport de rétention en mode **simulation** par l'administrateur (WP-CLI ou outil d'administration qui l'exposera). Les catégories non validées par la mairie/DPO restent bloquées et le rapport indique les volumes examinés, conservés et les erreurs éventuelles. La validation des durées, du circuit PAI, de l'AIPD et des archives reste manuelle.
+
+## Ce que le plugin ne décide pas
+
+Les points suivants ne sont tenus par aucun réglage ni aucun test : ils demandent une décision ou un constat, et restent ouverts tant que personne ne les a tranchés et datés.
+
+| Sujet | Qui décide |
+| --- | --- |
+| Base légale des traitements, et durées de conservation par catégorie | DPO, avec le service d'archives pour le sort final |
+| Nécessité d'une analyse d'impact (AIPD), et sa réalisation le cas échéant | DPO |
+| Registre des traitements, contrats de sous-traitance, procédure de violation de données | Mairie et DPO |
+| Qualification des descriptions d'allergie collectées avant le signalement minimal | DPO |
+| Relecture de la notice de confidentialité, coordonnées réelles, information des tiers | DPO |
+| Procédure de vérification d'identité du demandeur et délai de réponse | Mairie |
+| Circuit PAI et responsabilités lors de l'échange oral sur l'alimentation | Mairie |
+| Qualification comptable des factures PDF et procédure de correction | Service facturation |
+| Inaccessibilité réelle des documents, cache, sauvegardes et restauration | Hébergeur, via la [fiche de recette](installation/fiche-recette-p1.md) |
+
+Un relevé des garanties techniques réellement en place peut être produit à tout moment par la personne qui maintient l'instance : il distingue ce qu'un test vérifie de ce qui relève de cette liste.
 
 ## Résultat attendu
 
