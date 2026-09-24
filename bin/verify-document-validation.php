@@ -82,6 +82,7 @@ WP_CLI::add_command('verify-document-validation', function () {
         return array('name' => $name, 'tmp_name' => $path, 'error' => $error, 'size' => is_file($path) ? filesize($path) : 0);
     };
 
+    $year_id = null;
     try {
         // 1. Contenus valides.
         $cases_ok = array(
@@ -126,8 +127,10 @@ WP_CLI::add_command('verify-document-validation', function () {
         $check(Psc_Conversations::validate_attachment($refused['faux PDF (texte renommé)'][0]) === 'invalid_type', 'pièce jointe : faux PDF accepté');
 
         // 4. Un dépôt refusé ne détruit pas l'ancien justificatif.
-        $year_id = Psc_School_Years::active_id();
-        if (!$year_id) WP_CLI::error('Aucune année scolaire active.');
+        // Année dédiée, jamais activée : en CI ce script tourne avant tout
+        // peuplement, et il ne doit pas toucher aux années réelles.
+        $year_id = Psc_School_Years::create('Verify-docs', '2090-09-01', '2091-07-04');
+        if (is_wp_error($year_id) || !$year_id) WP_CLI::error('Année scolaire de test impossible à créer.');
         $wpdb->insert($t_parent, array('email' => $email, 'nom' => 'VerifyDocuments', 'active' => 1, 'created_at' => current_time('mysql')));
         $pid = (int) $wpdb->insert_id;
         $wpdb->insert($t_child, array('parent_id' => $pid, 'nom' => 'VerifyDocuments', 'prenom' => 'Noa', 'statut' => 'actif', 'created_at' => current_time('mysql')));
@@ -157,6 +160,7 @@ WP_CLI::add_command('verify-document-validation', function () {
         $check(Psc_Assurances::validate_upload($cases_ok['PDF']) === 'invalid_type', 'analyse : refus de l’antivirus ignoré');
         remove_filter('psc_document_scan', $scan);
     } finally {
+        if (!empty($year_id) && !is_wp_error($year_id)) Psc_School_Years::delete($year_id);
         foreach ((array) glob($dir . '/*') as $f) @unlink($f); // phpcs:ignore WordPress.PHP.NoSilencedErrors
         @rmdir($dir); // phpcs:ignore WordPress.PHP.NoSilencedErrors
         $purge();
