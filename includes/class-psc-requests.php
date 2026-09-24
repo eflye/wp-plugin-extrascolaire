@@ -851,6 +851,19 @@ class Psc_Requests {
 
         $wpdb->query('START TRANSACTION');
 
+        // Réclamation de la demande : la ligne est verrouillée jusqu'au
+        // commit, et relue sous ce verrou. Deux validations simultanées
+        // (double clic, deux agents, validation automatique et manuelle)
+        // lisaient toutes deux « pending » avant d'écrire ; pour une famille
+        // déjà connue, chacune créait ses propres enfants. La seconde attend
+        // désormais la première, puis constate que la demande est traitée.
+        $status = $wpdb->get_var($wpdb->prepare(
+            'SELECT status FROM ' . psc_table('requests') . ' WHERE id = %d FOR UPDATE', $req->id
+        ));
+        if ($status !== 'pending') {
+            return $rollback(new WP_Error('psc_request_already_decided', __('Demande déjà traitée.', 'periscolaire-registration')));
+        }
+
         // Création de la famille (ou récupération si elle existe déjà).
         $parent = Psc_Parents::get_by_email($req->email);
         if ($parent) {
@@ -873,6 +886,9 @@ class Psc_Requests {
         // le rename() ne suit pas un rollback, le déplacement attend donc
         // le commit (cf. $promotions), les lignes enfants d'abord.
         $promotions = array();
+        // Alertes alimentation : envoyées après le commit seulement — un
+        // e-mail ne suit pas un rollback, et annoncerait un enfant jamais créé.
+        $food_alerts = array();
 
         foreach ($children as $c) {
             $inserted = $wpdb->insert(psc_table('children'), array(
@@ -907,12 +923,7 @@ class Psc_Requests {
             // Allergie alimentaire déclarée à l'inscription : le service
             // périscolaire doit déclencher la prise de contact PAI.
             if (!empty($c['food_allergy_signal'])) {
-                $parent_row = $wpdb->get_row($wpdb->prepare(
-                    'SELECT * FROM ' . psc_table('parents') . ' WHERE id = %d', $parent_id
-                ));
-                if ($parent_row) {
-                    Psc_Mailer::notify_food_allergy($parent_row, $child_id, '', null);
-                }
+                $food_alerts[] = $child_id;
             }
 
             // Personnes autorisées déclarées à l'onboarding : l'auteur réel
@@ -962,7 +973,20 @@ class Psc_Requests {
             return $rollback(__('Clôture de la demande impossible.', 'periscolaire-registration'));
         }
 
-        $wpdb->query('COMMIT');
+        if (false === $wpdb->query('COMMIT')) {
+            return $rollback(__('Validation de la demande impossible.', 'periscolaire-registration'));
+        }
+
+        if ($food_alerts) {
+            $parent_row = $wpdb->get_row($wpdb->prepare(
+                'SELECT * FROM ' . psc_table('parents') . ' WHERE id = %d', $parent_id
+            ));
+            if ($parent_row) {
+                foreach ($food_alerts as $child_id) {
+                    Psc_Mailer::notify_food_allergy($parent_row, $child_id, '', null);
+                }
+            }
+        }
 
         // Approbation acquise : les opérations non transactionnelles
         // reprennent. Un échec ici ne laisse qu'un état rattrapable
@@ -1005,17 +1029,16 @@ class Psc_Requests {
         $note = isset($_POST['note']) ? sanitize_textarea_field(wp_unslash($_POST['note'])) : '';
         $notify = !empty($_POST['notify']);
 
-        $wpdb->update(
-            psc_table('requests'),
-            array(
-                'status'     => 'rejected',
-                'note'       => mb_substr($note, 0, 1000),
-                'decided_at' => current_time('mysql'),
-            ),
-            array('id' => $req->id),
-            array('%s', '%s', '%s'),
-            array('%d')
-        );
+        // Transition conditionnelle : si une validation est passée entre la
+        // lecture ci-dessus et cette écriture, la demande n'est plus en
+        // attente et le refus ne doit ni l'écraser ni prévenir la famille.
+        $decided = $wpdb->query($wpdb->prepare(
+            'UPDATE ' . psc_table('requests') . " SET status = 'rejected', note = %s, decided_at = %s WHERE id = %d AND status = 'pending'",
+            mb_substr($note, 0, 1000), current_time('mysql'), $req->id
+        ));
+        if (!$decided) {
+            Psc_Admin::redirect_public('psc_requests', 'invalid');
+        }
 
         if ($notify) {
             Psc_Mailer::send_request_rejected($req->email, $note);

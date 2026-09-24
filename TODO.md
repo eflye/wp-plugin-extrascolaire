@@ -315,13 +315,21 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** chaque case visible peut être modifiée conformément à son état réel et une case cachée ne maintient pas une inscription incompréhensible ; retraits sous exception FORF persistants. **Développement ; M.**
 
-### P2-02 — Gérer concurrence et échecs des écritures métier
+### P2-02 — PARTIELLEMENT AVANCÉ — Gérer concurrence et échecs des écritures métier
 
 - [ ] **Rendre atomiques les opérations composées et vérifier les retours SQL.**
 
 **Constaté :** `toggle_pattern()` supprime les conflits, écrit puis fige les dates en plusieurs requêtes non transactionnelles ; de nombreux retours SQL ne conditionnent pas le succès. `approve_request()` utilise une transaction, mais ne verrouille pas la demande ni ne la réclame atomiquement avant création. Deux validations simultanées d’une demande pendante ne sont pas explicitement sérialisées. L’unicité du second e-mail de parent repose sur une lecture préalable entre deux colonnes, pas sur une identité normalisée unique.
 
 **À faire :** transactions et verrous ciblés, transition de statut conditionnelle, idempotence, gestion de conflit ; données d’identité contraintes en base. Distinguer succès, absence de changement et échec.
+
+**Avancement (24/09/2026) :**
+- **Validation d’une demande :** `approve_request()` réclame la demande sous verrou (`SELECT … FOR UPDATE` en tête de transaction) et refuse si elle n’est plus en attente. Deux validations concurrentes sont sérialisées ; la seconde ne crée rien. Les alertes alimentation partent après le commit, jamais pour un enfant annulé.
+- **Refus d’une demande :** conditionnel (`WHERE status = 'pending'`) ; il n’écrase plus une validation intervenue entre-temps et ne prévient pas la famille à tort.
+- **Écritures du planning :** `toggle_pattern()` et `toggle_exception()` se font en transaction, sous verrou de la ligne enfant. Chaque retour SQL est vérifié ; tout échec annule l’ensemble et répond `error`, que l’AJAX transmet (500) au lieu d’un succès.
+- **Preuve :** `bin/verify-write-integrity.php`, lancé en CI. La concurrence est jouée par une seconde connexion MySQL qui tient le verrou ; l’échec intermédiaire, par une requête sabotée. Il couvre la double validation, la validation concurrente, l’échec au second enfant (ni famille, ni enfant, ni e-mail), le refus d’une demande déjà validée, l’échec au milieu d’un changement de rythme, et un clic concurrent sur le même enfant. Vérifié par mutation : sans la réclamation ni le refus conditionnel, 6 cas échouent.
+
+**Reste :** l’unicité du second e-mail de parent (identité normalisée contrainte en base, migration de schéma) ; la même discipline sur les autres écritures composées (messages, conversations, passage d’année, factures).
 
 **Acceptation :** deux validations/clics concurrents, échec d’une requête intermédiaire → aucune famille dupliquée, aucun rythme partiellement détruit, réponse fidèle à l’état enregistré. **Développement ; L.**
 

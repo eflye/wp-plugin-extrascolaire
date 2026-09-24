@@ -297,6 +297,9 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         if ($result['status'] === 'day_closed' || $result['status'] === 'service_closed') {
             wp_send_json_error(array('code' => $result['status']), 403);
         }
+        if ($result['status'] === 'error') {
+            wp_send_json_error(array('code' => 'generic'), 500);
+        }
         if (!in_array($result['status'], array('added', 'removed'), true)) {
             wp_send_json_error(array('code' => 'invalid'), 400);
         }
@@ -395,6 +398,10 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
 
         if ($result['status'] === 'invalid') {
             wp_send_json_error(array('code' => 'invalid'), 400);
+        }
+        // Écriture annulée : rien n'a changé, la réponse doit le dire.
+        if ($result['status'] === 'error') {
+            wp_send_json_error(array('code' => 'generic'), 500);
         }
 
         Psc_Audit::log('planning.rythme_modifie', array(
