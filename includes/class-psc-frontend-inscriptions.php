@@ -294,8 +294,8 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
                 ),
             ), 403);
         }
-        if ($result['status'] === 'day_closed') {
-            wp_send_json_error(array('code' => 'day_closed'), 403);
+        if ($result['status'] === 'day_closed' || $result['status'] === 'service_closed') {
+            wp_send_json_error(array('code' => $result['status']), 403);
         }
         if (!in_array($result['status'], array('added', 'removed'), true)) {
             wp_send_json_error(array('code' => 'invalid'), 400);

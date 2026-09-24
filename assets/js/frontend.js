@@ -330,7 +330,7 @@
             // Si le serveur signale un verrou ou une assurance manquante, la
             // case reste désactivée : la situation a pu changer pendant que
             // la page était ouverte (délai expiré, ou document retiré).
-            if (code === 'locked' || code === 'assurance_missing' || code === 'day_closed') {
+            if (code === 'locked' || code === 'assurance_missing' || code === 'day_closed' || code === 'service_closed') {
                 cb.closest('tr').classList.add('psc-row-locked');
             } else {
                 cb.disabled = false;

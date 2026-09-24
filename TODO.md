@@ -298,13 +298,20 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 ## P2 — Fiabilisation et prévention des régressions
 
-### P2-01 — Aligner les cases visibles sur les déclarations réellement prises en compte
+### P2-01 — TRAITÉ (après v5.20.0) — Aligner les cases visibles sur les déclarations réellement prises en compte
 
-- [ ] **Traiter les anciennes déclarations CANT et les exceptions couvertes par un forfait.**
+- [x] **Traiter les anciennes déclarations CANT et les exceptions couvertes par un forfait.**
 
 **Constaté / sonde partielle :** `class-psc-planning.php:341` construit `month_state()` à partir des données brutes sans la conversion sans repas appliquée par `declared_map()`. Depuis v5.4.1, une ancienne case CANT peut donc être masquée alors qu’elle continue de produire du MSR au calcul. `psc_exception_write_decision():146` ne reçoit pas l’exception FORF du jour : pour retirer GM couvert seulement par cette exception, il décide `delete` sur la base du rythme vide, ce qui ne matérialise pas le retrait attendu.
 
-**À faire :** définir une représentation unique des états effectifs, sans confondre leur origine ; préserver l’historique ; test de passage « avec repas → sans repas » sur un planning déjà rempli. Ajouter un refus explicite des ajouts aux services fermés : le moteur d’écriture ne vérifie actuellement que le jour d’école, bien que le résolveur masque les services fermés.
+**Traité le 24/09/2026 :**
+- **Retrait sous exception FORF :** déjà corrigé (`toggle_exception()` transmet l’exception FORF du jour) ; désormais prouvé par test.
+- **Enfant « cantine sans repas » :** `month_state()` et `month_explicit_map()` appliquent la même conversion que la facturation. La cantine du rythme ou d’une ancienne exception apparaît en midi sans repas, modifiable dans les deux sens.
+- **Écriture du midi sans repas :** pour ces enfants, la décision se calcule par cette conversion. Une ancienne exception d’ajout de cantine, qui l’emportait sur tout retrait, est retirée quand la famille retire son midi : c’est la seule donnée supprimée.
+- **Changement de rythme :** `toggle_pattern()` ne purge plus comme « bruit » le retrait du midi d’un tel enfant.
+- **Services fermés :** un ajout sur une prestation fermée ce jour-là, ou un forfait dont une composante est fermée, est refusé (`service_closed`, message existant côté famille) ; le retrait reste permis.
+
+**Preuve :** `bin/verify-planning-states.php`, lancé en CI (≈1 100 vérifications). Pour chaque (date, prestation) du mois, Planning 1 et 2 affichent ce que compte `declared_map()`, avant et après le passage « avec repas → sans repas » d’un planning rempli, et avant et après chaque retrait, ajout ou changement de rythme. Le script vérifie aussi le retrait sous FORF et le refus sur une prestation fermée. Il a d’abord échoué sur le code d’origine (28 échecs), puis a détecté la purge du retrait par `toggle_pattern()` introduite en cours de correctif.
 
 **Acceptation :** chaque case visible peut être modifiée conformément à son état réel et une case cachée ne maintient pas une inscription incompréhensible ; retraits sous exception FORF persistants. **Développement ; M.**
 

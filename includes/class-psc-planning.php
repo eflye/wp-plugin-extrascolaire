@@ -364,12 +364,20 @@ class Psc_Planning {
         $exceptions  = self::load_exceptions(array($child_id), Psc_School_Year::school_days($month_start, $month_end));
         $excs        = isset($exceptions[$child_id]) ? $exceptions[$child_id] : array();
         $open_map    = self::open_map($dates);
+        $csr         = self::cantine_sans_repas_flag($child_id);
 
         $cells = array();
         foreach ($dates as $date) {
             $weekday = (int) date('N', strtotime($date));
             $pats_wd = isset($pats[$weekday]) ? $pats[$weekday] : array();
             $exc_d   = isset($excs[$date]) ? $excs[$date] : array();
+            // Enfant « cantine sans repas » : l'écran montre ce qui est
+            // facturé. Sa cantine (rythme ou exception) vaut midi sans
+            // repas ; sans la conversion, la case cantine restait fermée et
+            // la case midi sans repas vide, alors que le midi était facturé.
+            if ($csr) {
+                list($pats_wd, $exc_d) = psc_cantine_sans_repas_convert($pats_wd, $exc_d);
+            }
             $open    = $open_map[$date];
             $forf_exc = array_key_exists($forf, $exc_d) ? (bool) $exc_d[$forf] : null;
             $locked   = psc_is_locked($date);
@@ -397,7 +405,7 @@ class Psc_Planning {
                     $open['day_open'],
                     $svc === $forf ? true : $open['services'][$svc],
                     $open['forf_open'],
-                    self::midi_slot($svc, $pats_wd, $exc_d)
+                    self::midi_slot($svc, $pats_wd, $exc_d, $csr)
                 );
                 if ($svc === $forf) {
                     // Origine lisible : l'EXCEPTION prime sur le pattern —
@@ -652,6 +660,7 @@ class Psc_Planning {
         $patterns   = self::load_patterns($child_ids);
         $exceptions = self::load_exceptions($child_ids, $dates);
         $open_map   = self::open_map($dates);
+        $csr_flags  = self::cantine_sans_repas_flags($child_ids);
 
         $map = array();
         foreach ($child_ids as $cid) {
@@ -659,6 +668,10 @@ class Psc_Planning {
                 $weekday = (int) date('N', strtotime($date));
                 $pats = isset($patterns[$cid][$year_key][$weekday]) ? $patterns[$cid][$year_key][$weekday] : array();
                 $exc  = isset($exceptions[$cid][$date]) ? $exceptions[$cid][$date] : array();
+                // Même conversion que month_state() : l'écran montre ce qui est facturé.
+                if (!empty($csr_flags[$cid])) {
+                    list($pats, $exc) = psc_cantine_sans_repas_convert($pats, $exc);
+                }
                 $open = $open_map[$date];
 
                 foreach (psc_allowed_services() as $svc) {
@@ -686,7 +699,7 @@ class Psc_Planning {
                         $open['day_open'],
                         $svc === $forf ? true : $open['services'][$svc],
                         $open['forf_open'],
-                        self::midi_slot($svc, $pats, $exc)
+                        self::midi_slot($svc, $pats, $exc, !empty($csr_flags[$cid]))
                     );
                     $map[$cid][$date][$svc] = array(
                         'explicit' => (bool) $explicit,
@@ -737,6 +750,20 @@ class Psc_Planning {
             return array('status' => 'locked');
         }
 
+        // Prestation fermée ce jour-là : la résolution l'ignorerait (règle 1),
+        // l'ajout laisserait donc une ligne sans effet, qui reprendrait vie à
+        // la réouverture. Le retrait reste permis — il ne fait que nettoyer.
+        if ($on) {
+            $open = self::open_map(array($date));
+            $open = $open[$date];
+            $closed = $service_code === psc_forfait_code()
+                ? !$open['forf_open']
+                : (isset($open['services'][$service_code]) && !$open['services'][$service_code]);
+            if ($closed) {
+                return array('status' => 'service_closed');
+            }
+        }
+
         $patterns = self::load_patterns(array($child_id));
         $year_key = Psc_School_Year::year_key_for_date($date);
         $weekday  = (int) date('N', strtotime($date));
@@ -747,21 +774,52 @@ class Psc_Planning {
         $day_exceptions = $exceptions[$child_id][$date] ?? array();
         $forf_exception = array_key_exists($forf, $day_exceptions) ? (bool) $day_exceptions[$forf] : null;
 
-        $decision = psc_exception_write_decision(
-            $service_code === $forf,
-            !empty($pats[$service_code]),
-            !empty($pats[$forf]),
-            (bool) $on,
-            array(
-                'request'      => $service_code,
-                'cant_pattern' => !empty($pats['CANT']),
-                'msr_pattern'  => !empty($pats[psc_midi_sans_repas_code()]),
-            ),
-            $forf_exception
-        );
-
         global $wpdb;
         $t_exc = psc_table('exception');
+        $msr   = psc_midi_sans_repas_code();
+
+        if ($service_code === $msr && self::cantine_sans_repas_flag($child_id)) {
+            // Enfant « cantine sans repas » : son midi se résout à travers
+            // psc_cantine_sans_repas_convert(), où une ancienne exception
+            // d'AJOUT de cantine l'emporte sur tout retrait du midi. Elle est
+            // retirée quand la famille retire son midi : la cantine de cet
+            // enfant n'est plus lue qu'à travers la conversion.
+            if (!$on && array_key_exists('CANT', $day_exceptions) && $day_exceptions['CANT']) {
+                $wpdb->delete($t_exc,
+                    array('child_id' => $child_id, 'jour_date' => $date, 'service_code' => 'CANT'),
+                    array('%d', '%s', '%s')
+                );
+                unset($day_exceptions['CANT']);
+            }
+            // Base = état du midi SANS l'exception MSR du jour, calculé par
+            // la même conversion que la facturation.
+            $without = $day_exceptions;
+            unset($without[$msr]);
+            list($conv_pats, $conv_exc) = psc_cantine_sans_repas_convert($pats, $without);
+            $base = psc_resolve_declaration(
+                false,
+                !empty($conv_pats[$msr]),
+                array_key_exists($msr, $conv_exc) ? (bool) $conv_exc[$msr] : null,
+                !empty($conv_pats[$forf]),
+                $forf_exception,
+                true, true, true,
+                self::midi_slot($msr, $conv_pats, $conv_exc, true)
+            );
+            $decision = ((bool) $on === $base) ? 'delete' : 'upsert';
+        } else {
+            $decision = psc_exception_write_decision(
+                $service_code === $forf,
+                !empty($pats[$service_code]),
+                !empty($pats[$forf]),
+                (bool) $on,
+                array(
+                    'request'      => $service_code,
+                    'cant_pattern' => !empty($pats['CANT']),
+                    'msr_pattern'  => !empty($pats[$msr]),
+                ),
+                $forf_exception
+            );
+        }
 
         if ($decision === 'delete') {
             $wpdb->delete($t_exc,
@@ -890,6 +948,7 @@ class Psc_Planning {
         $pats_after     = isset($patterns_after[$child_id][$year_key][$weekday]) ? $patterns_after[$child_id][$year_key][$weekday] : array();
         $exceptions     = self::load_exceptions(array($child_id), $days);
 
+        $csr    = self::cantine_sans_repas_flag($child_id);
         $frozen = 0;
         $purged = 0;
         foreach ($days as $day) {
@@ -903,22 +962,25 @@ class Psc_Planning {
                 // pattern propre, sinon couverture par le forfait — avec
                 // l'arbitrage du créneau du midi (l'activité CANT/MSR de
                 // l'autre service masque le rythme).
+                $base_pats = $pats_after;
+                $base_exc  = $exc_d;
+                unset($base_exc[$svc]);
+                // Enfant « cantine sans repas » : même conversion que la
+                // facturation, sinon le retrait de son midi, comparé au
+                // rythme brut, passait pour du bruit et était purgé.
+                if ($csr && $svc === psc_midi_sans_repas_code()) {
+                    list($base_pats, $base_exc) = psc_cantine_sans_repas_convert($base_pats, $base_exc);
+                }
                 $base = psc_resolve_declaration(
                     $svc === $forf,
-                    !empty($pats_after[$svc]),
-                    null,
-                    !empty($pats_after[$forf]),
+                    !empty($base_pats[$svc]),
+                    $csr && array_key_exists($svc, $base_exc) ? (bool) $base_exc[$svc] : null,
+                    !empty($base_pats[$forf]),
                     $forf_exc,
                     true,
                     true,
                     true,
-                    array(
-                        'request'        => $svc,
-                        'cant_pattern'   => !empty($pats_after['CANT']),
-                        'cant_exception' => array_key_exists('CANT', $exc_d) ? (bool) $exc_d['CANT'] : null,
-                        'msr_pattern'    => !empty($pats_after[psc_midi_sans_repas_code()]),
-                        'msr_exception'  => array_key_exists(psc_midi_sans_repas_code(), $exc_d) ? (bool) $exc_d[psc_midi_sans_repas_code()] : null,
-                    )
+                    self::midi_slot($svc, $base_pats, $base_exc, $csr)
                 );
 
                 if ($exc !== null) {
