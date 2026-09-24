@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.23.0
+Stable tag: 5.23.1
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,10 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.23.1 =
+* L'espace familles propose un lien vers le guide des familles, connecté (« Aide — guide des familles », en bas du menu) comme non connecté (au-dessus du bloc de connexion). Le guide s'ouvre dans un nouvel onglet.
+* Le lien d'aide du tableau de bord du back office mène directement au guide de la mairie.
 
 = 5.23.0 =
 * Portail des familles plus lisible et utilisable sans souris : les textes secondaires, libellés et mentions orangées sont plus contrastés, chaque champ du profil et de l'ajout d'un enfant est relié à son libellé (lecteurs d'écran), et le planning se corrige entièrement au clavier. Les pages restent utilisables avec un zoom à 400 %.
