@@ -224,6 +224,28 @@ class Psc_School_Years {
     }
 
     /** Classe d'un enfant pour une année (année active par défaut), ou ''. */
+    /**
+     * Classes d'une liste d'enfants pour une année (active par défaut), en
+     * UNE requête : [child_id => classe]. Les listes (SIDSCM, exports)
+     * appelaient classe_for() enfant par enfant.
+     */
+    public static function classes_for(array $child_ids, $school_year_id = null) {
+        global $wpdb;
+        $child_ids = array_values(array_unique(array_filter(array_map('intval', $child_ids))));
+        $school_year_id = $school_year_id ? absint($school_year_id) : self::active_id();
+        $out = array_fill_keys($child_ids, '');
+        if (!$child_ids || !$school_year_id) return $out;
+        $ph = implode(',', array_fill(0, count($child_ids), '%d'));
+        $rows = $wpdb->get_results($wpdb->prepare(
+            'SELECT child_id, classe FROM ' . psc_table('child_school_years') . " WHERE school_year_id = %d AND child_id IN ($ph)",
+            array_merge(array($school_year_id), $child_ids)
+        ));
+        foreach ((array) $rows as $r) {
+            $out[(int) $r->child_id] = (string) $r->classe;
+        }
+        return $out;
+    }
+
     public static function classe_for($child_id, $school_year_id = null) {
         $row = self::enrollment($child_id, $school_year_id);
         return $row && $row->classe ? $row->classe : '';

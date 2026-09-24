@@ -309,7 +309,9 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
             "SELECT c.*, p.nom AS parent_nom, p.email AS parent_email,
                     cy.classe AS classe, cy.statut AS statut_annee,
                     cy.assurance_original_filename AS assurance_filename,
-                    cy.assurance_uploaded_at AS assurance_uploaded_at
+                    cy.assurance_uploaded_at AS assurance_uploaded_at,
+                    cy.assurance_file_path AS assurance_file_path,
+                    cy.assurance_status AS assurance_status
              FROM $t_child c
              LEFT JOIN $t_parent p ON p.id = c.parent_id
              LEFT JOIN $t_cy cy ON cy.child_id = c.id AND cy.school_year_id = %d
@@ -319,6 +321,8 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         )) : array();
 
         $parents = Psc_Parents::all();
+        // Lu une fois pour toute la liste : le gabarit le relisait par enfant.
+        $psc_active_year_id = Psc_School_Years::active_id();
         $psc_classe_labels = Psc_School_Years::classe_options();
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         include PSC_PATH . 'templates/admin-children.php';

@@ -401,11 +401,32 @@ class Psc_Sidscm {
             wp_send_json_success($out);
         }
 
+        $week = self::week_children($open_days);
+        $out['children']   = $week['children'];
+        $out['attendance'] = $week['attendance'] ?: new stdClass();
+        $out['arrivals']   = $week['arrivals'] ?: new stdClass();
+        $out['departures'] = $week['departures'] ?: new stdClass();
+
+        wp_send_json_success($out);
+    }
+
+    /**
+     * Enfants attendus sur les jours ouverts d'une semaine, avec leurs
+     * pointages : le cœur de ajax_data(), extrait pour être mesuré
+     * (bin/verify-query-budget.php). Nombre de requêtes indépendant du
+     * nombre d'enfants.
+     *
+     * @param array $open_days [jour => date]
+     * @return array ['children', 'attendance', 'arrivals', 'departures']
+     */
+    public static function week_children(array $open_days) {
+        global $wpdb;
+        $empty = array('children' => array(), 'attendance' => array(), 'arrivals' => array(), 'departures' => array());
+        if (!$open_days) return $empty;
+
         $t_child = psc_table('children');
         $children = $wpdb->get_results("SELECT * FROM $t_child WHERE statut = 'actif' ORDER BY nom, prenom");
-        if (empty($children)) {
-            wp_send_json_success($out);
-        }
+        if (empty($children)) return $empty;
 
         $dates = array_values($open_days);
         $child_ids = wp_list_pluck($children, 'id');
@@ -445,9 +466,15 @@ class Psc_Sidscm {
             return !empty($declared[$child_id][$date][$service]);
         };
 
+        // Lectures groupées (P2-09) : classes en une requête, personnes
+        // autorisées en trois requêtes pour toute la semaine — elles
+        // étaient lues enfant par enfant.
+        $classes = Psc_School_Years::classes_for($child_ids);
+        $needs_authorized = array();
+
         $out_children = array();
         foreach ($children as $c) {
-            $classe = Psc_School_Years::classe_for($c->id);
+            $classe = $classes[(int) $c->id] ?? '';
 
             $diet_bits = array();
             if ((int) $c->sans_porc === 1) $diet_bits[] = __('Sans porc', 'periscolaire-registration');
@@ -468,26 +495,10 @@ class Psc_Sidscm {
             }
             if (!$has_any) continue; // rien à afficher pour cet enfant cette semaine
 
-            // Personnes autorisées : uniquement pertinent pour la Garderie
-            // soir (seul service avec un vrai départ à contrôler, cf.
-            // sidscm.js qui n'affiche ce bloc que sur cet onglet) — la
-            // requête (parents + second parent éventuel + tiers, cf.
-            // Psc_Pickup_Persons::authorized_for_child()) n'est donc
-            // exécutée que pour un enfant réellement attendu en GS cette
-            // semaine ; jamais pour un enfant qui ne fait que la cantine
-            // et/ou la garderie matin. Toujours recalculée à la volée,
-            // jamais une copie figée à l'inscription.
-            $authorized = array();
-            if (!empty($per_service['GS'])) {
-                $authorized = array_map(function ($p) {
-                    return array(
-                        'role'      => $p['role'],
-                        'prenom'    => $p['prenom'],
-                        'nom'       => $p['nom'],
-                        'telephone' => $p['telephone'],
-                    );
-                }, Psc_Pickup_Persons::authorized_for_child($c->id));
-            }
+            // Personnes autorisées : seulement pour un enfant attendu en
+            // garderie du soir (sidscm.js n'affiche ce bloc que sur cet
+            // onglet) ; lues en lot après la boucle.
+            if (!empty($per_service['GS'])) $needs_authorized[] = (int) $c->id;
 
             $allergies = trim((string) $c->food_allergies);
 
@@ -511,16 +522,30 @@ class Psc_Sidscm {
                 'CANT'       => array_values(array_unique(array_merge($per_service['CANT'], $per_service['MSR']))),
                 'MSR'        => $per_service['MSR'],
                 'GS'         => $per_service['GS'],
-                'authorized' => $authorized,
+                'authorized' => array(),
             );
         }
 
-        $out['children'] = $out_children;
-        $out['attendance'] = $attendance ?: new stdClass();
-        $out['arrivals'] = $arrivals ?: new stdClass();
-        $out['departures'] = $departures ?: new stdClass();
+        // Personnes autorisées : uniquement pour les enfants attendus en
+        // garderie du soir (seul service avec un vrai départ à contrôler),
+        // recalculées à la volée, jamais une copie figée à l'inscription.
+        if ($needs_authorized) {
+            $lists = Psc_Pickup_Persons::authorized_for_children($needs_authorized);
+            foreach ($out_children as $k => $child) {
+                if (!isset($lists[$child['id']])) continue;
+                $out_children[$k]['authorized'] = array_map(function ($p) {
+                    return array(
+                        'role'      => $p['role'],
+                        'prenom'    => $p['prenom'],
+                        'nom'       => $p['nom'],
+                        'telephone' => $p['telephone'],
+                    );
+                }, $lists[$child['id']]);
+            }
+        }
 
-        wp_send_json_success($out);
+
+        return array('children' => $out_children, 'attendance' => $attendance, 'arrivals' => $arrivals, 'departures' => $departures);
     }
 
     /* ---------------- Pointage de présence ---------------- */
