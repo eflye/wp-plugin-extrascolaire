@@ -2,7 +2,8 @@ name: Release plugin & thème ZIP
 
 # Se déclenche uniquement quand tu pousses un tag de version, ex: v3.0.33
 # (git tag v3.0.33 && git push origin v3.0.33). Aucun impact sur les push
-# normaux ou les PR (cf. .github/workflows/lint.yml pour ça).
+# normaux ou les PR (cf. .github/workflows/lint.yml pour ça). Le lint et
+# l'E2E y sont rejoués avant toute publication (jobs lint et e2e).
 on:
   push:
     tags:
@@ -16,13 +17,34 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
+# Lecture seule par défaut : seul le job de publication reçoit l'écriture,
+# les contrôles rejoués ci-dessous n'en ont pas besoin.
 permissions:
-  contents: write # nécessaire pour créer la Release et y attacher le zip
+  contents: read
 
 jobs:
+  # Un tag déclenche la release sans lien avec les runs de lint et d'E2E
+  # de la branche : publier dépendait jusqu'ici d'une attente manuelle de
+  # la CI avant de taguer. Les deux workflows sont donc rejoués ici, sur
+  # le commit exact du tag, et la publication en dépend. C'est l'E2E qui
+  # exécute verify-migrations (montée de version par bonds) : un schéma
+  # cassé ne peut plus partir en production. Les rejouer coûte quelques
+  # minutes, mais un statut lu sur un autre run pourrait porter sur un
+  # autre commit, ou sur un run annulé.
+  lint:
+    name: Lint
+    uses: ./.github/workflows/lint.yml
+
+  e2e:
+    name: E2E
+    uses: ./.github/workflows/e2e.yml
+
   build:
     name: Build & publie la release
+    needs: [lint, e2e]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # nécessaire pour créer la Release et y attacher le zip
 
     steps:
       - name: Checkout
@@ -147,6 +169,59 @@ jobs:
           test -n "$DBV" || { echo "::error::psc_db_version vide : l'activation n'a pas mené ses migrations."; exit 1; }
           echo "Zip installé et activé — psc_db_version=$DBV."
 
+      # Le fumage ci-dessus part d'une base vierge ; la mairie, elle,
+      # remplace le zip de la version précédente. On rejoue donc ce
+      # geste dans une seconde installation : dernière release publiée,
+      # puis nouveau zip par-dessus. maybe_upgrade() s'exécute au
+      # chargement suivant, et psc_db_version doit alors valoir la
+      # DB_VERSION du paquet — sinon une migration a échoué ou ne s'est
+      # pas enregistrée. Sans release antérieure (premier tag d'un
+      # fork), l'étape n'a rien à comparer et le dit.
+      - name: Fume la mise à jour depuis la release précédente
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PREV=$(gh release list -R "$GITHUB_REPOSITORY" --exclude-drafts --exclude-pre-releases \
+                   --json tagName --jq "[.[] | select(.tagName != \"$GITHUB_REF_NAME\")][0].tagName // empty")
+          if [ -z "$PREV" ]; then
+            echo "::warning::Aucune release précédente : mise à jour non testée."
+            exit 0
+          fi
+          gh release download "$PREV" -R "$GITHUB_REPOSITORY" -p "periscolaire-registration-*.zip" -O /tmp/prev.zip
+          docker cp /tmp/prev.zip smoke-wp:/tmp/prev.zip
+
+          wp() {
+            docker exec -u www-data -e WP_CLI_CACHE_DIR=/tmp/wp-cli-cache \
+              smoke-wp php /usr/local/bin/wp-cli.phar --path=/var/www/html "$@"
+          }
+          # Repart d'un site neuf, la base du fumage précédent portant déjà
+          # le schéma à jour. Pas de « wp db reset » : il appelle le client
+          # mysql, absent de l'image WordPress. Les clés étrangères du
+          # plugin interdiraient sinon de supprimer les tables référencées.
+          wp eval --skip-plugins --skip-themes \
+            'global $wpdb; $wpdb->query("SET FOREIGN_KEY_CHECKS = 0"); foreach ($wpdb->get_col("SHOW TABLES") as $t) { $wpdb->query("DROP TABLE `$t`"); }'
+          wp core install \
+            --url='http://localhost:8090' \
+            --title='Fumage mise a jour' \
+            --admin_user='admin' \
+            --admin_password='admin' \
+            --admin_email='admin@example.invalid' \
+            --skip-email
+          wp plugin install /tmp/prev.zip --force --activate
+          OLD=$(wp option get psc_db_version)
+          echo "Version précédente $PREV installée — psc_db_version=$OLD."
+
+          wp plugin install "/tmp/periscolaire-registration-${PLUGIN_VERSION}.zip" --force
+          EXPECTED=$(grep -oP "const DB_VERSION = '\K[0-9.]+" includes/class-psc-installer.php)
+          NEW=$(wp option get psc_db_version)
+          if [ "$NEW" != "$EXPECTED" ]; then
+            echo "::error::Mise à jour depuis $PREV : psc_db_version=$NEW, attendu $EXPECTED."
+            exit 1
+          fi
+          wp plugin is-active periscolaire-registration \
+            || { echo "::error::Le plugin n'est plus actif après la mise à jour."; exit 1; }
+          echo "Mise à jour $PREV → ${PLUGIN_VERSION} : psc_db_version $OLD → $NEW."
+
       # Thème du site (theme/Archive dans ce repo, Theme Name "Montgeroult
       # Familles") : empaqueté sous le nom de dossier "Archive" pour
       # correspondre au thème déjà installé sur le site de prod — seul le
@@ -163,10 +238,20 @@ jobs:
           cd build
           zip -rq -X "../montgeroult-familles-${PLUGIN_VERSION}.zip" Archive
 
+      # Permet à la mairie (ou à l'hébergeur) de vérifier que le zip
+      # déposé sur le serveur est bien celui publié :
+      # sha256sum -c SHA256SUMS dans le dossier des téléchargements.
+      - name: Calcule les sommes de contrôle
+        run: |
+          sha256sum "periscolaire-registration-${PLUGIN_VERSION}.zip" \
+                    "montgeroult-familles-${PLUGIN_VERSION}.zip" > SHA256SUMS
+          cat SHA256SUMS
+
       - name: Publie la Release GitHub
         uses: softprops/action-gh-release@v2
         with:
           files: |
             periscolaire-registration-${{ env.PLUGIN_VERSION }}.zip
             montgeroult-familles-${{ env.PLUGIN_VERSION }}.zip
+            SHA256SUMS
           generate_release_notes: true
