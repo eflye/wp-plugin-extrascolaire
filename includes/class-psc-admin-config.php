@@ -78,8 +78,15 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         // Psc_Admin_Cantine::handle_save_supplier_settings(), qui seul
         // écrit désormais cette option.
 
+        // Adresse du calendrier : refusée (et l'ancienne conservée) si elle
+        // n'est pas une adresse web publique — cf. validate_ics_url().
         $ics_url = isset($_POST['school_calendar_ics_url']) ? esc_url_raw(wp_unslash($_POST['school_calendar_ics_url'])) : '';
-        update_option('psc_school_calendar_ics_url', $ics_url);
+        $ics_refused = false;
+        if ($ics_url === '' || !is_wp_error(Psc_School_Calendar::validate_ics_url($ics_url))) {
+            update_option('psc_school_calendar_ics_url', $ics_url);
+        } else {
+            $ics_refused = true;
+        }
 
         // Billing / invoice settings
         $billing_fields = array(
@@ -129,7 +136,7 @@ class Psc_Admin_Config extends Psc_Admin_Base {
             'meta' => array('champs' => array_values(array_diff(array_keys($_POST), array('action', '_wpnonce', '_wp_http_referer')))),
         ));
 
-        self::redirect('psc_settings', 'saved');
+        self::redirect('psc_settings', $ics_refused ? 'ics_url_refused' : 'saved');
     }
 
     public static function page_settings() {

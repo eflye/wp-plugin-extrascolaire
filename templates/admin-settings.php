@@ -4,6 +4,7 @@
 <?php
 psc_admin_notice_map(array(
     'saved' => array('success', __('Tarifs enregistrés.', 'periscolaire-registration')),
+    'ics_url_refused' => array('error', __('Réglages enregistrés, sauf l’adresse du calendrier scolaire : elle doit être une adresse web publique (http ou https). L’adresse précédente est conservée.', 'periscolaire-registration')),
 ), $psc_msg);
 ?>
 
