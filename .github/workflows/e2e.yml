@@ -190,6 +190,7 @@ jobs:
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-promotion-logic.php verify-promotion-logic
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-pickup-history.php verify-pickup-history
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-lock-clock.php verify-lock-clock
+          wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-planning-states.php verify-planning-states
 
       - name: Node
         uses: actions/setup-node@v4
