@@ -428,13 +428,23 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** réseau ralenti, clic A/B/A, réponse inversée et échec réseau → aucun affichage ou clic dirigé vers le mauvais enfant. **Développement ; M.**
 
-### P2-08 — Réconcilier les deux représentations d’année scolaire
+### P2-08 — PARTIELLEMENT AVANCÉ — Réconcilier les deux représentations d’année scolaire
 
 - [ ] **Documenter puis faire respecter les invariants entre `school_years` et `school_year`.**
 
 **Constaté :** classes/assurances s’appuient sur `Psc_School_Years`, tandis que dates, vacances et verrous utilisent `Psc_School_Year`. Les années sont sélectionnées par des règles différentes. `class-psc-school-years.php:151` archive l’année active puis active la suivante sans transaction ni vérification complète de réussite. La réinscription ignore les enfants décochés, sans retirer une confirmation déjà enregistrée lors d’un envoi antérieur.
 
 **À faire :** invariants d’activation, calendrier, dates, assurance et classe ; reprise de promotion ; règle explicite pour une réinscription modifiée. Vérifier le statut annuel au-delà du seul `children.statut` global.
+
+**Avancement technique (24/09/2026) :**
+- **Activation :** `Psc_School_Years::activate()` se fait en transaction, sous verrou des années. Le résultat est vérifié (exactement une année active), et réactiver l’année active ne change rien. Avant, un échec entre l’archivage et l’activation laissait le site sans année active (constaté par mutation). L’année activée reçoit sa configuration de calendrier (`school_year`) sous la même clé que son libellé.
+- **Passage d’année :** `apply_promotion()` est tout ou rien. Un échec sur un enfant n’en promeut aucun et laisse le plan en attente, prêt à être rejoué, avec un message dédié. Le rejouer ne duplique rien. `mark_sorti()` ne traite plus un enfant déjà sorti comme un échec.
+- **Preuve :** `bin/verify-school-year-integrity.php`, lancé en CI (12 vérifications). Vérifié par mutation : 5 échecs avec l’ancien code.
+
+**Reste (décisions métier + schéma, à valider avant implémentation) :**
+- fusionner les deux représentations (`school_years` pour classes et assurances, `school_year` pour dates, vacances et délai) en une seule table, avec une seule règle de sélection de l’année courante ;
+- règle d’une réinscription modifiée : un enfant décoché après une confirmation déjà envoyée doit-il perdre son inscription à l’année suivante ?
+- statut annuel de l’enfant au-delà de `children.statut` global.
 
 **Acceptation :** activation en échec, double activation, enfant non réinscrit, modification d’une réinscription et consultation historique donnent un état cohérent dans planning/listes/factures. **Développement + métier ; M/L.**
 

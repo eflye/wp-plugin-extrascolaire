@@ -195,6 +195,7 @@ jobs:
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-document-validation.php verify-document-validation
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-envois.php verify-envois
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-ics-import.php verify-ics-import
+          wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-school-year-integrity.php verify-school-year-integrity
 
       - name: Node
         uses: actions/setup-node@v4
