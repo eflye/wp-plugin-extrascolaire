@@ -40,6 +40,10 @@ Elle doit être une adresse web publique (`http` ou `https`). Une adresse qui d�
 
 Une écriture a échoué et le passage a été entièrement annulé : aucun enfant n'est à moitié promu. Réglez la cause (base de données, hébergement), puis confirmez de nouveau depuis le récapitulatif, qui est resté disponible.
 
+## Les familles lisent « Collectivité (à adapter) »
+
+Le responsable du traitement n'est pas renseigné. Ouvrez **Périscolaire › Réglages**, rubrique **Confidentialité**, et remplissez au moins **Responsable du traitement**. Contrôlez l'**Aperçu** avant d'enregistrer.
+
 ## Pourquoi le journal d'audit signale-t-il un problème ?
 
 Une écriture du journal a échoué ou une action n'est pas classée dans le registre. Cliquez sur **Voir le journal filtré**, vérifiez le fichier de repli `journal-acces.log` et corrigez la cause d'accès à la base ou l'action inconnue avant de remettre le compteur à zéro avec **Remettre le compteur à zéro**.

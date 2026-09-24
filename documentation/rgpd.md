@@ -8,6 +8,16 @@ Traitez les demandes d'accès et d'effacement des familles avec les outils de co
 
 Utilisez un compte administrateur WordPress et vérifiez l'adresse e-mail exacte du foyer. Les familles du plugin n'ont pas de compte WordPress : elles sont retrouvées par leur adresse e-mail.
 
+## Notice affichée aux familles
+
+Une courte notice de confidentialité apparaît au formulaire d'inscription et dans **Mes enfants**. Paramétrez-la dans **Périscolaire › Réglages**, rubrique **Confidentialité** :
+
+- **Responsable du traitement** : le nom de la collectivité. Tant qu'il est vide, les familles lisent « Collectivité (à adapter) » et une alerte le rappelle dans le back office.
+- **E-mail du DPO** et **E-mail pour exercer ses droits** : l'adresse affichée aux familles pour exercer leurs droits.
+- **Adresse de la notice complète** : ajoute le lien « Lire la notice de confidentialité ».
+
+L'**Aperçu** montre la notice exactement telle que les familles la voient, avec les valeurs enregistrées. Faites valider son contenu par le DPO.
+
 ## Étapes
 
 1. Ouvrez **Outils › Exporter les données personnelles**, saisissez l'adresse e-mail du responsable, puis lancez la demande. Le plugin ajoute ses données à l'export natif.
@@ -20,7 +30,7 @@ Utilisez un compte administrateur WordPress et vérifiez l'adresse e-mail exacte
    !!! warning
        L'effacement est irréversible. L'outil WordPress anonymise le foyer et supprime ses coordonnées et données opérationnelles. Les factures sont conservées lorsqu'une obligation comptable s'applique et gardent une référence technique vers une ligne anonymisée. La suppression manuelle depuis **Périscolaire › Familles** suit exactement la même règle : elle ne détruit aucune facture, et anonymise la fiche au lieu de la supprimer tant qu'il en reste une.
 
-4. Informez la famille du périmètre réellement effacé. Précisez que les factures déjà émises sont conservées, et qu'elles portent toujours l'identité sous laquelle elles ont été établies : une pièce comptable ne se réécrit pas, sans quoi elle perdrait la valeur probante qui justifie précisément sa conservation. Cette identité disparaît avec la facture, au terme de la durée de conservation retenue. Si nécessaire, relisez le texte suggéré dans **Réglages › Confidentialité** avant de le publier ; il n'est jamais publié automatiquement.
+4. Informez la famille du périmètre réellement effacé. Précisez que les factures déjà émises sont conservées, et qu'elles portent toujours l'identité sous laquelle elles ont été établies : une pièce comptable ne se réécrit pas, sans quoi elle perdrait la valeur probante qui justifie précisément sa conservation. Cette identité disparaît avec la facture, au terme de la durée de conservation retenue. Si nécessaire, relisez le texte suggéré par le plugin dans la page WordPress **Réglages › Confidentialité** avant de le publier ; il n'est jamais publié automatiquement. (Ne pas confondre avec la rubrique **Confidentialité** de **Périscolaire › Réglages**, qui paramètre la notice courte, cf. ci-dessus.)
 5. Laissez la purge automatique traiter les enfants sortis : chaque jour, les fiches d'enfants marqués **Sorti** depuis plus de 400 jours sont purgées sans action humaine. Cette purge ne supprime pas le foyer ni les factures conservées.
 
 6. Avant d'activer une nouvelle durée, faites exécuter le rapport de rétention en mode **simulation** par l'administrateur (WP-CLI ou outil d'administration qui l'exposera). Les catégories non validées par la mairie/DPO restent bloquées et le rapport indique les volumes examinés, conservés et les erreurs éventuelles. La validation des durées, du circuit PAI, de l'AIPD et des archives reste manuelle.
