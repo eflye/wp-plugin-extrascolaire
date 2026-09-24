@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.22.0
+Stable tag: 5.23.0
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,14 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.23.0 =
+* Portail des familles plus lisible et utilisable sans souris : les textes secondaires, libellés et mentions orangées sont plus contrastés, chaque champ du profil et de l'ajout d'un enfant est relié à son libellé (lecteurs d'écran), et le planning se corrige entièrement au clavier. Les pages restent utilisables avec un zoom à 400 %.
+* Changer rapidement d'enfant dans le planning sur une connexion lente ne peut plus afficher le planning d'un autre enfant ni enregistrer un clic pour le mauvais enfant ; en cas de coupure, l'écran revient sur l'enfant affiché.
+* L'activation d'une année scolaire et le passage d'année se font désormais en une seule fois : une panne à mi-chemin ne peut plus laisser le site sans année active, ni promouvoir une partie des enfants seulement. Le passage d'année en échec peut être relancé depuis son récapitulatif.
+* L'adresse du calendrier scolaire ne peut plus pointer vers le réseau interne du serveur ; un calendrier trop volumineux ou aberrant est refusé sans toucher au calendrier en place. Une adresse refusée n'est pas enregistrée dans les Réglages.
+* L'écran de pointage des intervenants et la liste des enfants du backoffice se chargent avec un nombre de requêtes constant, quel que soit l'effectif.
+* Nouvelle page de documentation « Versions et dépendances » : versions de PHP, WordPress et MySQL recommandées pour la production (PHP 8.2 ou 8.3), et calendrier de vérification.
 
 = 5.22.0 =
 * Les justificatifs d'assurance et les pièces jointes sont désormais vérifiés sur leur contenu, et plus seulement sur leur nom : un fichier renommé « .pdf », tronqué ou illisible est refusé, tout comme un PDF contenant du JavaScript ou des fichiers cachés. Le message reste « Format de fichier non accepté (PDF, JPG ou PNG uniquement) », et l'ancien justificatif n'est jamais effacé par un dépôt refusé.
