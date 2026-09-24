@@ -11,6 +11,8 @@ Connectez-vous à WordPress avec un rôle autorisé à gérer les familles. Dema
 ## Étapes
 
 1. La famille dépose ou remplace le justificatif depuis **Mes enfants** dans son portail. Le document est conservé dans l'espace privé du plugin et rattaché à l'année scolaire active.
+
+   Le fichier est vérifié sur son **contenu**, pas seulement sur son nom : ce doit être un vrai PDF, JPEG ou PNG, complet et de 1 Mo au plus. Un fichier renommé « .pdf », tronqué ou illisible est refusé avec le message « Format de fichier non accepté (PDF, JPG ou PNG uniquement) », tout comme un PDF qui contient du JavaScript ou des fichiers cachés. Un dépôt refusé ne remplace jamais le justificatif précédent. Si une attestation d'assureur est refusée à tort, demandez à la famille de la réenregistrer en PDF depuis son logiciel, ou de la photographier.
 2. Ouvrez **Périscolaire › Assurances scolaires**. Le tableau liste chaque enfant actif, l'état du document, la date du dépôt et l'action de revue.
 
    ![Liste des assurances scolaires affichant l'enfant, l'état du document, la date du dépôt et le bouton Examiner](../assets/screenshots/documents-assurance-liste.png)

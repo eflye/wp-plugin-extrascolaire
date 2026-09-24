@@ -19,6 +19,7 @@ WP-Cron se déclenche lors des visites du site et non à une heure fixe. Sur un 
 | `psc_cleanup_message_receipts` | quotidienne | nettoie les preuves de lecture anciennes |
 | `psc_purge_departed_children` | quotidienne | anonymise les enfants sortis depuis plus de 400 jours (RGPD) |
 | `psc_cleanup_requests` | quotidienne | supprime les demandes d'inscription non confirmées (7 jours) ou traitées (90 jours) |
+| `psc_envois_reprise` | toutes les 15 minutes | reprend les envois de menus, factures et commandes fournisseur restés en attente depuis plus de 10 minutes (coupure de la messagerie, page interrompue) ; les échecs, eux, ne se relancent qu'à la main |
 
 ## Tâches ponctuelles
 

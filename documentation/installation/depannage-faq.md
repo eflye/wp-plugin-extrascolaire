@@ -12,6 +12,34 @@ L'hébergement expose probablement le répertoire privé à partir d'une URL pub
 
 L'hébergement a refusé une modification de schéma, ou des données existantes empêchent la pose d'une contrainte. Consultez la liste affichée dans l'alerte, corrigez les données concernées et vérifiez les quotas et le moteur de table. Le plugin retente automatiquement à chaque ouverture du backoffice.
 
+## L'alerte signale « Unicité de l'e-mail du second parent » : que faire ?
+
+Plusieurs foyers partagent la même adresse de second parent. Or cette adresse sert au second parent à se connecter, elle doit donc désigner un seul foyer. Ouvrez **Périscolaire › Familles**, retrouvez les foyers concernés et corrigez ou retirez l'adresse en double. L'alerte disparaît d'elle-même à l'ouverture suivante du backoffice.
+
+## Un agent ne voit plus le menu Périscolaire, ou seulement une partie
+
+Depuis la version 5.20.0, l'accès se donne par habilitations sur le profil de chaque agent, et le rôle Éditeur n'a plus aucun accès. Cochez les habilitations de l'agent, cf. [Accès des agents de la mairie](acces-agents.md). Le tableau de bord reste réservé aux administrateurs.
+
+## Des allergies affichent « Accès restreint »
+
+L'agent n'a pas l'habilitation **Données de santé**. C'est voulu : accordez-la uniquement aux personnes qui en ont besoin pour la sécurité des enfants.
+
+## Un menu, une facture ou une commande fournisseur est indiqué « en échec »
+
+L'e-mail n'a pas été accepté par le serveur d'envoi. Vérifiez d'abord la messagerie ([Envoi des e-mails (SMTP)](emails-smtp.md)), puis relancez depuis l'écran concerné : **Relancer les échecs** pour un menu, **Envoyer toutes les factures non envoyées** pour les factures, **Relancer l'envoi** pour une commande fournisseur. Seuls les envois en échec repartent, sans doublon.
+
+## Une famille ne parvient pas à déposer son attestation d'assurance
+
+Le fichier est vérifié sur son contenu : il doit s'agir d'un vrai PDF, JPEG ou PNG, complet, de 1 Mo au plus. Un fichier renommé, abîmé, trop lourd, ou un PDF contenant du JavaScript est refusé. Demandez à la famille de réenregistrer le document en PDF, ou de le photographier.
+
+## L'adresse du calendrier scolaire n'est pas enregistrée
+
+Elle doit être une adresse web publique (`http` ou `https`). Une adresse qui désigne le serveur lui-même ou un réseau interne est refusée, et l'adresse précédente est conservée. Laissez le champ vide pour utiliser l'adresse officielle du ministère.
+
+## Le passage d'année affiche « rien n'a été modifié »
+
+Une écriture a échoué et le passage a été entièrement annulé : aucun enfant n'est à moitié promu. Réglez la cause (base de données, hébergement), puis confirmez de nouveau depuis le récapitulatif, qui est resté disponible.
+
 ## Pourquoi le journal d'audit signale-t-il un problème ?
 
 Une écriture du journal a échoué ou une action n'est pas classée dans le registre. Cliquez sur **Voir le journal filtré**, vérifiez le fichier de repli `journal-acces.log` et corrigez la cause d'accès à la base ou l'action inconnue avant de remettre le compteur à zéro avec **Remettre le compteur à zéro**.

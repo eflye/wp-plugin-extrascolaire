@@ -21,6 +21,8 @@ Créez l'année cible et vérifiez que l'année de départ contient les inscript
    !!! warning
        La confirmation écrit réellement les nouvelles inscriptions et les sorties en base. Le récapitulatif seul ne modifie aucune donnée.
 
+   Le passage est tout ou rien : si une écriture échoue, aucun enfant n'est promu et le message « Le passage d'année n'a pas pu être enregistré : rien n'a été modifié » s'affiche. Le récapitulatif reste disponible : relancez **Confirmer le passage d'année** une fois le problème réglé. Rejouer un passage déjà appliqué ne crée aucun doublon.
+
 5. Pour adapter les propositions automatiques, ouvrez **Périscolaire › Réglages**, puis **Passage d'année : progression des classes**. Modifiez la classe suivante proposée pour chaque niveau ; la mairie pourra toujours corriger une ligne dans le récapitulatif.
 
 ## Résultat attendu

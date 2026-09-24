@@ -19,6 +19,10 @@ Ouvrez **Périscolaire › Année scolaire** avec un rôle de gestion. Activez e
 
    ![Bloc « Calendrier officiel (zone C) » avec le bouton « Charger le calendrier officiel » et les informations de source](../assets/screenshots/calendrier-import-officiel.png)
 
+   L'import est tout ou rien : un calendrier trop volumineux (plus de 2 Mo), sans jour de zone C, aux dates aberrantes ou avec une fermeture continue de plus de 100 jours est refusé, et le calendrier en place reste intact.
+
+   Si vous remplacez l'adresse du calendrier officiel dans **Périscolaire › Réglages**, elle doit être une adresse web publique (`http` ou `https`). Une adresse qui désigne le serveur lui-même ou un réseau interne est refusée : les autres réglages sont enregistrés, mais l'adresse précédente est conservée.
+
 4. Si le serveur n'a pas d'accès Internet sortant, téléchargez le fichier `.ics` depuis le lien du ministère sur votre ordinateur, sélectionnez-le dans le formulaire, puis cliquez sur **Importer le fichier**. Les mêmes règles de conservation des corrections manuelles s'appliquent.
 5. Pour fermer exceptionnellement un jour ou une période, restez dans **Historique** et utilisez **Corriger un jour manuellement**. Renseignez **Fermer du**, laissez **Au (optionnel)** vide pour un seul jour ou indiquez une date de fin, ajoutez un **Motif**, puis cliquez sur **Fermer**.
 

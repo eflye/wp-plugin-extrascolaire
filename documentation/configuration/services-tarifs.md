@@ -17,6 +17,8 @@ Connectez-vous avec un rôle autorisé à gérer les réglages. Décidez des mon
 
 3. Repérez **Délai de modification**, puis renseignez **Préavis minimum** en heures. La valeur par défaut est de 48 heures ; mettez 0 pour désactiver le verrouillage général.
 4. Enregistrez les réglages. Au-delà du délai avant le jour concerné, les familles ne peuvent plus modifier leur planning ni utiliser **Annulation / signalement d'absence**. La mairie peut toujours corriger une réservation depuis le backoffice.
+
+   Le délai se compte depuis le début du jour concerné (minuit), en heures réellement écoulées. Le planning des familles affiche l'heure limite exacte (« Modifiable jusqu'au… ») : c'est bien l'instant où le jour se verrouille. Les week-ends de changement d'heure, cette limite peut tomber à 23:00 ou à 01:00 au lieu de minuit.
 5. Si nécessaire, ajustez aussi le préavis propre à l'année active depuis la page [Année scolaire](annee-scolaire.md) : ce réglage de planning s'applique alors à cette année.
 
 ## Résultat attendu
