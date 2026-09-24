@@ -194,6 +194,12 @@ class Psc_Installer {
      * dépôts à venir.
      */
     private static function sync_private_dir() {
+        // Le déménagement revient au serveur web : les fichiers déplacés par
+        // root lui appartiendraient, et il ne pourrait plus les remplacer.
+        if (psc_running_as_root()) {
+            return;
+        }
+
         $current = psc_private_dir();
         $known   = (string) get_option('psc_private_dir_path', '');
 

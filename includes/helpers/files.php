@@ -40,20 +40,46 @@ function psc_private_dir() {
         return apply_filters('psc_private_dir', rtrim(PSC_PRIVATE_DIR, '/\\'));
     }
 
+    // Un processus root (WP-CLI lancé par l'hébergeur, cron système) voit
+    // tout inscriptible : son avis sur l'emplacement ne vaut pas celui du
+    // serveur web. Il reprend donc l'emplacement déjà retenu, sans quoi il
+    // créerait un dossier hors racine lui appartenant, que le serveur web
+    // retiendrait ensuite sans pouvoir y écrire — et Psc_Installer y
+    // déménagerait les documents existants.
+    if (psc_running_as_root()) {
+        $known = (string) get_option('psc_private_dir_path', '');
+        if ($known !== '' && is_dir($known)) {
+            return apply_filters('psc_private_dir', $known);
+        }
+    }
+
     // Défaut hors racine HTTP : ABSPATH pointe sur la racine WordPress,
     // son parent est donc inatteignable par une URL même si le serveur
     // ignore les fichiers .htaccess.
     $dir = dirname(rtrim(ABSPATH, '/\\')) . '/psc-private';
 
-    // Repli : le parent hors racine n'est pas inscriptible. Dans ce cas,
-    // uploads/ reste acceptable uniquement avec les garde-fous serveur et
-    // l'alerte d'administration qui vérifie l'accès HTTP.
-    if (!is_dir($dir) && !wp_is_writable(dirname($dir))) {
+    // Repli : le dossier hors racine n'est pas utilisable — existant mais
+    // non inscriptible, ou impossible à créer (et jamais créé par root,
+    // cf. ci-dessus). Dans ce cas, uploads/ reste acceptable uniquement
+    // avec les garde-fous serveur et l'alerte d'administration qui
+    // vérifie l'accès HTTP.
+    $usable = is_dir($dir)
+        ? wp_is_writable($dir)
+        : (!psc_running_as_root() && wp_is_writable(dirname($dir)));
+    if (!$usable) {
         $upload = wp_upload_dir();
         $dir = trailingslashit($upload['basedir']) . 'psc-private';
     }
 
     return apply_filters('psc_private_dir', $dir);
+}
+
+/**
+ * Vrai si le processus PHP courant tourne en root (typiquement WP-CLI
+ * avec --allow-root). Faux quand l'information n'est pas disponible.
+ */
+function psc_running_as_root() {
+    return function_exists('posix_geteuid') && posix_geteuid() === 0;
 }
 
 /**
