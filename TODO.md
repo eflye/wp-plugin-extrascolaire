@@ -448,13 +448,19 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** activation en échec, double activation, enfant non réinscrit, modification d’une réinscription et consultation historique donnent un état cohérent dans planning/listes/factures. **Développement + métier ; M/L.**
 
-### P2-09 — Mesurer et réduire les lectures complètes et traitements synchrones
+### P2-09 — TRAITÉ (après v5.22.0) — Mesurer et réduire les lectures complètes et traitements synchrones
 
-- [ ] **Établir un budget de requêtes et de latence sur un effectif représentatif.**
+- [x] **Établir un budget de requêtes et de latence sur un effectif représentatif.**
 
 **Constaté :** listes familles/enfants non paginées (`Psc_Parents::all()`, `Psc_Admin_Familles::page_children()`), chargements `SELECT *` ; SIDSCM appelle classe et personnes autorisées enfant par enfant ; génération mensuelle refait des lectures par famille après une première lecture globale. Des lectures groupées existent déjà dans `declared_map()` et sont à préserver.
 
 **À faire :** mesurer avec données synthétiques au volume cible, charger seulement les colonnes nécessaires, grouper/paginer, traiter les grosses tâches par lots. Ne pas ajouter un cache partagé de dossiers pour résoudre la performance.
+
+**Traité le 24/09/2026 :**
+- **Budget mesuré :** `bin/verify-query-budget.php`, lancé en CI, mesure chaque lecture en masse sur un effectif synthétique de N puis 2N enfants (rythmes, personnes autorisées, assurances). Le nombre de requêtes ne doit pas grandir avec l’effectif et doit rester sous le budget : SIDSCM semaine ≤ 25, planning d’un mois en lot ≤ 12, personnes autorisées ≤ 5, écran Enfants ≤ 40. Mesuré : 14-16, 7, 3 et 6 requêtes, constants de 60 à 120 enfants.
+- **N+1 corrigés :** SIDSCM (classe lue par enfant, et 3 requêtes par enfant attendu en garderie du soir) → `classes_for()` et `authorized_for_children()` en lot : 201 → 379 requêtes avant, constant après. Écran Enfants (statut d’assurance et année active relus par enfant) → colonnes jointes dans la requête principale : 133 → 253 avant, 6 après. `authorized_for_child()` délègue à la version en lot (une seule source).
+- **Génération des factures, laissée en l’état et documentée :** elle relit chaque famille, mais chaque famille produit de toute façon son PDF et sa ligne de facture. Le coût est linéaire par nature, dominé par le PDF, et la génération est reprenable, car régénérer une facture est idempotent (cf. P1-16). La refondre toucherait les règles de gel des factures.
+- **Listes non paginées :** l’écran Enfants lit tous les enfants de l’année en 6 requêtes ; la pagination n’est pas justifiée à l’effectif d’une commune. Le temps et la mémoire sont affichés par la mesure à titre indicatif, sans seuil.
 
 **Acceptation :** budget convenu et mesuré, absence de N+1 dominant, mémoire bornée, génération reprenable. Aucun résultat de test de charge n’est revendiqué ici. **Développement ; M.**
 
