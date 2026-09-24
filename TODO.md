@@ -409,13 +409,22 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** parcours utilisable sans réponse du prestataire ; aucun chargement tiers non identifié ; test réseau du site réel. Les cookies d’authentification strictement nécessaires ne justifient pas, à eux seuls, un bandeau de consentement ; les autres traceurs sont à examiner séparément. Références : [BAN — documentation API](https://adresse.data.gouv.fr/outils/api-doc/adresse), [CNIL — cookies nécessaires](https://www.cnil.fr/fr/cookies-et-autres-traceurs/que-dit-la-loi). **Développement + DPO ; M.**
 
-### P2-07 — Sécuriser les changements rapides d’enfant et les états de chargement
+### P2-07 — TRAITÉ (après v5.22.0) — Sécuriser les changements rapides d’enfant et les états de chargement
 
-- [ ] **Tester et neutraliser les réponses AJAX devenues obsolètes.**
+- [x] **Tester et neutraliser les réponses AJAX devenues obsolètes.**
 
 **Constaté / scénario à tester :** `assets/js/planning-2.js` ne verrouille pas les onglets enfants dans `setBusy()` ; `loadMonth()` ne porte pas d’identifiant de requête courante ni d’annulation. Deux réponses arrivant en ordre inverse peuvent afficher un état inattendu. La restauration générale de `disabled` doit également respecter les règles recalculées par le serveur.
 
 **À faire :** ignorer les réponses obsolètes ou sérialiser la navigation ; synchroniser onglet actif, enfant affiché et destination de chaque écriture ; préserver les libellés accessibles après changement d’enfant.
+
+**Traité le 24/09/2026 (`assets/js/planning-2.js`) :**
+- **Réponses de chargement :** chaque chargement (enfant ou mois) porte un numéro ; seule la réponse du dernier est appliquée, une réponse périmée est ignorée.
+- **Navigation sérialisée :** les onglets enfants sont verrouillés pendant un chargement, comme les cases.
+- **Enfant affiché :** l’enfant réellement affiché est distinct de l’onglet cliqué. Toute écriture (case, rythme, Tout/Aucun, revenir au rythme, copie fratrie) vise l’enfant affiché. Une réponse d’écriture arrivée après un changement d’enfant ou de mois reste enregistrée, mais ne réécrit pas l’affichage courant.
+- **Échec de chargement :** onglets et affichage reviennent à l’enfant réellement affiché.
+- **Fin de chargement :** `setBusy(false)` ne rend la main qu’aux éléments qu’il avait lui-même désactivés. Une case reconstruite par le serveur (jour verrouillé, prestation fermée) garde son état.
+
+**Preuve :** `tests/planning-2-navigation.spec.ts` ralentit ou coupe `admin-ajax.php` : verrouillage des onglets pendant un chargement lent, écriture lente suivie d’un changement d’enfant (affichage du nouvel enfant préservé, écriture enregistrée pour l’enfant cliqué), échec de chargement (retour à l’enfant affiché, clic dirigé vers lui). Les 3 scénarios échouent avec l’ancien script et passent avec le nouveau. Pas de régression sur `planning-2` et `planning-overflow` (15/15).
 
 **Acceptation :** réseau ralenti, clic A/B/A, réponse inversée et échec réseau → aucun affichage ou clic dirigé vers le mauvais enfant. **Développement ; M.**
 
