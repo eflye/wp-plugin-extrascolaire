@@ -92,6 +92,10 @@
       <?php endforeach; ?>
     </nav>
 
+    <div class="psc-portal-help">
+      <?php psc_family_guide_link('psc-portal-help-link', __('Aide — guide des familles', 'periscolaire-registration'), 'portal-help-link'); ?>
+    </div>
+
     <div class="psc-portal-account" data-testid="account-bar">
       <div class="psc-portal-account-label"><?php esc_html_e('Connecté avec', 'periscolaire-registration'); ?></div>
       <div class="psc-portal-account-email" data-testid="account-email"><?php echo esc_html($parent->email); ?></div>

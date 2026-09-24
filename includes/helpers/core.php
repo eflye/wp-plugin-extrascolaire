@@ -88,6 +88,31 @@ function psc_health_restricted_html() {
     return '<span class="description">' . esc_html__('Accès restreint', 'periscolaire-registration') . '</span>';
 }
 
+/**
+ * Adresse du guide des familles (documentation en ligne), proposée dans
+ * l'espace familles connecté comme non connecté. Filtrable si la commune
+ * héberge sa propre copie de la documentation.
+ */
+function psc_family_guide_url() {
+    return (string) apply_filters('psc_family_guide_url', 'https://eflye.github.io/wp-plugin-extrascolaire/familles/');
+}
+
+/**
+ * Lien vers le guide des familles. Il s'ouvre dans un nouvel onglet pour ne
+ * pas quitter l'espace familles (formulaire en cours) ; l'annonce en est
+ * faite aux lecteurs d'écran.
+ */
+function psc_family_guide_link($class, $label, $testid) {
+    printf(
+        '<a class="%1$s" href="%2$s" target="_blank" rel="noopener" data-testid="%3$s">%4$s<span class="psc-sr-only"> %5$s</span></a>',
+        esc_attr($class),
+        esc_url(psc_family_guide_url()),
+        esc_attr($testid),
+        esc_html($label),
+        esc_html__('(s’ouvre dans un nouvel onglet)', 'periscolaire-registration')
+    );
+}
+
 function psc_user_can_manage() {
     return current_user_can(psc_manage_cap());
 }
