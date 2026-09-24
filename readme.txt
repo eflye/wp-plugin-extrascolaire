@@ -2,7 +2,7 @@
 Contributors: mairie
 Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
-Tested up to: 6.6
+Tested up to: 7.1
 Requires PHP: 7.4
 Stable tag: 5.22.0
 License: GPLv2 or later

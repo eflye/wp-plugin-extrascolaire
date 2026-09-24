@@ -499,13 +499,21 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** tests en échec → aucune release publiée ; ZIP propre et installable ; ajout du TODO suivi n’entraîne ni exposition du rapport ni échec inattendu. **Aucune modification du workflow effectuée pendant cet audit. Développement ; S/M.**
 
-### P2-12 — Définir une politique de versions et de dépendances supportées
+### P2-12 — TRAITÉ CÔTÉ PROJET (après v5.22.0) — Définir une politique de versions et de dépendances supportées
 
-- [ ] **Distinguer compatibilité historique et environnement de production maintenu.**
+- [x] **Distinguer compatibilité historique et environnement de production maintenu.**
 
 **Constaté :** minimum PHP 7.4, WordPress 5.8 ; CI PHP 7.4–8.3 ; images locales flottantes `latest`. FPDF 1.9 est embarqué hors Composer, sans inventaire d’avis de sécurité automatisé dans la CI examinée. PHPStan niveau 3 couvre uniquement `includes/`. Aucun avis npm connu trouvé lors de cet audit ; cela ne certifie pas tout l’écosystème.
 
 **À faire :** imposer/documenter des versions maintenues pour la production, tester les branches actuelles appropriées, inventorier FPDF et licences, surveiller les avis de sécurité, vérifier les outils téléchargés en CI et versions des actions. Étendre progressivement l’analyse aux templates et aux erreurs de typage utiles.
+
+**Traité le 24/09/2026 :**
+- **Politique documentée :** `documentation/installation/versions-dependances.md` distingue la compatibilité minimale (PHP 7.4, WP 5.8, contrôlée en CI de 7.4 à 8.3) de la production maintenue (PHP 8.2/8.3, dernière version de WordPress, MySQL 8.0+). La page fixe un calendrier : revue semestrielle des versions du serveur, ajout de chaque version majeure de PHP à la matrice. Elle est reliée aux prérequis.
+- **Dépendances identifiées :** FPDF 1.9 (licence FPDF) et Public Sans (OFL) embarqués ; aucune dépendance Composer ni npm livrée ; outillage recensé.
+- **Alertes :** `composer audit` et `npm audit --audit-level=high` bloquent le lint en CI (aucun avis au 24/09/2026). L’empreinte SHA-512 de WP-CLI, téléchargé à chaque run, est vérifiée en CI et en release.
+- **`readme.txt` :** `Tested up to` passe à 7.1, la version testée en continu.
+
+**Reste (hébergeur) :** relever les versions réelles du serveur distant (PHP, WordPress, MySQL) et les comparer au tableau ; FPDF n’a pas de flux d’avis automatisé (revue semestrielle). Épingler les actions GitHub par empreinte plutôt que par version majeure reste une option.
 
 **Acceptation :** versions distantes recensées, calendrier de maintenance, dépendances identifiées et alertes traitées. Les anciennes versions PHP ne reçoivent plus les corrections du projet PHP : [PHP — versions supportées](https://www.php.net/supported-versions.php), [versions abandonnées](https://www.php.net/eol.php). **Développement + hébergeur ; M.**
 

@@ -147,6 +147,9 @@ jobs:
           mkdir -p .cache
           curl -fsSL -o .cache/wp-cli.phar \
             https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+          curl -fsSL -o .cache/wp-cli.phar.sha512 \
+            https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar.sha512
+          echo "$(cat .cache/wp-cli.phar.sha512)  .cache/wp-cli.phar" | sha512sum -c -
           docker cp .cache/wp-cli.phar smoke-wp:/usr/local/bin/wp-cli.phar
           docker cp "periscolaire-registration-${PLUGIN_VERSION}.zip" smoke-wp:/tmp/
 
