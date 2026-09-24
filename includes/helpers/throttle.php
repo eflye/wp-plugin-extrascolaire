@@ -11,15 +11,16 @@ if (!defined('ABSPATH')) exit;
  * Limitation de fréquence (anti-spam / anti-énumération).
  * Renvoie false si la limite est atteinte.
  *
- * Désactivée en environnement local/développement (WP_ENVIRONMENT_TYPE),
- * ou via le filtre psc_rate_limit_enabled : évite d'avoir à purger des
- * transients entre deux runs de test.
+ * Désactivée par défaut en environnement local/développement
+ * (WP_ENVIRONMENT_TYPE) : évite d'avoir à purger des transients entre deux
+ * runs de test. Le filtre psc_rate_limit_enabled reçoit ce défaut et peut
+ * le renverser dans les deux sens — la désactiver ailleurs, ou la
+ * réactiver en local pour vérifier son comportement de production
+ * (bin/verify-rate-limit.php).
  */
 function psc_rate_limit($key, $max, $window) {
-    if (in_array(wp_get_environment_type(), array('local', 'development'), true)) {
-        return true;
-    }
-    if (!apply_filters('psc_rate_limit_enabled', true)) {
+    $enabled = !in_array(wp_get_environment_type(), array('local', 'development'), true);
+    if (!apply_filters('psc_rate_limit_enabled', $enabled)) {
         return true;
     }
 
