@@ -244,7 +244,8 @@ test('fiche vivante — ajout pour toute la fratrie, modification, retrait, puis
   await page.locator('input[name="new_assurance_file"]').setInputFiles({
     name: 'assurance-jules.pdf',
     mimeType: 'application/pdf',
-    buffer: Buffer.from('%PDF-1.4 e2e pickup-persons second child'),
+    // PDF minimal mais complet : le contenu des justificatifs est contrôlé.
+    buffer: Buffer.from('%PDF-1.4\n% e2e pickup-persons second child\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[]/Count 0>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n'),
   });
   await page.locator('.psc-add-child-form').getByRole('button', { name: 'Ajouter' }).click();
   await expect(page.getByTestId('notice-child_added')).toBeVisible();
