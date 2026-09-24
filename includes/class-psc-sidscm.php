@@ -212,7 +212,12 @@ class Psc_Sidscm {
     private static function authenticate($token, $id, $code) {
         if ($token !== '') {
             $actor = get_transient(self::session_key($token));
-            if (is_array($actor) && !empty($actor['id'])) { set_transient(self::session_key($token), $actor, self::SESSION_TTL); self::$request_actor = $actor; return $actor; }
+            // Une session ouverte avec l'ancien code partagé n'a pas d'id :
+            // elle vaut tant qu'aucune identité individuelle n'est
+            // configurée, comme le code lui-même (cf. ci-dessous). Exiger
+            // un id refusait toute requête après le déverrouillage.
+            $legacy_ok = is_array($actor) && array_key_exists('id', $actor) && $actor['id'] === null && !self::intervenants();
+            if (is_array($actor) && !empty($actor['nom']) && (!empty($actor['id']) || $legacy_ok)) { set_transient(self::session_key($token), $actor, self::SESSION_TTL); self::$request_actor = $actor; return $actor; }
         }
         $rows = self::intervenants();
         foreach ($rows as $row) {
