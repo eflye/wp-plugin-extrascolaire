@@ -55,6 +55,7 @@ class Psc_Admin extends Psc_Admin_Base {
         add_action('admin_notices', array(__CLASS__, 'notice_private_dir_exposed'));
         add_action('admin_notices', array(__CLASS__, 'notice_db_constraints'));
         add_action('admin_notices', array(__CLASS__, 'notice_audit_health'));
+        add_action('admin_notices', array(__CLASS__, 'notice_privacy_incomplete'));
         add_action('show_user_profile', array(__CLASS__, 'user_capabilities_fields'));
         add_action('edit_user_profile', array(__CLASS__, 'user_capabilities_fields'));
         add_action('personal_options_update', array(__CLASS__, 'save_user_capabilities'));
@@ -407,6 +408,22 @@ class Psc_Admin extends Psc_Admin_Base {
      * écran admin ; cet avis ferme la boucle côté mairie, qui voit enfin
      * pourquoi sa base ne garantit pas la cohérence qu'elle croit avoir.
      */
+    /**
+     * La notice de confidentialité montrée aux familles porte « Collectivité
+     * (à adapter) » tant que le responsable du traitement n'est pas
+     * renseigné : la mairie en est avertie sur les écrans du plugin.
+     */
+    public static function notice_privacy_incomplete() {
+        if (!current_user_can('psc_manage_config')) return;
+        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+        if (!$screen || strpos((string) $screen->id, 'psc_') === false) return;
+        if (trim((string) get_option('psc_privacy_municipality', '')) !== '') return;
+        $url = admin_url('admin.php?page=psc_settings#psc-confidentialite');
+        echo '<div class="notice notice-warning" data-testid="notice-privacy-incomplete"><p>'
+            . esc_html__('Notice de confidentialité : les familles voient « Collectivité (à adapter) ».', 'periscolaire-registration') . ' '
+            . '<a href="' . esc_url($url) . '">' . esc_html__('Renseigner le responsable du traitement', 'periscolaire-registration') . '</a></p></div>';
+    }
+
     public static function notice_db_constraints() {
         if (!current_user_can('psc_manage_config')) return;
 
