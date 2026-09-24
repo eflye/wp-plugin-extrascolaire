@@ -78,6 +78,11 @@ jobs:
       - name: Install dev dependencies
         run: composer install --no-interaction --no-progress
 
+      # Avis de sécurité publiés sur les dépendances (outillage de
+      # développement uniquement : rien de composer ne part dans le zip).
+      - name: Avis de sécurité (composer)
+        run: composer audit --no-interaction
+
       - name: Analyse statique
         run: composer phpstan
 
@@ -101,6 +106,10 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      # Même raison que composer audit : outillage de test, jamais livré.
+      - name: Avis de sécurité (npm)
+        run: npm audit --audit-level=high
 
       - name: Lint JavaScript
         run: npx eslint assets/js

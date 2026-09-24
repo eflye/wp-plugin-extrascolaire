@@ -97,6 +97,11 @@ jobs:
           mkdir -p .cache
           curl -fsSL -o .cache/wp-cli.phar \
             https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+          # Outil téléchargé à chaque run : son empreinte publiée est
+          # vérifiée avant de l'exécuter (P2-12).
+          curl -fsSL -o .cache/wp-cli.phar.sha512 \
+            https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar.sha512
+          echo "$(cat .cache/wp-cli.phar.sha512)  .cache/wp-cli.phar" | sha512sum -c -
           docker cp .cache/wp-cli.phar "$PSC_WP_CONTAINER:/usr/local/bin/wp-cli.phar"
           docker exec "$PSC_WP_CONTAINER" chmod +x /usr/local/bin/wp-cli.phar
 
