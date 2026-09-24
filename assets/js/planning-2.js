@@ -30,7 +30,11 @@
     }
 
     function post(payload) {
-        var params = { nonce: window.PSC.nonce, parent_nonce: window.PSC.parent_nonce || '' };
+        // Le mois affiché accompagne chaque requête : l'état renvoyé est
+        // celui de CE mois. Sans lui, le serveur retombe sur le mois courant
+        // et un parent qui consulte novembre y était ramené au premier clic
+        // sur le rythme. loadMonth() le remplace par le mois visé.
+        var params = { nonce: window.PSC.nonce, parent_nonce: window.PSC.parent_nonce || '', month: boot.month };
         Object.keys(payload).forEach(function (k) { params[k] = payload[k]; });
         return window.PscAjax.envelope(window.PSC.ajax_url, params);
     }
