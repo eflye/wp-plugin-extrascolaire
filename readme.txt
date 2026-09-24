@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.23.1
+Stable tag: 5.24.0
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,9 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.24.0 =
+* Nouvelle rubrique « Confidentialité » dans Périscolaire › Réglages : nom du responsable du traitement, e-mail du DPO, e-mail pour exercer ses droits et adresse de la notice complète, avec un aperçu de la notice exactement telle que les familles la voient. **Après la mise à jour**, renseignez au moins le responsable du traitement : tant qu'il est vide, les familles lisent « Collectivité (à adapter) » et une alerte le rappelle dans le back office.
 
 = 5.23.1 =
 * L'espace familles propose un lien vers le guide des familles, connecté (« Aide — guide des familles », en bas du menu) comme non connecté (au-dessus du bloc de connexion). Le guide s'ouvre dans un nouvel onglet.
