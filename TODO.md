@@ -374,13 +374,22 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** coupure SMTP/timeout/échec de persistance → bilan exact, relance des seuls échecs, aucun succès fictif ni notification d’une opération annulée. **Développement + messagerie ; M/L.**
 
-### P2-05 — Borner les imports de calendriers et prévenir les requêtes internes
+### P2-05 — TRAITÉ (après v5.22.0) — Borner les imports de calendriers et prévenir les requêtes internes
 
-- [ ] **Sécuriser l’URL ICS, les redirections et le volume téléchargé.**
+- [x] **Sécuriser l’URL ICS, les redirections et le volume téléchargé.**
 
 **Constaté :** URL configurable par un gestionnaire (`class-psc-admin-config.php:53`) ; import via `wp_remote_get()` avec timeout, sans contrôle explicite d’adresses privées ni limite de réponse (`class-psc-school-calendar.php:160`). Risque SSRF pour un compte disposant de cette capacité ; pas une route publique sans authentification.
 
 **À faire :** URL sûre, schéma et destinations autorisés, contrôles sur les redirections, taille/temps bornés ; import transactionnel ou préparé avant remplacement ; validation des dates et événements aberrants.
+
+**Traité le 24/09/2026 :**
+- **Validation de l’adresse (`Psc_School_Calendar::validate_ics_url()`) :** http(s) seulement, port 80 ou 443, pas d’identifiants dans l’adresse. Toutes les adresses résolues de l’hôte (IPv4 et IPv6) doivent être publiques : loopback, réseaux privés, lien local (métadonnées cloud) et plages réservées sont refusés.
+- **Enregistrement du réglage :** une adresse refusée n’est pas enregistrée, l’ancienne est conservée, et l’écran le signale.
+- **Téléchargement :** redirections suivies à la main (3 au plus), chacune revalidée ; réponse limitée à 2 Mo, comme le téléversement manuel.
+- **Contrôle avant écriture :** refus d’un calendrier sans jour de zone C, aux dates à plus de 5 ans ou avec une fermeture continue de plus de 100 jours.
+- **Écriture en transaction :** un import refusé ou raté laisse le calendrier intact.
+
+**Preuve :** `bin/verify-ics-import.php`, lancé en CI (31 vérifications, réseau et DNS simulés). Il refuse loopback, localhost, réseau privé, métadonnées cloud, IPv6 interne, hôte résolu en interne (y compris sur une seule de ses adresses), schémas `file` et `ftp`, port exotique, identifiants et hôte introuvable. Côté import, il refuse la redirection vers le réseau interne, la boucle de redirections, la réponse trop volumineuse, l’ICS invalide, les dates aberrantes, la fermeture de 150 jours et la réponse d’erreur, et vérifie à chaque fois que le calendrier est intact. Un import valide passe, y compris après une redirection publique. Vérifié par mutation : 12 cas échouent quand toute adresse est acceptée. `tests/ics-import.spec.ts` couvre l’écran Réglages, contrôle axe compris.
 
 **Acceptation :** loopback, adresse privée, redirection interne, réponse trop grosse et ICS invalide refusés ; calendrier existant intact. **Développement ; M.**
 
