@@ -340,6 +340,7 @@ complet, commit par commit, reste dans le dépôt git.
 * La suppression d'une famille depuis Familles ne détruit plus ses factures. Elle suit la même règle que l'effacement RGPD : les pièces comptables sont conservées et la fiche est anonymisée à la place, pour qu'aucune facture ne se retrouve rattachée à un dossier disparu. Une famille sans facture reste supprimée entièrement.
 * Ajoute une fiche de recette de l'hébergement à la documentation : ce qu'il faut constater sur le serveur lui-même (inaccessibilité réelle des documents, cache, cron, sauvegardes, restauration), que le plugin ne peut pas vérifier depuis son propre code.
 * Met la documentation en accord avec le signalement alimentaire minimal introduit en 5.17.0.
+* Bascule la recherche d'adresse du formulaire d'inscription vers le service de géocodage de la Géoplateforme (IGN). L'ancienne adresse de l'API annonçait sa propre fin depuis le 31 janvier 2026 et pouvait cesser de répondre sans préavis, ce qui aurait privé les familles de l'autocomplétion. Les données restent celles de la Base Adresse Nationale et la saisie manuelle reste disponible ; rien ne change pour la famille, hormis le nom du service indiqué sous le champ.
 
 = 5.18.0 =
 * Finalise les protections techniques P1-13, P1-14, P1-15 et P1-17 : uploads avec reprise, horloge de verrou cohérente, export sans repas aligné et migrations protégées contre les conflits/concurrences.
