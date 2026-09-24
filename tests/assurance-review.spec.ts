@@ -64,6 +64,14 @@ test('assurances : dépôt mobile, revue, refus, remplacement et acceptation aut
     await ap.getByRole('button', { name: 'Refuser — demander un remplacement' }).click();
     await page.reload();
     await expect(page.getByTestId('portal-section-cantine2').getByTestId('assurance-gate')).toContainText('Le document doit couvrir cette année scolaire.');
+    // Un faux PDF (texte renommé) est refusé sur son contenu, sans
+    // remplacer le document déjà déposé ni sa décision.
+    const docBefore = wp('eval', `global $wpdb; echo $wpdb->get_var($wpdb->prepare('SELECT assurance_revision FROM ' . psc_table('child_school_years') . ' WHERE child_id = %d AND assurance_file_path IS NOT NULL', ${data.chloe_id}));`);
+    await page.getByTestId('portal-section-cantine2').locator('input[name="assurance_file"]').setInputFiles({ name: 'assurance.pdf', mimeType: 'application/pdf', buffer: Buffer.from("Ceci n'est pas un PDF.\n%%EOF\n") });
+    await page.getByTestId('portal-section-cantine2').locator('.psc-assurance-card button[type="submit"]').click();
+    await expect(page.getByTestId('notice-assurance_invalid_type')).toBeVisible();
+    await expect(page.getByTestId('portal-section-cantine2').getByTestId('assurance-gate')).toContainText('Le document doit couvrir cette année scolaire.');
+    expect(wp('eval', `global $wpdb; echo $wpdb->get_var($wpdb->prepare('SELECT assurance_revision FROM ' . psc_table('child_school_years') . ' WHERE child_id = %d AND assurance_file_path IS NOT NULL', ${data.chloe_id}));`)).toBe(docBefore);
     // Remplacer la pièce invalide la revue et la visionneuse déjà ouvertes.
     await ap.goto(reviewUrl);
     await upload();

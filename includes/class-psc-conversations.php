@@ -574,7 +574,9 @@ class Psc_Conversations {
             'jpg|jpeg' => 'image/jpeg',
             'png'      => 'image/png',
         ));
-        return $filetype['ext'] ? true : 'invalid_type';
+        if (!$filetype['ext']) return 'invalid_type';
+        // Même contrôle de contenu que les justificatifs (cf. psc_validate_document_file()).
+        return psc_validate_document_file($file['tmp_name'] ?? '', $file['name'], self::ATTACHMENT_MAX_SIZE);
     }
 
     /**

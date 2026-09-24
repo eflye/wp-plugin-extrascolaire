@@ -204,6 +204,87 @@ function psc_private_dir_url() {
 }
 
 /**
+ * Vérifie qu'un document déposé est bien ce que son nom annonce : un PDF,
+ * un JPEG ou un PNG réel, entier et sans contenu actif visible.
+ *
+ * Le nom (et donc l'extension) vient du navigateur, comme la taille
+ * déclarée : un fichier renommé « .pdf » passait tel quel. On juge ici le
+ * contenu lui-même, lu sur le disque :
+ *  - taille réelle non nulle et sous le plafond ;
+ *  - signature binaire du format (en-tête, et marqueur de fin — un fichier
+ *    tronqué n'est pas un document) ;
+ *  - type détecté par fileinfo quand l'extension PHP est présente ;
+ *  - extension du nom cohérente avec le type détecté ;
+ *  - images : décodables (getimagesize) et de dimensions non nulles ;
+ *  - PDF : traité comme contenu non fiable — refusé s'il déclare du
+ *    JavaScript, une action de lancement ou des fichiers embarqués (les
+ *    formulaires XFA restent admis : des attestations d'assureurs en
+ *    portent). La
+ *    recherche porte sur la structure en clair : un marqueur caché dans un
+ *    flux compressé lui échappe, d'où les défenses qui restent en aval
+ *    (stockage privé, contrôle d'accès, nosniff).
+ *
+ * Un analyseur antivirus éventuel de l'hébergement se branche sur le
+ * filtre psc_document_scan (renvoyer false refuse le fichier).
+ *
+ * @param string $path     Fichier à contrôler (upload temporaire ou fichier en attente).
+ * @param string $name     Nom annoncé, dont l'extension doit correspondre au contenu.
+ * @param int    $max_size Taille maximale en octets.
+ * @return string|true true, ou un code : 'partial' (vide), 'too_large',
+ *                     'invalid_type' (contenu faux, incohérent ou malformé), 'failed'.
+ */
+function psc_validate_document_file($path, $name, $max_size) {
+    if (!is_string($path) || $path === '' || !is_file($path) || !is_readable($path)) return 'failed';
+
+    clearstatcache(true, $path);
+    $size = (int) filesize($path);
+    if ($size <= 0) return 'partial';
+    if ($size > (int) $max_size) return 'too_large';
+
+    $ext = strtolower(pathinfo((string) $name, PATHINFO_EXTENSION));
+    $types = array('pdf' => 'pdf', 'jpg' => 'jpeg', 'jpeg' => 'jpeg', 'png' => 'png');
+    if (!isset($types[$ext])) return 'invalid_type';
+    $expected = $types[$ext];
+
+    $handle = @fopen($path, 'rb'); // phpcs:ignore WordPress.WP.AlternativeFunctions,WordPress.PHP.NoSilencedErrors
+    if (!$handle) return 'failed';
+    $head = (string) fread($handle, 1024); // phpcs:ignore WordPress.WP.AlternativeFunctions
+    fseek($handle, max(0, $size - 1024));
+    $tail = (string) fread($handle, 1024); // phpcs:ignore WordPress.WP.AlternativeFunctions
+    fclose($handle); // phpcs:ignore WordPress.WP.AlternativeFunctions
+
+    if ($expected === 'pdf') {
+        // L'en-tête peut suivre quelques octets parasites (tolérés par la
+        // norme dans le premier kilo-octet) ; la fin doit porter %%EOF.
+        if (strpos($head, '%PDF-') === false || strpos($tail, '%%EOF') === false) return 'invalid_type';
+        $body = (string) file_get_contents($path); // phpcs:ignore WordPress.WP.AlternativeFunctions
+        if (preg_match('~/(JavaScript|JS|Launch|EmbeddedFile)\b~', $body)) return 'invalid_type';
+    } elseif ($expected === 'jpeg') {
+        if (strncmp($head, "\xFF\xD8\xFF", 3) !== 0) return 'invalid_type';
+    } else {
+        if (strncmp($head, "\x89PNG\r\n\x1A\n", 8) !== 0 || strpos($tail, 'IEND') === false) return 'invalid_type';
+    }
+
+    if (function_exists('finfo_open')) {
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime = $finfo ? (string) finfo_file($finfo, $path) : '';
+        if ($finfo) finfo_close($finfo);
+        $mimes = array('pdf' => array('application/pdf'), 'jpeg' => array('image/jpeg', 'image/pjpeg'), 'png' => array('image/png'));
+        if ($mime !== '' && !in_array($mime, $mimes[$expected], true)) return 'invalid_type';
+    }
+
+    if ($expected !== 'pdf') {
+        $info = @getimagesize($path); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        $image_type = $expected === 'jpeg' ? IMAGETYPE_JPEG : IMAGETYPE_PNG;
+        if (!$info || (int) $info[2] !== $image_type || empty($info[0]) || empty($info[1])) return 'invalid_type';
+    }
+
+    if (!apply_filters('psc_document_scan', true, $path, $expected)) return 'invalid_type';
+
+    return true;
+}
+
+/**
  * Journal des téléchargements depuis le répertoire privé.
  *
  * Documents de mineurs ou données financières : la contrepartie du

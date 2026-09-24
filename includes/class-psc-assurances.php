@@ -167,7 +167,10 @@ class Psc_Assurances {
         if (!$filetype['ext']) {
             return 'invalid_type';
         }
-        return true;
+        // Le nom et la taille viennent du navigateur : le contenu réel
+        // (taille, signature, type, intégrité) est jugé sur le fichier reçu,
+        // AVANT tout déplacement — l'ancien justificatif reste en place.
+        return psc_validate_document_file($file['tmp_name'] ?? '', $file['name'], MB_IN_BYTES);
     }
 
     /**
@@ -238,6 +241,10 @@ class Psc_Assurances {
     public static function promote_pending($child_id, $abs_source_path, $original_filename) {
         $ext = strtolower(pathinfo($abs_source_path, PATHINFO_EXTENSION));
         if (!in_array($ext, array('pdf', 'jpg', 'jpeg', 'png'), true)) return false;
+        // Même contrôle de contenu qu'un dépôt direct : un fichier en
+        // attente déposé avant ce contrôle n'est pas rattaché s'il n'est
+        // pas un document valide (la zone d'attente est alors conservée).
+        if (psc_validate_document_file($abs_source_path, $abs_source_path, MB_IN_BYTES) !== true) return false;
 
         $rentree_year = psc_rentree_year();
         $rel_dir = self::BASE . '/' . $rentree_year;
