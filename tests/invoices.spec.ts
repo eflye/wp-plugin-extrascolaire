@@ -7,8 +7,8 @@
  * psc_invoices ni les fichiers du répertoire privé.
  *
  * Terrain : une famille en prélèvement (IBAN chiffré, mandat), un enfant
- * au forfait le jeudi — les jeudis d'octobre 2026 (mois FUTUR, horloge
- * figée au 7 septembre) produisent la facture sans aucune saisie.
+ * au forfait le jeudi — les jeudis d'octobre 2026 produisent la facture
+ * sans aucune saisie, quel que soit le jour où le seed a figé l'horloge.
  */
 
 import { test, expect, type Page } from '@playwright/test';
@@ -83,7 +83,11 @@ function seedFamily(): number {
        $wpdb->insert($wpdb->prefix.'psc_children', array('parent_id' => $pid, 'nom' => 'FacturesE2E', 'prenom' => 'Jules', 'statut' => 'actif', 'created_at' => current_time('mysql')), array('%d','%s','%s','%s','%s'));
        $cid = (int) $wpdb->insert_id;
        Psc_School_Years::enroll($cid, Psc_School_Years::active_id(), 'CE2', 'inscrit', current_time('mysql'));
-       Psc_Planning::toggle_pattern($cid, '2026-2027', 4, 'FORF', true);
+       // Rythme posé en base, sans passer par toggle_pattern() : celui-ci
+       // gèle les jours déjà verrouillés, or l'horloge est figée par le seed
+       // sur un jour d'école qui dépend de la date réelle d'exécution. Ancrée
+       // au jeudi 1er octobre, elle retirait ce jeudi de la facture.
+       $wpdb->insert($wpdb->prefix.'psc_pattern', array('child_id' => $cid, 'school_year' => '2026-2027', 'weekday' => 4, 'service_code' => 'FORF', 'created_at' => current_time('mysql'), 'updated_at' => current_time('mysql')), array('%d','%s','%d','%s','%s','%s'));
        Psc_Planning::flush_cache();
      }
      echo (string) $cid;`
