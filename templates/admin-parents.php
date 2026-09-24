@@ -19,7 +19,8 @@ $psc_notices = array(
     'bad_iban'    => array('error', __('IBAN invalide.', 'periscolaire-registration')),
     'bad_bic'     => array('error', __('BIC invalide.', 'periscolaire-registration')),
     'bad_code_postal' => array('error', __('Code postal invalide.', 'periscolaire-registration')),
-    'family_deleted' => array('success', __('Famille supprimée définitivement, avec ses enfants, inscriptions, justificatifs et factures.', 'periscolaire-registration')),
+    'family_deleted' => array('success', __('Famille supprimée définitivement, avec ses enfants, inscriptions et justificatifs. Elle n’avait aucune facture à conserver.', 'periscolaire-registration')),
+    'family_anonymized' => array('success', __('Famille supprimée : enfants, inscriptions, justificatifs et échanges effacés. Ses factures sont conservées au titre de l’obligation comptable, et la fiche reste dans la liste sous une identité anonymisée pour qu’elles restent rattachées.', 'periscolaire-registration')),
     'impersonation_stopped' => array('success', __('Consultation terminée.', 'periscolaire-registration')),
 );
 psc_admin_notice_map($psc_notices, $psc_msg); ?>

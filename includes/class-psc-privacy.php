@@ -289,6 +289,49 @@ class Psc_Privacy {
         );
     }
 
+    /**
+     * Champs d'anonymisation d'une ligne « parents ». Partagé par
+     * l'effaceur RGPD et par la suppression manuelle mairie (cf.
+     * Psc_Admin_Familles::handle_delete_family()) : les deux chemins doivent
+     * laisser exactement le même reliquat, sans quoi l'un finirait par
+     * oublier un champ que l'autre nettoie — et l'oubli porterait ici sur
+     * une adresse ou un IBAN.
+     *
+     * L'adresse e-mail n'est pas vidée mais remplacée par une valeur unique
+     * et invalide : la colonne porte une contrainte d'unicité, et deux
+     * foyers anonymisés se marcheraient dessus.
+     */
+    public static function anonymized_parent_fields($parent_id) {
+        return array(
+            'email'                       => 'famille-supprimee-' . (int) $parent_id . '@invalide.local',
+            'nom'                         => null,
+            'prenom'                      => null,
+            'telephone_mobile'            => null,
+            'telephone_fixe'              => null,
+            'adresse'                     => null,
+            'code_postal'                 => null,
+            'ville'                       => null,
+            'pending_email'               => null,
+            'pending_email_token_hash'    => null,
+            'pending_email_token_expires' => null,
+            'token_hash'                  => null,
+            'token_expires'               => null,
+            'last_login'                  => null,
+            'active'                      => 0,
+            'sepa_iban'                   => null,
+            'sepa_bic'                    => null,
+            'sepa_titulaire'              => null,
+            'sepa_adresse'                => null,
+            'sepa_code_postal'            => null,
+            'sepa_ville'                  => null,
+            'sepa_mandate_ref'            => null,
+            'second_parent_prenom'        => null,
+            'second_parent_nom'           => null,
+            'second_parent_email'         => null,
+            'second_parent_telephone'     => null,
+        );
+    }
+
     private static function erase_household($parent) {
         global $wpdb;
 
@@ -323,34 +366,7 @@ class Psc_Privacy {
 
         $wpdb->update(
             psc_table('parents'),
-            array(
-                'email'                       => 'famille-supprimee-' . $parent->id . '@invalide.local',
-                'nom'                         => null,
-                'prenom'                      => null,
-                'telephone_mobile'            => null,
-                'telephone_fixe'              => null,
-                'adresse'                     => null,
-                'code_postal'                 => null,
-                'ville'                       => null,
-                'pending_email'               => null,
-                'pending_email_token_hash'    => null,
-                'pending_email_token_expires' => null,
-                'token_hash'                  => null,
-                'token_expires'               => null,
-                'last_login'                  => null,
-                'active'                      => 0,
-                'sepa_iban'                   => null,
-                'sepa_bic'                    => null,
-                'sepa_titulaire'              => null,
-                'sepa_adresse'                => null,
-                'sepa_code_postal'            => null,
-                'sepa_ville'                  => null,
-                'sepa_mandate_ref'            => null,
-                'second_parent_prenom'        => null,
-                'second_parent_nom'           => null,
-                'second_parent_email'         => null,
-                'second_parent_telephone'     => null,
-            ),
+            self::anonymized_parent_fields($parent->id),
             array('id' => $parent->id)
         );
 

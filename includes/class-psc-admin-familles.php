@@ -125,21 +125,48 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
     }
 
     /**
-     * Suppression complète d'une famille : purge chacun de ses enfants
-     * (cf. purge_child), ses factures (PDF sur disque compris), puis la
-     * fiche famille elle-même. Les demandes d'inscription historiques
-     * (wp_psc_requests) ne référencent pas parent_id — elles documentent
-     * la candidature d'origine, pas le compte, et ne sont donc pas purgées
-     * ici.
+     * Suppression d'une famille : purge chacun de ses enfants (cf.
+     * purge_child), ses échanges et ses traces d'impersonation. Les demandes
+     * d'inscription historiques (wp_psc_requests) ne référencent pas
+     * parent_id — elles documentent la candidature d'origine, pas le compte,
+     * et ne sont donc pas purgées ici.
+     *
+     * Les factures ne sont jamais détruites : ce sont des pièces comptables,
+     * dont la conservation relève d'une obligation légale qui prime sur la
+     * demande de suppression (même arbitrage que l'effaceur RGPD, cf.
+     * Psc_Privacy::erase_household()). Tant qu'il en existe une, la ligne
+     * parent est donc anonymisée sur place au lieu d'être supprimée : une
+     * facture qui pointerait vers un parent_id disparu ne serait plus
+     * rattachable à personne, ni pour la mairie ni pour un contrôle.
+     * Sans facture, il n'y a rien à conserver et la suppression est
+     * complète.
      */
     public static function handle_delete_family() {
         self::guard('psc_delete_family');
+
+        $result = self::delete_family(psc_post_int('id'));
+        if ($result === null) self::redirect('psc_parents', 'invalid');
+
+        self::redirect('psc_parents', $result['invoices_retained'] > 0 ? 'family_anonymized' : 'family_deleted');
+    }
+
+    /**
+     * Corps de la suppression, séparé du handler pour être exécutable hors
+     * requête HTTP (sondes d'intégration) : le handler ne garde que le
+     * contrôle d'accès et la redirection.
+     *
+     * @return array|null Bilan de la suppression, ou null si la famille est
+     *                    introuvable. Les clés `invoices_retained` et
+     *                    `parent_anonymized` disent ce qui a survécu, pour
+     *                    que l'appelant n'ait pas à le redéduire.
+     */
+    public static function delete_family($id) {
         global $wpdb;
 
-        $id = psc_post_int('id');
+        $id = (int) $id;
         $t_parent = psc_table('parents');
         $family_row = $id ? $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_parent WHERE id = %d", $id)) : null;
-        if (!$family_row) self::redirect('psc_parents', 'invalid');
+        if (!$family_row) return null;
 
         $t_child = psc_table('children');
         // Noms des enfants capturés avant purge_child() (qui supprime la
@@ -151,16 +178,9 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         }
 
         $t_inv = psc_table('invoices');
-        $pdf_paths = $wpdb->get_col($wpdb->prepare(
-            "SELECT pdf_path FROM $t_inv WHERE parent_id = %d AND pdf_path IS NOT NULL", $id
+        $invoices = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $t_inv WHERE parent_id = %d", $id
         ));
-        foreach ($pdf_paths as $rel_path) {
-            $abs = psc_private_path($rel_path);
-            if (file_exists($abs)) {
-                @unlink($abs); // phpcs:ignore WordPress.PHP.NoSilencedErrors
-            }
-        }
-        $wpdb->delete($t_inv, array('parent_id' => $id), array('%d'));
 
         // Ne pas dépendre uniquement de la contrainte étrangère : certains
         // hébergeurs ne permettent pas sa création (état déjà surveillé).
@@ -170,14 +190,22 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         // une correction dédiée.
         Psc_Impersonation::delete_for_family($id);
         Psc_Conversations::delete_for_family($id);
-        $wpdb->delete($t_parent, array('id' => $id), array('%d'));
+
+        if ($invoices > 0) {
+            $wpdb->update($t_parent, Psc_Privacy::anonymized_parent_fields($id), array('id' => $id));
+        } else {
+            $wpdb->delete($t_parent, array('id' => $id), array('%d'));
+        }
 
         // Dernière trace avant disparition : avant complet en liste blanche
         // (cf. psc_audit_field_policy()), pas seulement l'identifiant.
         Psc_Audit::log('famille.suppression', array(
             'objet_type' => 'famille', 'objet_id' => $id, 'famille_id' => $id,
             'avant' => (array) $family_row,
-            'resume' => sprintf(__('Famille %s (%s) supprimée.', 'periscolaire-registration'), trim($family_row->nom . ' ' . $family_row->prenom), $family_row->email),
+            'meta'   => array('factures_conservees' => $invoices),
+            'resume' => $invoices > 0
+                ? sprintf(__('Famille %s (%s) supprimée ; %d facture(s) conservée(s) au titre de l’obligation comptable, fiche anonymisée.', 'periscolaire-registration'), trim($family_row->nom . ' ' . $family_row->prenom), $family_row->email, $invoices)
+                : sprintf(__('Famille %s (%s) supprimée.', 'periscolaire-registration'), trim($family_row->nom . ' ' . $family_row->prenom), $family_row->email),
         ));
 
         // Droit à l'oubli : le journal garde la trace des actions passées
@@ -201,7 +229,12 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
             ));
         }
 
-        self::redirect('psc_parents', 'family_deleted');
+        return array(
+            'invoices_retained'     => $invoices,
+            'parent_anonymized'     => $invoices > 0,
+            'children_purged'       => count($children_rows),
+            'audit_rows_anonymized' => $anonymized,
+        );
     }
 
     public static function handle_mark_child_sorti() {
