@@ -19,7 +19,7 @@ class Psc_Admin_Inscriptions extends Psc_Admin_Base {
     }
 
     public static function page_inscriptions() {
-        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        if (!current_user_can('psc_manage_presence')) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         global $wpdb;
 
         Psc_School_Year::ensure_default();
@@ -179,7 +179,7 @@ class Psc_Admin_Inscriptions extends Psc_Admin_Base {
      * vit dans Psc_Supplier_Orders.
      */
     public static function handle_export_csv() {
-        if (!psc_user_can_manage()) {
+        if (!current_user_can('psc_manage_presence')) {
             wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         }
         check_admin_referer('psc_export_csv');

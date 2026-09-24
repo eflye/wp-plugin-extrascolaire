@@ -27,19 +27,18 @@ if (!defined('WP_UNINSTALL_PLUGIN')) exit;
 // donnée personnelle, aucun risque à le faire systématiquement — même
 // sans PSC_REMOVE_DATA_ON_UNINSTALL — pour ne pas laisser une capacité
 // orpheline sur les rôles une fois le plugin supprimé).
+$psc_role_caps = array('psc_manage_periscolaire', 'psc_impersonate_family', 'psc_manage_families', 'psc_manage_presence',
+    'psc_manage_billing', 'psc_manage_messages', 'psc_manage_config', 'psc_view_health', 'psc_view_audit');
 foreach (array('administrator', 'editor') as $role_name) {
     $role = get_role($role_name);
     if ($role) {
-        $role->remove_cap('psc_manage_periscolaire');
-        $role->remove_cap('psc_impersonate_family');
+        foreach ($psc_role_caps as $psc_cap) $role->remove_cap($psc_cap);
     }
 }
 foreach (array('administrator', 'gestionnaire_periscolaire') as $role_name) {
     $role = get_role($role_name);
     if ($role) $role->remove_cap('psc_manage_messages');
 }
-$admin_role = get_role('administrator');
-if ($admin_role) $admin_role->remove_cap('psc_view_audit');
 delete_option('psc_roles_version');
 
 // Tâche planifiée (purge RGPD des demandes) : retirée dans tous les cas,

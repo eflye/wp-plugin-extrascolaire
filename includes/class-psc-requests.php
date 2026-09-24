@@ -577,7 +577,7 @@ class Psc_Requests {
     /* ---------------- Modération (backoffice) ---------------- */
 
     public static function handle_approve() {
-        if (!psc_user_can_manage()) {
+        if (!current_user_can('psc_manage_families')) {
             wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         }
         check_admin_referer('psc_approve_request');
@@ -729,7 +729,8 @@ class Psc_Requests {
      * fiches déjà renseignées ni les enfants sans correspondance.
      */
     public static function handle_reconcile_allergies() {
-        if (!psc_user_can_manage()) {
+        // Recopie des allergies : donnée de santé, en plus du dossier famille.
+        if (!current_user_can('psc_manage_families') || !current_user_can('psc_view_health')) {
             wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         }
         check_admin_referer('psc_reconcile_request_allergies');
@@ -990,7 +991,7 @@ class Psc_Requests {
     }
 
     public static function handle_reject() {
-        if (!psc_user_can_manage()) {
+        if (!current_user_can('psc_manage_families')) {
             wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         }
         check_admin_referer('psc_reject_request');
@@ -1029,7 +1030,7 @@ class Psc_Requests {
     }
 
     public static function handle_delete() {
-        if (!psc_user_can_manage()) {
+        if (!current_user_can('psc_manage_families')) {
             wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         }
         check_admin_referer('psc_delete_request');

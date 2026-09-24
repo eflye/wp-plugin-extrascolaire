@@ -294,7 +294,7 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
     }
 
     public static function page_children() {
-        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        if (!current_user_can('psc_manage_families')) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         global $wpdb;
         $t_child = psc_table('children');
         $t_parent = psc_table('parents');
@@ -330,7 +330,7 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
      * seule la famille édite cette liste, cf. Psc_Frontend.
      */
     public static function page_pickup_persons() {
-        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        if (!current_user_can('psc_manage_families')) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         global $wpdb;
 
         $child_id = psc_get_int('child_id');
@@ -457,7 +457,7 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
     }
 
     public static function page_parents() {
-        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        if (!current_user_can('psc_manage_families')) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         global $wpdb;
         $parents     = Psc_Parents::all();
         $awaiting_confirmation = Psc_Requests::awaiting_confirmation();
@@ -500,7 +500,7 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
      * (auto-validation à l'upload, cf. Psc_Frontend_Documents::handle_parent_upload_assurance()).
      */
     public static function handle_download_assurance() {
-        if (!psc_user_can_manage()) {
+        if (!current_user_can('psc_manage_families')) {
             wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         }
         $child_id = psc_get_int('child_id');

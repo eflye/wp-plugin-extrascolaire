@@ -14,7 +14,7 @@ class Psc_Admin_Requests extends Psc_Admin_Base {
     }
 
     public static function page_requests() {
-        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        if (!current_user_can('psc_manage_families')) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         global $wpdb;
         $pending = Psc_Requests::by_status('pending');
         $t   = psc_table('requests');
@@ -43,7 +43,7 @@ class Psc_Admin_Requests extends Psc_Admin_Base {
      * Psc_Requests::handle_approve().
      */
     public static function handle_download_pending_assurance() {
-        if (!psc_user_can_manage()) {
+        if (!current_user_can('psc_manage_families')) {
             wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         }
         $request_id = psc_get_int('request_id');

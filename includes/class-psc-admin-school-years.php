@@ -220,7 +220,7 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
         self::redirect_years('year_config_saved');
     }
 
-    public static function page_school_years() {        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+    public static function page_school_years() {        if (!current_user_can('psc_manage_config')) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         $years = Psc_School_Years::all();
 
         $existing_ranges = array();
@@ -263,7 +263,7 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
     }
 
     public static function page_passage_annee() {
-        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        if (!current_user_can('psc_manage_config')) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         $staged = Psc_School_Years::staged_promotion();
         $from_year = $staged ? Psc_School_Years::get($staged['from_year_id']) : null;
         $to_year   = $staged ? Psc_School_Years::get($staged['to_year_id']) : null;

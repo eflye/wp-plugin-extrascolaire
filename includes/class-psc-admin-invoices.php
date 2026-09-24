@@ -255,7 +255,7 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
     }
 
     public static function handle_download_invoice() {
-        if (!psc_user_can_manage()) {
+        if (!current_user_can('psc_manage_billing')) {
             wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         }
         $invoice_id = psc_get_int('invoice_id');
@@ -264,14 +264,14 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
     }
 
     public static function page_comptes_familles() {
-        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        if (!current_user_can('psc_manage_billing')) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         $as_of = current_time('Y-m-d');
         $accounts = Psc_Invoices::family_accounts(substr($as_of, 0, 7));
         include PSC_PATH . 'templates/admin-comptes-familles.php';
     }
 
     public static function page_factures() {
-        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        if (!current_user_can('psc_manage_billing')) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
 
         $all_months    = Psc_Invoices::months_with_data();
         $selected_mois = isset($_GET['mois']) ? sanitize_text_field(wp_unslash($_GET['mois'])) : '';
