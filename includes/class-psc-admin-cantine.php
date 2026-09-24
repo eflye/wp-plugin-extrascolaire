@@ -84,7 +84,7 @@ class Psc_Admin_Cantine extends Psc_Admin_Base {
     }
 
     public static function page_menus() {
-        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        if (!current_user_can('psc_manage_presence')) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
 
         // Une semaine = un menu (Psc_Menus::save() les fusionne déjà par
         // semaine) : le formulaire est ancré sur la semaine, pas sur un id.
@@ -194,7 +194,7 @@ class Psc_Admin_Cantine extends Psc_Admin_Base {
      * depuis Réglages — cf. handle_save_supplier_settings()).
      */
     public static function page_supplier_orders() {
-        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        if (!current_user_can('psc_manage_presence')) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
 
         $tab = (isset($_GET['tab']) && sanitize_key(wp_unslash($_GET['tab'])) === 'reglages') ? 'reglages' : 'commande';
 

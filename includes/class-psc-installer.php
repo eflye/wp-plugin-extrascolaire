@@ -4,7 +4,7 @@ if (!defined('ABSPATH')) exit;
 class Psc_Installer {
 
     const DB_VERSION = '4.13.0';
-    const ROLES_VERSION = '1.4.0';
+    const ROLES_VERSION = '1.5.0';
 
     public static function activate() {
         self::create_tables();
@@ -20,57 +20,37 @@ class Psc_Installer {
     }
 
     /**
-     * Accorde psc_manage_cap() aux rôles listés par psc_manage_default_roles()
-     * (administrateur + éditeur par défaut). Un administrateur WordPress n'a
+     * Répartition des capacités par défaut. Un administrateur WordPress n'a
      * PAS automatiquement les capacités personnalisées d'une extension :
-     * sans cet ajout explicite, personne — pas même les administrateurs
-     * déjà en place — n'aurait accès au backoffice périscolaire, puisque
-     * la capacité vérifiée n'est plus manage_options. N'enlève jamais une
-     * capacité (idempotent, purement additif ; cf. uninstall.php pour le
-     * retrait à la désinstallation complète).
+     * sans cet ajout explicite, personne n'aurait accès au backoffice
+     * périscolaire, puisque la capacité vérifiée n'est pas manage_options.
+     *
+     * Les rôles de psc_manage_default_roles() (administrateur seul par
+     * défaut) reçoivent la capacité globale, toutes les capacités métier et
+     * la consultation d'un espace famille. Le rôle éditeur, qui les
+     * recevait avant la 1.5.0 des rôles, les perd : éditer le contenu du
+     * site ne donne aucun droit sur les dossiers d'enfants. Un agent de la
+     * mairie reçoit ses habilitations une à une sur son profil
+     * (Psc_Admin::user_capabilities_fields()). Un site qui tient à
+     * l'ancien comportement remet 'editor' par le filtre.
      */
     protected static function sync_roles() {
-        $cap = psc_manage_cap();
-        foreach (psc_manage_default_roles() as $role_name) {
+        $grant = array_merge(
+            array(psc_manage_cap(), 'psc_impersonate_family'),
+            psc_domain_capability_keys()
+        );
+        $default_roles = psc_manage_default_roles();
+        foreach ($default_roles as $role_name) {
             $role = get_role($role_name);
-            if ($role && !$role->has_cap($cap)) {
-                $role->add_cap($cap);
+            if (!$role) continue;
+            foreach ($grant as $cap) {
+                if (!$role->has_cap($cap)) $role->add_cap($cap);
             }
         }
-        // Capacités composables : l'administrateur peut cumuler tous les
-        // domaines ; le rôle éditeur ne reçoit plus l'accès global implicite.
-        $domain_caps = array_keys(psc_domain_capabilities());
-        $administrator = get_role('administrator');
-        if ($administrator) {
-            foreach ($domain_caps as $domain_cap) $administrator->add_cap($domain_cap);
-        }
-        $editor = get_role('editor');
-        if ($editor) $editor->remove_cap($cap);
-        $manager = get_role('gestionnaire_periscolaire');
-        if ($manager) {
-            foreach (array('psc_manage_families', 'psc_manage_presence', 'psc_manage_messages') as $domain_cap) $manager->add_cap($domain_cap);
-        }
-        foreach (array('administrator', 'gestionnaire_periscolaire') as $role_name) {
-            $role = get_role($role_name);
-            if ($role && !$role->has_cap('psc_manage_messages')) {
-                $role->add_cap('psc_manage_messages');
-            }
-        }
-        foreach (psc_manage_default_roles() as $role_name) {
-            $role = get_role($role_name);
-            if ($role && !$role->has_cap('psc_impersonate_family')) {
-                $role->add_cap('psc_impersonate_family');
-            }
-        }
-        // Le journal d'audit agrège les actions de TOUTES les familles et de
-        // TOUS les agents : contrairement à psc_manage_periscolaire (accordée
-        // aussi aux éditeurs), cette capacité reste réservée aux
-        // administrateurs — un agent au périmètre restreint ne doit pas
-        // pouvoir consulter l'activité de ses collègues.
-        foreach (array('administrator') as $role_name) {
-            $role = get_role($role_name);
-            if ($role && !$role->has_cap('psc_view_audit')) {
-                $role->add_cap('psc_view_audit');
+        if (!in_array('editor', $default_roles, true)) {
+            $editor = get_role('editor');
+            if ($editor) {
+                foreach ($grant as $cap) $editor->remove_cap($cap);
             }
         }
     }

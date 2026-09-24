@@ -130,12 +130,12 @@ class Psc_Admin extends Psc_Admin_Base {
         );
 
         /* ---------------- À TRAITER ---------------- */
-        // Capability la plus permissive de la section : $cap (Tableau de
-        // bord, Demandes) est un sur-ensemble de psc_manage_messages
-        // (Échanges familles) sous la répartition de rôles par défaut
-        // (Psc_Installer::sync_roles()) — un utilisateur avec
-        // psc_manage_messages mais sans $cap ne verrait de toute façon
-        // aucune des deux autres entrées de la section.
+        // Chaque entrée exige la capacité métier de son domaine
+        // (psc_domain_capabilities()), et non plus la capacité globale :
+        // une personne habilitée à la seule facturation ne voit que la
+        // facturation. Le tableau de bord, qui agrège tous les domaines,
+        // reste réservé à la capacité globale ; WordPress fait alors
+        // pointer le menu vers la première entrée accessible.
         //
         // "Tableau de bord" (slug psc_dashboard, identique au parent) doit
         // impérativement être le TOUT PREMIER add_submenu_page() enregistré
@@ -147,32 +147,32 @@ class Psc_Admin extends Psc_Admin_Base {
         // malgré tout apparaître AU-DESSUS de "Tableau de bord" à l'écran :
         // on l'insère donc explicitement en position 0 juste après.
         add_submenu_page('psc_dashboard', __('Tableau de bord', 'periscolaire-registration'), __('Tableau de bord', 'periscolaire-registration'), $cap, 'psc_dashboard', array(__CLASS__, 'page_dashboard'));
-        add_submenu_page('psc_dashboard', __('À traiter', 'periscolaire-registration'), '<span class="psc-menu-section">' . esc_html__('À traiter', 'periscolaire-registration') . '</span>', $cap, 'psc-section-a-traiter', self::section_redirect('psc_dashboard'), 0);
-        add_submenu_page('psc_dashboard', __('Demandes d\'inscription', 'periscolaire-registration'), __('Demandes d\'inscription', 'periscolaire-registration') . self::count_badge($pending), $cap, 'psc_requests', array('Psc_Admin_Requests', 'page_requests'));
+        add_submenu_page('psc_dashboard', __('À traiter', 'periscolaire-registration'), '<span class="psc-menu-section">' . esc_html__('À traiter', 'periscolaire-registration') . '</span>', 'psc_manage_families', 'psc-section-a-traiter', self::section_redirect('psc_dashboard'), 0);
+        add_submenu_page('psc_dashboard', __('Demandes d\'inscription', 'periscolaire-registration'), __('Demandes d\'inscription', 'periscolaire-registration') . self::count_badge($pending), 'psc_manage_families', 'psc_requests', array('Psc_Admin_Requests', 'page_requests'));
         add_submenu_page('psc_dashboard', __('Échanges familles', 'periscolaire-registration'), __('Échanges familles', 'periscolaire-registration') . self::count_badge($conv_unread), 'psc_manage_messages', 'psc_conversations', array('Psc_Conversations_Admin', 'page_list'));
 
         /* ---------------- CANTINE & GARDERIE ---------------- */
-        add_submenu_page('psc_dashboard', __('Cantine & garderie', 'periscolaire-registration'), '<span class="psc-menu-section">' . esc_html__('Cantine & garderie', 'periscolaire-registration') . '</span>', $cap, 'psc-section-cantine', self::section_redirect('psc_menus'));
-        add_submenu_page('psc_dashboard', __('Menus', 'periscolaire-registration'), __('Menus', 'periscolaire-registration'), $cap, 'psc_menus', array('Psc_Admin_Cantine', 'page_menus'));
-        add_submenu_page('psc_dashboard', __('Commande fournisseur', 'periscolaire-registration'), __('Commande fournisseur', 'periscolaire-registration'), $cap, 'psc_supplier_orders', array('Psc_Admin_Cantine', 'page_supplier_orders'));
-        add_submenu_page('psc_dashboard', __('Présences déclarées', 'periscolaire-registration'), __('Présences déclarées', 'periscolaire-registration'), $cap, 'psc_inscriptions', array('Psc_Admin_Inscriptions', 'page_inscriptions'));
+        add_submenu_page('psc_dashboard', __('Cantine & garderie', 'periscolaire-registration'), '<span class="psc-menu-section">' . esc_html__('Cantine & garderie', 'periscolaire-registration') . '</span>', 'psc_manage_presence', 'psc-section-cantine', self::section_redirect('psc_menus'));
+        add_submenu_page('psc_dashboard', __('Menus', 'periscolaire-registration'), __('Menus', 'periscolaire-registration'), 'psc_manage_presence', 'psc_menus', array('Psc_Admin_Cantine', 'page_menus'));
+        add_submenu_page('psc_dashboard', __('Commande fournisseur', 'periscolaire-registration'), __('Commande fournisseur', 'periscolaire-registration'), 'psc_manage_presence', 'psc_supplier_orders', array('Psc_Admin_Cantine', 'page_supplier_orders'));
+        add_submenu_page('psc_dashboard', __('Présences déclarées', 'periscolaire-registration'), __('Présences déclarées', 'periscolaire-registration'), 'psc_manage_presence', 'psc_inscriptions', array('Psc_Admin_Inscriptions', 'page_inscriptions'));
 
         /* ---------------- FAMILLES ---------------- */
-        add_submenu_page('psc_dashboard', __('Familles', 'periscolaire-registration'), '<span class="psc-menu-section">' . esc_html__('Familles', 'periscolaire-registration') . '</span>', $cap, 'psc-section-familles', self::section_redirect('psc_parents'));
-        add_submenu_page('psc_dashboard', __('Familles', 'periscolaire-registration'), __('Familles', 'periscolaire-registration'), $cap, 'psc_parents', array('Psc_Admin_Familles', 'page_parents'));
-        add_submenu_page('psc_dashboard', __('Enfants', 'periscolaire-registration'), __('Enfants', 'periscolaire-registration'), $cap, 'psc_children', array('Psc_Admin_Familles', 'page_children'));
-        add_submenu_page('psc_dashboard', 'Assurances scolaires', 'Assurances scolaires', $cap, 'psc_assurances', array('Psc_Admin_Assurances', 'page'));
+        add_submenu_page('psc_dashboard', __('Familles', 'periscolaire-registration'), '<span class="psc-menu-section">' . esc_html__('Familles', 'periscolaire-registration') . '</span>', 'psc_manage_families', 'psc-section-familles', self::section_redirect('psc_parents'));
+        add_submenu_page('psc_dashboard', __('Familles', 'periscolaire-registration'), __('Familles', 'periscolaire-registration'), 'psc_manage_families', 'psc_parents', array('Psc_Admin_Familles', 'page_parents'));
+        add_submenu_page('psc_dashboard', __('Enfants', 'periscolaire-registration'), __('Enfants', 'periscolaire-registration'), 'psc_manage_families', 'psc_children', array('Psc_Admin_Familles', 'page_children'));
+        add_submenu_page('psc_dashboard', 'Assurances scolaires', 'Assurances scolaires', 'psc_manage_families', 'psc_assurances', array('Psc_Admin_Assurances', 'page'));
         // Fiche "Personnes autorisées" d'un enfant — accessible uniquement
         // depuis la ligne de l'enfant dans Enfants, jamais dans le menu.
-        add_submenu_page('psc_dashboard', __('Personnes autorisées', 'periscolaire-registration'), null, $cap, 'psc_pickup_persons', array('Psc_Admin_Familles', 'page_pickup_persons'));
+        add_submenu_page('psc_dashboard', __('Personnes autorisées', 'periscolaire-registration'), null, 'psc_manage_families', 'psc_pickup_persons', array('Psc_Admin_Familles', 'page_pickup_persons'));
         // Écran de confirmation d'une consultation : accessible depuis les
         // fiches famille, jamais comme destination autonome du menu.
         add_submenu_page('psc_dashboard', __('Consulter un espace famille', 'periscolaire-registration'), null, 'psc_impersonate_family', 'psc_impersonate', array('Psc_Admin_Familles', 'page_impersonate'));
 
         /* ---------------- FACTURATION ---------------- */
-        add_submenu_page('psc_dashboard', __('Facturation', 'periscolaire-registration'), '<span class="psc-menu-section">' . esc_html__('Facturation', 'periscolaire-registration') . '</span>', $cap, 'psc-section-facturation', self::section_redirect('psc_factures'));
-        add_submenu_page('psc_dashboard', __('Factures', 'periscolaire-registration'), __('Factures', 'periscolaire-registration'), $cap, 'psc_factures', array('Psc_Admin_Invoices', 'page_factures'));
-        add_submenu_page('psc_dashboard', __('État des comptes', 'periscolaire-registration'), __('État des comptes', 'periscolaire-registration'), $cap, 'psc_comptes_familles', array('Psc_Admin_Invoices', 'page_comptes_familles'));
+        add_submenu_page('psc_dashboard', __('Facturation', 'periscolaire-registration'), '<span class="psc-menu-section">' . esc_html__('Facturation', 'periscolaire-registration') . '</span>', 'psc_manage_billing', 'psc-section-facturation', self::section_redirect('psc_factures'));
+        add_submenu_page('psc_dashboard', __('Factures', 'periscolaire-registration'), __('Factures', 'periscolaire-registration'), 'psc_manage_billing', 'psc_factures', array('Psc_Admin_Invoices', 'page_factures'));
+        add_submenu_page('psc_dashboard', __('État des comptes', 'periscolaire-registration'), __('État des comptes', 'periscolaire-registration'), 'psc_manage_billing', 'psc_comptes_familles', array('Psc_Admin_Invoices', 'page_comptes_familles'));
 
         /* ---------------- COMMUNICATION ---------------- */
         // Une seule entrée réelle aujourd'hui : la capability de la section
@@ -183,21 +183,20 @@ class Psc_Admin extends Psc_Admin_Base {
         add_submenu_page('psc_dashboard', __('Messages aux familles', 'periscolaire-registration'), __('Messages aux familles', 'periscolaire-registration'), 'psc_manage_messages', 'psc_messages', array('Psc_Messages_Admin', 'page_list'));
 
         /* ---------------- CONFIGURATION ---------------- */
-        // Capability la plus permissive : $cap, sur-ensemble de
-        // psc_view_audit (Journal d'audit) sous la répartition par défaut
-        // (administrateur a toujours $cap ET psc_view_audit).
-        add_submenu_page('psc_dashboard', __('Configuration', 'periscolaire-registration'), '<span class="psc-menu-section">' . esc_html__('Configuration', 'periscolaire-registration') . '</span>', $cap, 'psc-section-configuration', self::section_redirect('psc_school_calendar_v2'));
+        // En-tête sur psc_manage_config : une personne habilitée au seul
+        // journal d'audit y accède par son entrée propre.
+        add_submenu_page('psc_dashboard', __('Configuration', 'periscolaire-registration'), '<span class="psc-menu-section">' . esc_html__('Configuration', 'periscolaire-registration') . '</span>', 'psc_manage_config', 'psc-section-configuration', self::section_redirect('psc_school_calendar_v2'));
         // « Année scolaire » réunit désormais Calendrier scolaire en cours
         // et Années scolaires sous une barre d'onglets (§5) — slug
         // conservé de l'ancien "Calendrier scolaire en cours".
-        add_submenu_page('psc_dashboard', __('Année scolaire', 'periscolaire-registration'), __('Année scolaire', 'periscolaire-registration'), $cap, 'psc_school_calendar_v2', array('Psc_Admin_Calendar_V2', 'page_calendar_v2'));
+        add_submenu_page('psc_dashboard', __('Année scolaire', 'periscolaire-registration'), __('Année scolaire', 'periscolaire-registration'), 'psc_manage_config', 'psc_school_calendar_v2', array('Psc_Admin_Calendar_V2', 'page_calendar_v2'));
         // Écran intermédiaire du passage d'année (récapitulatif + confirmation) :
         // pas un lien de menu à part entière, seulement atteint depuis
         // "Année scolaire" — menu_title à null pour ne pas apparaître dans
         // la barre latérale.
-        add_submenu_page('psc_dashboard', __('Passage d\'année', 'periscolaire-registration'), null, $cap, 'psc_passage_annee', array('Psc_Admin_School_Years', 'page_passage_annee'));
-        add_submenu_page('psc_dashboard', __('Modèles d\'e-mails', 'periscolaire-registration'), __('Modèles d\'e-mails', 'periscolaire-registration'), $cap, 'psc_email_templates', array('Psc_Admin_Config', 'page_email_templates'));
-        add_submenu_page('psc_dashboard', __('Réglages', 'periscolaire-registration'), __('Réglages', 'periscolaire-registration'), $cap, 'psc_settings', array('Psc_Admin_Config', 'page_settings'));
+        add_submenu_page('psc_dashboard', __('Passage d\'année', 'periscolaire-registration'), null, 'psc_manage_config', 'psc_passage_annee', array('Psc_Admin_School_Years', 'page_passage_annee'));
+        add_submenu_page('psc_dashboard', __('Modèles d\'e-mails', 'periscolaire-registration'), __('Modèles d\'e-mails', 'periscolaire-registration'), 'psc_manage_config', 'psc_email_templates', array('Psc_Admin_Config', 'page_email_templates'));
+        add_submenu_page('psc_dashboard', __('Réglages', 'periscolaire-registration'), __('Réglages', 'periscolaire-registration'), 'psc_manage_config', 'psc_settings', array('Psc_Admin_Config', 'page_settings'));
         // Journal d'audit : capacité dédiée, plus restreinte que $cap (cf.
         // Psc_Installer::sync_roles()) — le journal agrège l'activité de
         // toutes les familles et de tous les agents, pas seulement le
@@ -319,7 +318,7 @@ class Psc_Admin extends Psc_Admin_Base {
      * serveur à poser.
      */
     public static function notice_private_dir_exposed() {
-        if (!psc_user_can_manage()) return;
+        if (!current_user_can('psc_manage_config')) return;
 
         $screen = function_exists('get_current_screen') ? get_current_screen() : null;
         $on_psc = $screen && strpos((string) $screen->id, 'psc_') !== false;
@@ -409,7 +408,7 @@ class Psc_Admin extends Psc_Admin_Base {
      * pourquoi sa base ne garantit pas la cohérence qu'elle croit avoir.
      */
     public static function notice_db_constraints() {
-        if (!psc_user_can_manage()) return;
+        if (!current_user_can('psc_manage_config')) return;
 
         $screen = function_exists('get_current_screen') ? get_current_screen() : null;
         $on_psc = $screen && strpos((string) $screen->id, 'psc_') !== false;

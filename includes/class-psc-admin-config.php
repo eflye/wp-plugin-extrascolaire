@@ -133,7 +133,7 @@ class Psc_Admin_Config extends Psc_Admin_Base {
     }
 
     public static function page_settings() {
-        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        if (!current_user_can('psc_manage_config')) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         $services = psc_billing_tariffs();
         $psc_classe_progression = Psc_School_Years::classe_progression();
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
@@ -152,7 +152,7 @@ class Psc_Admin_Config extends Psc_Admin_Base {
     }
 
     public static function handle_reset_email_template() {
-        if (!psc_user_can_manage()) {
+        if (!current_user_can('psc_manage_config')) {
             wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         }
         $key = isset($_GET['key']) ? sanitize_key(wp_unslash($_GET['key'])) : '';
@@ -168,7 +168,7 @@ class Psc_Admin_Config extends Psc_Admin_Base {
     }
 
     public static function handle_reset_email_templates() {
-        if (!psc_user_can_manage()) {
+        if (!current_user_can('psc_manage_config')) {
             wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         }
         check_admin_referer('psc_reset_email_templates');
@@ -181,7 +181,7 @@ class Psc_Admin_Config extends Psc_Admin_Base {
     }
 
     public static function page_email_templates() {
-        if (!psc_user_can_manage()) {
+        if (!current_user_can('psc_manage_config')) {
             wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         }
         $templates = Psc_Email_Templates::get_all();

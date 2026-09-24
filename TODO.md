@@ -4,7 +4,7 @@
 
 **Statut : liste arbitrée et en cours de traitement.** Mise à jour le **17 septembre 2026** après la publication de la documentation et l’ajout de la messagerie, du journal d’audit, de la rétention et des outils de confidentialité. Les cases cochées portent la preuve de test correspondante (E2E ou sonde) ; les éléments marqués « partiellement avancé » ne sont pas considérés comme terminés tant que leur critère d’acceptation n’est pas rempli. Les tickets d’hébergement et DPO restent ouverts.
 
-**État P1 après cette mise à jour :** P1-03 et P1-05 restent traités ; P1-12 est traité techniquement mais nécessite encore sa validation opérationnelle ; P1-06, P1-07, P1-08, P1-09 et P1-11 sont partiellement avancés ; les autres P1 restent ouverts.
+**État P1 après cette mise à jour :** P1-03 et P1-05 restent traités ; P1-02 est traité techniquement (24/09/2026), la revue des comptes restant à faire ; P1-12 est traité techniquement mais nécessite encore sa validation opérationnelle ; P1-06, P1-07, P1-08, P1-09 et P1-11 sont partiellement avancés ; les autres P1 restent ouverts.
 
 ## Périmètre et limites
 
@@ -106,13 +106,15 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** départ d’un intervenant → accès coupé pour lui seul ; expiration après inactivité ; aucun secret durable dans `localStorage` ; opérations attribuables. **Développement + mairie ; L.**
 
-### P1-02 — Réduire les droits accordés par défaut aux éditeurs WordPress
+### P1-02 — TRAITÉ TECHNIQUEMENT (après v5.19.0) — Revue des comptes encore ouverte — Réduire les droits accordés par défaut aux éditeurs WordPress
 
 - [x] **Créer une matrice d’habilitations mairie, facturation et données sanitaires.**
 
-**Réalisé côté développement :** capacités métier cumulables (`familles`, `présences`, `facturation`, `messages`, `configuration`, `données sanitaires`, `audit`), contrôlées par les gardes serveur et éditables individuellement sur le profil WordPress. La capacité globale est retirée du rôle éditeur lors de la synchronisation. L’inventaire des comptes existants et la revue périodique des habilitations restent des étapes manuelles d’administration.
+**Constaté le 24/09/2026 :** la case était cochée mais l’acceptation n’était pas tenue. Les éditeurs gardaient `psc_impersonate_family`, donc la consultation de n’importe quel espace famille. Tous les écrans exigeaient la capacité globale plutôt que celle de leur domaine : une personne habilitée à la seule facturation ne voyait aucun écran. `psc_view_health` n’était vérifiée nulle part, et les allergies s’affichaient à quiconque ouvrait Enfants, Présences déclarées ou Demandes.
 
-**Reste à faire :** inventorier les comptes existants avant migration, attribuer explicitement les capacités et organiser leur revue périodique. Les gardes serveur et la matrice composable sont implémentés.
+**Traité le 24/09/2026 :** le rôle éditeur perd la capacité globale, la consultation d’espace famille et toute capacité métier (ROLES_VERSION 1.5.0, `psc_manage_default_roles()` réduit à l’administrateur, filtrable). Chaque entrée de menu et chaque écran exige la capacité de son domaine. Les allergies (Enfants, Présences déclarées, Demandes, report des allergies) exigent `psc_view_health` ; sans elle, la même mention « Accès restreint » s’affiche pour tous les enfants, pour ne pas révéler lesquels sont concernés. La désinstallation retire toutes les capacités du plugin. **Preuves :** `tests/integration/capabilities-matrix.php` appelle les 79 endpoints admin avec un nonce valide sous un éditeur, et les endpoints hors domaine sous des profils partiels ; tout doit refuser. Vérifiée par mutation : sans le contrôle santé du report d’allergies, la sonde échoue. `tests/capabilities.spec.ts` couvre le menu, les refus 403 par URL et le masquage des allergies.
+
+**Reste à faire (administration) :** avant la mise à jour, inventorier les comptes éditeurs qui utilisent le backoffice : ils perdent l’accès et doivent recevoir leurs habilitations sur leur profil. Organiser ensuite la revue périodique des habilitations.
 
 **Acceptation :** un éditeur de contenus sans mission périscolaire n’accède pas aux dossiers ; le rôle facturation ne consulte pas automatiquement les allergies ; tests de refus sur les URL et endpoints. **Développement + administrateur WordPress ; M.**
 

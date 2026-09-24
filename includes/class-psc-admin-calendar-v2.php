@@ -78,7 +78,7 @@ class Psc_Admin_Calendar_V2 {
      * ------------------------------------------------------------------ */
 
     public static function page_calendar_v2() {
-        if (!psc_user_can_manage()) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        if (!current_user_can('psc_manage_config')) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
 
         $tab = (isset($_GET['tab']) && sanitize_key(wp_unslash($_GET['tab'])) === 'historique') ? 'historique' : 'calendrier';
 
@@ -289,7 +289,7 @@ class Psc_Admin_Calendar_V2 {
      * ------------------------------------------------------------------ */
 
     private static function ajax_guard() {
-        if (!psc_user_can_manage()) {
+        if (!current_user_can('psc_manage_config')) {
             wp_send_json_error(array('code' => 'forbidden'), 403);
         }
         check_ajax_referer('psc_calendar_v2', 'nonce');

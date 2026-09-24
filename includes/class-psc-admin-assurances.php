@@ -7,7 +7,7 @@ class Psc_Admin_Assurances {
     }
 
     public static function handle_review() {
-        if (!psc_user_can_manage()) wp_die('Accès refusé.', '', array('response' => 403));
+        if (!current_user_can('psc_manage_families')) wp_die('Accès refusé.', '', array('response' => 403));
         $child_id = psc_post_int('child_id');
         $year_id = psc_post_int('school_year_id');
         check_admin_referer('psc_review_assurance_' . $child_id . '_' . $year_id);
@@ -27,7 +27,7 @@ class Psc_Admin_Assurances {
     }
 
     public static function page() {
-        if (!psc_user_can_manage()) wp_die('Accès refusé.', '', array('response' => 403));
+        if (!current_user_can('psc_manage_families')) wp_die('Accès refusé.', '', array('response' => 403));
         global $wpdb;
         $year_id = Psc_School_Years::active_id();
         $children_table = psc_table('children');

@@ -17,15 +17,24 @@ function psc_table($name) {
 
 /**
  * Capacité requise pour accéder au backoffice périscolaire. Capacité
- * dédiée (pas manage_options) : elle est accordée par défaut aux
- * administrateurs ET aux éditeurs (cf. Psc_Installer::sync_roles()),
- * pour qu'un membre de la mairie puisse gérer le périscolaire sans avoir
- * les droits d'administration complète du site (thèmes, extensions,
- * réglages WordPress). Filtrable pour pointer vers une capacité
- * entièrement personnalisée si besoin.
+ * dédiée (pas manage_options), accordée par défaut aux seuls
+ * administrateurs (cf. Psc_Installer::sync_roles()). Elle ouvre le
+ * tableau de bord ; chaque écran exige en plus sa capacité métier
+ * (psc_domain_capabilities()), qu'un agent de la mairie peut recevoir
+ * sans droits d'administration du site. Filtrable pour pointer vers une
+ * capacité entièrement personnalisée si besoin.
  */
 function psc_manage_cap() {
     return apply_filters('psc_manage_capability', 'psc_manage_periscolaire');
+}
+
+/**
+ * Clés des capacités métier, sans libellé : Psc_Installer::sync_roles()
+ * s'exécute au chargement de l'extension, avant « init », trop tôt pour
+ * charger les traductions qu'exige psc_domain_capabilities().
+ */
+function psc_domain_capability_keys() {
+    return array('psc_manage_families', 'psc_manage_presence', 'psc_manage_billing', 'psc_manage_messages', 'psc_manage_config', 'psc_view_health', 'psc_view_audit');
 }
 
 /** Capacités métier indépendantes, cumulables sur un même utilisateur. */
@@ -60,7 +69,23 @@ function psc_required_capability($context) {
  * personnalisée via psc_manage_capability et gérée à la main).
  */
 function psc_manage_default_roles() {
-    return apply_filters('psc_manage_default_roles', array('administrator', 'editor'));
+    return apply_filters('psc_manage_default_roles', array('administrator'));
+}
+
+/**
+ * Les allergies sont une donnée de santé : elles ne s'affichent qu'aux
+ * personnes titulaires de psc_view_health, pas à toute personne qui gère
+ * les dossiers. Sans cette capacité, la cellule porte la même mention pour
+ * chaque enfant — n'afficher un repère que pour les enfants concernés
+ * révélerait déjà l'existence d'une allergie.
+ */
+function psc_user_can_view_health() {
+    return current_user_can('psc_view_health');
+}
+
+/** Mention affichée à la place d'une donnée de santé non consultable. */
+function psc_health_restricted_html() {
+    return '<span class="description">' . esc_html__('Accès restreint', 'periscolaire-registration') . '</span>';
 }
 
 function psc_user_can_manage() {

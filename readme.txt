@@ -201,17 +201,35 @@ Points à traiter côté mairie, hors plugin :
 
 == Accès pour un agent non-administrateur ==
 
-Par défaut le backoffice requiert la capacité "manage_options"
-(Administrateur). Pour donner l'accès à un rôle dédié sans accorder les
-pleins pouvoirs sur le site, ajouter dans le fichier functions.php du
-thème ou dans une extension dédiée :
+Par défaut, seuls les administrateurs accèdent au backoffice
+périscolaire. Le rôle Éditeur n'y a aucun accès : modifier le contenu du
+site ne donne aucun droit sur les dossiers d'enfants.
 
-    add_filter('psc_manage_capability', function () {
-        return 'psc_manage_periscolaire';
+Un agent reçoit ses habilitations une à une, sur son profil WordPress
+(Utilisateurs > Profil > Habilitations périscolaires), sans droits
+d'administration du site. Elles se cumulent :
+- Familles, enfants et assurances (psc_manage_families)
+- Planning, menus et présences (psc_manage_presence)
+- Facturation et prélèvements (psc_manage_billing)
+- Messages aux familles (psc_manage_messages)
+- Configuration du service (psc_manage_config)
+- Données de santé — allergies (psc_view_health)
+- Journal d'audit (psc_view_audit)
+
+Chaque écran et chaque action exige l'habilitation de son domaine. Les
+allergies ne s'affichent qu'avec « Données de santé », même pour une
+personne qui gère les dossiers des familles. Le tableau de bord, qui
+réunit tous les domaines, reste réservé aux administrateurs.
+
+Pour rendre l'accès complet à d'autres rôles (ancien comportement pour
+les éditeurs), ajouter dans une extension dédiée :
+
+    add_filter('psc_manage_default_roles', function () {
+        return array('administrator', 'editor');
     });
 
-puis attribuer cette capacité au rôle voulu (via un gestionnaire de rôles
-tel que Members ou User Role Editor).
+puis désactiver et réactiver l'extension : c'est l'activation qui
+réattribue les capacités aux rôles.
 
 == Version 2.0.0 — accès des familles sans compte WordPress ==
 

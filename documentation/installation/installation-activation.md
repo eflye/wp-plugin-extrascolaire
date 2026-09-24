@@ -15,7 +15,7 @@ Vérifiez les [prérequis](prerequis.md), disposez d'un accès administrateur Wo
 
    ![Liste WordPress des extensions avec Périscolaire — Inscriptions et le lien Activer](../assets/screenshots/plugins-activation.png)
 
-3. À l'activation, le plugin crée ou met à jour ses tables, accorde les capacités de gestion aux rôles administrateur et éditeur, et programme ses tâches automatiques. Consultez [Tâches planifiées](taches-planifiees.md) pour le suivi de ces tâches.
+3. À l'activation, le plugin crée ou met à jour ses tables, accorde les capacités de gestion au seul rôle administrateur (les autres agents reçoivent leurs habilitations une à une sur leur profil WordPress, voir le fichier readme.txt), et programme ses tâches automatiques. Consultez [Tâches planifiées](taches-planifiees.md) pour le suivi de ces tâches.
 4. Pour donner l'accès à un agent sans lui confier les droits d'administrateur, remplacez la capacité de gestion par `psc_manage_periscolaire` via le filtre `psc_manage_capability` dans le `functions.php` du thème ou une extension dédiée, puis attribuez cette capacité au rôle voulu avec votre gestionnaire de rôles.
 5. Ouvrez **Périscolaire** pour vérifier que le menu et le tableau de bord sont accessibles, puis configurez l'année scolaire et les réglages avant l'ouverture aux familles.
 

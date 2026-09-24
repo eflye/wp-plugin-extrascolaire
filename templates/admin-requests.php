@@ -15,7 +15,7 @@ $psc_notices = array(
 );
 psc_admin_notice_map($psc_notices, $psc_msg); ?>
 
-<?php if (!empty($psc_allergies_gaps)): ?>
+<?php if (!empty($psc_allergies_gaps) && psc_user_can_view_health()): ?>
 <div class="psc-box" style="border-left:4px solid #9E4A4A;">
   <h2 style="margin-top:0;"><?php esc_html_e('Allergies non reportées sur les fiches enfants', 'periscolaire-registration'); ?></h2>
   <p>
@@ -137,7 +137,9 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
               <label><input type="checkbox" name="child_vegan_<?php echo (int) $i; ?>" value="1" <?php checked($c && !empty($c['vegan'])); ?>> <?php esc_html_e('Sans viande', 'periscolaire-registration'); ?></label>
             </td>
             <td>
-              <?php if ($c && !empty($c['food_allergies'])): ?>
+              <?php if (!psc_user_can_view_health()): ?>
+                <?php echo psc_health_restricted_html(); // phpcs:ignore WordPress.Security.EscapeOutput -- échappé par la fonction ?>
+              <?php elseif ($c && !empty($c['food_allergies'])): ?>
                 <div style="max-width:220px;line-height:1.45;color:#9E4A4A;font-weight:600;"><?php echo esc_html($c['food_allergies']); ?></div>
                 <p class="description" style="margin:4px 0 0;max-width:220px;"><?php esc_html_e("La mairie contactera la famille si un PAI doit être mis en place. Aucun menu différencié : l'enfant apporte son repas.", 'periscolaire-registration'); ?></p>
               <?php else: ?>
