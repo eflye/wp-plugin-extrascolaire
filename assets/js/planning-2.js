@@ -2,6 +2,15 @@
     'use strict';
 
     var boot = null;
+
+    // Navigation entre enfants et mois (P2-07) : chaque chargement porte un
+    // numéro ; seule la réponse du DERNIER chargement est appliquée. Une
+    // réponse lente qui arrive après une plus récente est ignorée.
+    var navSeq = 0;
+    // Enfant dont la grille est réellement affichée — distinct de l'onglet
+    // cliqué, qui peut encore être en cours de chargement ou avoir échoué.
+    // Toute écriture vise cet enfant-là, jamais l'onglet visé.
+    var shownChild = null;
     var DAY_ABBR = { 1: 'day_short_1', 2: 'day_short_2', 3: 'day_short_3', 4: 'day_short_4', 5: 'day_short_5', 6: 'day_short_6', 0: 'day_short_0' };
     var SERVICES = ['GM', 'CANT', 'GS', 'FORF', 'MSR'];
 
@@ -332,15 +341,44 @@
     }
 
     function setBusy(busy) {
-        document.querySelectorAll('.psc-pat-btn, .psc-exc-cell, .psc-exc-tout, .psc-month-nav-btn').forEach(function (el) {
+        // Onglets enfants compris : la navigation est sérialisée.
+        document.querySelectorAll('.psc-pat-btn, .psc-exc-cell, .psc-exc-tout, .psc-month-nav-btn, .psc-child-tab').forEach(function (el) {
             if (busy) {
-                el.dataset.pscBusyWasDisabled = el.disabled ? '1' : '0';
+                if (el.dataset.pscBusyWasDisabled === undefined) {
+                    el.dataset.pscBusyWasDisabled = el.disabled ? '1' : '0';
+                }
                 el.disabled = true;
-            } else if (el.dataset.pscBusyWasDisabled !== '1') {
-                el.disabled = false;
+            } else if (el.dataset.pscBusyWasDisabled !== undefined) {
+                // Ne rend la main qu'aux éléments que setBusy() a lui-même
+                // désactivés : une case reconstruite par le serveur entre-
+                // temps (jour verrouillé, prestation fermée) garde son état.
+                if (el.dataset.pscBusyWasDisabled === '0') el.disabled = false;
                 delete el.dataset.pscBusyWasDisabled;
             }
         });
+    }
+
+    /** Aligne les onglets sur l'enfant réellement affiché. */
+    function syncTabs(childId) {
+        document.querySelectorAll('.psc-child-tab').forEach(function (tb) {
+            var active = parseInt(tb.dataset.childTab, 10) === childId;
+            tb.classList.toggle('is-active', active);
+            tb.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+    }
+
+    /**
+     * Une réponse d'écriture est-elle encore d'actualité ? Si l'on a
+     * changé d'enfant ou de mois depuis le clic, l'état qu'elle porte
+     * concerne un autre affichage : l'écriture est faite, mais on ne
+     * l'affiche pas par-dessus la vue courante.
+     */
+    function stillCurrent(ctx) {
+        return ctx.seq === navSeq && ctx.child === shownChild;
+    }
+
+    function writeContext() {
+        return { seq: navSeq, child: shownChild };
     }
 
     /* ---------- Interactions ---------- */
@@ -370,24 +408,27 @@
         var btn = e.currentTarget;
         var declared = btn.getAttribute('aria-pressed') === 'true';
         var target = !declared;
+        var ctx = writeContext();
 
         btn.disabled = true;
 
         post({
             action: 'psc_toggle_exception',
-            child_id: boot.active_child,
+            child_id: ctx.child,
             date: btn.dataset.date,
             service_code: btn.dataset.service,
             checked: target ? '1' : '0'
         }).then(function (res) {
+            if (res && res.success) window.PSC_DATA_STALE = true;
+            if (!stillCurrent(ctx)) return;
             if (res && res.success) {
-                window.PSC_DATA_STALE = true;
                 applyState(res.data.state);
             } else {
                 btn.disabled = false;
                 btnNotice(btn, messageFor(res, 'generic'));
             }
         }).catch(function () {
+            if (!stillCurrent(ctx)) return;
             btn.disabled = false;
             btnNotice(btn, t('network'));
         });
@@ -397,17 +438,19 @@
         if (refuseWriteInConsultation()) return;
         var btn = e.currentTarget;
         var target = btn.getAttribute('aria-pressed') !== 'true';
+        var ctx = writeContext();
         btn.disabled = true;
 
         post({
             action: 'psc_toggle_pattern',
-            child_id: boot.active_child,
+            child_id: ctx.child,
             weekday: btn.dataset.weekday,
             service_code: btn.dataset.service,
             checked: target ? '1' : '0'
         }).then(function (res) {
+            if (res && res.success) window.PSC_DATA_STALE = true;
+            if (!stillCurrent(ctx)) return;
             if (res && res.success) {
-                window.PSC_DATA_STALE = true;
                 // Le figeage des jours verrouillés (frozen > 0) est un
                 // comportement attendu, pas une anomalie : ces jours sont
                 // de toute façon grisés comme non modifiables — pas de
@@ -418,6 +461,7 @@
                 flashNote(messageFor(res, 'generic'));
             }
         }).catch(function () {
+            if (!stillCurrent(ctx)) return;
             btn.disabled = false;
             flashNote(t('network'));
         });
@@ -431,23 +475,26 @@
 
         // Tout / Aucun : portée = mois affiché, jours non verrouillés.
         var willCheck = btn.dataset.state !== 'all';
+        var ctx = writeContext();
         btn.disabled = true;
 
         post({
             action: 'psc_toggle_exception_bulk',
-            child_id: boot.active_child,
+            child_id: ctx.child,
             service_code: btn.dataset.service,
             checked: willCheck ? '1' : '0',
             dates: dates.join(',')
         }).then(function (res) {
+            if (res && res.success) window.PSC_DATA_STALE = true;
+            if (!stillCurrent(ctx)) return;
             if (res && res.success) {
-                window.PSC_DATA_STALE = true;
                 applyState(res.data.state);
             } else {
                 btn.disabled = false;
                 btnNotice(btn, messageFor(res, 'generic'));
             }
         }).catch(function () {
+            if (!stillCurrent(ctx)) return;
             btn.disabled = false;
             btnNotice(btn, t('network'));
         });
@@ -463,7 +510,7 @@
         setBusy(true);
         post({
             action: 'psc_reset_month_exceptions',
-            child_id: boot.active_child,
+            child_id: shownChild,
             month: boot.month
         }).then(function (res) {
             setBusy(false);
@@ -507,7 +554,7 @@
         setBusy(true);
         post({
             action: 'psc_apply_pattern_to_siblings',
-            source_child_id: boot.active_child
+            source_child_id: shownChild
         }).then(function (res) {
             setBusy(false);
             if (res && res.success) {
@@ -537,29 +584,43 @@
         return boot.months[next];
     }
 
+    /** Échec de navigation : l'affichage reste celui de l'enfant montré. */
+    function revertNavigation() {
+        boot.active_child = shownChild;
+        syncTabs(shownChild);
+        renderInsuranceGate();
+    }
+
     function loadMonth(childId, monthKey) {
+        var seq = ++navSeq;
         setBusy(true);
         post({
             action: 'psc_load_month',
             child_id: childId,
             month: monthKey
         }).then(function (res) {
+            if (seq !== navSeq) return; // réponse périmée : une plus récente fait foi
             setBusy(false);
             if (res && res.success) {
                 var state = res.data.state;
                 boot.month = monthKey;
-                boot.active_child = state.active_child ? state.active_child.id : boot.active_child;
+                shownChild = state.active_child ? state.active_child.id : childId;
+                boot.active_child = shownChild;
                 if (state.all_patterns) boot.patterns = state.all_patterns;
                 if (state.children_list) boot.children = state.children_list;
                 applyState(state);
+                syncTabs(shownChild);
                 // L'année peut avoir changé de clé si un état inattendu est
                 // revenu : on réaligne silencieusement.
                 if (state.year_key) boot.year_key = state.year_key;
             } else {
+                revertNavigation();
                 flashNote(messageFor(res, 'generic'));
             }
         }).catch(function () {
+            if (seq !== navSeq) return;
             setBusy(false);
+            revertNavigation();
             flashNote(t('network'));
         });
     }
@@ -568,12 +629,8 @@
         document.querySelectorAll('.psc-child-tab').forEach(function (tab) {
             tab.addEventListener('click', function () {
                 var cid = parseInt(tab.dataset.childTab, 10);
-                if (cid === boot.active_child) return;
-                document.querySelectorAll('.psc-child-tab').forEach(function (tb) {
-                    var active = tb === tab;
-                    tb.classList.toggle('is-active', active);
-                    tb.setAttribute('aria-selected', active ? 'true' : 'false');
-                });
+                if (tab.disabled || cid === boot.active_child) return;
+                syncTabs(cid);
                 boot.active_child = cid;
                 renderInsuranceGate();
                 if (!childHasValidInsurance(cid)) return;
@@ -635,6 +692,7 @@
     document.addEventListener('DOMContentLoaded', function () {
         if (!bootFromDom()) return;
         state_year_amount = boot.year_amount;
+        shownChild = boot.active_child;
 
         document.querySelectorAll('.psc-pat-btn').forEach(function (btn) {
             btn.addEventListener('click', onPatternClick);
