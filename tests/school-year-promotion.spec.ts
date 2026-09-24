@@ -184,7 +184,8 @@ test('réinscription — famille confirme un enfant pour l\'année suivante', as
   await childBlock2.getByTestId(`reinscription-assurance-${data.lea_id}`).setInputFiles({
     name: 'assurance-lea.pdf',
     mimeType: 'application/pdf',
-    buffer: Buffer.from('%PDF-1.4 e2e school-year-promotion spec'),
+    // PDF minimal mais complet : le contenu des justificatifs est contrôlé.
+    buffer: Buffer.from('%PDF-1.4\n% e2e school-year-promotion spec\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[]/Count 0>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n'),
   });
   await section2.getByTestId('reinscription-reglement').check();
   await section2.getByTestId('reinscription-submit').click();
