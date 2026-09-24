@@ -544,13 +544,26 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** remplacement d’un règlement ne change pas la preuve antérieure ; la mairie retrouve le document applicable à une inscription sans conserver des données supplémentaires inutiles. **Métier/facturation + DPO + développement ; M.**
 
-### P2-15 — Auditer l’accessibilité des parcours essentiels
+### P2-15 — TRAITÉ CÔTÉ DÉVELOPPEMENT (après v5.22.0) — Auditer l’accessibilité des parcours essentiels
 
-- [ ] **Tester clavier, lecteur d’écran, mobile et gestion des erreurs.**
+- [x] **Tester clavier, lecteur d’écran, mobile et gestion des erreurs.**
 
 **Périmètre à vérifier :** wizard multiétape, onglets enfants, grilles, popins, formulaires SEPA et notifications AJAX. Les attributs ARIA et tests de débordement présents sont utiles, mais aucun audit complet d’accessibilité n’est fourni. Ce chantier est distinct de la conformité RGPD.
 
 **À faire :** ordre du focus, pièges clavier, annonce des états, libellés actualisés, contrastes, zoom, erreurs rattachées aux champs ; confirmer les obligations d’accessibilité du site communal avec son responsable.
+
+**Traité le 24/09/2026 :**
+- **Contrôle axe (WCAG 2.1 A/AA)** sur l’accueil visiteur et les 11 écrans du portail. Défauts relevés puis corrigés :
+  - contrastes du texte secondaire (`--psc-stone` #8B8279 → #665F58 et occurrences en dur), de l’orange employé comme texte (→ `--psc-gold-ink`), des libellés de la barre latérale, du slogan du thème, d’un champ en lecture seule et d’une carte de paiement ;
+  - 17 champs sans libellé associé (ajout d’un enfant, profil) ;
+  - lien vide « revenir au rythme ».
+  Résultat : aucune violation sur les 12 écrans.
+- **Réaffichage à 320 px (zoom 400 %)** : aucun défilement horizontal, sur aucun écran.
+- **Clavier seul :** changement d’enfant et correction d’une case du planning, par Tab puis Entrée ou Espace, vérifiés en base ; demande de lien de connexion.
+- **Preuve :** `tests/a11y-parcours.spec.ts` en CI. Vérifié par mutation : l’ancien gris fait échouer le contrôle axe.
+- **Rapport :** `documentation/accessibilite.md` (vérifications, corrections, contrôles humains restants).
+
+**Reste (référent accessibilité) :** lecteur d’écran réel (NVDA, VoiceOver), inscription complète au clavier, mobile réel, obligations et déclaration d’accessibilité de la commune.
 
 **Acceptation :** inscription et correction du planning réalisables sans souris, avec lecteur d’écran et zoom important ; rapport de contrôle et corrections priorisées. **Développement + référent accessibilité ; M/L.**
 
