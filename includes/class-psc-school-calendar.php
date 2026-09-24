@@ -152,26 +152,106 @@ class Psc_School_Calendar {
         return ($row && $row->is_closed) ? $row->label : false;
     }
 
+    /** Taille maximale d'un calendrier importé (le flux officiel pèse ~200 Ko). */
+    const ICS_MAX_BYTES = 2097152;
+
+    /** Redirections suivies au plus, chacune revalidée. */
+    const ICS_MAX_REDIRECTS = 3;
+
+    /**
+     * Une URL de calendrier est-elle sûre à télécharger depuis le serveur ?
+     *
+     * L'URL est réglable par un gestionnaire : sans contrôle, elle ferait
+     * du serveur un relais vers ses propres services internes (SSRF) —
+     * loopback, réseau privé de l'hébergeur, service de métadonnées cloud
+     * (169.254.169.254). On exige http(s), un port web, et un hôte dont
+     * TOUTES les adresses résolues sont publiques (une seule adresse
+     * interne suffit à refuser).
+     *
+     * @return true|WP_Error
+     */
+    public static function validate_ics_url($url) {
+        $parts = wp_parse_url((string) $url);
+        if (!$parts || empty($parts['host']) || !in_array(strtolower($parts['scheme'] ?? ''), array('http', 'https'), true)) {
+            return new WP_Error('psc_ics_url', __('Adresse de calendrier refusée : seules les adresses http(s) sont acceptées.', 'periscolaire-registration'));
+        }
+        if (isset($parts['port']) && !in_array((int) $parts['port'], array(80, 443), true)) {
+            return new WP_Error('psc_ics_url', __('Adresse de calendrier refusée : port non autorisé.', 'periscolaire-registration'));
+        }
+        if (isset($parts['user']) || isset($parts['pass'])) {
+            return new WP_Error('psc_ics_url', __('Adresse de calendrier refusée : identifiants dans l’adresse.', 'periscolaire-registration'));
+        }
+
+        $host = strtolower(trim($parts['host'], '[]'));
+        if (filter_var($host, FILTER_VALIDATE_IP)) {
+            $ips = array($host);
+        } else {
+            $ips = gethostbynamel($host) ?: array();
+            if (function_exists('dns_get_record')) {
+                foreach ((array) @dns_get_record($host, DNS_AAAA) as $record) { // phpcs:ignore WordPress.PHP.NoSilencedErrors
+                    if (!empty($record['ipv6'])) $ips[] = $record['ipv6'];
+                }
+            }
+        }
+        // Filtrable pour les tests (résolution simulée), jamais en production.
+        $ips = (array) apply_filters('psc_ics_resolved_ips', $ips, $host);
+        if (!$ips) {
+            return new WP_Error('psc_ics_url', __('Adresse de calendrier refusée : hôte introuvable.', 'periscolaire-registration'));
+        }
+        foreach ($ips as $ip) {
+            if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                return new WP_Error('psc_ics_url', __('Adresse de calendrier refusée : elle désigne un réseau interne.', 'periscolaire-registration'));
+            }
+        }
+        return true;
+    }
+
     /**
      * Télécharge et importe le calendrier officiel zone C. N'écrase jamais
      * une correction manuelle (source = 'manual'). Retourne le nombre de
-     * jours importés/mis à jour, ou WP_Error.
+     * jours importés/mis à jour, ou WP_Error — auquel cas le calendrier
+     * enregistré n'a pas été touché.
+     *
+     * Les redirections sont suivies à la main, chacune revalidée : une
+     * adresse publique qui redirige vers le réseau interne est refusée.
      */
     public static function import() {
-        $response = wp_remote_get(self::ics_url(), array('timeout' => 20));
-        if (is_wp_error($response)) {
-            return $response;
-        }
-        $code = wp_remote_retrieve_response_code($response);
-        if ($code !== 200) {
-            return new WP_Error('psc_ics_http', sprintf(__('Le serveur du ministère a répondu %s.', 'periscolaire-registration'), $code));
-        }
-        $body = wp_remote_retrieve_body($response);
-        if (!$body) {
-            return new WP_Error('psc_ics_empty', __('Réponse vide.', 'periscolaire-registration'));
-        }
+        $url = self::ics_url();
+        for ($hop = 0; $hop <= self::ICS_MAX_REDIRECTS; $hop++) {
+            $safe = self::validate_ics_url($url);
+            if (is_wp_error($safe)) return $safe;
 
-        return self::import_ics_content($body);
+            $response = wp_remote_get($url, array(
+                'timeout'             => 20,
+                'redirection'         => 0,
+                'limit_response_size' => self::ICS_MAX_BYTES + 1,
+                'reject_unsafe_urls'  => true,
+            ));
+            if (is_wp_error($response)) {
+                return $response;
+            }
+            $code = (int) wp_remote_retrieve_response_code($response);
+            if ($code >= 300 && $code < 400) {
+                $location = wp_remote_retrieve_header($response, 'location');
+                if (!$location) {
+                    return new WP_Error('psc_ics_http', __('Redirection sans destination.', 'periscolaire-registration'));
+                }
+                $url = WP_Http::make_absolute_url($location, $url);
+                continue;
+            }
+            if ($code !== 200) {
+                return new WP_Error('psc_ics_http', sprintf(__('Le serveur du ministère a répondu %s.', 'periscolaire-registration'), $code));
+            }
+            $body = wp_remote_retrieve_body($response);
+            if (!$body) {
+                return new WP_Error('psc_ics_empty', __('Réponse vide.', 'periscolaire-registration'));
+            }
+            if (strlen($body) > self::ICS_MAX_BYTES) {
+                return new WP_Error('psc_ics_too_large', __('Calendrier trop volumineux : import refusé.', 'periscolaire-registration'));
+            }
+            return self::import_ics_content($body);
+        }
+        return new WP_Error('psc_ics_http', __('Trop de redirections : import refusé.', 'periscolaire-registration'));
     }
 
     /**
@@ -182,14 +262,59 @@ class Psc_School_Calendar {
         if (!$body) {
             return new WP_Error('psc_ics_empty', __('Fichier vide.', 'periscolaire-registration'));
         }
+        if (strlen($body) > self::ICS_MAX_BYTES) {
+            return new WP_Error('psc_ics_too_large', __('Calendrier trop volumineux : import refusé.', 'periscolaire-registration'));
+        }
         return self::import_ics_content($body);
     }
 
-    /** Logique d'import commune, que le contenu iCal vienne du réseau ou d'un upload. */
+    /**
+     * Rejette un calendrier aberrant avant toute écriture : un flux
+     * détourné ou corrompu ne doit pas fermer l'école des mois durant.
+     * Bornes larges pour le flux officiel (plusieurs années, toutes zones
+     * filtrées) : dates proches d'aujourd'hui, pas de fermeture continue
+     * de plus de 100 jours (les grandes vacances en font ~60).
+     */
+    private static function sanity_check($closed_days) {
+        if (!$closed_days) {
+            return new WP_Error('psc_ics_parse', __('Aucun jour de fermeture pour la zone C dans ce calendrier.', 'periscolaire-registration'));
+        }
+        $now = (int) current_time('Y');
+        $dates = array_keys($closed_days);
+        sort($dates);
+        $run = 1;
+        $prev = null;
+        foreach ($dates as $date) {
+            $year = (int) substr($date, 0, 4);
+            if ($year < $now - 5 || $year > $now + 5) {
+                return new WP_Error('psc_ics_aberrant', __('Calendrier refusé : il contient des dates aberrantes.', 'periscolaire-registration'));
+            }
+            if ($prev !== null && strtotime($date) - strtotime($prev) === DAY_IN_SECONDS) {
+                if (++$run > 100) {
+                    return new WP_Error('psc_ics_aberrant', __('Calendrier refusé : une fermeture continue dépasse 100 jours.', 'periscolaire-registration'));
+                }
+            } else {
+                $run = 1;
+            }
+            $prev = $date;
+        }
+        return true;
+    }
+
+    /**
+     * Logique d'import commune, que le contenu iCal vienne du réseau ou
+     * d'un upload. Tout ou rien : le calendrier est contrôlé avant la
+     * première écriture, puis écrit dans une transaction — un échec laisse
+     * le calendrier existant intact.
+     */
     private static function import_ics_content($body) {
         $closed_days = self::parse_ics($body);
         if (is_wp_error($closed_days)) {
             return $closed_days;
+        }
+        $sane = self::sanity_check($closed_days);
+        if (is_wp_error($sane)) {
+            return $sane;
         }
 
         global $wpdb;
@@ -197,18 +322,25 @@ class Psc_School_Calendar {
         $count = 0;
         $now   = current_time('mysql');
 
+        $wpdb->query('START TRANSACTION');
         foreach ($closed_days as $date => $label) {
             $existing_source = $wpdb->get_var($wpdb->prepare("SELECT source FROM $t WHERE jour_date = %s", $date));
             if ($existing_source === 'manual') continue; // ne jamais écraser une correction manuelle
 
-            $wpdb->query($wpdb->prepare(
+            $written = $wpdb->query($wpdb->prepare(
                 "INSERT INTO $t (jour_date, label, is_closed, source, created_at, updated_at)
                  VALUES (%s, %s, 1, 'import', %s, %s)
                  ON DUPLICATE KEY UPDATE label = VALUES(label), is_closed = 1, source = 'import', updated_at = VALUES(updated_at)",
-                $date, $label, $now, $now
+                $date, mb_substr($label, 0, 191), $now, $now
             ));
+            if (false === $written) {
+                $wpdb->query('ROLLBACK');
+                self::flush_closed_cache();
+                return new WP_Error('psc_ics_db', __('Enregistrement du calendrier impossible : rien n’a été modifié.', 'periscolaire-registration'));
+            }
             $count++;
         }
+        $wpdb->query('COMMIT');
 
         update_option('psc_school_calendar_imported_at', $now);
         self::flush_closed_cache();
