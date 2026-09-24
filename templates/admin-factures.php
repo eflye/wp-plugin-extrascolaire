@@ -141,6 +141,11 @@ psc_admin_notice_map($psc_notices, $psc_msg);
         <?php else: ?>
             <span style="color:#999"><?php esc_html_e('Non envoyée', 'periscolaire-registration'); ?></span>
         <?php endif; ?>
+        <?php if ((int) ($inv->version ?? 1) > 1): ?>
+            <br><span style="color:#9E4A4A" title="<?php esc_attr_e('Le calcul a changé après l’envoi : la version précédente est archivée et reste téléchargeable.', 'periscolaire-registration'); ?>">
+                <?php printf(esc_html__('Rectifiée — version %d', 'periscolaire-registration'), (int) $inv->version); ?>
+            </span>
+        <?php endif; ?>
     </td>
     <td>
         <?php if ($inv->payment_mode === 'autre'): ?>

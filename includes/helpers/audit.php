@@ -474,6 +474,10 @@ function psc_audit_semantic_extra() {
         // Angle mort signalé (cf. Psc_Audit::capture_generic()) : classé au
         // niveau le plus prudent puisque sa nature réelle est inconnue.
         'inconnu.action'                => array('categorie' => 'systeme', 'niveau' => 'critique'),
+        // Émise par Psc_Invoices::generate_one() et non par une action
+        // admin_post : une facture déjà envoyée dont le calcul change
+        // devient une nouvelle version, l'ancienne étant archivée.
+        'facture.rectification'         => array('categorie' => 'facturation', 'niveau' => 'critique'),
         'systeme.montee_de_version'     => array('categorie' => 'systeme', 'niveau' => 'normal'),
         'systeme.purge'                 => array('categorie' => 'systeme', 'niveau' => 'normal'),
     );

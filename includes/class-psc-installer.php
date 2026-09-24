@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.12.0';
+    const DB_VERSION = '4.13.0';
     const ROLES_VERSION = '1.4.0';
 
     public static function activate() {
@@ -974,6 +974,7 @@ class Psc_Installer {
         $t_child = psc_table('children');
         $t_req   = psc_table('requests');
         $t_inv   = psc_table('invoices');
+        $t_invv  = psc_table('invoice_versions');
         $t_menu  = psc_table('menus');
         $t_sch   = psc_table('school_calendar');
         $t_sup   = psc_table('supplier_orders');
@@ -1174,6 +1175,8 @@ CREATE TABLE $t_inv (
             parent_id BIGINT UNSIGNED NOT NULL,
             mois CHAR(7) NOT NULL,
             total DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+            version INT UNSIGNED NOT NULL DEFAULT 1,
+            lines_json LONGTEXT NULL,
             payment_received_at DATETIME NULL,
             pdf_path VARCHAR(500) NULL,
             sent_at DATETIME NULL,
@@ -1182,6 +1185,23 @@ CREATE TABLE $t_inv (
             UNIQUE KEY parent_mois (parent_id, mois),
             KEY mois (mois),
             KEY parent_id (parent_id)
+        ) $charset_collate;
+
+CREATE TABLE $t_invv (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            invoice_id BIGINT UNSIGNED NOT NULL,
+            parent_id BIGINT UNSIGNED NOT NULL,
+            mois CHAR(7) NOT NULL,
+            version INT UNSIGNED NOT NULL,
+            total DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+            lines_json LONGTEXT NULL,
+            pdf_path VARCHAR(500) NULL,
+            sent_at DATETIME NULL,
+            created_at DATETIME NOT NULL,
+            archived_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY invoice_version (invoice_id, version),
+            KEY parent_mois (parent_id, mois)
         ) $charset_collate;
 
 CREATE TABLE $t_menu (

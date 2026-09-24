@@ -165,31 +165,84 @@ class Psc_Invoices {
             }
         }
 
-        // Upsert DB record first to get invoice_id (needed for the invoice number on the PDF)
+        // Instantané de ce qui a servi au calcul : lignes, tarifs appliqués
+        // et statut « sans repas » de chaque enfant. C'est lui, et non les
+        // réglages courants, qui dira demain ce que portait la facture.
+        $snapshot = self::build_snapshot($children, $grid, $services, $flags, $total);
+
         $t_inv    = psc_table('invoices');
-        $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $t_inv WHERE parent_id = %d AND mois = %s",
+        $existing = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $t_inv WHERE parent_id = %d AND mois = %s",
             $parent_id, $mois
         ));
 
+        $version = 1;
         if ($existing) {
-            // La génération et l'envoi sont DÉCORRÉLÉS : régénérer remplace
-            // le total et le PDF mais ne touche pas au statut d'envoi — la
-            // mairie décide seule de renvoyer (bouton Renvoyer).
-            $wpdb->query($wpdb->prepare(
-                "UPDATE $t_inv SET total = %f, created_at = %s WHERE id = %d",
-                $total, current_time('mysql'), $existing
-            ));
-            $invoice_id = (int) $existing;
+            $invoice_id = (int) $existing->id;
+            $version    = max(1, (int) $existing->version);
+            $issued     = !empty($existing->sent_at);
+            $changed    = self::snapshot_differs($existing, $snapshot, $total);
+
+            // Facture émise et calcul inchangé : on ne réécrit RIEN, pas
+            // même le PDF — son en-tête porte la date du jour, le régénérer
+            // modifierait un document déjà remis à la famille.
+            if ($issued && !$changed) {
+                return $invoice_id;
+            }
+
+            if ($issued) {
+                // Correction : la version remise à la famille est archivée
+                // telle quelle, PDF compris, avant toute écriture.
+                $archived = self::archive_version($existing);
+                if (is_wp_error($archived)) return $archived;
+
+                $version++;
+                $wpdb->update($t_inv, array(
+                    'total'      => $total,
+                    'version'    => $version,
+                    'lines_json' => wp_json_encode($snapshot),
+                    'pdf_path'   => null,
+                    // La nouvelle version n'a pas été envoyée : la famille
+                    // détient encore la précédente.
+                    'sent_at'    => null,
+                    'created_at' => current_time('mysql'),
+                ), array('id' => $invoice_id));
+
+                if (class_exists('Psc_Audit')) {
+                    Psc_Audit::log('facture.rectification', array(
+                        'objet_type' => 'facture', 'objet_id' => $invoice_id, 'famille_id' => (int) $parent_id,
+                        'meta' => array(
+                            'mois'             => $mois,
+                            'version_archivee' => $version - 1,
+                            'nouvelle_version' => $version,
+                            'total_precedent'  => (float) $existing->total,
+                            'total_nouveau'    => $total,
+                        ),
+                        'resume' => sprintf(
+                            __('Facture %s rectifiée : version %d archivée, version %d à envoyer.', 'periscolaire-registration'),
+                            $mois, $version - 1, $version
+                        ),
+                    ));
+                }
+            } else {
+                // Brouillon : recalcul en place, c'est son rôle.
+                $wpdb->update($t_inv, array(
+                    'total'      => $total,
+                    'lines_json' => wp_json_encode($snapshot),
+                    'created_at' => current_time('mysql'),
+                ), array('id' => $invoice_id));
+            }
         } else {
             $wpdb->insert($t_inv, array(
                 'parent_id'  => $parent_id,
                 'mois'       => $mois,
                 'total'      => $total,
+                'version'    => 1,
+                'lines_json' => wp_json_encode($snapshot),
                 'pdf_path'   => null,
                 'sent_at'    => null,
                 'created_at' => current_time('mysql'),
-            ), array('%d', '%s', '%f', '%s', '%s', '%s'));
+            ), array('%d', '%s', '%f', '%d', '%s', '%s', '%s', '%s'));
             $invoice_id = (int) $wpdb->insert_id;
         }
 
@@ -199,7 +252,7 @@ class Psc_Invoices {
             return new WP_Error('mkdir_fail', __('Impossible de créer le répertoire des factures.', 'periscolaire-registration'));
         }
 
-        $build_ok = self::build_pdf($parent, $mois, $children, $grid, $services, $pdf_path, $invoice_id);
+        $build_ok = self::build_pdf($parent, $mois, $children, $grid, $services, $pdf_path, $invoice_id, $version);
         if (is_wp_error($build_ok)) {
             return $build_ok;
         }
@@ -209,6 +262,166 @@ class Psc_Invoices {
         $wpdb->update($t_inv, array('pdf_path' => $rel_path), array('id' => $invoice_id), array('%s'), array('%d'));
 
         return $invoice_id;
+    }
+
+    /**
+     * Instantané de la facture : lignes, tarifs appliqués et statut « sans
+     * repas » de chaque enfant au moment de l'émission.
+     *
+     * C'est la réponse à la question « pourquoi cette facture affiche-t-elle
+     * ce montant ? » un an plus tard, quand les tarifs et les statuts ont
+     * changé. Sans lui, le seul moyen de la répondre serait de recalculer
+     * avec les réglages du jour — c'est-à-dire de répondre faux.
+     *
+     * Ordre stable (code de service, puis enfant) : deux calculs identiques
+     * doivent produire deux instantanés identiques, sans quoi la comparaison
+     * de snapshot_differs() créerait des versions fantômes.
+     */
+    private static function build_snapshot($children, $grid, $services, $flags, $total) {
+        $names = array();
+        $enfants = array();
+        foreach ($children as $child) {
+            $cid = (int) $child->id;
+            $names[$cid] = trim($child->prenom . ' ' . $child->nom);
+            $enfants[$cid] = array(
+                'nom'                => $names[$cid],
+                'cantine_sans_repas' => !empty($flags[$cid]) ? 1 : 0,
+            );
+        }
+        ksort($enfants);
+
+        $lignes = array();
+        $codes = array_keys($grid);
+        sort($codes);
+        foreach ($codes as $code) {
+            $child_counts = $grid[$code];
+            ksort($child_counts);
+            $price = isset($services[$code]['price']) ? round((float) $services[$code]['price'], 2) : null;
+            foreach ($child_counts as $cid => $count) {
+                $lignes[] = array(
+                    'service'       => (string) $code,
+                    'libelle'       => isset($services[$code]['label']) ? (string) $services[$code]['label'] : (string) $code,
+                    'enfant_id'     => (int) $cid,
+                    'enfant'        => isset($names[$cid]) ? $names[$cid] : null,
+                    'quantite'      => (int) $count,
+                    'prix_unitaire' => $price,
+                    'total'         => $price === null ? null : round($price * (int) $count, 2),
+                );
+            }
+        }
+
+        return array(
+            'calcul'    => 1,
+            'genere_le' => current_time('mysql'),
+            'enfants'   => $enfants,
+            'lignes'    => $lignes,
+            'total'     => round((float) $total, 2),
+        );
+    }
+
+    /**
+     * Partie facturante d'un instantané, à l'exclusion de la date de
+     * génération : deux régénérations successives sans changement doivent
+     * se comparer comme identiques.
+     */
+    private static function snapshot_signature(array $snapshot) {
+        return wp_json_encode(array(
+            'calcul'  => isset($snapshot['calcul']) ? $snapshot['calcul'] : null,
+            'enfants' => isset($snapshot['enfants']) ? $snapshot['enfants'] : array(),
+            'lignes'  => isset($snapshot['lignes']) ? $snapshot['lignes'] : array(),
+            'total'   => isset($snapshot['total']) ? $snapshot['total'] : null,
+        ));
+    }
+
+    /**
+     * Le calcul a-t-il changé depuis la version en place ?
+     *
+     * Les factures émises avant l'introduction des instantanés n'en ont pas :
+     * pour elles, seul le total peut être comparé. On ne fabrique pas
+     * d'instantané rétroactif — il serait reconstruit avec les tarifs
+     * d'aujourd'hui, donc faux par construction.
+     */
+    private static function snapshot_differs($existing, array $snapshot, $total) {
+        $stored = isset($existing->lines_json) ? (string) $existing->lines_json : '';
+        if ($stored === '') {
+            return abs((float) $existing->total - (float) $total) >= 0.005;
+        }
+
+        $decoded = json_decode($stored, true);
+        if (!is_array($decoded)) {
+            return true; // instantané illisible : on ne parie pas dessus
+        }
+        return self::snapshot_signature($decoded) !== self::snapshot_signature($snapshot);
+    }
+
+    /**
+     * Archive la version en place avant de la remplacer : ligne recopiée
+     * dans psc_invoice_versions, PDF déplacé sous un nom versionné.
+     *
+     * Le PDF est déplacé AVANT l'écriture en base, et un échec interrompt
+     * tout : mieux vaut refuser la rectification que se retrouver avec une
+     * archive qui référence un fichier écrasé à la seconde d'après. Le
+     * document remis à la famille ne disparaît jamais.
+     */
+    private static function archive_version($existing) {
+        global $wpdb;
+
+        $version = max(1, (int) $existing->version);
+        $archived_rel = null;
+
+        if (!empty($existing->pdf_path)) {
+            $current_abs = psc_private_path($existing->pdf_path);
+            if ($current_abs && file_exists($current_abs)) {
+                $dir = dirname($current_abs);
+                $archived_abs = $dir . '/facture-' . (int) $existing->parent_id . '-v' . $version . '.pdf';
+
+                // Une archive de même nom existe déjà : le numéro de version
+                // ne serait plus unique, on refuse plutôt que d'écraser.
+                if (file_exists($archived_abs)) {
+                    return new WP_Error('psc_archive_exists', sprintf(
+                        __('Une archive de la version %d existe déjà pour cette facture.', 'periscolaire-registration'),
+                        $version
+                    ));
+                }
+                if (!@rename($current_abs, $archived_abs)) { // phpcs:ignore WordPress.PHP.NoSilencedErrors
+                    return new WP_Error('psc_archive_failed', __('Impossible d’archiver le PDF de la facture précédente.', 'periscolaire-registration'));
+                }
+                $archived_rel = str_replace(trailingslashit(psc_private_dir()), '', $archived_abs);
+            }
+        }
+
+        $inserted = $wpdb->insert(psc_table('invoice_versions'), array(
+            'invoice_id'  => (int) $existing->id,
+            'parent_id'   => (int) $existing->parent_id,
+            'mois'        => (string) $existing->mois,
+            'version'     => $version,
+            'total'       => (float) $existing->total,
+            'lines_json'  => isset($existing->lines_json) ? $existing->lines_json : null,
+            'pdf_path'    => $archived_rel,
+            'sent_at'     => $existing->sent_at,
+            'created_at'  => $existing->created_at,
+            'archived_at' => current_time('mysql'),
+        ), array('%d', '%d', '%s', '%d', '%f', '%s', '%s', '%s', '%s', '%s'));
+
+        if ($inserted === false) {
+            return new WP_Error('psc_archive_failed', __('Impossible d’enregistrer la version archivée de la facture.', 'periscolaire-registration'));
+        }
+
+        return true;
+    }
+
+    /**
+     * Versions archivées d'une facture, de la plus récente à la plus
+     * ancienne. Les documents remis à la famille restent consultables même
+     * après rectification.
+     */
+    public static function versions_for_invoice($invoice_id) {
+        global $wpdb;
+        $t = psc_table('invoice_versions');
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $t WHERE invoice_id = %d ORDER BY version DESC",
+            (int) $invoice_id
+        ));
     }
 
     /**
@@ -236,6 +449,17 @@ class Psc_Invoices {
             "SELECT pdf_path FROM $t_inv WHERE mois = %s AND pdf_path IS NOT NULL AND pdf_path <> ''",
             $mois
         ));
+
+        // Versions archivées du même mois : leurs PDF sont lus avant la
+        // suppression des lignes, comme ci-dessus, pour ne pas laisser de
+        // fichier orphelin dans le répertoire privé.
+        $t_invv = psc_table('invoice_versions');
+        $version_paths = $wpdb->get_col($wpdb->prepare(
+            "SELECT pdf_path FROM $t_invv WHERE mois = %s AND pdf_path IS NOT NULL AND pdf_path <> ''",
+            $mois
+        ));
+        $wpdb->query($wpdb->prepare("DELETE FROM $t_invv WHERE mois = %s", $mois));
+        $paths = array_merge($paths, $version_paths);
 
         $deleted = (int) $wpdb->query($wpdb->prepare(
             "DELETE FROM $t_inv WHERE mois = %s",
@@ -723,7 +947,7 @@ class Psc_Invoices {
      * @param int      $invoice_id Used to build the invoice number YY-MM-NNN
      * @return true|WP_Error
      */
-    private static function build_pdf($parent, $mois, $children, $grid, $services, $path, $invoice_id) {
+    private static function build_pdf($parent, $mois, $children, $grid, $services, $path, $invoice_id, $version = 1) {
         require_once PSC_PATH . 'includes/fpdf/fpdf.php';
 
         // Billing settings
@@ -740,6 +964,10 @@ class Psc_Invoices {
 
         list($year, $month_num) = explode('-', $mois);
         $invoice_num  = substr($year, 2) . '-' . $month_num . '-' . str_pad($invoice_id, 3, '0', STR_PAD_LEFT);
+        // Une rectification porte un numéro distinct : deux documents de
+        // montants différents ne doivent jamais circuler sous la même
+        // référence, ni chez la famille ni à la comptabilité.
+        if ((int) $version > 1) $invoice_num .= '-R' . (int) $version;
         $month_label  = self::month_label($mois);
         $nom_famille  = trim(($parent->nom ?? '') ?: $parent->email);
         $date_fr      = self::french_full_date((int) current_time('timestamp'));
