@@ -46,7 +46,7 @@ psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
 <thead>
 <tr>
     <th rowspan="2"><?php esc_html_e('Jour', 'periscolaire-registration'); ?></th>
-    <th colspan="4" style="text-align:center;color:#E08A5F;"><?php esc_html_e('Repas de midi', 'periscolaire-registration'); ?></th>
+    <th colspan="4" style="text-align:center;color:#9A5B2E;"><?php esc_html_e('Repas de midi', 'periscolaire-registration'); ?></th>
     <th rowspan="2" style="text-align:center;border-left:2px solid #EDEAE4;"><?php esc_html_e('Goûters', 'periscolaire-registration'); ?></th>
 </tr>
 <tr>
