@@ -28,6 +28,7 @@ Chaque enfant actif possède un justificatif identifiable et accepté pour l'ann
 
 ## Pour aller plus loin
 
+- Côté famille : [Mes enfants et assurance](../familles/enfants.md) (guide des familles)
 - [Modération des inscriptions](moderation-inscriptions.md)
 - [Régimes alimentaires](../configuration/regimes-alimentaires.md)
 - [Année scolaire](../configuration/annee-scolaire.md)

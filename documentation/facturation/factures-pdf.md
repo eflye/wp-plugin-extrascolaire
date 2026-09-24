@@ -37,6 +37,7 @@ Chaque famille dispose d'une facture PDF correspondant au mois choisi, l'état d
 
 ## Pour aller plus loin
 
+- Côté famille : [Factures et documents](../familles/factures-documents.md) (guide des familles)
 - [Mandats SEPA](mandats-sepa.md)
 - [Services et tarifs](../configuration/services-tarifs.md)
 - [Démarrage rapide](../demarrage-rapide.md)

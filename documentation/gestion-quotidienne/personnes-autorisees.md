@@ -25,6 +25,7 @@ La garderie du soir dispose d'une liste à jour pour chaque enfant et la mairie 
 
 ## Pour aller plus loin
 
+- Côté famille : [Personnes autorisées](../familles/personnes-autorisees.md) (guide des familles)
 - [Documents (assurance)](documents-assurance.md)
 - [Annulations et absences](annulations-absences.md)
 - [Tableau de bord](tableau-de-bord.md)

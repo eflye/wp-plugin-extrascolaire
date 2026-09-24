@@ -31,6 +31,7 @@ Le menu de la semaine est lisible dans le portail famille et l'e-mail, les label
 
 ## Pour aller plus loin
 
+- Côté famille : [Tableau de bord](../familles/tableau-de-bord.md) (guide des familles)
 - [Calendrier et vacances](../configuration/calendrier-vacances.md)
 - [Annulations et absences](annulations-absences.md)
 - [Commande fournisseur](commande-fournisseur.md)

@@ -1,4 +1,4 @@
-site_name: Périscolaire — Documentation administrateur
+site_name: Périscolaire — Documentation
 site_url: https://eflye.github.io/wp-plugin-extrascolaire/
 repo_url: https://github.com/eflye/wp-plugin-extrascolaire
 repo_name: eflye/wp-plugin-extrascolaire
@@ -23,6 +23,8 @@ theme:
         name: Basculer en mode clair
   features:
     - navigation.instant
+    - navigation.tabs
+    - navigation.indexes
     - navigation.tracking
     - navigation.top
     - search.suggest
@@ -46,38 +48,53 @@ markdown_extensions:
 
 nav:
   - Accueil: index.md
-  - Démarrage rapide: demarrage-rapide.md
-  - Configuration:
-      - Année scolaire: configuration/annee-scolaire.md
-      - Calendrier et vacances: configuration/calendrier-vacances.md
-      - Services et tarifs: configuration/services-tarifs.md
-      - Régimes alimentaires: configuration/regimes-alimentaires.md
-      - Modèles d'e-mails: configuration/modeles-emails.md
-  - Gestion au quotidien:
-      - Tableau de bord: gestion-quotidienne/tableau-de-bord.md
-      - Modération des inscriptions: gestion-quotidienne/moderation-inscriptions.md
-      - Annulations et absences: gestion-quotidienne/annulations-absences.md
-      - Menus de cantine: gestion-quotidienne/menus-cantine.md
-      - Commande fournisseur: gestion-quotidienne/commande-fournisseur.md
-      - Documents (assurance): gestion-quotidienne/documents-assurance.md
-      - Personnes autorisées: gestion-quotidienne/personnes-autorisees.md
-  - Facturation:
-      - Factures PDF: facturation/factures-pdf.md
-      - Mandats SEPA: facturation/mandats-sepa.md
-  - Cycle annuel:
-      - Campagne de réinscription: cycle-annuel/reinscription.md
-      - Passage de classe: cycle-annuel/passage-de-classe.md
-  - Données personnelles (RGPD): rgpd.md
-  - Accessibilité: accessibilite.md
-  - Installation & maintenance:
-      - Prérequis: installation/prerequis.md
-      - Versions et dépendances: installation/versions-dependances.md
-      - Installation et activation: installation/installation-activation.md
-      - Accès des agents de la mairie: installation/acces-agents.md
-      - Envoi des e-mails (SMTP): installation/emails-smtp.md
-      - Tâches planifiées: installation/taches-planifiees.md
-      - Sauvegarde et mise à jour: installation/sauvegarde-mise-a-jour.md
-      - Fiche de recette de l'hébergement: installation/fiche-recette-p1.md
-      - Dépannage et FAQ: installation/depannage-faq.md
-  - Glossaire: glossaire.md
-  - Contribuer à la documentation: contribuer.md
+  - Guide des familles:
+      - familles/index.md
+      - Demander une inscription: familles/inscription.md
+      - Se connecter: familles/connexion.md
+      - Tableau de bord: familles/tableau-de-bord.md
+      - Planning: familles/planning.md
+      - Mes enfants et assurance: familles/enfants.md
+      - Personnes autorisées: familles/personnes-autorisees.md
+      - Factures et documents: familles/factures-documents.md
+      - Messages: familles/messages.md
+      - Profil et paiement: familles/profil-paiement.md
+      - Réinscription: familles/reinscription.md
+      - Aide: familles/aide.md
+  - Guide de la mairie:
+      - mairie.md
+      - Démarrage rapide: demarrage-rapide.md
+      - Configuration:
+          - Année scolaire: configuration/annee-scolaire.md
+          - Calendrier et vacances: configuration/calendrier-vacances.md
+          - Services et tarifs: configuration/services-tarifs.md
+          - Régimes alimentaires: configuration/regimes-alimentaires.md
+          - Modèles d'e-mails: configuration/modeles-emails.md
+      - Gestion au quotidien:
+          - Tableau de bord: gestion-quotidienne/tableau-de-bord.md
+          - Modération des inscriptions: gestion-quotidienne/moderation-inscriptions.md
+          - Annulations et absences: gestion-quotidienne/annulations-absences.md
+          - Menus de cantine: gestion-quotidienne/menus-cantine.md
+          - Commande fournisseur: gestion-quotidienne/commande-fournisseur.md
+          - Documents (assurance): gestion-quotidienne/documents-assurance.md
+          - Personnes autorisées: gestion-quotidienne/personnes-autorisees.md
+      - Facturation:
+          - Factures PDF: facturation/factures-pdf.md
+          - Mandats SEPA: facturation/mandats-sepa.md
+      - Cycle annuel:
+          - Campagne de réinscription: cycle-annuel/reinscription.md
+          - Passage de classe: cycle-annuel/passage-de-classe.md
+      - Données personnelles (RGPD): rgpd.md
+      - Accessibilité: accessibilite.md
+      - Installation & maintenance:
+          - Prérequis: installation/prerequis.md
+          - Versions et dépendances: installation/versions-dependances.md
+          - Installation et activation: installation/installation-activation.md
+          - Accès des agents de la mairie: installation/acces-agents.md
+          - Envoi des e-mails (SMTP): installation/emails-smtp.md
+          - Tâches planifiées: installation/taches-planifiees.md
+          - Sauvegarde et mise à jour: installation/sauvegarde-mise-a-jour.md
+          - Fiche de recette de l'hébergement: installation/fiche-recette-p1.md
+          - Dépannage et FAQ: installation/depannage-faq.md
+      - Glossaire: glossaire.md
+      - Contribuer à la documentation: contribuer.md
