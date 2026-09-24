@@ -25,6 +25,12 @@ Utilisez un compte administrateur WordPress et vérifiez l'adresse e-mail exacte
 
 6. Avant d'activer une nouvelle durée, faites exécuter le rapport de rétention en mode **simulation** par l'administrateur (WP-CLI ou outil d'administration qui l'exposera). Les catégories non validées par la mairie/DPO restent bloquées et le rapport indique les volumes examinés, conservés et les erreurs éventuelles. La validation des durées, du circuit PAI, de l'AIPD et des archives reste manuelle.
 
+## Qui voit quoi
+
+Dans le backoffice, chaque agent n'accède qu'aux domaines cochés sur son profil. Les allergies ne s'affichent qu'aux personnes habilitées aux **Données de santé**. Le rôle Éditeur de WordPress n'a aucun accès aux dossiers. Voir [Accès des agents de la mairie](installation/acces-agents.md).
+
+Côté familles, chaque foyer ne voit et ne modifie que ses propres données. Des tests automatiques le vérifient à chaque version : une famille qui tente d'atteindre les enfants, documents ou factures d'une autre est refusée.
+
 ## Ce que le plugin ne décide pas
 
 Les points suivants ne sont tenus par aucun réglage ni aucun test : ils demandent une décision ou un constat, et restent ouverts tant que personne ne les a tranchés et datés.
@@ -37,6 +43,7 @@ Les points suivants ne sont tenus par aucun réglage ni aucun test : ils demande
 | Qualification des descriptions d'allergie collectées avant le signalement minimal | DPO |
 | Relecture de la notice de confidentialité, coordonnées réelles, information des tiers | DPO |
 | Procédure de vérification d'identité du demandeur et délai de réponse | Mairie |
+| Liste des agents habilités, en particulier aux données de santé, et sa revue périodique | Mairie |
 | Circuit PAI et responsabilités lors de l'échange oral sur l'alimentation | Mairie |
 | Qualification comptable des factures PDF et procédure de correction | Service facturation |
 | Inaccessibilité réelle des documents, cache, sauvegardes et restauration | Hébergeur, via la [fiche de recette](installation/fiche-recette-p1.md) |

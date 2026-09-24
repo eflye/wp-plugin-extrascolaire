@@ -59,3 +59,11 @@ L'autorisation signée par un responsable de facturation permettant à la mairie
 ## Personne autorisée
 
 Une personne, hors responsables du foyer, habilitée à venir chercher un enfant.
+
+## Habilitation
+
+Un domaine du backoffice ouvert à un agent de la mairie (familles, planning, facturation, messages, configuration, données de santé, journal d'audit), coché sur son profil WordPress. Les habilitations se cumulent ; voir [Accès des agents de la mairie](installation/acces-agents.md).
+
+## Envoi accepté
+
+Un e-mail confié avec succès au serveur d'envoi. « Accepté » ne garantit pas que le message soit arrivé dans la boîte du destinataire. Un envoi en échec se relance depuis l'écran concerné (menus, factures, commande fournisseur).

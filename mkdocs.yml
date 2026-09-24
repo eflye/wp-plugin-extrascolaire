@@ -58,6 +58,7 @@ nav:
       - Modération des inscriptions: gestion-quotidienne/moderation-inscriptions.md
       - Annulations et absences: gestion-quotidienne/annulations-absences.md
       - Menus de cantine: gestion-quotidienne/menus-cantine.md
+      - Commande fournisseur: gestion-quotidienne/commande-fournisseur.md
       - Documents (assurance): gestion-quotidienne/documents-assurance.md
       - Personnes autorisées: gestion-quotidienne/personnes-autorisees.md
   - Facturation:
@@ -72,6 +73,7 @@ nav:
       - Prérequis: installation/prerequis.md
       - Versions et dépendances: installation/versions-dependances.md
       - Installation et activation: installation/installation-activation.md
+      - Accès des agents de la mairie: installation/acces-agents.md
       - Envoi des e-mails (SMTP): installation/emails-smtp.md
       - Tâches planifiées: installation/taches-planifiees.md
       - Sauvegarde et mise à jour: installation/sauvegarde-mise-a-jour.md

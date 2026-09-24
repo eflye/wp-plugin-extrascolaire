@@ -22,6 +22,8 @@ Pour une modification côté famille, connectez-vous au portail avec le lien re�
 4. La mairie prend l'initiative du contact et recueille de vive voix ce qui est nécessaire. Aucun menu différencié n'est proposé : lorsque l'enfant déjeune à la cantine, la famille fournit son repas adapté.
 5. À l'issue de l'échange, ouvrez **Périscolaire › Enfants** et activez si nécessaire **Cantine sans repas** sur la ligne de l'enfant. Ce statut n'est jamais activé par la famille : il reste la décision de la mairie, et se retire avec **Rétablir les repas**.
 
+    Dans le planning de la famille, la cantine de cet enfant apparaît alors en **Midi sans repas** : ce qui s'affiche est ce qui sera facturé, et la famille peut cocher ou décocher ces jours comme d'habitude.
+
     !!! note
         Les descriptions d'allergie saisies avant cette évolution restent affichées en lecture seule sur la fiche enfant, pour ne pas perdre une information de sécurité déjà transmise. Elles ne sont plus modifiables depuis le portail, et leur durée de conservation relève de l'arbitrage du DPO.
 

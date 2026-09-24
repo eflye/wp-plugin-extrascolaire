@@ -15,7 +15,7 @@ Connectez-vous avec un rôle autorisé à gérer le périscolaire. Préparez les
 
    ![Formulaire « Créer une année scolaire » avec les champs Libellé, Date de début et Date de fin](../assets/screenshots/annee-scolaire-creer.png)
 
-3. Dans **Années existantes**, contrôlez la ligne créée. Cliquez sur **Activer** pour la rendre visible aux familles. Une seule année peut être active à la fois.
+3. Dans **Années existantes**, contrôlez la ligne créée. Cliquez sur **Activer** pour la rendre visible aux familles. Une seule année peut être active à la fois : l'activation archive l'ancienne année et active la nouvelle en une seule opération. Une panne ne peut donc pas laisser le site sans année active, et cliquer de nouveau sur **Activer** ne change rien.
 
    ![Tableau « Années existantes » affichant les libellés, dates, statuts et actions disponibles](../assets/screenshots/annee-scolaire-liste.png)
 
