@@ -402,9 +402,9 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** les défauts P0/P1 sont capturés par des tests qui échouent avant correction ; un profil de sécurité garde rate-limit/cache/TLS représentatifs ; CI obligatoire avant release. **Développement ; L, au fil des corrections.**
 
-### P2-11 — Conditionner la release aux contrôles et traiter le nouveau TODO dans le packaging
+### P2-11 — TRAITÉ (après v5.19.0) — Conditionner la release aux contrôles et traiter le nouveau TODO dans le packaging
 
-- [ ] **Faire dépendre la publication d’un commit validé et décider du périmètre documentaire du ZIP.**
+- [x] **Faire dépendre la publication d’un commit validé et décider du périmètre documentaire du ZIP.**
 
 **Constaté :** `.github/workflows/release.yml` vérifie la version et l’installation/activation du ZIP, mais ne dépend pas du succès des workflows lint/E2E. Ces derniers tournent sur branches/PR ; un tag déclenche sa release séparément. La vérification de complétude échouera si `TODO.md` est ajouté à Git sans être explicitement inclus ou exclu : il ne figure pas dans la liste actuelle.
 
@@ -412,7 +412,9 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Traité depuis :** le volet packaging est réglé — `TODO.md` figure explicitement dans la liste d’exclusion de `release.yml`, et l’étape « Vérifie la complétude du paquet » échoue bruyamment sur toute entrée racine suivie par git qui ne serait ni copiée ni exclue. Le rapport d’audit ne peut donc plus partir en production par omission.
 
-**Restant, et constaté en conditions réelles le 24/09/2026 :** le gating. Un tag déclenche `release.yml` sans aucune dépendance au succès de `lint.yml` et `e2e.yml` — or c’est `e2e.yml` qui exécute `verify-migrations`, seul contrôle de la montée de version par bonds. Lors de la préparation de la 5.19.0, qui portait un changement de schéma (DB_VERSION 4.13.0), la seule parade disponible a été de pousser `main`, d’attendre la CI à la main, puis de taguer. Tant que le gating n’existe pas, publier une release reste une séquence manuelle que rien n’empêche de rater.
+**Constaté en conditions réelles le 24/09/2026 :** un tag déclenchait `release.yml` sans aucune dépendance au succès de `lint.yml` et `e2e.yml` — or c’est `e2e.yml` qui exécute `verify-migrations`, seul contrôle de la montée de version par bonds. Pour la 5.19.0, qui portait un changement de schéma (DB_VERSION 4.13.0), la seule parade a été de pousser `main`, d’attendre la CI à la main, puis de taguer.
+
+**Traité le 24/09/2026 :** `lint.yml` et `e2e.yml` acceptent `workflow_call` ; `release.yml` les rejoue sur le commit exact du tag (jobs `lint` et `e2e`) et le job de publication en dépend (`needs`) — un échec n’aboutit à aucune release. Les permissions d’écriture sont restreintes au job de publication. Le fumage couvre désormais aussi la **mise à jour** : dernière release publiée installée puis nouveau zip par-dessus, `psc_db_version` devant atteindre la `DB_VERSION` du paquet (vérifié localement sous Podman : 5.18.0 → 5.19.0, 4.12.0 → 4.13.0). La release publie un fichier `SHA256SUMS` à côté des zips. `actionlint` ne relève aucune erreur. **Reste à constater au prochain tag :** l’enchaînement complet sur GitHub (jobs appelés, étape de mise à jour, somme de contrôle attachée).
 
 **Acceptation :** tests en échec → aucune release publiée ; ZIP propre et installable ; ajout du TODO suivi n’entraîne ni exposition du rapport ni échec inattendu. **Aucune modification du workflow effectuée pendant cet audit. Développement ; S/M.**
 

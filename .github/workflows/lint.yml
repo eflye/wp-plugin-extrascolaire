@@ -5,6 +5,9 @@ on:
     branches: ["**"]
   pull_request:
     branches: ["**"]
+  # Appelé par release.yml : un tag ne publie qu'après ce contrôle,
+  # rejoué sur le commit exact du tag.
+  workflow_call:
 
 # Même raison qu'e2e.yml : les poussées successives d'une même branche se
 # remplacent, elles ne s'empilent pas.
