@@ -23,8 +23,11 @@ Vérifiez les [prérequis](prerequis.md), disposez d'un accès administrateur Wo
 
 L'extension est active, ses tables et capacités sont disponibles, les tâches sont planifiées et le rôle métier choisi peut accéder au backoffice sans privilèges excessifs.
 
+Cela ne dit rien de l'hébergement lui-même : l'inaccessibilité réelle des documents, le comportement du cache, l'exécution du cron et la restauration des sauvegardes se constatent sur le serveur. Déroulez la [fiche de recette de l'hébergement](fiche-recette-p1.md) avant la mise en service.
+
 ## Pour aller plus loin
 
 - [Prérequis](prerequis.md)
 - [Envoi des e-mails (SMTP)](emails-smtp.md)
+- [Fiche de recette de l'hébergement](fiche-recette-p1.md)
 - [Sauvegarde et mise à jour](sauvegarde-mise-a-jour.md)
