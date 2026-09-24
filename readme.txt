@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.18.0
+Stable tag: 5.19.0
 License: GPLv2 or later
 
 == Description ==
@@ -334,6 +334,12 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.19.0 =
+* Une facture déjà envoyée ne change plus toute seule. Jusqu'ici, modifier un tarif ou passer un enfant en « cantine sans repas » puis régénérer réécrivait les factures passées, y compris celles déjà reçues par les familles — sans que rien ne le signale. Le calcul qui a produit une facture (lignes, tarifs appliqués, statut de chaque enfant) est désormais conservé avec elle. Régénérer une facture envoyée dont rien n'a changé ne touche plus à rien ; si le montant change, la version reçue par la famille est archivée telle quelle, PDF compris, et la nouvelle repart « à envoyer » sous un numéro distinct (suffixe -R2).
+* La suppression d'une famille depuis Familles ne détruit plus ses factures. Elle suit la même règle que l'effacement RGPD : les pièces comptables sont conservées et la fiche est anonymisée à la place, pour qu'aucune facture ne se retrouve rattachée à un dossier disparu. Une famille sans facture reste supprimée entièrement.
+* Ajoute une fiche de recette de l'hébergement à la documentation : ce qu'il faut constater sur le serveur lui-même (inaccessibilité réelle des documents, cache, cron, sauvegardes, restauration), que le plugin ne peut pas vérifier depuis son propre code.
+* Met la documentation en accord avec le signalement alimentaire minimal introduit en 5.17.0.
 
 = 5.18.0 =
 * Finalise les protections techniques P1-13, P1-14, P1-15 et P1-17 : uploads avec reprise, horloge de verrou cohérente, export sans repas aligné et migrations protégées contre les conflits/concurrences.
