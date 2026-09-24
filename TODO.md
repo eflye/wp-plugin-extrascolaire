@@ -351,13 +351,26 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** faux PDF/image, fichier vide, dépassement, erreur d’upload et contenu malformé refusés sans détruire l’ancien justificatif. **Développement ; M.**
 
-### P2-04 — Rendre fiables les envois et leur statut
+### P2-04 — TRAITÉ (après v5.21.0) — Rendre fiables les envois et leur statut
 
-- [ ] **Suivre les résultats par destinataire et permettre une reprise sans doublon.**
+- [x] **Suivre les résultats par destinataire et permettre une reprise sans doublon.**
 
 **Constaté :** `class-psc-menus.php:150` boucle synchroniquement et renseigne `sent_at` même si certains ou tous les envois échouent. `class-psc-admin-invoices.php` affiche `sent_all` après une boucle dont les retours ne sont pas exploités. `approve_request()` contient une notification d’allergie avant COMMIT, malgré la séparation annoncée des effets externes. La commande fournisseur envoie puis écrit son historique, sans reprise durable en cas d’échec SQL.
 
 **À faire :** file d’envoi avec états et reprise ; identifiants d’idempotence ; notifications après commit ; distinction accepté par SMTP / délivré. Limiter les pièces personnelles dans les messages selon P1-06.
+
+**Traité le 24/09/2026 (schéma validé avant implémentation) :**
+- **Table `psc_envois` :** une ligne par envoi unitaire (objet, destinataire, lot), réservée avant le moindre mail sous une clé d’idempotence unique. États `a_envoyer`, `accepte` ou `echec`, avec le nombre de tentatives et une cause sans donnée personnelle. Aucune adresse n’est stockée : elle est relue à l’envoi. Clé étrangère vers le foyer (cascade), CHECK sur l’état. Chaque clic d’envoi forme un lot : un double clic ou une relance ne renvoient rien de ce qui est accepté, un « Renvoyer » volontaire ouvre un nouveau lot.
+- **`Psc_Envois` :** réclamation par verrou optimiste, résultat enregistré ligne par ligne, bilan exact, relance manuelle des seuls échecs. Une tâche planifiée (15 min) reprend les envois restés en attente, après une coupure ou une requête interrompue.
+- **Menus :** marqués « envoyé » seulement quand tout le lot est accepté (reprise planifiée comprise). L’écran affiche le bilan et un bouton « Relancer les échecs ».
+- **Factures :** l’envoi groupé rend un bilan exact au lieu de « toutes envoyées », et l’écran signale l’échec du dernier envoi. Si la datation échoue après un mail accepté, la facture n’est pas renvoyée en double.
+- **Commande fournisseur :** enregistrée avant l’envoi (`sent_at` NULL). Un enregistrement impossible ne laisse rien partir ; un mail refusé laisse la commande dans l’historique, en échec, relançable sans nouveau calcul.
+- **Hors du plugin :** « accepté » signifie confié au serveur d’envoi, pas délivré. Savoir si un message est arrivé demanderait de traiter les retours de la messagerie.
+- **Alerte alimentation avant COMMIT :** déjà corrigé en P2-02.
+
+**Preuve :** `bin/verify-envois.php`, lancé en CI (28 vérifications, serveur d’envoi simulé). Il couvre l’échec partiel, la double soumission, la relance des seuls échecs, la coupure totale, la reprise d’un envoi interrompu, la facture en double soumission, le renvoi volontaire, la datation en échec et le PDF manquant. Côté fournisseur : enregistrement impossible, mail refusé, double soumission et relance ; enfin, aucune adresse dans les causes. Vérifié par mutation : 5 cas échouent quand on retire l’idempotence ou la condition « tout accepté ». `tests/envois.spec.ts` montre l’échec, relance depuis le navigateur et passe axe sur les trois écrans. Le contraste d’un en-tête de l’écran fournisseur a été corrigé à cette occasion.
+
+**Reste (même mécanisme) :** faire passer les autres envois groupés (fermeture d’un jour, annulation de la cantine d’une classe) par `psc_envois`.
 
 **Acceptation :** coupure SMTP/timeout/échec de persistance → bilan exact, relance des seuls échecs, aucun succès fictif ni notification d’une opération annulée. **Développement + messagerie ; M/L.**
 
