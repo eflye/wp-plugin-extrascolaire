@@ -51,6 +51,48 @@ class Psc_Parents {
         ));
     }
 
+    /**
+     * Verrou d'identité : sérialise « vérifier qu'une adresse est libre,
+     * puis l'écrire » entre toutes les requêtes. Sans lui, deux écritures
+     * concurrentes (création d'un foyer, ajout d'un second parent,
+     * changement d'adresse) vérifiaient chacune une adresse encore libre
+     * avant de l'enregistrer toutes les deux. Verrou nommé MySQL : il ne
+     * dépend pas des transactions en cours et se libère avec la connexion.
+     */
+    public static function identity_lock() {
+        global $wpdb;
+        $timeout = max(1, (int) apply_filters('psc_identity_lock_timeout', 10));
+        return (int) $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, %d)', self::identity_lock_name(), $timeout)) === 1;
+    }
+
+    public static function identity_unlock() {
+        global $wpdb;
+        $wpdb->query($wpdb->prepare('SELECT RELEASE_LOCK(%s)', self::identity_lock_name()));
+    }
+
+    private static function identity_lock_name() {
+        global $wpdb;
+        return 'psc_identity_' . substr(md5($wpdb->dbname . '|' . $wpdb->prefix), 0, 16);
+    }
+
+    /**
+     * Une adresse est-elle déjà l'identité d'un autre foyer — titulaire ou
+     * second parent, actif ou non ? Lecture verrouillante : elle voit le
+     * dernier état validé même depuis une transaction ouverte plus tôt
+     * (Psc_Requests::approve_request()), là où une lecture ordinaire
+     * relirait son instantané. À appeler sous identity_lock().
+     */
+    public static function email_in_use($email, $except_parent_id = 0) {
+        global $wpdb;
+        $email = strtolower(trim((string) $email));
+        if ($email === '') return false;
+        $t = psc_table('parents');
+        return (bool) $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $t WHERE (email = %s OR second_parent_email = %s) AND id <> %d LIMIT 1 LOCK IN SHARE MODE",
+            $email, $email, (int) $except_parent_id
+        ));
+    }
+
     public static function get_by_id($id) {
         global $wpdb;
         $id = absint($id);
@@ -307,14 +349,15 @@ class Psc_Parents {
             exit;
         }
 
-        // Ré-vérifie l'unicité au moment de la bascule : une autre famille
-        // a pu prendre l'adresse entre la demande et le clic sur le lien.
-        if (self::get_by_email($parent->pending_email)) {
+        // Ré-vérifie l'unicité au moment de la bascule, sous le verrou
+        // d'identité : une autre famille a pu prendre l'adresse entre la
+        // demande et le clic sur le lien, ou la prendre en même temps.
+        if (!self::identity_lock()) {
             wp_safe_redirect(add_query_arg('psc_msg', 'email_taken', $redirect));
             exit;
         }
-
-        $wpdb->update(
+        $taken = self::email_in_use($parent->pending_email, (int) $parent->id);
+        $switched = $taken ? false : $wpdb->update(
             psc_table('parents'),
             array(
                 'email'                       => $parent->pending_email,
@@ -326,6 +369,11 @@ class Psc_Parents {
             array('%s', '%s', '%s', '%s'),
             array('%d')
         );
+        self::identity_unlock();
+        if ($taken || false === $switched) {
+            wp_safe_redirect(add_query_arg('psc_msg', 'email_taken', $redirect));
+            exit;
+        }
 
         // Changement d'identité d'accès : l'ancienne adresse peut encore
         // détenir un lien de connexion valable, et les sessions ouvertes
@@ -582,8 +630,26 @@ class Psc_Parents {
         if (!is_email($email)) {
             return new WP_Error('psc_bad_email', __('Adresse e-mail invalide.', 'periscolaire-registration'));
         }
-        if (self::get_by_email($email)) {
+        if (!self::identity_lock()) {
+            return new WP_Error('psc_identity_busy', __('Enregistrement momentanément impossible, merci de réessayer.', 'periscolaire-registration'));
+        }
+        try {
+            return self::insert_family($email, $nom, $extra);
+        } finally {
+            self::identity_unlock();
+        }
+    }
+
+    /** Corps de create(), exécuté sous le verrou d'identité. */
+    private static function insert_family($email, $nom, $extra) {
+        global $wpdb;
+
+        if (self::email_in_use($email)) {
             return new WP_Error('psc_exists', __('Cette adresse est déjà enregistrée.', 'periscolaire-registration'));
+        }
+        $second_email = strtolower(trim((string) ($extra['second_parent_email'] ?? '')));
+        if ($second_email !== '' && ($second_email === $email || self::email_in_use($second_email))) {
+            return new WP_Error('psc_second_parent_email_taken', __('Cette adresse e-mail est déjà utilisée par un autre foyer.', 'periscolaire-registration'));
         }
 
         $payment_mode = ($extra['payment_mode'] ?? '') === 'prelevement' ? 'prelevement' : 'autre';
@@ -619,7 +685,7 @@ class Psc_Parents {
             // format — mêmes conventions que sepa_iban/sepa_bic ci-dessus.
             'second_parent_prenom'       => mb_substr(sanitize_text_field($extra['second_parent_prenom'] ?? ''), 0, 190) ?: null,
             'second_parent_nom'          => mb_substr(sanitize_text_field($extra['second_parent_nom'] ?? ''), 0, 190) ?: null,
-            'second_parent_email'        => $extra['second_parent_email'] ?? null,
+            'second_parent_email'        => $second_email !== '' ? $second_email : null,
             'second_parent_telephone'    => $extra['second_parent_telephone'] ?? null,
             // Laisser à null (défaut) déclenche la popin de découverte à la
             // première connexion, cf. Psc_Frontend_Profil::handle_parent_dismiss_onboarding()
@@ -656,6 +722,23 @@ class Psc_Parents {
     }
 
     public static function update($parent_id, $data) {
+        // L'adresse du second parent est une identité de connexion :
+        // vérification et écriture sous le verrou d'identité.
+        if (!array_key_exists('second_parent_email', (array) $data)) {
+            return self::write_update($parent_id, $data);
+        }
+        if (!self::identity_lock()) {
+            return new WP_Error('psc_identity_busy', __('Enregistrement momentanément impossible, merci de réessayer.', 'periscolaire-registration'));
+        }
+        try {
+            return self::write_update($parent_id, $data);
+        } finally {
+            self::identity_unlock();
+        }
+    }
+
+    /** Corps de update() ; sous le verrou d'identité quand l'adresse du second parent change. */
+    private static function write_update($parent_id, $data) {
         global $wpdb;
         $parent_id = absint($parent_id);
         if (!$parent_id) return false;
@@ -720,11 +803,8 @@ class Psc_Parents {
             // get_by_email()) : elle doit rester unique tous foyers
             // confondus, sinon une même adresse pointerait vers deux
             // comptes différents selon qui se connecte le premier.
-            if ($normalized_email !== '') {
-                $existing = self::get_by_email($normalized_email);
-                if ($existing && (int) $existing->id !== $parent_id) {
-                    return new WP_Error('psc_second_parent_email_taken', __('Cette adresse e-mail est déjà utilisée par un autre foyer.', 'periscolaire-registration'));
-                }
+            if ($normalized_email !== '' && self::email_in_use($normalized_email, $parent_id)) {
+                return new WP_Error('psc_second_parent_email_taken', __('Cette adresse e-mail est déjà utilisée par un autre foyer.', 'periscolaire-registration'));
             }
             $set['second_parent_email'] = $normalized_email !== '' ? $normalized_email : null;
             $formats[] = '%s';

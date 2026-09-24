@@ -404,7 +404,7 @@ class Psc_Installer {
     private static function store_constraints_state() {
         update_option(
             'psc_constraints_missing',
-            array_merge(self::ensure_foreign_keys(), self::ensure_service_constraint()),
+            array_merge(self::ensure_foreign_keys(), self::ensure_service_constraint(), self::ensure_second_parent_email_unique()),
             false
         );
     }
@@ -462,6 +462,60 @@ class Psc_Installer {
         }
 
         return $missing;
+    }
+
+    /**
+     * Rend l'adresse du second parent unique entre foyers.
+     *
+     * Le second parent se connecte avec cette adresse (cf.
+     * Psc_Parents::get_by_email()) : partagée par deux foyers, elle
+     * ouvrirait l'un ou l'autre selon l'ordre de lecture. L'unicité ne
+     * reposait que sur une lecture préalable, qu'une écriture concurrente
+     * pouvait devancer. L'index ne couvre qu'une colonne ; le croisement
+     * avec l'adresse du titulaire d'un AUTRE foyer reste garanti par le
+     * verrou d'identité de Psc_Parents, qui sérialise vérification et
+     * écriture.
+     *
+     * Hors dbDelta(), comme les clés étrangères : sur une base qui porte
+     * déjà un doublon, l'index ne peut pas être posé ; l'alerte admin le
+     * signale et la pose est retentée à chaque écran admin. La collation
+     * de la table est insensible à la casse : l'index l'est aussi.
+     */
+    private static function ensure_second_parent_email_unique() {
+        global $wpdb;
+
+        $t = psc_table('parents');
+        if (!self::table_exists($t)) return array();
+
+        $exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM information_schema.STATISTICS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND INDEX_NAME = 'second_parent_email'",
+            $t
+        ));
+        if ((int) $exists > 0) return array();
+
+        // Une adresse vide n'est pas une adresse : NULL, que l'index
+        // autorise en plusieurs exemplaires.
+        $wpdb->query("UPDATE $t SET second_parent_email = NULL WHERE second_parent_email IS NOT NULL AND TRIM(second_parent_email) = ''");
+
+        $duplicates = $wpdb->get_var(
+            "SELECT COUNT(*) FROM (
+                 SELECT second_parent_email FROM $t
+                 WHERE second_parent_email IS NOT NULL
+                 GROUP BY second_parent_email HAVING COUNT(*) > 1
+             ) d"
+        );
+        if ((int) $duplicates > 0) {
+            return array(array('type' => 'unique', 'table' => 'parents', 'column' => 'second_parent_email', 'reason' => 'dirty'));
+        }
+
+        $wpdb->suppress_errors(true);
+        $altered = $wpdb->query("ALTER TABLE $t ADD UNIQUE KEY second_parent_email (second_parent_email)");
+        $wpdb->suppress_errors(false);
+        if ($altered === false) {
+            return array(array('type' => 'unique', 'table' => 'parents', 'column' => 'second_parent_email'));
+        }
+        return array();
     }
 
     /**
