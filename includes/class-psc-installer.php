@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.13.0';
+    const DB_VERSION = '4.14.0';
     const ROLES_VERSION = '1.5.0';
 
     public static function activate() {
@@ -108,6 +108,9 @@ class Psc_Installer {
             }
             if ($current && version_compare($current, '4.0.0', '<')) {
                 self::migrate_4_0_0();
+            }
+            if ($current && version_compare($current, '4.14.0', '<')) {
+                self::migrate_4_14_0();
             }
 
             // Deuxième passe dbDelta, après les migrations. Celles-ci
@@ -319,6 +322,26 @@ class Psc_Installer {
      * table existe. Un nettoyage (DROP des trois tables) pourra être proposé
      * après un cycle de facturation sans anomalies.
      */
+    /**
+     * 4.14.0 — une commande fournisseur est enregistrée AVANT son envoi
+     * (cf. Psc_Supplier_Orders::send()) : sent_at reste NULL tant que le
+     * mail n'est pas accepté. dbDelta() ne sait pas relâcher un NOT NULL,
+     * d'où cet ALTER explicite, idempotent.
+     */
+    private static function migrate_4_14_0() {
+        global $wpdb;
+        $t = psc_table('supplier_orders');
+        if (!self::table_exists($t)) return;
+        $nullable = $wpdb->get_var($wpdb->prepare(
+            "SELECT IS_NULLABLE FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = 'sent_at'",
+            $t
+        ));
+        if ($nullable === 'NO') {
+            $wpdb->query("ALTER TABLE $t MODIFY sent_at DATETIME NULL");
+        }
+    }
+
     private static function migrate_4_0_0() {
         global $wpdb;
 
@@ -389,6 +412,7 @@ class Psc_Installer {
             array('pattern',            'child_id',       'children',     'CASCADE'),
             array('exception',          'child_id',       'children',     'CASCADE'),
             array('child_school_years', 'school_year_id', 'school_years', 'CASCADE'),
+            array('envois',             'famille_id',     'parents',      'CASCADE'),
         );
     }
 
@@ -404,7 +428,7 @@ class Psc_Installer {
     private static function store_constraints_state() {
         update_option(
             'psc_constraints_missing',
-            array_merge(self::ensure_foreign_keys(), self::ensure_service_constraint(), self::ensure_second_parent_email_unique()),
+            array_merge(self::ensure_foreign_keys(), self::ensure_service_constraint(), self::ensure_second_parent_email_unique(), self::ensure_envois_status_constraint()),
             false
         );
     }
@@ -462,6 +486,34 @@ class Psc_Installer {
         }
 
         return $missing;
+    }
+
+    /**
+     * Restreint envois.statut aux états du cycle d'envoi (cf. Psc_Envois).
+     * Même raison que ensure_service_constraint() : CHECK plutôt qu'ENUM,
+     * que le mode SQL de WordPress remplacerait silencieusement par ''.
+     */
+    private static function ensure_envois_status_constraint() {
+        global $wpdb;
+
+        $t = psc_table('envois');
+        if (!self::table_exists($t)) return array();
+        $name = substr($t . '_statut_chk', -64);
+
+        $exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM information_schema.CHECK_CONSTRAINTS
+             WHERE CONSTRAINT_SCHEMA = DATABASE() AND CONSTRAINT_NAME = %s",
+            $name
+        ));
+        if ((int) $exists > 0) return array();
+
+        $wpdb->suppress_errors(true);
+        $altered = $wpdb->query("ALTER TABLE $t ADD CONSTRAINT `$name` CHECK (statut IN ('a_envoyer','accepte','echec'))");
+        $wpdb->suppress_errors(false);
+        if ($altered === false) {
+            return array(array('type' => 'check', 'table' => 'envois', 'column' => 'statut', 'reason' => 'refused'));
+        }
+        return array();
     }
 
     /**
@@ -1018,6 +1070,7 @@ class Psc_Installer {
         $t_menu  = psc_table('menus');
         $t_sch   = psc_table('school_calendar');
         $t_sup   = psc_table('supplier_orders');
+        $t_env   = psc_table('envois');
         $t_years  = psc_table('school_years');
         $t_cy     = psc_table('child_school_years');
         $t_pickup = psc_table('pickup_persons');
@@ -1279,9 +1332,29 @@ CREATE TABLE $t_sup (
             supplier_email VARCHAR(191) NOT NULL,
             email_subject VARCHAR(255) NOT NULL,
             email_body LONGTEXT NOT NULL,
-            sent_at DATETIME NOT NULL,
+            sent_at DATETIME NULL,
             PRIMARY KEY  (id),
             KEY semaine (semaine_debut)
+        ) $charset_collate;
+
+CREATE TABLE $t_env (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            objet_type VARCHAR(30) NOT NULL,
+            objet_id BIGINT UNSIGNED NOT NULL,
+            lot VARCHAR(40) NOT NULL,
+            famille_id BIGINT UNSIGNED NULL,
+            cle VARCHAR(191) NOT NULL,
+            statut VARCHAR(20) NOT NULL DEFAULT 'a_envoyer',
+            tentatives SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            erreur VARCHAR(191) NULL,
+            accepte_at DATETIME NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY cle (cle),
+            KEY objet_statut (objet_type, objet_id, statut),
+            KEY objet_lot (objet_type, objet_id, lot),
+            KEY famille_id (famille_id)
         ) $charset_collate;
 
 CREATE TABLE $t_pickup (

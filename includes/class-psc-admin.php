@@ -499,6 +499,10 @@ class Psc_Admin extends Psc_Admin_Base {
                 : __('Unicité de l’e-mail du second parent entre foyers.', 'periscolaire-registration');
         }
 
+        if ($type === 'check' && isset($constraint['table']) && $constraint['table'] === 'envois') {
+            return __('Contrainte CHECK sur envois.statut (états d’envoi autorisés).', 'periscolaire-registration');
+        }
+
         if ($type === 'check' && isset($constraint['reason']) && $constraint['reason'] === 'dirty') {
             return __('Contrainte CHECK sur registrations.service : des lignes portent une prestation inconnue de la liste actuelle, à corriger avant la pose.', 'periscolaire-registration');
         }
