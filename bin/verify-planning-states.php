@@ -73,10 +73,12 @@ WP_CLI::add_command('verify-planning-states', function () {
     $end = new DateTime($year->date_end);
     while ($cursor <= $end && $ym === null) {
         $candidate = $cursor->format('Y-m');
-        // Jours du mois compris dans l'année : school_days_in_month() ne
-        // borne pas par les dates de l'année scolaire.
+        // Jours du mois compris dans l'année (school_days_in_month() ne
+        // borne pas par les dates de l'année scolaire) et encore
+        // modifiables : sur un jour verrouillé, toggle_pattern() fige
+        // l'état antérieur en exception — voulu, mais hors sujet ici.
         $days = array_values(array_filter(Psc_School_Year::school_days_in_month($candidate), function ($d) use ($year) {
-            return $d >= $year->date_start && $d <= $year->date_end;
+            return $d >= $year->date_start && $d <= $year->date_end && !psc_is_locked($d);
         }));
         $m = array_values(array_filter($days, function ($d) { return date('N', strtotime($d)) === '1'; }));
         $t = array_values(array_filter($days, function ($d) { return date('N', strtotime($d)) === '2'; }));
