@@ -335,13 +335,19 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** deux validations/clics concurrents, échec d’une requête intermédiaire → aucune famille dupliquée, aucun rythme partiellement détruit, réponse fidèle à l’état enregistré. **Développement ; L.**
 
-### P2-03 — Valider le contenu des justificatifs, pas seulement leur extension
+### P2-03 — TRAITÉ (après v5.21.0) — Valider le contenu des justificatifs, pas seulement leur extension
 
-- [ ] **Renforcer la validation MIME/contenu et la gestion des fichiers non fiables.**
+- [x] **Renforcer la validation MIME/contenu et la gestion des fichiers non fiables.**
 
 **Constaté :** `class-psc-assurances.php:121` contrôle l’erreur d’upload, la taille déclarée et `wp_check_filetype()` sur le **nom**. Un fichier renommé `.pdf` n’est pas pour autant un PDF valide. Le stockage privé, le contrôle d’accès et `nosniff` existent ; aucune exécution de code par upload n’est démontrée ici.
 
 **À faire :** vérifier taille réelle, MIME/signature, cohérence extension/type ; traiter le PDF comme contenu non fiable ; évaluer analyse antivirus et téléchargement en pièce jointe selon le risque. Appliquer la même validation aux demandes en attente.
+
+**Traité le 24/09/2026 :** `psc_validate_document_file()` juge le fichier reçu, avant tout déplacement : taille réelle sur disque, signature binaire (en-tête et marqueur de fin : un fichier tronqué est refusé), type détecté par fileinfo, cohérence avec l’extension annoncée, images décodables par `getimagesize()`. Les PDF sont traités comme contenu non fiable : refus s’ils déclarent du JavaScript, une action de lancement ou des fichiers embarqués ; les formulaires XFA restent admis, car des attestations d’assureurs en portent. Cette recherche ne voit pas un marqueur caché dans un flux compressé : le stockage privé, le contrôle d’accès et `nosniff` restent les défenses en aval. Appliqué aux justificatifs d’assurance (portail, ajout d’enfant, réinscription), aux pièces jointes des conversations et à la promotion des justificatifs en attente, qui reste en zone d’attente en cas de refus. Même code d’erreur `invalid_type` et même message qu’avant : aucun écran modifié.
+
+**Antivirus et téléchargement :** pas d’analyse antivirus embarquée, faute d’analyseur disponible sur un hébergement mutualisé. Le filtre `psc_document_scan` permet d’en brancher un (renvoyer false refuse le fichier). Les documents restent affichés dans le navigateur plutôt que téléchargés en pièce jointe : la mairie les consulte dans l’écran de revue, et forcer le téléchargement n’ajouterait rien une fois le contenu actif refusé.
+
+**Preuve :** `bin/verify-document-validation.php`, lancé en CI (28 vérifications sur de vrais fichiers). Documents valides acceptés ; faux PDF, image renommée, PDF renommé en image, fichier tronqué, image indécodable, PDF avec JavaScript ou fichier embarqué, extension non acceptée, fichier vide, dépassement réel ou taille déclarée mensongère, erreurs d’upload refusés. Il vérifie aussi que l’ancien justificatif est conservé, que la pièce en attente invalide n’est pas rattachée, que les pièces jointes suivent la même règle et que le filtre antivirus est respecté. Vérifié par mutation : sans le contrôle du contenu, 12 cas échouent. De bout en bout, `tests/assurance-review.spec.ts` dépose un faux PDF depuis le portail : message d’erreur affiché, document et décision précédents intacts. Il remplace `tests/integration/assurance-upload-validation.php`.
 
 **Acceptation :** faux PDF/image, fichier vide, dépassement, erreur d’upload et contenu malformé refusés sans détruire l’ancien justificatif. **Développement ; M.**
 
