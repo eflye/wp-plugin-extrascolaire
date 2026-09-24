@@ -71,26 +71,53 @@ class Psc_Pickup_Persons {
      * toujours lue à la demande, jamais une copie figée à l'inscription.
      */
     public static function authorized_for_child($child_id) {
-        global $wpdb;
         $child_id = absint($child_id);
         if (!$child_id) return array();
+        $lists = self::authorized_for_children(array($child_id));
+        return $lists[$child_id] ?? array();
+    }
 
-        $list = array();
+    /**
+     * authorized_for_child() pour une liste d'enfants, en trois requêtes
+     * quel que soit leur nombre (enfants, foyers, tiers) : l'écran SIDSCM
+     * en faisait trois PAR enfant attendu à la garderie du soir.
+     * Retour : [child_id => liste], même forme et même ordre.
+     */
+    public static function authorized_for_children(array $child_ids) {
+        global $wpdb;
+        $child_ids = array_values(array_unique(array_filter(array_map('intval', $child_ids))));
+        $out = array_fill_keys($child_ids, array());
+        if (!$child_ids) return $out;
+        $ph = implode(',', array_fill(0, count($child_ids), '%d'));
 
-        $parent_id = $wpdb->get_var($wpdb->prepare(
-            'SELECT parent_id FROM ' . psc_table('children') . ' WHERE id = %d', $child_id
+        $children = $wpdb->get_results($wpdb->prepare(
+            'SELECT id, parent_id FROM ' . psc_table('children') . " WHERE id IN ($ph)", $child_ids
         ));
-        if ($parent_id) {
-            $parent = $wpdb->get_row($wpdb->prepare(
-                'SELECT * FROM ' . psc_table('parents') . ' WHERE id = %d', $parent_id
-            ));
-            if ($parent) {
-                $list = array_merge($list, self::parent_entries($parent));
+        $parent_of = array();
+        foreach ((array) $children as $c) $parent_of[(int) $c->id] = (int) $c->parent_id;
+
+        $parent_ids = array_values(array_unique(array_filter($parent_of)));
+        $parents = array();
+        if ($parent_ids) {
+            $pph = implode(',', array_fill(0, count($parent_ids), '%d'));
+            foreach ((array) $wpdb->get_results($wpdb->prepare('SELECT * FROM ' . psc_table('parents') . " WHERE id IN ($pph)", $parent_ids)) as $p) {
+                $parents[(int) $p->id] = $p;
             }
         }
 
-        foreach (self::for_child($child_id) as $p) {
-            $list[] = array(
+        $thirds = $wpdb->get_results($wpdb->prepare(
+            'SELECT * FROM ' . psc_table('pickup_persons') . " WHERE child_id IN ($ph) AND statut = 'active' ORDER BY nom, prenom",
+            $child_ids
+        ));
+
+        foreach ($child_ids as $cid) {
+            $pid = $parent_of[$cid] ?? 0;
+            if ($pid && isset($parents[$pid])) {
+                $out[$cid] = self::parent_entries($parents[$pid]);
+            }
+        }
+        foreach ((array) $thirds as $p) {
+            $out[(int) $p->child_id][] = array(
                 'role'      => $p->lien !== '' ? $p->lien : 'Autre',
                 'prenom'    => $p->prenom,
                 'nom'       => $p->nom,
@@ -99,8 +126,7 @@ class Psc_Pickup_Persons {
                 'id'        => (int) $p->id,
             );
         }
-
-        return $list;
+        return $out;
     }
 
     public static function get($id) {
