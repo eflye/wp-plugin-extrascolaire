@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 5.21.0
+Stable tag: 5.22.0
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,13 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.22.0 =
+* Les justificatifs d'assurance et les pièces jointes sont désormais vérifiés sur leur contenu, et plus seulement sur leur nom : un fichier renommé « .pdf », tronqué ou illisible est refusé, tout comme un PDF contenant du JavaScript ou des fichiers cachés. Le message reste « Format de fichier non accepté (PDF, JPG ou PNG uniquement) », et l'ancien justificatif n'est jamais effacé par un dépôt refusé.
+* Les envois de menus, de factures et de commandes fournisseur sont suivis destinataire par destinataire. Un menu n'est marqué « envoyé » que si toutes les familles l'ont reçu ; sinon l'écran indique combien d'envois ont échoué et propose de relancer ces seuls échecs. L'envoi groupé des factures donne un bilan exact au lieu d'annoncer « toutes envoyées ». Un double clic ne renvoie jamais un mail déjà parti.
+* La commande fournisseur est enregistrée avant d'être envoyée : si l'envoi échoue, elle reste dans l'historique, marquée en échec, avec un bouton pour la relancer à l'identique.
+* Toutes les 15 minutes, une tâche planifiée reprend les envois restés en attente, par exemple après une coupure du serveur de messagerie. Vérifiez que les tâches planifiées de WordPress fonctionnent sur le serveur, sinon cette reprise n'aura pas lieu.
+* Meilleur contraste pour l'en-tête « Repas de midi » de la commande fournisseur.
 
 = 5.21.0 =
 * L'heure limite de modification affichée aux familles est de nouveau exacte. Le message « Modifiable jusqu'au… » annonçait une échéance une heure trop tôt en hiver et deux en été ; il indique désormais l'instant réellement contrôlé. Les week-ends de changement d'heure, cette échéance peut tomber à 23:00 ou 01:00 plutôt qu'à minuit : c'est bien l'heure à laquelle le jour se verrouille.
