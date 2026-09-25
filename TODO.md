@@ -600,13 +600,23 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** chaque règle possède une définition et des tests partagés ; ajout d’un tarif ou profil répercuté sur tous les canaux. **Développement ; L.**
 
-### P3-02 — Mettre la documentation en accord avec le mode de déploiement réel
+### P3-02 — TRAITÉ (après v5.24.0) — Mettre la documentation en accord avec le mode de déploiement réel
 
-- [ ] **Distinguer laptop Podman, tests jetables et installation distante par ZIP.**
+- [x] **Distinguer laptop Podman, tests jetables et installation distante par ZIP.**
 
 **Constaté :** guide d’auto-hébergement orienté Compose et anciens trimestres ; commentaires historiques sur stockage hors racine, forfaits, calendrier et cron parfois obsolètes ; README déjà en cours de modification avant cet audit.
 
 **À faire :** procédure ZIP incluant sauvegarde préalable, contrôle de version, migrations, reprise et recette ; guide local distinct ; documentation des données et droits ; ne pas affirmer « conforme RGPD » sur la seule présence de chiffrement ou de suppression à la désinstallation.
+
+**Traité le 25/09/2026 :**
+- **Production :** nouvelle page [Déployer une nouvelle version](documentation/installation/deploiement-zip.md). Elle couvre l'archive à prendre (et le thème, facultatif), la vérification `SHA256SUMS`, ce qui ne doit jamais aller sur le serveur (`mu-plugins/`, `.env`, `docker-compose*.yml`, `bin/`, `wp-config.php` de développement, mode debug des factures), la sauvegarde préalable, le relevé de `psc_db_version`, l'installation (WordPress ou WP-CLI), la mise à jour du schéma et ses alertes, une recette de dix minutes, et le retour arrière : l'archive seule si le schéma est inchangé, sinon restauration base et documents.
+- « Sauvegarde et mise à jour » est recentrée sur la sauvegarde et la restauration. Elle ne cite plus `bin/verify-database-backup.sh`, outil de développement absent du serveur. « Installation et activation » ne propose plus de copier le dossier du plugin.
+- **Développement :** `docs/developpement-local.md` distingue poste Podman, instance de test et production. Il couvre la pile, les mu-plugins de développement, les pièges connus, la réinitialisation, les tests, les scripts `verify-*` sous `www-data`, la base jetable pour `verify-migrations` (destructif) et la publication.
+- `docs/self-hosting-docker.md` est signalé comme instance de test, pas comme procédure de production.
+- **README :** badge de version dynamique (il affichait 5.10.1), installation par archive vérifiée, menu **Année scolaire** renommé, liens vers le déploiement, la recette d'hébergement et le guide développeur. Aucune affirmation de conformité au RGPD.
+- Commentaire obsolète corrigé : chemin des justificatifs relatif au répertoire privé, et non plus à `uploads`.
+
+**Reste :** aucune page ne documente l'écran des intervenants (SIDSCM), lié à P1-01 mis de côté.
 
 **Acceptation :** un exploitant suit la procédure adaptée au serveur distant sans copier les secrets, archives ou réglages de développement ; README relu après arbitrage des fonctionnalités. **Développement + exploitation ; S/M.**
 
