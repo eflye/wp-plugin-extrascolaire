@@ -2,9 +2,48 @@
 
 **Date : 6 septembre 2026 — Extension v5.4.1 — Référence : `39e657a`.**
 
-**Statut : liste arbitrée et en cours de traitement.** Mise à jour le **17 septembre 2026** après la publication de la documentation et l’ajout de la messagerie, du journal d’audit, de la rétention et des outils de confidentialité. Les cases cochées portent la preuve de test correspondante (E2E ou sonde) ; les éléments marqués « partiellement avancé » ne sont pas considérés comme terminés tant que leur critère d’acceptation n’est pas rempli. Les tickets d’hébergement et DPO restent ouverts.
+**Statut : liste arbitrée et en cours de traitement.** Mise à jour le **25 septembre 2026** (extension **v5.28.0**) : voir [Avancement](#avancement-au-25-septembre-2026) ci-dessous. Les cases cochées portent la preuve de test correspondante (E2E ou sonde) ; les éléments marqués « partiellement avancé » ne sont pas considérés comme terminés tant que leur critère d’acceptation n’est pas rempli. Les tickets d’hébergement et DPO restent ouverts.
 
-**État P1 après cette mise à jour :** P1-03 et P1-05 restent traités ; P1-02 est traité techniquement (24/09/2026), la revue des comptes restant à faire ; P1-12 est traité techniquement mais nécessite encore sa validation opérationnelle ; P1-06, P1-07, P1-08, P1-09 et P1-11 sont partiellement avancés ; les autres P1 restent ouverts.
+**État au 25/09/2026 :**
+- **P0 :** traités.
+- **P1 traités :** P1-03, P1-05, P1-13, P1-14 et P1-17.
+- **P1 traités techniquement, avec une validation opérationnelle encore à faire :**
+  - P1-02 : revue des comptes ;
+  - P1-12 : la clé est à sortir de la base sur le serveur distant.
+- **P1 partiellement avancés :** P1-06, P1-07, P1-08, P1-09, P1-11, P1-15 et P1-16.
+- **P1 mis de côté à la demande :** P1-01.
+- **P1 ouverts, côté hébergement ou DPO :** P1-04, P1-10 et P1-18.
+- **P2 :** tous traités, sauf P2-06 (volet polices du thème et inventaire du site réel) et P2-14.
+- **P3 :** P3-02 est traité ; P3-01 reste ouvert.
+
+## Avancement au 25 septembre 2026
+
+### Versions publiées depuis l'arbitrage
+
+| Version | Contenu |
+| --- | --- |
+| 5.19.0 à 5.22.0 | P2-11 (release conditionnée aux contrôles), P1-02, P1-14, P2-01 à P2-05, P2-07, P2-09, P2-10, P2-12, P2-13, P2-15 |
+| 5.23.0 / 5.23.1 | Documentation mise à jour et scindée (mairie / familles), lien vers le guide des familles dans le portail |
+| 5.24.0 | Rubrique **Confidentialité** paramétrable (P1-07, volet technique) |
+| 5.25.0 | Suppression protégée des factures envoyées, mode debug par WP-CLI (P1-16) ; P1-13 ; P1-17 ; P3-02 |
+| 5.26.0 | P2-08 : une seule table d'année (schéma 4.15.0), statut de l'enfant par année, retrait de réinscription, rétention |
+| 5.27.0 | Clé des IBAN : constat qu'elle vivait en base, commande `wp psc chiffrement` (P1-12), notes de mise à jour |
+| 5.28.0 | Page **Périscolaire › Maintenance** (mise à jour conduite depuis le backoffice, sans WP-CLI), clé en variable d'environnement, registre d'audit complété et contrôlé en CI |
+
+### Reste à faire
+
+| Bloc | Ce qui reste | Qui débloque |
+| --- | --- | --- |
+| **Serveur distant** | Passer de 5.23.1 à 5.28.0 selon les notes de mise à jour, sortir la clé des IBAN de la base, dérouler la fiche de recette (P1-04, P1-12, P1-18) | Exploitation |
+| P2-06 | Polices du thème à héberger localement ; inventaire des ressources tierces du site réel | Développement, puis exploitation |
+| P1-11 | Couverture fine des actions sensibles, rotation du journal des téléchargements, alerte de panne | Développement, puis DPO pour la durée |
+| P1-16 | Montants en centimes, périodes d'effet des tarifs et du statut « sans repas » | Schéma à valider |
+| P2-14 | Version du règlement effectivement accepté | Schéma à valider, puis facturation |
+| P1-15 | Matrice unique de prestation facturable (FORF, CANT, MSR, FSR, retraits, fermetures) | Facturation |
+| P3-01 | Contrats entre vues et modèle métier | Développement, après P1-15 |
+| P1-06 à P1-10 | Notice relue, durées de conservation, procédure des droits, dossier de conformité et AIPD | DPO et mairie |
+| P1-01 | Permissions par fonction des intervenants | Mis de côté |
+| Documentation | Captures de l'écran **Année scolaire** à régénérer (formulaire sans libellé) | Développement |
 
 ## Périmètre et limites
 
@@ -96,7 +135,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 ## P1 — Sécurité, conformité et intégrité
 
-### P1-01 — Remplacer le secret partagé des intervenants SIDSCM
+### P1-01 — PARTIELLEMENT AVANCÉ — MIS DE CÔTÉ (24/09/2026) — Remplacer le secret partagé des intervenants SIDSCM
 
 - [x] **Mettre en place des accès intervenants individuels, limités et révocables.**
 
@@ -218,7 +257,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** reconstitution d’un incident fictif, auteurs identifiables, journal protégé et rétention appliquée, consultation elle-même limitée. Référence : [CNIL — tracer les opérations](https://www.cnil.fr/fr/securite-tracer-les-operations). **Développement + exploitation + DPO ; M/L.**
 
-### P1-12 — TRAITÉ TECHNIQUEMENT (v5.4.2/v5.4.3) — Validation opérationnelle encore ouverte — Interdire le repli bancaire silencieux en clair
+### P1-12 — TRAITÉ TECHNIQUEMENT (v5.4.2/v5.4.3, rotation en v5.27.0/v5.28.0) — Validation opérationnelle encore ouverte — Interdire le repli bancaire silencieux en clair
 
 - [x] **Faire échouer explicitement un enregistrement bancaire si le chiffrement est indisponible.**
 
@@ -283,7 +322,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** matrice FORF/CANT/MSR/FSR avec retraits et fermetures ; une seule facturation du créneau ; PDF, CSV et totaux cohérents ; récapitulatif intelligible. **Développement + facturation ; M.**
 
-### P1-16 — Figer les factures et historiser les paramètres influant sur le passé
+### P1-16 — PARTIELLEMENT AVANCÉ — Figer les factures et historiser les paramètres influant sur le passé
 
 - [ ] **Séparer brouillon recalculable, document émis et correction comptable.**
 
@@ -657,13 +696,15 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 - Comptage fournisseur agrégé, sans noms d’enfants dans le flux de commande examiné.
 - Helpers métier testables, lectures groupées, contraintes de base, tests E2E/migrations et contrôle du ZIP à la publication.
 
-## Ordre de travail proposé après lecture
+## Ordre de travail proposé
 
-1. **P0-01 et P0-02** : exactitude des allergies et de la présence midi ; contrôle des données déjà enregistrées avec la mairie.
-2. **Accès et confidentialité** : P1-01 à P1-05 et P1-11/P1-12 ; recette du serveur distant P1-18.
-3. **Intégrité métier** : P1-13 à P1-17, puis P2-01/P2-02/P2-08 ; tests associés avant chaque modification.
-4. **Conformité avec le DPO** : P1-06 à P1-10, en parallèle de la conception des correctifs ; aucune purge réelle avant validation des règles d’archives et de conservation.
-5. **Fiabilisation** : autres P2, puis P3. Traiter P2-11 avant le prochain tag si ce TODO est ajouté au dépôt suivi.
+L'ordre initial (P0, accès et confidentialité, intégrité métier, conformité, fiabilisation) est suivi. Les P0, l'essentiel des P1 techniques et les P2 sont faits. Pour la suite :
+
+1. **Serveur distant** : mise à jour vers 5.28.0 par **Périscolaire › Maintenance**, clé des IBAN hors de la base, fiche de recette (P1-04, P1-12, P1-18).
+2. **Développement autonome** : P2-06 (polices du thème), volet technique de P1-11.
+3. **Schéma à valider avant implémentation** : P1-16 (centimes, périodes d'effet), P2-14.
+4. **Facturation** : P1-15, puis P3-01.
+5. **Conformité avec le DPO et la mairie** : P1-06 à P1-10. Aucune purge réelle au-delà de celle des enfants partis avant validation des règles d'archives et de conservation.
 
 ## Conditions pour conclure à un niveau de conformité acceptable
 
@@ -671,4 +712,4 @@ La fermeture d’un ticket technique exige une preuve de test ; un ticket d’h�
 
 Avant d’annoncer la conformité : clôture des points bloquants, politique de conservation appliquée, droits exerçables, habilitations vérifiées, sauvegarde restaurée, information publiée et dossier de conformité validé. Toute impossibilité restante doit faire l’objet d’un arbitrage documenté, et non d’une case cochée par défaut.
 
-**Aucune tâche de cette liste n’est commencée. La prochaine étape est ta lecture et ton arbitrage ; aucune implémentation n’est autorisée par la seule création de ce document.**
+Chaque bloc marqué TRAITÉ porte sa preuve (script de vérification ou spécification lancés en CI, vérifiés par mutation). Un bloc touchant au schéma n'est implémenté qu'après validation explicite du schéma proposé.
