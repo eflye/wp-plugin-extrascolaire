@@ -90,6 +90,7 @@ nav:
           - Prérequis: installation/prerequis.md
           - Versions et dépendances: installation/versions-dependances.md
           - Installation et activation: installation/installation-activation.md
+          - Déployer une nouvelle version: installation/deploiement-zip.md
           - Accès des agents de la mairie: installation/acces-agents.md
           - Envoi des e-mails (SMTP): installation/emails-smtp.md
           - Tâches planifiées: installation/taches-planifiees.md
