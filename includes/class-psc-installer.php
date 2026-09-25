@@ -56,18 +56,69 @@ class Psc_Installer {
     }
 
     /**
+     * Étapes de migration, dans l'ordre. Chacune est idempotente et
+     * n'est franchie (psc_db_version portée à son numéro) qu'une fois
+     * terminée sans erreur SQL : une montée interrompue — processus tué,
+     * ALTER refusé, délai dépassé — reprend à l'étape en échec, sans
+     * rejouer celles déjà franchies.
+     */
+    const STEPS = array(
+        '2.5.0'  => 'migrate_2_5_0',
+        '2.7.0'  => 'migrate_2_7_0',
+        '2.8.0'  => 'migrate_2_8_0',
+        '2.9.0'  => 'migrate_2_9_0',
+        '2.10.0' => 'migrate_2_10_0',
+        '3.0.0'  => 'migrate_3_0_0',
+        '3.7.0'  => 'migrate_3_7_0',
+        '3.8.0'  => 'migrate_3_8_0',
+        '4.0.0'  => 'migrate_4_0_0',
+        '4.14.0' => 'migrate_4_14_0',
+    );
+
+    /** Un verrou plus ancien est réputé abandonné (processus tué). */
+    const LOCK_TTL = 600;
+
+    /** Délai entre deux reprises d'une montée en échec, hors backoffice. */
+    const RETRY_DELAY = 300;
+
+    /**
      * Vérifie à chaque chargement si le schéma doit être mis à jour.
      * Évite les erreurs après une mise à jour du plugin par simple copie
      * de fichiers (cas fréquent : le hook d'activation n'est pas rejoué).
      */
     public static function maybe_upgrade() {
+        // Chemin courant, sans écriture : rien à migrer ni à déménager. Le
+        // répertoire privé doit tout de même exister (et porter ses
+        // garde-fous) à chaque chargement, même si un administrateur l'a
+        // supprimé à la main ou si l'hébergeur a réinitialisé le disque.
+        if (!self::has_pending_work()) {
+            psc_ensure_private_dir();
+            return;
+        }
+
         // Verrou inter-processus : deux requêtes simultanées (ou cron +
         // admin) ne doivent pas déplacer les mêmes fichiers ni exécuter les
-        // DDL en concurrence. Un verrou abandonné est repris après 10 min.
-        $lock = (int) get_option('psc_migration_lock', 0);
-        if ($lock && (time() - $lock) < 600) return;
-        update_option('psc_migration_lock', time(), false);
+        // DDL en concurrence.
+        $lock = self::acquire_lock();
+        if (!$lock) return;
 
+        try {
+            self::run_upgrade();
+        } finally {
+            self::release_lock($lock);
+        }
+    }
+
+    protected static function has_pending_work() {
+        return is_admin()
+            || get_option('psc_db_version') !== self::DB_VERSION
+            || get_option('psc_roles_version') !== self::ROLES_VERSION
+            || get_option('psc_storage_move_failed')
+            || (!psc_running_as_root() && (string) get_option('psc_private_dir_path', '') !== psc_private_dir())
+            || is_dir(self::legacy_upload_dir());
+    }
+
+    protected static function run_upgrade() {
         $roles_current = get_option('psc_roles_version');
         if ($roles_current !== self::ROLES_VERSION) {
             self::sync_roles();
@@ -75,77 +126,13 @@ class Psc_Installer {
         }
 
         $current = get_option('psc_db_version');
-        if ($current !== self::DB_VERSION) {
-            // dbDelta() est additif (ajoute tables/colonnes manquantes,
-            // ne supprime jamais) : l'exécuter en premier garantit que les
-            // migrations ci-dessous trouvent les tables dont elles ont
-            // besoin (ex : migrate_2_10_0 a besoin de wp_psc_school_calendar).
-            self::create_tables();
-
-            if ($current && version_compare($current, '2.5.0', '<')) {
-                self::migrate_2_5_0();
-            }
-            if ($current && version_compare($current, '2.7.0', '<')) {
-                self::migrate_2_7_0();
-            }
-            if ($current && version_compare($current, '2.8.0', '<')) {
-                self::migrate_2_8_0();
-            }
-            if ($current && version_compare($current, '2.9.0', '<')) {
-                self::migrate_2_9_0();
-            }
-            if ($current && version_compare($current, '2.10.0', '<')) {
-                self::migrate_2_10_0();
-            }
-            if ($current && version_compare($current, '3.0.0', '<')) {
-                self::migrate_3_0_0();
-            }
-            if ($current && version_compare($current, '3.7.0', '<')) {
-                self::migrate_3_7_0();
-            }
-            if ($current && version_compare($current, '3.8.0', '<')) {
-                self::migrate_3_8_0();
-            }
-            if ($current && version_compare($current, '4.0.0', '<')) {
-                self::migrate_4_0_0();
-            }
-            if ($current && version_compare($current, '4.14.0', '<')) {
-                self::migrate_4_14_0();
-            }
-
-            // Deuxième passe dbDelta, après les migrations. Celles-ci
-            // suppriment des colonnes et des indices (invoices.mois,
-            // children.classe…) que la définition finale réintroduit ou
-            // conserve : sur une montée de version « par bonds » (2.4 →
-            // 3.9 sans passer par les releases intermédiaires, le cas
-            // réel d'une mise à jour par copie de fichiers), personne
-            // d'autre ne les recrée — la première passe, avant les
-            // migrations, aligne sur la définition finale AVANT que les
-            // migrations ne suppriment quoi que ce soit. Sans cette
-            // seconde passe, le bond aboutit à un schéma que la montée
-            // pas à pas, elle, ne produit pas (bin/verify-migrations.php
-            // verrouille ce cas en intégration continue).
-            self::create_tables();
-
-            if (self::remove_pickup_identity_data()) {
-                update_option('psc_db_version', self::DB_VERSION);
-
-                if (class_exists('Psc_Audit')) {
-                    Psc_Audit::log('systeme.montee_de_version', array(
-                    'objet_type' => 'reglage',
-                    'meta' => array('ancienne_version' => $current ?: null, 'nouvelle_version' => self::DB_VERSION),
-                    'resume' => sprintf(__('Schéma de la base mis à jour (%s → %s).', 'periscolaire-registration'), $current ?: '—', self::DB_VERSION),
-                    'acteur' => array('type' => 'systeme', 'id' => null, 'libelle' => 'mise-a-jour-plugin', 'pour_le_compte_de' => null),
-                    ));
-                }
-            }
+        if ($current !== self::DB_VERSION && self::may_retry_migration()) {
+            self::run_migrations($current);
         }
 
-        // Hors bloc de version : le répertoire privé doit exister (et porter
-        // ses garde-fous) à chaque chargement, même si un administrateur l'a
-        // supprimé à la main ou si l'hébergeur a réinitialisé le disque.
         psc_ensure_private_dir();
         self::sync_private_dir();
+        self::sync_legacy_uploads();
 
         // Hors bloc de version également : les contraintes sont idempotentes
         // et bon marché quand tout est en place (trois SELECT). Un ALTER
@@ -158,7 +145,154 @@ class Psc_Installer {
         if (is_admin()) {
             self::store_constraints_state();
         }
-        delete_option('psc_migration_lock');
+    }
+
+    /**
+     * Une montée en échec est retentée à chaque écran d'administration,
+     * mais au plus toutes les RETRY_DELAY secondes côté public : des DDL
+     * rejoués à chaque visite de famille pèseraient sur tout le site.
+     */
+    protected static function may_retry_migration() {
+        $failed = get_option('psc_migration_failed');
+        return !is_array($failed) || is_admin() || (time() - (int) ($failed['ts'] ?? 0)) >= self::RETRY_DELAY;
+    }
+
+    protected static function run_migrations($current) {
+        // dbDelta() est additif (ajoute tables/colonnes manquantes,
+        // ne supprime jamais) : l'exécuter en premier garantit que les
+        // migrations ci-dessous trouvent les tables dont elles ont
+        // besoin (ex : migrate_2_10_0 a besoin de wp_psc_school_calendar).
+        if (!self::run_step('create_tables')) {
+            self::record_migration_failure($current, 'schema');
+            return false;
+        }
+
+        foreach (self::STEPS as $version => $method) {
+            if (!$current || version_compare($current, $version, '>=')) continue;
+            if (!self::run_step($method)) {
+                self::record_migration_failure($current, $version);
+                return false;
+            }
+            // Étape franchie : une interruption ne la rejouera pas.
+            update_option('psc_db_version', $version);
+        }
+
+        // Deuxième passe dbDelta, après les migrations. Celles-ci
+        // suppriment des colonnes et des indices (invoices.mois,
+        // children.classe…) que la définition finale réintroduit ou
+        // conserve : sur une montée de version « par bonds » (2.4 →
+        // 3.9 sans passer par les releases intermédiaires, le cas
+        // réel d'une mise à jour par copie de fichiers), personne
+        // d'autre ne les recrée — la première passe, avant les
+        // migrations, aligne sur la définition finale AVANT que les
+        // migrations ne suppriment quoi que ce soit. Sans cette
+        // seconde passe, le bond aboutit à un schéma que la montée
+        // pas à pas, elle, ne produit pas (bin/verify-migrations.php
+        // verrouille ce cas en intégration continue).
+        if (!self::run_step('create_tables') || !self::run_step('remove_pickup_identity_data')) {
+            self::record_migration_failure($current, 'schema');
+            return false;
+        }
+
+        update_option('psc_db_version', self::DB_VERSION);
+        delete_option('psc_migration_failed');
+
+        if (class_exists('Psc_Audit')) {
+            Psc_Audit::log('systeme.montee_de_version', array(
+            'objet_type' => 'reglage',
+            'meta' => array('ancienne_version' => $current ?: null, 'nouvelle_version' => self::DB_VERSION),
+            'resume' => sprintf(__('Schéma de la base mis à jour (%s → %s).', 'periscolaire-registration'), $current ?: '—', self::DB_VERSION),
+            'acteur' => array('type' => 'systeme', 'id' => null, 'libelle' => 'mise-a-jour-plugin', 'pour_le_compte_de' => null),
+            ));
+        }
+        return true;
+    }
+
+    /**
+     * Exécute une étape et juge sa réussite sur les erreurs SQL qu'elle a
+     * réellement produites : les migrations enchaînent des requêtes dont
+     * elles ne testent pas toutes le retour. $EZSQL_ERROR reçoit chaque
+     * erreur de wpdb, même quand leur affichage est supprimé. Les DESCRIBE
+     * de dbDelta() sur une table encore absente sont des sondes attendues,
+     * pas des échecs.
+     */
+    protected static function run_step($method) {
+        global $EZSQL_ERROR;
+        $mark = count((array) $EZSQL_ERROR);
+        $result = call_user_func(array(__CLASS__, $method));
+        $errors = array_filter(array_slice((array) $EZSQL_ERROR, $mark), function ($e) {
+            return stripos(ltrim((string) ($e['query'] ?? '')), 'DESCRIBE ') !== 0;
+        });
+        self::$last_step_errors = array_values($errors);
+        return false !== $result && !$errors;
+    }
+
+    /** @var array Erreurs SQL de la dernière étape exécutée. */
+    protected static $last_step_errors = array();
+
+    /**
+     * Mémorise l'étape en échec pour l'alerte d'administration. Seuls la
+     * nature de la requête et sa table sont retenus : une requête ou un
+     * message d'erreur MySQL peuvent citer des valeurs (adresse, nom).
+     */
+    protected static function record_migration_failure($from, $step) {
+        $first = self::$last_step_errors[0]['query'] ?? '';
+        $kind = preg_match('/^\s*(\w+)/', $first, $m) ? strtoupper($m[1]) : '';
+        $table = preg_match('/\b(\w*psc_\w+)/', $first, $t) ? $t[1] : '';
+        $previous = get_option('psc_migration_failed');
+        update_option('psc_migration_failed', array(
+            'etape'   => $step,
+            'depuis'  => (string) $from,
+            'requete' => trim($kind . ' ' . $table),
+            'erreurs' => count(self::$last_step_errors),
+            'ts'      => time(),
+        ), false);
+
+        // Journalisée une fois par étape en échec, pas à chaque reprise.
+        if (class_exists('Psc_Audit') && (!is_array($previous) || ($previous['etape'] ?? '') !== $step)) {
+            Psc_Audit::log('systeme.montee_de_version_echec', array(
+                'objet_type' => 'reglage',
+                'meta'       => array('etape' => $step, 'depuis' => (string) $from, 'requete' => trim($kind . ' ' . $table)),
+                'resume'     => sprintf(__('Mise à jour du schéma arrêtée à l’étape %s ; elle reprendra à cette étape.', 'periscolaire-registration'), $step),
+                'acteur'     => array('type' => 'systeme', 'id' => null, 'libelle' => 'mise-a-jour-plugin', 'pour_le_compte_de' => null),
+            ));
+        }
+    }
+
+    /**
+     * Verrou atomique : INSERT IGNORE sur la clé unique option_name, puis
+     * reprise d'un verrou abandonné par UPDATE conditionnel. Deux
+     * processus ne peuvent pas le prendre ensemble (add_option() n'offre
+     * pas cette garantie : il écrit en « ON DUPLICATE KEY UPDATE »).
+     *
+     * @return string|false Jeton à rendre à release_lock(), ou false.
+     */
+    public static function acquire_lock() {
+        global $wpdb;
+        $token = sprintf('%.6F', microtime(true));
+        $taken = $wpdb->query($wpdb->prepare(
+            "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES ('psc_migration_lock', %s, 'no')",
+            $token
+        ));
+        if (!$taken) {
+            $taken = $wpdb->query($wpdb->prepare(
+                "UPDATE {$wpdb->options} SET option_value = %s
+                 WHERE option_name = 'psc_migration_lock' AND CAST(option_value AS DECIMAL(20,6)) < %f",
+                $token, microtime(true) - self::LOCK_TTL
+            ));
+        }
+        wp_cache_delete('psc_migration_lock', 'options');
+        return $taken ? $token : false;
+    }
+
+    /** Ne rend que son propre verrou, jamais celui qui l'aurait repris. */
+    public static function release_lock($token) {
+        global $wpdb;
+        $wpdb->query($wpdb->prepare(
+            "DELETE FROM {$wpdb->options} WHERE option_name = 'psc_migration_lock' AND option_value = %s",
+            $token
+        ));
+        wp_cache_delete('psc_migration_lock', 'options');
     }
 
     /**
@@ -175,6 +309,11 @@ class Psc_Installer {
      * emplacement — c'est-à-dire exposés — pendant que le code n'écrirait
      * plus que dans le nouveau : la correction n'aurait protégé que les
      * dépôts à venir.
+     *
+     * Le nouveau chemin n'est retenu qu'une fois le déménagement complet :
+     * un fichier en conflit ou non déplaçable laisse l'ancien chemin en
+     * mémoire, donc une nouvelle tentative au chargement suivant, et
+     * l'alerte d'administration le signale.
      */
     private static function sync_private_dir() {
         // Le déménagement revient au serveur web : les fichiers déplacés par
@@ -187,17 +326,78 @@ class Psc_Installer {
         $known   = (string) get_option('psc_private_dir_path', '');
 
         if ($known === $current) {
+            self::storage_move_result('private_dir', true);
             return;
         }
 
         // Premier enregistrement, ou ancien dossier disparu : rien à déplacer.
         if ($known !== '' && is_dir($known) && is_dir($current)) {
-            self::move_tree($known, $current);
+            $moved = self::move_tree($known, $current, self::GUARD_FILES);
+            self::storage_move_result('private_dir', $moved, $known, $current);
+            if (!$moved) return;
         }
 
         if (is_dir($current)) {
             update_option('psc_private_dir_path', $current, false);
         }
+    }
+
+    /**
+     * Garde-fous posés par psc_ensure_private_dir() ou migrate_3_7_0() à la
+     * racine d'un dossier de documents. Propres à chaque emplacement (le
+     * témoin est aléatoire) : jamais déplacés, retirés de la source
+     * seulement quand tout le reste en est sorti.
+     */
+    const GUARD_FILES = array('.htaccess', 'web.config', 'index.php', 'psc-probe.txt');
+
+    /**
+     * Mémorise l'issue d'un déménagement de documents pour l'alerte
+     * d'administration (Psc_Admin::notice_storage_move_failed).
+     */
+    protected static function storage_move_result($source, $ok, $from = '', $to = '') {
+        $failed = get_option('psc_storage_move_failed');
+        $failed = is_array($failed) ? $failed : array();
+        if ($ok) {
+            if (!isset($failed[$source])) return;
+            unset($failed[$source]);
+        } else {
+            $failed[$source] = array('depuis' => $from, 'vers' => $to, 'restants' => self::count_files($from), 'ts' => time());
+        }
+        if ($failed) {
+            update_option('psc_storage_move_failed', $failed, false);
+        } else {
+            delete_option('psc_storage_move_failed');
+        }
+    }
+
+    protected static function count_files($dir) {
+        if (!is_dir($dir)) return 0;
+        $n = 0;
+        foreach (scandir($dir) as $entry) {
+            if ($entry === '.' || $entry === '..') continue;
+            $path = trailingslashit($dir) . $entry;
+            $n += is_dir($path) ? self::count_files($path) : (in_array($entry, self::GUARD_FILES, true) && dirname($path) === rtrim($dir, '/') ? 0 : 1);
+        }
+        return $n;
+    }
+
+    protected static function legacy_upload_dir() {
+        $upload = wp_upload_dir(null, false);
+        return trailingslashit($upload['basedir']) . 'periscolaire';
+    }
+
+    /**
+     * Reprend à chaque chargement le déménagement de uploads/periscolaire
+     * (migration 3.7.0) tant que des fichiers y restent : l'étape de schéma
+     * est franchie, mais des documents exposés ne doivent pas y être
+     * oubliés.
+     */
+    private static function sync_legacy_uploads() {
+        if (psc_running_as_root() || !is_dir(self::legacy_upload_dir())) {
+            self::storage_move_result('uploads', true);
+            return;
+        }
+        self::migrate_3_7_0();
     }
 
     /**
@@ -215,37 +415,43 @@ class Psc_Installer {
      */
     private static function migrate_3_7_0() {
         if (!psc_ensure_private_dir()) {
-            return;
+            return false;
         }
 
-        $upload = wp_upload_dir();
-        $legacy = trailingslashit($upload['basedir']) . 'periscolaire';
+        $legacy = self::legacy_upload_dir();
         $target = psc_private_path('periscolaire');
 
         if (!is_dir($legacy)) {
-            return;
+            return true;
         }
 
         // rename() est atomique tant qu'on ne franchit pas de périphérique ;
         // sinon on recopie fichier par fichier avant de purger la source.
         if (!is_dir($target) && @rename($legacy, $target)) { // phpcs:ignore WordPress.PHP.NoSilencedErrors
-            return;
+            self::storage_move_result('uploads', true);
+            return true;
         }
 
-        self::move_tree($legacy, $target);
-
-        // Si des fichiers résistent au déplacement (permissions), au moins
-        // interdire leur accès direct là où ils sont restés.
-        if (is_dir($legacy)) {
-            $guard = trailingslashit($legacy) . '.htaccess';
-            if (!file_exists($guard)) {
-                file_put_contents( // phpcs:ignore WordPress.WP.AlternativeFunctions
-                    $guard,
-                    "<IfModule mod_authz_core.c>\n  Require all denied\n</IfModule>\n"
-                    . "<IfModule !mod_authz_core.c>\n  Order allow,deny\n  Deny from all\n</IfModule>\n"
-                );
-            }
+        // Si des fichiers résistent au déplacement (permissions, conflit),
+        // au moins interdire leur accès direct là où ils sont restés — le
+        // garde-fou est posé AVANT le déplacement, et move_tree() ne le
+        // retire qu'une fois le dossier vidé.
+        $guard = trailingslashit($legacy) . '.htaccess';
+        if (!file_exists($guard)) {
+            @file_put_contents( // phpcs:ignore WordPress.WP.AlternativeFunctions,WordPress.PHP.NoSilencedErrors
+                $guard,
+                "<IfModule mod_authz_core.c>\n  Require all denied\n</IfModule>\n"
+                . "<IfModule !mod_authz_core.c>\n  Order allow,deny\n  Deny from all\n</IfModule>\n"
+            );
         }
+
+        // L'étape de schéma reste franchie même si des fichiers résistent :
+        // bloquer toute montée de version pour un fichier en conflit
+        // laisserait le code courant face à un schéma ancien. La reprise
+        // passe par sync_legacy_uploads(), à chaque chargement.
+        $moved = self::move_tree($legacy, $target, self::GUARD_FILES);
+        self::storage_move_result('uploads', $moved, $legacy, $target);
+        return true;
     }
 
     /**
@@ -725,14 +931,22 @@ class Psc_Installer {
         );
     }
 
-    /** Déplace récursivement le contenu de $src vers $dst, sans perdre un conflit. */
-    private static function move_tree($src, $dst) {
+    /**
+     * Déplace récursivement le contenu de $src vers $dst, sans perdre un
+     * conflit : un fichier déjà présent à destination n'est retiré de la
+     * source que s'il est identique octet pour octet. Les noms de $keep
+     * (garde-fous de la racine) ne sont jamais déplacés ; ils quittent la
+     * source en dernier, et seulement si tout le reste en est sorti.
+     *
+     * @return bool true si tous les documents ont quitté la source.
+     */
+    private static function move_tree($src, $dst, array $keep = array()) {
         if (!is_dir($src)) return true;
         if (!is_dir($dst) && !wp_mkdir_p($dst)) return false;
         $ok = true;
 
         foreach (scandir($src) as $entry) {
-            if ($entry === '.' || $entry === '..') continue;
+            if ($entry === '.' || $entry === '..' || in_array($entry, $keep, true)) continue;
             $from = trailingslashit($src) . $entry;
             $to   = trailingslashit($dst) . $entry;
 
@@ -744,12 +958,18 @@ class Psc_Installer {
                 if (!@rename($from, $to)) $ok = false; // phpcs:ignore WordPress.PHP.NoSilencedErrors
             } else {
                 $same = is_file($to) && hash_file('sha256', $from) === hash_file('sha256', $to);
-                if ($same) @unlink($from); // phpcs:ignore WordPress.PHP.NoSilencedErrors — déjà migré
-                else $ok = false;
+                if (!$same || !@unlink($from)) $ok = false; // phpcs:ignore WordPress.PHP.NoSilencedErrors — déjà migré
             }
         }
-        if ($ok && count(scandir($src)) === 2) @rmdir($src); // phpcs:ignore WordPress.PHP.NoSilencedErrors
-        return $ok;
+        if (!$ok) return false;
+
+        foreach ($keep as $guard) {
+            if (file_exists(trailingslashit($src) . $guard)) @unlink(trailingslashit($src) . $guard); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        }
+        // Tous les documents sont sortis : un dossier vide qui résiste à
+        // rmdir() (droits du parent) n'expose plus rien.
+        if (count(scandir($src)) === 2) @rmdir($src); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        return true;
     }
 
     /**
