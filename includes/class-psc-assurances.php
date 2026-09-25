@@ -209,25 +209,41 @@ class Psc_Assurances {
         $target   = psc_private_path($rel_path);
         $temp = trailingslashit($dir) . '.upload-' . wp_generate_uuid4() . '.' . $filetype['ext'];
 
-        if (!move_uploaded_file($file['tmp_name'], $temp)) {
+        // Même principe que le filtre « pre_move_uploaded_file » du cœur :
+        // un code appelant (scripts de vérification) peut fournir le fichier
+        // ou simuler un échec disque ; null = déplacement PHP ordinaire.
+        $moved = apply_filters('psc_pre_move_uploaded_file', null, $file['tmp_name'], $temp);
+        if (null === $moved) {
+            $moved = @move_uploaded_file($file['tmp_name'], $temp); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        }
+        if (!$moved) {
+            @unlink($temp); // phpcs:ignore WordPress.PHP.NoSilencedErrors
             return 'failed';
         }
 
         $backup = $target . '.previous';
         if (file_exists($target) && !@rename($target, $backup)) { @unlink($temp); return 'failed'; }
         if (!@rename($temp, $target) || !self::upsert_row($child_id, $rel_path, $file['name'], $year_id)) {
+            @unlink($temp);
             @unlink($target);
             if (file_exists($backup)) @rename($backup, $target);
             return 'failed';
         }
         if (file_exists($backup)) @unlink($backup);
-        // Supprime les anciennes extensions seulement après publication et
-        // écriture SQL réussies : une panne ne peut plus perdre le document.
-        foreach (array('pdf', 'jpg', 'jpeg', 'png') as $ext) {
-            $stale = trailingslashit($dir) . 'child-' . $child_id . '.' . $ext;
-            if ($ext !== $filetype['ext'] && file_exists($stale)) @unlink($stale);
-        }
+        self::remove_stale_extensions($dir, $child_id, $filetype['ext']);
         return true;
+    }
+
+    /**
+     * Supprime les versions d'un autre format du justificatif d'un enfant
+     * (ancien JPG remplacé par un PDF). Appelé seulement après publication
+     * et écriture SQL réussies : une panne ne peut pas perdre le document.
+     */
+    protected static function remove_stale_extensions($dir, $child_id, $keep_ext) {
+        foreach (array('pdf', 'jpg', 'jpeg', 'png') as $ext) {
+            $stale = trailingslashit($dir) . 'child-' . (int) $child_id . '.' . $ext;
+            if ($ext !== $keep_ext && file_exists($stale)) @unlink($stale); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        }
     }
 
     /**
@@ -267,7 +283,107 @@ class Psc_Assurances {
             return false;
         }
         if (file_exists($backup)) @unlink($backup);
+        self::remove_stale_extensions($dir, $child_id, $ext);
         return true;
+    }
+
+    /**
+     * Rattachements en échec à l'approbation d'une demande : consignés
+     * dans la zone d'attente elle-même (promotions.json), qui devient la
+     * source de reprise. Le manifeste se suffit à lui-même : la demande
+     * peut être purgée sans que la reprise perde l'enfant de destination.
+     *
+     * @param int   $request_id
+     * @param array $entries Liste de [child_id, chemin relatif, nom d'origine].
+     */
+    public static function record_failed_promotions($request_id, array $entries) {
+        $manifest = array();
+        foreach ($entries as $e) {
+            $manifest[] = array(
+                'child_id'  => (int) $e[0],
+                'rel_path'  => (string) $e[1],
+                'filename'  => (string) $e[2],
+                'failed_at' => current_time('mysql'),
+            );
+        }
+        return self::write_manifest($request_id, $manifest);
+    }
+
+    /** Vrai tant qu'une demande garde des justificatifs à rattacher. */
+    public static function has_failed_promotions($request_id) {
+        return file_exists(self::manifest_path($request_id));
+    }
+
+    /**
+     * Reprend les rattachements en échec de toutes les demandes (tâche
+     * quotidienne, avant la purge). Idempotente : une entrée réussie ou
+     * devenue sans objet quitte le manifeste, et la zone d'attente n'est
+     * supprimée qu'une fois le manifeste vide. Un justificatif déposé
+     * depuis par la famille n'est jamais écrasé par l'ancien.
+     *
+     * @return array{rattaches:int, abandonnes:int, restants:int}
+     */
+    public static function retry_failed_promotions() {
+        $out = array('rattaches' => 0, 'abandonnes' => 0, 'restants' => 0);
+        $manifests = glob(trailingslashit(psc_private_path(self::BASE . '/pending')) . '*/promotions.json');
+        foreach ((array) $manifests as $path) {
+            $request_id = (int) basename(dirname($path));
+            $entries = json_decode((string) file_get_contents($path), true); // phpcs:ignore WordPress.WP.AlternativeFunctions
+            if (!$request_id || !is_array($entries)) continue;
+
+            $left = array();
+            foreach ($entries as $e) {
+                $child_id = (int) ($e['child_id'] ?? 0);
+                $source = psc_private_path((string) ($e['rel_path'] ?? ''));
+                $enrollment = Psc_School_Years::enrollment($child_id);
+                // Sans objet : enfant supprimé, fichier disparu, ou document
+                // plus récent déposé par la famille entre-temps.
+                $moot = !file_exists($source) || !self::child_exists($child_id)
+                    || ($enrollment && $enrollment->assurance_uploaded_at && $enrollment->assurance_uploaded_at > ($e['failed_at'] ?? ''));
+                if ($moot) {
+                    $out['abandonnes']++;
+                } elseif (!$enrollment) {
+                    // Pas (ou plus) inscrit à l'année active : on attend,
+                    // sans créer d'inscription par effet de bord.
+                    $left[] = $e;
+                } elseif (self::promote_pending((int) $e['child_id'], $source, (string) ($e['filename'] ?? ''))) {
+                    $out['rattaches']++;
+                } else {
+                    $left[] = $e;
+                }
+            }
+            $out['restants'] += count($left);
+            if ($left) {
+                self::write_manifest($request_id, $left);
+            } else {
+                self::delete_pending_files($request_id);
+            }
+        }
+        if ($out['rattaches'] || $out['abandonnes'] || $out['restants']) {
+            Psc_Audit::log('assurance.promotion_reprise', array(
+                'objet_type' => 'demande',
+                'meta'       => $out,
+                'resume'     => sprintf(
+                    /* translators: 1: justificatifs rattachés, 2: toujours en échec */
+                    __('Reprise des justificatifs en attente : %1$d rattaché(s), %2$d toujours en échec.', 'periscolaire-registration'),
+                    $out['rattaches'], $out['restants']
+                ),
+            ));
+        }
+        return $out;
+    }
+
+    protected static function child_exists($child_id) {
+        global $wpdb;
+        return (bool) $wpdb->get_var($wpdb->prepare('SELECT id FROM ' . psc_table('children') . ' WHERE id = %d', $child_id));
+    }
+
+    protected static function manifest_path($request_id) {
+        return trailingslashit(self::pending_dir($request_id)) . 'promotions.json';
+    }
+
+    protected static function write_manifest($request_id, array $manifest) {
+        return false !== file_put_contents(self::manifest_path($request_id), wp_json_encode($manifest), LOCK_EX); // phpcs:ignore WordPress.WP.AlternativeFunctions
     }
 
     /**
