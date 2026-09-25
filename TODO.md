@@ -168,6 +168,8 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **À faire :** identifier responsable/DPO, finalités, bases, destinataires, durées ou critères, droits applicables, réclamation CNIL, caractère obligatoire/facultatif et conséquences ; information des tiers selon l’article 14. Relier la notice au portail et au formulaire, sans confondre information et consentement.
 
+**Avancement technique (v5.24.0) :** la mention affichée aux points de collecte est paramétrable dans **Périscolaire › Réglages › Confidentialité** (responsable du traitement, adresse du DPO, adresse d'exercice des droits, lien vers la notice complète), avec un aperçu identique à ce que voient les familles et une alerte tant que le responsable n'est pas renseigné. Preuve : `tests/confidentialite.spec.ts`. Restent la relecture du texte par le DPO et l'information des tiers (second parent, personnes autorisées).
+
 **Acceptation :** texte relu par le DPO, coordonnées réelles, accès sans connexion et information des tiers documentée. Référence : [RGPD, articles 12 à 14](https://www.cnil.fr/fr/reglement-europeen-protection-donnees/chapitre3). **DPO + développement ; M.**
 
 ### P1-08 — PARTIELLEMENT AVANCÉ — Définir puis appliquer une politique complète de conservation
@@ -226,13 +228,21 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** absence/échec des primitives → refus sans écriture en clair ; rotation/restauration testées ; zéro IBAN complet dans logs ou erreurs. **Développement + hébergeur ; M.**
 
-### P1-13 — PARTIELLEMENT AVANCÉ — Éviter la perte silencieuse des justificatifs
+### P1-13 — TRAITÉ (après v5.24.0) — Éviter la perte silencieuse des justificatifs
 
-- [ ] **Rendre les écritures fichier/base et les reprises d’échec fiables.**
+- [x] **Rendre les écritures fichier/base et les reprises d’échec fiables.**
 
 **État initial (corrigé côté développement) :** les uploads, promotions et réinscriptions ignoraient certains retours d’erreur et pouvaient perdre la source. Ces chemins sont désormais protégés par écriture temporaire/rollback et vérification des retours.
 
 **Avancement technique :** dépôt enfant et promotion d’une demande écrivent avec sauvegarde/restauration de l’ancien fichier, vérifient l’écriture SQL et conservent la zone d’attente si un rattachement échoue ; réinscription vérifie les retours d’inscription et de stockage. La reprise complète multi-enfants et la recette disque/SQL restent à tester.
+
+**Traité le 25/09/2026 :** trois pertes silencieuses restaient.
+- **Ajout d'un enfant depuis le portail :** le résultat du dépôt était ignoré. L'enfant était créé sans justificatif, et la famille lisait « Enfant ajouté ». Fiche, inscription et justificatif sont désormais écrits dans une même transaction (`Psc_Frontend_Enfants::create_child_with_document()`). Un échec affiche « L'enfant n'a pas pu être ajouté ».
+- **Réinscription :** un fichier invalide sur le deuxième enfant laissait le premier réinscrit. Tous les fichiers sont désormais contrôlés avant la première écriture (`Psc_Frontend_Reinscription::apply_reinscription()`). Une panne pendant l'enregistrement donne un message dédié, et renvoyer le formulaire ne crée pas de doublon.
+- **Rattachement après validation :** la zone d'attente « conservée pour reprise » était supprimée par la purge à 90 jours, et aucune reprise n'existait. L'échec est maintenant consigné dans un manifeste (`promotions.json`), repris chaque jour avant la purge, et la zone d'attente survit à sa demande tant qu'il reste des rattachements. La reprise n'écrase jamais un justificatif déposé depuis par la famille.
+- Au passage : plus de fichier temporaire laissé après un échec de dépôt, et l'ancien format (JPG remplacé par un PDF) est retiré aussi lors d'un rattachement.
+
+**Preuve :** `bin/verify-document-writes.php`, lancé en CI (34 vérifications : disque plein, échec SQL, deuxième enfant invalide, panne au deuxième enfant puis renvoi, purge, reprise, document plus récent). Vérifié par mutation : chacun des six correctifs retiré fait échouer au moins une vérification. `tests/justificatifs-ecritures.spec.ts` couvre les messages et axe ; `tests/pickup-persons.spec.ts` vérifie qu'un enfant ajouté a bien son justificatif.
 
 **Acceptation :** disque plein, accès refusé, échec SQL, deuxième enfant invalide → ancien document préservé et résultat explicite ; reprise sans perte ni doublon. **Développement ; M/L.**
 
@@ -269,6 +279,8 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 **À faire :** snapshot des lignes, tarifs, identités utiles et version du calcul ; périodes d’effet des tarifs/flags ; sélection selon l’activité au mois facturé ; procédure de correction validée par la facturation ; montants en centimes ou calcul décimal maîtrisé.
 
 **Avancement technique :** une facture porte désormais un instantané (`invoices.lines_json`) de ses lignes, du tarif unitaire appliqué et du statut « sans repas » de chaque enfant, plus un numéro de version. Une facture **émise** (`sent_at` renseigné) ne se réécrit plus : si le calcul est inchangé, la régénération ne touche ni la base ni le PDF ; s’il a changé, la version remise est archivée telle quelle dans `psc_invoice_versions` — PDF déplacé sous un nom versionné, jamais écrasé —, la nouvelle version repart non envoyée, porte un numéro distinct (`AA-MM-NNN-R2`) et l’opération est journalisée (`facture.rectification`, niveau critique). Preuve : `tests/integration/invoice-snapshot.php` (31 vérifications, dont l’instantané archivé qui conserve l’ancien tarif après changement de grille, et le PDF remis identique octet pour octet), vérifiée par mutation.
+
+**Suppression protégée (après v5.24.0) :** « Supprimer les factures du mois » ne supprime plus que les factures jamais envoyées et sans version archivée. La suppression totale n'est possible qu'en mode debug, activé par WP-CLI (`psc_invoice_debug_delete`), signalé par une alerte et tracé dans le journal d'audit. Preuve : `bin/verify-invoice-deletion.php`, `tests/invoices.spec.ts`.
 
 **Restant :** les périodes d’effet des tarifs et du statut « sans repas » ne sont pas modélisées — c’est la rectification qui rattrape le coup, pas une historisation des paramètres. Les montants restent en flottant, non convertis en centimes. La qualification comptable du PDF et la procédure de correction restent à valider par la facturation et la mairie.
 
