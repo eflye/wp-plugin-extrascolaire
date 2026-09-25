@@ -88,7 +88,7 @@ class Psc_Supplier_Orders {
                 "SELECT c.id, c.sans_porc, c.vegan, c.food_allergies
                  FROM $t_child c
                  JOIN $t_par p ON p.id = c.parent_id
-                 WHERE c.statut = 'actif' AND p.active = 1"
+                 WHERE p.active = 1 AND " . Psc_School_Years::inscrit_sql('c.id', Psc_School_Years::id_for_date($semaine))
             );
             if ($children) {
                 $child_ids = array_map(function ($c) { return (int) $c->id; }, $children);
@@ -265,7 +265,7 @@ class Psc_Supplier_Orders {
              JOIN $t_par p ON p.id = c.parent_id
              JOIN $t_cy cy ON cy.child_id = c.id AND cy.school_year_id = %d
              WHERE cy.classe = %s
-               AND c.statut = 'actif' AND p.active = 1
+               AND cy.statut = 'inscrit' AND p.active = 1
              ORDER BY p.email, c.nom",
             $year_id, $classe
         ));

@@ -425,7 +425,9 @@ class Psc_Sidscm {
         if (!$open_days) return $empty;
 
         $t_child = psc_table('children');
-        $children = $wpdb->get_results("SELECT * FROM $t_child WHERE statut = 'actif' ORDER BY nom, prenom");
+        // Enfants inscrits à l'année de la semaine affichée.
+        $year_id = Psc_School_Years::id_for_date(reset($open_days));
+        $children = $wpdb->get_results("SELECT c.* FROM $t_child c WHERE " . Psc_School_Years::inscrit_sql('c.id', $year_id) . ' ORDER BY c.nom, c.prenom');
         if (empty($children)) return $empty;
 
         $dates = array_values($open_days);

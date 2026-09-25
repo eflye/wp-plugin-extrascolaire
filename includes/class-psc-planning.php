@@ -1343,9 +1343,9 @@ class Psc_Planning {
     }
 
     /**
-     * Garantit une configuration psc_school_year pour une clé donnée :
-     * créée par dérivation (bornes du dossier d'inscription homonyme,
-     * sinon 1er septembre → 6 juillet) et fériés pré-remplis. La migration
+     * Garantit une année (psc_school_years) pour une clé donnée : créée
+     * « en préparation » par dérivation (1er septembre → 6 juillet) et
+     * fériés pré-remplis. La migration
      * d'historiques plus anciens que la première configuration ne doit pas
      * avorter faute d'année.
      */
@@ -1353,15 +1353,10 @@ class Psc_Planning {
         $year = Psc_School_Year::get($year_key);
         if ($year) return $year;
 
-        global $wpdb;
-        $enrolled = $wpdb->get_row($wpdb->prepare(
-            'SELECT date_debut, date_fin FROM ' . psc_table('school_years') . ' WHERE label = %s ORDER BY id DESC LIMIT 1',
-            $year_key
-        ));
-        $start = $enrolled && $enrolled->date_debut ? $enrolled->date_debut : sprintf('%d-09-01', (int) substr($year_key, 0, 4));
-        $end   = $enrolled && $enrolled->date_fin   ? $enrolled->date_fin   : sprintf('%d-07-06', (int) substr($year_key, 5, 4));
+        $start = sprintf('%d-09-01', (int) substr($year_key, 0, 4));
+        $end   = sprintf('%d-07-06', (int) substr($year_key, 5, 4));
         $ok = Psc_School_Year::save($year_key, $start, $end, '[]', psc_lock_hours());
-        return $ok ? Psc_School_Year::get($year_key) : null;
+        return $ok === true ? Psc_School_Year::get($year_key) : null;
     }
 
     /**

@@ -2,14 +2,14 @@
 if (!defined('ABSPATH')) exit;
 
 /**
- * Configuration administrable de l'année scolaire (table psc_school_year)
- * et calcul des jours d'école.
+ * Calendrier de l'année scolaire et calcul des jours d'école.
  *
  * L'unité du portail est l'ANNÉE scolaire — plus aucune notion de trimestre.
- * Une ligne de psc_school_year porte :
+ * Depuis 4.15.0, l'année est une seule ligne de psc_school_years, qui porte
+ * à la fois le dossier (statut, inscriptions des enfants, cf.
+ * Psc_School_Years) et le calendrier lu ici :
  *  - year_key         '2026-2027' (clé unique, format rentrée-année)
- *  - date_start       2026-09-01
- *  - date_end         2027-07-06
+ *  - date_debut/fin   exposées ici sous les noms date_start / date_end
  *  - vacation_ranges  JSON [[start, end], …] — vacances de la mairie
  *  - lock_hours       délai de prévenance (48 h par défaut)
  *
@@ -21,11 +21,14 @@ if (!defined('ABSPATH')) exit;
  * fermetures manuelles posées par la mairie (table school_calendar,
  * source 'manual').
  *
- * Deux entités coexistent volontairement :
- *  - wp_psc_school_years (pluriel, historique) : le dossier d'inscription
- *    par année (classe, assurance, règlement de chaque enfant) ;
- *  - wp_psc_school_year (singulier, celle-ci) : la configuration du
- *    planning — dates, vacances, fériés, verrou.
+ * Deux règles de sélection, et deux seulement :
+ *  - l'année administrative (dossier, classes, enfants inscrits) est celle
+ *    au statut 'active' (Psc_School_Years::active()) ;
+ *  - l'année d'une date (planning, facturation) est celle dont les dates la
+ *    couvrent, sinon celle que désigne sa rentrée (year_key_for_date()).
+ *    L'année « courante » du planning (active() ci-dessous) est celle qui
+ *    couvre aujourd'hui, sinon la plus récente : en juillet, une famille
+ *    déclare déjà le rythme de la rentrée.
  */
 class Psc_School_Year {
 
@@ -50,7 +53,9 @@ class Psc_School_Year {
     public static function all() {
         if (self::$all_cache === null) {
             global $wpdb;
-            $rows = $wpdb->get_results('SELECT * FROM ' . psc_table('school_year') . ' ORDER BY date_start DESC');
+            $rows = $wpdb->get_results(
+                'SELECT *, date_debut AS date_start, date_fin AS date_end FROM ' . psc_table('school_years') . ' ORDER BY date_debut DESC'
+            );
             self::$all_cache = is_array($rows) ? $rows : array();
         }
         return self::$all_cache;
@@ -344,9 +349,11 @@ class Psc_School_Year {
     /* ---------------- Écritures (écran mairie) ---------------- */
 
     /**
-     * Crée (ou remplace) la configuration d'une année. Les fériés de
-     * l'année sont pré-remplis avec les fériés métropole couvrant la
-     * période — la mairie les complète (ponts) ou les retire ensuite.
+     * Crée (ou remplace) le calendrier d'une année : dates, vacances et
+     * délai. Une année absente est créée « en préparation » ; son
+     * activation reste un geste de la mairie (Psc_School_Years::activate()).
+     * Les fériés de l'année sont pré-remplis avec les fériés métropole
+     * couvrant la période — la mairie les complète (ponts) ou les retire.
      */
     public static function save($year_key, $date_start, $date_end, $vacation_ranges_json, $lock_hours) {
         global $wpdb;
@@ -358,6 +365,11 @@ class Psc_School_Year {
         }
         if (strtotime($date_end) < strtotime($date_start)) {
             return new WP_Error('order_dates', __('La date de fin doit être après la date de début.', 'periscolaire-registration'));
+        }
+        // La clé nomme la rentrée : des dates d'une autre rentrée
+        // désigneraient une autre année.
+        if (Psc_School_Years::key_for_start($date_start) !== $year_key) {
+            return new WP_Error('year_key_mismatch', __('La date de début ne correspond pas à cette année scolaire.', 'periscolaire-registration'));
         }
 
         // Plages : JSON strict [[start, end], …], revalidé entrée par entrée.
@@ -374,27 +386,32 @@ class Psc_School_Year {
 
         $lock_hours = max(0, min(720, (int) $lock_hours));
         $now = current_time('mysql');
-        $t = psc_table('school_year');
+        $t = psc_table('school_years');
 
         $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM $t WHERE year_key = %s", $year_key));
         if ($exists) {
-            $wpdb->update($t, array(
-                'date_start'      => $date_start,
-                'date_end'        => $date_end,
+            $written = $wpdb->update($t, array(
+                'date_debut'      => $date_start,
+                'date_fin'        => $date_end,
                 'vacation_ranges' => wp_json_encode($clean),
                 'lock_hours'      => $lock_hours,
                 'updated_at'      => $now,
             ), array('id' => (int) $exists), array('%s', '%s', '%s', '%d', '%s'), array('%d'));
         } else {
-            $wpdb->insert($t, array(
+            $written = $wpdb->insert($t, array(
                 'year_key'        => $year_key,
-                'date_start'      => $date_start,
-                'date_end'        => $date_end,
+                'date_debut'      => $date_start,
+                'date_fin'        => $date_end,
+                'statut'          => 'preparation',
                 'vacation_ranges' => wp_json_encode($clean),
                 'lock_hours'      => $lock_hours,
                 'created_at'      => $now,
                 'updated_at'      => $now,
-            ), array('%s', '%s', '%s', '%s', '%d', '%s', '%s'));
+            ), array('%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s'));
+        }
+        if (false === $written) {
+            self::flush_cache();
+            return new WP_Error('psc_year_save', __('Le calendrier de l’année n’a pas pu être enregistré.', 'periscolaire-registration'));
         }
 
         self::seed_holidays($year_key, $date_start, $date_end);
@@ -464,28 +481,19 @@ class Psc_School_Year {
      */
     public static function ensure_default() {
         global $wpdb;
-        $t = psc_table('school_year');
+        $t = psc_table('school_years');
         if (!$wpdb->get_var("SHOW TABLES LIKE '$t'")) return null;
 
         $today = current_time('Y-m-d');
         $covering = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $t WHERE date_start <= %s AND date_end >= %s", $today, $today
+            "SELECT id FROM $t WHERE date_debut <= %s AND date_fin >= %s ORDER BY id DESC LIMIT 1", $today, $today
         ));
         if ($covering) return self::get_by_id((int) $covering);
 
         $y = psc_rentree_year();
         $year_key = $y . '-' . ($y + 1);
-        $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM $t WHERE year_key = %s", $year_key));
-        if (!$exists) {
-            // Dérive les bornes de l'année d'inscription (dossier) si elle
-            // existe : la configuration du planning suit le dossier.
-            $enrolled = $wpdb->get_row($wpdb->prepare(
-                'SELECT date_debut, date_fin FROM ' . psc_table('school_years') . ' WHERE label = %s ORDER BY id DESC LIMIT 1',
-                $year_key
-            ));
-            $start = $enrolled && $enrolled->date_debut ? $enrolled->date_debut : sprintf('%d-09-01', $y);
-            $end   = $enrolled && $enrolled->date_fin   ? $enrolled->date_fin   : sprintf('%d-07-06', $y + 1);
-            self::save($year_key, $start, $end, '[]', psc_lock_hours());
+        if (!self::get($year_key)) {
+            self::save($year_key, sprintf('%d-09-01', $y), sprintf('%d-07-06', $y + 1), '[]', psc_lock_hours());
         }
         return self::get($year_key);
     }
@@ -494,6 +502,8 @@ class Psc_School_Year {
         global $wpdb;
         $id = absint($id);
         if (!$id) return null;
-        return $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . psc_table('school_year') . ' WHERE id = %d', $id));
+        return $wpdb->get_row($wpdb->prepare(
+            'SELECT *, date_debut AS date_start, date_fin AS date_end FROM ' . psc_table('school_years') . ' WHERE id = %d', $id
+        ));
     }
 }

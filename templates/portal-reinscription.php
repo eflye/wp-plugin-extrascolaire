@@ -10,7 +10,7 @@
   $psc_reins_children = $psc_portal_reinscription['children'];
 ?>
 <p class="psc-portal-intro" data-testid="reinscription-intro">
-  <?php esc_html_e("Confirmez la réinscription de chaque enfant pour l'année", 'periscolaire-registration'); ?> <strong><?php echo esc_html($psc_target_year->label); ?></strong>.
+  <?php esc_html_e("Confirmez la réinscription de chaque enfant pour l'année", 'periscolaire-registration'); ?> <strong><?php echo esc_html($psc_target_year->year_key); ?></strong>.
   <?php esc_html_e('Un enfant décoché ne sera pas réinscrit automatiquement — vous pourrez toujours le faire plus tard tant que la fenêtre de réinscription est ouverte.', 'periscolaire-registration'); ?>
 </p>
 
@@ -46,7 +46,7 @@
 
     <label class="psc-wizard-check-line" style="margin-top:16px;">
       <input type="checkbox" name="reglement_accepted" value="1" required data-testid="reinscription-reglement">
-      <?php esc_html_e("J'ai pris connaissance du règlement intérieur des services périscolaires et je l'approuve dans sa totalité pour l'année", 'periscolaire-registration'); ?> <?php echo esc_html($psc_target_year->label); ?>.
+      <?php esc_html_e("J'ai pris connaissance du règlement intérieur des services périscolaires et je l'approuve dans sa totalité pour l'année", 'periscolaire-registration'); ?> <?php echo esc_html($psc_target_year->year_key); ?>.
     </label>
 
     <p style="margin-top:20px;"><button type="submit" class="psc-portal-btn-gold" data-testid="reinscription-submit"><?php esc_html_e('Confirmer la réinscription', 'periscolaire-registration'); ?></button></p>

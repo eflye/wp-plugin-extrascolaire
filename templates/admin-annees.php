@@ -13,6 +13,7 @@ $psc_notices = array(
     'promotion_failed'    => array('error', __("Le passage d'année n'a pas pu être enregistré : rien n'a été modifié. Le récapitulatif reste disponible pour réessayer.", 'periscolaire-registration')),
     'promotion_cancelled' => array('success', __("Passage d'année annulé.", 'periscolaire-registration')),
     'invalid'             => array('error', __('Opération impossible : élément introuvable ou invalide.', 'periscolaire-registration')),
+    'year_exists'         => array('error', __('Une année existe déjà pour cette rentrée : une seule année par rentrée. Corrigez plutôt les dates de l’année existante.', 'periscolaire-registration')),
     'order_dates'         => array('error', __('La date de fin doit être postérieure à la date de début.', 'periscolaire-registration')),
     'active_year'         => array('error', __("Impossible de supprimer l'année active : activez-en une autre au préalable.", 'periscolaire-registration')),
     'imported'            => array('success', ((int) $imported_n) . ' ' . __('jour(s) importé(s)/mis à jour depuis le calendrier officiel.', 'periscolaire-registration')),
@@ -209,8 +210,8 @@ if ($planning_year):
 <?php wp_nonce_field('psc_add_school_year'); ?>
 <input type="hidden" name="action" value="psc_add_school_year">
 <table class="form-table">
-<tr><th><label for="psc-y-label"><?php esc_html_e('Libellé', 'periscolaire-registration'); ?></label></th><td><input id="psc-y-label" type="text" name="label" class="regular-text" placeholder="2026-2027" maxlength="20" required data-testid="year-label-input"></td></tr>
-<tr><th><label for="psc-y-debut"><?php esc_html_e('Date de début', 'periscolaire-registration'); ?></label></th><td><input id="psc-y-debut" type="date" name="date_debut" required data-testid="year-debut-input"></td></tr>
+<tr><th><label for="psc-y-debut"><?php esc_html_e('Date de début', 'periscolaire-registration'); ?></label></th><td><input id="psc-y-debut" type="date" name="date_debut" required aria-describedby="psc-y-debut-help" data-testid="year-debut-input">
+<p class="description" id="psc-y-debut-help"><?php esc_html_e('L’année est nommée d’après sa rentrée : une date de début en septembre 2026 crée l’année 2026-2027. Une seule année par rentrée.', 'periscolaire-registration'); ?></p></td></tr>
 <tr><th><label for="psc-y-fin"><?php esc_html_e('Date de fin', 'periscolaire-registration'); ?></label></th><td><input id="psc-y-fin" type="date" name="date_fin" required data-testid="year-fin-input"></td></tr>
 </table>
 <?php submit_button(__('Créer l\'année', 'periscolaire-registration'), 'primary', 'submit', true, array('data-testid' => 'year-create-submit')); ?>
@@ -220,16 +221,13 @@ if ($planning_year):
 <div class="psc-box">
 <h2><?php esc_html_e('Années existantes', 'periscolaire-registration'); ?></h2>
 <table class="widefat striped">
-<thead><tr><th><?php esc_html_e('Libellé', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Début', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Fin', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Action', 'periscolaire-registration'); ?></th></tr></thead>
+<thead><tr><th><?php esc_html_e('Année', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Début', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Fin', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Action', 'periscolaire-registration'); ?></th></tr></thead>
 <tbody>
 <?php if (empty($years)): ?>
 <tr><td colspan="5"><?php esc_html_e('Aucune année scolaire créée pour le moment.', 'periscolaire-registration'); ?></td></tr>
 <?php else: foreach ($years as $y): $edit_form_id = 'year-edit-form-' . $y->id; ?>
 <tr data-testid="year-row-<?php echo esc_attr($y->id); ?>">
-<td>
-  <label class="screen-reader-text" for="psc-y-label-<?php echo esc_attr($y->id); ?>"><?php esc_html_e('Libellé', 'periscolaire-registration'); ?></label>
-  <input id="psc-y-label-<?php echo esc_attr($y->id); ?>" type="text" form="<?php echo esc_attr($edit_form_id); ?>" name="label" value="<?php echo esc_attr($y->label); ?>" maxlength="20" required class="regular-text" data-testid="year-edit-label-<?php echo esc_attr($y->id); ?>">
-</td>
+<th scope="row" data-testid="year-key-<?php echo esc_attr($y->id); ?>"><?php echo esc_html($y->year_key); ?></th>
 <td>
   <label class="screen-reader-text" for="psc-y-debut-<?php echo esc_attr($y->id); ?>"><?php esc_html_e('Date de début', 'periscolaire-registration'); ?></label>
   <input id="psc-y-debut-<?php echo esc_attr($y->id); ?>" type="date" form="<?php echo esc_attr($edit_form_id); ?>" name="date_debut" value="<?php echo esc_attr($y->date_debut); ?>" required data-testid="year-edit-debut-<?php echo esc_attr($y->id); ?>">
@@ -272,7 +270,7 @@ if ($planning_year):
 <?php wp_nonce_field('psc_delete_school_year'); ?>
 <input type="hidden" name="action" value="psc_delete_school_year">
 <input type="hidden" name="id" value="<?php echo esc_attr($y->id); ?>">
-<button class="button" onclick="return confirm('<?php echo esc_js(__("Supprimer définitivement l'année", 'periscolaire-registration')); ?> <?php echo esc_js($y->label); ?> <?php echo esc_js(__("? Les inscriptions des enfants pour cette année (classe, justificatif d'assurance) seront supprimées.", 'periscolaire-registration')); ?>');" data-testid="year-delete-<?php echo esc_attr($y->id); ?>"><?php esc_html_e('Supprimer', 'periscolaire-registration'); ?></button>
+<button class="button" onclick="return confirm('<?php echo esc_js(__("Supprimer définitivement l'année", 'periscolaire-registration')); ?> <?php echo esc_js($y->year_key); ?> <?php echo esc_js(__("? Les inscriptions des enfants pour cette année (classe, justificatif d'assurance) seront supprimées.", 'periscolaire-registration')); ?>');" data-testid="year-delete-<?php echo esc_attr($y->id); ?>"><?php esc_html_e('Supprimer', 'periscolaire-registration'); ?></button>
 </form>
 <?php endif; ?>
 </td>
@@ -357,14 +355,14 @@ if ($planning_year):
 <tr><th><label for="psc-from-year"><?php esc_html_e("Depuis l'année", 'periscolaire-registration'); ?></label></th><td>
 <select id="psc-from-year" name="from_year_id" required data-testid="promotion-from-select">
 <?php foreach ($years as $y): ?>
-<option value="<?php echo esc_attr($y->id); ?>" <?php selected($y->statut, 'active'); ?>><?php echo esc_html($y->label); ?></option>
+<option value="<?php echo esc_attr($y->id); ?>" <?php selected($y->statut, 'active'); ?>><?php echo esc_html($y->year_key); ?></option>
 <?php endforeach; ?>
 </select>
 </td></tr>
 <tr><th><label for="psc-to-year"><?php esc_html_e("Vers l'année", 'periscolaire-registration'); ?></label></th><td>
 <select id="psc-to-year" name="to_year_id" required data-testid="promotion-to-select">
 <?php foreach ($years as $y): ?>
-<option value="<?php echo esc_attr($y->id); ?>" <?php selected($y->statut, 'preparation'); ?>><?php echo esc_html($y->label); ?></option>
+<option value="<?php echo esc_attr($y->id); ?>" <?php selected($y->statut, 'preparation'); ?>><?php echo esc_html($y->year_key); ?></option>
 <?php endforeach; ?>
 </select>
 </td></tr>

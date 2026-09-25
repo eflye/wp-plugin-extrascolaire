@@ -512,7 +512,7 @@ class Psc_School_Calendar {
                     p.email, p.nom AS parent_nom
              FROM $t_child c
              JOIN $t_par p ON p.id = c.parent_id
-             WHERE c.statut = 'actif' AND p.active = 1
+             WHERE p.active = 1 AND " . Psc_School_Years::inscrit_sql('c.id', Psc_School_Years::id_for_date($date_str)) . "
              ORDER BY p.email, c.nom"
         );
         if (!$children) {
@@ -575,7 +575,8 @@ class Psc_School_Calendar {
                     p.email, p.nom AS parent_nom
              FROM $t_child c
              JOIN $t_par p ON p.id = c.parent_id
-             WHERE c.statut = 'actif' AND p.active = 1
+             WHERE p.active = 1 AND (" . Psc_School_Years::inscrit_sql('c.id', Psc_School_Years::id_for_date($date_debut))
+                . ' OR ' . Psc_School_Years::inscrit_sql('c.id', Psc_School_Years::id_for_date($date_fin)) . ")
              ORDER BY p.email, c.nom"
         );
         if (!$children) {
@@ -761,7 +762,7 @@ class Psc_School_Calendar {
                     p.email, p.nom AS parent_nom
              FROM $t_child c
              JOIN $t_par p ON p.id = c.parent_id
-             WHERE c.statut = 'actif' AND p.active = 1
+             WHERE p.active = 1 AND " . Psc_School_Years::inscrit_sql('c.id', Psc_School_Years::id_for_date($date_str)) . "
              ORDER BY p.email, c.nom"
         );
         if (!$children) {

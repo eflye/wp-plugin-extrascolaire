@@ -9,7 +9,7 @@
 <?php else: ?>
 
 <div class="notice notice-warning"><p>
-<?php esc_html_e("Aucune écriture n'a encore eu lieu. Vérifiez et corrigez si besoin la classe proposée pour chaque enfant, puis confirmez en bas de page pour appliquer le passage de", 'periscolaire-registration'); ?> <strong><?php echo esc_html($from_year->label); ?></strong> <?php esc_html_e('vers', 'periscolaire-registration'); ?> <strong><?php echo esc_html($to_year->label); ?></strong>.
+<?php esc_html_e("Aucune écriture n'a encore eu lieu. Vérifiez et corrigez si besoin la classe proposée pour chaque enfant, puis confirmez en bas de page pour appliquer le passage de", 'periscolaire-registration'); ?> <strong><?php echo esc_html($from_year->year_key); ?></strong> <?php esc_html_e('vers', 'periscolaire-registration'); ?> <strong><?php echo esc_html($to_year->year_key); ?></strong>.
 </p></div>
 
 <div class="psc-box">
@@ -18,7 +18,7 @@
 <input type="hidden" name="action" value="psc_confirm_promotion">
 
 <table class="widefat striped">
-<thead><tr><th><?php esc_html_e('Enfant', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Classe', 'periscolaire-registration'); ?> <?php echo esc_html($from_year->label); ?></th><th><?php esc_html_e('Classe proposée', 'periscolaire-registration'); ?> <?php echo esc_html($to_year->label); ?></th></tr></thead>
+<thead><tr><th><?php esc_html_e('Enfant', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Classe', 'periscolaire-registration'); ?> <?php echo esc_html($from_year->year_key); ?></th><th><?php esc_html_e('Classe proposée', 'periscolaire-registration'); ?> <?php echo esc_html($to_year->year_key); ?></th></tr></thead>
 <tbody>
 <?php foreach ($plan as $row):
     $field_id = 'psc-classe-' . $row['child_id'];

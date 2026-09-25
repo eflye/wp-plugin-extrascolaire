@@ -7,7 +7,7 @@ $psc_notices = array(
     'added'        => array('success', __('Enfant ajouté.', 'periscolaire-registration')),
     'deleted'      => array('success', __('Enfant supprimé, ainsi que ses inscriptions.', 'periscolaire-registration')),
     'marked_sorti' => array('success', __('Enfant marqué sorti.', 'periscolaire-registration')),
-    'marked_actif' => array('success', __('Enfant marqué actif.', 'periscolaire-registration')),
+    'marked_actif' => array('success', __('Enfant inscrit pour cette année.', 'periscolaire-registration')),
     'csr_on'       => array('success', __('Cantine sans repas activée : ses déclarations de cantine valent « midi sans repas » (tarif MSR, aucun repas commandé).', 'periscolaire-registration')),
     'csr_off'      => array('success', __('Cantine sans repas retirée : les déclarations de cantine de cet enfant comptent à nouveau comme des repas.', 'periscolaire-registration')),
     'nouser'       => array('error', __("Famille introuvable. Enregistrez-la d'abord dans l'onglet « Familles ».", 'periscolaire-registration')),
@@ -60,11 +60,18 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 <label><?php esc_html_e('Année :', 'periscolaire-registration'); ?>
 <select name="school_year_id" onchange="this.form.submit()">
 <?php foreach ($years as $y): ?>
-<option value="<?php echo esc_attr($y->id); ?>" <?php selected($selected_year_id, $y->id); ?>><?php echo esc_html($y->label . ' (' . $y->statut . ')'); ?></option>
+<option value="<?php echo esc_attr($y->id); ?>" <?php selected($selected_year_id, $y->id); ?>><?php echo esc_html($y->year_key . ' (' . $y->statut . ')'); ?></option>
 <?php endforeach; ?>
 </select>
 </label>
-<label><input type="checkbox" name="show_sortis" value="1" <?php checked($show_sortis); ?> onchange="this.form.submit()"> <?php esc_html_e('Afficher les enfants sortis', 'periscolaire-registration'); ?></label>
+<label><?php esc_html_e('Enfants :', 'periscolaire-registration'); ?>
+<select name="etat" onchange="this.form.submit()" data-testid="children-etat">
+<?php foreach (array('inscrit' => __('inscrits à cette année', 'periscolaire-registration'), 'sorti' => __('sortis en cours d’année', 'periscolaire-registration'), 'non_inscrit' => __('non inscrits à cette année', 'periscolaire-registration'), 'tous' => __('tous', 'periscolaire-registration')) as $psc_v => $psc_l): ?>
+<option value="<?php echo esc_attr($psc_v); ?>" <?php selected($etat, $psc_v); ?>><?php echo esc_html($psc_l); ?></option>
+<?php endforeach; ?>
+</select>
+</label>
+<noscript><?php submit_button(__('Filtrer', 'periscolaire-registration'), 'secondary', '', false); ?></noscript>
 </form>
 <table class="widefat striped">
 <thead><tr><th><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Classe', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Naissance', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Régime cantine', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Allergies alimentaires', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Cantine', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Famille', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Assurance', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Action', 'periscolaire-registration'); ?></th></tr></thead>
@@ -101,7 +108,15 @@ echo $diet ? esc_html(implode(' · ', $diet)) : '—';
 </button>
 </form>
 </td>
-<td><?php echo $c->statut === 'actif' ? '<span class="psc-active">' . esc_html__('Actif', 'periscolaire-registration') . '</span>' : '<em>' . esc_html__('Sorti', 'periscolaire-registration') . '</em>'; ?></td>
+<td data-testid="child-statut-<?php echo esc_attr($c->id); ?>"><?php
+if ($c->statut_annee === 'inscrit') {
+    echo '<span class="psc-active">' . esc_html__('Inscrit', 'periscolaire-registration') . '</span>';
+} elseif ($c->statut_annee === 'sorti') {
+    echo '<em>' . esc_html__('Sorti', 'periscolaire-registration') . ($c->sorti_le ? ' ' . esc_html(sprintf(/* translators: %s: date */ __('le %s', 'periscolaire-registration'), date_i18n('d/m/Y', strtotime($c->sorti_le)))) : '') . '</em>';
+} else {
+    echo '<em>' . esc_html__('Non inscrit', 'periscolaire-registration') . '</em>';
+}
+?></td>
 <td><?php echo $c->parent_email ? esc_html($c->parent_nom ?: $c->parent_email) : '<em>' . esc_html__('famille supprimée', 'periscolaire-registration') . '</em>'; ?></td>
 <td>
 <?php if ($c->assurance_uploaded_at): ?>
@@ -118,11 +133,12 @@ echo $diet ? esc_html(implode(' · ', $diet)) : '—';
 <?php if (current_user_can('psc_view_audit')): ?>
 <a class="button" href="<?php echo esc_url(add_query_arg(array('page' => 'psc_audit', 'enfant_id' => (int) $c->id), admin_url('admin.php'))); ?>"><?php esc_html_e('Journal', 'periscolaire-registration'); ?></a>
 <?php endif; ?>
-<?php if ($c->statut === 'actif'): ?>
+<?php if ($c->statut_annee === 'inscrit'): ?>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
 <?php wp_nonce_field('psc_mark_child_sorti'); ?>
 <input type="hidden" name="action" value="psc_mark_child_sorti">
 <input type="hidden" name="id" value="<?php echo esc_attr($c->id); ?>">
+<input type="hidden" name="school_year_id" value="<?php echo esc_attr($selected_year_id); ?>">
 <button class="button" onclick="return confirm('<?php echo esc_js(__("Marquer cet enfant sorti ? Il disparaîtra des listes actives et du planning, mais son historique reste consultable.", 'periscolaire-registration')); ?>');"><?php esc_html_e('Marquer sorti', 'periscolaire-registration'); ?></button>
 </form>
 <?php else: ?>
@@ -130,7 +146,8 @@ echo $diet ? esc_html(implode(' · ', $diet)) : '—';
 <?php wp_nonce_field('psc_mark_child_actif'); ?>
 <input type="hidden" name="action" value="psc_mark_child_actif">
 <input type="hidden" name="id" value="<?php echo esc_attr($c->id); ?>">
-<button class="button"><?php esc_html_e('Marquer actif', 'periscolaire-registration'); ?></button>
+<input type="hidden" name="school_year_id" value="<?php echo esc_attr($selected_year_id); ?>">
+<button class="button"><?php echo $c->statut_annee === 'sorti' ? esc_html__('Réinscrire', 'periscolaire-registration') : esc_html__('Inscrire à cette année', 'periscolaire-registration'); ?></button>
 </form>
 <?php endif; ?>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline" onsubmit="return confirm('<?php echo esc_js(__('Supprimer cet enfant et toutes ses inscriptions ? Cette action est irréversible.', 'periscolaire-registration')); ?>');">

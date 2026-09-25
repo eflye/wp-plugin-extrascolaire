@@ -602,6 +602,14 @@ class Psc_Admin extends Psc_Admin_Base {
                 : __('Unicité de l’e-mail du second parent entre foyers.', 'periscolaire-registration');
         }
 
+        if ($type === 'check' && isset($constraint['table']) && in_array($constraint['table'], array('school_years', 'child_school_years'), true)) {
+            return sprintf(
+                /* translators: %s: table (school_years ou child_school_years) */
+                __('Contrainte CHECK sur %s.statut (statuts autorisés).', 'periscolaire-registration'),
+                $constraint['table']
+            );
+        }
+
         if ($type === 'check' && isset($constraint['table']) && $constraint['table'] === 'envois') {
             return __('Contrainte CHECK sur envois.statut (états d’envoi autorisés).', 'periscolaire-registration');
         }
@@ -623,7 +631,7 @@ class Psc_Admin extends Psc_Admin_Base {
         return array(
             'annee'            => $annee,
             'familles_actives' => (int) $wpdb->get_var('SELECT COUNT(*) FROM ' . psc_table('parents') . ' WHERE active = 1'),
-            'enfants_actifs'   => (int) $wpdb->get_var("SELECT COUNT(*) FROM " . psc_table('children') . " WHERE statut = 'actif'"),
+            'enfants_actifs'   => (int) $wpdb->get_var('SELECT COUNT(*) FROM ' . psc_table('children') . ' c WHERE ' . Psc_School_Years::inscrit_sql('c.id', Psc_School_Years::active_id())),
         );
     }
 

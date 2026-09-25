@@ -911,9 +911,8 @@ class Psc_Requests {
                 // (information de sécurité pour l'enfant) faute d'un
                 // horodatage qui n'existait pas encore au dépôt.
                 'food_allergy_consent_at' => !empty($c['food_allergies']) ? ($c['food_allergy_consent_at'] ?? null) : null,
-                'statut'                  => 'actif',
                 'created_at'              => current_time('mysql'),
-            ), array('%d', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%s', '%s'));
+            ), array('%d', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%s'));
             if (false === $inserted) {
                 return $rollback(__('Création de l\'enfant impossible.', 'periscolaire-registration'));
             }

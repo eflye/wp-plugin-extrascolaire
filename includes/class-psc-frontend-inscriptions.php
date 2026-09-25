@@ -103,7 +103,7 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         if (!$child) {
             wp_send_json_error(array('code' => 'notfound'), 404);
         }
-        if ($child->statut !== 'actif') {
+        if (!Psc_School_Years::is_inscrit_ouvert((int) $child->id)) {
             wp_send_json_error(array('code' => 'notfound'), 404);
         }
         if (!Psc_Assurances::has_valid((int) $child->id)) {

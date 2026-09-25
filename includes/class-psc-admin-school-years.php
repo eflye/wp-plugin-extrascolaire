@@ -47,7 +47,7 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
 
     public static function handle_add_school_year() {
         self::guard('psc_add_school_year');
-        $result = Psc_School_Years::create(psc_post('label'), psc_post('date_debut'), psc_post('date_fin'));
+        $result = Psc_School_Years::create(psc_post('date_debut'), psc_post('date_fin'));
         if (is_wp_error($result)) self::redirect_years($result->get_error_code());
         self::redirect_years('created');
     }
@@ -66,7 +66,7 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
 
     public static function handle_update_school_year() {
         self::guard('psc_update_school_year');
-        $result = Psc_School_Years::update(psc_post_int('id'), psc_post('label'), psc_post('date_debut'), psc_post('date_fin'));
+        $result = Psc_School_Years::update(psc_post_int('id'), psc_post('date_debut'), psc_post('date_fin'));
         if (is_wp_error($result)) self::redirect_years($result->get_error_code());
         self::redirect_years('updated');
     }
@@ -123,7 +123,7 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
             }
         }
 
-        $applied = Psc_School_Years::apply_promotion($staged['to_year_id'], $staged['plan'], $overrides);
+        $applied = Psc_School_Years::apply_promotion($staged['to_year_id'], $staged['plan'], $overrides, $staged['from_year_id'] ?? null);
         if (is_wp_error($applied)) {
             // Rien n'a été écrit : le plan reste en attente pour être rejoué.
             self::redirect_years('promotion_failed');

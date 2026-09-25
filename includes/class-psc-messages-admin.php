@@ -193,7 +193,7 @@ class Psc_Messages_Admin extends Psc_Admin_Base {
 
     public static function children_label($family_id) {
         global $wpdb;
-        $rows = $wpdb->get_results($wpdb->prepare('SELECT c.prenom,cy.classe FROM ' . psc_table('children') . ' c LEFT JOIN ' . psc_table('child_school_years') . ' cy ON cy.child_id=c.id AND cy.school_year_id=%d WHERE c.parent_id=%d AND c.statut=%s ORDER BY c.prenom', Psc_School_Years::active_id(), $family_id, 'actif'));
+        $rows = $wpdb->get_results($wpdb->prepare('SELECT c.prenom,cy.classe FROM ' . psc_table('children') . ' c LEFT JOIN ' . psc_table('child_school_years') . ' cy ON cy.child_id=c.id AND cy.school_year_id=%d WHERE c.parent_id=%d AND cy.statut=%s ORDER BY c.prenom', Psc_School_Years::active_id(), $family_id, 'inscrit'));
         return implode(', ', array_map(function ($r) { return $r->prenom . ($r->classe ? ' (' . $r->classe . ')' : ''); }, $rows));
     }
 }

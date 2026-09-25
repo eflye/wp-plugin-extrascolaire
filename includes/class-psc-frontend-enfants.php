@@ -179,7 +179,6 @@ class Psc_Frontend_Enfants extends Psc_Frontend_Base {
         $wpdb->query('START TRANSACTION');
         $inserted = $wpdb->insert(psc_table('children'), array_merge($fields, array(
             'parent_id'  => (int) $parent_id,
-            'statut'     => 'actif',
             'created_at' => current_time('mysql'),
         )));
         $child_id = false === $inserted ? 0 : (int) $wpdb->insert_id;

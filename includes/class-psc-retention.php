@@ -71,8 +71,7 @@ class Psc_Retention {
         $cutoff = gmdate('Y-m-d H:i:s', $now - $retention_days * DAY_IN_SECONDS);
 
         $rows = $wpdb->get_results($wpdb->prepare(
-            'SELECT id, parent_id, nom, prenom FROM ' . psc_table('children') . "
-             WHERE statut = 'sorti' AND sorti_le IS NOT NULL AND sorti_le < %s",
+            'SELECT c.id, c.parent_id, c.nom, c.prenom FROM ' . psc_table('children') . ' c WHERE ' . self::departed_sql(),
             $cutoff
         ));
         if (!$rows) return 0;
@@ -100,8 +99,28 @@ class Psc_Retention {
         $retention_days = max(1, (int) apply_filters('psc_children_retention_days', 400));
         $cutoff = gmdate('Y-m-d H:i:s', (int) $now - $retention_days * DAY_IN_SECONDS);
         return (int) $wpdb->get_var($wpdb->prepare(
-            'SELECT COUNT(*) FROM ' . psc_table('children') . " WHERE statut = 'sorti' AND sorti_le IS NOT NULL AND sorti_le < %s",
+            'SELECT COUNT(*) FROM ' . psc_table('children') . ' c WHERE ' . self::departed_sql(),
             $cutoff
         ));
+    }
+
+    /**
+     * Enfant parti du service depuis avant le seuil (placeholder %s) : il
+     * n'est inscrit ni à l'année active ni à celle en préparation, et
+     * l'horloge de conservation — la plus récente de sa dernière sortie en
+     * cours d'année et de la fin de la dernière année où il était inscrit —
+     * est dépassée. Un enfant sans aucune ligne d'année n'a pas d'horloge :
+     * il n'est jamais purgé automatiquement.
+     */
+    private static function departed_sql() {
+        $t_cy    = psc_table('child_school_years');
+        $t_years = psc_table('school_years');
+        return 'NOT ' . Psc_School_Years::inscrit_ouvert_sql('c.id') . "
+            AND EXISTS (SELECT 1 FROM $t_cy cyr WHERE cyr.child_id = c.id)
+            AND (SELECT GREATEST(
+                        COALESCE(MAX(cyr.sorti_le), '1000-01-01'),
+                        COALESCE(MAX(IF(cyr.statut = 'inscrit', CONCAT(yr.date_fin, ' 23:59:59'), NULL)), '1000-01-01'))
+                 FROM $t_cy cyr INNER JOIN $t_years yr ON yr.id = cyr.school_year_id
+                 WHERE cyr.child_id = c.id) < %s";
     }
 }

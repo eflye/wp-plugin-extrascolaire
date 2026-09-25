@@ -47,12 +47,18 @@ abstract class Psc_Frontend_Base {
         exit;
     }
 
+    /**
+     * Enfants du foyer. « statut » est calculé : 'actif' pour un enfant
+     * inscrit à l'année active ou à celle en préparation, 'inactif' sinon
+     * (le statut est porté par l'année depuis 4.15.0, cf. Psc_School_Years).
+     */
     protected static function children_of($parent_id, $active_only = false) {
         global $wpdb;
         $t_child = psc_table('children');
-        $where   = $active_only ? "AND statut = 'actif'" : '';
+        $inscrit = Psc_School_Years::inscrit_ouvert_sql('c.id');
+        $where   = $active_only ? "AND $inscrit" : '';
         return $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM $t_child WHERE parent_id = %d $where ORDER BY prenom", $parent_id
+            "SELECT c.*, IF($inscrit, 'actif', 'inactif') AS statut FROM $t_child c WHERE c.parent_id = %d $where ORDER BY c.prenom", $parent_id
         ));
     }
 

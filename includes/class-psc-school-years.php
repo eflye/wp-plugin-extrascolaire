@@ -2,11 +2,13 @@
 if (!defined('ABSPATH')) exit;
 
 /**
- * Années scolaires : historisent la classe et
- * le statut d'un enfant année par année (table wp_psc_child_school_years,
- * qui fusionne l'ancienne child_assurances — un enfant + une année porte à
- * la fois sa classe, son statut d'inscription, l'acceptation du règlement
- * et son justificatif d'assurance pour cette année-là).
+ * Années scolaires : une ligne de psc_school_years par année, identifiée
+ * par sa clé '2026-2027', porte le dossier (statut de l'année) et le
+ * calendrier (lu par Psc_School_Year). La classe et le statut d'un enfant
+ * sont historisés année par année (psc_child_school_years : classe,
+ * statut inscrit | sorti, date de sortie, acceptation du règlement et
+ * justificatif d'assurance de cette année-là). Un enfant n'a pas de
+ * statut global : il est « actif » s'il est inscrit à l'année considérée.
  */
 class Psc_School_Years {
 
@@ -61,53 +63,118 @@ class Psc_School_Years {
 
     /* ---------------- Gestion des années ---------------- */
 
-    public static function create($label, $date_debut, $date_fin) {
+    /**
+     * Clé d'une année d'après sa date de début : '2026-2027' pour une
+     * rentrée entre août 2026 et juillet 2027 (même convention que
+     * Psc_School_Year::year_key_for_date()).
+     */
+    public static function key_for_start($date_debut) {
+        $d = psc_valid_date($date_debut);
+        if (!$d) return '';
+        $y = (int) substr($d, 0, 4);
+        if ((int) substr($d, 5, 2) < 8) $y--;
+        return $y . '-' . ($y + 1);
+    }
+
+    /** Année par sa clé ('2026-2027'), ou null. */
+    public static function get_by_key($year_key) {
         global $wpdb;
-        $label = mb_substr(sanitize_text_field($label), 0, 20);
+        $year_key = Psc_School_Year::sanitize_key($year_key);
+        if ($year_key === '') return null;
+        return $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . psc_table('school_years') . ' WHERE year_key = %s', $year_key));
+    }
+
+    /**
+     * Valide des bornes d'année et en déduit la clé. Une clé déjà prise par
+     * une autre année est refusée : une année par rentrée.
+     *
+     * @return string|WP_Error La clé.
+     */
+    protected static function checked_key($date_debut, $date_fin, $except_id = 0) {
         $date_debut = psc_valid_date($date_debut);
         $date_fin   = psc_valid_date($date_fin);
-        if ($label === '' || !$date_debut || !$date_fin) {
-            return new WP_Error('invalid', __('Libellé ou dates invalides.', 'periscolaire-registration'));
+        if (!$date_debut || !$date_fin) {
+            return new WP_Error('invalid', __('Dates invalides.', 'periscolaire-registration'));
         }
         if (strtotime($date_fin) < strtotime($date_debut)) {
             return new WP_Error('order_dates', __('La date de fin doit être après la date de début.', 'periscolaire-registration'));
         }
-
-        $wpdb->insert(psc_table('school_years'), array(
-            'label'      => $label,
-            'date_debut' => $date_debut,
-            'date_fin'   => $date_fin,
-            'statut'     => 'preparation',
-            'created_at' => current_time('mysql'),
-        ), array('%s', '%s', '%s', '%s', '%s'));
-
-        return (int) $wpdb->insert_id;
+        $key = self::key_for_start($date_debut);
+        $other = self::get_by_key($key);
+        if ($other && (int) $other->id !== (int) $except_id) {
+            return new WP_Error('year_exists', sprintf(
+                /* translators: %s: clé d'année, ex. 2026-2027 */
+                __('L’année %s existe déjà : une seule année par rentrée.', 'periscolaire-registration'),
+                $key
+            ));
+        }
+        return $key;
     }
 
-    /** Corrige le libellé ou les dates d'une année existante — mêmes règles de validation que create(). */
-    public static function update($id, $label, $date_debut, $date_fin) {
+    /** @return int|WP_Error Identifiant de l'année créée (en préparation). */
+    public static function create($date_debut, $date_fin) {
+        global $wpdb;
+        $key = self::checked_key($date_debut, $date_fin);
+        if (is_wp_error($key)) return $key;
+
+        $now = current_time('mysql');
+        $inserted = $wpdb->insert(psc_table('school_years'), array(
+            'year_key'   => $key,
+            'date_debut' => psc_valid_date($date_debut),
+            'date_fin'   => psc_valid_date($date_fin),
+            'statut'     => 'preparation',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ), array('%s', '%s', '%s', '%s', '%s', '%s'));
+        if (false === $inserted) {
+            return new WP_Error('psc_year_create', __('L’année scolaire n’a pas pu être créée.', 'periscolaire-registration'));
+        }
+        $id = (int) $wpdb->insert_id;
+        Psc_School_Year::seed_holidays($key, psc_valid_date($date_debut), psc_valid_date($date_fin));
+        Psc_School_Year::flush_cache();
+        return $id;
+    }
+
+    /**
+     * Année de la rentrée de $date_debut : créée si elle manque, recalée
+     * sur ces dates sinon. Pour le peuplement des environnements de test et
+     * les scripts de vérification, qui se partagent les années d'une même
+     * rentrée (une seule année par rentrée).
+     *
+     * @return int|WP_Error Identifiant de l'année.
+     */
+    public static function ensure($date_debut, $date_fin) {
+        $existing = self::get_by_key(self::key_for_start($date_debut));
+        if (!$existing) return self::create($date_debut, $date_fin);
+        $updated = self::update((int) $existing->id, $date_debut, $date_fin);
+        return is_wp_error($updated) ? $updated : (int) $existing->id;
+    }
+
+    /**
+     * Corrige les dates d'une année existante — mêmes règles que create().
+     * Si la rentrée change, la clé suit, et avec elle rythmes et fériés
+     * (clés étrangères ON UPDATE CASCADE).
+     */
+    public static function update($id, $date_debut, $date_fin) {
         global $wpdb;
         $id = absint($id);
         $t_years = psc_table('school_years');
         $exists = $id ? $wpdb->get_var($wpdb->prepare("SELECT id FROM $t_years WHERE id = %d", $id)) : null;
         if (!$exists) return new WP_Error('invalid', __('Année scolaire introuvable.', 'periscolaire-registration'));
 
-        $label = mb_substr(sanitize_text_field($label), 0, 20);
-        $date_debut = psc_valid_date($date_debut);
-        $date_fin   = psc_valid_date($date_fin);
-        if ($label === '' || !$date_debut || !$date_fin) {
-            return new WP_Error('invalid', __('Libellé ou dates invalides.', 'periscolaire-registration'));
-        }
-        if (strtotime($date_fin) < strtotime($date_debut)) {
-            return new WP_Error('order_dates', __('La date de fin doit être après la date de début.', 'periscolaire-registration'));
-        }
+        $key = self::checked_key($date_debut, $date_fin, $id);
+        if (is_wp_error($key)) return $key;
 
-        $wpdb->update($t_years, array(
-            'label'      => $label,
-            'date_debut' => $date_debut,
-            'date_fin'   => $date_fin,
-        ), array('id' => $id), array('%s', '%s', '%s'), array('%d'));
-
+        $updated = $wpdb->update($t_years, array(
+            'year_key'   => $key,
+            'date_debut' => psc_valid_date($date_debut),
+            'date_fin'   => psc_valid_date($date_fin),
+            'updated_at' => current_time('mysql'),
+        ), array('id' => $id), array('%s', '%s', '%s', '%s'), array('%d'));
+        Psc_School_Year::flush_cache();
+        if (false === $updated) {
+            return new WP_Error('psc_year_update', __('L’année scolaire n’a pas pu être modifiée.', 'periscolaire-registration'));
+        }
         return true;
     }
 
@@ -143,6 +210,7 @@ class Psc_School_Years {
         $wpdb->delete($t_cy, array('school_year_id' => $id), array('%d'));
 
         $wpdb->delete($t_years, array('id' => $id), array('%d'));
+        Psc_School_Year::flush_cache();
 
         return true;
     }
@@ -157,10 +225,8 @@ class Psc_School_Years {
      * résultat est vérifié avant validation. Réactiver l'année déjà
      * active ne change rien.
      *
-     * L'année d'inscription (school_years) a pour pendant la configuration
-     * du calendrier (school_year, dates, vacances, délai) portant la même
-     * clé que son libellé : elle est créée si elle manque, pour que planning
-     * et verrous voient l'année que voient classes et assurances.
+     * Dossier et calendrier sont la même ligne : planning et verrous
+     * voient l'année que voient classes et assurances.
      */
     public static function activate($id) {
         global $wpdb;
@@ -169,7 +235,7 @@ class Psc_School_Years {
         if (!$id) return false;
 
         $wpdb->query('START TRANSACTION');
-        $rows = $wpdb->get_results("SELECT id, label, statut FROM $t_years FOR UPDATE");
+        $rows = $wpdb->get_results("SELECT id, statut FROM $t_years FOR UPDATE");
         $target = null;
         foreach ((array) $rows as $row) {
             if ((int) $row->id === $id) $target = $row;
@@ -191,9 +257,7 @@ class Psc_School_Years {
             return false;
         }
 
-        if (Psc_School_Year::sanitize_key($target->label) !== '' && class_exists('Psc_Planning')) {
-            Psc_Planning::ensure_year_config($target->label);
-        }
+        Psc_School_Year::flush_cache();
         return true;
     }
 
@@ -290,41 +354,116 @@ class Psc_School_Years {
         return false !== $wpdb->insert($t_cy, $data, $format);
     }
 
-    /* ---------------- Statut de l'enfant (actif | sorti) ---------------- */
+    /* ---------------- Statut de l'enfant, année par année ---------------- */
 
     /**
-     * sorti_le démarre le délai de conservation RGPD (cf. Psc_Retention) :
-     * sans cet horodatage, rien ne permettrait de distinguer un enfant
-     * sorti hier d'un enfant sorti il y a cinq ans, et la purge
-     * automatique n'aurait aucun point de départ fiable.
+     * Condition SQL « l'enfant $child_column est inscrit (et pas sorti) à
+     * l'année $year_id » — le seul sens d'« enfant actif » depuis 4.15.0.
+     * $year_id est un entier, interpolé tel quel ; 0 ne correspond à rien.
      */
-    public static function mark_sorti($child_id) {
-        global $wpdb;
-        $child_id = absint($child_id);
-        if (!$child_id) return false;
-        // 0 ligne modifiée (déjà sorti) est un succès ; seul false est un échec.
-        return false !== $wpdb->update(
-            psc_table('children'),
-            array('statut' => 'sorti', 'sorti_le' => current_time('mysql')),
-            array('id' => $child_id), array('%s', '%s'), array('%d')
+    public static function inscrit_sql($child_column, $year_id) {
+        return sprintf(
+            "EXISTS (SELECT 1 FROM %s cyi WHERE cyi.child_id = %s AND cyi.school_year_id = %d AND cyi.statut = 'inscrit')",
+            psc_table('child_school_years'), $child_column, (int) $year_id
         );
     }
 
     /**
-     * Réactivation : efface sorti_le pour retirer l'enfant de la file de
-     * purge automatique — une famille qui revient avant l'échéance de
-     * conservation ne doit pas voir la fiche de son enfant disparaître
-     * sous elle au premier passage du cron suivant.
+     * Même condition pour les années ouvertes aux familles : l'année active
+     * et celle en préparation (réinscription, enfant inscrit pour la
+     * rentrée).
      */
-    public static function mark_actif($child_id) {
+    public static function inscrit_ouvert_sql($child_column) {
+        return sprintf(
+            "EXISTS (SELECT 1 FROM %s cyi INNER JOIN %s yi ON yi.id = cyi.school_year_id
+                     WHERE cyi.child_id = %s AND cyi.statut = 'inscrit' AND yi.statut IN ('active', 'preparation'))",
+            psc_table('child_school_years'), psc_table('school_years'), $child_column
+        );
+    }
+
+    /** Identifiant de l'année couvrant une date (planning, facturation), ou 0. */
+    public static function id_for_date($date) {
+        $row = Psc_School_Year::for_date($date);
+        return $row && isset($row->id) ? (int) $row->id : 0;
+    }
+
+    /** Vrai si l'enfant est inscrit à l'année donnée (l'année active par défaut). */
+    public static function is_inscrit($child_id, $school_year_id = null) {
+        $row = self::enrollment($child_id, $school_year_id);
+        return $row && $row->statut === 'inscrit';
+    }
+
+    /** Vrai si l'enfant est inscrit à l'année active ou à celle en préparation. */
+    public static function is_inscrit_ouvert($child_id) {
+        global $wpdb;
+        return (bool) $wpdb->get_var($wpdb->prepare(
+            'SELECT 1 FROM ' . psc_table('children') . ' c WHERE c.id = %d AND ' . self::inscrit_ouvert_sql('c.id'),
+            (int) $child_id
+        ));
+    }
+
+    /**
+     * Sortie d'un enfant pour une année (l'année active par défaut).
+     * sorti_le démarre le délai de conservation RGPD (cf. Psc_Retention) :
+     * sans cet horodatage, rien ne permettrait de distinguer un enfant
+     * sorti hier d'un enfant sorti il y a cinq ans.
+     */
+    public static function mark_sorti($child_id, $school_year_id = null) {
         global $wpdb;
         $child_id = absint($child_id);
-        if (!$child_id) return false;
-        return (bool) $wpdb->update(
-            psc_table('children'),
-            array('statut' => 'actif', 'sorti_le' => null),
-            array('id' => $child_id), array('%s', '%s'), array('%d')
+        $school_year_id = $school_year_id ? absint($school_year_id) : self::active_id();
+        if (!$child_id || !$school_year_id) return false;
+        $row = self::enrollment($child_id, $school_year_id);
+        if ($row && $row->statut === 'sorti') return true; // déjà sorti : succès
+        if (!$row) {
+            return false !== $wpdb->insert(psc_table('child_school_years'), array(
+                'child_id' => $child_id, 'school_year_id' => $school_year_id, 'statut' => 'sorti',
+                'sorti_le' => current_time('mysql'), 'date_inscription' => current_time('mysql'),
+            ));
+        }
+        return false !== $wpdb->update(
+            psc_table('child_school_years'),
+            array('statut' => 'sorti', 'sorti_le' => current_time('mysql')),
+            array('id' => (int) $row->id), array('%s', '%s'), array('%d')
         );
+    }
+
+    /**
+     * Réinscription dans l'année (l'année active par défaut) : efface
+     * sorti_le pour retirer l'enfant de la file de purge automatique — une
+     * famille qui revient avant l'échéance de conservation ne doit pas voir
+     * la fiche de son enfant disparaître au passage du cron suivant.
+     */
+    public static function mark_actif($child_id, $school_year_id = null) {
+        global $wpdb;
+        $child_id = absint($child_id);
+        $school_year_id = $school_year_id ? absint($school_year_id) : self::active_id();
+        if (!$child_id || !$school_year_id) return false;
+        $row = self::enrollment($child_id, $school_year_id);
+        if (!$row) return self::enroll($child_id, $school_year_id, null, 'inscrit');
+        return false !== $wpdb->update(
+            psc_table('child_school_years'),
+            array('statut' => 'inscrit', 'sorti_le' => null),
+            array('id' => (int) $row->id), array('%s', '%s'), array('%d')
+        );
+    }
+
+    /**
+     * Retire l'inscription d'un enfant à une année (réinscription décochée
+     * par la famille après envoi) : ligne et justificatif de cette année
+     * supprimés. L'enfant n'est pas « sorti » : il n'est simplement pas
+     * inscrit à cette année-là.
+     */
+    public static function unenroll($child_id, $school_year_id) {
+        global $wpdb;
+        $row = self::enrollment($child_id, $school_year_id);
+        if (!$row) return true;
+        if (false === $wpdb->delete(psc_table('child_school_years'), array('id' => (int) $row->id), array('%d'))) return false;
+        if ($row->assurance_file_path) {
+            $abs = psc_private_path($row->assurance_file_path);
+            if (file_exists($abs)) @unlink($abs); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        }
+        return true;
     }
 
     /* ---------------- Passage d'année ---------------- */
@@ -356,7 +495,7 @@ class Psc_School_Years {
             "SELECT c.*, cy.classe AS classe_actuelle
              FROM $t_child c
              INNER JOIN $t_cy cy ON cy.child_id = c.id AND cy.school_year_id = %d
-             WHERE c.statut = 'actif'
+             WHERE cy.statut = 'inscrit'
              ORDER BY c.nom, c.prenom",
             $from_year_id
         ));
@@ -397,9 +536,12 @@ class Psc_School_Years {
      *
      * @return int|WP_Error Nombre d'enfants inscrits dans l'année cible.
      */
-    public static function apply_promotion($to_year_id, $plan, $overrides = array()) {
+    public static function apply_promotion($to_year_id, $plan, $overrides = array(), $from_year_id = null) {
         global $wpdb;
         $to_year_id = absint($to_year_id);
+        // La sortie d'un enfant en fin de cycle est inscrite sur l'année
+        // qu'il quitte, jamais sur celle où il n'entre pas.
+        $from_year_id = $from_year_id ? absint($from_year_id) : self::active_id();
         if (!$to_year_id || !self::get($to_year_id)) {
             return new WP_Error('psc_promotion_year', __('Année cible introuvable.', 'periscolaire-registration'));
         }
@@ -411,7 +553,7 @@ class Psc_School_Years {
             $classe = array_key_exists($child_id, $overrides) ? $overrides[$child_id] : $row['classe_proposee'];
 
             if ($classe === 'sortie' || $classe === '') {
-                $ok = self::mark_sorti($child_id) !== false;
+                $ok = self::mark_sorti($child_id, $from_year_id) !== false;
             } else {
                 $ok = self::enroll($child_id, $to_year_id, $classe, 'inscrit');
                 if ($ok) $count++;

@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.14.0';
+    const DB_VERSION = '4.15.0';
     const ROLES_VERSION = '1.5.0';
 
     public static function activate() {
@@ -73,6 +73,7 @@ class Psc_Installer {
         '3.8.0'  => 'migrate_3_8_0',
         '4.0.0'  => 'migrate_4_0_0',
         '4.14.0' => 'migrate_4_14_0',
+        '4.15.0' => 'migrate_4_15_0',
     );
 
     /** Un verrou plus ancien est réputé abandonné (processus tué). */
@@ -173,8 +174,11 @@ class Psc_Installer {
                 self::record_migration_failure($current, $version);
                 return false;
             }
-            // Étape franchie : une interruption ne la rejouera pas.
-            update_option('psc_db_version', $version);
+            // Étape franchie : une interruption ne la rejouera pas. La
+            // dernière n'est retenue qu'avec la passe finale ci-dessous :
+            // portée seule à DB_VERSION, une passe finale en échec ne
+            // serait plus jamais retentée.
+            if ($version !== self::DB_VERSION) update_option('psc_db_version', $version);
         }
 
         // Deuxième passe dbDelta, après les migrations. Celles-ci
@@ -189,7 +193,12 @@ class Psc_Installer {
         // seconde passe, le bond aboutit à un schéma que la montée
         // pas à pas, elle, ne produit pas (bin/verify-migrations.php
         // verrouille ce cas en intégration continue).
-        if (!self::run_step('create_tables') || !self::run_step('remove_pickup_identity_data')) {
+        // La passe finale vise toujours le schéma cible : les colonnes
+        // héritées ne servaient qu'aux migrations, désormais faites.
+        self::$final_schema = true;
+        $final_ok = self::run_step('create_tables');
+        self::$final_schema = false;
+        if (!$final_ok || !self::run_step('remove_pickup_identity_data')) {
             self::record_migration_failure($current, 'schema');
             return false;
         }
@@ -218,6 +227,7 @@ class Psc_Installer {
      */
     protected static function run_step($method) {
         global $EZSQL_ERROR;
+        self::$step_reason = '';
         $mark = count((array) $EZSQL_ERROR);
         $result = call_user_func(array(__CLASS__, $method));
         $errors = array_filter(array_slice((array) $EZSQL_ERROR, $mark), function ($e) {
@@ -229,6 +239,12 @@ class Psc_Installer {
 
     /** @var array Erreurs SQL de la dernière étape exécutée. */
     protected static $last_step_errors = array();
+
+    /** @var bool Passe finale de dbDelta : schéma cible, sans colonne héritée. */
+    protected static $final_schema = false;
+
+    /** @var string Raison métier d'un refus d'étape, sans donnée personnelle. */
+    protected static $step_reason = '';
 
     /**
      * Mémorise l'étape en échec pour l'alerte d'administration. Seuls la
@@ -243,7 +259,7 @@ class Psc_Installer {
         update_option('psc_migration_failed', array(
             'etape'   => $step,
             'depuis'  => (string) $from,
-            'requete' => trim($kind . ' ' . $table),
+            'requete' => self::$step_reason !== '' ? self::$step_reason : trim($kind . ' ' . $table),
             'erreurs' => count(self::$last_step_errors),
             'ts'      => time(),
         ), false);
@@ -548,6 +564,172 @@ class Psc_Installer {
         }
     }
 
+    /**
+     * 4.15.0 — une seule table d'année scolaire, statut de l'enfant par année.
+     *
+     * - school_years reçoit la clé d'année ('2026-2027', unique, déduite
+     *   du libellé s'il la respecte, sinon de la date de rentrée) et la
+     *   configuration du calendrier de l'ancienne table school_year, dont
+     *   les dates l'emportent : ce sont elles qui ont servi au planning,
+     *   donc à la facturation ;
+     * - toute année citée par le planning (rythmes, fériés) sans ligne
+     *   reçoit la sienne, pour que les clés étrangères se posent sans rien
+     *   supprimer ;
+     * - le statut global de l'enfant passe sur ses lignes d'année : un
+     *   enfant actif est inscrit à l'année active, un enfant sorti l'est
+     *   sur sa dernière année, avec sa date de sortie (délai de
+     *   conservation RGPD) ;
+     * - puis le libellé libre, le statut global et l'ancienne table
+     *   disparaissent.
+     *
+     * Idempotente : chaque partie teste l'état avant d'écrire. Renvoie
+     * false (étape non franchie, cf. run_step()) si deux années porteuses
+     * d'inscriptions tombent sur la même clé : c'est une décision humaine.
+     */
+    private static function migrate_4_15_0() {
+        global $wpdb;
+        $t_years = psc_table('school_years');
+        $t_sy    = psc_table('school_year');
+        $t_cy    = psc_table('child_school_years');
+        $t_child = psc_table('children');
+        $now     = current_time('mysql');
+        $today   = current_time('Y-m-d');
+        $status_for = function ($date_fin) use ($today) {
+            return $date_fin < $today ? 'archivee' : 'preparation';
+        };
+
+        // 1. Clé d'année des lignes existantes.
+        $has_label = self::column_exists($t_years, 'label');
+        foreach ((array) $wpdb->get_results("SELECT * FROM $t_years WHERE year_key IS NULL OR year_key = ''") as $row) {
+            $key = $has_label ? Psc_School_Year::sanitize_key((string) $row->label) : '';
+            if ($key === '') $key = Psc_School_Years::key_for_start($row->date_debut);
+            if (false === $wpdb->update($t_years, array('year_key' => $key), array('id' => (int) $row->id))) return false;
+        }
+
+        // 2. Deux lignes pour une même clé : on garde l'active, sinon celle
+        //    qui porte des inscriptions, sinon la plus récente ; une ligne
+        //    retirée cède sa configuration si la gardée n'en a pas.
+        $dupes = $wpdb->get_col("SELECT year_key FROM $t_years GROUP BY year_key HAVING COUNT(*) > 1");
+        foreach ((array) $dupes as $key) {
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT y.*, (SELECT COUNT(*) FROM $t_cy cy WHERE cy.school_year_id = y.id) AS inscriptions
+                 FROM $t_years y WHERE y.year_key = %s
+                 ORDER BY (y.statut = 'active') DESC, inscriptions DESC, y.id DESC",
+                $key
+            ));
+            $keep = array_shift($rows);
+            foreach ($rows as $other) {
+                if ((int) $other->inscriptions > 0) {
+                    self::$step_reason = sprintf(
+                        /* translators: %s: clé d'année, ex. 2026-2027 */
+                        __('plusieurs années %s ont des inscriptions : supprimez celle qui est en trop dans Année scolaire', 'periscolaire-registration'),
+                        $key
+                    );
+                    return false;
+                }
+                $merge = array();
+                if ($keep->vacation_ranges === null && $other->vacation_ranges !== null) $merge['vacation_ranges'] = $other->vacation_ranges;
+                if ($keep->lock_hours === null && $other->lock_hours !== null) $merge['lock_hours'] = $other->lock_hours;
+                if ($merge && false === $wpdb->update($t_years, $merge, array('id' => (int) $keep->id))) return false;
+                if (false === $wpdb->delete($t_years, array('id' => (int) $other->id))) return false;
+            }
+        }
+
+        // 3. Configuration du calendrier de l'ancienne table.
+        if (self::table_exists($t_sy)) {
+            foreach ((array) $wpdb->get_results("SELECT * FROM $t_sy") as $cfg) {
+                $data = array(
+                    'date_debut'      => $cfg->date_start,
+                    'date_fin'        => $cfg->date_end,
+                    'vacation_ranges' => $cfg->vacation_ranges,
+                    'lock_hours'      => $cfg->lock_hours,
+                    'updated_at'      => $now,
+                );
+                $id = $wpdb->get_var($wpdb->prepare("SELECT id FROM $t_years WHERE year_key = %s", $cfg->year_key));
+                $ok = $id
+                    ? $wpdb->update($t_years, $data, array('id' => (int) $id))
+                    : $wpdb->insert($t_years, array_merge($data, array('year_key' => $cfg->year_key, 'statut' => $status_for($cfg->date_end), 'created_at' => $now)));
+                if (false === $ok) return false;
+            }
+        }
+
+        // 4. Années citées par le planning sans ligne.
+        $t_hol = psc_table('holidays');
+        $t_pat = psc_table('pattern');
+        $cited = $wpdb->get_col(
+            "SELECT year_key FROM $t_hol UNION SELECT school_year FROM $t_pat"
+        );
+        foreach ((array) $cited as $key) {
+            $key = Psc_School_Year::sanitize_key((string) $key);
+            if ($key === '' || $wpdb->get_var($wpdb->prepare("SELECT id FROM $t_years WHERE year_key = %s", $key))) continue;
+            $fin = sprintf('%d-07-06', (int) substr($key, 5, 4));
+            if (false === $wpdb->insert($t_years, array(
+                'year_key' => $key, 'date_debut' => sprintf('%d-09-01', (int) substr($key, 0, 4)), 'date_fin' => $fin,
+                'statut' => $status_for($fin), 'created_at' => $now,
+            ))) return false;
+        }
+
+        // 5. Statut de l'enfant, porté par ses lignes d'année.
+        if (self::column_exists($t_child, 'statut')) {
+            $active = (int) $wpdb->get_var("SELECT id FROM $t_years WHERE statut = 'active' ORDER BY id DESC LIMIT 1");
+            if ($active && false === $wpdb->query($wpdb->prepare(
+                "INSERT INTO $t_cy (child_id, school_year_id, statut, date_inscription)
+                 SELECT c.id, %d, 'inscrit', c.created_at FROM $t_child c
+                 WHERE c.statut = 'actif'
+                   AND NOT EXISTS (SELECT 1 FROM $t_cy cy WHERE cy.child_id = c.id AND cy.school_year_id = %d)",
+                $active, $active
+            ))) return false;
+
+            foreach ((array) $wpdb->get_results("SELECT id, sorti_le FROM $t_child WHERE statut = 'sorti'") as $c) {
+                $sorti_le = $c->sorti_le ?: $now;
+                $last = $wpdb->get_var($wpdb->prepare(
+                    "SELECT cy.id FROM $t_cy cy INNER JOIN $t_years y ON y.id = cy.school_year_id
+                     WHERE cy.child_id = %d ORDER BY y.date_debut DESC LIMIT 1",
+                    (int) $c->id
+                ));
+                if ($last) {
+                    $ok = $wpdb->update($t_cy, array('statut' => 'sorti', 'sorti_le' => $sorti_le), array('id' => (int) $last));
+                } elseif ($active) {
+                    $ok = $wpdb->insert($t_cy, array('child_id' => (int) $c->id, 'school_year_id' => $active, 'statut' => 'sorti', 'sorti_le' => $sorti_le, 'date_inscription' => $sorti_le));
+                } else {
+                    $ok = true;
+                }
+                if (false === $ok) return false;
+            }
+        }
+        if (false === $wpdb->query("UPDATE $t_cy SET statut = 'inscrit' WHERE statut NOT IN ('inscrit', 'sorti')")) return false;
+
+        // 6. Ce qui ne sert plus.
+        if (self::column_exists($t_child, 'statut')) {
+            if (self::index_exists($t_child, 'statut') && false === $wpdb->query("ALTER TABLE $t_child DROP INDEX statut")) return false;
+            if (false === $wpdb->query("ALTER TABLE $t_child DROP COLUMN statut")) return false;
+        }
+        if (self::column_exists($t_child, 'sorti_le') && false === $wpdb->query("ALTER TABLE $t_child DROP COLUMN sorti_le")) return false;
+        if ($has_label && false === $wpdb->query("ALTER TABLE $t_years DROP COLUMN label")) return false;
+        if (false === $wpdb->query("ALTER TABLE $t_years MODIFY year_key VARCHAR(9) NOT NULL")) return false;
+        if (!self::index_exists($t_years, 'year_key') && false === $wpdb->query("ALTER TABLE $t_years ADD UNIQUE KEY year_key (year_key)")) return false;
+        if (self::table_exists($t_sy) && false === $wpdb->query("DROP TABLE $t_sy")) return false;
+
+        Psc_School_Year::flush_cache();
+        return true;
+    }
+
+    private static function column_exists($table, $column) {
+        global $wpdb;
+        return (bool) $wpdb->get_var($wpdb->prepare(
+            'SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = %s',
+            $table, $column
+        ));
+    }
+
+    private static function index_exists($table, $index) {
+        global $wpdb;
+        return (bool) $wpdb->get_var($wpdb->prepare(
+            'SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND INDEX_NAME = %s',
+            $table, $index
+        ));
+    }
+
     private static function migrate_4_0_0() {
         global $wpdb;
 
@@ -619,6 +801,11 @@ class Psc_Installer {
             array('exception',          'child_id',       'children',     'CASCADE'),
             array('child_school_years', 'school_year_id', 'school_years', 'CASCADE'),
             array('envois',             'famille_id',     'parents',      'CASCADE'),
+            // Le planning désigne l'année par sa clé ('2026-2027') : un
+            // rythme ou un férié ne peut citer qu'une année existante, et
+            // suit sa clé si les dates de l'année changent de rentrée.
+            array('holidays',           'year_key',       'school_years', 'CASCADE', 'year_key'),
+            array('pattern',            'school_year',    'school_years', 'CASCADE', 'year_key'),
         );
     }
 
@@ -634,7 +821,11 @@ class Psc_Installer {
     private static function store_constraints_state() {
         update_option(
             'psc_constraints_missing',
-            array_merge(self::ensure_foreign_keys(), self::ensure_service_constraint(), self::ensure_second_parent_email_unique(), self::ensure_envois_status_constraint()),
+            array_merge(
+                self::ensure_foreign_keys(), self::ensure_service_constraint(), self::ensure_second_parent_email_unique(), self::ensure_envois_status_constraint(),
+                self::ensure_status_constraint('school_years', "'preparation','active','archivee'"),
+                self::ensure_status_constraint('child_school_years', "'inscrit','sorti'")
+            ),
             false
         );
     }
@@ -670,20 +861,23 @@ class Psc_Installer {
         );
         if (!is_array($existing)) $existing = array();
 
-        foreach (self::foreign_key_map() as list($table, $column, $ref, $action)) {
+        foreach (self::foreign_key_map() as $fk) {
+            list($table, $column, $ref, $action) = $fk;
+            $ref_column = isset($fk[4]) ? $fk[4] : 'id';
             $t = psc_table($table);
             $r = psc_table($ref);
 
             if (in_array($t . '.' . $column, $existing, true)) continue;
             if (!self::table_exists($t) || !self::table_exists($r)) continue;
 
-            self::clear_orphans($t, $column, $r);
+            self::clear_orphans($t, $column, $r, $ref_column);
 
             $name = substr($t . '_' . $column . '_fk', -64);
+            $on_update = $ref_column === 'id' ? '' : ' ON UPDATE CASCADE';
             $wpdb->suppress_errors(true);
             $altered = $wpdb->query(
                 "ALTER TABLE $t ADD CONSTRAINT `$name`
-                 FOREIGN KEY ($column) REFERENCES $r (id) ON DELETE $action"
+                 FOREIGN KEY ($column) REFERENCES $r ($ref_column) ON DELETE $action$on_update"
             );
             $wpdb->suppress_errors(false);
             if ($altered === false) {
@@ -699,6 +893,36 @@ class Psc_Installer {
      * Même raison que ensure_service_constraint() : CHECK plutôt qu'ENUM,
      * que le mode SQL de WordPress remplacerait silencieusement par ''.
      */
+    /**
+     * Restreint la colonne statut d'une table à ses valeurs connues (cf.
+     * ensure_envois_status_constraint(), même principe et même tolérance).
+     *
+     * @param string $table  Table sans préfixe.
+     * @param string $values Liste SQL des valeurs autorisées.
+     */
+    private static function ensure_status_constraint($table, $values) {
+        global $wpdb;
+
+        $t = psc_table($table);
+        if (!self::table_exists($t)) return array();
+        $name = substr($t . '_statut_chk', -64);
+
+        $exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM information_schema.CHECK_CONSTRAINTS
+             WHERE CONSTRAINT_SCHEMA = DATABASE() AND CONSTRAINT_NAME = %s",
+            $name
+        ));
+        if ((int) $exists > 0) return array();
+
+        $wpdb->suppress_errors(true);
+        $altered = $wpdb->query("ALTER TABLE $t ADD CONSTRAINT `$name` CHECK (statut IN ($values))");
+        $wpdb->suppress_errors(false);
+        if ($altered === false) {
+            return array(array('type' => 'check', 'table' => $table, 'column' => 'statut', 'reason' => 'refused'));
+        }
+        return array();
+    }
+
     private static function ensure_envois_status_constraint() {
         global $wpdb;
 
@@ -887,10 +1111,12 @@ class Psc_Installer {
      * un justificatif reste ainsi consultable, alors qu'un simple zéro
      * hérité d'une migration ne justifie pas d'en perdre le contenu.
      */
-    private static function clear_orphans($table, $column, $ref) {
+    private static function clear_orphans($table, $column, $ref, $ref_column = 'id') {
         global $wpdb;
 
-        $broken = "a.$column = 0 OR (a.$column IS NOT NULL AND b.id IS NULL)";
+        $broken = $ref_column === 'id'
+            ? "a.$column = 0 OR (a.$column IS NOT NULL AND b.id IS NULL)"
+            : "a.$column IS NOT NULL AND b.id IS NULL";
 
         $nullable = $wpdb->get_var($wpdb->prepare(
             "SELECT IS_NULLABLE FROM information_schema.COLUMNS
@@ -901,7 +1127,7 @@ class Psc_Installer {
 
         if ($nullable === 'YES') {
             $wpdb->query(
-                "UPDATE $table a LEFT JOIN $ref b ON a.$column = b.id
+                "UPDATE $table a LEFT JOIN $ref b ON a.$column = b.$ref_column
                  SET a.$column = NULL WHERE $broken"
             );
             return;
@@ -915,7 +1141,7 @@ class Psc_Installer {
         if (psc_table('child_school_years') === $table) {
             $paths = $wpdb->get_col(
                 "SELECT a.assurance_file_path FROM $table a
-                 LEFT JOIN $ref b ON a.$column = b.id
+                 LEFT JOIN $ref b ON a.$column = b.$ref_column
                  WHERE a.assurance_file_path IS NOT NULL AND ($broken)"
             );
             foreach ((array) $paths as $rel) {
@@ -927,7 +1153,7 @@ class Psc_Installer {
         }
 
         $wpdb->query(
-            "DELETE a FROM $table a LEFT JOIN $ref b ON a.$column = b.id WHERE $broken"
+            "DELETE a FROM $table a LEFT JOIN $ref b ON a.$column = b.$ref_column WHERE $broken"
         );
     }
 
@@ -1303,34 +1529,40 @@ class Psc_Installer {
         $t_conversations = psc_table('conversations');
         $t_conv_messages = psc_table('conversation_messages');
         $t_audit_log = psc_table('audit_log');
-        // v4.0 — année scolaire + rythme & exceptions.
-        $t_sy   = psc_table('school_year');
+        // v4.0 — rythme & exceptions ; l'année scolaire est une seule table
+        // depuis 4.15.0 (school_years porte aussi le calendrier).
         $t_hol  = psc_table('holidays');
         $t_pat  = psc_table('pattern');
         $t_exc  = psc_table('exception');
 
+        // Une montée depuis une version antérieure à 4.15.0 garde, le temps
+        // des migrations, les colonnes que celles-ci lisent ou écrivent
+        // encore (libellé libre de l'année, statut global de l'enfant) :
+        // migrate_4_15_0() les convertit puis les supprime, et pose la clé
+        // d'année unique. Une installation neuve n'en reçoit aucune.
+        $before_4_15 = self::upgrade_before('4.15.0');
+        $year_legacy = $before_4_15
+            ? "label VARCHAR(20) NULL,\n            year_key VARCHAR(9) NULL,"
+            : 'year_key VARCHAR(9) NOT NULL,';
+        $year_key_index = $before_4_15 ? '' : "UNIQUE KEY year_key (year_key),\n            ";
+        // Sans ligne vide : dbDelta() lirait une ligne blanche comme un index.
+        $child_legacy = $before_4_15
+            ? "statut VARCHAR(20) NOT NULL DEFAULT 'actif',\n            sorti_le DATETIME NULL,\n            "
+            : '';
+        $child_legacy_index = $before_4_15 ? ",\n            KEY statut (statut)" : '';
+
         $sql = "CREATE TABLE $t_years (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            label VARCHAR(20) NOT NULL,
+            $year_legacy
             date_debut DATE NOT NULL,
             date_fin DATE NOT NULL,
             statut VARCHAR(20) NOT NULL DEFAULT 'preparation',
-            created_at DATETIME NOT NULL,
-            PRIMARY KEY  (id),
-            KEY statut (statut)
-        ) $charset_collate;
-
-CREATE TABLE $t_sy (
-            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            year_key VARCHAR(9) NOT NULL,
-            date_start DATE NOT NULL,
-            date_end DATE NOT NULL,
             vacation_ranges LONGTEXT NULL,
             lock_hours SMALLINT UNSIGNED NULL,
             created_at DATETIME NOT NULL,
-            updated_at DATETIME NOT NULL,
+            updated_at DATETIME NULL,
             PRIMARY KEY  (id),
-            UNIQUE KEY year_key (year_key)
+            {$year_key_index}KEY statut (statut)
         ) $charset_collate;
 
 CREATE TABLE $t_hol (
@@ -1418,12 +1650,9 @@ CREATE TABLE $t_child (
             food_allergies TEXT NULL,
             food_allergy_signal TINYINT(1) NOT NULL DEFAULT 0,
             food_allergy_consent_at DATETIME NULL,
-            statut VARCHAR(20) NOT NULL DEFAULT 'actif',
-            sorti_le DATETIME NULL,
-            created_at DATETIME NOT NULL,
+            {$child_legacy}created_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
-            KEY parent_id (parent_id),
-            KEY statut (statut)
+            KEY parent_id (parent_id)$child_legacy_index
         ) $charset_collate;
 
 CREATE TABLE $t_cy (
@@ -1432,6 +1661,7 @@ CREATE TABLE $t_cy (
             school_year_id BIGINT UNSIGNED NULL,
             classe VARCHAR(100) NULL,
             statut VARCHAR(20) NOT NULL DEFAULT 'inscrit',
+            sorti_le DATETIME NULL,
             date_inscription DATETIME NULL,
             reglement_accepted_at DATETIME NULL,
             assurance_file_path VARCHAR(255) NULL,
@@ -1821,7 +2051,13 @@ CREATE TABLE $t_reg (
      * jamais les tables legacy.
      */
     private static function upgrade_includes_legacy_tables() {
+        return self::upgrade_before('4.0.0');
+    }
+
+    /** Vrai pendant une montée depuis une version de schéma antérieure à $version. */
+    private static function upgrade_before($version) {
+        if (self::$final_schema) return false;
         $current = get_option('psc_db_version');
-        return $current !== '' && $current !== false && version_compare((string) $current, '4.0.0', '<');
+        return $current !== '' && $current !== false && version_compare((string) $current, $version, '<');
     }
 }
