@@ -60,8 +60,30 @@ class Psc_Frontend_Reinscription extends Psc_Frontend_Base {
             $files[(int) $child->id] = isset($_FILES['assurance_' . $child->id]) ? $_FILES['assurance_' . $child->id] : null;
         }
 
-        $result = self::apply_reinscription($children, $files, $target_year->id, current_time('mysql'));
-        $codes = array('ok' => 'reinscription_confirmee', 'required' => 'reinscription_required', 'failed' => 'reinscription_failed');
+        $retires = array();
+        $result = self::apply_reinscription($children, $files, $target_year->id, current_time('mysql'), $retires);
+
+        // Enfant décoché après une réinscription déjà envoyée : il perd son
+        // inscription à l'année cible (décision de la mairie), c'est tracé
+        // et la mairie en est informée.
+        if ($retires) {
+            $names = array();
+            foreach ($retires as $child) {
+                $names[] = trim($child->prenom . ' ' . $child->nom);
+                Psc_Audit::log('enfant.reinscription_retiree', array(
+                    'objet_type' => 'enfant', 'objet_id' => (int) $child->id, 'enfant_id' => (int) $child->id,
+                    'famille_id' => (int) $parent->id, 'meta' => array('annee' => $target_year->year_key),
+                    'resume' => sprintf(
+                        /* translators: 1: prénom et nom de l'enfant, 2: année, ex. 2026-2027 */
+                        __('Réinscription de %1$s pour %2$s retirée par la famille.', 'periscolaire-registration'),
+                        trim($child->prenom . ' ' . $child->nom), $target_year->year_key
+                    ),
+                ));
+            }
+            Psc_Mailer::notify_reinscription_retrait($parent, $names, $target_year->year_key);
+        }
+
+        $codes = array('ok' => 'reinscription_confirmee', 'retire' => 'reinscription_retiree', 'required' => 'reinscription_required', 'failed' => 'reinscription_failed');
         self::parent_form_redirect($codes[$result]);
     }
 
@@ -73,12 +95,21 @@ class Psc_Frontend_Reinscription extends Psc_Frontend_Base {
      * rattrapable en renvoyant le formulaire : inscription et dépôt sont
      * des remplacements, jamais des ajouts.
      *
-     * @return string 'ok' | 'required' | 'failed'
+     * Un enfant décoché qui était déjà réinscrit à l'année cible perd
+     * cette inscription (ligne et justificatif de l'année), une fois tous
+     * les fichiers contrôlés ; il est renvoyé dans $retires.
+     *
+     * @return string 'ok' | 'retire' (seulement des retraits) | 'required' | 'failed'
      */
-    public static function apply_reinscription(array $children, array $files, $target_year_id, $reglement_accepted_at) {
+    public static function apply_reinscription(array $children, array $files, $target_year_id, $reglement_accepted_at, &$retires = array()) {
+        $retires = array();
         $plan = array();
+        $to_remove = array();
         foreach ($children as $child) {
-            if (!array_key_exists((int) $child->id, $files)) continue;
+            if (!array_key_exists((int) $child->id, $files)) {
+                if (Psc_School_Years::enrollment($child->id, $target_year_id)) $to_remove[] = $child;
+                continue;
+            }
 
             $classe_actuelle = Psc_School_Years::classe_for($child->id); // année en cours (active)
             $classe_proposee = $classe_actuelle !== '' ? Psc_School_Years::classe_superieure($classe_actuelle) : null;
@@ -88,7 +119,13 @@ class Psc_Frontend_Reinscription extends Psc_Frontend_Base {
             if (Psc_Assurances::validate_upload($file) !== true) return 'required';
             $plan[] = array((int) $child->id, $classe_proposee, $file);
         }
-        if (!$plan) return 'required';
+        if (!$plan && !$to_remove) return 'required';
+
+        foreach ($to_remove as $child) {
+            if (!Psc_School_Years::unenroll($child->id, $target_year_id)) return 'failed';
+            $retires[] = $child;
+        }
+        if (!$plan) return 'retire';
 
         foreach ($plan as $p) {
             if (!Psc_School_Years::enroll($p[0], $target_year_id, $p[1], 'inscrit', $reglement_accepted_at)
