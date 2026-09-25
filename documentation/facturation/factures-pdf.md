@@ -33,11 +33,17 @@ Connectez-vous avec un rôle autorisé à gérer la facturation. Vérifiez que l
    !!! warning
        La suppression des factures non envoyées est irréversible : leurs PDF sont effacés.
 
-   ??? note "Mode debug (environnements de test uniquement)"
-       Pour les besoins de test, un administrateur ayant accès à WP-CLI peut autoriser la suppression de **toutes** les factures du mois, envoyées comprises :
+   ???+ note "Mode debug (environnements de test uniquement)"
+       Pour les besoins de test, un administrateur ayant accès à WP-CLI peut autoriser la suppression de **toutes** les factures du mois, envoyées comprises. Activez le mode avec :
 
        ```
        wp option update psc_invoice_debug_delete 1
+       ```
+
+       Vérifiez à tout moment s'il est actif (`1` : actif ; message d'erreur « Could not get 'psc_invoice_debug_delete' option » : inactif) :
+
+       ```
+       wp option get psc_invoice_debug_delete
        ```
 
        Tant que ce mode est actif, une alerte rouge est affichée sur les écrans du plugin et le bouton devient **Supprimer les factures du mois (mode debug)**. Chaque suppression est notée dans le journal d'audit avec son mode. Désactivez-le dès la fin des tests, et ne l'activez jamais sur le site de production :

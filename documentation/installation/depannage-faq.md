@@ -63,7 +63,7 @@ Une facture déjà envoyée à une famille, ou rectifiée après envoi, ne se su
 
 ## Une alerte rouge signale le « mode debug de la facturation »
 
-L'option WP-CLI `psc_invoice_debug_delete` est active : les factures envoyées peuvent être supprimées. Sur un site de production, désactivez-la avec `wp option delete psc_invoice_debug_delete`.
+L'option WP-CLI `psc_invoice_debug_delete` est active (`wp option get psc_invoice_debug_delete` affiche `1`) : les factures envoyées peuvent être supprimées. Sur un site de production, désactivez-la avec `wp option delete psc_invoice_debug_delete`.
 
 ## Pourquoi le journal d'audit signale-t-il un problème ?
 
