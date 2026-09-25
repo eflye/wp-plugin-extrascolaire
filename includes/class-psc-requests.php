@@ -64,8 +64,13 @@ class Psc_Requests {
             "SELECT id FROM $t WHERE status IN ('approved','rejected') AND decided_at < %s",
             gmdate('Y-m-d H:i:s', time() - 90 * DAY_IN_SECONDS)
         ));
+        // Les rattachements en échec sont repris avant la purge ; une zone
+        // d'attente qui en garde encore survit à sa demande (P1-13).
+        Psc_Assurances::retry_failed_promotions();
         foreach (array_merge($unverified_ids, $stale_ids) as $id) {
-            Psc_Assurances::delete_pending_files($id);
+            if (!Psc_Assurances::has_failed_promotions($id)) {
+                Psc_Assurances::delete_pending_files($id);
+            }
         }
 
         $wpdb->query($wpdb->prepare(
@@ -947,7 +952,7 @@ class Psc_Requests {
             if (!empty($c['assurance_rel_path'])) {
                 $abs = psc_private_path($c['assurance_rel_path']);
                 if (file_exists($abs)) {
-                    $promotions[] = array($child_id, $abs, $c['assurance_original_filename'] ?? '');
+                    $promotions[] = array($child_id, $abs, $c['assurance_original_filename'] ?? '', $c['assurance_rel_path']);
                 }
             }
         }
@@ -992,16 +997,20 @@ class Psc_Requests {
         // reprennent. Un échec ici ne laisse qu'un état rattrapable
         // manuellement (justificatif encore en zone d'attente), jamais
         // une famille amputée de ses enfants.
-        $promotion_failed = false;
+        $failed_promotions = array();
         foreach ($promotions as $promotion) {
-            if (!Psc_Assurances::promote_pending($promotion[0], $promotion[1], $promotion[2])) $promotion_failed = true;
+            if (!Psc_Assurances::promote_pending($promotion[0], $promotion[1], $promotion[2])) {
+                $failed_promotions[] = array($promotion[0], $promotion[3], $promotion[2]);
+            }
         }
         // Ne jamais supprimer la zone d'attente si un rattachement a
-        // échoué : elle constitue la source de reprise idempotente pour la
-        // mairie. Les fichiers déjà promus sont traités normalement.
-        if (!$promotion_failed) {
+        // échoué : son manifeste est la source de la reprise quotidienne
+        // (Psc_Assurances::retry_failed_promotions()). Les fichiers déjà
+        // promus sont traités normalement.
+        if (!$failed_promotions) {
             Psc_Assurances::delete_pending_files($req->id);
         } else {
+            Psc_Assurances::record_failed_promotions($req->id, $failed_promotions);
             Psc_Audit::log('assurance.promotion_echec', array('objet_type' => 'demande', 'objet_id' => (int) $req->id, 'resume' => __('Un justificatif n’a pas pu être rattaché ; la zone d’attente est conservée pour reprise.', 'periscolaire-registration')));
         }
 
