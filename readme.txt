@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.25.0
+Stable tag: 5.26.0
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,13 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.26.0 =
+* Une seule année scolaire par rentrée, nommée d'après elle (par exemple 2026-2027) : le libellé libre disparaît de l'écran « Année scolaire », et le calendrier (dates, vacances, délai de modification) et le dossier de l'année (classes, justificatifs) sont désormais la même année. Créer une seconde année pour une rentrée qui en a déjà une est refusé : corrigez plutôt les dates de l'année existante.
+* Le statut d'un enfant (inscrit ou sorti) est suivi année par année. Dans « Enfants », choisissez l'année puis les enfants inscrits, sortis en cours d'année ou non inscrits ; les boutons « Marquer sorti », « Réinscrire » et « Inscrire à cette année » agissent sur l'année affichée. Listes des intervenants, commande fournisseur, fermetures et export portent sur les enfants inscrits à l'année de la date concernée.
+* Réinscription : un enfant décoché par la famille après une réinscription déjà envoyée perd son inscription à l'année suivante, avec le justificatif déposé pour cette année. L'opération est notée dans le journal d'audit et la mairie reçoit le nouvel e-mail « Réinscription retirée par la famille », modifiable dans « Modèles d'e-mails ».
+* Conservation RGPD : la fiche d'un enfant qui n'est inscrit ni à l'année active ni à celle en préparation est purgée 400 jours après sa sortie ou la fin de la dernière année où il était inscrit. Un enfant non réinscrit est donc traité comme un enfant sorti en fin d'année.
+* **Mise à jour de la base (4.15.0).** Elle est automatique. Si deux années d'une même rentrée portent chacune des inscriptions, elle s'arrête sans rien perdre et une alerte indique l'année en double à supprimer dans « Année scolaire » ; elle reprend ensuite d'elle-même. **Faites la sauvegarde habituelle avant la mise à jour.**
 
 = 5.25.0 =
 * « Supprimer les factures du mois » ne supprime plus que les factures qui n'ont pas encore été envoyées : une facture envoyée à une famille, ou rectifiée après envoi, est conservée, et le message indique combien de factures ont été supprimées et conservées. Pour les environnements de test, un mode debug activé par WP-CLI (`wp option update psc_invoice_debug_delete 1`) autorise la suppression de toutes les factures ; il est signalé par une alerte rouge tant qu'il est actif. **Ne l'activez jamais en production.**
