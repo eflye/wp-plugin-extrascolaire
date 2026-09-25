@@ -8,7 +8,7 @@ Ajouter un enfant, corriger sa fiche, signaler un besoin alimentaire et déposer
 
 1. Ouvrez **Mes enfants**, puis remplissez le formulaire d'ajout : prénom, nom, classe, date de naissance, régime alimentaire.
 2. Joignez son **Justificatif d'assurance scolaire**, obligatoire pour ajouter l'enfant.
-3. Cliquez sur **Ajouter**. L'enfant apparaît dans la liste et dans le planning.
+3. Cliquez sur **Ajouter**. L'enfant apparaît dans la liste et dans le planning. Si le message « L'enfant n'a pas pu être ajouté » s'affiche, rien n'a été enregistré : réessayez un peu plus tard, puis contactez la mairie si le problème persiste.
 
 ## Corriger une fiche
 
