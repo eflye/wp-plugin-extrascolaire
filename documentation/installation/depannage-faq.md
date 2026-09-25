@@ -8,6 +8,19 @@ Le répertoire privé n'existe pas ou n'est pas accessible en écriture. Vérifi
 
 L'hébergement expose probablement le répertoire privé à partir d'une URL publique, ou le serveur ignore les garde-fous `.htaccess`/`web.config`. Déplacez `PSC_PRIVATE_DIR` hors de la racine web ou ajoutez une règle équivalente dans la configuration du serveur, puis testez une URL de document en navigation privée.
 
+## L'alerte indique que la mise à jour de la base de données est incomplète
+
+Une étape de la mise à jour du schéma a rencontré une erreur SQL. Les étapes précédentes sont conservées, et la version n'avance pas au-delà de la dernière étape réussie. Une nouvelle tentative reprend à l'étape indiquée à chaque ouverture du backoffice. L'alerte donne l'étape, la nature de la requête et la table, sans aucune donnée personnelle. Si elle persiste, vérifiez avec l'hébergeur les droits de modification des tables (`ALTER`, `CREATE`), le quota et les délais d'exécution. Le **Journal d'audit** trace l'arrêt (« systeme.montee_de_version_echec ») puis la réussite (« systeme.montee_de_version »).
+
+## L'alerte indique que des documents n'ont pas pu être déplacés
+
+Après un changement de `PSC_PRIVATE_DIR`, ou lors de la sortie de l'ancien dossier `uploads/periscolaire`, certains fichiers sont restés à l'ancien emplacement. Aucun fichier n'est supprimé, mais ces documents ne peuvent pas être téléchargés tant qu'ils ne sont pas au nouvel emplacement. Deux causes possibles :
+
+- **Même nom, contenu différent aux deux endroits :** comparez les deux fichiers, conservez le bon au nouvel emplacement et supprimez l'autre copie.
+- **Droits insuffisants :** le processus PHP doit pouvoir modifier les deux dossiers.
+
+Rechargez ensuite une page du backoffice : le déplacement reprend et l'alerte disparaît dès qu'il est complet. Tant que des fichiers restent dans `uploads/periscolaire`, un fichier `.htaccess` y interdit l'accès direct.
+
 ## Pourquoi l'alerte indique-t-elle que les contraintes de base de données ne sont pas posées ?
 
 L'hébergement a refusé une modification de schéma, ou des données existantes empêchent la pose d'une contrainte. Consultez la liste affichée dans l'alerte, corrigez les données concernées et vérifiez les quotas et le moteur de table. Le plugin retente automatiquement à chaque ouverture du backoffice.

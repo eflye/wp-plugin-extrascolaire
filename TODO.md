@@ -286,13 +286,22 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** changer un tarif, sortir un enfant ou modifier son flag en octobre n’altère pas une facture de septembre déjà émise ; correction identifiable et archive conservée selon la politique validée. La qualification comptable exacte du PDF doit être confirmée par la mairie. **Développement + facturation/archives ; L.**
 
-### P1-17 — PARTIELLEMENT AVANCÉ — Sécuriser les migrations et déplacements du stockage
+### P1-17 — TRAITÉ (après v5.24.0) — Sécuriser les migrations et déplacements du stockage
 
-- [ ] **N’enregistrer une migration comme réussie qu’après vérification complète.**
+- [x] **N’enregistrer une migration comme réussie qu’après vérification complète.**
 
 **Constaté :** `class-psc-installer.php:46` lance les migrations au chargement et enregistre `psc_db_version` sans bilan de tous les retours SQL. Aucun verrou global de migration n’est visible. `move_tree():569` ignore les erreurs de déplacement et supprime la source lorsqu’un nom existe déjà à destination sans vérifier que les contenus sont identiques. `sync_private_dir():140` mémorise ensuite le nouveau chemin.
 
 **Avancement technique :** un verrou d’exécution avec reprise après expiration empêche désormais les migrations concurrentes ; un conflit de contenu conserve la source et signale l’échec. Les migrations restent idempotentes et la version n’avance pas si le nettoyage préalable échoue ; la recette interruption/reprise reste à compléter.
+
+**Traité le 25/09/2026 :**
+- **Montée par étapes vérifiées :** chaque migration (et chaque passe de `dbDelta()`) n'est franchie qu'en l'absence d'erreur SQL, mesurée sur `$EZSQL_ERROR`, hors sondes `DESCRIBE` de `dbDelta()`. `psc_db_version` avance étape par étape : une montée interrompue reprend à l'étape en échec sans rejouer les précédentes. L'échec est consigné (`psc_migration_failed` : étape, nature de la requête et table, jamais son texte), journalisé une fois, et signalé par une alerte. La reprise a lieu à chaque écran d'administration, et au plus toutes les 5 minutes côté public.
+- **Verrou atomique :** `INSERT IGNORE` sur la clé unique, reprise d'un verrou abandonné par `UPDATE` conditionnel, restitution par le seul détenteur. Le verrou précédent (lecture puis écriture) laissait passer deux processus. Plus aucune écriture d'option à chaque visite quand rien n'est à faire.
+- **Déménagements :** `sync_private_dir()` retenait le nouveau chemin même après un échec : les documents restés à l'ancien emplacement, possiblement exposé, n'étaient plus jamais déplacés. Le chemin n'est désormais retenu qu'une fois tout déplacé. La migration 3.7.0 (sortie de `uploads/periscolaire`) ignorait aussi l'échec : elle est reprise à chaque chargement, sous garde-fou, sans bloquer le schéma. Le témoin `psc-probe.txt`, aléatoire et propre à chaque dossier, faisait échouer tout déménagement : les garde-fous ne sont plus déplacés, et ne quittent la source qu'une fois celle-ci vidée. Une alerte d'administration nomme les dossiers et le nombre de fichiers restés.
+
+**Preuve :** `bin/verify-migration-resume.php`, lancé en CI sous `www-data` (42 vérifications : verrou, erreur SQL en cours d'étape, progression conservée, reprise espacée, échec de `dbDelta`, conflit de contenu, droit refusé, `uploads/periscolaire`). Vérifié par mutation : chacun des 9 défauts réintroduits fait échouer au moins une vérification. `bin/verify-migrations.php` (montée 2.4.9 → courante) reste conforme. `tests/migrations-alertes.spec.ts` couvre les alertes (contenu, réservées à la configuration, axe).
+
+**Reste côté exploitation :** rejouer une montée sur une copie du serveur distant (P1-18).
 
 **Acceptation :** migrations ancienne version → actuelle avec interruption/permission refusée/conflit de fichier ; aucun document perdu, version non avancée à tort, reprise vérifiable. **Développement + exploitation ; L.**
 
