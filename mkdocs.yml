@@ -91,6 +91,7 @@ nav:
           - Versions et dépendances: installation/versions-dependances.md
           - Installation et activation: installation/installation-activation.md
           - Déployer une nouvelle version: installation/deploiement-zip.md
+          - Notes de mise à jour: installation/notes-mise-a-jour.md
           - Accès des agents de la mairie: installation/acces-agents.md
           - Envoi des e-mails (SMTP): installation/emails-smtp.md
           - Tâches planifiées: installation/taches-planifiees.md

@@ -14,7 +14,7 @@ const pages = [
   'gestion-quotidienne/documents-assurance', 'gestion-quotidienne/personnes-autorisees',
   'facturation/factures-pdf', 'facturation/mandats-sepa',
   'cycle-annuel/reinscription', 'cycle-annuel/passage-de-classe', 'rgpd',
-  'installation/prerequis', 'installation/installation-activation', 'installation/deploiement-zip', 'installation/cle-chiffrement', 'installation/emails-smtp',
+  'installation/prerequis', 'installation/installation-activation', 'installation/deploiement-zip', 'installation/notes-mise-a-jour', 'installation/cle-chiffrement', 'installation/emails-smtp',
   'installation/taches-planifiees', 'installation/sauvegarde-mise-a-jour', 'installation/depannage-faq',
   'glossaire', 'contribuer',
 ];
