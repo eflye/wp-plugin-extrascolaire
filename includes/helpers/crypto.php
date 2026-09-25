@@ -15,6 +15,11 @@ if (!defined('ABSPATH')) exit;
  *
  *     define('PSC_ENCRYPTION_KEY', 'une-longue-chaine-aleatoire');
  *
+ * sinon la variable d'environnement du même nom — le moyen naturel d'un
+ * WordPress en conteneur, dont wp-config.php est généré par l'image
+ * (docker-compose : `environment: PSC_ENCRYPTION_KEY: …`). Même principe
+ * pour PSC_ENCRYPTION_KEY_PREVIOUS.
+ *
  * À défaut, c'est wp_salt('psc_sepa'). Pour ce nom de sel propre au
  * plugin, WordPress n'utilise PAS les sels de wp-config.php : il dérive le
  * sel de l'option `secret_key`, enregistrée EN BASE (sauf constante
@@ -35,8 +40,14 @@ function psc_encryption_secrets() {
     $secrets = array();
     if (defined('PSC_ENCRYPTION_KEY') && PSC_ENCRYPTION_KEY) {
         $secrets['constante'] = (string) PSC_ENCRYPTION_KEY;
+    } elseif (psc_env_secret('PSC_ENCRYPTION_KEY') !== '') {
+        $secrets['environnement'] = psc_env_secret('PSC_ENCRYPTION_KEY');
+    }
+    if ($secrets) {
         if (defined('PSC_ENCRYPTION_KEY_PREVIOUS') && PSC_ENCRYPTION_KEY_PREVIOUS) {
             $secrets['constante_precedente'] = (string) PSC_ENCRYPTION_KEY_PREVIOUS;
+        } elseif (psc_env_secret('PSC_ENCRYPTION_KEY_PREVIOUS') !== '') {
+            $secrets['constante_precedente'] = psc_env_secret('PSC_ENCRYPTION_KEY_PREVIOUS');
         }
     }
     $secrets['base'] = wp_salt('psc_sepa');
@@ -49,7 +60,22 @@ function psc_encryption_key() {
     return hash('sha256', (string) reset($secrets), true);
 }
 
-/** Origine du secret courant : 'constante' (wp-config.php) ou 'base' (option secret_key). */
+/** Variable d'environnement non vide, ou ''. */
+function psc_env_secret($name) {
+    $value = getenv($name);
+    if ($value === false || $value === '') $value = $_ENV[$name] ?? ($_SERVER[$name] ?? '');
+    return is_string($value) ? trim($value) : '';
+}
+
+/** Vrai si la clé courante est hors de la base (constante ou variable d'environnement). */
+function psc_encryption_key_outside_db() {
+    return psc_encryption_key_source() !== 'base';
+}
+
+/**
+ * Origine du secret courant : 'constante' (wp-config.php), 'environnement'
+ * (variable du conteneur) ou 'base' (option secret_key).
+ */
 function psc_encryption_key_source() {
     $secrets = psc_encryption_secrets();
     return (string) key($secrets);

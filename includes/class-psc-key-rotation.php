@@ -126,9 +126,12 @@ if (defined('WP_CLI') && WP_CLI) {
          */
         public function statut() {
             $source = psc_encryption_key_source();
-            WP_CLI::log($source === 'constante'
-                ? 'Clé courante : constante PSC_ENCRYPTION_KEY (wp-config.php), hors de la base.'
-                : 'Clé courante : option secret_key, EN BASE. Un dump de la base suffit à déchiffrer les IBAN.');
+            $labels = array(
+                'constante'     => 'Clé courante : constante PSC_ENCRYPTION_KEY (wp-config.php), hors de la base.',
+                'environnement' => 'Clé courante : variable d’environnement PSC_ENCRYPTION_KEY, hors de la base.',
+                'base'          => 'Clé courante : option secret_key, EN BASE. Un dump de la base suffit à déchiffrer les IBAN.',
+            );
+            WP_CLI::log($labels[$source] ?? $source);
 
             $r = Psc_Key_Rotation::run(true);
             WP_CLI::log(sprintf('Valeurs à la clé courante ......... %d', $r['courant']));
@@ -137,12 +140,12 @@ if (defined('WP_CLI') && WP_CLI) {
             WP_CLI::log(sprintf('Valeurs illisibles ................. %d', $r['illisible']));
             foreach ($r['illisibles'] as $label) WP_CLI::log("  - $label");
 
-            if ($source !== 'constante') {
+            if ($source === 'base') {
                 WP_CLI::warning('Déclarez PSC_ENCRYPTION_KEY (wp psc chiffrement generer-cle), puis lancez wp psc chiffrement rechiffrer.');
             } elseif ($r['ancienne_cle'] || $r['clair']) {
                 WP_CLI::warning('Des valeurs ne sont pas à la clé courante : lancez wp psc chiffrement rechiffrer.');
             } else {
-                WP_CLI::success('Toutes les valeurs lisibles sont chiffrées avec la clé de wp-config.php.');
+                WP_CLI::success('Toutes les valeurs lisibles sont chiffrées avec la clé hors de la base.');
             }
         }
 
@@ -161,7 +164,7 @@ if (defined('WP_CLI') && WP_CLI) {
          */
         public function rechiffrer($args, $assoc_args) {
             $dry = !empty($assoc_args['dry-run']);
-            if (psc_encryption_key_source() !== 'constante') {
+            if (!psc_encryption_key_outside_db()) {
                 WP_CLI::error('PSC_ENCRYPTION_KEY n’est pas déclarée : rechiffrer garderait la clé en base. Déclarez-la d’abord (wp psc chiffrement generer-cle).');
             }
             $r = Psc_Key_Rotation::run($dry);
