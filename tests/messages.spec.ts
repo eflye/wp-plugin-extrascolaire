@@ -154,7 +154,7 @@ test.describe('Messages aux familles', () => {
       'psc-section-familles', 'psc_parents', 'psc_children', 'psc_assurances',
       'psc-section-facturation', 'psc_factures', 'psc_comptes_familles',
       'psc-section-communication', 'psc_messages',
-      'psc-section-configuration', 'psc_school_calendar_v2', 'psc_email_templates', 'psc_settings', 'psc_audit',
+      'psc-section-configuration', 'psc_school_calendar_v2', 'psc_email_templates', 'psc_settings', 'psc_maintenance', 'psc_audit',
     ]);
     expect(labels).toEqual([
       'À traiter', 'Tableau de bord', "Demandes d'inscription", 'Échanges familles',
@@ -162,7 +162,7 @@ test.describe('Messages aux familles', () => {
       'Familles', 'Familles', 'Enfants', 'Assurances scolaires',
       'Facturation', 'Factures', 'État des comptes',
       'Communication', 'Messages aux familles',
-      'Configuration', 'Année scolaire', "Modèles d'e-mails", 'Réglages', "Journal d'audit",
+      'Configuration', 'Année scolaire', "Modèles d'e-mails", 'Réglages', 'Maintenance', "Journal d'audit",
     ]);
   });
 
