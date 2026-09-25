@@ -203,6 +203,7 @@ jobs:
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-school-year-integrity.php verify-school-year-integrity
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-query-budget.php verify-query-budget
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-rate-limit.php verify-rate-limit
+          wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-invoice-deletion.php verify-invoice-deletion
 
       - name: Node
         uses: actions/setup-node@v4
