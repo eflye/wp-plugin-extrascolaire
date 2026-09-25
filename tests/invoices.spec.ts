@@ -186,11 +186,23 @@ test.describe('Facturation libre + export prélèvements', () => {
       ).trim().split('\n').pop()
     ).toBe('1');
 
-    // 3. Suppression du mois : notice + plus rien en base.
-    await page.locator('button:has-text("Supprimer les factures du mois")').click();
-    await expect(page.locator('.notice-updated:has-text("Factures du mois supprimées")')).toBeVisible();
-    expect(invoiceCount()).toBe('0');
-    await expect(page.locator('td:has-text("FacturesE2E")')).toHaveCount(0);
+    // 3. Suppression du mois, mode production : la facture envoyée est conservée.
+    await page.locator('button:has-text("Supprimer les factures non envoyées du mois")').click();
+    await expect(page.getByText(/facture\(s\) conservée\(s\) : une facture déjà envoyée/)).toBeVisible();
+    expect(invoiceCount()).toBe('1');
+
+    // 4. Mode debug (activé par WP-CLI) : tout le mois est supprimé.
+    wpCliEval(`update_option('psc_invoice_debug_delete', 1);`);
+    try {
+      await page.goto(facturesUrl());
+      await expect(page.getByTestId('notice-invoice-debug-delete')).toBeVisible();
+      await page.locator('button:has-text("Supprimer les factures du mois (mode debug)")').click();
+      await expect(page.locator('.notice-updated:has-text("Factures du mois supprimées")')).toBeVisible();
+      expect(invoiceCount()).toBe('0');
+      await expect(page.locator('td:has-text("FacturesE2E")')).toHaveCount(0);
+    } finally {
+      wpCliEval(`delete_option('psc_invoice_debug_delete');`);
+    }
   });
 
   test('portail famille : facture invisible avant envoi, visible et téléchargeable après', async ({ page }) => {
