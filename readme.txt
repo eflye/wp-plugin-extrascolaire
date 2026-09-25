@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.27.0
+Stable tag: 5.28.0
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,12 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.28.0 =
+* Nouvelle page **Périscolaire › Maintenance** : la mise à jour se conduit entièrement depuis le backoffice, sans ligne de commande — pratique pour un WordPress en conteneur. Cinq étapes avec leur état (Fait, À faire, Bloquant) : sauvegarde confirmée, base de données (années en double à supprimer, bouton de relance), clé de chiffrement des IBAN (génération, rechiffrement), nouveaux réglages à renseigner, recette cochée point par point avec l'auteur et la date. Un rappel s'affiche sur le tableau de bord tant qu'une étape reste à faire.
+* La clé de chiffrement des IBAN peut être déclarée en variable d'environnement `PSC_ENCRYPTION_KEY` du conteneur, en plus de la constante de wp-config.php. La clé générée depuis la page Maintenance n'est affichée qu'une fois et n'est enregistrée nulle part.
+* Journal d'audit : les relances d'envoi d'un menu ou d'une commande fournisseur étaient journalisées comme « action inconnue » et déclenchaient l'alerte du journal ; elles sont désormais classées, et l'alerte ne cite plus une action classée depuis.
+* Documentation « Notes de mise à jour » réécrite autour de la page Maintenance.
 
 = 5.27.0 =
 * Clé de chiffrement des IBAN : sans la constante PSC_ENCRYPTION_KEY dans wp-config.php, la clé était tirée d'une option enregistrée dans la base de données — une copie de la base suffisait donc à lire les IBAN. Nouvelle commande `wp psc chiffrement` : `statut` indique où se trouve la clé, `generer-cle` fournit la ligne à ajouter dans wp-config.php, `rechiffrer` rechiffre les IBAN des familles, des demandes et du créancier avec cette clé. Le site lit les deux clés pendant la transition : rien ne devient illisible. **Après la mise à jour**, suivez la page « Clé de chiffrement des IBAN » de la documentation.
