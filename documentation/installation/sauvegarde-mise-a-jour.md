@@ -19,7 +19,7 @@ Vous devez disposer d'un accès à la base de données, aux fichiers WordPress e
 
     Incluez ce chemin dans la sauvegarde et protégez ses copies au même niveau que les documents eux-mêmes.
 
-3. Sauvegardez la clé qui déchiffre les coordonnées bancaires, et conservez-la **séparément du dump de base**. Il s'agit de la constante `PSC_ENCRYPTION_KEY` de `wp-config.php`. Vérifiez qu'elle est bien déclarée avec `wp psc chiffrement statut`.
+3. Sauvegardez la clé qui déchiffre les coordonnées bancaires, et conservez-la **séparément du dump de base**. Il s'agit de `PSC_ENCRYPTION_KEY`, constante de `wp-config.php` ou variable d'environnement du conteneur. Vérifiez qu'elle est bien déclarée dans **Périscolaire › Maintenance** (étape 3) ou avec `wp psc chiffrement statut`.
 
     Si elle ne l'est pas, la clé est tirée de l'option `secret_key`, **enregistrée dans la base** : le dump contient alors de quoi déchiffrer les IBAN, et aucune séparation n'est possible. Sortez la clé de la base en suivant [Clé de chiffrement des IBAN](cle-chiffrement.md).
 

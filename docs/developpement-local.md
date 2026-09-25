@@ -105,7 +105,7 @@ Sur un serveur, la même commande s'écrit `wp option update psc_invoice_debug_d
 
 ### Clé de chiffrement des IBAN
 
-`wp psc chiffrement statut | generer-cle | rechiffrer [--dry-run]` (classe `Psc_Key_Rotation`). En local, sans `PSC_ENCRYPTION_KEY`, la clé vient de l'option `secret_key` en base. Procédure côté exploitant : [Clé de chiffrement des IBAN](../documentation/installation/cle-chiffrement.md). Le script `bin/verify-key-rotation.php` simule les clés par le filtre `psc_encryption_secrets` et ne touche qu'à ses propres lignes.
+`wp psc chiffrement statut | generer-cle | rechiffrer [--dry-run]` (classe `Psc_Key_Rotation`), ou **Périscolaire › Maintenance** (`Psc_Admin_Maintenance`). En local, sans `PSC_ENCRYPTION_KEY` (constante ou variable d'environnement), la clé vient de l'option `secret_key` en base. Pour l'essayer : `podman exec -e PSC_ENCRYPTION_KEY=… plugin-extrascolaire-wordpress-1 php /usr/local/bin/wp-cli.phar …`, ou `wp --exec="define('PSC_ENCRYPTION_KEY','…');"`. Procédure côté exploitant : [Clé de chiffrement des IBAN](../documentation/installation/cle-chiffrement.md). Le script `bin/verify-key-rotation.php` simule les clés par le filtre `psc_encryption_secrets` et ne touche qu'à ses propres lignes.
 
 ## Publier une version
 

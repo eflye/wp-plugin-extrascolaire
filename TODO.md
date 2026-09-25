@@ -235,7 +235,9 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Preuve :** `bin/verify-key-rotation.php`, lancé en CI (20 vérifications). Vérifié par mutation : 5 défauts réintroduits, tous détectés. Essai de bout en bout avec une vraie constante (`wp --exec`) : après rechiffrement, la base seule ne déchiffre plus l'IBAN.
 
-**Reste côté exploitation :** sur le serveur distant, déclarer la constante, rechiffrer, sauvegarder la clé dans un coffre, puis tester une restauration avec elle.
+**Depuis le backoffice (25/09/2026) :** pour un WordPress en conteneur, sans WP-CLI, la page **Périscolaire › Maintenance** (`Psc_Admin_Maintenance`) déroule la mise à jour en cinq étapes : sauvegarde confirmée, base de données (doublons d'années, relance), clé (génération affichée une seule fois et jamais enregistrée, rechiffrement), nouveaux réglages, recette signée. La clé peut aussi être déclarée en variable d'environnement `PSC_ENCRYPTION_KEY`. Preuve : `tests/maintenance.spec.ts` (parcours, refus serveur, droits, axe ; 3 défauts réintroduits détectés), `bin/verify-key-rotation.php` (23 vérifications, dont la variable d'environnement).
+
+**Reste côté exploitation :** sur le serveur distant, déclarer la clé (variable du conteneur ou constante), rechiffrer, sauvegarder la clé dans un coffre, puis tester une restauration avec elle.
 
 **Acceptation :** absence/échec des primitives → refus sans écriture en clair ; rotation/restauration testées ; zéro IBAN complet dans logs ou erreurs. **Développement + hébergeur ; M.**
 
