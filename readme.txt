@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.24.0
+Stable tag: 5.25.0
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,13 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.25.0 =
+* « Supprimer les factures du mois » ne supprime plus que les factures qui n'ont pas encore été envoyées : une facture envoyée à une famille, ou rectifiée après envoi, est conservée, et le message indique combien de factures ont été supprimées et conservées. Pour les environnements de test, un mode debug activé par WP-CLI (`wp option update psc_invoice_debug_delete 1`) autorise la suppression de toutes les factures ; il est signalé par une alerte rouge tant qu'il est actif. **Ne l'activez jamais en production.**
+* Aucun justificatif d'assurance n'est plus perdu en silence. Un enfant ajouté depuis le portail n'existe jamais sans son justificatif ; en cas d'incident, la famille lit « L'enfant n'a pas pu être ajouté » au lieu d'une confirmation. Lors d'une réinscription, tous les fichiers sont contrôlés avant le premier enregistrement. Un justificatif joint à une demande d'inscription qui n'a pas pu être rattaché à l'enfant est retenté chaque jour, n'est plus effacé par la purge des demandes, et ne remplace jamais un justificatif déposé depuis par la famille.
+* La mise à jour de la base se fait par étapes vérifiées : une étape en erreur n'est plus considérée comme faite, les étapes réussies sont conservées, et une alerte « la mise à jour de la base de données est incomplète » nomme l'étape en cause jusqu'à ce qu'elle réussisse.
+* Après un changement d'emplacement des documents (`PSC_PRIVATE_DIR`), le nouvel emplacement n'est retenu qu'une fois tous les fichiers déplacés. Un fichier en conflit ou non déplaçable reste en place, n'est jamais supprimé, et une alerte l'indique jusqu'à la résolution. Auparavant, un fichier qui n'avait pas pu être déplacé restait oublié à l'ancien emplacement.
+* Nouvelle page de documentation « Déployer une nouvelle version » : vérification de l'archive, ce qui ne doit jamais être copié sur le serveur, sauvegarde, recette et retour arrière.
 
 = 5.24.0 =
 * Nouvelle rubrique « Confidentialité » dans Périscolaire › Réglages : nom du responsable du traitement, e-mail du DPO, e-mail pour exercer ses droits et adresse de la notice complète, avec un aperçu de la notice exactement telle que les familles la voient. **Après la mise à jour**, renseignez au moins le responsable du traitement : tant qu'il est vide, les familles lisent « Collectivité (à adapter) » et une alerte le rappelle dans le back office.
