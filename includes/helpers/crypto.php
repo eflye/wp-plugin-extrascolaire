@@ -1,6 +1,6 @@
 <?php
 /**
- * Chiffrement au repos et empreintes. La clé vit dans wp-config.php.
+ * Chiffrement au repos et empreintes.
  *
  * Chargé par includes/helpers.php.
  */
@@ -8,25 +8,51 @@
 if (!defined('ABSPATH')) exit;
 
 /**
- * Clé de chiffrement des données bancaires.
+ * Secrets de chiffrement des données bancaires, du courant au plus ancien.
  *
- * Priorité à une clé dédiée déclarée dans wp-config.php :
+ * Le secret courant est la constante PSC_ENCRYPTION_KEY de wp-config.php
+ * quand elle est déclarée :
  *
  *     define('PSC_ENCRYPTION_KEY', 'une-longue-chaine-aleatoire');
  *
- * À défaut, elle est dérivée des sels WordPress — qui vivent eux aussi dans
- * wp-config.php, donc hors de la base : un dump SQL seul ne permet pas de
- * déchiffrer, ce qui est précisément la menace visée.
+ * À défaut, c'est wp_salt('psc_sepa'). Pour ce nom de sel propre au
+ * plugin, WordPress n'utilise PAS les sels de wp-config.php : il dérive le
+ * sel de l'option `secret_key`, enregistrée EN BASE (sauf constante
+ * SECRET_KEY, que le wp-config.php standard ne déclare pas). Sans
+ * PSC_ENCRYPTION_KEY, un dump de la base contient donc de quoi déchiffrer
+ * les IBAN : la clé doit être sortie de la base (cf. Psc_Key_Rotation et
+ * la commande `wp psc chiffrement`).
  *
- * ATTENTION : régénérer les sels WordPress (ou changer PSC_ENCRYPTION_KEY)
- * rend les IBAN déjà enregistrés illisibles — ils devront être ressaisis.
- * Déclarer PSC_ENCRYPTION_KEY met à l'abri d'une rotation de sels.
+ * Les secrets précédents ne servent qu'à lire : PSC_ENCRYPTION_KEY_PREVIOUS
+ * pendant une rotation entre deux constantes, et le secret tiré de la base
+ * tant que des valeurs chiffrées avant la déclaration de la constante
+ * n'ont pas été rechiffrées (`wp psc chiffrement rechiffrer`). Toute
+ * écriture utilise le secret courant.
+ *
+ * @return array<string, string> Secrets indexés par origine, le courant en premier.
  */
+function psc_encryption_secrets() {
+    $secrets = array();
+    if (defined('PSC_ENCRYPTION_KEY') && PSC_ENCRYPTION_KEY) {
+        $secrets['constante'] = (string) PSC_ENCRYPTION_KEY;
+        if (defined('PSC_ENCRYPTION_KEY_PREVIOUS') && PSC_ENCRYPTION_KEY_PREVIOUS) {
+            $secrets['constante_precedente'] = (string) PSC_ENCRYPTION_KEY_PREVIOUS;
+        }
+    }
+    $secrets['base'] = wp_salt('psc_sepa');
+    return apply_filters('psc_encryption_secrets', $secrets);
+}
+
+/** Clé courante (32 octets bruts), la seule utilisée pour chiffrer. */
 function psc_encryption_key() {
-    $secret = defined('PSC_ENCRYPTION_KEY') && PSC_ENCRYPTION_KEY
-        ? PSC_ENCRYPTION_KEY
-        : wp_salt('psc_sepa');
-    return hash('sha256', $secret, true); // 32 octets bruts
+    $secrets = psc_encryption_secrets();
+    return hash('sha256', (string) reset($secrets), true);
+}
+
+/** Origine du secret courant : 'constante' (wp-config.php) ou 'base' (option secret_key). */
+function psc_encryption_key_source() {
+    $secrets = psc_encryption_secrets();
+    return (string) key($secrets);
 }
 
 /**
@@ -75,27 +101,47 @@ function psc_encrypt($value) {
 /**
  * Déchiffre une valeur lue en base. Une valeur sans préfixe est retournée
  * telle quelle (donnée héritée, enregistrée avant le chiffrement). Retourne
- * null si le déchiffrement échoue — typiquement après une rotation des sels :
- * l'appelant affiche alors un champ vide à ressaisir plutôt que de planter.
+ * null si aucune clé connue ne la déchiffre : l'appelant affiche alors un
+ * champ vide à ressaisir plutôt que de planter.
  */
 function psc_decrypt($value) {
-    if ($value === null || $value === '') return $value;
+    $result = psc_decrypt_with_source($value);
+    return $result[0];
+}
+
+/**
+ * Comme psc_decrypt(), en indiquant quelle clé a servi : l'origine du
+ * secret (cf. psc_encryption_secrets()), 'clair' pour une valeur héritée
+ * non chiffrée, '' pour une valeur vide ou illisible.
+ *
+ * @return array{0: string|null, 1: string}
+ */
+function psc_decrypt_with_source($value) {
+    if ($value === null || $value === '') return array($value, '');
     $value = (string) $value;
-    if (strpos($value, 'psc1:') !== 0) return $value; // clair hérité
+    if (strpos($value, 'psc1:') !== 0) return array($value, 'clair');
 
     $raw = base64_decode(substr($value, 5), true);
-    if ($raw === false) return null;
-    $key = psc_encryption_key();
+    if ($raw === false) return array(null, '');
 
+    foreach (psc_encryption_secrets() as $source => $secret) {
+        $plain = psc_decrypt_raw($raw, hash('sha256', (string) $secret, true));
+        if ($plain !== null) return array($plain, $source);
+    }
+    return array(null, '');
+}
+
+/** Déchiffrement authentifié (sodium, sinon AES-256-GCM) avec une clé donnée, ou null. */
+function psc_decrypt_raw($raw, $key) {
     if (function_exists('sodium_crypto_secretbox_open')) {
         $n = SODIUM_CRYPTO_SECRETBOX_NONCEBYTES;
-        if (strlen($raw) <= $n) return null;
-        $plain = sodium_crypto_secretbox_open(substr($raw, $n), substr($raw, 0, $n), $key);
-        if ($plain !== false) return $plain;
+        if (strlen($raw) > $n) {
+            $plain = sodium_crypto_secretbox_open(substr($raw, $n), substr($raw, 0, $n), $key);
+            if ($plain !== false) return $plain;
+        }
     }
 
-    if (function_exists('openssl_decrypt')) {
-        if (strlen($raw) <= 28) return null;
+    if (function_exists('openssl_decrypt') && strlen($raw) > 28) {
         $plain = openssl_decrypt(
             substr($raw, 28), 'aes-256-gcm', $key, OPENSSL_RAW_DATA,
             substr($raw, 0, 12), substr($raw, 12, 16)
