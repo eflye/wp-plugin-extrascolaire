@@ -356,6 +356,29 @@ class Psc_Mailer {
     }
 
     /**
+     * Informe la mairie qu'une famille a décoché, après l'avoir envoyée, la
+     * réinscription d'un ou plusieurs enfants pour l'année $year_key.
+     *
+     * @param object   $parent
+     * @param string[] $child_names
+     */
+    public static function notify_reinscription_retrait($parent, array $child_names, $year_key) {
+        $site = self::site_name();
+        $vars = array('site' => $site, 'children' => implode(', ', $child_names), 'annee' => $year_key);
+        $subject = Psc_Email_Templates::subject('reinscription_retrait', $vars);
+        $intro   = Psc_Email_Templates::body_html('reinscription_retrait', $vars);
+
+        $body = self::h2(__('Réinscription retirée', 'periscolaire-registration'));
+        $body .= '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 12px;">' . $intro . '</p>';
+        $body .= self::info_box(
+            '<strong>' . esc_html(__('Famille :', 'periscolaire-registration')) . '</strong> ' . esc_html(trim($parent->prenom . ' ' . $parent->nom)) . ' — ' . esc_html($parent->email)
+        );
+        $body .= self::btn(admin_url('admin.php?page=psc_children&etat=non_inscrit'), __('Voir les enfants non inscrits', 'periscolaire-registration'));
+
+        return self::send(psc_mairie_email(), $subject, self::layout($body, $subject));
+    }
+
+    /**
      * Rendu HTML du tableau de diff (ajouts / suppressions).
      * Partagé entre le récap parent et la correction admin.
      */

@@ -47,6 +47,13 @@ class Psc_Email_Templates {
                 'vars'    => array('{{site}}', '{{child}}'),
                 'note'    => __('La description saisie par la famille et les coordonnées de contact sont ajoutées automatiquement.', 'periscolaire-registration'),
             ),
+            'reinscription_retrait' => array(
+                'label'   => __('Réinscription retirée par la famille', 'periscolaire-registration'),
+                'subject' => __('[{{site}}] Réinscription retirée — {{children}} ({{annee}})', 'periscolaire-registration'),
+                'body'    => __("La famille a modifié sa réinscription pour l'année {{annee}} : {{children}} n'y est plus inscrit(e). La classe et le justificatif d'assurance déposés pour cette année ont été retirés.", 'periscolaire-registration'),
+                'vars'    => array('{{site}}', '{{children}}', '{{annee}}'),
+                'note'    => __('Envoyé à la mairie. Les coordonnées de la famille et le lien vers la liste des enfants sont ajoutés automatiquement.', 'periscolaire-registration'),
+            ),
             'request_verify' => array(
                 'label'   => __('Vérification de demande d\'inscription', 'periscolaire-registration'),
                 'subject' => __('[{{site}}] Confirmez votre demande d\'inscription périscolaire', 'periscolaire-registration'),

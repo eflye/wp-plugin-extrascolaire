@@ -479,7 +479,14 @@ function psc_audit_semantic_extra() {
         // devient une nouvelle version, l'ancienne étant archivée.
         'facture.rectification'         => array('categorie' => 'facturation', 'niveau' => 'critique'),
         'systeme.montee_de_version'     => array('categorie' => 'systeme', 'niveau' => 'normal'),
+        // Montée de version arrêtée à une étape (Psc_Installer::run_migrations()).
+        'systeme.montee_de_version_echec' => array('categorie' => 'systeme', 'niveau' => 'critique'),
         'systeme.purge'                 => array('categorie' => 'systeme', 'niveau' => 'normal'),
+        // Justificatif joint à une demande : rattachement en échec, puis reprise quotidienne.
+        'assurance.promotion_echec'     => array('categorie' => 'donnees_famille', 'niveau' => 'normal'),
+        'assurance.promotion_reprise'   => array('categorie' => 'donnees_famille', 'niveau' => 'normal'),
+        // Enfant décoché par la famille après une réinscription déjà envoyée.
+        'enfant.reinscription_retiree'  => array('categorie' => 'donnees_famille', 'niveau' => 'normal'),
     );
 }
 

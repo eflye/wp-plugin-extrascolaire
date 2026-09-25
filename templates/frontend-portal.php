@@ -147,6 +147,7 @@
 
         'reinscription_confirmee' => array('ok',  __('Réinscription enregistrée. Merci !', 'periscolaire-registration')),
         'reinscription_invalid'   => array('err', __('La fenêtre de réinscription est fermée ou votre sélection est invalide.', 'periscolaire-registration')),
+        'reinscription_retiree'   => array('ok',  __('Réinscription mise à jour : les enfants décochés ne sont plus inscrits pour l’année prochaine. La mairie en est informée.', 'periscolaire-registration')),
         'reinscription_failed'    => array('err', __("L'enregistrement a été interrompu. Renvoyez le formulaire : les enfants déjà réinscrits ne seront pas comptés deux fois.", 'periscolaire-registration')),
         'reinscription_required'  => array('err', __("Merci de confirmer le règlement intérieur et de fournir un justificatif d'assurance pour chaque enfant réinscrit.", 'periscolaire-registration')),
 
