@@ -9,7 +9,7 @@
 - **P1 traités :** P1-03, P1-05, P1-13, P1-14 et P1-17.
 - **P1 traités techniquement, avec une validation opérationnelle encore à faire :**
   - P1-02 : revue des comptes ;
-  - P1-12 : la clé est à sortir de la base sur le serveur distant.
+  - P1-12 : clé sortie de la base sur le serveur distant ; reste une restauration testée avec cette clé.
 - **P1 partiellement avancés :** P1-06, P1-07, P1-08, P1-09, P1-11, P1-15 et P1-16.
 - **P1 mis de côté à la demande :** P1-01.
 - **P1 ouverts, côté hébergement ou DPO :** P1-04, P1-10 et P1-18.
@@ -34,7 +34,7 @@
 
 | Bloc | Ce qui reste | Qui débloque |
 | --- | --- | --- |
-| **Serveur distant** | Passer de 5.23.1 à 5.28.0 selon les notes de mise à jour, sortir la clé des IBAN de la base, dérouler la fiche de recette (P1-04, P1-12, P1-18) | Exploitation |
+| **Serveur distant** | **Fait le 25/09/2026 :** 5.23.1 → 5.28.0 déployé, les cinq étapes de **Périscolaire › Maintenance** sont faites (sauvegarde, base au schéma 4.15.0, clé des IBAN hors de la base et rechiffrement, réglages, recette). Reste : tester une restauration avec la clé, puis dérouler la fiche de recette de l'hébergement (P1-04, P1-18) | Exploitation |
 | P2-06 | Polices du thème à héberger localement ; inventaire des ressources tierces du site réel | Développement, puis exploitation |
 | P1-11 | Couverture fine des actions sensibles, rotation du journal des téléchargements, alerte de panne | Développement, puis DPO pour la durée |
 | P1-16 | Montants en centimes, périodes d'effet des tarifs et du statut « sans repas » | Schéma à valider |
@@ -276,7 +276,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Depuis le backoffice (25/09/2026) :** pour un WordPress en conteneur, sans WP-CLI, la page **Périscolaire › Maintenance** (`Psc_Admin_Maintenance`) déroule la mise à jour en cinq étapes : sauvegarde confirmée, base de données (doublons d'années, relance), clé (génération affichée une seule fois et jamais enregistrée, rechiffrement), nouveaux réglages, recette signée. La clé peut aussi être déclarée en variable d'environnement `PSC_ENCRYPTION_KEY`. Preuve : `tests/maintenance.spec.ts` (parcours, refus serveur, droits, axe ; 3 défauts réintroduits détectés), `bin/verify-key-rotation.php` (23 vérifications, dont la variable d'environnement).
 
-**Reste côté exploitation :** sur le serveur distant, déclarer la clé (variable du conteneur ou constante), rechiffrer, sauvegarder la clé dans un coffre, puis tester une restauration avec elle.
+**Côté exploitation (25/09/2026) :** sur le serveur distant, passé en 5.28.0, la clé a été sortie de la base et les IBAN rechiffrés, depuis **Périscolaire › Maintenance**. Reste à tester une restauration avec la clé conservée au coffre.
 
 **Acceptation :** absence/échec des primitives → refus sans écriture en clair ; rotation/restauration testées ; zéro IBAN complet dans logs ou erreurs. **Développement + hébergeur ; M.**
 
@@ -700,7 +700,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 L'ordre initial (P0, accès et confidentialité, intégrité métier, conformité, fiabilisation) est suivi. Les P0, l'essentiel des P1 techniques et les P2 sont faits. Pour la suite :
 
-1. **Serveur distant** : mise à jour vers 5.28.0 par **Périscolaire › Maintenance**, clé des IBAN hors de la base, fiche de recette (P1-04, P1-12, P1-18).
+1. **Serveur distant** : la mise à jour vers 5.28.0 et la sortie de la clé sont faites (25/09/2026). Restent la restauration testée avec la clé et la fiche de recette de l'hébergement (P1-04, P1-18).
 2. **Développement autonome** : P2-06 (polices du thème), volet technique de P1-11.
 3. **Schéma à valider avant implémentation** : P1-16 (centimes, périodes d'effet), P2-14.
 4. **Facturation** : P1-15, puis P3-01.
