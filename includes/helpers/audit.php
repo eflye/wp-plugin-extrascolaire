@@ -482,6 +482,8 @@ function psc_audit_semantic_extra() {
         // Montée de version arrêtée à une étape (Psc_Installer::run_migrations()).
         'systeme.montee_de_version_echec' => array('categorie' => 'systeme', 'niveau' => 'critique'),
         'systeme.purge'                 => array('categorie' => 'systeme', 'niveau' => 'normal'),
+        // Données bancaires rechiffrées avec la clé courante (wp psc chiffrement rechiffrer).
+        'systeme.rechiffrement'         => array('categorie' => 'securite', 'niveau' => 'critique'),
         // Justificatif joint à une demande : rattachement en échec, puis reprise quotidienne.
         'assurance.promotion_echec'     => array('categorie' => 'donnees_famille', 'niveau' => 'normal'),
         'assurance.promotion_reprise'   => array('categorie' => 'donnees_famille', 'niveau' => 'normal'),

@@ -41,3 +41,27 @@ if (!defined('PSC_URL')) {
 if (!defined('COOKIEPATH')) {
     define('COOKIEPATH', '/');
 }
+
+// WP-CLI n'est chargé que sous la ligne de commande : ses stubs ne font pas
+// partie de ceux de WordPress. Seules les méthodes appelées par includes/
+// (commande `wp psc chiffrement`, Psc_Key_Rotation) sont déclarées.
+if (!class_exists('WP_CLI')) {
+    class WP_CLI {
+        /** @param string $message */
+        public static function log($message) {}
+        /** @param string $message */
+        public static function warning($message) {}
+        /** @param string $message */
+        public static function success($message) {}
+        /**
+         * @param string $message
+         * @return never
+         */
+        public static function error($message) { exit(1); }
+        /**
+         * @param string $name
+         * @param callable|string $callable
+         */
+        public static function add_command($name, $callable) {}
+    }
+}
