@@ -109,11 +109,11 @@ class Psc_Assurances {
     }
 
     /**
-     * Chemin relatif (à wp_upload_dir()['basedir']) du fichier d'assurance
-     * d'un enfant pour une année de rentrée donnée. Hors du dossier public
-     * standard des médias : le fichier n'est jamais lié par une URL directe,
-     * seulement streamé via handle_parent_download_assurance() /
-     * Psc_Admin::handle_download_assurance() après contrôle d'accès.
+     * Chemin relatif (au répertoire privé, cf. psc_private_path()) du
+     * fichier d'assurance d'un enfant pour une année de rentrée donnée.
+     * Hors de toute URL publique : le fichier n'est jamais lié directement,
+     * seulement streamé via Psc_Frontend_Documents::handle_parent_download_assurance()
+     * / Psc_Admin_Familles::handle_download_assurance() après contrôle d'accès.
      */
     public static function rel_path($child_id, $rentree_year, $ext) {
         return self::BASE . '/' . $rentree_year . '/child-' . (int) $child_id . '.' . $ext;
