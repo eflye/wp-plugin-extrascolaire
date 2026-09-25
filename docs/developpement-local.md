@@ -86,6 +86,23 @@ $S --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/veri
 
 Chaque nouvelle vérification se valide par mutation : réintroduire le défaut corrigé doit faire échouer au moins une vérification.
 
+## Modes de test
+
+### Suppression des factures envoyées (mode debug)
+
+« Supprimer les factures du mois » ne supprime que les factures jamais envoyées. Pour recommencer un scénario de facturation sur une instance de test, le mode debug autorise la suppression de toutes les factures du mois, envoyées comprises :
+
+```bash
+# Activer
+podman exec plugin-extrascolaire-wordpress-1 php /usr/local/bin/wp-cli.phar --allow-root --path=/var/www/html option update psc_invoice_debug_delete 1
+# Vérifier (1 = actif ; erreur « Could not get » = inactif)
+podman exec plugin-extrascolaire-wordpress-1 php /usr/local/bin/wp-cli.phar --allow-root --path=/var/www/html option get psc_invoice_debug_delete
+# Désactiver
+podman exec plugin-extrascolaire-wordpress-1 php /usr/local/bin/wp-cli.phar --allow-root --path=/var/www/html option delete psc_invoice_debug_delete
+```
+
+Sur un serveur, la même commande s'écrit `wp option update psc_invoice_debug_delete 1`. Tant que le mode est actif, une alerte rouge s'affiche sur les écrans du plugin. Ne l'activez jamais en production : la procédure de déploiement le signale parmi ce qui ne doit pas atteindre le serveur. Documentation côté mairie : [Factures PDF](../documentation/facturation/factures-pdf.md), étape 5.
+
 ## Publier une version
 
 1. Mettre à jour `PSC_VERSION`, l'en-tête du fichier principal et `Stable tag`, puis ajouter le **Changelog** dans `readme.txt`.
