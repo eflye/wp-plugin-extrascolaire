@@ -53,7 +53,7 @@ Renseignez en tête la date, la personne qui a conduit la recette et la version 
 | Contrôle | Résultat attendu | Comment le constater | Qui | Statut |
 | --- | --- | --- | --- | --- |
 | Périmètre | Base, dossier privé et clé de chiffrement sont sauvegardés | Inventaire des éléments réellement inclus, cf. [Sauvegarde et mise à jour](sauvegarde-mise-a-jour.md) | Hébergeur | À vérifier |
-| Séparation de la clé | La clé n'est jamais stockée avec le dump de base | Contrôle des emplacements et des accès | Hébergeur | À vérifier |
+| Séparation de la clé | La clé est dans `wp-config.php`, jamais stockée avec le dump de base | `wp psc chiffrement statut` indique « constante PSC_ENCRYPTION_KEY » et aucune valeur à une ancienne clé (sinon : [Clé de chiffrement des IBAN](cle-chiffrement.md)) ; contrôle des emplacements et des accès | Hébergeur | À vérifier |
 | Restauration | Un dossier de test se retrouve entier après restauration isolée : justificatif lisible, facture téléchargeable, IBAN déchiffrable | Restauration sur un environnement séparé, envoi d'e-mails neutralisé au préalable | Hébergeur | À vérifier |
 | Objectifs | Perte de données maximale acceptée et délai de reprise arrêtés par écrit | Décision de la mairie, consignée | Mairie | À vérifier |
 
