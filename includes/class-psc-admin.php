@@ -201,6 +201,7 @@ class Psc_Admin extends Psc_Admin_Base {
         add_submenu_page('psc_dashboard', __('Passage d\'année', 'periscolaire-registration'), null, 'psc_manage_config', 'psc_passage_annee', array('Psc_Admin_School_Years', 'page_passage_annee'));
         add_submenu_page('psc_dashboard', __('Modèles d\'e-mails', 'periscolaire-registration'), __('Modèles d\'e-mails', 'periscolaire-registration'), 'psc_manage_config', 'psc_email_templates', array('Psc_Admin_Config', 'page_email_templates'));
         add_submenu_page('psc_dashboard', __('Réglages', 'periscolaire-registration'), __('Réglages', 'periscolaire-registration'), 'psc_manage_config', 'psc_settings', array('Psc_Admin_Config', 'page_settings'));
+        add_submenu_page('psc_dashboard', __('Maintenance', 'periscolaire-registration'), __('Maintenance', 'periscolaire-registration'), 'psc_manage_config', 'psc_maintenance', array('Psc_Admin_Maintenance', 'page'));
         // Journal d'audit : capacité dédiée, plus restreinte que $cap (cf.
         // Psc_Installer::sync_roles()) — le journal agrège l'activité de
         // toutes les familles et de tous les agents, pas seulement le
@@ -554,6 +555,9 @@ class Psc_Admin extends Psc_Admin_Base {
         $failures = (int) get_option('psc_audit_failures', 0);
         $unknown = get_option('psc_audit_unknown_actions', array());
         if (!is_array($unknown)) $unknown = array();
+        // Une action classée depuis (mise à jour du plugin) n'est plus un
+        // angle mort : l'alerte ne la cite plus.
+        $unknown = array_values(array_diff($unknown, array_keys(psc_audit_action_registry())));
         if ($failures === 0 && !$unknown) return;
         ?>
         <div class="notice notice-warning">

@@ -80,6 +80,7 @@ class Psc_Admin_Audit {
 
         $failures = (int) get_option('psc_audit_failures', 0);
         $unknown_actions = get_option('psc_audit_unknown_actions', array());
+        $unknown_actions = is_array($unknown_actions) ? array_values(array_diff($unknown_actions, array_keys(psc_audit_action_registry()))) : array();
         if (!is_array($unknown_actions)) $unknown_actions = array();
 
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
