@@ -203,6 +203,8 @@ jobs:
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-school-year-integrity.php verify-school-year-integrity
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-school-year-model.php verify-school-year-model
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-key-rotation.php verify-key-rotation
+          # Registre d'audit complet : toute action admin_post/ajax psc_* doit y être classée.
+          wp eval-file /var/www/html/wp-content/plugins/periscolaire-registration/tests/integration/audit-registry.php
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-query-budget.php verify-query-budget
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-rate-limit.php verify-rate-limit
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-invoice-deletion.php verify-invoice-deletion

@@ -73,6 +73,16 @@ WP_CLI::add_command('verify-key-rotation', function () {
         remove_filter('psc_encryption_secrets', $filter, 99);
         $real = psc_encryption_secrets();
         $check(isset($real['base']) && $real['base'] === wp_salt('psc_sepa'), 'chaîne réelle : secret de la base absent');
+        // Variable d'environnement (WordPress en conteneur) : clé courante
+        // hors de la base, le secret de la base restant lisible.
+        if (!defined('PSC_ENCRYPTION_KEY')) {
+            putenv('PSC_ENCRYPTION_KEY=cle-environnement-verif');
+            $env = psc_encryption_secrets();
+            $check(key($env) === 'environnement' && reset($env) === 'cle-environnement-verif', 'environnement : variable non retenue comme clé courante');
+            $check(psc_encryption_key_outside_db() && isset($env['base']), 'environnement : clé hors base ou repli de la base absents');
+            putenv('PSC_ENCRYPTION_KEY');
+            $check(psc_encryption_key_source() === 'base', 'environnement : variable retirée mais encore utilisée');
+        }
         add_filter('psc_encryption_secrets', $filter, 99);
 
         // 1. Situation de départ : pas de constante, clé tirée de la base.
