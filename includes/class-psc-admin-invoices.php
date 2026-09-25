@@ -75,12 +75,13 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
         }
 
         Psc_Audit::log('facture.suppression', array(
-            'objet_type' => 'facture', 'meta' => array('mois' => $mois, 'supprimees' => is_int($result) ? $result : null),
-            'resume' => sprintf(__('Factures du mois %s supprimées.', 'periscolaire-registration'), $mois),
+            'objet_type' => 'facture',
+            'meta' => array('mois' => $mois, 'supprimees' => $result['deleted'], 'conservees' => $result['kept'], 'mode' => $result['debug'] ? 'debug' : 'production'),
+            'resume' => sprintf(__('Factures du mois %1$s : %2$d supprimée(s), %3$d conservée(s) (mode %4$s).', 'periscolaire-registration'), $mois, $result['deleted'], $result['kept'], $result['debug'] ? 'debug' : 'production'),
         ));
 
         wp_safe_redirect(add_query_arg(
-            array('page' => 'psc_factures', 'mois' => $mois, 'psc_msg' => 'deleted'),
+            array('page' => 'psc_factures', 'mois' => $mois, 'psc_msg' => $result['kept'] > 0 ? 'deleted_partial' : 'deleted', 'psc_ok' => $result['deleted'], 'psc_ko' => $result['kept']),
             admin_url('admin.php')
         ));
         exit;

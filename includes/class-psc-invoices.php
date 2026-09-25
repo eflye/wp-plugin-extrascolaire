@@ -425,15 +425,28 @@ class Psc_Invoices {
     }
 
     /**
-     * Supprime TOUTES les factures d'un mois : lignes en base et PDF du
-     * répertoire privé correspondant. Sans restriction de statut — la
-     * génération étant libre et décorrelée de l'envoi, c'est la mairie
-     * qui décide d'effacer un mois entier (y compris déjà envoyé) pour
-     * le repartir propre ; le confirm côté interface est le seul garde-fou,
-     * côté serveur c'est la capacité psc_manage qui protège.
+     * Mode debug de la suppression des factures : activé uniquement par
+     * WP-CLI (`wp option update psc_invoice_debug_delete 1`), pour les
+     * environnements de test. Désactivé par défaut, et jamais proposé à
+     * l'écran : en production, une facture envoyée ne se supprime pas.
+     */
+    public static function debug_delete_enabled() {
+        return (bool) get_option('psc_invoice_debug_delete', false);
+    }
+
+    /**
+     * Supprime les factures d'un mois.
      *
-     * @param string $mois 'Y-m'
-     * @return int|WP_Error Nombre de factures supprimées.
+     * Mode production (par défaut) : seules les factures jamais envoyées
+     * sont supprimées. Une facture envoyée est une pièce reçue par la
+     * famille : elle est conservée, de même qu'une facture rectifiée après
+     * envoi (sa version reçue est archivée dans invoice_versions) et les
+     * versions archivées elles-mêmes.
+     *
+     * Mode debug (cf. debug_delete_enabled()) : tout le mois est supprimé,
+     * PDF et versions archivées compris.
+     *
+     * @return array|WP_Error ['deleted' => n, 'kept' => n, 'debug' => bool]
      */
     public static function delete_month($mois) {
         global $wpdb;
@@ -442,29 +455,42 @@ class Psc_Invoices {
             return new WP_Error('invalid_month', __('Format de mois invalide.', 'periscolaire-registration'));
         }
 
-        $t_inv = psc_table('invoices');
-
-        // PDF à effacer, lus AVANT la suppression des lignes.
-        $paths = $wpdb->get_col($wpdb->prepare(
-            "SELECT pdf_path FROM $t_inv WHERE mois = %s AND pdf_path IS NOT NULL AND pdf_path <> ''",
-            $mois
-        ));
-
-        // Versions archivées du même mois : leurs PDF sont lus avant la
-        // suppression des lignes, comme ci-dessus, pour ne pas laisser de
-        // fichier orphelin dans le répertoire privé.
+        $t_inv  = psc_table('invoices');
         $t_invv = psc_table('invoice_versions');
-        $version_paths = $wpdb->get_col($wpdb->prepare(
-            "SELECT pdf_path FROM $t_invv WHERE mois = %s AND pdf_path IS NOT NULL AND pdf_path <> ''",
-            $mois
-        ));
-        $wpdb->query($wpdb->prepare("DELETE FROM $t_invv WHERE mois = %s", $mois));
-        $paths = array_merge($paths, $version_paths);
+        $debug  = self::debug_delete_enabled();
 
-        $deleted = (int) $wpdb->query($wpdb->prepare(
-            "DELETE FROM $t_inv WHERE mois = %s",
-            $mois
-        ));
+        if ($debug) {
+            $ids = array_map('intval', $wpdb->get_col($wpdb->prepare("SELECT id FROM $t_inv WHERE mois = %s", $mois)));
+        } else {
+            // Ni envoyée, ni porteuse d'une version déjà reçue par la famille.
+            $ids = array_map('intval', $wpdb->get_col($wpdb->prepare(
+                "SELECT i.id FROM $t_inv i
+                 WHERE i.mois = %s AND i.sent_at IS NULL
+                   AND NOT EXISTS (SELECT 1 FROM $t_invv v WHERE v.invoice_id = i.id)",
+                $mois
+            )));
+        }
+        $total = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_inv WHERE mois = %s", $mois));
+
+        $paths = array();
+        $deleted = 0;
+        if ($ids) {
+            $ph = implode(',', array_fill(0, count($ids), '%d'));
+            // PDF à effacer, lus AVANT la suppression des lignes.
+            $paths = $wpdb->get_col($wpdb->prepare(
+                "SELECT pdf_path FROM $t_inv WHERE id IN ($ph) AND pdf_path IS NOT NULL AND pdf_path <> ''",
+                $ids
+            ));
+            if ($debug) {
+                // Versions archivées du mois : seulement en debug.
+                $paths = array_merge($paths, $wpdb->get_col($wpdb->prepare(
+                    "SELECT pdf_path FROM $t_invv WHERE mois = %s AND pdf_path IS NOT NULL AND pdf_path <> ''",
+                    $mois
+                )));
+                $wpdb->query($wpdb->prepare("DELETE FROM $t_invv WHERE mois = %s", $mois));
+            }
+            $deleted = (int) $wpdb->query($wpdb->prepare("DELETE FROM $t_inv WHERE id IN ($ph)", $ids));
+        }
 
         foreach ($paths as $rel) {
             $abs = psc_private_path($rel);
@@ -472,13 +498,13 @@ class Psc_Invoices {
                 @unlink($abs); // phpcs:ignore WordPress.PHP.NoSilencedErrors
             }
         }
-        // Le répertoire du mois, désormais vide, disparaît.
+        // Le répertoire du mois, s'il est désormais vide, disparaît.
         $dir = psc_private_path('periscolaire/factures/' . $mois);
         if ($dir && is_dir($dir)) {
             @rmdir($dir); // phpcs:ignore WordPress.PHP.NoSilencedErrors
         }
 
-        return $deleted;
+        return array('deleted' => $deleted, 'kept' => max(0, $total - $deleted), 'debug' => $debug);
     }
 
     /**
