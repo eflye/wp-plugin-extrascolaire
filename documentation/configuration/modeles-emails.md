@@ -20,6 +20,7 @@ Connectez-vous à WordPress avec un rôle autorisé à gérer les réglages. Les
    | **Compte activé (après approbation)** | `{{site}}` |
    | **Récapitulatif du planning** | `{{site}}`, `{{annee}}` |
    | **Alerte mairie — allergies alimentaires (PAI)** | `{{site}}`, `{{child}}` |
+   | **Réinscription retirée par la famille** (envoyé à la mairie) | `{{site}}`, `{{children}}`, `{{annee}}` |
    | **Vérification de demande d'inscription** | `{{site}}` |
    | **Rejet de demande d'inscription** | `{{site}}` |
    | **Notification mairie (nouvelle demande)** | `{{site}}` |

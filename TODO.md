@@ -449,9 +449,9 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** réseau ralenti, clic A/B/A, réponse inversée et échec réseau → aucun affichage ou clic dirigé vers le mauvais enfant. **Développement ; M.**
 
-### P2-08 — PARTIELLEMENT AVANCÉ — Réconcilier les deux représentations d’année scolaire
+### P2-08 — TRAITÉ (après v5.25.0) — Réconcilier les deux représentations d’année scolaire
 
-- [ ] **Documenter puis faire respecter les invariants entre `school_years` et `school_year`.**
+- [x] **Documenter puis faire respecter les invariants entre `school_years` et `school_year`.**
 
 **Constaté :** classes/assurances s’appuient sur `Psc_School_Years`, tandis que dates, vacances et verrous utilisent `Psc_School_Year`. Les années sont sélectionnées par des règles différentes. `class-psc-school-years.php:151` archive l’année active puis active la suivante sans transaction ni vérification complète de réussite. La réinscription ignore les enfants décochés, sans retirer une confirmation déjà enregistrée lors d’un envoi antérieur.
 
@@ -466,6 +466,18 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 - fusionner les deux représentations (`school_years` pour classes et assurances, `school_year` pour dates, vacances et délai) en une seule table, avec une seule règle de sélection de l’année courante ;
 - règle d’une réinscription modifiée : un enfant décoché après une confirmation déjà envoyée doit-il perdre son inscription à l’année suivante ?
 - statut annuel de l’enfant au-delà de `children.statut` global.
+
+**Décisions de la mairie (25/09/2026) :** un enfant décoché après une réinscription déjà envoyée perd son inscription à l'année suivante ; le statut de l'enfant est porté par année. Le schéma a été validé, avec trois choix : étape de migration incluse, mairie informée par un modèle d'e-mail éditable, libellé libre supprimé.
+
+**Traité le 25/09/2026 (schéma 4.15.0) :**
+- **Une seule table d'année :** `psc_school_years` porte le dossier et le calendrier (`year_key` '2026-2027' unique, déduite de la date de début ; `vacation_ranges`, `lock_hours`). `psc_school_year` et le libellé libre sont supprimés. Deux règles de sélection, et deux seulement : l'année administrative est celle au statut `active` ; l'année d'une date est celle qui la couvre, sinon celle de sa rentrée. `Psc_School_Year` garde son interface, en lisant la même table.
+- **Clés étrangères** : `holidays.year_key` et `pattern.school_year` → `school_years.year_key`, `ON DELETE CASCADE ON UPDATE CASCADE`. Contraintes CHECK sur les statuts d'année (`preparation|active|archivee`) et d'inscription (`inscrit|sorti`).
+- **Statut par année :** `child_school_years.statut` (`inscrit|sorti`) et `sorti_le`. `children.statut` et `children.sorti_le` sont supprimées. Un enfant est actif s'il est inscrit à l'année considérée. Les listes datées (intervenants, commande fournisseur, fermetures, export, calendrier) prennent l'année de la date ; le portail et les menus prennent l'année active ou celle en préparation. L'écran **Enfants** filtre par état pour l'année choisie : inscrit, sorti, non inscrit.
+- **Réinscription modifiée :** l'enfant décoché qui était déjà réinscrit perd sa ligne et son justificatif de l'année cible, une fois tous les fichiers contrôlés. C'est journalisé (`enfant.reinscription_retiree`), et la mairie reçoit le modèle éditable « Réinscription retirée par la famille ».
+- **Rétention :** la purge vise un enfant inscrit ni à l'année active ni à celle en préparation, 400 jours après sa dernière sortie ou la fin de sa dernière année d'inscription.
+- **Migration 4.15.0 :** clés déduites, calendrier repris (ses dates l'emportent, elles ont servi à la facturation), années citées par le planning créées, statut global reporté sur les lignes d'année, puis colonnes et table supprimées. Elle refuse de choisir entre deux années d'une même rentrée qui portent chacune des inscriptions : alerte explicite. Au passage, un défaut de P1-17 est corrigé : une passe finale en échec après la dernière étape n'était plus retentée.
+
+**Preuve :** `bin/verify-school-year-model.php`, lancé en CI (24 vérifications : une année par rentrée, calendrier et dossier sur une ligne, enfant actif, retrait après réinscription, rétention). Vérifié par mutation : chacun des 7 défauts réintroduits fait échouer au moins une vérification. `bin/verify-migrations.php` (montée 2.4.9 → 4.15.0 : 33 vérifications, dont 7 nouvelles), migration réelle d'une base 4.14.0 rejouée deux fois (idempotente), `bin/verify-promotion-logic.php` (sortie posée sur l'année quittée, avec sa date), `tests/school-year-promotion.spec.ts` (retrait après réinscription : ligne supprimée, journal, e-mail à la mairie). Les autres scripts et spécifications sont adaptés au modèle.
 
 **Acceptation :** activation en échec, double activation, enfant non réinscrit, modification d’une réinscription et consultation historique donnent un état cohérent dans planning/listes/factures. **Développement + métier ; M/L.**
 
