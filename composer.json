@@ -13,6 +13,6 @@
         "sort-packages": true
     },
     "scripts": {
-        "phpstan": "phpstan analyse --no-progress --memory-limit=1G"
+        "phpstan": "phpstan analyse --no-progress --memory-limit=2G"
     }
 }
