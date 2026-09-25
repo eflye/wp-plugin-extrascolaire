@@ -49,6 +49,7 @@ test('assurances : dépôt mobile, revue, refus, remplacement et acceptation aut
     await ap.locator('#user_login').fill('admin');
     await ap.locator('#user_pass').fill('admin');
     await ap.locator('#wp-submit').click();
+    await ap.waitForURL('**/wp-admin/**');
     const reviewUrl = `http://localhost:8080/wp-admin/admin.php?page=psc_assurances&child_id=${data.chloe_id}`;
     await ap.goto(reviewUrl);
     await expect(ap.locator('iframe')).toBeVisible();

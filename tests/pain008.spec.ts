@@ -22,6 +22,7 @@ test.describe('Export bancaire pain.008', () => {
     await page.locator('#user_login').fill('admin');
     await page.locator('#user_pass').fill('admin');
     await page.locator('#wp-submit').click();
+    await page.waitForURL('**/wp-admin/**');
     await page.goto(base + '/wp-admin/admin.php?page=psc_factures');
     const unauthorized = await page.request.post(base + '/wp-admin/admin-post.php', { form: { action: 'psc_download_pain008', mois: '2099-11', collection_date: '2099-12-05' } });
     expect(unauthorized.status()).toBe(403);
@@ -63,6 +64,7 @@ test.describe('Export bancaire pain.008', () => {
     await page.locator('#user_login').fill('admin');
     await page.locator('#user_pass').fill('admin');
     await page.locator('#wp-submit').click();
+    await page.waitForURL('**/wp-admin/**');
     await page.goto(base + '/wp-admin/admin.php?page=psc_factures&mois=2099-11');
     await expect(page.getByRole('heading', { name: 'Factures', exact: true })).toBeVisible();
     const block = page.getByRole('region', { name: 'Exports par mois' });
@@ -92,6 +94,7 @@ test.describe('Export bancaire pain.008', () => {
     await page.locator('#user_login').fill('admin');
     await page.locator('#user_pass').fill('admin');
     await page.locator('#wp-submit').click();
+    await page.waitForURL('**/wp-admin/**');
     await page.goto(base + '/wp-admin/admin.php?page=psc_comptes_familles');
     await expect(page.getByRole('heading', { name: 'État des comptes', exact: true })).toBeVisible();
     const row = page.getByRole('row').filter({ hasText: 'TestExport' });

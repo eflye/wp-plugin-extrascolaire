@@ -11,6 +11,7 @@ test('labels menus : aperçu local, compteur, logos et rendu partagé', async ({
   await page.locator('#user_login').fill('admin');
   await page.locator('#user_pass').fill('admin');
   await page.locator('#wp-submit').click();
+  await page.waitForURL('**/wp-admin/**');
   await page.goto('http://localhost:8080/wp-admin/admin.php?page=psc_menus&semaine_debut=2026-09-14');
   const input = page.locator('[data-menu-input]').first();
   await expect(input).toBeVisible();
