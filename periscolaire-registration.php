@@ -57,6 +57,7 @@ require_once PSC_PATH . 'includes/class-psc-school-year.php';
 require_once PSC_PATH . 'includes/class-psc-planning.php';
 require_once PSC_PATH . 'includes/class-psc-school-years.php';
 require_once PSC_PATH . 'includes/class-psc-retention.php';
+require_once PSC_PATH . 'includes/class-psc-key-rotation.php';
 require_once PSC_PATH . 'includes/class-psc-pickup-persons.php';
 // Portail famille : même modèle que l'administration — un socle commun,
 // un noyau (prise de contrôle de la page, shortcode, tableau de bord) et
