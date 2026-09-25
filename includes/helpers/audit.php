@@ -253,6 +253,13 @@ function psc_audit_action_registry() {
         'psc_send_supplier_order' => array(
             'action' => 'commande_fournisseur.envoi', 'categorie' => 'communication', 'objet' => 'commande_fournisseur', 'niveau' => 'normal',
         ),
+        // Relance des seuls envois en échec (Psc_Envois, depuis 5.22.0).
+        'psc_retry_menu' => array(
+            'action' => 'menu.relance', 'categorie' => 'communication', 'objet' => 'menu', 'niveau' => 'normal',
+        ),
+        'psc_retry_supplier_order' => array(
+            'action' => 'commande_fournisseur.relance', 'categorie' => 'communication', 'objet' => 'commande_fournisseur', 'niveau' => 'normal',
+        ),
         'psc_cancel_class_meals' => array(
             'action' => 'repas.annulation_classe', 'categorie' => 'presences', 'objet' => 'presence', 'niveau' => 'normal',
         ),
@@ -277,6 +284,21 @@ function psc_audit_action_registry() {
         ),
 
         /* ---------------- Années scolaires ---------------- */
+        // Périscolaire › Maintenance (Psc_Admin_Maintenance). Le rechiffrement
+        // est journalisé par Psc_Key_Rotation::run(), avec ses comptes.
+        'psc_config_maintenance_sauvegarde' => array(
+            'action' => 'maintenance.sauvegarde_confirmee', 'categorie' => 'configuration', 'objet' => 'reglage', 'niveau' => 'normal',
+        ),
+        'psc_config_maintenance_relancer' => array(
+            'action' => 'maintenance.montee_relancee', 'categorie' => 'systeme', 'objet' => 'reglage', 'niveau' => 'normal',
+        ),
+        'psc_config_maintenance_rechiffrer' => array('niveau' => 'ignore'),
+        'psc_config_maintenance_modeles' => array(
+            'action' => 'maintenance.modeles_relus', 'categorie' => 'configuration', 'objet' => 'reglage', 'niveau' => 'normal',
+        ),
+        'psc_config_maintenance_recette' => array(
+            'action' => 'maintenance.recette', 'categorie' => 'configuration', 'objet' => 'reglage', 'niveau' => 'normal',
+        ),
         'psc_add_school_year' => array(
             'action' => 'annee.creation', 'categorie' => 'configuration', 'objet' => 'annee', 'niveau' => 'normal',
         ),

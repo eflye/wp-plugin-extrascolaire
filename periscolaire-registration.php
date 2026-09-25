@@ -39,6 +39,7 @@ require_once PSC_PATH . 'includes/class-psc-admin-inscriptions.php';
 require_once PSC_PATH . 'includes/class-psc-admin-cantine.php';
 require_once PSC_PATH . 'includes/class-psc-admin-invoices.php';
 require_once PSC_PATH . 'includes/class-psc-admin-config.php';
+require_once PSC_PATH . 'includes/class-psc-admin-maintenance.php';
 require_once PSC_PATH . 'includes/class-psc-admin-audit.php';
 require_once PSC_PATH . 'includes/class-psc-admin-requests.php';
 require_once PSC_PATH . 'includes/class-psc-invoices.php';
@@ -111,6 +112,7 @@ add_action('plugins_loaded', function () {
     Psc_Privacy::init();
     Psc_Admin::init();
     Psc_Admin_Audit::init();
+    Psc_Admin_Maintenance::init();
     Psc_Admin_Calendar_V2::init();
     Psc_Impersonation::init();
     Psc_Retention::init();
