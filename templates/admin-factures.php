@@ -8,7 +8,8 @@ $psc_notices = array(
     'generated'   => array('updated', __('Factures générées avec succès.', 'periscolaire-registration')),
     'gen_zero'    => array('warning', __('Aucune inscription trouvée pour ce mois.', 'periscolaire-registration')),
     'gen_error'   => array('error', __('Erreur lors de la génération.', 'periscolaire-registration')),
-    'deleted'     => array('updated', __('Factures du mois supprimées (fichiers inclus).', 'periscolaire-registration')),
+    'deleted'     => array('updated', sprintf(__('Factures du mois supprimées (fichiers inclus) : %d.', 'periscolaire-registration'), $psc_ok)),
+    'deleted_partial' => array('warning', sprintf(__('%1$d facture(s) non envoyée(s) supprimée(s). %2$d facture(s) conservée(s) : une facture déjà envoyée à une famille ne peut pas être supprimée.', 'periscolaire-registration'), $psc_ok, $psc_ko)),
     'sepa_need_generate' => array('warning', __('Générez d\'abord les factures du mois : l\'export des prélèvements reprend leur montant.', 'periscolaire-registration')),
     'sepa_none'   => array('warning', __('Aucune famille en prélèvement (avec facture) pour ce mois.', 'periscolaire-registration')),
     'sepa_failed' => array('error', __('Création du fichier d\'export impossible.', 'periscolaire-registration')),
@@ -56,8 +57,10 @@ psc_admin_notice_map($psc_notices, $psc_msg);
         <input type="hidden" name="mois" value="<?php echo esc_attr($selected_mois); ?>">
         <?php wp_nonce_field('psc_delete_invoices'); ?>
         <button type="submit" class="button"
-                onclick="return confirm('<?php echo esc_js(__('Supprimer TOUTES les factures de', 'periscolaire-registration')); ?> <?php echo esc_js(Psc_Invoices::month_label($selected_mois)); ?> <?php echo esc_js(__('? Les fichiers PDF sont effacés, y compris celles déjà envoyées. Action irréversible.', 'periscolaire-registration')); ?>');">
-            &#10005; <?php esc_html_e('Supprimer les factures du mois', 'periscolaire-registration'); ?>
+                onclick="return confirm('<?php echo esc_js(Psc_Invoices::debug_delete_enabled()
+                    ? sprintf(__('MODE DEBUG : supprimer TOUTES les factures de %s, y compris celles déjà envoyées, avec leurs PDF et leurs versions archivées ? Action irréversible.', 'periscolaire-registration'), Psc_Invoices::month_label($selected_mois))
+                    : sprintf(__('Supprimer les factures non envoyées de %s ? Les factures déjà envoyées aux familles sont conservées. Action irréversible.', 'periscolaire-registration'), Psc_Invoices::month_label($selected_mois))); ?>');">
+            &#10005; <?php echo Psc_Invoices::debug_delete_enabled() ? esc_html__('Supprimer les factures du mois (mode debug)', 'periscolaire-registration') : esc_html__('Supprimer les factures non envoyées du mois', 'periscolaire-registration'); ?>
         </button>
     </form>
     <?php endif; ?>

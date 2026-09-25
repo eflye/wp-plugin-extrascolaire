@@ -56,6 +56,7 @@ class Psc_Admin extends Psc_Admin_Base {
         add_action('admin_notices', array(__CLASS__, 'notice_db_constraints'));
         add_action('admin_notices', array(__CLASS__, 'notice_audit_health'));
         add_action('admin_notices', array(__CLASS__, 'notice_privacy_incomplete'));
+        add_action('admin_notices', array(__CLASS__, 'notice_invoice_debug_delete'));
         add_action('show_user_profile', array(__CLASS__, 'user_capabilities_fields'));
         add_action('edit_user_profile', array(__CLASS__, 'user_capabilities_fields'));
         add_action('personal_options_update', array(__CLASS__, 'save_user_capabilities'));
@@ -422,6 +423,21 @@ class Psc_Admin extends Psc_Admin_Base {
         echo '<div class="notice notice-warning" data-testid="notice-privacy-incomplete"><p>'
             . esc_html__('Notice de confidentialité : les familles voient « Collectivité (à adapter) ».', 'periscolaire-registration') . ' '
             . '<a href="' . esc_url($url) . '">' . esc_html__('Renseigner le responsable du traitement', 'periscolaire-registration') . '</a></p></div>';
+    }
+
+    /**
+     * Le mode debug de suppression des factures (option activée par WP-CLI)
+     * permet d'effacer des factures envoyées : il ne doit jamais être
+     * oublié actif sur un site de production.
+     */
+    public static function notice_invoice_debug_delete() {
+        if (!current_user_can('psc_manage_billing') || !Psc_Invoices::debug_delete_enabled()) return;
+        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+        if (!$screen || strpos((string) $screen->id, 'psc_') === false) return;
+        echo '<div class="notice notice-error" data-testid="notice-invoice-debug-delete"><p><strong>'
+            . esc_html__('Mode debug de la facturation actif :', 'periscolaire-registration') . '</strong> '
+            . esc_html__('les factures déjà envoyées peuvent être supprimées. À désactiver sur un site de production :', 'periscolaire-registration')
+            . ' <code>wp option delete psc_invoice_debug_delete</code></p></div>';
     }
 
     public static function notice_db_constraints() {
