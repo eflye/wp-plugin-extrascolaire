@@ -215,6 +215,34 @@ test('réinscription — famille confirme un enfant pour l\'année suivante', as
     ));`
   );
   expect(classeA).toBe('CE1');
+
+  /* ---------------- Retrait : Léa décochée après envoi ---------------- */
+  // Décision de la mairie : l'enfant perd son inscription à l'année
+  // suivante (ligne et justificatif de B), c'est journalisé et la mairie
+  // est prévenue par e-mail.
+  await page.getByTestId('portal-nav-reinscription').click();
+  const section3 = page.getByTestId('portal-section-reinscription');
+  await section3.getByTestId(`reinscription-confirm-${data.lea_id}`).uncheck();
+  await section3.getByTestId('reinscription-reglement').check();
+  await section3.getByTestId('reinscription-submit').click();
+  await expect(page.getByTestId('notice-reinscription_retiree')).toBeVisible();
+
+  const afterRetrait = wpCliEval(
+    `global $wpdb; echo (int) $wpdb->get_var($wpdb->prepare(
+      "SELECT COUNT(*) FROM {$wpdb->prefix}psc_child_school_years WHERE child_id = %d AND school_year_id = %d",
+      ${data.lea_id}, ${data.year_b_id}
+    ));`
+  );
+  expect(afterRetrait, "l'enfant décoché perd son inscription à l'année suivante").toBe('0');
+  const audit = wpCliEval(
+    `global $wpdb; echo (int) $wpdb->get_var($wpdb->prepare(
+      "SELECT COUNT(*) FROM {$wpdb->prefix}psc_audit_log WHERE action = 'enfant.reinscription_retiree' AND enfant_id = %d", ${data.lea_id}
+    ));`
+  );
+  expect(Number(audit), 'retrait journalisé').toBeGreaterThan(0);
+  const mairie = wpCliEval('echo psc_mairie_email();');
+  const mail = await findLatestMessage(mairie, 'Réinscription retirée');
+  expect(mail.Subject).toContain(data.year_b_label);
 });
 
 test('passage d\'année — admin prépare, corrige et confirme', async ({ page }) => {
@@ -277,10 +305,10 @@ test('passage d\'année — admin prépare, corrige et confirme', async ({ page 
   );
   expect(camilleA).toBe('CP');
 
-  // Hugo : sorti, aucune inscription créée pour l'année B.
+  // Hugo : sorti de l'année A qu'il quitte, aucune inscription pour B.
   const hugoStatut = wpCliEval(
     `global $wpdb; echo $wpdb->get_var($wpdb->prepare(
-      "SELECT statut FROM {$wpdb->prefix}psc_children WHERE id = %d", ${data.hugo_id}
+      "SELECT statut FROM {$wpdb->prefix}psc_child_school_years WHERE child_id = %d AND school_year_id = %d", ${data.hugo_id}, ${data.year_a_id}
     ));`
   );
   expect(hugoStatut).toBe('sorti');

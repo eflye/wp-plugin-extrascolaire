@@ -28,9 +28,10 @@ try {
         'parent_id'  => $family_id,
         'nom'        => 'Écran',
         'prenom'     => 'Camille',
-        'statut'     => 'actif',
         'created_at' => current_time('mysql'),
     ));
+    // Enfant actif = inscrit à l'année active (4.15.0).
+    Psc_School_Years::enroll((int) $wpdb->insert_id, Psc_School_Years::active_id(), 'CP');
     $wpdb->insert(psc_table('impersonations'), array(
         'wp_user_id'  => (int) $admin->ID,
         'family_id'   => $family_id,

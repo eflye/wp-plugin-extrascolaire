@@ -39,7 +39,10 @@
  *     déplacé vers le répertoire privé ;
  *   - 3.8.0 : les IBAN hérités en clair sont chiffrés au repos
  *     (déchiffrables à l'identique) et les demandes déjà arbitrées
- *     perdent leur IBAN/BIC.
+ *     perdent leur IBAN/BIC ;
+ *   - 4.15.0 : une seule table d'année (clé '2026-2027', libellé et
+ *     ancienne table school_year supprimés), statut de l'enfant porté par
+ *     ses lignes d'année (children.statut / sorti_le supprimées).
  *
  * Usage :
  *   wp --require=bin/verify-migrations.php verify-migrations
@@ -396,10 +399,21 @@ WP_CLI::add_command('verify-migrations', function () {
     $assert('assurance transférée : nom original', $cy ? $cy->assurance_original_filename : null, 'assurance-verif.pdf');
     $assert('table child_assurances supprimée par 3.0.0', $table_exists('child_assurances'), false);
 
-    $assert('children.active → statut actif', (string) $cell("SELECT statut FROM $t_child WHERE id = $child_id"), 'actif');
+    // 4.15.0 : le statut est porté par l'année — l'enfant actif hérité est
+    // inscrit à l'année active.
+    $assert('children.active → inscrit à l\'année active (4.15.0)', (string) $cell("SELECT statut FROM $t_cy WHERE child_id = $child_id AND school_year_id = $year_id"), 'inscrit');
     $assert('children.active supprimée', $column_exists('children', 'active'), false);
     $assert('children.classe supprimée', $column_exists('children', 'classe'), false);
     $assert('children.classe_annee supprimée', $column_exists('children', 'classe_annee'), false);
+
+    // 4.15.0 : une seule table d'année scolaire
+    $assert('année : clé déduite de la rentrée', (string) $cell("SELECT year_key FROM $t_years WHERE id = $year_id"), Psc_School_Years::key_for_start((string) $cell("SELECT date_debut FROM $t_years WHERE id = $year_id")));
+    $assert('school_years.label supprimée par 4.15.0', $column_exists('school_years', 'label'), false);
+    $assert('children.statut supprimée par 4.15.0', $column_exists('children', 'statut'), false);
+    $assert('children.sorti_le supprimée par 4.15.0', $column_exists('children', 'sorti_le'), false);
+    $assert('ancienne table school_year supprimée par 4.15.0', $table_exists('school_year'), false);
+    $assert('clé d\'année unique', (int) $cell("SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '$t_years' AND INDEX_NAME = 'year_key' AND NON_UNIQUE = 0"), 1);
+    $assert('aucune montée en échec consignée', get_option('psc_migration_failed'), false);
 
     // 3.7.0 : répertoire privé
     $assert('fichier hérité déplacé vers le répertoire privé (3.7.0)', file_exists(psc_private_path('periscolaire/verif-migrations-e2e.pdf')), true); // phpcs:ignore WordPress.WP.AlternativeFunctions

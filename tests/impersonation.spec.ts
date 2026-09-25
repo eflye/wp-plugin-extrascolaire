@@ -45,7 +45,7 @@ function seedFamily(): { familyId: number; childId: number } {
       'adresse'=>'1 rue avant test','onboarding_seen_at'=>current_time('mysql'),'created_at'=>current_time('mysql')));
     $pid=(int)$wpdb->insert_id;
     $wpdb->insert($wpdb->prefix.'psc_children',array(
-      'parent_id'=>$pid,'nom'=>'Consultation','prenom'=>'Lou','statut'=>'actif','created_at'=>current_time('mysql')));
+      'parent_id'=>$pid,'nom'=>'Consultation','prenom'=>'Lou','created_at'=>current_time('mysql')));
     $cid=(int)$wpdb->insert_id;
     Psc_School_Years::enroll($cid,Psc_School_Years::active_id(),'CE2','inscrit',current_time('mysql'));
     echo wp_json_encode(array('familyId'=>$pid,'childId'=>$cid));`));

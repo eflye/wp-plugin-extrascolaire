@@ -212,12 +212,8 @@ WP_CLI::add_command('seed-journey', function ($args, $assoc_args) {
 
         $date_debut = $fmt((clone $today)->modify('-3 days'));
         $date_fin   = $fmt((clone $today)->modify('+45 days'));
-        $test_y     = (int) $today->format('Y');
-        $test_key   = ((int) $today->format('n') >= 8) ? "{$test_y}-" . ($test_y + 1) : ($test_y - 1) . "-{$test_y}";
-
         $config = array(
-            'school_year_label' => 'Année de test',
-            'year_key'          => $test_key,
+            'year_key'          => Psc_School_Years::key_for_start($date_debut),
             'date_debut'      => $date_debut,
             'date_fin'        => $date_fin,
             'parent_email'    => 'famille.dupont@example.com',
@@ -230,17 +226,12 @@ WP_CLI::add_command('seed-journey', function ($args, $assoc_args) {
 
     } else {
 
-        // Clé d'année réaliste, dérivée du mois en cours plutôt que codée en dur.
-        $m = (int) $today->format('n');
-        $y = (int) $today->format('Y');
-        $year_key = $m >= 8 ? "{$y}-" . ($y + 1) : ($y - 1) . "-{$y}";
-
         $date_debut = $fmt((clone $today)->modify('-14 days'));
         $date_fin   = $fmt((clone $today)->modify('+60 days'));
 
         $config = array(
-            'school_year_label' => "Année {$year_key}",
-            'year_key'          => $year_key,
+            // Clé d'année dérivée de la rentrée, comme pour toute année.
+            'year_key'          => Psc_School_Years::key_for_start($date_debut),
             'date_debut'      => $date_debut,
             'date_fin'        => $date_fin,
             // Domaine .invalid (RFC 2606) : adresse crédible à l'écran mais
@@ -303,20 +294,13 @@ WP_CLI::add_command('seed-journey', function ($args, $assoc_args) {
     }
     $wpdb->delete($t_req, array('email' => strtolower($config['parent_email'])), array('%s'));
 
-    $old_year_ids = $wpdb->get_col($wpdb->prepare(
-        "SELECT id FROM $t_years WHERE label = %s", $config['school_year_label']
-    ));
-    foreach ($old_year_ids as $year_id) {
-        $wpdb->delete($t_cy, array('school_year_id' => $year_id), array('%d'));
-        $wpdb->delete($t_years, array('id' => $year_id), array('%d'));
-    }
-
     /* ---------------------------------------------------------------- */
     /* Recréation                                                        */
     /* ---------------------------------------------------------------- */
 
-    // Une seule année scolaire active à la fois (dossier des enfants).
-    $school_year_id = Psc_School_Years::create($config['school_year_label'], $config['date_debut'], $config['date_fin']);
+    // Une seule année scolaire active à la fois (dossier des enfants), et
+    // une seule par rentrée : celle de la rentrée est reprise et recalée.
+    $school_year_id = Psc_School_Years::ensure($config['date_debut'], $config['date_fin']);
     if (is_wp_error($school_year_id)) {
         WP_CLI::error('Création de l\'année scolaire : ' . $school_year_id->get_error_message());
     }
@@ -343,7 +327,6 @@ WP_CLI::add_command('seed-journey', function ($args, $assoc_args) {
             'parent_id'  => $parent_id,
             'nom'        => $c['nom'],
             'prenom'     => $c['prenom'],
-            'statut'     => 'actif',
             'created_at' => current_time('mysql'),
         ), array('%d', '%s', '%s', '%s', '%s'));
         $child_id = (int) $wpdb->insert_id;

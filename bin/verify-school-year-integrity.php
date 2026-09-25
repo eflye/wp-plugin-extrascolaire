@@ -32,7 +32,6 @@ WP_CLI::add_command('verify-school-year-integrity', function () {
 
     global $wpdb;
     $t_years  = psc_table('school_years');
-    $t_config = psc_table('school_year');
     $t_cy     = psc_table('child_school_years');
     $t_parent = psc_table('parents');
     $t_child  = psc_table('children');
@@ -40,17 +39,16 @@ WP_CLI::add_command('verify-school-year-integrity', function () {
     $email    = 'verify-school-year@example.invalid';
     $original = Psc_School_Years::active_id();
 
-    $purge = function () use ($wpdb, $labels, $t_years, $t_config, $t_cy, $t_parent, $t_child, $email, $original) {
+    $purge = function () use ($wpdb, $labels, $t_years, $t_cy, $t_parent, $t_child, $email, $original) {
         if ($original) Psc_School_Years::activate($original);
         foreach ($labels as $label) {
-            foreach ($wpdb->get_col($wpdb->prepare("SELECT id FROM $t_years WHERE label = %s", $label)) as $id) {
+            foreach ($wpdb->get_col($wpdb->prepare("SELECT id FROM $t_years WHERE year_key = %s", $label)) as $id) {
                 if ((int) $id === (int) Psc_School_Years::active_id()) {
                     $wpdb->update($t_years, array('statut' => 'archivee'), array('id' => (int) $id));
                 }
                 $wpdb->delete($t_cy, array('school_year_id' => (int) $id));
                 $wpdb->delete($t_years, array('id' => (int) $id));
             }
-            $wpdb->delete($t_config, array('year_key' => $label));
         }
         $pid = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM $t_parent WHERE email = %s", $email));
         if ($pid) {
@@ -72,8 +70,8 @@ WP_CLI::add_command('verify-school-year-integrity', function () {
     };
 
     try {
-        $y1 = Psc_School_Years::create($labels[0], '2091-09-01', '2092-07-04');
-        $y2 = Psc_School_Years::create($labels[1], '2092-09-01', '2093-07-04');
+        $y1 = Psc_School_Years::create('2091-09-01', '2092-07-04');
+        $y2 = Psc_School_Years::create('2092-09-01', '2093-07-04');
         if (is_wp_error($y1) || is_wp_error($y2)) WP_CLI::error('Années de test impossibles à créer.');
 
         // 1. Activation, puis réactivation sans effet.
@@ -81,7 +79,7 @@ WP_CLI::add_command('verify-school-year-integrity', function () {
         $check(Psc_School_Years::activate($y1) === true, 'réactivation de l’année active refusée');
         $check($actives() === array((int) $y1), 'activation : années actives ' . wp_json_encode($actives()));
 
-        // 2. Configuration du calendrier créée pour l'année activée.
+        // 2. Le calendrier de l'année activée est la même ligne (4.15.0).
         Psc_School_Year::flush_cache();
         $check((bool) Psc_School_Year::get($labels[0]), 'activation : configuration du calendrier absente');
 
@@ -102,7 +100,7 @@ WP_CLI::add_command('verify-school-year-integrity', function () {
         $pid = (int) $wpdb->insert_id;
         $kids = array();
         foreach (array('Lou', 'Noa') as $prenom) {
-            $wpdb->insert($t_child, array('parent_id' => $pid, 'nom' => 'VerifyYear', 'prenom' => $prenom, 'statut' => 'actif', 'created_at' => current_time('mysql')));
+            $wpdb->insert($t_child, array('parent_id' => $pid, 'nom' => 'VerifyYear', 'prenom' => $prenom, 'created_at' => current_time('mysql')));
             $kids[] = (int) $wpdb->insert_id;
         }
         $plan = array(

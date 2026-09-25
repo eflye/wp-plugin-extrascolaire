@@ -65,11 +65,7 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     // patterns des autres familles de test s'appliqueraient à cette
     // semaine lointaine. La config ci-dessous capte ces dates dans une
     // année 'Y-Y+1' où personne d'autre n'a de rythme.
-    $y = (int) substr($semaine_debut, 0, 4);
-    $planning_key = ((int) substr($semaine_debut, 5, 2) >= 7)
-        ? $y . '-' . ($y + 1)
-        : ($y - 1) . '-' . $y;
-    Psc_School_Year::save($planning_key, $semaine_debut, gmdate('Y-m-d', strtotime($semaine_debut . ' +6 days')), '[]', psc_lock_hours());
+    $planning_key = Psc_School_Years::key_for_start($semaine_debut);
 
     $jours = array();
     foreach (Psc_Supplier_Orders::JOUR_OFFSETS as $jour => $offset) {
@@ -77,10 +73,7 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     }
 
     $config = array(
-        // wp_psc_school_years.label est VARCHAR(20) : un libellé trop long
-        // fait échouer silencieusement l'INSERT sous le sql_mode strict de
-        // MySQL 8.
-        'school_year_label' => 'Année E2E — cmd',
+        'school_year_label' => $planning_key,
         'parent_email'    => 'fournisseur.e2e@example.test',
         'parent_nom'      => 'E2E',
         // Quatre profils qui couvrent toute la ventilation de l'e-mail :
@@ -127,7 +120,7 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     }
 
     $old_year_ids = $wpdb->get_col($wpdb->prepare(
-        "SELECT id FROM $t_years WHERE label = %s", $config['school_year_label']
+        "SELECT id FROM $t_years WHERE year_key = %s AND statut <> 'active'", $planning_key
     ));
     foreach ($old_year_ids as $year_id) {
         $wpdb->delete($t_cy, array('school_year_id' => $year_id), array('%d'));
@@ -154,17 +147,16 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     // (Psc_School_Years::for_date()) — une année archivée dont les dates
     // couvrent la semaine cible suffit, sans jamais toucher à ce qui est
     // actif pour de vrai sur le site.
-    $years_inserted = $wpdb->insert($t_years, array(
-        'label'      => $config['school_year_label'],
-        'date_debut' => $jours['lundi'],
-        'date_fin'   => $jours['vendredi'],
-        'statut'     => 'archivee',
-        'created_at' => current_time('mysql'),
-    ), array('%s', '%s', '%s', '%s', '%s'));
-    if (!$years_inserted) {
-        WP_CLI::error('Création de l\'année scolaire figurante : ' . $wpdb->last_error);
+    // Une seule ligne porte l'année et son calendrier (4.15.0) : créée
+    // sur la seule semaine cible, puis archivée — jamais « en préparation »,
+    // pour ne pas devenir la cible de la réinscription.
+    $saved = Psc_School_Year::save($planning_key, $semaine_debut, gmdate('Y-m-d', strtotime($semaine_debut . ' +6 days')), '[]', psc_lock_hours());
+    if (is_wp_error($saved)) {
+        WP_CLI::error('Création de l\'année scolaire figurante : ' . $saved->get_error_message());
     }
-    $school_year_id = (int) $wpdb->insert_id;
+    $school_year_id = (int) Psc_School_Years::get_by_key($planning_key)->id;
+    $wpdb->update($t_years, array('statut' => 'archivee'), array('id' => $school_year_id));
+    Psc_School_Year::flush_cache();
 
     // onboarding_seen_at fixé à la création : cette spec ne teste pas la
     // popin de découverte, qui bloquerait sinon les clics Playwright sur
@@ -188,7 +180,6 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
             'vegan'          => (int) $c['vegan'],
             'cantine_sans_repas' => (int) $c['csr'],
             'food_allergies' => $c['allergies'] !== '' ? $c['allergies'] : null,
-            'statut'         => 'actif',
             'created_at'     => current_time('mysql'),
         ), array('%d', '%s', '%s', '%d', '%d', '%d', '%s', '%s'));
         $child_id = (int) $wpdb->insert_id;

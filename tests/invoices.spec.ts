@@ -80,7 +80,7 @@ function seedFamily(): number {
      }
      $cid = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}psc_children WHERE parent_id = %d AND prenom = 'Jules'", $pid));
      if (!$cid) {
-       $wpdb->insert($wpdb->prefix.'psc_children', array('parent_id' => $pid, 'nom' => 'FacturesE2E', 'prenom' => 'Jules', 'statut' => 'actif', 'created_at' => current_time('mysql')), array('%d','%s','%s','%s','%s'));
+       $wpdb->insert($wpdb->prefix.'psc_children', array('parent_id' => $pid, 'nom' => 'FacturesE2E', 'prenom' => 'Jules', 'created_at' => current_time('mysql')), array('%d','%s','%s','%s','%s'));
        $cid = (int) $wpdb->insert_id;
        Psc_School_Years::enroll($cid, Psc_School_Years::active_id(), 'CE2', 'inscrit', current_time('mysql'));
        // Rythme posé en base, sans passer par toggle_pattern() : celui-ci

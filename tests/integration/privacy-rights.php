@@ -34,7 +34,6 @@ $make_family = function ($slug) use ($wpdb, $t_parent, $t_child) {
         'parent_id'  => $parent_id,
         'nom'        => 'Enfant-' . $slug,
         'prenom'     => 'Noé',
-        'statut'     => 'actif',
         'created_at' => current_time('mysql'),
     ));
     return array($parent_id, (int) $wpdb->insert_id);

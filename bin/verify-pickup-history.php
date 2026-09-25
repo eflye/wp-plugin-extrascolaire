@@ -76,7 +76,6 @@ WP_CLI::add_command('verify-pickup-history', function ($args, $assoc_args) {
         'parent_id'  => $parent_id,
         'nom'        => 'Test',
         'prenom'     => 'Verif',
-        'statut'     => 'actif',
         'created_at' => current_time('mysql'),
     ), array('%d', '%s', '%s', '%s', '%s'));
     $child_id = (int) $wpdb->insert_id;

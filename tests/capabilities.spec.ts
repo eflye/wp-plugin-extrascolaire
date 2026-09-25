@@ -71,7 +71,7 @@ test.describe('Habilitations du backoffice', () => {
     }
     wpEval(`global $wpdb;
       $wpdb->insert($wpdb->prefix.'psc_parents',array('email'=>'${EMAIL}','nom'=>'HabilitationsE2E','prenom'=>'Famille','active'=>1,'created_at'=>current_time('mysql')));
-      $wpdb->insert($wpdb->prefix.'psc_children',array('parent_id'=>(int)$wpdb->insert_id,'nom'=>'HabilitationsE2E','prenom'=>'Noa','statut'=>'actif','food_allergies'=>'${ALLERGY}','created_at'=>current_time('mysql')));
+      $wpdb->insert($wpdb->prefix.'psc_children',array('parent_id'=>(int)$wpdb->insert_id,'nom'=>'HabilitationsE2E','prenom'=>'Noa','food_allergies'=>'${ALLERGY}','created_at'=>current_time('mysql')));
       Psc_School_Years::enroll((int)$wpdb->insert_id,Psc_School_Years::active_id(),'CE2','inscrit',current_time('mysql'));
       echo 'ok';`);
   });

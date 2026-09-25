@@ -53,7 +53,6 @@ try {
         'parent_id'  => $parent_id,
         'nom'        => 'Sonde',
         'prenom'     => 'Enfant',
-        'statut'     => 'actif',
         'created_at' => current_time('mysql'),
     ));
     $child_id = (int) $wpdb->insert_id;
