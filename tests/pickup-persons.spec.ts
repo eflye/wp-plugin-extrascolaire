@@ -259,6 +259,11 @@ test('fiche vivante — ajout pour toute la fratrie, modification, retrait, puis
     )
   );
   expect(secondChildId, 'second enfant créé via le portail').toBeGreaterThan(0);
+  // P1-13 : l'enfant n'existe jamais sans son justificatif.
+  expect(
+    wpCliEval(`$e = Psc_School_Years::enrollment(${secondChildId}); echo ($e && $e->assurance_file_path && is_file(psc_private_path($e->assurance_file_path))) ? 'ok' : 'absent';`),
+    'justificatif du second enfant enregistré',
+  ).toBe('ok');
 
   /* ---------------- Habilitations : l'ajout porte sur tous les enfants ---------------- */
   await page.getByTestId('portal-nav-habilitations').click();
