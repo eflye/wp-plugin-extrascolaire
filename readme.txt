@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.26.0
+Stable tag: 5.27.0
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,10 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.27.0 =
+* Clé de chiffrement des IBAN : sans la constante PSC_ENCRYPTION_KEY dans wp-config.php, la clé était tirée d'une option enregistrée dans la base de données — une copie de la base suffisait donc à lire les IBAN. Nouvelle commande `wp psc chiffrement` : `statut` indique où se trouve la clé, `generer-cle` fournit la ligne à ajouter dans wp-config.php, `rechiffrer` rechiffre les IBAN des familles, des demandes et du créancier avec cette clé. Le site lit les deux clés pendant la transition : rien ne devient illisible. **Après la mise à jour**, suivez la page « Clé de chiffrement des IBAN » de la documentation.
+* Documentation : pages « Clé de chiffrement des IBAN » et « Notes de mise à jour » (passage depuis 5.23 à 5.25, avec un contrôle des années scolaires à lancer avant la mise à jour) ; mode debug de suppression des factures mieux signalé.
 
 = 5.26.0 =
 * Une seule année scolaire par rentrée, nommée d'après elle (par exemple 2026-2027) : le libellé libre disparaît de l'écran « Année scolaire », et le calendrier (dates, vacances, délai de modification) et le dossier de l'année (classes, justificatifs) sont désormais la même année. Créer une seconde année pour une rentrée qui en a déjà une est refusé : corrigez plutôt les dates de l'année existante.
