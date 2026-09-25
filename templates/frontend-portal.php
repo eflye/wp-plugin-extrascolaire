@@ -114,6 +114,7 @@
         'child_updated'     => array('ok',  __("Informations de l'enfant mises à jour.", 'periscolaire-registration')),
         'child_added'       => array('ok',  __('Enfant ajouté à votre compte.', 'periscolaire-registration')),
         'child_invalid'     => array('err', __('Merci de renseigner le prénom et le nom.', 'periscolaire-registration')),
+        'child_add_failed'  => array('err', __("L'enfant n'a pas pu être ajouté : rien n'a été enregistré. Merci de réessayer.", 'periscolaire-registration')),
         'child_limit'       => array('err', __("Nombre maximum d'enfants atteint.", 'periscolaire-registration')),
         'child_bad_birthdate' => array('err', __('La date de naissance est incohérente : jamais dans le futur, et au moins 3 ans au 1er septembre de l\'année en cours.', 'periscolaire-registration')),
         'absence_cancelled' => array('ok',  __('Absence signalée : la mairie a été prévenue, ces prestations ne seront pas facturées.', 'periscolaire-registration')),
@@ -146,6 +147,7 @@
 
         'reinscription_confirmee' => array('ok',  __('Réinscription enregistrée. Merci !', 'periscolaire-registration')),
         'reinscription_invalid'   => array('err', __('La fenêtre de réinscription est fermée ou votre sélection est invalide.', 'periscolaire-registration')),
+        'reinscription_failed'    => array('err', __("L'enregistrement a été interrompu. Renvoyez le formulaire : les enfants déjà réinscrits ne seront pas comptés deux fois.", 'periscolaire-registration')),
         'reinscription_required'  => array('err', __("Merci de confirmer le règlement intérieur et de fournir un justificatif d'assurance pour chaque enfant réinscrit.", 'periscolaire-registration')),
 
         'pickup_updated' => array('ok',  __('Personne autorisée modifiée.', 'periscolaire-registration')),

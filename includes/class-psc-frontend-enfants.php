@@ -151,24 +151,48 @@ class Psc_Frontend_Enfants extends Psc_Frontend_Base {
         ));
         if ($count >= psc_max_children_per_user()) self::parent_form_redirect('child_limit');
 
-        $wpdb->insert($t_child, array(
-            'parent_id'               => $parent->id,
-            'nom'                     => mb_substr($nom, 0, 190),
-            'prenom'                  => mb_substr($prenom, 0, 190),
-            'date_naissance'          => $naissance ?: null,
-            'sans_porc'               => $sans_porc,
-            'vegan'                   => $vegan,
-            'food_allergy_signal'     => $food_signal,
-            'statut'                  => 'actif',
-            'created_at'              => current_time('mysql'),
-        ), array('%d', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s'));
-        $child_id = (int) $wpdb->insert_id;
-
-        Psc_School_Years::enroll($child_id, $year_id, $classe, 'inscrit', current_time('mysql'));
-        Psc_Assurances::store_upload($child_id, $_FILES['new_assurance_file']);
+        $child_id = self::create_child_with_document((int) $parent->id, array(
+            'nom'                 => mb_substr($nom, 0, 190),
+            'prenom'              => mb_substr($prenom, 0, 190),
+            'date_naissance'      => $naissance ?: null,
+            'sans_porc'           => $sans_porc,
+            'vegan'               => $vegan,
+            'food_allergy_signal' => $food_signal,
+        ), $classe, $year_id, $_FILES['new_assurance_file']);
+        if (!$child_id) self::parent_form_redirect('child_add_failed');
 
         if ($food_signal) Psc_Mailer::notify_food_allergy($parent, $child_id, '', null);
 
         self::parent_form_redirect('child_added');
+    }
+
+    /**
+     * Fiche enfant, inscription à l'année et justificatif : tout ou rien
+     * (P1-13). Un échec d'écriture du fichier ou de la base ne laisse ni
+     * enfant sans justificatif, ni fichier orphelin, et la famille ne lit
+     * jamais « Enfant ajouté » pour un ajout incomplet.
+     *
+     * @return int Identifiant de l'enfant créé, 0 en cas d'échec.
+     */
+    public static function create_child_with_document($parent_id, array $fields, $classe, $year_id, $file) {
+        global $wpdb;
+        $wpdb->query('START TRANSACTION');
+        $inserted = $wpdb->insert(psc_table('children'), array_merge($fields, array(
+            'parent_id'  => (int) $parent_id,
+            'statut'     => 'actif',
+            'created_at' => current_time('mysql'),
+        )));
+        $child_id = false === $inserted ? 0 : (int) $wpdb->insert_id;
+
+        // Le fichier en dernier : store_upload() se défait seul en cas
+        // d'échec, et seul un COMMIT refusé peut encore l'orpheliner.
+        $ok = $child_id
+            && Psc_School_Years::enroll($child_id, $year_id, $classe, 'inscrit', current_time('mysql'))
+            && Psc_Assurances::store_upload($child_id, $file, $year_id) === true;
+        if ($ok && false !== $wpdb->query('COMMIT')) {
+            return $child_id;
+        }
+        $wpdb->query('ROLLBACK');
+        return 0;
     }
 }

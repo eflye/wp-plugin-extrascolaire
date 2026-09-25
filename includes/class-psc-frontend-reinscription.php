@@ -54,33 +54,48 @@ class Psc_Frontend_Reinscription extends Psc_Frontend_Base {
         $children = self::children_of($parent->id, true);
         if (!$children) self::parent_form_redirect('reinscription_invalid');
 
-        $reglement_accepted_at = current_time('mysql');
-        $confirmed_count = 0;
-
+        $files = array();
         foreach ($children as $child) {
             if (empty($_POST['confirm_' . $child->id])) continue; // enfant retiré pour la nouvelle année
+            $files[(int) $child->id] = isset($_FILES['assurance_' . $child->id]) ? $_FILES['assurance_' . $child->id] : null;
+        }
+
+        $result = self::apply_reinscription($children, $files, $target_year->id, current_time('mysql'));
+        $codes = array('ok' => 'reinscription_confirmee', 'required' => 'reinscription_required', 'failed' => 'reinscription_failed');
+        self::parent_form_redirect($codes[$result]);
+    }
+
+    /**
+     * Réinscrit les enfants confirmés ($files : child_id => fichier reçu).
+     * Tous les justificatifs sont contrôlés AVANT la première écriture :
+     * un fichier invalide sur le deuxième enfant ne laisse plus le premier
+     * réinscrit à moitié (P1-13). Une panne pendant les écritures reste
+     * rattrapable en renvoyant le formulaire : inscription et dépôt sont
+     * des remplacements, jamais des ajouts.
+     *
+     * @return string 'ok' | 'required' | 'failed'
+     */
+    public static function apply_reinscription(array $children, array $files, $target_year_id, $reglement_accepted_at) {
+        $plan = array();
+        foreach ($children as $child) {
+            if (!array_key_exists((int) $child->id, $files)) continue;
 
             $classe_actuelle = Psc_School_Years::classe_for($child->id); // année en cours (active)
             $classe_proposee = $classe_actuelle !== '' ? Psc_School_Years::classe_superieure($classe_actuelle) : null;
             if (!$classe_proposee || $classe_proposee === 'sortie') continue; // fin de cycle : rien à réinscrire
 
-            $file = isset($_FILES['assurance_' . $child->id]) ? $_FILES['assurance_' . $child->id] : null;
-            $file_check = Psc_Assurances::validate_upload($file);
-            if ($file_check !== true) {
-                self::parent_form_redirect('reinscription_required');
-            }
-
-            if (!Psc_School_Years::enroll($child->id, $target_year->id, $classe_proposee, 'inscrit', $reglement_accepted_at)) {
-                self::parent_form_redirect('reinscription_invalid');
-            }
-            if (Psc_Assurances::store_upload($child->id, $file, $target_year->id) !== true) {
-                self::parent_form_redirect('reinscription_invalid');
-            }
-            $confirmed_count++;
+            $file = $files[(int) $child->id];
+            if (Psc_Assurances::validate_upload($file) !== true) return 'required';
+            $plan[] = array((int) $child->id, $classe_proposee, $file);
         }
+        if (!$plan) return 'required';
 
-        if (!$confirmed_count) self::parent_form_redirect('reinscription_required');
-
-        self::parent_form_redirect('reinscription_confirmee');
+        foreach ($plan as $p) {
+            if (!Psc_School_Years::enroll($p[0], $target_year_id, $p[1], 'inscrit', $reglement_accepted_at)
+                || Psc_Assurances::store_upload($p[0], $p[2], $target_year_id) !== true) {
+                return 'failed';
+            }
+        }
+        return 'ok';
     }
 }
