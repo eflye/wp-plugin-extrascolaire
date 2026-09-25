@@ -54,6 +54,8 @@ class Psc_Admin extends Psc_Admin_Base {
         add_action('admin_enqueue_scripts', array(__CLASS__, 'assets'));
         add_action('admin_notices', array(__CLASS__, 'notice_private_dir_exposed'));
         add_action('admin_notices', array(__CLASS__, 'notice_db_constraints'));
+        add_action('admin_notices', array(__CLASS__, 'notice_migration_failed'));
+        add_action('admin_notices', array(__CLASS__, 'notice_storage_move_failed'));
         add_action('admin_notices', array(__CLASS__, 'notice_audit_health'));
         add_action('admin_notices', array(__CLASS__, 'notice_privacy_incomplete'));
         add_action('admin_notices', array(__CLASS__, 'notice_invoice_debug_delete'));
@@ -438,6 +440,74 @@ class Psc_Admin extends Psc_Admin_Base {
             . esc_html__('Mode debug de la facturation actif :', 'periscolaire-registration') . '</strong> '
             . esc_html__('les factures déjà envoyées peuvent être supprimées. À désactiver sur un site de production :', 'periscolaire-registration')
             . ' <code>wp option delete psc_invoice_debug_delete</code></p></div>';
+    }
+
+    /**
+     * Mise à jour du schéma arrêtée (P1-17) : la version n'avance pas au-delà
+     * de la dernière étape réussie, et la reprise a lieu à chaque écran
+     * d'administration. Rien de personnel n'est affiché : l'étape, la
+     * nature de la requête et sa table.
+     */
+    public static function notice_migration_failed() {
+        if (!current_user_can('psc_manage_config')) return;
+        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+        $on_psc = $screen && strpos((string) $screen->id, 'psc_') !== false;
+        if (!$on_psc && !($screen && $screen->id === 'dashboard')) return;
+
+        $failed = get_option('psc_migration_failed');
+        if (!is_array($failed)) return;
+        ?>
+        <div class="notice notice-error" data-testid="notice-migration-failed">
+            <p><strong><?php esc_html_e('Périscolaire — la mise à jour de la base de données est incomplète.', 'periscolaire-registration'); ?></strong></p>
+            <p>
+                <?php
+                printf(
+                    /* translators: 1: étape de migration, 2: requête en échec (nature et table) */
+                    esc_html__('Elle s’est arrêtée à l’étape %1$s (%2$s). Les étapes précédentes sont conservées ; une nouvelle tentative reprend à cette étape à chaque ouverture du backoffice.', 'periscolaire-registration'),
+                    '<code>' . esc_html((string) ($failed['etape'] ?? '')) . '</code>',
+                    esc_html(($failed['requete'] ?? '') !== '' ? $failed['requete'] : __('erreur SQL', 'periscolaire-registration'))
+                );
+                ?>
+            </p>
+            <p><?php esc_html_e('Si ce message persiste, transmettez-le à la personne qui maintient le site : la cause est le plus souvent côté hébergement (droits de modification des tables, quota, délai dépassé).', 'periscolaire-registration'); ?></p>
+        </div>
+        <?php
+    }
+
+    /**
+     * Documents restés à un ancien emplacement (P1-17) : l'ancien chemin est
+     * conservé et le déménagement retenté à chaque chargement, mais un
+     * conflit de contenu demande une décision humaine.
+     */
+    public static function notice_storage_move_failed() {
+        if (!current_user_can('psc_manage_config')) return;
+        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+        $on_psc = $screen && strpos((string) $screen->id, 'psc_') !== false;
+        if (!$on_psc && !($screen && $screen->id === 'dashboard')) return;
+
+        $failed = get_option('psc_storage_move_failed');
+        if (!is_array($failed) || !$failed) return;
+        ?>
+        <div class="notice notice-error" data-testid="notice-storage-move-failed">
+            <p><strong><?php esc_html_e('Périscolaire — des documents n’ont pas pu être déplacés.', 'periscolaire-registration'); ?></strong></p>
+            <ul>
+                <?php foreach ($failed as $move) : ?>
+                <li>
+                    <?php
+                    printf(
+                        /* translators: 1: nombre de fichiers, 2: ancien dossier, 3: nouveau dossier */
+                        esc_html(_n('%1$d fichier est resté dans %2$s au lieu de %3$s.', '%1$d fichiers sont restés dans %2$s au lieu de %3$s.', (int) ($move['restants'] ?? 0), 'periscolaire-registration')),
+                        (int) ($move['restants'] ?? 0),
+                        '<code>' . esc_html((string) ($move['depuis'] ?? '')) . '</code>',
+                        '<code>' . esc_html((string) ($move['vers'] ?? '')) . '</code>'
+                    );
+                    ?>
+                </li>
+                <?php endforeach; ?>
+            </ul>
+            <p><?php esc_html_e('Aucun fichier n’a été supprimé, mais ces documents ne peuvent pas être téléchargés depuis l’extension tant qu’ils ne sont pas au nouvel emplacement. Une nouvelle tentative a lieu à chaque chargement. Si ce message persiste, un fichier existe sous le même nom aux deux endroits avec un contenu différent, ou les droits du dossier empêchent le déplacement : comparez les deux fichiers, conservez le bon, puis rechargez cette page.', 'periscolaire-registration'); ?></p>
+        </div>
+        <?php
     }
 
     public static function notice_db_constraints() {
