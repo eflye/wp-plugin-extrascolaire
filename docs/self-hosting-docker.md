@@ -1,5 +1,7 @@
 # Installer une instance de test à la maison (Linux + Docker Compose)
 
+> **Instance de test uniquement.** Ce guide monte le dépôt dans un conteneur et capture les e-mails : il ne convient pas à la production. Le serveur de production reçoit uniquement l'archive ZIP de la Release, selon [Déployer une nouvelle version](../documentation/installation/deploiement-zip.md). Pour le poste de développement, voir [Développement local et tests](developpement-local.md).
+
 Ce guide déploie le plugin **Périscolaire — Inscriptions** sur un serveur
 Linux à la maison, pour un test avec un petit nombre de bêta-testeurs. Le
 reverse proxy / HTTPS est géré en dehors de ce projet, via **Nginx Proxy

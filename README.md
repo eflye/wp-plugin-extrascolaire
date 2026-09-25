@@ -4,7 +4,7 @@
 
 Périscolaire centralise les inscriptions, le planning annuel, la cantine, les garderies, les présences et la facturation. Les familles gèrent leurs besoins en ligne ; la mairie, les intervenants et le fournisseur travaillent à partir des mêmes données.
 
-[![Version 5.10.1](https://img.shields.io/badge/version-5.10.1-24405C)](readme.txt)
+[![Dernière version publiée](https://img.shields.io/github/v/release/eflye/wp-plugin-extrascolaire?label=version&color=24405C)](https://github.com/eflye/wp-plugin-extrascolaire/releases)
 ![WordPress 5.8+](https://img.shields.io/badge/WordPress-5.8%2B-21759B?logo=wordpress&logoColor=white)
 ![PHP 7.4+](https://img.shields.io/badge/PHP-7.4%2B-777BB4?logo=php&logoColor=white)
 [![Licence GPLv2+](https://img.shields.io/badge/licence-GPLv2%2B-E08A5F)](LICENSE)
@@ -89,13 +89,13 @@ Le service couvre aussi les fratries, les régimes alimentaires, les allergies, 
 
 ### Mise en route
 
-1. Télécharger une archive depuis les [versions publiées](https://github.com/eflye/wp-plugin-extrascolaire/releases), puis placer le plugin dans `wp-content/plugins/periscolaire-registration/`.
+1. Télécharger `periscolaire-registration-X.Y.Z.zip` et `SHA256SUMS` depuis les [versions publiées](https://github.com/eflye/wp-plugin-extrascolaire/releases), vérifier l’archive, puis l’installer depuis **Extensions > Ajouter une extension > Téléverser une extension**. Le serveur ne reçoit que cette archive, jamais le dépôt : voir [Déployer une nouvelle version](https://eflye.github.io/wp-plugin-extrascolaire/installation/deploiement-zip/).
 2. Activer **Périscolaire — Inscriptions** dans WordPress.
-3. Créer et activer l’année dans **Périscolaire > Années scolaires**, puis vérifier vacances, jours fériés, fermetures et préavis.
+3. Créer et activer l’année dans **Périscolaire > Année scolaire**, puis vérifier vacances, jours fériés, fermetures et préavis.
 4. Compléter les tarifs, coordonnées, e-mails, documents et informations SEPA dans **Périscolaire > Réglages**.
 5. Créer une page WordPress contenant le shortcode `[periscolaire_form]` et communiquer son URL aux familles.
 6. Pour l’espace terrain, créer une seconde page avec `[periscolaire_sidscm]`, la sélectionner dans les réglages et définir son code d’accès.
-7. Tester la réception des e-mails et la protection des documents avant d’ouvrir le service.
+7. Tester la réception des e-mails et la protection des documents avant d’ouvrir le service, en déroulant la [fiche de recette de l’hébergement](https://eflye.github.io/wp-plugin-extrascolaire/installation/fiche-recette-p1/).
 
 ## Confidentialité et sécurité
 
@@ -123,34 +123,27 @@ Le plugin ne propose pas de paiement en ligne. Il génère les factures et prép
 
 - [Guide de la mairie (back office)](https://eflye.github.io/wp-plugin-extrascolaire/mairie/)
 - [Guide des familles (espace familles)](https://eflye.github.io/wp-plugin-extrascolaire/familles/)
+- [Déployer une nouvelle version (serveur de production)](https://eflye.github.io/wp-plugin-extrascolaire/installation/deploiement-zip/)
 - [Historique des versions](readme.txt)
 - [Export des ordres de prélèvement SEPA](docs/export-pain008.md)
-- [Exemple d’auto-hébergement avec Docker](docs/self-hosting-docker.md)
+- [Développement local et tests](docs/developpement-local.md)
+- [Instance de test auto-hébergée avec Docker](docs/self-hosting-docker.md) (pas pour la production)
 - [Inventaire du schéma de données](docs/schema-inventory-2026-09-10.md)
 - [Filet de sécurité du refactoring](docs/refactoring-safety-net.md)
 
 <details>
 <summary>Développer et tester localement</summary>
 
-L’environnement de développement utilise WordPress, MySQL 8 et Mailpit avec Podman.
+L’environnement de développement utilise WordPress, MySQL 8 et Mailpit avec Podman ; PHP, Composer et WP-CLI s’exécutent dans le conteneur.
 
 ```bash
 podman machine start
 MAILPIT_ENABLED=true podman compose --profile mailpit up -d
 npm ci
-composer install
+npx playwright test
 ```
 
-Vérifications principales :
-
-```bash
-npm run lint:js
-composer phpstan
-podman exec plugin-extrascolaire-wordpress-1 php /var/www/html/wp-content/plugins/periscolaire-registration/tests/unit/run.php
-PSC_CONTAINER_ENGINE=podman PSC_WP_CONTAINER=plugin-extrascolaire-wordpress-1 npm run test:e2e
-```
-
-Les tests de bout en bout modifient la base locale : utilisez une instance de développement.
+Les tests de bout en bout modifient la base locale : utilisez une instance de développement. Vérifications, scripts `bin/verify-*.php`, base jetable pour les migrations et publication d’une version : voir [Développement local et tests](docs/developpement-local.md).
 
 </details>
 
