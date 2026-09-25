@@ -13,7 +13,7 @@
 - **P1 partiellement avancés :** P1-06, P1-07, P1-08, P1-09, P1-11, P1-15 et P1-16.
 - **P1 mis de côté à la demande :** P1-01.
 - **P1 ouverts, côté hébergement ou DPO :** P1-04, P1-10 et P1-18.
-- **P2 :** tous traités, sauf P2-06 (volet polices du thème et inventaire du site réel) et P2-14.
+- **P2 :** tous traités, sauf P2-14 ; P2-06 est traité côté développement, reste le test réseau du site réel.
 - **P3 :** P3-02 est traité ; P3-01 reste ouvert.
 
 ## Avancement au 25 septembre 2026
@@ -35,7 +35,7 @@
 | Bloc | Ce qui reste | Qui débloque |
 | --- | --- | --- |
 | **Serveur distant** | **Fait le 25/09/2026 :** 5.23.1 → 5.28.0 déployé, les cinq étapes de **Périscolaire › Maintenance** sont faites (sauvegarde, base au schéma 4.15.0, clé des IBAN hors de la base et rechiffrement, réglages, recette). Reste : tester une restauration avec la clé, puis dérouler la fiche de recette de l'hébergement (P1-04, P1-18) | Exploitation |
-| P2-06 | Polices du thème à héberger localement ; inventaire des ressources tierces du site réel | Développement, puis exploitation |
+| P2-06 | Polices du thème servies localement (fait, à publier) ; reste l'inventaire des ressources tierces du site réel (onglet Réseau du navigateur) | Exploitation, puis DPO |
 | P1-11 | Couverture fine des actions sensibles, rotation du journal des téléchargements, alerte de panne | Développement, puis DPO pour la durée |
 | P1-16 | Montants en centimes, périodes d'effet des tarifs et du statut « sans repas » | Schéma à valider |
 | P2-14 | Version du règlement effectivement accepté | Schéma à valider, puis facturation |
@@ -466,7 +466,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** loopback, adresse privée, redirection interne, réponse trop grosse et ICS invalide refusés ; calendrier existant intact. **Développement ; M.**
 
-### P2-06 — Maîtriser les ressources externes et migrer l’ancienne API Adresse
+### P2-06 — TRAITÉ CÔTÉ DÉVELOPPEMENT (après v5.28.0) — Test réseau du site réel encore ouvert — Maîtriser les ressources externes et migrer l’ancienne API Adresse
 
 - [ ] **Inventorier les flux navigateur du site réellement déployé.**
 
@@ -479,6 +479,10 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 **Conséquence pour le DPO :** le destinataire du flux de saisie d’adresse passe de la DINUM (`data.gouv.fr`) à l’IGN (Géoplateforme). Deux opérateurs publics français, aucun transfert hors UE, mais le nom du destinataire est à corriger partout où la notice le mentionne. Le quota annoncé du nouveau service est de 50 requêtes par seconde et par IP ; la saisie reste déclenchée à partir de trois caractères, avec anti-rebond de 250 ms et annulation de la requête précédente.
 
 **Restant :** la saisie manuelle existe déjà en repli et n’a pas changé. Le volet polices (`theme/Archive/functions.php:24` charge Google Fonts alors que le plugin embarque ses polices) et l’inventaire des flux tiers du site réellement déployé restent entiers.
+
+**Traité le 25/09/2026 (volet polices) :** le thème chargeait Public Sans depuis `fonts.googleapis.com`, transmettant l'adresse IP de chaque visiteur, familles comprises, à Google. Il la sert désormais lui-même (`theme/Archive/assets/fonts`, `assets/css/fonts.css`, thème 1.1.0), avec la licence de la police (OFL 1.1 et CC0), ajoutée aussi aux fichiers de l'extension, qui ne l'embarquaient pas. **Preuve :** `tests/ressources-externes.spec.ts` charge l'accueil, le formulaire d'inscription et quatre écrans du portail, et échoue sur toute requête sortant du domaine du site ; il vérifie aussi que Public Sans est bien chargée. Vérifié par mutation : l'appel à Google Fonts rétabli fait échouer le test. Le seul flux tiers restant est l'API Adresse de la Géoplateforme, déclenchée à la saisie d'une adresse.
+
+**Reste :** le test réseau du site réellement déployé (extensions, widgets ou mesure d'audience ajoutés hors de l'extension), à faire dans le navigateur, onglet Réseau, sur l'accueil et le portail ; puis faire valider par le DPO le flux vers la Géoplateforme.
 
 **Acceptation :** parcours utilisable sans réponse du prestataire ; aucun chargement tiers non identifié ; test réseau du site réel. Les cookies d’authentification strictement nécessaires ne justifient pas, à eux seuls, un bandeau de consentement ; les autres traceurs sont à examiner séparément. Références : [BAN — documentation API](https://adresse.data.gouv.fr/outils/api-doc/adresse), [CNIL — cookies nécessaires](https://www.cnil.fr/fr/cookies-et-autres-traceurs/que-dit-la-loi). **Développement + DPO ; M.**
 
@@ -701,7 +705,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 L'ordre initial (P0, accès et confidentialité, intégrité métier, conformité, fiabilisation) est suivi. Les P0, l'essentiel des P1 techniques et les P2 sont faits. Pour la suite :
 
 1. **Serveur distant** : la mise à jour vers 5.28.0 et la sortie de la clé sont faites (25/09/2026). Restent la restauration testée avec la clé et la fiche de recette de l'hébergement (P1-04, P1-18).
-2. **Développement autonome** : P2-06 (polices du thème), volet technique de P1-11.
+2. **Développement autonome** : volet technique de P1-11 (P2-06 fait côté développement).
 3. **Schéma à valider avant implémentation** : P1-16 (centimes, périodes d'effet), P2-14.
 4. **Facturation** : P1-15, puis P3-01.
 5. **Conformité avec le DPO et la mairie** : P1-06 à P1-10. Aucune purge réelle au-delà de celle des enfants partis avant validation des règles d'archives et de conservation.
