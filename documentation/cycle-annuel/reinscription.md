@@ -17,7 +17,7 @@ Créez l'année cible avec le statut **En préparation** et vérifiez la corresp
    ![Écran de réinscription montrant la fenêtre ouverte, les enfants à confirmer et le dépôt d'un nouveau justificatif](../assets/screenshots/reinscription-fenetre.png)
 
 4. Un enfant en fin de cycle est signalé **Fin de cycle périscolaire** et ne peut pas être réinscrit dans l'année cible. Aucune inscription n'est créée pour lui.
-5. Si la famille décoche un enfant, celui-ci n'est pas réinscrit automatiquement pour l'année cible. La famille peut encore le confirmer tant que la fenêtre reste ouverte.
+5. Si la famille décoche un enfant, celui-ci n'est pas réinscrit pour l'année cible. S'il avait déjà été réinscrit, il **perd cette inscription** : sa classe et son justificatif d'assurance de l'année cible sont retirés, l'opération est notée dans le **Journal d'audit** et la mairie reçoit l'e-mail **Réinscription retirée par la famille**. La famille peut de nouveau le confirmer tant que la fenêtre reste ouverte. Dans **Périscolaire › Enfants**, le choix **non inscrits à cette année** liste ces enfants pour l'année cible.
 6. Si une famille ne fait rien, aucun enfant ne sort automatiquement du foyer : la mairie retrouve simplement l'absence de réinscription dans le suivi de l'année cible et prend contact si nécessaire.
 
 ## Résultat attendu

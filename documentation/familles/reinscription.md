@@ -18,6 +18,8 @@ La réinscription n'est possible que pendant la campagne ouverte par la mairie. 
 
 Un enfant en fin de cycle périscolaire est indiqué comme tel et ne peut pas être réinscrit.
 
+Si vous décochez **Réinscrire** pour un enfant déjà réinscrit, puis confirmez, sa réinscription pour l'année qui vient est retirée, avec le justificatif déposé pour cette année. La mairie en est informée. Tant que la réinscription est ouverte, vous pouvez le réinscrire de nouveau.
+
 ## Résultat attendu
 
 Vos enfants sont inscrits pour l'année suivante, et leur planning sera ouvert dès que la mairie activera la nouvelle année.
