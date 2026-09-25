@@ -44,7 +44,7 @@ function cleanup(): void {
 function createFamily(email: string, tag: string): Family {
   return JSON.parse(php(`global $wpdb; $now=current_time('mysql');
     $wpdb->insert(psc_table('parents'),array('email'=>'${email}','nom'=>'Isolation${tag}','prenom'=>'Famille','active'=>1,'onboarding_seen_at'=>$now,'created_at'=>$now)); $pid=(int)$wpdb->insert_id;
-    $wpdb->insert(psc_table('children'),array('parent_id'=>$pid,'nom'=>'Isolation${tag}','prenom'=>'Enfant${tag}','statut'=>'actif','created_at'=>$now)); $cid=(int)$wpdb->insert_id;
+    $wpdb->insert(psc_table('children'),array('parent_id'=>$pid,'nom'=>'Isolation${tag}','prenom'=>'Enfant${tag}','created_at'=>$now)); $cid=(int)$wpdb->insert_id;
     $year=Psc_School_Years::active_id(); if($year) Psc_School_Years::enroll($cid,$year,'CE1','inscrit',$now);
     require_once PSC_PATH.'includes/fpdf/fpdf.php'; $pdf=new FPDF(); $pdf->AddPage(); $bytes=$pdf->Output('S');
     $rel=Psc_Assurances::BASE.'/isolation/child-'.$cid.'.pdf'; wp_mkdir_p(dirname(psc_private_path($rel))); file_put_contents(psc_private_path($rel),$bytes);

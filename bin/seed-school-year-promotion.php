@@ -53,20 +53,14 @@ WP_CLI::add_command('seed-school-year-promotion', function ($args, $assoc_args) 
     $fmt   = function (DateTime $d) { return $d->format('Y-m-d'); };
 
     $config = array(
-        'year_a_label'   => 'Année E2E A',
-        'year_b_label'   => 'Année E2E B',
-        // Fenêtres délibérément loin dans le futur (+180j et au-delà) :
-        // Psc_School_Years::for_date() résout par simple recouvrement de
-        // dates (le plus récemment créé gagne en cas de chevauchement), et
-        // bin/seed-journey.php (-3/+45j) comme bin/seed-supplier-order.php
-        // (~+90j) vivent tous les deux près d'aujourd'hui — un chevauchement
-        // ferait gagner ces années-ci par erreur sur les fixtures d'un
-        // autre spec au lieu des leurs (constaté : Année E2E A à +100j
-        // masquait la semaine cible de la commande fournisseur).
-        'year_a_debut'   => $fmt((clone $today)->modify('+180 days')),
-        'year_a_fin'     => $fmt((clone $today)->modify('+270 days')),
-        'year_b_debut'   => $fmt((clone $today)->modify('+271 days')),
-        'year_b_fin'     => $fmt((clone $today)->modify('+360 days')),
+        // Deux rentrées consécutives très loin dans le futur : une seule
+        // année par rentrée, et aucune ne doit recouvrir les dates des
+        // années que les autres peuplements font vivre près d'aujourd'hui
+        // (bin/seed-journey.php, bin/seed-supplier-order.php).
+        'year_a_debut'   => '2095-09-01',
+        'year_a_fin'     => '2096-07-03',
+        'year_b_debut'   => '2096-09-01',
+        'year_b_fin'     => '2097-07-02',
         'promo_parent_email' => 'promo.e2e@example.test',
         'promo_parent_nom'   => 'Promo',
         'reins_parent_email' => 'reinscription.e2e@example.test',
@@ -98,8 +92,8 @@ WP_CLI::add_command('seed-school-year-promotion', function ($args, $assoc_args) 
         }
     }
 
-    foreach (array($config['year_a_label'], $config['year_b_label']) as $label) {
-        $old_year_ids = $wpdb->get_col($wpdb->prepare("SELECT id FROM $t_years WHERE label = %s", $label));
+    foreach (array($config['year_a_debut'], $config['year_b_debut']) as $debut) {
+        $old_year_ids = $wpdb->get_col($wpdb->prepare("SELECT id FROM $t_years WHERE year_key = %s", Psc_School_Years::key_for_start($debut)));
         foreach ($old_year_ids as $year_id) {
             $wpdb->delete($t_cy, array('school_year_id' => $year_id), array('%d'));
             $wpdb->delete($t_years, array('id' => $year_id), array('%d'));
@@ -114,13 +108,15 @@ WP_CLI::add_command('seed-school-year-promotion', function ($args, $assoc_args) 
     // campagne de réinscription peut être ciblée à la fois (cf. doc-block).
     $wpdb->query("UPDATE $t_years SET statut = 'archivee' WHERE statut = 'preparation'");
 
-    $year_a_id = Psc_School_Years::create($config['year_a_label'], $config['year_a_debut'], $config['year_a_fin']);
+    $year_a_id = Psc_School_Years::create($config['year_a_debut'], $config['year_a_fin']);
     if (is_wp_error($year_a_id)) {
         WP_CLI::error('Création de l\'année A : ' . $year_a_id->get_error_message());
     }
     Psc_School_Years::activate($year_a_id);
 
-    $year_b_id = Psc_School_Years::create($config['year_b_label'], $config['year_b_debut'], $config['year_b_fin']);
+    $year_b_id = Psc_School_Years::create($config['year_b_debut'], $config['year_b_fin']);
+    $config['year_a_label'] = Psc_School_Years::key_for_start($config['year_a_debut']);
+    $config['year_b_label'] = Psc_School_Years::key_for_start($config['year_b_debut']);
     if (is_wp_error($year_b_id)) {
         WP_CLI::error('Création de l\'année B : ' . $year_b_id->get_error_message());
     }
@@ -146,7 +142,6 @@ WP_CLI::add_command('seed-school-year-promotion', function ($args, $assoc_args) 
             'parent_id'  => $parent_id,
             'nom'        => $nom,
             'prenom'     => $prenom,
-            'statut'     => 'actif',
             'created_at' => current_time('mysql'),
         ), array('%d', '%s', '%s', '%s', '%s'));
         $child_id = (int) $wpdb->insert_id;

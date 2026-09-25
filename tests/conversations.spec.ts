@@ -58,7 +58,7 @@ function seedFamily(email: string, secondParentEmail = ''): number {
       'second_parent_email'=>${secondParentEmail ? `'${secondParentEmail}'` : 'null'},
       'onboarding_seen_at'=>current_time('mysql'),'created_at'=>current_time('mysql')));
     $pid=(int)$wpdb->insert_id;
-    $wpdb->insert($wpdb->prefix.'psc_children',array('parent_id'=>$pid,'nom'=>'ConversationsE2E','prenom'=>'Lou','statut'=>'actif','created_at'=>current_time('mysql')));
+    $wpdb->insert($wpdb->prefix.'psc_children',array('parent_id'=>$pid,'nom'=>'ConversationsE2E','prenom'=>'Lou','created_at'=>current_time('mysql')));
     Psc_School_Years::enroll((int)$wpdb->insert_id,Psc_School_Years::active_id(),'CE2','inscrit',current_time('mysql'));
     echo $pid;`));
 }

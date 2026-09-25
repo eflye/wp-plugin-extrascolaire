@@ -360,7 +360,7 @@ test.describe('P0-01 — signalement alimentaire et approbation des demandes', (
        $wpdb->query('START TRANSACTION');
        $wpdb->insert($wpdb->prefix.'psc_parents', array('email' => '${email}', 'nom' => 'Rapproch', 'active' => 1, 'created_at' => current_time('mysql')), array('%s','%s','%d','%s'));
        $pid = (int) $wpdb->insert_id;
-       $wpdb->insert($wpdb->prefix.'psc_children', array('parent_id' => $pid, 'nom' => 'Rapproch', 'prenom' => 'Mila', 'statut' => 'actif', 'created_at' => current_time('mysql')), array('%d','%s','%s','%s','%s'));
+       $wpdb->insert($wpdb->prefix.'psc_children', array('parent_id' => $pid, 'nom' => 'Rapproch', 'prenom' => 'Mila', 'created_at' => current_time('mysql')), array('%d','%s','%s','%s','%s'));
        $cid = (int) $wpdb->insert_id;
        $json = json_encode(array(array('nom' => 'Rapproch', 'prenom' => 'Mila', 'classe' => 'CP', 'date_naissance' => '2020-03-01', 'sans_porc' => 0, 'vegan' => 0, 'food_allergies' => '${LEGACY_ALLERGIES}', 'personnes_autorisees' => array())));
        $wpdb->insert($wpdb->prefix.'psc_requests', array('email' => '${email}', 'children_json' => $json, 'status' => 'approved', 'verified' => 1, 'decided_at' => current_time('mysql'), 'created_at' => current_time('mysql')), array('%s','%s','%s','%d','%s','%s'));

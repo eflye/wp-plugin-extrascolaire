@@ -129,11 +129,11 @@ WP_CLI::add_command('verify-document-validation', function () {
         // 4. Un dépôt refusé ne détruit pas l'ancien justificatif.
         // Année dédiée, jamais activée : en CI ce script tourne avant tout
         // peuplement, et il ne doit pas toucher aux années réelles.
-        $year_id = Psc_School_Years::create('Verify-docs', '2090-09-01', '2091-07-04');
+        $year_id = Psc_School_Years::create('2090-09-01', '2091-07-04');
         if (is_wp_error($year_id) || !$year_id) WP_CLI::error('Année scolaire de test impossible à créer.');
         $wpdb->insert($t_parent, array('email' => $email, 'nom' => 'VerifyDocuments', 'active' => 1, 'created_at' => current_time('mysql')));
         $pid = (int) $wpdb->insert_id;
-        $wpdb->insert($t_child, array('parent_id' => $pid, 'nom' => 'VerifyDocuments', 'prenom' => 'Noa', 'statut' => 'actif', 'created_at' => current_time('mysql')));
+        $wpdb->insert($t_child, array('parent_id' => $pid, 'nom' => 'VerifyDocuments', 'prenom' => 'Noa', 'created_at' => current_time('mysql')));
         $cid = (int) $wpdb->insert_id;
         Psc_School_Years::enroll($cid, $year_id, 'CE1', 'inscrit', current_time('mysql'));
         $old_rel = Psc_Assurances::BASE . '/verify/child-' . $cid . '.pdf';

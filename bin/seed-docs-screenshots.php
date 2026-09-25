@@ -44,20 +44,19 @@ WP_CLI::add_command('seed-docs-screenshots', function ($args, $assoc_args) {
     $fmt   = function (DateTime $d) { return $d->format('Y-m-d'); };
 
     $config = array(
-        // La colonne school_years.label est limitée à 20 caractères.
-        // Garder deux libellés courts et distincts garantit que la purge
-        // idempotente les retrouve sans troncature à chaque exécution.
-        'year_label'    => 'Documentation active',
-        'year_debut'    => $fmt((clone $today)->modify('-60 days')),
-        'year_fin'      => $fmt((clone $today)->modify('+240 days')),
+        // Une année par rentrée : l'année en cours (couvrant aujourd'hui)
+        // et la suivante, nommées d'après leur rentrée.
+        'year_debut'    => psc_rentree_year() . '-09-01',
+        'year_fin'      => (psc_rentree_year() + 1) . '-07-04',
         'parent_email'  => 'camille.riviere@example.invalid',
         'parent_nom'    => 'Rivière',
         'parent_prenom' => 'Camille',
         'request_email' => 'famille.dupont@example.invalid',
-        'next_year_label' => 'Documentation +1',
-        'next_year_debut' => $fmt((clone $today)->modify('+241 days')),
-        'next_year_fin'   => $fmt((clone $today)->modify('+330 days')),
+        'next_year_debut' => (psc_rentree_year() + 1) . '-09-01',
+        'next_year_fin'   => (psc_rentree_year() + 2) . '-07-03',
     );
+    $config['year_label']      = Psc_School_Years::key_for_start($config['year_debut']);
+    $config['next_year_label'] = Psc_School_Years::key_for_start($config['next_year_debut']);
 
     global $wpdb;
     $t_parent = psc_table('parents');
@@ -92,16 +91,10 @@ WP_CLI::add_command('seed-docs-screenshots', function ($args, $assoc_args) {
 
     $wpdb->delete($t_req, array('email' => $config['request_email']), array('%s'));
 
-    // Le troisième libellé est le préfixe tronqué créé par les premières
-    // versions locales de ce seed ; le supprimer rend aussi leur état
-    // immédiatement propre et évite de polluer la capture de la liste.
-    foreach (array($config['year_label'], $config['next_year_label'], 'Année E2E Documentat') as $label) {
-        $old_year_ids = $wpdb->get_col($wpdb->prepare("SELECT id FROM $t_years WHERE label = %s", $label));
-        foreach ($old_year_ids as $year_id) {
-            $wpdb->delete($t_cy, array('school_year_id' => $year_id), array('%d'));
-            $wpdb->delete($t_years, array('id' => $year_id), array('%d'));
-        }
-    }
+    // L'année suivante est recréée à chaque exécution (sans inscription
+    // résiduelle d'un passage d'année de démonstration précédent).
+    $old_next = Psc_School_Years::get_by_key($config['next_year_label']);
+    if ($old_next && $old_next->statut !== 'active') Psc_School_Years::delete((int) $old_next->id);
     Psc_School_Years::clear_staged_promotion();
 
     /* ---------------------------------------------------------------- */
@@ -110,7 +103,7 @@ WP_CLI::add_command('seed-docs-screenshots', function ($args, $assoc_args) {
 
     $wpdb->query("UPDATE $t_years SET statut = 'archivee' WHERE statut = 'preparation'");
 
-    $year_id = Psc_School_Years::create($config['year_label'], $config['year_debut'], $config['year_fin']);
+    $year_id = Psc_School_Years::ensure($config['year_debut'], $config['year_fin']);
     if (is_wp_error($year_id)) {
         WP_CLI::error('Création de l\'année : ' . $year_id->get_error_message());
     }
@@ -153,7 +146,6 @@ WP_CLI::add_command('seed-docs-screenshots', function ($args, $assoc_args) {
             'parent_id'  => $parent_id,
             'nom'        => $nom,
             'prenom'     => $prenom,
-            'statut'     => 'actif',
             'created_at' => current_time('mysql'),
         ), $extra), array_merge(array('%d', '%s', '%s', '%s', '%s'), array_fill(0, count($extra), '%s')));
         $child_id = (int) $wpdb->insert_id;
@@ -191,7 +183,7 @@ WP_CLI::add_command('seed-docs-screenshots', function ($args, $assoc_args) {
     /* posé en transient).                                                */
     /* ---------------------------------------------------------------- */
 
-    $next_year_id = Psc_School_Years::create($config['next_year_label'], $config['next_year_debut'], $config['next_year_fin']);
+    $next_year_id = Psc_School_Years::create($config['next_year_debut'], $config['next_year_fin']);
     if (is_wp_error($next_year_id)) {
         WP_CLI::error('Création de l\'année suivante : ' . $next_year_id->get_error_message());
     }

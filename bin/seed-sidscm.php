@@ -111,7 +111,6 @@ WP_CLI::add_command('seed-sidscm', function () {
             'nom'        => $config['nom'],
             'prenom'     => $prenom,
             'sans_porc'  => $sans_porc,
-            'statut'     => 'actif',
             'created_at' => current_time('mysql'),
         ), array('%d', '%s', '%s', '%d', '%s', '%s'));
         return (int) $wpdb->insert_id;
@@ -127,7 +126,12 @@ WP_CLI::add_command('seed-sidscm', function () {
     $year = Psc_School_Year::active();
     if (!$year) {
         WP_CLI::error("Aucune configuration d'année scolaire — le scénario SIDSCM n'a pas de terrain.");
-    }    // Le même calcul que Psc_Sidscm::ajax_data() : la seed et l'écran
+    }
+    // L'écran des intervenants liste les enfants inscrits à l'année de la
+    // semaine affichée (le statut est porté par l'année depuis 4.15.0).
+    $week_year_id = Psc_School_Years::id_for_date(current_time('Y-m-d')) ?: (int) $year->id;
+    Psc_School_Years::enroll($enfant_a_id, $week_year_id, 'CE1');
+    Psc_School_Years::enroll($enfant_b_id, $week_year_id, 'CM1');    // Le même calcul que Psc_Sidscm::ajax_data() : la seed et l'écran
     // voient toujours les mêmes jours, vacances/fériés compris.
     $monday = psc_week_start(current_time('Y-m-d'));
     $open_days = psc_open_days($monday);

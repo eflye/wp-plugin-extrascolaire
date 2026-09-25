@@ -53,7 +53,13 @@ WP_CLI::add_command('verify-envois', function () {
     $mois     = '2090-01';
     $supplier = 'verify-envois-fournisseur@example.invalid';
 
-    $purge = function () use ($wpdb, $emails, $t_parent, $t_child, $t_env, $t_menu, $t_inv, $t_sup, $week, $supplier) {
+    // Destinataires d'un menu : familles d'un enfant inscrit à une année
+    // ouverte. Année de la semaine de test (rentrée 2089), en préparation,
+    // propre à ce script.
+    $year_key = Psc_School_Years::key_for_start($week);
+    $purge = function () use ($wpdb, $emails, $t_parent, $t_child, $t_env, $t_menu, $t_inv, $t_sup, $week, $supplier, $year_key) {
+        $year = Psc_School_Years::get_by_key($year_key);
+        if ($year && $year->statut !== 'active') Psc_School_Years::delete((int) $year->id);
         foreach ($wpdb->get_col($wpdb->prepare("SELECT id FROM $t_menu WHERE semaine_debut = %s", $week)) as $id) {
             $wpdb->delete($t_env, array('objet_type' => 'menu', 'objet_id' => (int) $id));
             $wpdb->delete($t_menu, array('id' => (int) $id));
@@ -98,11 +104,14 @@ WP_CLI::add_command('verify-envois', function () {
         return count(array_filter($sent, function ($s) use ($to) { return $s === $to; }));
     };
 
+    $year_id = Psc_School_Years::create('2089-09-01', '2090-07-03');
+    if (is_wp_error($year_id)) WP_CLI::error('Année de test : ' . $year_id->get_error_message());
     $pids = array();
     foreach ($emails as $i => $email) {
         $wpdb->insert($t_parent, array('email' => $email, 'nom' => 'VerifyEnvois' . $i, 'active' => 1, 'created_at' => current_time('mysql')));
         $pids[$email] = (int) $wpdb->insert_id;
-        $wpdb->insert($t_child, array('parent_id' => $pids[$email], 'nom' => 'VerifyEnvois', 'prenom' => 'Enfant' . $i, 'statut' => 'actif', 'created_at' => current_time('mysql')));
+        $wpdb->insert($t_child, array('parent_id' => $pids[$email], 'nom' => 'VerifyEnvois', 'prenom' => 'Enfant' . $i, 'created_at' => current_time('mysql')));
+        Psc_School_Years::enroll((int) $wpdb->insert_id, $year_id, 'CP');
     }
     $row_statut = function ($type, $objet_id, $pid, $lot) use ($wpdb, $t_env) {
         return $wpdb->get_var($wpdb->prepare("SELECT statut FROM $t_env WHERE objet_type = %s AND objet_id = %d AND famille_id = %d AND lot = %s", $type, $objet_id, $pid, $lot));

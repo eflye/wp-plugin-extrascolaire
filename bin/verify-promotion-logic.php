@@ -35,11 +35,8 @@ WP_CLI::add_command('verify-promotion-logic', function ($args, $assoc_args) {
     $t_years  = psc_table('school_years');
     $t_cy     = psc_table('child_school_years');
 
-    // wp_psc_school_years.label est VARCHAR(20) : Psc_School_Years::create()
-    // tronque silencieusement au-delà (mb_substr(...,0,20)), donc le préfixe
-    // + suffixe le plus long ('N+1') doit tenir dans cette limite pour que
-    // les deux années de test restent distinguables par leur libellé.
-    $label_prefix  = 'Vérif. promo — ';
+    // Deux rentrées réservées à ce script (une seule année par rentrée).
+    $year_keys     = array('2097-2098', '2098-2099');
     $parent_email  = 'verif.promotion@example.test';
 
     $failures = array();
@@ -61,7 +58,7 @@ WP_CLI::add_command('verify-promotion-logic', function ($args, $assoc_args) {
     /* Purge (avant ET après, idempotent — mêmes principes que seed-*.php) */
     /* ---------------------------------------------------------------- */
 
-    $purge = function () use ($wpdb, $t_parent, $t_child, $t_years, $t_cy, $label_prefix, $parent_email) {
+    $purge = function () use ($wpdb, $t_parent, $t_child, $t_years, $t_cy, $year_keys, $parent_email) {
         $parent_id = $wpdb->get_var($wpdb->prepare("SELECT id FROM $t_parent WHERE email = %s", $parent_email));
         if ($parent_id) {
             $child_ids = $wpdb->get_col($wpdb->prepare("SELECT id FROM $t_child WHERE parent_id = %d", $parent_id));
@@ -72,7 +69,7 @@ WP_CLI::add_command('verify-promotion-logic', function ($args, $assoc_args) {
             $wpdb->delete($t_child, array('parent_id' => $parent_id), array('%d'));
             $wpdb->delete($t_parent, array('id' => $parent_id), array('%d'));
         }
-        $year_ids = $wpdb->get_col($wpdb->prepare("SELECT id FROM $t_years WHERE label LIKE %s", $label_prefix . '%'));
+        $year_ids = $wpdb->get_col($wpdb->prepare("SELECT id FROM $t_years WHERE year_key IN (%s, %s)", $year_keys[0], $year_keys[1]));
         foreach ($year_ids as $yid) {
             $wpdb->delete($t_cy, array('school_year_id' => $yid), array('%d'));
             $wpdb->delete($t_years, array('id' => $yid), array('%d'));
@@ -87,15 +84,13 @@ WP_CLI::add_command('verify-promotion-logic', function ($args, $assoc_args) {
     /* fictif, cinq enfants couvrant les cas limites.                    */
     /* ---------------------------------------------------------------- */
 
-    $tz    = wp_timezone();
-    $today = new DateTime('today', $tz);
-    $from_debut = $today->format('Y-m-d');
-    $from_fin   = (clone $today)->modify('+300 days')->format('Y-m-d');
-    $to_debut   = (clone $today)->modify('+301 days')->format('Y-m-d');
-    $to_fin     = (clone $today)->modify('+600 days')->format('Y-m-d');
+    $from_debut = '2097-09-01';
+    $from_fin   = '2098-07-03';
+    $to_debut   = '2098-09-01';
+    $to_fin     = '2099-07-03';
 
-    $from_year_id = Psc_School_Years::create($label_prefix . 'N', $from_debut, $from_fin);
-    $to_year_id   = Psc_School_Years::create($label_prefix . 'N+1', $to_debut, $to_fin);
+    $from_year_id = Psc_School_Years::create($from_debut, $from_fin);
+    $to_year_id   = Psc_School_Years::create($to_debut, $to_fin);
     if (is_wp_error($from_year_id) || is_wp_error($to_year_id)) {
         WP_CLI::error('Création des années de test impossible.');
     }
@@ -132,13 +127,14 @@ WP_CLI::add_command('verify-promotion-logic', function ($args, $assoc_args) {
             'nom'            => 'Test',
             'prenom'         => $key,
             'date_naissance' => $f['naissance'],
-            'statut'         => $f['statut'],
             'created_at'     => current_time('mysql'),
-        ), array('%d', '%s', '%s', '%s', '%s', '%s'));
+        ), array('%d', '%s', '%s', '%s', '%s'));
         $child_id = (int) $wpdb->insert_id;
         $child_ids[$key] = $child_id;
 
-        Psc_School_Years::enroll($child_id, $from_year_id, $f['classe'], 'inscrit');
+        // Le statut est porté par l'année (4.15.0) : l'enfant sorti l'est
+        // de l'année de départ.
+        Psc_School_Years::enroll($child_id, $from_year_id, $f['classe'], $f['statut'] === 'sorti' ? 'sorti' : 'inscrit');
     }
 
     /* ---------------------------------------------------------------- */
@@ -187,7 +183,7 @@ WP_CLI::add_command('verify-promotion-logic', function ($args, $assoc_args) {
     // Corrige manuellement l'enfant "sans_classe" en CE1 au lieu du CP
     // proposé, comme le ferait la mairie sur l'écran de récapitulatif.
     $overrides = array($child_ids['sans_classe'] => 'CE1');
-    Psc_School_Years::apply_promotion($to_year_id, $plan, $overrides);
+    Psc_School_Years::apply_promotion($to_year_id, $plan, $overrides, $from_year_id);
 
     $assert(
         "CP promu et inscrit dans sa classe suivante pour N+1",
@@ -200,11 +196,16 @@ WP_CLI::add_command('verify-promotion-logic', function ($args, $assoc_args) {
         'CE1'
     );
 
-    $cm2_child = $wpdb->get_row($wpdb->prepare("SELECT statut FROM $t_child WHERE id = %d", $child_ids['cm2_vers_sortie']));
+    $cm2_child = Psc_School_Years::enrollment($child_ids['cm2_vers_sortie'], $from_year_id);
     $assert(
-        "CM2 marqué sorti après passage d'année",
+        "CM2 marqué sorti de l'année qu'il quitte après passage d'année",
         $cm2_child ? $cm2_child->statut : null,
         'sorti'
+    );
+    $assert(
+        "CM2 : date de sortie posée (délai de conservation)",
+        $cm2_child && $cm2_child->sorti_le !== null,
+        true
     );
 
     $sorti_enrollment = Psc_School_Years::enrollment($child_ids['enfant_sorti'], $to_year_id);

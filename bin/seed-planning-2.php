@@ -138,7 +138,6 @@ WP_CLI::add_command('seed-planning-2', function () {
             'parent_id'  => $parent_id,
             'nom'        => $config['nom'],
             'prenom'     => $prenom,
-            'statut'     => 'actif',
             'created_at' => current_time('mysql'),
         ), array('%d', '%s', '%s', '%s', '%s'));
         $child_id = (int) $wpdb->insert_id;

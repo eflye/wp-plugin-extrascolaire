@@ -85,7 +85,7 @@ WP_CLI::add_command('verify-query-budget', function ($args, $assoc) {
         while (count($created) < $target) {
             $i = count($created);
             $wpdb->insert($t_parent, array('email' => "verify-budget-$i@example.invalid", 'nom' => "Budget$i", 'active' => 1, 'created_at' => $now));
-            $wpdb->insert($t_child, array('parent_id' => (int) $wpdb->insert_id, 'nom' => "Budget$i", 'prenom' => 'Enfant', 'statut' => 'actif', 'created_at' => $now));
+            $wpdb->insert($t_child, array('parent_id' => (int) $wpdb->insert_id, 'nom' => "Budget$i", 'prenom' => 'Enfant', 'created_at' => $now));
             $cid = (int) $wpdb->insert_id;
             foreach (array(1, 2, 4, 5) as $wd) {
                 foreach (array('CANT', 'GS') as $svc) {

@@ -89,7 +89,7 @@ WP_CLI::add_command('verify-planning-states', function () {
 
     $wpdb->insert($t_parent, array('email' => $email, 'nom' => 'VerifyPlanning', 'active' => 1, 'created_at' => current_time('mysql')));
     $pid = (int) $wpdb->insert_id;
-    $wpdb->insert($t_child, array('parent_id' => $pid, 'nom' => 'VerifyPlanning', 'prenom' => 'Lou', 'statut' => 'actif', 'created_at' => current_time('mysql')));
+    $wpdb->insert($t_child, array('parent_id' => $pid, 'nom' => 'VerifyPlanning', 'prenom' => 'Lou', 'created_at' => current_time('mysql')));
     $cid = (int) $wpdb->insert_id;
 
     $failures = array();

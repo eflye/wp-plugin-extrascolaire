@@ -254,7 +254,7 @@ test('fiche vivante — ajout pour toute la fratrie, modification, retrait, puis
     wpCliEval(
       `global $wpdb; echo (int) $wpdb->get_var($wpdb->prepare(
         "SELECT id FROM {$wpdb->prefix}psc_children
-         WHERE parent_id = %d AND prenom = 'Jules' AND statut = 'actif'", ${data.living_parent_id}
+         WHERE parent_id = %d AND prenom = 'Jules'", ${data.living_parent_id}
       ));`
     )
   );

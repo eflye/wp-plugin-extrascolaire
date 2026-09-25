@@ -41,7 +41,7 @@ WP_CLI::add_command('verify-document-writes', function () {
 
     global $wpdb;
     $email    = 'verify-document-writes@example.invalid';
-    $labels   = array('Verify-writes-2093', 'Verify-writes-2094');
+    $labels   = array('2093-2094', '2094-2095'); // clés des années de test
     $t_years  = psc_table('school_years');
     $t_parent = psc_table('parents');
     $t_child  = psc_table('children');
@@ -65,7 +65,7 @@ WP_CLI::add_command('verify-document-writes', function () {
             $wpdb->delete($t_parent, array('id' => $pid));
         }
         foreach ($labels as $label) {
-            foreach ($wpdb->get_col($wpdb->prepare("SELECT id FROM $t_years WHERE label = %s", $label)) as $id) {
+            foreach ($wpdb->get_col($wpdb->prepare("SELECT id FROM $t_years WHERE year_key = %s", $label)) as $id) {
                 if ((int) $id === (int) Psc_School_Years::active_id()) {
                     $wpdb->update($t_years, array('statut' => 'archivee'), array('id' => (int) $id));
                 }
@@ -140,8 +140,8 @@ WP_CLI::add_command('verify-document-writes', function () {
     };
 
     try {
-        $y1 = Psc_School_Years::create($labels[0], '2093-09-01', '2094-07-04');
-        $y2 = Psc_School_Years::create($labels[1], '2094-09-01', '2095-07-04');
+        $y1 = Psc_School_Years::create('2093-09-01', '2094-07-04');
+        $y2 = Psc_School_Years::create('2094-09-01', '2095-07-04');
         if (is_wp_error($y1) || is_wp_error($y2) || !$y1 || !$y2) WP_CLI::error('Années scolaires de test impossibles à créer.');
         Psc_School_Years::activate($y1);
 
@@ -155,7 +155,7 @@ WP_CLI::add_command('verify-document-writes', function () {
         $pid = Psc_Parents::create($email, 'Vérification', array('prenom' => 'Justificatifs'));
         if (is_wp_error($pid) || !$pid) WP_CLI::error('Foyer de test impossible à créer.');
         $new_child = function ($prenom) use ($wpdb, $t_child, $pid, $y1, $classe) {
-            $wpdb->insert($t_child, array('parent_id' => $pid, 'nom' => 'Verif', 'prenom' => $prenom, 'statut' => 'actif', 'created_at' => current_time('mysql')));
+            $wpdb->insert($t_child, array('parent_id' => $pid, 'nom' => 'Verif', 'prenom' => $prenom, 'created_at' => current_time('mysql')));
             $cid = (int) $wpdb->insert_id;
             Psc_School_Years::enroll($cid, $y1, $classe, 'inscrit', current_time('mysql'));
             return $cid;

@@ -90,7 +90,6 @@ WP_CLI::add_command('seed-pickup-persons', function ($args, $assoc_args) {
         'parent_id'  => $living_parent_id,
         'nom'        => $config['living_child_nom'],
         'prenom'     => $config['living_child_prenom'],
-        'statut'     => 'actif',
         'created_at' => current_time('mysql'),
     ), array('%d', '%s', '%s', '%s', '%s'));
     $living_child_id = (int) $wpdb->insert_id;
