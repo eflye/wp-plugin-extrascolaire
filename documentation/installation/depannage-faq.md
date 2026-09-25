@@ -44,6 +44,14 @@ Une écriture a échoué et le passage a été entièrement annulé : aucun enfa
 
 Le responsable du traitement n'est pas renseigné. Ouvrez **Périscolaire › Réglages**, rubrique **Confidentialité**, et remplissez au moins **Responsable du traitement**. Contrôlez l'**Aperçu** avant d'enregistrer.
 
+## Pourquoi certaines factures ne sont-elles pas supprimées ?
+
+Une facture déjà envoyée à une famille, ou rectifiée après envoi, ne se supprime pas : seules les factures jamais envoyées le sont. Pour un environnement de test, voir le mode debug décrit dans [Factures PDF](../facturation/factures-pdf.md).
+
+## Une alerte rouge signale le « mode debug de la facturation »
+
+L'option WP-CLI `psc_invoice_debug_delete` est active : les factures envoyées peuvent être supprimées. Sur un site de production, désactivez-la avec `wp option delete psc_invoice_debug_delete`.
+
 ## Pourquoi le journal d'audit signale-t-il un problème ?
 
 Une écriture du journal a échoué ou une action n'est pas classée dans le registre. Cliquez sur **Voir le journal filtré**, vérifiez le fichier de repli `journal-acces.log` et corrigez la cause d'accès à la base ou l'action inconnue avant de remettre le compteur à zéro avec **Remettre le compteur à zéro**.

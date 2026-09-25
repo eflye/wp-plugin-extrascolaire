@@ -26,10 +26,25 @@ Connectez-vous avec un rôle autorisé à gérer la facturation. Vérifiez que l
 
    ![Bloc « Exports par mois » avec les boutons Export général et Export prélèvements aux formats CSV et ODS](../assets/screenshots/factures-exports.png)
 
-5. Pour supprimer toutes les factures du mois sélectionné, cliquez sur **Supprimer les factures du mois** et confirmez.
+5. Pour supprimer les factures du mois qui n'ont pas encore été envoyées, par exemple après une erreur de génération, cliquez sur **Supprimer les factures non envoyées du mois** et confirmez.
+
+   Une facture **déjà envoyée** à une famille est une pièce qu'elle a reçue : elle n'est jamais supprimée, pas plus qu'une facture rectifiée après envoi ou les versions archivées. Le message indique combien de factures ont été supprimées et combien ont été conservées.
 
    !!! warning
-       Cette suppression est irréversible : les PDF sont effacés, y compris ceux déjà envoyés aux familles.
+       La suppression des factures non envoyées est irréversible : leurs PDF sont effacés.
+
+   ??? note "Mode debug (environnements de test uniquement)"
+       Pour les besoins de test, un administrateur ayant accès à WP-CLI peut autoriser la suppression de **toutes** les factures du mois, envoyées comprises :
+
+       ```
+       wp option update psc_invoice_debug_delete 1
+       ```
+
+       Tant que ce mode est actif, une alerte rouge est affichée sur les écrans du plugin et le bouton devient **Supprimer les factures du mois (mode debug)**. Chaque suppression est notée dans le journal d'audit avec son mode. Désactivez-le dès la fin des tests, et ne l'activez jamais sur le site de production :
+
+       ```
+       wp option delete psc_invoice_debug_delete
+       ```
 
 ## Résultat attendu
 
