@@ -103,6 +103,10 @@ podman exec plugin-extrascolaire-wordpress-1 php /usr/local/bin/wp-cli.phar --al
 
 Sur un serveur, la même commande s'écrit `wp option update psc_invoice_debug_delete 1`. Tant que le mode est actif, une alerte rouge s'affiche sur les écrans du plugin. Ne l'activez jamais en production : la procédure de déploiement le signale parmi ce qui ne doit pas atteindre le serveur. Documentation côté mairie : [Factures PDF](../documentation/facturation/factures-pdf.md), étape 5.
 
+### Clé de chiffrement des IBAN
+
+`wp psc chiffrement statut | generer-cle | rechiffrer [--dry-run]` (classe `Psc_Key_Rotation`). En local, sans `PSC_ENCRYPTION_KEY`, la clé vient de l'option `secret_key` en base. Procédure côté exploitant : [Clé de chiffrement des IBAN](../documentation/installation/cle-chiffrement.md). Le script `bin/verify-key-rotation.php` simule les clés par le filtre `psc_encryption_secrets` et ne touche qu'à ses propres lignes.
+
 ## Publier une version
 
 1. Mettre à jour `PSC_VERSION`, l'en-tête du fichier principal et `Stable tag`, puis ajouter le **Changelog** dans `readme.txt`.

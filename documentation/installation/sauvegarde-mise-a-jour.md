@@ -19,10 +19,12 @@ Vous devez disposer d'un accès à la base de données, aux fichiers WordPress e
 
     Incluez ce chemin dans la sauvegarde et protégez ses copies au même niveau que les documents eux-mêmes.
 
-3. Sauvegardez la clé qui déchiffre les coordonnées bancaires, et conservez-la **séparément du dump de base**. Il s'agit de la constante `PSC_ENCRYPTION_KEY` de `wp-config.php` lorsqu'elle est déclarée ; à défaut, la clé est dérivée des sels WordPress du même fichier.
+3. Sauvegardez la clé qui déchiffre les coordonnées bancaires, et conservez-la **séparément du dump de base**. Il s'agit de la constante `PSC_ENCRYPTION_KEY` de `wp-config.php`. Vérifiez qu'elle est bien déclarée avec `wp psc chiffrement statut`.
+
+    Si elle ne l'est pas, la clé est tirée de l'option `secret_key`, **enregistrée dans la base** : le dump contient alors de quoi déchiffrer les IBAN, et aucune séparation n'est possible. Sortez la clé de la base en suivant [Clé de chiffrement des IBAN](cle-chiffrement.md).
 
     !!! danger
-        Une base restaurée sans cette clé — ou après une régénération des sels WordPress — rend les IBAN déjà enregistrés illisibles : les familles devront les ressaisir. Inversement, ne stockez jamais la clé et le dump dans la même archive ni sous le même accès : c'est leur séparation qui protège les IBAN en cas de fuite du dump seul.
+        Une base restaurée sans la constante `PSC_ENCRYPTION_KEY` qui a chiffré ses IBAN rend ceux-ci illisibles : les familles devront les ressaisir. Inversement, ne stockez jamais la clé et le dump dans la même archive ni sous le même accès : c'est leur séparation qui protège les IBAN en cas de fuite du dump seul.
 
 4. Avant chaque mise à jour, réalisez ces trois sauvegardes et conservez un point de retour vérifié. La procédure de mise à jour elle-même, du téléchargement de l'archive au retour arrière, est décrite dans [Déployer une nouvelle version](deploiement-zip.md).
 
@@ -38,6 +40,7 @@ Les trois éléments nécessaires à une restauration (base, dossier privé et c
 ## Pour aller plus loin
 
 - [Déployer une nouvelle version](deploiement-zip.md)
+- [Clé de chiffrement des IBAN](cle-chiffrement.md)
 - [Prérequis](prerequis.md)
 - [Tâches planifiées](taches-planifiees.md)
 - [Données personnelles (RGPD)](../rgpd.md)

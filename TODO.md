@@ -226,6 +226,17 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **À faire :** prérequis et état de santé explicites ; clé dédiée, sauvegardée séparément et protégée ; rotation versionnée avec migration vérifiable ; distinguer donnée absente et déchiffrement impossible. Les sauvegardes doivent inclure le nécessaire à la restauration sans exposer clé et données au même niveau d’accès.
 
+**Constaté le 25/09/2026 :** sans `PSC_ENCRYPTION_KEY`, la clé n'est **pas** dérivée des sels de `wp-config.php`. `wp_salt('psc_sepa')` est un nom de sel propre au plugin : WordPress le tire de l'option `secret_key`, enregistrée **en base** (vérifié sur l'instance locale). Un dump de la base suffisait donc à déchiffrer les IBAN, contrairement à ce qu'affirmaient la documentation et le commentaire de `crypto.php`.
+
+**Traité le 25/09/2026 :**
+- **Chaîne de clés :** chiffrement avec la clé courante uniquement (`PSC_ENCRYPTION_KEY`, sinon la base). Lecture avec la courante puis les précédentes (`PSC_ENCRYPTION_KEY_PREVIOUS`, puis le secret de la base) : rien ne devient illisible pendant la transition.
+- **Commande `wp psc chiffrement`** (`Psc_Key_Rotation`) : `statut` indique l'origine de la clé et le nombre de valeurs par clé ; `generer-cle` affiche la ligne à ajouter dans `wp-config.php` ; `rechiffrer [--dry-run]` couvre `parents.sepa_iban`, `requests.sepa_iban` et l'option de l'IBAN du créancier. L'écriture est conditionnelle (un IBAN modifié entre-temps n'est pas écrasé), la commande peut être relancée, les valeurs illisibles restent intactes, et l'opération est journalisée (`systeme.rechiffrement`). Elle refuse de s'exécuter sans constante.
+- **Documentation :** nouvelle page « Clé de chiffrement des IBAN » (sortir la clé de la base, rotation ultérieure) ; « Sauvegarde et mise à jour » et la fiche de recette corrigées.
+
+**Preuve :** `bin/verify-key-rotation.php`, lancé en CI (20 vérifications). Vérifié par mutation : 5 défauts réintroduits, tous détectés. Essai de bout en bout avec une vraie constante (`wp --exec`) : après rechiffrement, la base seule ne déchiffre plus l'IBAN.
+
+**Reste côté exploitation :** sur le serveur distant, déclarer la constante, rechiffrer, sauvegarder la clé dans un coffre, puis tester une restauration avec elle.
+
 **Acceptation :** absence/échec des primitives → refus sans écriture en clair ; rotation/restauration testées ; zéro IBAN complet dans logs ou erreurs. **Développement + hébergeur ; M.**
 
 ### P1-13 — TRAITÉ (après v5.24.0) — Éviter la perte silencieuse des justificatifs
