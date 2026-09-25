@@ -19,13 +19,15 @@ if (!function_exists('montgeroult_fallback_menu')) {
 }
 
 function montgeroult_assets() {
+    // Police servie par le thème : aucune requête vers un service tiers
+    // (Google Fonts recevait l'adresse IP de chaque visiteur).
     wp_enqueue_style(
         'montgeroult-fonts',
-        'https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap',
+        get_template_directory_uri() . '/assets/css/fonts.css',
         array(),
-        null
+        '1.1.0'
     );
-    wp_enqueue_style('montgeroult-style', get_stylesheet_uri(), array('montgeroult-fonts'), '1.0.0');
+    wp_enqueue_style('montgeroult-style', get_stylesheet_uri(), array('montgeroult-fonts'), '1.1.0');
 
     // Restyle the "Périscolaire - Inscriptions" plugin (handle "psc-frontend")
     // with the commune's palette, without touching the plugin itself.

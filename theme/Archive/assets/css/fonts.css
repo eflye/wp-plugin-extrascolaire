@@ -1,0 +1,21 @@
+/* Public Sans, servie par le thème lui-même : aucune ressource tierce.
+   Charger la police depuis fonts.googleapis.com transmettait l'adresse IP
+   de chaque visiteur — familles comprises — à Google (TODO P2-06).
+   Fichiers variables (graisses 100 à 900) identiques à ceux de
+   l'extension, licence : LICENSE-PublicSans.md (OFL 1.1 + CC0). */
+@font-face {
+    font-family: 'Public Sans';
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('../fonts/publicsans-variable.woff2') format('woff2-variations'),
+         url('../fonts/publicsans-variable.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Public Sans';
+    font-style: italic;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('../fonts/publicsans-italic-variable.woff2') format('woff2-variations'),
+         url('../fonts/publicsans-italic-variable.woff2') format('woff2');
+}

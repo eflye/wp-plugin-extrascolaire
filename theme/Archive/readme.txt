@@ -27,9 +27,10 @@ graphique de la commune (bleu encre/abricot terracotta, Fraunces + Work Sans).
 
 == Notes ==
 
-- Les polices (Fraunces, Work Sans, Cormorant Garamond) sont chargées
-  depuis Google Fonts. Pour un site 100% auto-hébergé (RGPD), héberger
-  les fichiers de police en local et remplacer l'appel dans functions.php.
+- La police (Public Sans) est servie par le thème lui-même
+  (assets/fonts, déclarée dans assets/css/fonts.css) : aucune requête vers
+  un service tiers. Licence : assets/fonts/LICENSE-PublicSans.md (OFL 1.1
+  et CC0).
 - Le blason utilisé dans l'en-tête est un espace réservé (SVG stylisé,
   bouclier or à deux formes sombres) : remplacer par le blason officiel
   de la commune si un fichier vectoriel est disponible.
