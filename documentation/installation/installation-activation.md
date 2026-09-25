@@ -10,7 +10,7 @@ Vérifiez les [prérequis](prerequis.md), disposez d'un accès administrateur Wo
 
 ## Étapes
 
-1. Téléchargez le fichier ZIP de la Release GitHub, ou copiez le dossier du plugin dans `wp-content/plugins/` sur le serveur.
+1. Téléchargez l'archive `periscolaire-registration-X.Y.Z.zip` de la Release GitHub, vérifiez-la, puis installez-la depuis **Extensions › Ajouter une extension › Téléverser une extension**. La vérification de l'archive et ce qui ne doit jamais être copié sur le serveur sont décrits dans [Déployer une nouvelle version](deploiement-zip.md). Ne copiez pas le dépôt Git : il contient des outils de développement et de test qui n'ont pas leur place en production.
 2. Dans WordPress, ouvrez **Extensions**, repérez **Périscolaire — Inscriptions**, puis cliquez sur **Activer**.
 
    ![Liste WordPress des extensions avec Périscolaire — Inscriptions et le lien Activer](../assets/screenshots/plugins-activation.png)
@@ -31,4 +31,5 @@ Cela ne dit rien de l'hébergement lui-même : l'inaccessibilité réelle des do
 - [Accès des agents de la mairie](acces-agents.md)
 - [Envoi des e-mails (SMTP)](emails-smtp.md)
 - [Fiche de recette de l'hébergement](fiche-recette-p1.md)
+- [Déployer une nouvelle version](deploiement-zip.md)
 - [Sauvegarde et mise à jour](sauvegarde-mise-a-jour.md)
