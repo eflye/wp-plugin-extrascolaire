@@ -420,9 +420,10 @@ class Psc_Privacy {
             $out[] = array(
                 'item_key' => $child_id . '-' . $year->id,
                 'fields'   => array(
-                    array('name' => __('Année scolaire', 'periscolaire-registration'), 'value' => $year->label),
+                    array('name' => __('Année scolaire', 'periscolaire-registration'), 'value' => $year->year_key),
                     array('name' => __('Classe', 'periscolaire-registration'), 'value' => (string) $enrollment->classe),
                     array('name' => __('Statut d’inscription', 'periscolaire-registration'), 'value' => (string) $enrollment->statut),
+                    array('name' => __('Sorti le', 'periscolaire-registration'), 'value' => (string) $enrollment->sorti_le),
                     array('name' => __('Date d’inscription', 'periscolaire-registration'), 'value' => (string) $enrollment->date_inscription),
                     array('name' => __('Règlement intérieur accepté le', 'periscolaire-registration'), 'value' => (string) $enrollment->reglement_accepted_at),
                     array('name' => __('Justificatif d’assurance déposé', 'periscolaire-registration'), 'value' => $enrollment->assurance_original_filename ? (string) $enrollment->assurance_original_filename : __('Aucun', 'periscolaire-registration')),
@@ -524,7 +525,6 @@ class Psc_Privacy {
             array('name' => __('Prénom', 'periscolaire-registration'), 'value' => (string) $child->prenom),
             array('name' => __('Nom', 'periscolaire-registration'), 'value' => (string) $child->nom),
             array('name' => __('Date de naissance', 'periscolaire-registration'), 'value' => (string) $child->date_naissance),
-            array('name' => __('Statut', 'periscolaire-registration'), 'value' => (string) $child->statut),
             array('name' => __('Régime sans porc', 'periscolaire-registration'), 'value' => $child->sans_porc ? __('oui', 'periscolaire-registration') : __('non', 'periscolaire-registration')),
             array('name' => __('Régime végétalien', 'periscolaire-registration'), 'value' => $child->vegan ? __('oui', 'periscolaire-registration') : __('non', 'periscolaire-registration')),
             array('name' => __('Cantine sans repas fourni', 'periscolaire-registration'), 'value' => $child->cantine_sans_repas ? __('oui', 'periscolaire-registration') : __('non', 'periscolaire-registration')),

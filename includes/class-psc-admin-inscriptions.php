@@ -197,13 +197,15 @@ class Psc_Admin_Inscriptions extends Psc_Admin_Base {
 
         $t_child = psc_table('children');
         $t_cy = psc_table('child_school_years');
-        $year_id = Psc_School_Years::active_id();
+        // Année du mois exporté, pas l'année active : un export de
+        // septembre fait avant le passage d'année reste juste.
+        $year_id = Psc_School_Years::id_for_date(reset($dates));
         $children = $wpdb->get_results(
             "SELECT c.*, cy.classe, p.email AS parent_email
              FROM $t_child c
-             LEFT JOIN $t_cy cy ON cy.child_id = c.id AND cy.school_year_id = $year_id
+             INNER JOIN $t_cy cy ON cy.child_id = c.id AND cy.school_year_id = " . (int) $year_id . " AND cy.statut = 'inscrit'
              LEFT JOIN " . psc_table('parents') . " p ON p.id = c.parent_id
-             WHERE c.statut = 'actif' AND p.active = 1
+             WHERE p.active = 1
              ORDER BY c.nom, c.prenom"
         );
         if (!$children) {

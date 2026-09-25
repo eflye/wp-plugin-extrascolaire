@@ -205,7 +205,8 @@ class Psc_Admin_Calendar_V2 {
 
         // Effectifs déclarés de la période : un seul lot de résolution.
         $children = $wpdb->get_results(
-            "SELECT id FROM " . psc_table('children') . " WHERE statut = 'actif'"
+            'SELECT c.id FROM ' . psc_table('children') . ' c WHERE ' . Psc_School_Years::inscrit_sql('c.id', Psc_School_Years::id_for_date($start))
+            . ' OR ' . Psc_School_Years::inscrit_sql('c.id', Psc_School_Years::id_for_date($end))
         );
         $child_ids = $children ? array_map(function ($c) { return (int) $c->id; }, $children) : array();
         $declared = $child_ids ? Psc_Planning::declared_map($child_ids, $dates) : array();

@@ -127,7 +127,7 @@ class Psc_Messages {
         $parents = psc_table('parents'); $children = psc_table('children'); $enrol = psc_table('child_school_years');
         $year = Psc_School_Years::active();
         if (!$year) return array();
-        $base = "SELECT DISTINCT p.id FROM $parents p INNER JOIN $children c ON c.parent_id=p.id INNER JOIN $enrol cy ON cy.child_id=c.id AND cy.school_year_id=%d WHERE p.active=1 AND c.statut='actif'";
+        $base = "SELECT DISTINCT p.id FROM $parents p INNER JOIN $children c ON c.parent_id=p.id INNER JOIN $enrol cy ON cy.child_id=c.id AND cy.school_year_id=%d WHERE p.active=1 AND cy.statut='inscrit'";
         $args = array((int) $year->id);
         if ($type === 'ecole') {
             $classes = $value['ecole'] === 'maternelle' ? array('PS', 'MS', 'GS') : array('CP', 'CE1', 'CE2', 'CM1', 'CM2');
@@ -136,7 +136,7 @@ class Psc_Messages {
             $map = array('cantine' => 'CANT', 'accueil_matin' => 'GM', 'accueil_soir' => 'GS'); $code = $map[$value['service']];
             $pat = psc_table('pattern'); $exc = psc_table('exception');
             $base .= " AND (EXISTS (SELECT 1 FROM $pat pt WHERE pt.child_id=c.id AND pt.school_year=%s AND pt.service_code IN (%s,'FORF')) OR EXISTS (SELECT 1 FROM $exc ex WHERE ex.child_id=c.id AND ex.jour_date BETWEEN %s AND %s AND ex.value=1 AND ex.service_code IN (%s,'FORF')))";
-            $args = array_merge($args, array($year->label, $code, $year->date_debut, $year->date_fin, $code));
+            $args = array_merge($args, array($year->year_key, $code, $year->date_debut, $year->date_fin, $code));
         } elseif ($type === 'familles') {
             $ids = $value['family_ids']; if (!$ids) return array();
             $base .= ' AND p.id IN (' . implode(',', array_fill(0, count($ids), '%d')) . ')'; $args = array_merge($args, $ids);
@@ -150,7 +150,7 @@ class Psc_Messages {
         if (!$ids) return array('familles' => 0, 'enfants' => 0);
         $ph = implode(',', array_fill(0, count($ids), '%d'));
         $year = Psc_School_Years::active();
-        $children = (int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(DISTINCT c.id) FROM ' . psc_table('children') . ' c INNER JOIN ' . psc_table('child_school_years') . " cy ON cy.child_id=c.id AND cy.school_year_id=%d WHERE c.parent_id IN ($ph) AND c.statut='actif'", array_merge(array((int) $year->id), $ids)));
+        $children = (int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(DISTINCT c.id) FROM ' . psc_table('children') . ' c INNER JOIN ' . psc_table('child_school_years') . " cy ON cy.child_id=c.id AND cy.school_year_id=%d WHERE c.parent_id IN ($ph) AND cy.statut='inscrit'", array_merge(array((int) $year->id), $ids)));
         return array('familles' => count($ids), 'enfants' => $children);
     }
 

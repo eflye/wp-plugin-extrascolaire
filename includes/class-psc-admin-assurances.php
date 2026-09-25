@@ -37,7 +37,7 @@ class Psc_Admin_Assurances {
                     cy.assurance_uploaded_at, cy.assurance_status, cy.assurance_revision, cy.assurance_review_note,
                     cy.assurance_reviewed_at
              FROM $children_table c LEFT JOIN $enrollments cy ON cy.child_id = c.id AND cy.school_year_id = %d
-             WHERE c.statut = 'actif' ORDER BY CASE WHEN cy.assurance_status = 'pending' THEN 0 ELSE 1 END, c.nom, c.prenom", $year_id
+             WHERE cy.statut = 'inscrit' ORDER BY CASE WHEN cy.assurance_status = 'pending' THEN 0 ELSE 1 END, c.nom, c.prenom", $year_id
         ));
         $selected = null;
         foreach ($rows as $row) {

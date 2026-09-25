@@ -208,7 +208,7 @@ class Psc_Menus {
         return $wpdb->get_results(
             "SELECT DISTINCT p.* FROM $t_parent p
              INNER JOIN $t_child c ON c.parent_id = p.id
-             WHERE p.active = 1 AND c.statut = 'actif'"
+             WHERE p.active = 1 AND " . Psc_School_Years::inscrit_ouvert_sql('c.id')
         );
     }
 

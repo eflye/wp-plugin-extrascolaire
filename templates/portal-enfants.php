@@ -102,7 +102,7 @@
 $psc_active_children = array_filter($all_children, function ($c) { return $c->statut === 'actif'; });
 $psc_active_year = Psc_School_Years::active();
 if ($psc_active_year) {
-    $psc_assurance_year_label = $psc_active_year->label;
+    $psc_assurance_year_label = str_replace('-', '–', $psc_active_year->year_key);
 } else {
     // Aucune année scolaire active (installation neuve) : repli sur l'année
     // de rentrée déduite de la date du jour.

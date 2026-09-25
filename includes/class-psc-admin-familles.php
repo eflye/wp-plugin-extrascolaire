@@ -52,19 +52,20 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
             'nom'            => mb_substr($nom, 0, 190),
             'prenom'         => mb_substr($prenom, 0, 190),
             'date_naissance' => $naissance ?: null,
-            'statut'         => 'actif',
             'created_at'     => current_time('mysql'),
-        ), array('%d', '%s', '%s', '%s', '%s', '%s'));
+        ), array('%d', '%s', '%s', '%s', '%s'));
         $child_id = (int) $wpdb->insert_id;
 
+        // Un enfant n'est actif qu'inscrit à une année : inscrit à l'année
+        // active, avec ou sans classe connue.
         $year_id = Psc_School_Years::active_id();
-        if ($year_id && $classe !== '') {
-            Psc_School_Years::enroll($child_id, $year_id, $classe, 'inscrit');
+        if ($year_id) {
+            Psc_School_Years::enroll($child_id, $year_id, $classe !== '' ? $classe : null, 'inscrit');
         }
 
         Psc_Audit::log('enfant.creation', array(
             'objet_type' => 'enfant', 'objet_id' => $child_id, 'famille_id' => $parent_id, 'enfant_id' => $child_id,
-            'apres' => array('nom' => $nom, 'prenom' => $prenom, 'date_naissance' => $naissance ?: null, 'statut' => 'actif', 'classe' => $classe),
+            'apres' => array('nom' => $nom, 'prenom' => $prenom, 'date_naissance' => $naissance ?: null, 'classe' => $classe),
             'resume' => sprintf(__('Enfant %s %s ajouté par la mairie.', 'periscolaire-registration'), $prenom, $nom),
         ));
 
@@ -80,7 +81,7 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         self::purge_child($id);
         Psc_Audit::log('enfant.suppression', array(
             'objet_type' => 'enfant', 'objet_id' => $id, 'famille_id' => $child ? (int) $child->parent_id : null, 'enfant_id' => $id,
-            'avant' => $child ? array('nom' => $child->nom, 'prenom' => $child->prenom, 'date_naissance' => $child->date_naissance, 'statut' => $child->statut) : null,
+            'avant' => $child ? array('nom' => $child->nom, 'prenom' => $child->prenom, 'date_naissance' => $child->date_naissance) : null,
             'resume' => $child ? sprintf(__('Enfant %s %s supprimé.', 'periscolaire-registration'), $child->prenom, $child->nom) : null,
         ));
         self::redirect('psc_children', 'deleted');
@@ -240,8 +241,9 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
     public static function handle_mark_child_sorti() {
         self::guard('psc_mark_child_sorti');
         $id = psc_post_int('id');
-        if (!Psc_School_Years::mark_sorti($id)) self::redirect('psc_children', 'invalid');
-        Psc_Audit::log('enfant.sortie', array('objet_type' => 'enfant', 'objet_id' => $id, 'enfant_id' => $id));
+        $year_id = psc_post_int('school_year_id') ?: Psc_School_Years::active_id();
+        if (!Psc_School_Years::get($year_id) || !Psc_School_Years::mark_sorti($id, $year_id)) self::redirect('psc_children', 'invalid');
+        Psc_Audit::log('enfant.sortie', array('objet_type' => 'enfant', 'objet_id' => $id, 'enfant_id' => $id, 'meta' => array('annee' => $year_id)));
         self::redirect('psc_children', 'marked_sorti');
     }
 
@@ -288,8 +290,9 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
     public static function handle_mark_child_actif() {
         self::guard('psc_mark_child_actif');
         $id = psc_post_int('id');
-        if (!Psc_School_Years::mark_actif($id)) self::redirect('psc_children', 'invalid');
-        Psc_Audit::log('enfant.reactivation', array('objet_type' => 'enfant', 'objet_id' => $id, 'enfant_id' => $id));
+        $year_id = psc_post_int('school_year_id') ?: Psc_School_Years::active_id();
+        if (!Psc_School_Years::get($year_id) || !Psc_School_Years::mark_actif($id, $year_id)) self::redirect('psc_children', 'invalid');
+        Psc_Audit::log('enfant.reactivation', array('objet_type' => 'enfant', 'objet_id' => $id, 'enfant_id' => $id, 'meta' => array('annee' => $year_id)));
         self::redirect('psc_children', 'marked_actif');
     }
 
@@ -302,12 +305,21 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
 
         $years = Psc_School_Years::all();
         $selected_year_id = psc_get_int('school_year_id') ?: Psc_School_Years::active_id();
-        $show_sortis = !empty($_GET['show_sortis']);
-
-        $where = $show_sortis ? '' : "AND c.statut = 'actif'";
+        // État de l'enfant POUR L'ANNÉE CHOISIE : inscrit, sorti en cours
+        // d'année, ou sans inscription (non réinscrit) ; « tous » sinon.
+        $etats = array('inscrit', 'sorti', 'non_inscrit', 'tous');
+        $etat = isset($_GET['etat']) ? sanitize_key(wp_unslash($_GET['etat'])) : 'inscrit';
+        if (!in_array($etat, $etats, true)) $etat = 'inscrit';
+        $wheres = array(
+            'inscrit'     => "AND cy.statut = 'inscrit'",
+            'sorti'       => "AND cy.statut = 'sorti'",
+            'non_inscrit' => 'AND cy.id IS NULL',
+            'tous'        => '',
+        );
+        $where = $wheres[$etat];
         $children = $selected_year_id ? $wpdb->get_results($wpdb->prepare(
             "SELECT c.*, p.nom AS parent_nom, p.email AS parent_email,
-                    cy.classe AS classe, cy.statut AS statut_annee,
+                    cy.classe AS classe, cy.statut AS statut_annee, cy.sorti_le AS sorti_le,
                     cy.assurance_original_filename AS assurance_filename,
                     cy.assurance_uploaded_at AS assurance_uploaded_at,
                     cy.assurance_file_path AS assurance_file_path,
@@ -490,7 +502,7 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         $family_id = psc_get_int('family_id');
         $family = $family_id ? Psc_Parents::get_by_id($family_id) : null;
         $active_children = $family ? (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM " . psc_table('children') . " WHERE parent_id = %d AND statut = 'actif'",
+            "SELECT COUNT(*) FROM " . psc_table('children') . ' c WHERE c.parent_id = %d AND ' . Psc_School_Years::inscrit_ouvert_sql('c.id'),
             $family_id
         )) : 0;
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
