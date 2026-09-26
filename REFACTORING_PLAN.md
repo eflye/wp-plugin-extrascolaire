@@ -29,7 +29,7 @@ d'autres chantiers (TODO.md : P1-11, P1-16, P1-17, P3-01), sans passer par les
 | FA-02 / STEP-05 — `handle_submit()` | **Ouvert** | 285 lignes, inchangé |
 | FA-03 / STEP-06 — `build_pdf()` | **Partiel** | le calcul est sorti du rendu (lignes par tarif et centimes dans `generate_one()`, 5.32) ; la mise en page reste en une méthode de 218 lignes |
 | FA-04 / STEP-07 — CSS du portail | **Ouvert, en hausse** | 2 937 lignes (`portal.css` 2 270, `frontend.css` 667) contre 2 826 à l'audit |
-| CM-01 / STEP-02 → STEP-03 — tables legacy | **Débloqué** (26/09) | l'utilisateur confirme qu'aucune installation n'est en schéma < 4.0 : les migrations et vérifications legacy (`trimestres`, `calendar_days`, `registrations`) ne servent plus, et ces tables n'existent que sur un site monté depuis < 4.0. Le relevé des compteurs n'est plus nécessaire pour CM-01 ; STEP-03 peut s'ouvrir pour ce sous-ensemble |
+| CM-01 / STEP-03 — code de migration ancien | **Fait** (26/09) | toutes les migrations antérieures au schéma 4.15.0 (version 5.28.0, clé de chiffrement externe) sont retirées, à la demande de l'utilisateur (installation unique) : étapes 2.5.0 → 4.15.0, tables `trimestres` / `calendar_days` / `registrations` dans `create_tables()`, migration et vérification des inscriptions jour par jour, retrait de `piece_identite`, déménagement de `uploads/periscolaire`, années en double de la page Maintenance. En deçà de 4.15.0, la montée est refusée avec une alerte (`MIN_UPGRADE_FROM`). Aucune table n'est supprimée (pas de `DROP`). `class-psc-installer.php` : 2 220 → 1 401 lignes. Preuves : `bin/verify-migrations.php` réécrit (montée 4.15.0 → 4.18.0, refus < 4.15.0, 27 vérifications), `bin/verify-migration-resume.php` (34). |
 | CM-02 — Planning - 1 | **À requalifier** | ce n'est plus une compatibilité d'URL : l'écran est accessible depuis la bascule de Planning - 2 et a été corrigé (totaux fournis par le serveur, 5.30.0) ; le compteur `planning_v1_url` mesure donc un usage normal, pas un usage legacy |
 
 Filet de sécurité au 26/09 : 1 396 tests unitaires, PHPStan niveau 3, syntaxe
@@ -39,12 +39,9 @@ d'audit, versions de règlements…).
 
 Suites recommandées, par ordre :
 
-1. STEP-03, sous-ensemble CM-01 : retirer les migrations et vérifications
-   legacy (< 4.0), désormais sans installation concernée. Planning - 1
-   (CM-02) n'est pas concerné : c'est un écran en service.
-2. DB-02 : deux index composites sur `requests`, petits et sans risque.
-3. DB-03 et DB-04 : décisions de schéma (questions ouvertes 4 et 5).
-4. FA-02, FA-03 (mise en page), FA-04 : refactorings sans effet visible, à
+1. DB-02 : deux index composites sur `requests`, petits et sans risque.
+2. DB-03 et DB-04 : décisions de schéma (questions ouvertes 4 et 5).
+3. FA-02, FA-03 (mise en page), FA-04 : refactorings sans effet visible, à
    faire quand le code concerné doit de toute façon évoluer.
 
 ## État après livraison 5.6.1
@@ -248,9 +245,9 @@ consécutifs après leur déploiement, incluant un cycle de facturation. STEP-02
 ne sera cochée qu'après ce relevé et la confirmation de la version minimale
 réellement déployée ; STEP-03 reste donc fermée.
 
-### [ ] STEP-03 — Retirer uniquement la compatibilité prouvée inactive
+### [x] STEP-03 — Retirer uniquement la compatibilité prouvée inactive
 
-**État au 26/09 : ouvrable pour CM-01** (routines de migration et de vérification < 4.0, tables `trimestres`, `calendar_days`, `registrations`). CM-02 exclu : Planning - 1 est un écran en service.
+**État au 26/09 : fait pour CM-01**, élargi à toutes les migrations antérieures au schéma 4.15.0 (voir l'état en tête). Les tables d'avant 4.0 ne sont pas supprimées ; ancien constat : (routines de migration et de vérification < 4.0, tables `trimestres`, `calendar_days`, `registrations`). CM-02 exclu : Planning - 1 est un écran en service.
 
 - **Catégorie** : Code mort
 - **Constats liés** : CM-01, CM-02

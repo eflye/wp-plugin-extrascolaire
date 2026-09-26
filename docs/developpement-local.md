@@ -76,7 +76,7 @@ podman exec -u www-data -e WP_CLI_CACHE_DIR=/tmp/wp-cli-cache plugin-extrascolai
 
 `bin/verify-channel-contracts.php` confronte les canaux (commande fournisseur, avis de fermeture, annulation de classe, facture) à la table de décision des [contrats d'une journée](contrats-planning.md).
 
-Ils purgent leurs données avant et après. **Exception : `bin/verify-migrations.php` détruit le schéma du plugin** pour rejouer une montée depuis 2.4.9. Ne le lancez jamais sur la base locale : utilisez une base jetable, que le conteneur WordPress choisit par la variable `WORDPRESS_DB_NAME`.
+Ils purgent leurs données avant et après. **Exception : `bin/verify-migrations.php` détruit le schéma du plugin** pour rejouer une montée depuis le schéma 4.15.0 (version 5.28.0, la plus ancienne prise en charge). Ne le lancez jamais sur la base locale : utilisez une base jetable, que le conteneur WordPress choisit par la variable `WORDPRESS_DB_NAME`.
 
 ```bash
 podman exec plugin-extrascolaire-db-1 sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS psc_scratch; GRANT ALL ON psc_scratch.* TO \"wordpress\"@\"%\";"'
