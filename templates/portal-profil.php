@@ -183,11 +183,9 @@
 
         <p style="font-weight:600;font-size:13px;margin-bottom:8px;"><?php esc_html_e('Règlement concernant le prélèvement', 'periscolaire-registration'); ?></p>
         <div class="psc-wizard-reglement-box" tabindex="0">
-          <p><?php esc_html_e('Vous avez opté pour le mode de paiement par prélèvement, ce service est gratuit. Les montants dus au titre de la cantine et de la garderie seront prélevés automatiquement sur le compte désigné.', 'periscolaire-registration'); ?></p>
-          <p><?php esc_html_e('Le montant de la facture mensuelle sera prélevé à terme échu le 5 du mois suivant ou, à défaut, le premier jour ouvrable suivant le 5.', 'periscolaire-registration'); ?></p>
-          <p><?php esc_html_e('En cas de rejet du prélèvement, les frais bancaires correspondants seront à votre charge et imputés sur la facture suivante.', 'periscolaire-registration'); ?></p>
-          <p><?php esc_html_e('Vous pouvez mettre fin au prélèvement automatique sur demande écrite à la mairie.', 'periscolaire-registration'); ?></p>
+          <?php echo psc_reglement_prelevement_html(); // phpcs:ignore WordPress.Security.EscapeOutput -- texte échappé à la source ?>
         </div>
+        <?php echo psc_reglement_pdf_link_html('reglement_prelevement'); // phpcs:ignore WordPress.Security.EscapeOutput -- échappé à la source ?>
         <label class="psc-wizard-check-line">
           <input type="checkbox" name="sepa_reglement_accepted" value="1" data-testid="profil-sepa-accept" required>
           <?php esc_html_e("J'ai pris connaissance du règlement concernant le prélèvement automatique et je l'approuve, ainsi que du mandat SEPA autorisant la mairie à débiter le compte ci-dessus.", 'periscolaire-registration'); ?>
