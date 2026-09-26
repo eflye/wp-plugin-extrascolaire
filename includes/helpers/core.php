@@ -56,7 +56,7 @@ function psc_required_capability($context) {
     if (strpos($context, 'audit') !== false) return 'psc_view_audit';
     if (strpos($context, 'invoice') !== false || strpos($context, 'factur') !== false || strpos($context, 'sepa') !== false) return 'psc_manage_billing';
     if (strpos($context, 'message') !== false || strpos($context, 'conversation') !== false) return 'psc_manage_messages';
-    if (strpos($context, 'setting') !== false || strpos($context, 'email_template') !== false || strpos($context, 'calendar') !== false || strpos($context, 'school_year') !== false || strpos($context, 'config') !== false) return 'psc_manage_config';
+    if (strpos($context, 'setting') !== false || strpos($context, 'email_template') !== false || strpos($context, 'calendar') !== false || strpos($context, 'school_year') !== false || strpos($context, 'config') !== false || strpos($context, 'tarif') !== false) return 'psc_manage_config';
     if (strpos($context, 'inscription') !== false || strpos($context, 'attendance') !== false || strpos($context, 'menu') !== false || strpos($context, 'supplier') !== false) return 'psc_manage_presence';
     if (strpos($context, 'parent') !== false || strpos($context, 'family') !== false || strpos($context, 'child') !== false || strpos($context, 'assurance') !== false || strpos($context, 'pickup') !== false || strpos($context, 'request') !== false || strpos($context, 'impersonate') !== false) return 'psc_manage_families';
     return psc_manage_cap();
