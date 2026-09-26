@@ -110,3 +110,20 @@ $assert('audit oubli : nom présent -> réécriture requise', psc_audit_resume_n
 $assert('audit oubli : e-mail présent -> réécriture requise', psc_audit_resume_needs_redaction('Connexion de famille.dupont@example.com.', $needles), true);
 $assert('audit oubli : casse différente toujours détectée', psc_audit_resume_needs_redaction('connexion de FAMILLE.DUPONT@EXAMPLE.COM', $needles), true);
 $assert('audit oubli : aiguille vide ignorée sans faux positif', psc_audit_resume_needs_redaction('Résumé quelconque', array('', ' ', 'x')), false);
+
+/* ---- Fichier de repli journal-acces.log : message technique seul (P1-11) ---- */
+$msg = psc_audit_technical_message("Duplicate entry 'jean.dupont@example.com' for key 'email'");
+$assert('audit repli : valeur SQL entre guillemets masquée', strpos($msg, 'jean') === false && strpos($msg, 'Duplicate entry') === 0, true);
+$assert('audit repli : e-mail nu masqué', strpos(psc_audit_technical_message('Refus pour marie@example.org'), 'marie') === false, true);
+$assert('audit repli : IBAN et identifiants masqués', preg_match('/\d{4,}/', psc_audit_technical_message('Echec FR7630006000011234567890189 ligne 123456')), 0);
+$assert('audit repli : guillemets doubles masqués', psc_audit_technical_message('Data too long for column "Lou Martin"'), 'Data too long for column "…"');
+$assert('audit repli : message tronqué à 200 caractères', mb_strlen(psc_audit_technical_message(str_repeat('erreur ', 100))), 200);
+$assert('audit repli : message technique conservé', psc_audit_technical_message("Table 'wp_psc_audit_log' doesn't exist"), "Table '…' doesn't exist");
+
+/* ---- Tâches planifiées en retard (P1-11, alerte de panne) ---- */
+$now = 1_800_000_000;
+$next = array('a' => $now - 7 * 3600, 'b' => $now - 5 * 3600, 'c' => $now + 3600, 'd' => false);
+$assert('cron : seule la tâche en retard de plus de 6 h est signalée', psc_late_cron_hooks($next, $now), array('a'));
+$assert('cron : délai de grâce réglable', psc_late_cron_hooks($next, $now, 3600), array('a', 'b'));
+$assert('cron : échéance absente, pas un retard', psc_late_cron_hooks(array('d' => false), $now), array());
+$assert('cron : les huit tâches récurrentes sont libellées', count(array_filter(psc_recurring_cron_hooks())), 8);
