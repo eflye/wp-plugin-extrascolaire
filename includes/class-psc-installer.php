@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.15.0';
+    const DB_VERSION = '4.16.0';
     const ROLES_VERSION = '1.5.0';
 
     public static function activate() {
@@ -198,7 +198,7 @@ class Psc_Installer {
         self::$final_schema = true;
         $final_ok = self::run_step('create_tables');
         self::$final_schema = false;
-        if (!$final_ok || !self::run_step('remove_pickup_identity_data')) {
+        if (!$final_ok || !self::run_step('remove_pickup_identity_data') || !self::run_step('ensure_audit_chain_v2')) {
             self::record_migration_failure($current, 'schema');
             return false;
         }
@@ -586,6 +586,43 @@ class Psc_Installer {
      * false (étape non franchie, cf. run_step()) si deux années porteuses
      * d'inscriptions tombent sur la même clé : c'est une décision humaine.
      */
+    /**
+     * Chaînage v2 du journal d'audit (4.16.0, P1-11) : l'empreinte du
+     * contenu de chaque ligne est gardée à part, pour qu'une ligne expirée
+     * puisse être vidée par la purge sans casser la chaîne.
+     *
+     *  1. Seuil : premier id chaîné en v2 = id suivant la dernière ligne ;
+     *     les lignes antérieures gardent leur chaînage v1, jamais réécrit.
+     *  2. Empreinte de contenu des lignes v1, calculée en SQL par lots —
+     *     même formule que psc_audit_content_hash().
+     *
+     * Idempotente : le seuil n'est posé qu'une fois, le calcul ne vise que
+     * les lignes antérieures qui n'ont pas encore d'empreinte de contenu.
+     */
+    private static function ensure_audit_chain_v2() {
+        global $wpdb;
+        $table = psc_table('audit_log');
+        $seuil = (int) get_option('psc_audit_chain_v2_from', 0);
+        if ($seuil <= 0) {
+            $seuil = (int) $wpdb->get_var("SELECT COALESCE(MAX(id), 0) + 1 FROM $table");
+            if ($wpdb->last_error) return false;
+            update_option('psc_audit_chain_v2_from', $seuil, false);
+        }
+        do {
+            $done = $wpdb->query($wpdb->prepare(
+                "UPDATE $table SET empreinte_contenu = SHA2(CONCAT(
+                    DATE_FORMAT(horodatage, '%%Y-%%m-%%d %%H:%%i:%%s'), '|', action, '|',
+                    acteur_type, ':', COALESCE(acteur_id, 0), '|',
+                    COALESCE(objet_type, ''), ':', COALESCE(objet_id, 0), '|', resume), 256)
+                 WHERE id < %d AND empreinte_contenu IS NULL AND purgee_le IS NULL
+                 LIMIT 5000",
+                $seuil
+            ));
+            if ($done === false) return false;
+        } while ($done === 5000);
+        return true;
+    }
+
     private static function migrate_4_15_0() {
         global $wpdb;
         $t_years = psc_table('school_years');
@@ -1979,6 +2016,8 @@ CREATE TABLE $t_audit_log (
             ip VARCHAR(45) NULL,
             canal VARCHAR(16) NOT NULL,
             empreinte CHAR(64) NULL,
+            empreinte_contenu CHAR(64) NULL,
+            purgee_le DATETIME NULL,
             PRIMARY KEY  (id),
             KEY horodatage (horodatage),
             KEY famille_horodatage (famille_id, horodatage),
