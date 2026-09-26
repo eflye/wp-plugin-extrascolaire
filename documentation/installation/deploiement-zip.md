@@ -26,7 +26,7 @@ Le serveur de production reçoit **uniquement l'archive ZIP** de la Release. Il 
 1. **Récupérez l'archive.** Sur la page des [versions publiées](https://github.com/eflye/wp-plugin-extrascolaire/releases), téléchargez `periscolaire-registration-X.Y.Z.zip` et `SHA256SUMS`. L'archive `montgeroult-familles-X.Y.Z.zip` contient le thème du site : ne la déployez que si le site utilise ce thème.
 2. **Vérifiez son intégrité.** Placez `SHA256SUMS` à côté des archives, puis lancez `sha256sum -c SHA256SUMS` (sous macOS : `shasum -a 256 -c SHA256SUMS`). Chaque ligne doit afficher `OK`. Une archive qui ne correspond pas ne s'installe pas.
 3. **Lisez les notes de version.** Le journal des modifications (`readme.txt`, rubrique **Changelog**) signale les changements visibles par la mairie et les familles, et les réglages à revoir après la mise à jour. Pour un saut de plusieurs versions, voir aussi [Notes de mise à jour](notes-mise-a-jour.md), qui détaille les contrôles propres à certaines migrations.
-4. **Relevez la version actuelle.** Notez la version affichée dans **Extensions** et la version du schéma de la base : `wp option get psc_db_version` (avec WP-CLI). Ces deux valeurs décident du retour arrière (étape 9).
+4. **Relevez la version actuelle.** Notez la version affichée dans **Extensions** et la version du schéma de la base, affichée à l'étape **2. Base de données** de **Périscolaire › Maintenance** (ou `wp option get psc_db_version` avec WP-CLI). Ces deux valeurs décident du retour arrière (étape 9).
 5. **Sauvegardez.** Base de données, dossier privé et clé de chiffrement, selon [Sauvegarde et mise à jour](sauvegarde-mise-a-jour.md). Ne poursuivez pas sans une sauvegarde dont vous savez qu'elle se restaure.
 6. **Installez l'archive.** Deux méthodes équivalentes :
 
@@ -37,7 +37,7 @@ Le serveur de production reçoit **uniquement l'archive ZIP** de la Release. Il 
 7. **Laissez la mise à jour du schéma se faire.** Ouvrez une page du backoffice. La base est mise à jour automatiquement, étape par étape ; aucune commande n'est à lancer. Vérifiez ensuite :
 
     - **Extensions** affiche la nouvelle version ;
-    - `wp option get psc_db_version` affiche la version de schéma attendue, si les notes de version en annoncent une nouvelle ;
+    - l'étape **2. Base de données** de **Périscolaire › Maintenance** (ou `wp option get psc_db_version`) affiche la version de schéma attendue, si les notes de version en annoncent une nouvelle ;
     - aucune alerte rouge « la mise à jour de la base de données est incomplète » ni « des documents n'ont pas pu être déplacés » n'apparaît. Si c'est le cas, voir [Dépannage et FAQ](depannage-faq.md) : les étapes réussies sont conservées, et la mise à jour reprend à l'étape en cause.
 8. **Recettez.** En moins de dix minutes, sur un foyer de test :
 

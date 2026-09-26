@@ -15,7 +15,7 @@ Dans **Second parent (facultatif)**, cliquez sur **+ Ajouter un second parent**,
 
 ## Mode de paiement
 
-- Si vous réglez par **Chèque ou espèces**, vous pouvez activer le **Prélèvement automatique** depuis cette page. Il est gratuit et prélevé le 5 du mois suivant ; renseignez le titulaire et l'IBAN, puis acceptez le règlement du prélèvement.
+- Si vous réglez par **Chèque ou espèces**, vous pouvez activer le **Prélèvement automatique** depuis cette page. Il est gratuit et prélevé le 5 du mois suivant ; renseignez le titulaire et l'IBAN, puis acceptez le règlement du prélèvement : c'est le même texte qu'à l'inscription, et la mairie conserve la version que vous avez approuvée.
 - Pour modifier vos coordonnées bancaires ou mettre fin au prélèvement, contactez la mairie.
 
 ## Consultations de votre espace par la mairie

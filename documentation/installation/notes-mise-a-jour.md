@@ -2,7 +2,7 @@
 
 ## Objectif
 
-Passer d'une version antérieure à 5.26.0 (5.23.x, 5.24.x ou 5.25.x) à la version 5.28.0 ou plus récente. Depuis 5.28.0, tout se fait **depuis le backoffice**, dans **Périscolaire › Maintenance**, sans ligne de commande : c'est la méthode adaptée à un WordPress en conteneur. Les commandes WP-CLI restent possibles ; elles sont indiquées en encadré.
+Passer d'une version antérieure à la version courante (5.32.1, schéma de base 4.18.0), en une seule fois : inutile d'installer les versions intermédiaires. Depuis 5.28.0, tout se fait **depuis le backoffice**, dans **Périscolaire › Maintenance**, sans ligne de commande : c'est la méthode adaptée à un WordPress en conteneur. Les commandes WP-CLI restent possibles ; elles sont indiquées en encadré.
 
 ## Ce qui change entre 5.23 et 5.28
 
@@ -10,12 +10,17 @@ Passer d'une version antérieure à 5.26.0 (5.23.x, 5.24.x ou 5.25.x) à la vers
 - **Nouveaux réglages :** rubrique **Confidentialité** (5.24.0), modèle d'e-mail **Réinscription retirée par la famille** (5.26.0).
 - **Clé de chiffrement des IBAN** (5.27.0) : à sortir de la base. Pour un conteneur, la clé se déclare en variable d'environnement (5.28.0).
 
-## Depuis la 5.30
+## Ce qui change entre 5.28 et 5.32
 
-- **Journal d'audit, schéma 4.16.0 :** deux colonnes ajoutées au journal, calculées automatiquement à la mise à jour, sans toucher aux lignes existantes. Une ligne dont la durée de conservation est dépassée voit désormais son contenu effacé même si des lignes plus anciennes sont conservées plus longtemps. L'étape **2. Base de données** de la page **Maintenance** doit afficher le schéma 4.16.0.
+- **Polices** (5.28.1) : servies par le site lui-même, plus aucun appel à Google Fonts.
+- **Facturation d'une journée** (5.29.0) : une journée complète est facturée au prix du forfait, sans jamais dépasser la somme de ses prestations ; plus de cumul forfait + garderies. Les factures déjà envoyées ne changent pas. **Vérifiez le tarif du forfait sans repas** : avec la valeur par défaut, il coûte plus que ses prestations et ne s'applique jamais (voir [Services et tarifs](../configuration/services-tarifs.md)).
+- **Annulation de la cantine d'une classe** (5.30.0) : les enfants au forfait sont concernés comme les autres. Les avis de fermeture listent les prestations de chaque enfant (5.30.0, 5.31.0).
+- **Montants calculés en centimes** (5.32.1) : pas de migration, les factures existantes ne changent pas.
+
+- **Journal d'audit, schéma 4.16.0 :** deux colonnes ajoutées au journal, calculées automatiquement à la mise à jour, sans toucher aux lignes existantes. Une ligne dont la durée de conservation est dépassée voit désormais son contenu effacé même si des lignes plus anciennes sont conservées plus longtemps.
 - **Tâches planifiées :** un avis rouge sur le tableau de bord signale un WP-Cron à l'arrêt. S'il apparaît, suivez [Tâches planifiées](taches-planifiees.md#alerte-de-retard).
-- **Tarifs et statut « cantine sans repas » datés, schéma 4.17.0 :** la grille de tarifs en place devient le premier tarif de chaque prestation, à compter de la première rentrée enregistrée, et chaque enfant signalé « cantine sans repas » l'est depuis cette même date. Les montants des factures existantes ne changent pas. Ensuite, un changement de prix ou de statut se fait **à partir d'une date** : voir [Services et tarifs](../configuration/services-tarifs.md) et [Régimes alimentaires](../configuration/regimes-alimentaires.md). L'étape **2. Base de données** de la page **Maintenance** doit afficher le schéma 4.17.0.
-- **Versions des règlements approuvés, schéma 4.18.0 :** chaque acceptation enregistre désormais la version du règlement affichée (texte et PDF). Les acceptations antérieures apparaissent « antérieures au suivi des versions ». Le texte du règlement de prélèvement est désormais le même à l'inscription et dans **Mon profil**, et la réinscription affiche le règlement intérieur. L'étape **2. Base de données** doit afficher le schéma 4.18.0.
+- **Tarifs et statut « cantine sans repas » datés, schéma 4.17.0 :** la grille de tarifs en place devient le premier tarif de chaque prestation, à compter de la première rentrée enregistrée, et chaque enfant signalé « cantine sans repas » l'est depuis cette même date. Les montants des factures existantes ne changent pas. Ensuite, un changement de prix ou de statut se fait **à partir d'une date** : voir [Services et tarifs](../configuration/services-tarifs.md) et [Régimes alimentaires](../configuration/regimes-alimentaires.md).
+- **Versions des règlements approuvés, schéma 4.18.0 :** chaque acceptation enregistre désormais la version du règlement affichée (texte et PDF). Les acceptations antérieures apparaissent « antérieures au suivi des versions ». Le texte du règlement de prélèvement est désormais le même à l'inscription et dans **Mon profil**, et la réinscription affiche le règlement intérieur.
 
 ## Avant de commencer
 
@@ -41,7 +46,7 @@ Passer d'une version antérieure à 5.26.0 (5.23.x, 5.24.x ou 5.25.x) à la vers
 4. **Ouvrez Périscolaire › Maintenance.** La mise à jour de la base se fait au premier affichage du backoffice. La page présente cinq étapes, chacune avec son état (**Fait**, **À faire** ou **Bloquant**) :
 
     - **1. Sauvegarde** : cochez la case une fois l'étape 1 ci-dessus réalisée, puis cliquez sur **Confirmer la sauvegarde**.
-    - **2. Base de données** : l'état doit être **Fait**, avec le schéma 4.15.0. S'il est **Bloquant** avec un tableau d'**années scolaires en double**, ouvrez **Année scolaire**, supprimez l'année en trop, c'est-à-dire celle qui n'aurait pas dû exister (ses inscriptions sont supprimées avec elle), puis cliquez sur **Relancer la mise à jour de la base**. En cas de doute sur l'année à garder, arrêtez-vous et faites-vous accompagner : les étapes réussies sont conservées, rien n'est perdu.
+    - **2. Base de données** : l'état doit être **Fait**, avec le schéma **4.18.0** (version 5.32). Les migrations s'enchaînent seules, dans l'ordre, quelle que soit la version de départ. S'il est **Bloquant** avec un tableau d'**années scolaires en double**, ouvrez **Année scolaire**, supprimez l'année en trop, c'est-à-dire celle qui n'aurait pas dû exister (ses inscriptions sont supprimées avec elle), puis cliquez sur **Relancer la mise à jour de la base**. En cas de doute sur l'année à garder, arrêtez-vous et faites-vous accompagner : les étapes réussies sont conservées, rien n'est perdu.
 
 5. **Sortez la clé de chiffrement de la base** (étape **3. Clé de chiffrement des IBAN** de la page) :
 
@@ -111,7 +116,7 @@ Passer d'une version antérieure à 5.26.0 (5.23.x, 5.24.x ou 5.25.x) à la vers
 
 ## Résultat attendu
 
-Les cinq étapes de **Périscolaire › Maintenance** sont **Fait** : base au schéma 4.15.0, clé des IBAN hors de la base, nouveaux réglages renseignés, recette signée.
+Les cinq étapes de **Périscolaire › Maintenance** sont **Fait** : base au schéma 4.18.0, clé des IBAN hors de la base, nouveaux réglages renseignés, recette signée. Aucun avis « tâches planifiées » ne s'affiche sur le tableau de bord. Dans **Réglages › Tarifs**, chaque prestation a un tarif du jour ; dans **Enfants**, les enfants « cantine sans repas » le sont toujours.
 
 ## Pour aller plus loin
 

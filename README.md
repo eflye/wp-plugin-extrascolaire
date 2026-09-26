@@ -45,11 +45,14 @@ Le menu de la cantine peut aussi être publié sur la page d’accueil du servic
 - Validation des demandes, des familles, des enfants et des assurances.
 - Consultation temporaire du portail exact d’une famille, strictement en lecture seule.
 - Années scolaires, vacances, jours fériés, fermetures et délai de modification configurables.
+- Tarifs datés : un nouveau prix, ou le statut « cantine sans repas » d’un enfant, s’applique à partir d’une date, sans jamais modifier les jours précédents.
 - Menus de cantine et commandes fournisseur calculées depuis le planning.
 - Messages ciblés ou programmés, avec suivi de la première consultation.
-- Factures PDF, état des comptes et exports CSV ou ODS.
+- Factures PDF calculées jour par jour en centimes, rectifications versionnées (la version remise à la famille reste archivée), état des comptes et exports CSV ou ODS.
 - Préparation des prélèvements SEPA au format bancaire `pain.008`.
 - Passage d’année, proposition des nouvelles classes et campagne de réinscription.
+- Journal d’audit des opérations sensibles : chaîne d’intégrité vérifiable, durées de conservation par niveau, export.
+- Mises à jour conduites depuis le back office (**Périscolaire > Maintenance**), sans ligne de commande : adapté à un WordPress en conteneur.
 
 ![Tableau de bord de la mairie dans WordPress](docs/images/tableau-de-bord-mairie.png)
 
@@ -85,14 +88,15 @@ Le service couvre aussi les fratries, les régimes alimentaires, les allergies, 
 - PHP 7.4 ou plus récent ;
 - HTTPS et un transport d’e-mails fiable en production ;
 - `ZipArchive` pour les exports ODS ;
-- DOM/libxml pour l’export bancaire `pain.008`.
+- DOM/libxml pour l’export bancaire `pain.008` ;
+- des tâches planifiées qui tournent : sur un site peu visité ou en conteneur, faire appeler `wp-cron.php` par l’hébergement (un avis du tableau de bord signale tout retard).
 
 ### Mise en route
 
 1. Télécharger `periscolaire-registration-X.Y.Z.zip` et `SHA256SUMS` depuis les [versions publiées](https://github.com/eflye/wp-plugin-extrascolaire/releases), vérifier l’archive, puis l’installer depuis **Extensions > Ajouter une extension > Téléverser une extension**. Le serveur ne reçoit que cette archive, jamais le dépôt : voir [Déployer une nouvelle version](https://eflye.github.io/wp-plugin-extrascolaire/installation/deploiement-zip/).
 2. Activer **Périscolaire — Inscriptions** dans WordPress.
 3. Créer et activer l’année dans **Périscolaire > Année scolaire**, puis vérifier vacances, jours fériés, fermetures et préavis.
-4. Compléter les tarifs, coordonnées, e-mails, documents et informations SEPA dans **Périscolaire > Réglages**.
+4. Compléter les tarifs (datés), coordonnées, e-mails, documents et informations SEPA dans **Périscolaire > Réglages**, et déclarer la clé de chiffrement des IBAN hors de la base (variable d’environnement ou `wp-config.php`) : voir [Clé de chiffrement des IBAN](https://eflye.github.io/wp-plugin-extrascolaire/installation/cle-chiffrement/).
 5. Créer une page WordPress contenant le shortcode `[periscolaire_form]` et communiquer son URL aux familles.
 6. Pour l’espace terrain, créer une seconde page avec `[periscolaire_sidscm]`, la sélectionner dans les réglages et définir son code d’accès.
 7. Tester la réception des e-mails et la protection des documents avant d’ouvrir le service, en déroulant la [fiche de recette de l’hébergement](https://eflye.github.io/wp-plugin-extrascolaire/installation/fiche-recette-p1/).
@@ -104,9 +108,11 @@ Le plugin conserve les données sur le site WordPress de la collectivité. Il co
 - des liens de connexion temporaires dont les jetons sont stockés sous forme hachée ;
 - des sessions révocables et des contrôles d’accès côté serveur ;
 - un mode de consultation mairie lié à la session de l’agent, limité à 30 minutes et journalisé ;
-- le chiffrement des IBAN au repos avec libsodium ou OpenSSL ;
+- le chiffrement des IBAN au repos avec libsodium ou OpenSSL, avec une clé tenue hors de la base et une commande de rechiffrement ;
 - le stockage des assurances et factures hors de la médiathèque publique ;
 - la limitation des tentatives sur les formulaires publics ;
+- un journal d’audit des opérations sensibles, sans donnée personnelle dans son fichier de secours, et purgé selon les durées choisies ;
+- aucune ressource tierce chargée par les pages publiques et le portail (polices servies localement) ;
 - des protections WordPress contre les requêtes non autorisées et les injections.
 
 Ces mécanismes techniques ne remplacent pas le travail de la collectivité sur l’hébergement, l’information des familles, les durées de conservation et son registre de traitements.
@@ -117,18 +123,20 @@ Pendant une consultation mairie, les contrôles restent visibles mais sont désa
 
 Ce projet a été conçu pour le service de **Montgeroult–Courcelles**. Son fonctionnement actuel suit la semaine scolaire du lundi, mardi, jeudi et vendredi, importe le calendrier de la zone C et conserve encore quelques libellés propres au SIDSCM. Une adaptation est donc à prévoir pour un autre territoire ou une autre organisation scolaire.
 
-Le plugin ne propose pas de paiement en ligne. Il génère les factures et prépare les fichiers de prélèvement, mais ne transmet aucun ordre à la banque. L’acceptation du règlement se fait par case à cocher horodatée ; ce n’est pas une signature électronique qualifiée.
+Le plugin ne propose pas de paiement en ligne. Il génère les factures et prépare les fichiers de prélèvement, mais ne transmet aucun ordre à la banque. L’acceptation du règlement se fait par case à cocher horodatée, et la version exacte du texte approuvé (avec le PDF en ligne ce jour-là) est conservée ; ce n’est pas une signature électronique qualifiée.
 
 ## Documentation
 
 - [Guide de la mairie (back office)](https://eflye.github.io/wp-plugin-extrascolaire/mairie/)
 - [Guide des familles (espace familles)](https://eflye.github.io/wp-plugin-extrascolaire/familles/)
 - [Déployer une nouvelle version (serveur de production)](https://eflye.github.io/wp-plugin-extrascolaire/installation/deploiement-zip/)
+- [Notes de mise à jour (depuis une version antérieure)](https://eflye.github.io/wp-plugin-extrascolaire/installation/notes-mise-a-jour/)
 - [Historique des versions](readme.txt)
 - [Export des ordres de prélèvement SEPA](docs/export-pain008.md)
 - [Développement local et tests](docs/developpement-local.md)
 - [Instance de test auto-hébergée avec Docker](docs/self-hosting-docker.md) (pas pour la production)
-- [Inventaire du schéma de données](docs/schema-inventory-2026-09-10.md)
+- [Inventaire du schéma de données](docs/schema-inventory-2026-09-10.md) (état au 10/09/2026 ; schéma actuel : 4.18.0)
+- [Contrats d’une journée : présence, repas, facturation](docs/contrats-planning.md)
 - [Filet de sécurité du refactoring](docs/refactoring-safety-net.md)
 
 <details>
