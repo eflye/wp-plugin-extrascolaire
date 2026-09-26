@@ -844,38 +844,94 @@ function psc_audit_compute_hash($empreinte_precedente, $horodatage, $action, $ac
 }
 
 /**
+ * Empreinte du CONTENU d'une ligne (chaînage v2, P1-11) : mêmes champs que
+ * psc_audit_compute_hash(), sans l'empreinte précédente. Elle survit à la
+ * purge d'une ligne expirée, dont le contenu est vidé : la chaîne reste
+ * vérifiable sans garder de donnée personnelle.
+ */
+function psc_audit_content_hash($horodatage, $action, $acteur_type, $acteur_id, $objet_type, $objet_id, $resume) {
+    return hash('sha256', $horodatage . '|' . $action . '|'
+        . $acteur_type . ':' . (int) $acteur_id . '|'
+        . (string) $objet_type . ':' . (int) $objet_id . '|'
+        . $resume);
+}
+
+/** Empreinte chaînée v2 : empreinte précédente + empreinte du contenu. */
+function psc_audit_chain_hash($empreinte_precedente, $empreinte_contenu) {
+    return hash('sha256', $empreinte_precedente . '|' . $empreinte_contenu);
+}
+
+/**
+ * Version du chaînage d'une ligne. v2 à partir de l'id $seuil (option
+ * psc_audit_chain_v2_from, posée par la mise à jour 4.16.0 ; 0 : aucune
+ * ligne v2) pour une ligne qui porte son empreinte de contenu ; v1 sinon
+ * (lignes antérieures, ou écrites pendant la mise à jour).
+ */
+function psc_audit_row_chain_version($row, $seuil) {
+    $get = function ($field) use ($row) {
+        return is_array($row) ? ($row[$field] ?? null) : ($row->$field ?? null);
+    };
+    return ($seuil > 0 && (int) $get('id') >= (int) $seuil && (string) $get('empreinte_contenu') !== '') ? 2 : 1;
+}
+
+/**
+ * Empreintes attendues d'une ligne après $empreinte_precedente, selon sa
+ * version. Une ligne purgée (purgee_le renseigné) n'a plus de contenu :
+ * en v2, son empreinte de contenu conservée fait foi ; en v1, rien ne
+ * permet de la recalculer (null : acceptée telle quelle, c'est la ligne
+ * suivante qui l'ancre).
+ *
+ * @return array{contenu: ?string, empreinte: ?string}
+ */
+function psc_audit_expected_hashes($empreinte_precedente, $row, $seuil) {
+    $get = function ($field) use ($row) {
+        return is_array($row) ? ($row[$field] ?? null) : ($row->$field ?? null);
+    };
+    $purgee = (string) $get('purgee_le') !== '';
+    $contenu = $purgee ? null : psc_audit_content_hash(
+        $get('horodatage'), $get('action'), $get('acteur_type'), $get('acteur_id'),
+        $get('objet_type'), $get('objet_id'), $get('resume')
+    );
+    if (psc_audit_row_chain_version($row, $seuil) === 2) {
+        $base = $purgee ? (string) $get('empreinte_contenu') : $contenu;
+        return array('contenu' => $contenu, 'empreinte' => psc_audit_chain_hash((string) $empreinte_precedente, $base));
+    }
+    if ($purgee) return array('contenu' => null, 'empreinte' => null);
+    return array('contenu' => $contenu, 'empreinte' => psc_audit_compute_hash(
+        (string) $empreinte_precedente, $get('horodatage'), $get('action'), $get('acteur_type'), $get('acteur_id'),
+        $get('objet_type'), $get('objet_id'), $get('resume')
+    ));
+}
+
+/**
  * Vérifie le chaînage d'une série ORDONNÉE (id croissant) de lignes déjà
  * chargées. La première ligne du lot sert d'ancre (son empreinte est
  * prise pour acquise : on ne peut pas la revérifier sans la ligne
  * précédente, hors du lot) ; chaque ligne suivante doit produire, à partir
  * de l'empreinte stockée de la précédente, la même empreinte que celle
- * qu'elle a elle-même stockée.
+ * qu'elle a elle-même stockée — et, en v2, son empreinte de contenu doit
+ * correspondre à son contenu (sauf ligne purgée, sans contenu).
  *
- * @param array<int, object|array> $rows Chaque élément expose horodatage,
- *        action, acteur_type, acteur_id, objet_type, objet_id, resume,
- *        empreinte, id (objet ou tableau associatif, les deux sont acceptés).
+ * @param array<int, object|array> $rows Chaque élément expose id,
+ *        horodatage, action, acteur_type, acteur_id, objet_type, objet_id,
+ *        resume, empreinte, et en v2 empreinte_contenu, purgee_le.
+ * @param int $seuil Premier id chaîné en v2 (0 : tout en v1).
  * @return int|null L'id de la première ligne dont l'empreinte ne
  *         correspond plus, ou null si la chaîne est intacte.
  */
-function psc_audit_verify_chain_rows($rows) {
+function psc_audit_verify_chain_rows($rows, $seuil = 0) {
     $get = function ($row, $field) {
-        return is_array($row) ? (isset($row[$field]) ? $row[$field] : null) : (isset($row->$field) ? $row->$field : null);
+        return is_array($row) ? ($row[$field] ?? null) : ($row->$field ?? null);
     };
     $count = count($rows);
     for ($i = 1; $i < $count; $i++) {
-        $previous = $rows[$i - 1];
         $current  = $rows[$i];
-        $expected = psc_audit_compute_hash(
-            (string) $get($previous, 'empreinte'),
-            $get($current, 'horodatage'),
-            $get($current, 'action'),
-            $get($current, 'acteur_type'),
-            $get($current, 'acteur_id'),
-            $get($current, 'objet_type'),
-            $get($current, 'objet_id'),
-            $get($current, 'resume')
-        );
-        if (!hash_equals($expected, (string) $get($current, 'empreinte'))) {
+        $expected = psc_audit_expected_hashes((string) $get($rows[$i - 1], 'empreinte'), $current, $seuil);
+        if ($expected['empreinte'] !== null && !hash_equals($expected['empreinte'], (string) $get($current, 'empreinte'))) {
+            return (int) $get($current, 'id');
+        }
+        if ($expected['contenu'] !== null && psc_audit_row_chain_version($current, $seuil) === 2
+            && !hash_equals($expected['contenu'], (string) $get($current, 'empreinte_contenu'))) {
             return (int) $get($current, 'id');
         }
     }
