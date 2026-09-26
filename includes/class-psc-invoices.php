@@ -165,10 +165,12 @@ class Psc_Invoices {
                 $tariffs = psc_billing_tariffs($date);
                 foreach (psc_billing_services($day, $flag, $regle, $date) as $svc) {
                     if (!isset($tariffs[$svc])) continue;
-                    $price = round((float) $tariffs[$svc]['price'], 2);
-                    $key = $svc . '|' . number_format($price, 2, '.', '');
+                    // Montants en centimes entiers : aucune addition de
+                    // flottants, conversion en euros une seule fois.
+                    $centimes = (int) $tariffs[$svc]['centimes'];
+                    $key = $svc . '|' . number_format($centimes / 100, 2, '.', '');
                     if (!isset($lines[$key])) {
-                        $lines[$key] = array('code' => $svc, 'label' => (string) $tariffs[$svc]['label'], 'price' => $price, 'from' => $date);
+                        $lines[$key] = array('code' => $svc, 'label' => (string) $tariffs[$svc]['label'], 'centimes' => $centimes, 'price' => $centimes / 100.0, 'from' => $date);
                     } elseif ($date < $lines[$key]['from']) {
                         $lines[$key]['from'] = $date;
                     }
@@ -182,12 +184,13 @@ class Psc_Invoices {
         }
         $lines = self::order_lines($lines);
 
-        $total = 0.0;
+        $total_centimes = 0;
         foreach ($grid as $key => $child_counts) {
             foreach ($child_counts as $cnt) {
-                $total += $lines[$key]['price'] * $cnt;
+                $total_centimes += $lines[$key]['centimes'] * (int) $cnt;
             }
         }
+        $total = $total_centimes / 100.0;
 
         // Instantané de ce qui a servi au calcul : lignes, tarifs appliqués
         // et statut « sans repas » de chaque enfant. C'est lui, et non les
@@ -338,7 +341,7 @@ class Psc_Invoices {
         foreach ($keys as $key) {
             $child_counts = $grid[$key];
             ksort($child_counts);
-            $price = round((float) $lines[$key]['price'], 2);
+            $centimes = (int) $lines[$key]['centimes'];
             foreach ($child_counts as $cid => $count) {
                 $lignes[] = array(
                     'service'       => (string) $lines[$key]['code'],
@@ -346,8 +349,8 @@ class Psc_Invoices {
                     'enfant_id'     => (int) $cid,
                     'enfant'        => isset($names[$cid]) ? $names[$cid] : null,
                     'quantite'      => (int) $count,
-                    'prix_unitaire' => $price,
-                    'total'         => round($price * (int) $count, 2),
+                    'prix_unitaire' => $centimes / 100.0,
+                    'total'         => ($centimes * (int) $count) / 100.0,
                 );
             }
         }
@@ -1203,7 +1206,7 @@ class Psc_Invoices {
 
         $pdf->SetXY($x0, $y0 + $hdr);
 
-        $grand_total = 0.0;
+        $grand_total = 0; // centimes
         $row_h       = 6;
 
         foreach ($services as $code => $svc) {
@@ -1212,7 +1215,8 @@ class Psc_Invoices {
             // la facture ne liste que ce qui est réellement dû. (FSR et
             // les autres suivent la même règle.)
             if (empty($grid[$code])) continue;
-            $price = (float) $svc['price'];
+            $centimes = isset($svc['centimes']) ? (int) $svc['centimes'] : (int) round((float) $svc['price'] * 100);
+            $price = $centimes / 100.0;
 
             // Ligne service : #E4E4E4
             $pdf->SetFillColor(228, 228, 228);
@@ -1227,7 +1231,7 @@ class Psc_Invoices {
             $pdf->SetFont('Helvetica', '', 9);
             foreach ($children as $child) {
                 $cnt         = isset($grid[$code][$child->id]) ? (int) $grid[$code][$child->id] : 0;
-                $line_total  = $cnt * $price;
+                $line_total  = $cnt * $centimes;
                 $grand_total += $line_total;
 
                 $child_label = '   ' . $child->nom . ' ' . $child->prenom;
@@ -1236,7 +1240,7 @@ class Psc_Invoices {
                 $pdf->Cell($cw[0], $row_h, self::enc($child_label),       1, 0, 'L', true);
                 $pdf->Cell($cw[1], $row_h, '',                             1, 0, 'C', true);
                 $pdf->Cell($cw[2], $row_h, $cnt_display,                   1, 0, 'C', true);
-                $pdf->Cell($cw[3], $row_h, self::price_cell($line_total), 1, 1, 'R', true);
+                $pdf->Cell($cw[3], $row_h, self::price_cell($line_total / 100), 1, 1, 'R', true);
             }
         }
 
@@ -1245,7 +1249,7 @@ class Psc_Invoices {
         $pdf->SetFont('Helvetica', 'B', 9);
         $pdf->Cell($cw[0] + $cw[1], $row_h, '',                              1, 0, 'C', true);
         $pdf->Cell($cw[2],           $row_h, __('TOTAL', 'periscolaire-registration'),   1, 0, 'R', true);
-        $pdf->Cell($cw[3],           $row_h, self::price_cell($grand_total),  1, 1, 'R', true);
+        $pdf->Cell($cw[3],           $row_h, self::price_cell($grand_total / 100),  1, 1, 'R', true);
 
         // ---- PIED DE PAGE ----
         if ($footer_text && ($parent->payment_mode ?? 'autre') === 'prelevement') {

@@ -492,16 +492,27 @@ class Psc_Planning {
      * (psc_billing_services), statut « sans repas » et tarifs EN VIGUEUR ce
      * jour-là (P1-16).
      *
-     * @return array{0: bool, 1: float} [journée facturée ?, montant]
+     * @return array{0: bool, 1: int} [journée facturée ?, montant en centimes]
      */
     public static function billed_day($child_id, $date, array $declared) {
         $flag = self::cantine_sans_repas_on($child_id, $date);
         $billed = psc_billing_services($declared, $flag, null, $date);
-        if (!$billed) return array(false, 0.0);
+        if (!$billed) return array(false, 0);
         $tariffs = psc_billing_tariffs($date);
-        $amount = 0.0;
-        foreach ($billed as $svc) $amount += (float) ($tariffs[$svc]['price'] ?? 0);
-        return array(true, $amount);
+        $cents = 0;
+        foreach ($billed as $svc) $cents += (int) ($tariffs[$svc]['centimes'] ?? 0);
+        return array(true, $cents);
+    }
+
+    /** Convertit en euros, une seule fois, les montants cumulés en centimes. */
+    private static function to_euros(array $rows, array $keys) {
+        foreach ($rows as $k => $row) {
+            if (is_array($row)) {
+                foreach ($keys as $key) if (array_key_exists($key, $row) && is_int($row[$key])) $rows[$k][$key] = $row[$key] / 100.0;
+                if (isset($row['per_child'])) $rows[$k]['per_child'] = self::to_euros($row['per_child'], $keys);
+            }
+        }
+        return $rows;
     }
 
     /**
@@ -516,7 +527,7 @@ class Psc_Planning {
         }));
         $per_child = array();
         $month_days = 0;
-        $month_total = 0.0;
+        $month_total = 0; // centimes
 
         if ($months) {
             $dates = array();
@@ -533,8 +544,8 @@ class Psc_Planning {
             foreach ($child_ids as $cid) {
                 $per_child[$cid] = array(
                     'name' => isset($child_names[$cid]) ? $child_names[$cid] : '',
-                    'month_days' => 0, 'month_total' => 0.0,
-                    'year_days' => 0, 'year_total' => 0.0,
+                    'month_days' => 0, 'month_total' => 0,
+                    'year_days' => 0, 'year_total' => 0,
                 );
             }
 
@@ -563,9 +574,9 @@ class Psc_Planning {
         }
 
         return array(
-            'per_child'   => $per_child,
+            'per_child'   => self::to_euros($per_child, array('month_total', 'year_total')),
             'month_days'  => $month_days,
-            'month_total' => $month_total,
+            'month_total' => $month_total / 100.0,
         );
     }
 
@@ -604,16 +615,17 @@ class Psc_Planning {
         $map = self::declared_map($child_ids, array_keys($all_dates));
 
         $months_out = array();
-        $year_out = array('days' => 0, 'amount' => 0.0, 'per_child' => array());
+        // Montants cumulés en centimes, convertis en euros une seule fois.
+        $year_out = array('days' => 0, 'amount' => 0, 'per_child' => array());
         foreach ($child_ids as $cid) {
-            $year_out['per_child'][$cid] = array('name' => $child_names[$cid], 'days' => 0, 'amount' => 0.0);
+            $year_out['per_child'][$cid] = array('name' => $child_names[$cid], 'days' => 0, 'amount' => 0);
         }
 
         foreach ($months as $m) {
             $ym = $m['key'];
-            $months_out[$ym] = array('days' => 0, 'amount' => 0.0, 'per_child' => array());
+            $months_out[$ym] = array('days' => 0, 'amount' => 0, 'per_child' => array());
             foreach ($child_ids as $cid) {
-                $months_out[$ym]['per_child'][$cid] = array('days' => 0, 'amount' => 0.0);
+                $months_out[$ym]['per_child'][$cid] = array('days' => 0, 'amount' => 0);
             }
 
             foreach ($dates_by_month[$ym] as $date) {
@@ -636,7 +648,10 @@ class Psc_Planning {
             }
         }
 
-        return array('months' => $months_out, 'year' => $year_out);
+        $converted = self::to_euros(array('year' => $year_out) + $months_out, array('amount'));
+        $year_out = $converted['year'];
+        unset($converted['year']);
+        return array('months' => $converted, 'year' => $year_out);
     }
 
     /**

@@ -189,7 +189,8 @@ function psc_tariffs_at(array $rows, $date) {
 
 /**
  * Services proposés et leurs tarifs EN VIGUEUR à une date (aujourd'hui par
- * défaut), en euros — grille datée éditable dans Périscolaire › Réglages.
+ * défaut) — grille datée éditable dans Périscolaire › Réglages. 'price' en
+ * euros pour l'affichage, 'centimes' (entier) pour tout calcul de montant.
  */
 function psc_services($date = null) {
     $prices = psc_default_service_prices();
@@ -200,8 +201,12 @@ function psc_services($date = null) {
         'FORF' => array('label' => __('Forfait journée', 'periscolaire-registration'), 'price' => $prices['FORF']),
         'MSR'  => array('label' => __('Cantine sans repas', 'periscolaire-registration'), 'price' => $prices['MSR']),
     );
+    foreach ($defaults as $code => $row) $defaults[$code]['centimes'] = (int) round($row['price'] * 100);
     foreach (psc_tariffs_at(psc_tariff_rows(), $date ?: psc_today()) as $code => $centimes) {
-        if (isset($defaults[$code])) $defaults[$code]['price'] = $centimes / 100;
+        if (isset($defaults[$code])) {
+            $defaults[$code]['price'] = $centimes / 100.0; // toujours un flottant (cf. instantanés JSON)
+            $defaults[$code]['centimes'] = (int) $centimes;
+        }
     }
     return $defaults;
 }
@@ -211,9 +216,11 @@ function psc_billing_tariffs($date = null) {
     $date = $date ?: psc_today();
     $services = psc_services($date);
     $at = psc_tariffs_at(psc_tariff_rows(), $date);
+    $fsr = isset($at['FSR']) ? (int) $at['FSR'] : (int) round(psc_default_service_prices()['FSR'] * 100);
     $services['FSR'] = array(
-        'label' => __('Forfait sans repas cantine', 'periscolaire-registration'),
-        'price' => isset($at['FSR']) ? $at['FSR'] / 100 : psc_default_service_prices()['FSR'],
+        'label'    => __('Forfait sans repas cantine', 'periscolaire-registration'),
+        'price'    => $fsr / 100.0,
+        'centimes' => $fsr,
     );
     return $services;
 }
