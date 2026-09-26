@@ -243,6 +243,9 @@ WP_CLI::add_command('seed-docs-screenshots', function ($args, $assoc_args) {
         ))),
         'verified'       => 1,
         'status'         => 'pending',
+        // Comme toute demande réelle : règlement accepté, avec sa version.
+        'reglement_accepted_at' => current_time('mysql'),
+        'reglement_version_id'  => Psc_Document_Versions::current_id('reglement_interieur'),
         'payment_mode'   => 'autre',
         'created_at'     => current_time('mysql'),
     ));
