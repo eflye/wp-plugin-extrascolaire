@@ -60,7 +60,10 @@
 }
 .psc-admin .psc-cal2-day[data-date] { cursor: pointer; }
 .psc-admin .psc-cal2-day[data-date]:hover { border-color: #2271b1; }
-.psc-admin .psc-cal2-day--out_of_term { background: #f6f7f7; color: #a7aaad; }
+.psc-admin .psc-cal2-day--out_of_term { background: #f6f7f7; color: #646970; }
+/* Jours hors du mois affiché : bordure pointillée plutôt qu'une opacité,
+   qui faisait tomber le texte sous le contraste AA (RGAA 3.2). */
+.psc-admin .psc-cal2-day--dimmed { border-style: dashed; background: #f6f7f7; }
 .psc-admin .psc-cal2-day--closed_day { background: #fdf2f2; }
 .psc-admin .psc-cal2-day--open { background: #f4faf3; }
 
@@ -69,7 +72,8 @@
     font-weight: 600;
     color: #1d2327;
 }
-.psc-admin .psc-cal2-day--out_of_term .psc-cal2-daynum { color: #a7aaad; font-weight: 400; }
+.psc-admin .psc-cal2-day--out_of_term .psc-cal2-daynum,
+.psc-admin .psc-cal2-day--dimmed .psc-cal2-daynum { color: #646970; font-weight: 400; }
 
 .psc-admin .psc-cal2-badge {
     display: inline-block;
@@ -81,7 +85,7 @@
     line-height: 1.4;
 }
 .psc-admin button.psc-cal2-badge { cursor: pointer; }
-.psc-admin .psc-cal2-badge--muted { background: transparent; color: #a7aaad; }
+.psc-admin .psc-cal2-badge--muted { background: transparent; color: #646970; }
 .psc-admin .psc-cal2-badge--closed { background: #d63638; color: #fff; }
 .psc-admin .psc-cal2-badge--open { background: #2e7d32; color: #fff; }
 
