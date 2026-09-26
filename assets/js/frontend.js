@@ -34,62 +34,29 @@
         setTimeout(function () { span.remove(); }, 7000);
     }
 
-    // Total du mois par enfant (espace famille v2) : somme des jours du
-    // tableau affiché (un seul mois est rendu à la fois).
-    function recomputeChildTotal(childBlock) {
-        var totalEl = childBlock.querySelector('[data-child-total]');
-        if (!totalEl) return;
-
-        var daysWithReg = {};
-        var total = 0;
-        childBlock.querySelectorAll('tbody tr').forEach(function (row) {
-            var forf = row.querySelector('.psc-check[data-service="FORF"]');
-            if (forf && forf.checked) {
-                daysWithReg[forf.dataset.date] = true;
-                total += parseFloat(forf.dataset.price) || 0;
-                return;
-            }
-            row.querySelectorAll('.psc-check').forEach(function (cb) {
-                if (cb.dataset.service === 'FORF' || !cb.checked) return;
-                daysWithReg[cb.dataset.date] = true;
-                total += parseFloat(cb.dataset.price) || 0;
-            });
-        });
-
-        var count = Object.keys(daysWithReg).length;
-        totalEl.textContent = count + ' ' + (count > 1 ? MESSAGES.days : MESSAGES.day) + ' · ' +
-            total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+    // Totaux du mois (par enfant et fratrie) : fournis par le serveur dans
+    // l'état renvoyé après chaque écriture, calculés par la règle de
+    // facturation unique (psc_billing_services) — les mêmes que la facture.
+    // Aucun calcul de prix côté navigateur : il divergerait de la règle.
+    function totalText(days, amount) {
+        return days + ' ' + (days > 1 ? MESSAGES.days : MESSAGES.day) + ' · ' +
+            Number(amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
     }
 
-    // Bandeau récapitulatif fratrie (au-dessus des tableaux) : jours +
-    // montant du mois affiché, tous enfants confondus.
-    function recomputeSiblingBanner() {
-        var banner = document.getElementById('psc-sibling-banner');
-        if (!banner) return;
-        var valueEl = banner.querySelector('[data-sibling-total]');
-        if (!valueEl) return;
-
-        var daysWithReg = {};
-        var total = 0;
+    function applyTotals(state) {
+        if (!state || !state.per_child) return;
         document.querySelectorAll('.psc-portal-child-block').forEach(function (childBlock) {
-            childBlock.querySelectorAll('tbody tr').forEach(function (row) {
-                var forf = row.querySelector('.psc-check[data-service="FORF"]');
-                if (forf && forf.checked) {
-                    daysWithReg[childBlock.dataset.childId + '|' + forf.dataset.date] = true;
-                    total += parseFloat(forf.dataset.price) || 0;
-                    return;
-                }
-                row.querySelectorAll('.psc-check').forEach(function (cb) {
-                    if (cb.dataset.service === 'FORF' || !cb.checked) return;
-                    daysWithReg[childBlock.dataset.childId + '|' + cb.dataset.date] = true;
-                    total += parseFloat(cb.dataset.price) || 0;
-                });
-            });
+            var totalEl = childBlock.querySelector('[data-child-total]');
+            var row = state.per_child[childBlock.dataset.childId];
+            if (totalEl && row) totalEl.textContent = totalText(row.month_days, row.month_amount);
         });
+        var valueEl = document.querySelector('#psc-sibling-banner [data-sibling-total]');
+        if (valueEl) valueEl.textContent = totalText(state.month_days, state.month_amount);
+    }
 
-        var count = Object.keys(daysWithReg).length;
-        valueEl.textContent = count + ' ' + (count > 1 ? MESSAGES.days : MESSAGES.day) + ' · ' +
-            total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+    function applyServerState(state) {
+        applyExplicitState(state);
+        applyTotals(state);
     }
 
     // La réponse du serveur porte l'état « explicite » de toutes les cases
@@ -170,7 +137,6 @@
 
         var willCheck  = !btn.classList.contains('psc-tout-btn-all');
         var table      = btn.closest('table');
-        var childBlock = btn.closest('.psc-portal-child-block');
 
         btn.disabled = true;
 
@@ -184,8 +150,6 @@
             if (!cb.disabled) cb.checked = willCheck;
         });
 
-        if (childBlock) recomputeChildTotal(childBlock);
-        recomputeSiblingBanner();
         if (table) recomputeToutButtonsIn(table);
 
         post({
@@ -209,7 +173,7 @@
 
                 // L'état complet du mois (cases explicites, verrous) est
                 // réaligné sur la réponse du serveur.
-                applyExplicitState(res.data && res.data.state);
+                applyServerState(res.data && res.data.state);
                 window.PSC_DATA_STALE = true;
             } else {
                 dates.forEach(function (d) { targets[d].checked = previousChecked[d]; });
@@ -217,14 +181,10 @@
             }
 
             btn.disabled = false;
-            if (childBlock) recomputeChildTotal(childBlock);
-            recomputeSiblingBanner();
             if (table) recomputeToutButtonsIn(table);
         }).catch(function () {
             dates.forEach(function (d) { targets[d].checked = previousChecked[d]; });
             btn.disabled = false;
-            if (childBlock) recomputeChildTotal(childBlock);
-            recomputeSiblingBanner();
             if (table) recomputeToutButtonsIn(table);
             btnNotice(btn, MESSAGES.network);
         });
@@ -234,7 +194,6 @@
         cb.disabled = true;
 
         var willBeChecked = cb.checked;
-        var childBlock = cb.closest('.psc-portal-child-block');
         var table = cb.closest('table');
 
         // Cascade UI — exclusivités du créneau. La garderie matin, la
@@ -265,8 +224,6 @@
             siblingsToUncheck.forEach(function (sib) { sib.checked = false; });
         }
 
-        if (childBlock) recomputeChildTotal(childBlock);
-        recomputeSiblingBanner();
         if (table) recomputeToutButtonsIn(table);
 
         post({
@@ -289,12 +246,10 @@
                 // changement d'onglet plutôt qu'une bascule client instantanée.
                 window.PSC_DATA_STALE = true;
 
-                applyExplicitState(res.data && res.data.state);
+                applyServerState(res.data && res.data.state);
 
-                // Totals après réalignement serveur : l'état explicite peut
-                // différer de l'optimiste (invariant, cascade).
-                if (childBlock) recomputeChildTotal(childBlock);
-                recomputeSiblingBanner();
+                // Boutons « Tout » après réalignement serveur : l'état
+                // explicite peut différer de l'optimiste (invariant, cascade).
                 if (table) recomputeToutButtonsIn(table);
 
                 siblingsToUncheck.forEach(function (sib) {
@@ -309,9 +264,7 @@
                         // réaligne, sinon la case cascade reste visuellement
                         // cochée alors que le serveur l'a retirée.
                         if (res2 && res2.success) {
-                            applyExplicitState(res2.data && res2.data.state);
-                            if (childBlock) recomputeChildTotal(childBlock);
-                            recomputeSiblingBanner();
+                            applyServerState(res2.data && res2.data.state);
                         }
                     });
                 });
@@ -321,8 +274,6 @@
             // Erreur : annuler le changement d'UI
             cb.checked = !willBeChecked;
             siblingsToUncheck.forEach(function (sib) { sib.checked = true; });
-            if (childBlock) recomputeChildTotal(childBlock);
-            recomputeSiblingBanner();
             if (table) recomputeToutButtonsIn(table);
 
             var code = res && res.data && res.data.code;
@@ -340,8 +291,6 @@
             cb.disabled = false;
             cb.checked = !willBeChecked;
             siblingsToUncheck.forEach(function (sib) { sib.checked = true; });
-            if (childBlock) recomputeChildTotal(childBlock);
-            recomputeSiblingBanner();
             if (table) recomputeToutButtonsIn(table);
             cellNotice(cb, MESSAGES.network);
         });
@@ -478,6 +427,5 @@
             btn.addEventListener('click', function () { onConfirm(btn, feedback); });
         }
 
-        recomputeSiblingBanner();
     });
 })();
