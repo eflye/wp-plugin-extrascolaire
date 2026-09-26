@@ -127,3 +127,40 @@ $assert('cron : seule la tâche en retard de plus de 6 h est signalée', psc_lat
 $assert('cron : délai de grâce réglable', psc_late_cron_hooks($next, $now, 3600), array('a', 'b'));
 $assert('cron : échéance absente, pas un retard', psc_late_cron_hooks(array('d' => false), $now), array());
 $assert('cron : les huit tâches récurrentes sont libellées', count(array_filter(psc_recurring_cron_hooks())), 8);
+
+/* ---- Chaînage v2 et lignes purgées (P1-11, schéma 4.16.0) ---- */
+$mk = function ($id, $resume) {
+    return array('id' => $id, 'horodatage' => '2026-09-26 10:00:0' . $id, 'action' => 'menu.enregistrement',
+        'acteur_type' => 'admin', 'acteur_id' => 1, 'objet_type' => 'menu', 'objet_id' => $id, 'resume' => $resume,
+        'empreinte' => null, 'empreinte_contenu' => null, 'purgee_le' => null);
+};
+$chain = function (array $rows, $seuil) {
+    $prev = '';
+    foreach ($rows as $i => $r) {
+        if ($seuil > 0 && $r['id'] >= $seuil) $r['empreinte_contenu'] = 'x'; // marque v2 avant calcul
+        $e = psc_audit_expected_hashes($prev, $r, $seuil);
+        $rows[$i]['empreinte'] = $e['empreinte'];
+        $rows[$i]['empreinte_contenu'] = ($seuil > 0 && $r['id'] >= $seuil) ? $e['contenu'] : psc_audit_content_hash($r['horodatage'], $r['action'], $r['acteur_type'], $r['acteur_id'], $r['objet_type'], $r['objet_id'], $r['resume']);
+        $prev = $e['empreinte'];
+    }
+    return $rows;
+};
+$purge = function (array $row) {
+    return array_merge($row, array('acteur_id' => null, 'objet_id' => null, 'resume' => '', 'purgee_le' => '2027-01-01 00:00:00'));
+};
+// Lignes 1-2 en v1 (antérieures à la mise à jour), 3-6 en v2.
+$rows = $chain(array($mk(1, 'a'), $mk(2, 'b'), $mk(3, 'c'), $mk(4, 'd'), $mk(5, 'e'), $mk(6, 'f')), 3);
+$assert('chaînage mixte v1/v2 : intact', psc_audit_verify_chain_rows($rows, 3), null);
+$assert('chaînage v2 : empreinte = précédente + contenu', $rows[3]['empreinte'], psc_audit_chain_hash($rows[2]['empreinte'], $rows[3]['empreinte_contenu']));
+$purged = $rows; $purged[3] = $purge($rows[3]); $purged[1] = $purge($rows[1]);
+$assert('lignes purgées (v1 et v2) au milieu : chaîne toujours vérifiable', psc_audit_verify_chain_rows($purged, 3), null);
+$bad = $purged; $bad[3]['empreinte_contenu'] = str_repeat('0', 64);
+$assert('ligne purgée v2 falsifiée : détectée', psc_audit_verify_chain_rows($bad, 3), 4);
+$bad = $rows; $bad[4]['resume'] = 'altéré';
+$assert('ligne v2 altérée : détectée', psc_audit_verify_chain_rows($bad, 3), 5);
+$bad = $rows; $bad[4]['empreinte_contenu'] = str_repeat('1', 64);
+$assert('empreinte de contenu v2 altérée seule : détectée', psc_audit_verify_chain_rows($bad, 3), 5);
+$bad = $rows; $bad[1]['resume'] = 'altéré';
+$assert('ligne v1 altérée : toujours détectée', psc_audit_verify_chain_rows($bad, 3), 2);
+$assert('sans seuil (avant mise à jour) : tout en v1', psc_audit_verify_chain_rows($chain(array($mk(1, 'a'), $mk(2, 'b')), 0), 0), null);
+$assert('ligne sans empreinte de contenu après le seuil : v1', psc_audit_row_chain_version(array('id' => 9, 'empreinte_contenu' => null), 3), 1);
