@@ -199,7 +199,9 @@ class Psc_Installer {
         self::$final_schema = true;
         $final_ok = self::run_step('create_tables');
         self::$final_schema = false;
-        if (!$final_ok || !self::run_step('remove_pickup_identity_data') || !self::run_step('ensure_audit_chain_v2')) {
+        // migrate_4_17_0 est idempotente : rejouée à chaque passe, elle
+        // donne aussi sa grille de tarifs à une installation neuve.
+        if (!$final_ok || !self::run_step('remove_pickup_identity_data') || !self::run_step('ensure_audit_chain_v2') || !self::run_step('migrate_4_17_0')) {
             self::record_migration_failure($current, 'schema');
             return false;
         }
@@ -635,8 +637,9 @@ class Psc_Installer {
      *     même date ; puis la colonne children.cantine_sans_repas est
      *     supprimée.
      *
-     * Idempotente : un code déjà présent n'est pas réécrit, une période
-     * n'est créée que pour un enfant qui n'en a aucune.
+     * Idempotente et rejouée à chaque passe de schéma (installation neuve
+     * comprise) : un code qui a déjà un tarif n'en reçoit pas d'autre, une
+     * période n'est créée que pour un enfant qui n'en a aucune.
      */
     private static function migrate_4_17_0() {
         global $wpdb;
@@ -653,10 +656,13 @@ class Psc_Installer {
         foreach ((array) get_option('psc_service_prices', array()) as $code => $price) {
             if (isset($prices[$code])) $prices[$code] = max(0, (float) $price);
         }
+        // Seules les prestations sans aucun tarif reçoivent leur première
+        // ligne : une grille déjà datée n'est jamais complétée dans le passé.
+        $known = (array) $wpdb->get_col("SELECT DISTINCT code FROM $t_tarifs");
         foreach ($prices as $code => $price) {
-            $done = $wpdb->query($wpdb->prepare(
-                "INSERT IGNORE INTO $t_tarifs (code, prix_centimes, debut, fin, created_at, created_by) VALUES (%s, %d, %s, NULL, %s, NULL)",
-                $code, (int) round($price * 100), $debut, $now
+            if (in_array($code, $known, true)) continue;
+            $done = $wpdb->insert($t_tarifs, array(
+                'code' => $code, 'prix_centimes' => (int) round($price * 100), 'debut' => $debut, 'fin' => null, 'created_at' => $now, 'created_by' => null,
             ));
             if ($done === false) return false;
         }
@@ -672,6 +678,7 @@ class Psc_Installer {
             if (false === $wpdb->query("ALTER TABLE $t_child DROP COLUMN cantine_sans_repas")) return false;
         }
         delete_option('psc_service_prices');
+        if (class_exists('Psc_Tarifs')) Psc_Tarifs::flush_cache();
         return true;
     }
 
