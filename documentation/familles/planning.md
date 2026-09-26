@@ -35,7 +35,7 @@ Un jour se modifie en ligne jusqu'à un certain nombre d'heures avant le jour co
 
 ## Cantine sans repas
 
-Si la mairie a convenu avec vous que votre enfant apporte son repas, le planning l'indique (« Cantine sans repas ») et ses jours de cantine apparaissent en **Midi sans repas**. Vous les cochez et décochez comme d'habitude : ce qui s'affiche est ce qui sera facturé.
+Si la mairie a convenu avec vous que votre enfant apporte son repas, le planning l'indique (« Cantine sans repas ») et ses jours de cantine apparaissent en **Midi sans repas**. Vous les cochez et décochez comme d'habitude : ce qui s'affiche est ce qui sera facturé. Ce statut s'applique à partir de la date convenue avec la mairie : les jours précédents restent des repas de cantine.
 
 ## Utiliser le planning au clavier
 
