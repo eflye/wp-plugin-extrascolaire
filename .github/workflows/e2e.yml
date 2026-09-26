@@ -208,6 +208,7 @@ jobs:
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-audit-fallback.php verify-audit-fallback
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-audit-retention.php verify-audit-retention
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-dated-tariffs.php verify-dated-tariffs
+          wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-document-versions.php verify-document-versions
           # Gel des factures émises face aux tarifs et statuts datés (P1-16).
           wp eval-file /var/www/html/wp-content/plugins/periscolaire-registration/tests/integration/invoice-snapshot.php
           # Registre d'audit complet : toute action admin_post/ajax psc_* doit y être classée.

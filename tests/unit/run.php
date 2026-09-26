@@ -472,6 +472,12 @@ $GLOBALS['psc_test_options']['psc_service_prices'] = array('FORF' => 11.70);
 $assert('facturation datée : le plafond lit les tarifs du jour', psc_billing_services(array('GM' => true, 'CANT' => true, 'GS' => true), false, null, '2027-01-01'), array('FORF'));
 unset($GLOBALS['psc_test_options']);
 
+/* Versions des règlements (P2-14) : empreinte du texte et du PDF. */
+require_once __DIR__ . '/../../includes/helpers/reglements.php';
+$assert('version : même texte, même empreinte', psc_document_version_hash('<p>A</p>'), psc_document_version_hash('<p>A</p>', null));
+$assert('version : texte modifié, autre empreinte', psc_document_version_hash('<p>A</p>') !== psc_document_version_hash('<p>B</p>'), true);
+$assert('version : PDF ajouté, autre empreinte', psc_document_version_hash('<p>A</p>') !== psc_document_version_hash('<p>A</p>', str_repeat('a', 64)), true);
+
 /* Contrats d'une journée (P3-01) : une table de décision partagée avec
  * bin/verify-channel-contracts.php — présence, repas fourni, facturation.
  * Rejouée avec les tarifs par défaut (FSR plus cher que ses créneaux) puis

@@ -186,6 +186,18 @@ test.describe('P0-01 — signalement alimentaire et approbation des demandes', (
 
     expect(childFoodSignal(email, 'Léo')).toBe('1');
 
+    // P2-14 : la version du règlement intérieur affichée est tracée sur la
+    // demande, puis reportée sur la fiche famille et l'année de l'enfant.
+    const versions = JSON.parse(wpCliEval(
+      `global $wpdb;
+       $r = $wpdb->get_row($wpdb->prepare("SELECT reglement_version_id FROM {$wpdb->prefix}psc_requests WHERE email = %s ORDER BY id DESC LIMIT 1", '${email}'));
+       $p = $wpdb->get_row($wpdb->prepare("SELECT id, reglement_version_id FROM {$wpdb->prefix}psc_parents WHERE email = %s", '${email}'));
+       $cy = $wpdb->get_var($wpdb->prepare("SELECT cy.reglement_version_id FROM {$wpdb->prefix}psc_child_school_years cy JOIN {$wpdb->prefix}psc_children c ON c.id = cy.child_id WHERE c.parent_id = %d", $p->id));
+       echo wp_json_encode(array('courante' => Psc_Document_Versions::current_id('reglement_interieur'), 'demande' => (int) $r->reglement_version_id, 'famille' => (int) $p->reglement_version_id, 'annee' => (int) $cy));`
+    ));
+    expect(versions.courante).toBeGreaterThan(0);
+    expect(versions).toEqual({ courante: versions.courante, demande: versions.courante, famille: versions.courante, annee: versions.courante });
+
     const pai = await findLatestMessage(mairieEmail(), 'Échange à prévoir sur l’alimentation');
     expect(pai.Subject).toContain('Léo');
   });
@@ -240,6 +252,7 @@ test.describe('P0-01 — signalement alimentaire et approbation des demandes', (
          'bic' => $p->sepa_bic,
          'rum' => $p->sepa_mandate_ref,
          'accepted' => !empty($p->sepa_reglement_accepted_at),
+         'version' => (int) $p->sepa_reglement_version_id === (int) Psc_Document_Versions::current_id('reglement_prelevement'),
        ));`
     ));
     expect(stored).toEqual({
@@ -248,6 +261,7 @@ test.describe('P0-01 — signalement alimentaire et approbation des demandes', (
       bic: 'AGRIFRPP882',
       rum: expect.stringMatching(/^RUMP\d{8}$/),
       accepted: true,
+      version: true,
     });
     const confirmation = await findLatestMessage(email, 'Prélèvement automatique activé');
     expect(confirmation.Text).toContain('prélèvement automatique SEPA');
