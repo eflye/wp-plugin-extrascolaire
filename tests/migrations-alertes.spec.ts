@@ -28,14 +28,14 @@ async function loginAsAdmin(page: Page) {
 
 test('alertes P1-17 : montée de version arrêtée et documents non déplacés', async ({ page }) => {
   try {
-    php(`update_option('psc_migration_failed', array('etape' => '4.14.0', 'depuis' => '4.0.0', 'requete' => 'ALTER wp_psc_supplier_orders', 'erreurs' => 1, 'ts' => time()), false);
+    php(`update_option('psc_migration_failed', array('etape' => '4.17.0', 'depuis' => '4.15.0', 'requete' => 'ALTER wp_psc_supplier_orders', 'erreurs' => 1, 'ts' => time()), false);
          update_option('psc_storage_move_failed', array('e2e' => array('depuis' => '/srv/ancien-e2e', 'vers' => '/srv/nouveau-e2e', 'restants' => 2, 'ts' => time())), false); echo 'ok';`);
     await loginAsAdmin(page);
     await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_settings`);
 
     const migration = page.getByTestId('notice-migration-failed');
     await expect(migration).toBeVisible();
-    await expect(migration).toContainText('4.14.0');
+    await expect(migration).toContainText('4.17.0');
     await expect(migration).toContainText('ALTER wp_psc_supplier_orders');
 
     const storage = page.getByTestId('notice-storage-move-failed');
@@ -53,5 +53,23 @@ test('alertes P1-17 : montée de version arrêtée et documents non déplacés',
     await expect(page.getByTestId('notice-storage-move-failed')).toHaveCount(0);
   } finally {
     php(`$u = get_user_by('login', 'admin'); $u->remove_cap('psc_manage_config'); delete_option('psc_migration_failed'); delete_option('psc_storage_move_failed'); echo 'ok';`);
+  }
+});
+
+test('alerte : base trop ancienne pour cette version, sans nouvelle tentative promise', async ({ page }) => {
+  try {
+    php(`update_option('psc_migration_failed', array('etape' => 'version', 'depuis' => '4.14.0', 'requete' => 'schéma 4.14.0 trop ancien : mettez d’abord à jour vers la version 5.32.1 de l’extension (schéma 4.15.0 ou plus), puis vers celle-ci', 'erreurs' => 0, 'ts' => time()), false); echo 'ok';`);
+    await loginAsAdmin(page);
+    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_settings`);
+
+    const notice = page.getByTestId('notice-migration-failed');
+    await expect(notice).toContainText('la base de données est trop ancienne pour cette version');
+    await expect(notice).toContainText('5.32.1');
+    await expect(notice).not.toContainText('nouvelle tentative');
+
+    const axe = await new AxeBuilder({ page }).include('#wpbody-content').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+    expect(axe.violations.map((v) => `${v.id} : ${v.nodes.length}`)).toEqual([]);
+  } finally {
+    php(`delete_option('psc_migration_failed'); echo 'ok';`);
   }
 });

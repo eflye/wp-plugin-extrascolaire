@@ -27,7 +27,7 @@ jobs:
   # de la branche : publier dépendait jusqu'ici d'une attente manuelle de
   # la CI avant de taguer. Les deux workflows sont donc rejoués ici, sur
   # le commit exact du tag, et la publication en dépend. C'est l'E2E qui
-  # exécute verify-migrations (montée de version par bonds) : un schéma
+  # exécute verify-migrations (montée depuis le schéma 4.15.0) : un schéma
   # cassé ne peut plus partir en production. Les rejouer coûte quelques
   # minutes, mais un statut lu sur un autre run pourrait porter sur un
   # autre commit, ou sur un run annulé.
