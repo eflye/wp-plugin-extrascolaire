@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.30.0
+Stable tag: 5.31.0
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,15 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.31.0 =
+* Mise à jour automatique de la base (schéma 4.16.0, journal d'audit) : l'étape « Base de données » de Périscolaire › Maintenance doit afficher 4.16.0.
+* Journal d'audit : une ligne dont la durée de conservation est dépassée voit son contenu effacé (auteur, résumé, détails, adresse IP, famille, enfant), même si des lignes plus anciennes sont conservées plus longtemps ; la chaîne d'intégrité reste vérifiable. Auparavant, une seule ligne conservée trois ans bloquait la purge de toutes les suivantes.
+* Journal d'audit : le fichier de secours journal-acces.log ne contient plus que l'heure, le code d'action et un message technique dont les valeurs sont masquées ; il est archivé au-delà de 256 Ko puis supprimé après la durée de conservation.
+* **À vérifier après la mise à jour :** un avis rouge sur le tableau de bord signale désormais les tâches planifiées (purges RGPD, reprise des envois, messages programmés) en retard de plus de six heures. S'il apparaît, faites appeler wp-cron.php régulièrement par l'hébergement (voir « Tâches planifiées » dans la documentation).
+* Fermeture d'une prestation : l'e-mail envoyé aux familles au forfait liste, pour chaque enfant, les prestations maintenues ce jour-là (en tenant compte de celles que la famille avait déjà retirées).
+* Calendrier de l'année scolaire : les jours hors du mois affiché sont lisibles (contraste conforme au RGAA).
+* Documentation : captures de l'écran Année scolaire et du calendrier mises à jour.
 
 = 5.30.0 =
 * Annulation de la cantine d'une classe : les enfants au forfait journée sont désormais concernés comme les autres. Leur cantine est retirée (le repas sort de la commande, la famille est prévenue), leurs garderies restent et la journée est facturée garderies seules. L'écran de confirmation indique quels enfants sont au forfait.
