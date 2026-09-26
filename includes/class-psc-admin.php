@@ -173,6 +173,9 @@ class Psc_Admin extends Psc_Admin_Base {
         // Écran de confirmation d'une consultation : accessible depuis les
         // fiches famille, jamais comme destination autonome du menu.
         add_submenu_page('psc_dashboard', __('Consulter un espace famille', 'periscolaire-registration'), null, 'psc_impersonate_family', 'psc_impersonate', array('Psc_Admin_Familles', 'page_impersonate'));
+        // Version d'un règlement approuvé (P2-14) : ouverte depuis une
+        // demande ou une fiche, jamais comme destination du menu.
+        add_submenu_page('psc_dashboard', __('Version de règlement', 'periscolaire-registration'), null, 'psc_manage_families', 'psc_reglement_version', array('Psc_Admin_Familles', 'page_reglement_version'));
 
         /* ---------------- FACTURATION ---------------- */
         add_submenu_page('psc_dashboard', __('Facturation', 'periscolaire-registration'), '<span class="psc-menu-section">' . esc_html__('Facturation', 'periscolaire-registration') . '</span>', 'psc_manage_billing', 'psc-section-facturation', self::section_redirect('psc_factures'));

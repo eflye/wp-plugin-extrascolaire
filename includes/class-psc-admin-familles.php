@@ -13,6 +13,7 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         add_action('admin_post_psc_mark_child_sorti', array(__CLASS__, 'handle_mark_child_sorti'));
         add_action('admin_post_psc_mark_child_actif', array(__CLASS__, 'handle_mark_child_actif'));
         add_action('admin_post_psc_toggle_cantine_sans_repas', array(__CLASS__, 'handle_toggle_cantine_sans_repas'));
+        add_action('admin_post_psc_family_reglement_pdf', array(__CLASS__, 'handle_reglement_pdf'));
         add_action('admin_post_psc_add_parent', array(__CLASS__, 'handle_add_parent'));
         add_action('admin_post_psc_toggle_parent', array(__CLASS__, 'handle_toggle_parent'));
         add_action('admin_post_psc_send_link', array(__CLASS__, 'handle_send_link'));
@@ -291,6 +292,49 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         if (!Psc_School_Years::get($year_id) || !Psc_School_Years::mark_actif($id, $year_id)) self::redirect('psc_children', 'invalid');
         Psc_Audit::log('enfant.reactivation', array('objet_type' => 'enfant', 'objet_id' => $id, 'enfant_id' => $id, 'meta' => array('annee' => $year_id)));
         self::redirect('psc_children', 'marked_actif');
+    }
+
+    /**
+     * Version d'un règlement approuvé (P2-14) : le texte exact affiché à la
+     * famille, l'empreinte, le PDF conservé et le nombre d'acceptations qui
+     * la citent. Consultation seule.
+     */
+    public static function page_reglement_version() {
+        if (!current_user_can('psc_manage_families')) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        global $wpdb;
+        $version = Psc_Document_Versions::get(psc_get_int('id'));
+        if (!$version) wp_die(esc_html__('Version introuvable.', 'periscolaire-registration'), '', array('response' => 404));
+        $psc_acceptations = 0;
+        foreach (array(
+            array('parents', 'reglement_version_id'), array('parents', 'sepa_reglement_version_id'),
+            array('requests', 'reglement_version_id'), array('requests', 'sepa_reglement_version_id'),
+            array('child_school_years', 'reglement_version_id'),
+        ) as list($table, $column)) {
+            $psc_acceptations += (int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM ' . psc_table($table) . " WHERE $column = %d", (int) $version->id));
+        }
+        Psc_Audit::log('reglage.version_reglement_consultee', array(
+            'objet_type' => 'reglage', 'meta' => array('version' => (int) $version->id),
+            'resume' => sprintf(__('Version n° %d d’un règlement consultée.', 'periscolaire-registration'), (int) $version->id),
+        ));
+        include PSC_PATH . 'templates/admin-reglement-version.php';
+    }
+
+    /** PDF conservé d'une version de règlement, servi depuis le répertoire privé. */
+    public static function handle_reglement_pdf() {
+        if (!current_user_can('psc_manage_families')) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        check_admin_referer('psc_family_reglement_pdf');
+        $version = Psc_Document_Versions::get(psc_get_int('id') ?: psc_post_int('id'));
+        if (!$version || !$version->pdf_fichier) wp_die(esc_html__('Fichier introuvable.', 'periscolaire-registration'), '', array('response' => 404));
+        $path = psc_private_path($version->pdf_fichier);
+        if (!$path || !file_exists($path)) wp_die(esc_html__('Fichier introuvable.', 'periscolaire-registration'), '', array('response' => 404));
+        psc_log_download('reglement', $version->pdf_fichier);
+        nocache_headers();
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="' . sanitize_file_name($version->type . '-version-' . (int) $version->id . '.pdf') . '"');
+        header('Content-Length: ' . filesize($path));
+        header('X-Content-Type-Options: nosniff');
+        readfile($path); // phpcs:ignore WordPress.WP.AlternativeFunctions
+        exit;
     }
 
     public static function page_children() {

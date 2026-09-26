@@ -79,6 +79,7 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
         <td>
           <?php if (!empty($req->reglement_accepted_at)): ?>
             <span style="color:#46b450">✔ <?php esc_html_e('Accepté le', 'periscolaire-registration'); ?> <?php echo esc_html(date_i18n('d/m/Y à H:i', strtotime($req->reglement_accepted_at))); ?></span>
+            <?php if (!empty($req->reglement_version_id)): ?> — <a href="<?php echo esc_url(Psc_Document_Versions::admin_url($req->reglement_version_id)); ?>" data-testid="request-reglement-version-<?php echo esc_attr($req->id); ?>"><?php echo esc_html(Psc_Document_Versions::label($req->reglement_version_id)); ?></a><?php endif; ?>
           <?php else: ?>
             <span style="color:#b32d2e">✘ <?php esc_html_e('Non accepté', 'periscolaire-registration'); ?></span>
           <?php endif; ?>
@@ -97,6 +98,7 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
               <li><?php esc_html_e('Règlement prélèvement :', 'periscolaire-registration'); ?>
                 <?php if (!empty($req->sepa_reglement_accepted_at)): ?>
                   <span style="color:#46b450">✔ <?php esc_html_e('Accepté le', 'periscolaire-registration'); ?> <?php echo esc_html(date_i18n('d/m/Y à H:i', strtotime($req->sepa_reglement_accepted_at))); ?></span>
+                  <?php if (!empty($req->sepa_reglement_version_id)): ?> — <a href="<?php echo esc_url(Psc_Document_Versions::admin_url($req->sepa_reglement_version_id)); ?>" data-testid="request-sepa-version-<?php echo esc_attr($req->id); ?>"><?php echo esc_html(Psc_Document_Versions::label($req->sepa_reglement_version_id)); ?></a><?php endif; ?>
                 <?php else: ?>
                   <span style="color:#b32d2e">✘ <?php esc_html_e('Non accepté', 'periscolaire-registration'); ?></span>
                 <?php endif; ?>

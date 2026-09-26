@@ -311,6 +311,7 @@ function psc_log_download($kind, $rel_path) {
         'factures'     => array('action' => 'facture.export', 'objet' => null),
         'prelevements' => array('action' => 'sepa.export', 'objet' => null),
         'conversation_attachment' => array('action' => 'conversation.piece_jointe_telechargement', 'objet' => 'conversation'),
+        'reglement'    => array('action' => 'reglage.version_reglement_telechargement', 'objet' => 'reglage'),
     );
     $entry = isset($actions[$kind]) ? $actions[$kind] : array('action' => 'inconnu.action', 'objet' => null);
 
