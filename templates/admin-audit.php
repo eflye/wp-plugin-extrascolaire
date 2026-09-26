@@ -73,7 +73,7 @@ $export_ods_url = wp_nonce_url(add_query_arg(array_merge($export_query_args, arr
 
   <div class="psc-box">
     <h2><?php esc_html_e('Conservation', 'periscolaire-registration'); ?></h2>
-    <p><?php esc_html_e('Passé ce délai, les lignes du journal sont définitivement supprimées (purge quotidienne automatique). Ces durées sont indicatives et réglables ici selon vos besoins — elles ne constituent pas, en elles-mêmes, une obligation légale.', 'periscolaire-registration'); ?></p>
+    <p><?php esc_html_e('Passé ce délai, la purge quotidienne efface le contenu de la ligne (auteur, résumé, détails, adresse IP, famille, enfant). Seuls restent sa date, son code d’action et ses empreintes, invisibles ici, pour que la chaîne d’intégrité reste vérifiable ; la ligne est supprimée dès qu’aucune ligne plus ancienne n’est conservée. Ces durées sont indicatives et réglables ici selon vos besoins — elles ne constituent pas, en elles-mêmes, une obligation légale.', 'periscolaire-registration'); ?></p>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
       <?php wp_nonce_field('psc_audit_save_retention'); ?>
       <input type="hidden" name="action" value="psc_audit_save_retention">

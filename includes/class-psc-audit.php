@@ -31,7 +31,7 @@ class Psc_Audit {
     public static function init() {
         add_action('admin_init', array(__CLASS__, 'capture_generic'), 0);
         add_action('shutdown', array(__CLASS__, 'finalize_generic'));
-        add_action('psc_purge_audit_log', array(__CLASS__, 'purge_expired'), 10, 0);
+        add_action('psc_purge_audit_log', array(__CLASS__, 'run_daily_purge'), 10, 0);
         self::ensure_crons();
     }
 
@@ -168,16 +168,25 @@ class Psc_Audit {
 
         $horodatage = gmdate('Y-m-d H:i:s');
         $previous_hash = (string) get_option('psc_audit_last_hash', '');
-        $empreinte = psc_audit_compute_hash(
-            $previous_hash,
-            $horodatage,
-            $action_code,
-            $actor['type'],
-            $actor['id'],
-            $args['objet_type'],
-            $args['objet_id'],
-            $resume
-        );
+        // Chaînage v2 (P1-11) dès que la mise à jour 4.16.0 a posé son
+        // seuil : l'empreinte de contenu est gardée à part, pour qu'une
+        // ligne expirée puisse être vidée sans casser la chaîne.
+        $contenu = null;
+        if (self::chain_v2_from() > 0) {
+            $contenu = psc_audit_content_hash($horodatage, $action_code, $actor['type'], $actor['id'], $args['objet_type'], $args['objet_id'], $resume);
+            $empreinte = psc_audit_chain_hash($previous_hash, $contenu);
+        } else {
+            $empreinte = psc_audit_compute_hash(
+                $previous_hash,
+                $horodatage,
+                $action_code,
+                $actor['type'],
+                $actor['id'],
+                $args['objet_type'],
+                $args['objet_id'],
+                $resume
+            );
+        }
 
         $resultat = in_array($args['resultat'], array('succes', 'refus', 'erreur', 'tentative'), true) ? $args['resultat'] : 'succes';
 
@@ -201,6 +210,7 @@ class Psc_Audit {
             'canal'              => self::detect_channel(),
             'empreinte'          => $empreinte,
         );
+        if ($contenu !== null) $row['empreinte_contenu'] = $contenu;
 
         $inserted = $wpdb->insert(psc_table('audit_log'), $row);
         if ($inserted === false) {
@@ -348,6 +358,9 @@ class Psc_Audit {
         global $wpdb;
         $where = array('1=1');
         $values = array();
+        // Lignes purgées (contenu vidé, gardées pour le chaînage) : jamais
+        // listées ni exportées.
+        if (self::chain_v2_from() > 0) $where[] = 'purgee_le IS NULL';
 
         if (!empty($args['du'])) { $where[] = 'horodatage >= %s'; $values[] = $args['du'] . ' 00:00:00'; }
         if (!empty($args['au'])) { $where[] = 'horodatage <= %s'; $values[] = $args['au'] . ' 23:59:59'; }
@@ -453,7 +466,17 @@ class Psc_Audit {
             'SELECT * FROM (SELECT * FROM ' . psc_table('audit_log') . ' ORDER BY id DESC LIMIT %d) x ORDER BY id ASC',
             $limit + 1
         ));
-        return psc_audit_verify_chain_rows($rows);
+        return psc_audit_verify_chain_rows($rows, self::chain_v2_from());
+    }
+
+    /**
+     * Premier id chaîné en v2 (empreinte de contenu séparée), posé par la
+     * mise à jour 4.16.0 (Psc_Installer::ensure_audit_chain_v2) ; 0 tant
+     * qu'elle n'a pas tourné — le journal garde alors le chaînage v1 et
+     * la purge historique.
+     */
+    public static function chain_v2_from() {
+        return (int) get_option('psc_audit_chain_v2_from', 0);
     }
 
     /* ------------------------------------------------------------------ */
@@ -461,71 +484,88 @@ class Psc_Audit {
     /* ------------------------------------------------------------------ */
 
     /**
-     * Purge quotidienne : les lignes plus vieilles que la durée de
-     * rétention de leur niveau (options psc_audit_retention_{niveau}, cf.
-     * psc_audit_retention_days()) sont supprimées par lots de 1000, avec
-     * une limite de temps par exécution — une table de plusieurs centaines
-     * de milliers de lignes ne doit jamais bloquer le cron ; ce qui n'est
-     * pas traité aujourd'hui le sera au passage suivant.
+     * Purge quotidienne (P1-11) : chaque ligne plus vieille que la durée de
+     * rétention de SON niveau (options psc_audit_retention_{niveau}, cf.
+     * psc_audit_retention_days()) est vidée de son contenu — acteur,
+     * résumé, détails, IP, identifiants de famille, d'enfant et d'objet —
+     * et marquée purgée (purgee_le). Elle garde son horodatage, son code
+     * d'action et ses deux empreintes : la chaîne reste vérifiable sans
+     * aucune donnée personnelle, même quand la ligne purgée est suivie de
+     * lignes à conserver plus longtemps.
      *
-     * Une ligne purgée est réellement supprimée, pas anonymisée : sa durée
-     * de rétention a expiré, il n'y a plus de raison de la garder même
-     * sous forme anonyme (contrairement à forget_family(), déclenchée par
-     * la suppression d'une famille avant l'expiration normale).
+     * Les lignes purgées qui forment le début de la table (aucune ligne
+     * conservée avant elles) sont ensuite réellement supprimées : la plus
+     * ancienne ligne survivante devient l'ancre de la vérification (cf.
+     * verify_chain()).
      *
-     * Supprimer les lignes les plus anciennes ne casse pas la chaîne
-     * d'intégrité : verify_chain() traite par construction la plus
-     * ancienne ligne d'une fenêtre comme une ancre non vérifiable (cf. sa
-     * note) — après purge, la nouvelle plus ancienne ligne survivante
-     * devient simplement cette ancre, sans déclencher de fausse alerte.
+     * Lots de 1000 lignes par id croissant, avec une limite de temps par
+     * exécution : ce qui n'est pas traité aujourd'hui l'est au passage
+     * suivant. Avant la mise à jour 4.16.0 (chaînage v1), rien n'est fait :
+     * vider une ligne v1 casserait la vérification.
      *
-     * Mais ceci suppose de ne JAMAIS créer de trou au milieu de la
-     * chaîne : les niveaux ayant des rétentions différentes, une ligne
-     * "volumineux" (180 jours) peut expirer alors qu'une ligne "critique"
-     * (1095 jours) qui la précède ou la suit de peu ne l'est pas encore —
-     * la supprimer isolément casserait le chaînage de tout ce qui la
-     * suit, définitivement. C'est pourquoi la purge n'avance que par
-     * préfixe contigu, par id croissant : elle s'arrête dès la première
-     * ligne encore valide, même si des lignes expirées existent plus
-     * loin dans la table — elles seront purgées au(x) passage(s)
-     * suivant(s), une fois que la ligne qui les bloque aura elle-même expiré.
+     * @return int Nombre de lignes purgées (vidées) par ce passage.
      */
-    public static function purge_expired($time_limit_seconds = 20) {
+    /** Tâche quotidienne psc_purge_audit_log (cf. purge_expired()). */
+    public static function run_daily_purge() {
+        self::purge_expired();
+    }
+
+    public static function purge_expired($time_limit_seconds = 20, $now = null) {
+        self::purge_fallback($now);
+        if (self::chain_v2_from() <= 0) return 0;
+
         global $wpdb;
         $started = microtime(true);
         $table = psc_table('audit_log');
-        $total_deleted = 0;
-        $now = time();
+        $now = $now === null ? time() : (int) $now;
+        $cutoffs = array();
+        foreach (array_keys(psc_audit_retention_defaults()) as $niveau) {
+            $cutoffs[$niveau] = gmdate('Y-m-d H:i:s', $now - psc_audit_retention_days($niveau) * DAY_IN_SECONDS);
+        }
+        $oldest_cutoff = max($cutoffs); // la plus courte rétention : rien de plus récent n'expire
 
+        $purged = 0;
+        $cursor = 0;
         while ((microtime(true) - $started) <= $time_limit_seconds) {
-            $rows = $wpdb->get_results("SELECT id, action, horodatage FROM $table ORDER BY id ASC LIMIT 1000");
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT id, action, horodatage FROM $table WHERE id > %d AND purgee_le IS NULL AND horodatage < %s ORDER BY id ASC LIMIT 1000",
+                $cursor, $oldest_cutoff
+            ));
             if (!$rows) break;
-
-            $expired_ids = array();
+            $expired = array();
             foreach ($rows as $row) {
-                $days = psc_audit_retention_days(psc_audit_niveau_for_action($row->action));
-                $cutoff = gmdate('Y-m-d H:i:s', $now - $days * DAY_IN_SECONDS);
-                if ($row->horodatage >= $cutoff) break; // première ligne encore valide : arrêt du préfixe
-                $expired_ids[] = (int) $row->id;
+                $niveau = psc_audit_niveau_for_action($row->action);
+                $cutoff = $cutoffs[$niveau] ?? $cutoffs['normal'];
+                if ($row->horodatage < $cutoff) $expired[] = (int) $row->id;
+                $cursor = (int) $row->id;
             }
-            if (!$expired_ids) break;
-
-            $wpdb->query('DELETE FROM ' . $table . ' WHERE id IN (' . implode(',', $expired_ids) . ')');
-            $total_deleted += count($expired_ids);
-
-            if (count($expired_ids) < count($rows)) break; // le lot contenait une ligne encore valide : rien de plus à faire
+            if ($expired) {
+                $done = $wpdb->query($wpdb->prepare(
+                    "UPDATE $table SET acteur_id = NULL, acteur_libelle = '', pour_le_compte_de = NULL,
+                            objet_id = NULL, famille_id = NULL, enfant_id = NULL, resume = '', details = NULL,
+                            ip = NULL, purgee_le = %s
+                     WHERE purgee_le IS NULL AND id IN (" . implode(',', $expired) . ')',
+                    gmdate('Y-m-d H:i:s', $now)
+                ));
+                $purged += (int) $done;
+            }
+            if (count($rows) < 1000) break;
         }
 
-        self::purge_fallback();
+        // Préfixe purgé : suppression réelle.
+        $first_kept = $wpdb->get_var("SELECT MIN(id) FROM $table WHERE purgee_le IS NULL");
+        $deleted = $first_kept === null
+            ? $wpdb->query("DELETE FROM $table WHERE purgee_le IS NOT NULL")
+            : $wpdb->query($wpdb->prepare("DELETE FROM $table WHERE id < %d AND purgee_le IS NOT NULL", (int) $first_kept));
 
-        if ($total_deleted > 0) {
+        if ($purged > 0 || $deleted > 0) {
             self::log('audit.purge', array(
-                'meta'   => array('lignes_supprimees' => $total_deleted),
-                'resume' => sprintf(__('%d ligne(s) du journal d’audit supprimée(s) (durée de rétention dépassée).', 'periscolaire-registration'), $total_deleted),
+                'meta'   => array('lignes_purgees' => $purged, 'lignes_supprimees' => (int) $deleted),
+                'resume' => sprintf(__('%d ligne(s) du journal d’audit purgée(s) (durée de rétention dépassée).', 'periscolaire-registration'), $purged),
             ));
         }
 
-        return $total_deleted;
+        return $purged;
     }
 
     /**
@@ -569,6 +609,8 @@ class Psc_Audit {
             "SELECT empreinte FROM $table WHERE id < %d ORDER BY id DESC LIMIT 1", $first_id
         ));
         $previous_hash = $previous ? (string) $previous->empreinte : '';
+        $previous_stored = $previous_hash;
+        $seuil = self::chain_v2_from();
         $anonymized = 0;
         $last_id = $first_id - 1;
         $rows = array();
@@ -598,13 +640,23 @@ class Psc_Audit {
                     ), array('id' => $row->id));
                 }
 
-                $empreinte = psc_audit_compute_hash(
-                    $previous_hash, $row->horodatage, $row->action, $row->acteur_type, $row->acteur_id,
-                    $row->objet_type, $row->objet_id, $resume
-                );
-                if ($empreinte !== $row->empreinte) {
-                    $wpdb->update($table, array('empreinte' => $empreinte), array('id' => $row->id));
+                // Rechaînage selon la version de la ligne (v1 historique, v2
+                // à empreinte de contenu). Une ligne purgée v1 ne peut pas
+                // être recalculée : elle prend l'empreinte v2 de son contenu
+                // conservé, que la vérification accepte (cf.
+                // psc_audit_expected_hashes()).
+                $row->resume = $resume;
+                $expected = psc_audit_expected_hashes($previous_hash, $row, $seuil);
+                $empreinte = $expected['empreinte'] !== null
+                    ? $expected['empreinte']
+                    : ($previous_hash === $previous_stored ? (string) $row->empreinte : psc_audit_chain_hash($previous_hash, (string) $row->empreinte_contenu));
+                $update = array();
+                if ($empreinte !== $row->empreinte) $update['empreinte'] = $empreinte;
+                if ($expected['contenu'] !== null && psc_audit_row_chain_version($row, $seuil) === 2 && $expected['contenu'] !== $row->empreinte_contenu) {
+                    $update['empreinte_contenu'] = $expected['contenu'];
                 }
+                if ($update) $wpdb->update($table, $update, array('id' => $row->id));
+                $previous_stored = (string) $row->empreinte;
                 $previous_hash = $empreinte;
                 $last_id = (int) $row->id;
             }
