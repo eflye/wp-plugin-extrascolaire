@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.28.0
+Stable tag: 5.28.1
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,10 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.28.1 =
+* Aucune ressource tierce sur le portail des familles : le thème « Montgeroult Familles » (1.1.0) sert lui-même la police Public Sans au lieu de la charger depuis Google Fonts, et le script d'émojis de WordPress, qui téléchargeait des images depuis WordPress.org sur certains navigateurs, est retiré des pages de l'extension et de tout le site. Dans les deux cas, l'adresse IP des visiteurs partait vers un service tiers. **Mettez aussi à jour le thème** (archive montgeroult-familles) si votre site l'utilise.
+* Licence de la police Public Sans (OFL 1.1 et CC0) jointe à l'extension et au thème.
 
 = 5.28.0 =
 * Nouvelle page **Périscolaire › Maintenance** : la mise à jour se conduit entièrement depuis le backoffice, sans ligne de commande — pratique pour un WordPress en conteneur. Cinq étapes avec leur état (Fait, À faire, Bloquant) : sauvegarde confirmée, base de données (années en double à supprimer, bouton de relance), clé de chiffrement des IBAN (génération, rechiffrement), nouveaux réglages à renseigner, recette cochée point par point avec l'auteur et la date. Un rappel s'affiche sur le tableau de bord tant qu'une étape reste à faire.
