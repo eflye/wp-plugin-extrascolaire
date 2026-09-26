@@ -3,27 +3,92 @@
 <h1><?php esc_html_e('Réglages', 'periscolaire-registration'); ?></h1>
 <?php
 psc_admin_notice_map(array(
-    'saved' => array('success', __('Tarifs enregistrés.', 'periscolaire-registration')),
+    'saved' => array('success', __('Réglages enregistrés.', 'periscolaire-registration')),
+    'tarif_saved' => array('success', __('Tarif enregistré.', 'periscolaire-registration')),
+    'tarif_deleted' => array('success', __('Tarif à venir supprimé.', 'periscolaire-registration')),
+    'tarif_invalid' => array('error', __('Tarif non enregistré : vérifiez la prestation, le montant et la date.', 'periscolaire-registration')),
+    'tarif_refused' => array('error', __('Un tarif déjà entré en vigueur ne peut pas être supprimé : il a servi à facturer.', 'periscolaire-registration')),
     'privacy_refused' => array('error', __('Réglages enregistrés, sauf un champ de la rubrique Confidentialité : une adresse e-mail ou l’adresse de la notice n’est pas valide. La valeur précédente est conservée.', 'periscolaire-registration')),
     'ics_url_refused' => array('error', __('Réglages enregistrés, sauf l’adresse du calendrier scolaire : elle doit être une adresse web publique (http ou https). L’adresse précédente est conservée.', 'periscolaire-registration')),
 ), $psc_msg);
 ?>
 
-<div class="psc-box">
+<div class="psc-box" id="psc-tarifs">
 <h2><?php esc_html_e('Tarifs des prestations', 'periscolaire-registration'); ?></h2>
-<p><?php esc_html_e('Ces tarifs sont affichés aux familles dans le formulaire. Ils ne déclenchent aucun paiement en ligne (le service reste géré par la mairie).', 'periscolaire-registration'); ?></p>
+<p><?php esc_html_e('Chaque tarif s’applique à partir de sa date : un changement de prix ne modifie jamais les jours précédents. La facture d’un mois applique à chaque jour le tarif de ce jour-là. Ces tarifs ne déclenchent aucun paiement en ligne (le service reste géré par la mairie).', 'periscolaire-registration'); ?></p>
+<table class="widefat striped" data-testid="tarifs-table">
+<caption class="screen-reader-text"><?php esc_html_e('Tarifs en vigueur et à venir, par prestation', 'periscolaire-registration'); ?></caption>
+<thead><tr>
+<th scope="col"><?php esc_html_e('Prestation', 'periscolaire-registration'); ?></th>
+<th scope="col"><?php esc_html_e('Tarif du jour', 'periscolaire-registration'); ?></th>
+<th scope="col"><?php esc_html_e('Historique et tarifs à venir', 'periscolaire-registration'); ?></th>
+</tr></thead>
+<tbody>
+<?php foreach ($services as $code => $s): ?>
+<tr data-testid="tarif-row-<?php echo esc_attr($code); ?>">
+<th scope="row"><?php echo esc_html($s['label']); ?> (<?php echo esc_html($code); ?>)</th>
+<td data-testid="tarif-current-<?php echo esc_attr($code); ?>"><?php echo esc_html(number_format_i18n((float) $s['price'], 2)); ?> €</td>
+<td>
+<?php $psc_history = Psc_Tarifs::ready() ? Psc_Tarifs::history($code) : array(); ?>
+<?php if ($psc_history): ?>
+<ul style="margin:0">
+<?php foreach (array_reverse($psc_history) as $psc_t): ?>
+<li data-testid="tarif-history-<?php echo esc_attr($code); ?>">
+  <?php echo esc_html(number_format_i18n($psc_t['prix_centimes'] / 100, 2)); ?> €
+  <?php echo esc_html($psc_t['fin'] === null
+      ? sprintf(__('à partir du %s', 'periscolaire-registration'), date_i18n('d/m/Y', strtotime($psc_t['debut'])))
+      : sprintf(__('du %1$s au %2$s', 'periscolaire-registration'), date_i18n('d/m/Y', strtotime($psc_t['debut'])), date_i18n('d/m/Y', strtotime($psc_t['fin'])))); ?>
+  <?php if ($psc_t['debut'] > psc_today()): ?>
+  <em><?php esc_html_e('(à venir)', 'periscolaire-registration'); ?></em>
+  <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
+    <?php wp_nonce_field('psc_delete_tarif'); ?>
+    <input type="hidden" name="action" value="psc_delete_tarif">
+    <input type="hidden" name="id" value="<?php echo esc_attr($psc_t['id']); ?>">
+    <button type="submit" class="button-link" data-testid="tarif-delete-<?php echo esc_attr($psc_t['id']); ?>"><?php echo esc_html(sprintf(__('Supprimer le tarif à venir du %s', 'periscolaire-registration'), date_i18n('d/m/Y', strtotime($psc_t['debut'])))); ?></button>
+  </form>
+  <?php endif; ?>
+</li>
+<?php endforeach; ?>
+</ul>
+<?php else: ?>—<?php endif; ?>
+</td>
+</tr>
+<?php endforeach; ?>
+</tbody>
+</table>
+
+<h3><?php esc_html_e('Nouveau tarif', 'periscolaire-registration'); ?></h3>
+<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" data-testid="tarif-form">
+<?php wp_nonce_field('psc_save_tarif'); ?>
+<input type="hidden" name="action" value="psc_save_tarif">
+<table class="form-table">
+<tr>
+<th><label for="psc-tarif-code"><?php esc_html_e('Prestation', 'periscolaire-registration'); ?></label></th>
+<td><select id="psc-tarif-code" name="code" data-testid="tarif-code">
+<?php foreach ($services as $code => $s): ?>
+<option value="<?php echo esc_attr($code); ?>"><?php echo esc_html($s['label'] . ' (' . $code . ')'); ?></option>
+<?php endforeach; ?>
+</select></td>
+</tr>
+<tr>
+<th><label for="psc-tarif-prix"><?php esc_html_e('Tarif', 'periscolaire-registration'); ?></label></th>
+<td><input id="psc-tarif-prix" type="text" inputmode="decimal" name="prix" required pattern="[0-9]+([,.][0-9]{1,2})?" aria-describedby="psc-tarif-prix-aide" data-testid="tarif-prix"> €
+<p class="description" id="psc-tarif-prix-aide"><?php esc_html_e('En euros, par exemple 5,80.', 'periscolaire-registration'); ?></p></td>
+</tr>
+<tr>
+<th><label for="psc-tarif-debut"><?php esc_html_e('À partir du', 'periscolaire-registration'); ?></label></th>
+<td><input id="psc-tarif-debut" type="date" name="debut" required value="<?php echo esc_attr(psc_today()); ?>" aria-describedby="psc-tarif-debut-aide" data-testid="tarif-debut">
+<p class="description" id="psc-tarif-debut-aide"><?php esc_html_e('Une date passée change les factures pas encore envoyées de la période ; une facture déjà envoyée n’est rectifiée qu’à sa prochaine régénération, avec archivage de la version remise.', 'periscolaire-registration'); ?></p></td>
+</tr>
+</table>
+<?php submit_button(__('Enregistrer le tarif', 'periscolaire-registration'), 'primary', 'submit', false, array('data-testid' => 'tarif-submit')); ?>
+</form>
+</div>
+
+<div class="psc-box">
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
 <?php wp_nonce_field('psc_save_settings'); ?>
 <input type="hidden" name="action" value="psc_save_settings">
-<table class="form-table">
-<?php foreach ($services as $code => $s): ?>
-<tr>
-<th><label for="psc-price-<?php echo esc_attr($code); ?>"><?php echo esc_html($s['label']); ?> (<?php echo esc_html($code); ?>)</label></th>
-<td><input id="psc-price-<?php echo esc_attr($code); ?>" type="text" inputmode="decimal" name="price_<?php echo esc_attr($code); ?>" value="<?php echo esc_attr(number_format($s['price'], 2, ',', '')); ?>"> €</td>
-</tr>
-<?php endforeach; ?>
-</table>
-</table>
 
 <h2><?php esc_html_e('Délai de modification', 'periscolaire-registration'); ?></h2>
 <p><?php esc_html_e('Au-delà de ce délai avant le jour concerné, les familles ne peuvent plus modifier leur planning en ligne, y compris via le bouton "Annulation / signalement d\'absence" du tableau de bord. La mairie, elle, reste toujours en mesure de corriger depuis ce backoffice.', 'periscolaire-registration'); ?></p>

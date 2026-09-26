@@ -401,6 +401,14 @@ function psc_audit_action_registry() {
         'psc_save_settings' => array(
             'action' => 'reglage.modification', 'categorie' => 'configuration', 'objet' => 'reglage', 'niveau' => 'critique',
         ),
+        // Tarifs datés (P1-16) : un prix à partir d'une date, ou le retrait
+        // d'un tarif pas encore entré en vigueur.
+        'psc_save_tarif' => array(
+            'action' => 'reglage.tarif', 'categorie' => 'configuration', 'objet' => 'reglage', 'niveau' => 'critique',
+        ),
+        'psc_delete_tarif' => array(
+            'action' => 'reglage.tarif_suppression', 'categorie' => 'configuration', 'objet' => 'reglage', 'niveau' => 'critique',
+        ),
         // Code distinct, même logique que psc_save_email_templates
         // ci-dessous : l'adresse du fournisseur n'a pas la sensibilité
         // d'un réglage bancaire/code d'accès (niveau normal, pas

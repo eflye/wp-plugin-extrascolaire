@@ -8,9 +8,56 @@ class Psc_Admin_Config extends Psc_Admin_Base {
 
     public static function init() {
         add_action('admin_post_psc_save_settings', array(__CLASS__, 'handle_save_settings'));
+        add_action('admin_post_psc_save_tarif', array(__CLASS__, 'handle_save_tarif'));
+        add_action('admin_post_psc_delete_tarif', array(__CLASS__, 'handle_delete_tarif'));
         add_action('admin_post_psc_save_email_templates', array(__CLASS__, 'handle_save_email_templates'));
         add_action('admin_post_psc_reset_email_template', array(__CLASS__, 'handle_reset_email_template'));
         add_action('admin_post_psc_reset_email_templates', array(__CLASS__, 'handle_reset_email_templates'));
+    }
+
+    /**
+     * Nouveau tarif daté (P1-16) : un prix à partir d'une date, sans effet
+     * sur les jours précédents (cf. Psc_Tarifs).
+     */
+    public static function handle_save_tarif() {
+        self::guard('psc_save_tarif');
+        $code = sanitize_text_field(wp_unslash($_POST['code'] ?? ''));
+        $raw = str_replace(',', '.', sanitize_text_field(wp_unslash($_POST['prix'] ?? '')));
+        $debut = psc_valid_date(psc_post('debut'));
+        if (!preg_match('/^\d+(\.\d{1,2})?$/', $raw) || (float) $raw > 1000 || !$debut) {
+            wp_safe_redirect(admin_url('admin.php?page=psc_settings&psc_msg=tarif_invalid#psc-tarifs'));
+            exit;
+        }
+        $avant = psc_billing_tariffs($debut)[$code]['price'] ?? null;
+        $result = Psc_Tarifs::set($code, (int) round((float) $raw * 100), $debut);
+        if (is_wp_error($result)) {
+            wp_safe_redirect(admin_url('admin.php?page=psc_settings&psc_msg=tarif_invalid#psc-tarifs'));
+            exit;
+        }
+        Psc_Audit::log('reglage.tarif', array(
+            'objet_type' => 'reglage',
+            'meta' => array('code' => $code, 'a_partir_du' => $debut, 'avant' => $avant, 'apres' => round((float) $raw, 2)),
+            'resume' => sprintf(__('Tarif %1$s : %2$s € à partir du %3$s.', 'periscolaire-registration'), $code, number_format_i18n((float) $raw, 2), date_i18n('d/m/Y', strtotime($debut))),
+        ));
+        wp_safe_redirect(admin_url('admin.php?page=psc_settings&psc_msg=tarif_saved#psc-tarifs'));
+        exit;
+    }
+
+    /** Suppression d'un tarif pas encore entré en vigueur. */
+    public static function handle_delete_tarif() {
+        self::guard('psc_delete_tarif');
+        $id = psc_post_int('id');
+        $result = Psc_Tarifs::delete($id);
+        if (is_wp_error($result)) {
+            wp_safe_redirect(admin_url('admin.php?page=psc_settings&psc_msg=' . ($result->get_error_code() === 'past' ? 'tarif_refused' : 'tarif_invalid') . '#psc-tarifs'));
+            exit;
+        }
+        Psc_Audit::log('reglage.tarif_suppression', array(
+            'objet_type' => 'reglage', 'meta' => array('id' => $id),
+            'resume' => __('Tarif à venir supprimé.', 'periscolaire-registration'),
+        ));
+        wp_safe_redirect(admin_url('admin.php?page=psc_settings&psc_msg=tarif_deleted#psc-tarifs'));
+        exit;
     }
 
     public static function handle_save_settings() {
@@ -28,14 +75,6 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         }
         $org_iban_encrypted = psc_encrypt($org_iban === '' ? null : $org_iban);
         if (is_wp_error($org_iban_encrypted)) wp_die(esc_html($org_iban_encrypted->get_error_message()), '', array('response' => 500, 'back_link' => true));
-
-        $prices = array();
-        foreach (array_keys(psc_billing_tariffs()) as $code) {
-            $raw = isset($_POST['price_' . $code]) ? wp_unslash($_POST['price_' . $code]) : '0';
-            $val = floatval(str_replace(',', '.', sanitize_text_field($raw)));
-            $prices[$code] = max(0, min(1000, $val));
-        }
-        update_option('psc_service_prices', $prices);
 
         // Délai de prévenance, borné pour éviter une valeur absurde.
         $hours = psc_post_int('lock_hours', 48);
