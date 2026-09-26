@@ -127,8 +127,10 @@ class Psc_Frontend_Reinscription extends Psc_Frontend_Base {
         }
         if (!$plan) return 'retire';
 
+        // Version du règlement intérieur affichée au-dessus de la case (P2-14).
+        $version = Psc_Document_Versions::current_id('reglement_interieur');
         foreach ($plan as $p) {
-            if (!Psc_School_Years::enroll($p[0], $target_year_id, $p[1], 'inscrit', $reglement_accepted_at)
+            if (!Psc_School_Years::enroll($p[0], $target_year_id, $p[1], 'inscrit', $reglement_accepted_at, $version)
                 || Psc_Assurances::store_upload($p[0], $p[2], $target_year_id) !== true) {
                 return 'failed';
             }

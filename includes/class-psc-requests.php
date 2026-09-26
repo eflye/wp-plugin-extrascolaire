@@ -451,8 +451,11 @@ class Psc_Requests {
             'verified'                   => 0,
             'status'                     => 'unverified',
             'reglement_accepted_at'      => current_time('mysql'),
+            // Versions des règlements affichés au moment de cocher (P2-14).
+            'reglement_version_id'       => Psc_Document_Versions::current_id('reglement_interieur'),
             'payment_mode'               => $payment_mode,
             'sepa_reglement_accepted_at' => $sepa_reglement_accepted_at,
+            'sepa_reglement_version_id'  => $sepa_reglement_accepted_at ? Psc_Document_Versions::current_id('reglement_prelevement') : null,
             'sepa_iban'                  => $sepa_iban_enc,
             'sepa_bic'                   => $sepa_bic,
             'sepa_titulaire'             => mb_substr($sepa_titulaire, 0, 190) ?: null,
@@ -828,7 +831,9 @@ class Psc_Requests {
             'sepa_code_postal'           => $req->sepa_code_postal ?? null,
             'sepa_ville'                 => $req->sepa_ville ?? null,
             'reglement_accepted_at'      => $req->reglement_accepted_at ?? null,
+            'reglement_version_id'       => $req->reglement_version_id ?? null,
             'sepa_reglement_accepted_at' => $req->sepa_reglement_accepted_at ?? null,
+            'sepa_reglement_version_id'  => $req->sepa_reglement_version_id ?? null,
             'second_parent_prenom'       => $req->second_parent_prenom ?? null,
             'second_parent_nom'          => $req->second_parent_nom ?? null,
             'second_parent_email'        => $req->second_parent_email ?? null,
@@ -919,7 +924,7 @@ class Psc_Requests {
             $child_id = (int) $wpdb->insert_id;
 
             if ($active_year_id) {
-                if (!Psc_School_Years::enroll($child_id, $active_year_id, $c['classe'], 'inscrit', $req->reglement_accepted_at ?? current_time('mysql'))) {
+                if (!Psc_School_Years::enroll($child_id, $active_year_id, $c['classe'], 'inscrit', $req->reglement_accepted_at ?? current_time('mysql'), $req->reglement_version_id ?? null)) {
                     return $rollback(__('Inscription de l\'enfant impossible.', 'periscolaire-registration'));
                 }
             }

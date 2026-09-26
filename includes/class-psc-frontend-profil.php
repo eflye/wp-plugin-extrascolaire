@@ -119,6 +119,7 @@ class Psc_Frontend_Profil extends Psc_Frontend_Base {
             'sepa_ville'                 => $ville,
             'sepa_mandate_ref'           => $rum,
             'sepa_reglement_accepted_at' => $accepted_at,
+            'sepa_reglement_version_id'  => Psc_Document_Versions::current_id('reglement_prelevement'),
         ));
         if (is_wp_error($result) || $result === false) {
             if ($mandate && file_exists($mandate)) unlink($mandate);
