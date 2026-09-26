@@ -406,6 +406,9 @@ function psc_audit_action_registry() {
         'psc_save_tarif' => array(
             'action' => 'reglage.tarif', 'categorie' => 'configuration', 'objet' => 'reglage', 'niveau' => 'critique',
         ),
+        'psc_family_reglement_pdf' => array(
+            'action' => 'reglage.version_reglement_telechargement', 'categorie' => 'donnees_famille', 'objet' => 'reglage', 'niveau' => 'normal',
+        ),
         'psc_delete_tarif' => array(
             'action' => 'reglage.tarif_suppression', 'categorie' => 'configuration', 'objet' => 'reglage', 'niveau' => 'critique',
         ),
@@ -501,6 +504,10 @@ function psc_audit_semantic_extra() {
         'privacy.effacement'            => array('categorie' => 'donnees_famille', 'niveau' => 'critique'),
         'utilisateur.habilitations_modifiees' => array('categorie' => 'securite', 'niveau' => 'critique'),
         'audit.purge'                   => array('categorie' => 'systeme', 'niveau' => 'critique'),
+        // Nouvelle version d'un règlement (P2-14) : preuve de ce qui a été approuvé.
+        'reglage.version_reglement'     => array('categorie' => 'configuration', 'niveau' => 'critique'),
+        'reglage.version_reglement_consultee'       => array('categorie' => 'donnees_famille', 'niveau' => 'normal'),
+        'reglage.version_reglement_telechargement'  => array('categorie' => 'donnees_famille', 'niveau' => 'normal'),
         // Angle mort signalé (cf. Psc_Audit::capture_generic()) : classé au
         // niveau le plus prudent puisque sa nature réelle est inconnue.
         'inconnu.action'                => array('categorie' => 'systeme', 'niveau' => 'critique'),

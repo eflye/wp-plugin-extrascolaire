@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.17.0';
+    const DB_VERSION = '4.18.0';
     const ROLES_VERSION = '1.5.0';
 
     public static function activate() {
@@ -902,6 +902,13 @@ class Psc_Installer {
             array('child_school_years', 'school_year_id', 'school_years', 'CASCADE'),
             array('envois',             'famille_id',     'parents',      'CASCADE'),
             array('sans_repas',         'child_id',       'children',     'CASCADE'),
+            // Version de règlement acceptée (P2-14) : une version citée par
+            // une acceptation ne peut pas disparaître.
+            array('parents',            'reglement_version_id',      'document_versions', 'RESTRICT'),
+            array('parents',            'sepa_reglement_version_id', 'document_versions', 'RESTRICT'),
+            array('requests',           'reglement_version_id',      'document_versions', 'RESTRICT'),
+            array('requests',           'sepa_reglement_version_id', 'document_versions', 'RESTRICT'),
+            array('child_school_years', 'reglement_version_id',      'document_versions', 'RESTRICT'),
             // Le planning désigne l'année par sa clé ('2026-2027') : un
             // rythme ou un férié ne peut citer qu'une année existante, et
             // suit sa clé si les dates de l'année changent de rentrée.
@@ -1632,6 +1639,7 @@ class Psc_Installer {
         $t_audit_log = psc_table('audit_log');
         $t_tarifs = psc_table('tarifs');
         $t_sans_repas = psc_table('sans_repas');
+        $t_doc_versions = psc_table('document_versions');
         // v4.0 — rythme & exceptions ; l'année scolaire est une seule table
         // depuis 4.15.0 (school_years porte aussi le calendrier).
         $t_hol  = psc_table('holidays');
@@ -1733,7 +1741,9 @@ CREATE TABLE $t_parent (
             sepa_mandate_ref VARCHAR(35) NULL,
             sepa_country CHAR(2) NOT NULL DEFAULT 'FR',
             reglement_accepted_at DATETIME NULL,
+            reglement_version_id BIGINT UNSIGNED NULL,
             sepa_reglement_accepted_at DATETIME NULL,
+            sepa_reglement_version_id BIGINT UNSIGNED NULL,
             second_parent_prenom VARCHAR(191) NULL,
             second_parent_nom VARCHAR(191) NULL,
             second_parent_email VARCHAR(191) NULL,
@@ -1770,6 +1780,7 @@ CREATE TABLE $t_cy (
             sorti_le DATETIME NULL,
             date_inscription DATETIME NULL,
             reglement_accepted_at DATETIME NULL,
+            reglement_version_id BIGINT UNSIGNED NULL,
             assurance_file_path VARCHAR(255) NULL,
             assurance_original_filename VARCHAR(191) NULL,
             assurance_uploaded_at DATETIME NULL,
@@ -1800,8 +1811,10 @@ CREATE TABLE $t_req (
             status VARCHAR(20) NOT NULL DEFAULT 'unverified',
             note TEXT NULL,
             reglement_accepted_at DATETIME NULL,
+            reglement_version_id BIGINT UNSIGNED NULL,
             payment_mode VARCHAR(20) NOT NULL DEFAULT 'autre',
             sepa_reglement_accepted_at DATETIME NULL,
+            sepa_reglement_version_id BIGINT UNSIGNED NULL,
             sepa_iban VARCHAR(255) NULL,
             sepa_bic VARCHAR(11) NULL,
             sepa_titulaire VARCHAR(191) NULL,
@@ -2106,6 +2119,19 @@ CREATE TABLE $t_tarifs (
             created_by BIGINT UNSIGNED NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY code_debut (code, debut)
+        ) $charset_collate;
+
+CREATE TABLE $t_doc_versions (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            type VARCHAR(24) NOT NULL,
+            empreinte CHAR(64) NOT NULL,
+            texte LONGTEXT NOT NULL,
+            pdf_sha256 CHAR(64) NULL,
+            pdf_fichier VARCHAR(255) NULL,
+            pdf_nom VARCHAR(191) NULL,
+            cree_le DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY type_empreinte (type, empreinte)
         ) $charset_collate;
 
 CREATE TABLE $t_sans_repas (
