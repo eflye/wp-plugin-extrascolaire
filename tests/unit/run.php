@@ -442,6 +442,26 @@ $GLOBALS['psc_test_options']['psc_service_prices'] = array('FSR' => 8.50);
 $assert('FSR : tarif mairie personnalisé', psc_billing_tariffs()['FSR']['price'], 8.5);
 unset($GLOBALS['psc_test_options']);
 
+/* Contrats d'une journée (P3-01) : une table de décision partagée avec
+ * bin/verify-channel-contracts.php — présence, repas fourni, facturation.
+ * Rejouée avec les tarifs par défaut (FSR plus cher que ses créneaux) puis
+ * avec un FSR sous ses créneaux, pour couvrir les deux branches du plafond. */
+$contrats = require __DIR__ . '/contrats-journee.php';
+foreach (array('tarifs par défaut' => null, 'FSR à 6,00' => array('FSR' => 6.00)) as $tarifs_label => $tarifs) {
+    if ($tarifs) $GLOBALS['psc_test_options']['psc_service_prices'] = $tarifs;
+    $tar = psc_billing_tariffs();
+    foreach ($contrats as $label => $row) {
+        $assert("contrat présence : $label", psc_day_slots($row['jour']), $row['presence']);
+        $assert("contrat repas : $label", psc_day_meal($row['jour'], $row['allergie']), $row['repas']);
+        $sum = 0.0;
+        foreach ($row['unites'] as $code) $sum += $tar[$code]['price'];
+        $attendu = ($row['complete'] && $tar[$row['complete']]['price'] <= $sum + 0.0001) ? array($row['complete']) : $row['unites'];
+        $assert("contrat facturation ($tarifs_label) : $label", psc_billing_services($row['jour'], $row['sans_repas']), $attendu);
+    }
+    unset($GLOBALS['psc_test_options']);
+}
+$assert('contrat : la table couvre les deux forfaits', count(array_filter(array_column($contrats, 'complete'))) >= 2 && in_array('FSR', array_column($contrats, 'complete'), true), true);
+
 /* ---------------------------------------------------------------- */
 /* session.php — époques de session (révocation persistante, P1-05)   */
 /* ---------------------------------------------------------------- */
