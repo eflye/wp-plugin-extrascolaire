@@ -39,7 +39,7 @@
 | --- | --- | --- |
 | **Serveur distant** | **En 5.30.0 (26/09/2026)**, à jour de toutes les versions publiées. Le 25/09, passage 5.23.1 → 5.28.0 avec les cinq étapes de **Périscolaire › Maintenance** (sauvegarde, base au schéma 4.15.0, clé des IBAN hors de la base et rechiffrement, réglages, recette). Reste : tester une restauration avec la clé, puis dérouler la fiche de recette de l'hébergement (P1-04, P1-18) | Exploitation |
 | P2-06 | Polices servies localement (publié en 5.28.1, déployé) ; reste l'inventaire des ressources tierces du site réel (onglet Réseau du navigateur) | Exploitation, puis DPO |
-| P1-11 | Couverture fine des actions sensibles, rotation du journal des téléchargements, alerte de panne | Développement, puis DPO pour la durée |
+| P1-11 | Fait, à publier : fichier de repli expurgé et archivé, alerte de retard des tâches planifiées. Reste : conservation des lignes courtes bloquée par la purge par préfixe (schéma à valider), et les durées à faire valider par le DPO | Schéma à valider, puis DPO |
 | P1-16 | Montants en centimes, périodes d'effet des tarifs et du statut « sans repas » | Schéma à valider |
 | P2-14 | Version du règlement effectivement accepté | Schéma à valider, puis facturation |
 | P1-15 | Règle unique publiée en 5.29.0, déployée ; reste à revoir le tarif FSR, plus cher que ses prestations avec les valeurs par défaut | Facturation |
@@ -259,6 +259,11 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 **À faire :** journal structuré des connexions/révocations, consultations sensibles, modifications, exports, suppressions, paramètres bancaires et actions de pointage ; identité minimale, horodatage UTC, rotation, contrôle d’accès et alerte de panne. Ne jamais journaliser les tokens, IBAN complets ou descriptions d’allergies.
 
 **Acceptation :** reconstitution d’un incident fictif, auteurs identifiables, journal protégé et rétention appliquée, consultation elle-même limitée. Référence : [CNIL — tracer les opérations](https://www.cnil.fr/fr/securite-tracer-les-operations). **Développement + exploitation + DPO ; M/L.**
+
+**Traité le 26/09/2026 (volet technique) :**
+- **Fichier de repli `journal-acces.log` :** il ne reçoit plus que l'horodatage UTC, le code d'action et un message technique expurgé (`psc_audit_technical_message` : valeurs entre guillemets, e-mails et suites de chiffres masqués). Une erreur SQL citait jusqu'ici la valeur en cause. Au-delà de 256 Ko, il est archivé en `.1`, une seule génération. La purge quotidienne supprime chaque fichier resté sans écriture pendant la durée « normal ». Vérifié par `bin/verify-audit-fallback.php` en CI, qui provoque une vraie panne d'écriture.
+- **Alerte de panne :** les tâches planifiées du plugin en retard de plus de six heures sont signalées sur les tableaux de bord (WordPress et Périscolaire). Elles n'étaient visibles nulle part. Localement, toutes avaient 25 à 49 h de retard : WP-Cron ne se déclenche pas dans le conteneur. Procédure : [Tâches planifiées](documentation/installation/taches-planifiees.md#alerte-de-retard).
+- **Constaté, non corrigé :** la purge du journal n'avance que par préfixe contigu pour préserver le chaînage. Une ligne « critique » (3 ans) bloque donc la suppression des lignes « volumineux » (180 jours) qui la suivent, soit une conservation au-delà de la durée annoncée. La correction touche au schéma (empreinte du contenu séparée du chaînage) et attend validation.
 
 ### P1-12 — TRAITÉ TECHNIQUEMENT (v5.4.2/v5.4.3, rotation en v5.27.0/v5.28.0) — Validation opérationnelle encore ouverte — Interdire le repli bancaire silencieux en clair
 
