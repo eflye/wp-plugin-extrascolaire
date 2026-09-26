@@ -11,7 +11,9 @@ Ouvrez **Périscolaire › Année scolaire** avec un rôle de gestion. Activez e
 ## Étapes
 
 1. Sélectionnez l'onglet **Calendrier** pour afficher la vue **Mois** ou **Semaine**. Utilisez les flèches et les boutons **Aujourd'hui** ou **Cette semaine** pour vous déplacer dans le temps.
-2. Lisez la légende en toutes lettres : **Ouvert** signifie que le jour accepte des prestations ; **Fermé (jour)** indique une fermeture complète ; **Prestation fermée** indique qu'un seul service est indisponible ; **Hors année scolaire** signifie que la date ne relève d'aucune année configurée. Cliquez sur un jour ouvert pour fermer ou rouvrir tout ou partie de ses prestations.
+2. Lisez la légende en toutes lettres : **Ouvert** signifie que le jour accepte des prestations ; **Fermé (jour)** indique une fermeture complète ; **Prestation fermée** indique qu'un seul service est indisponible ; **Hors année scolaire** signifie que la date ne relève d'aucune année configurée. Cliquez sur un jour ouvert pour fermer ou rouvrir tout ou partie de ses prestations. Les jours d'un autre mois apparaissent avec une bordure en pointillés.
+
+   Quand vous fermez une seule prestation, l'aperçu distingue les enfants qui l'avaient déclarée seule de ceux qui sont au **forfait journée**. Pour ces derniers, le forfait ne s'applique pas ce jour-là : leurs prestations restantes sont facturées à leur tarif, et chaque famille reçoit un e-mail qui liste, enfant par enfant, les prestations maintenues.
 
    ![Vue mensuelle du calendrier avec les jours ouverts, les jours fermés, les prestations fermées et les dates hors année scolaire](../assets/screenshots/calendrier-vue-mois.png)
 
@@ -27,7 +29,7 @@ Ouvrez **Périscolaire › Année scolaire** avec un rôle de gestion. Activez e
 5. Pour fermer exceptionnellement un jour ou une période, restez dans **Historique** et utilisez **Corriger un jour manuellement**. Renseignez **Fermer du**, laissez **Au (optionnel)** vide pour un seul jour ou indiquez une date de fin, ajoutez un **Motif**, puis cliquez sur **Fermer**.
 
    !!! warning
-       Si des inscriptions existent sur la période, la fermeture les supprimera et les familles concernées recevront un e-mail. Vérifiez la liste proposée dans **Confirmation nécessaire** avant de cliquer sur **Confirmer la fermeture**.
+       Si des inscriptions existent sur la période, elles ne seront ni assurées ni facturées, et les familles concernées recevront un e-mail listant les prestations de leur enfant. Vérifiez la liste proposée dans **Confirmation nécessaire** avant de cliquer sur **Confirmer la fermeture**.
 
 6. Pour annuler une fermeture ponctuelle, renseignez la date dans **Réouvrir le**, puis cliquez sur **Réouvrir ce jour**. Le jour redevient ouvert, sauf s'il est exclu par les vacances ou les jours fériés de l'année scolaire.
 

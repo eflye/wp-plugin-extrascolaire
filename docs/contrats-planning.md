@@ -11,9 +11,11 @@ Aucun canal ne relit `psc_pattern` ou `psc_exception`, et aucun ne réinterprèt
 | Contrat | Fonction | Canaux |
 | --- | --- | --- |
 | Prestation déclarée | `declared_map()` / `psc_is_declared()` | Écrans de saisie du portail (état affiché), pointage SIDSCM (enfant attendu à un service), annulations |
-| Présence | `psc_day_slots($day)` : GM, CANT ou MSR, GS, dans l'ordre de la journée ; jamais FORF | Avis de fermeture d'un jour ou d'une période |
+| Présence | `psc_day_slots($day)` : GM, CANT ou MSR, GS, dans l'ordre de la journée ; jamais FORF | Avis de fermeture d'un jour ou d'une période, créneaux restants d'un enfant au forfait quand une prestation ferme |
 | Repas fourni | `psc_day_meal($day, $allergie)` : cantine, hors allergie alimentaire | Commande au fournisseur |
 | Prestation facturée | `psc_billing_services($day, $sans_repas, $regle)` : règle 2 (P1-15) | Factures, estimations du portail (`sibling_summary`, `year_summary`), export CSV des inscriptions, effectifs du calendrier mairie |
+
+Les listes de familles concernées par une fermeture (`Psc_School_Calendar::affected_families*`) partagent un même socle, `families_for()`, qui ne diffère que par la lecture appliquée à chaque journée.
 
 Le navigateur ne calcule aucun montant : les totaux affichés par le portail viennent de la réponse du serveur (`planning_state`).
 
