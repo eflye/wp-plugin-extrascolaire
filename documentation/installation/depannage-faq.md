@@ -67,7 +67,13 @@ L'option WP-CLI `psc_invoice_debug_delete` est active (`wp option get psc_invoic
 
 ## Pourquoi le journal d'audit signale-t-il un problème ?
 
-Une écriture du journal a échoué ou une action n'est pas classée dans le registre. Cliquez sur **Voir le journal filtré**, vérifiez le fichier de repli `journal-acces.log` et corrigez la cause d'accès à la base ou l'action inconnue avant de remettre le compteur à zéro avec **Remettre le compteur à zéro**.
+Une écriture du journal a échoué ou une action n'est pas classée dans le registre. Cliquez sur **Voir le journal filtré**, vérifiez le fichier de repli `journal-acces.log` (dans le répertoire privé du plugin) et corrigez la cause d'accès à la base ou l'action inconnue avant de remettre le compteur à zéro avec **Remettre le compteur à zéro**.
+
+Le fichier de repli ne contient que l'heure (UTC), le code de l'action et un message technique dont les valeurs sont masquées : jamais les détails de l'action. Au-delà de 256 Ko, il est archivé en `journal-acces.log.1`, et la purge quotidienne supprime chaque fichier resté sans écriture pendant la durée de conservation « normal » du journal.
+
+## Pourquoi un avis dit-il que les tâches planifiées ne s'exécutent plus ?
+
+Au moins une tâche récurrente du plugin (purges, reprise des envois, messages programmés) a plus de six heures de retard : WP-Cron ne tourne plus. Faites appeler `wp-cron.php` régulièrement par l'hébergement, comme décrit dans [Tâches planifiées](taches-planifiees.md#alerte-de-retard).
 
 ## Pourquoi les e-mails ne partent-ils pas ?
 
