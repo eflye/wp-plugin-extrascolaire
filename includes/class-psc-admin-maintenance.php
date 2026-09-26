@@ -9,8 +9,7 @@ if (!defined('ABSPATH')) exit;
  * Cinq étapes, chacune avec un état calculé (jamais une case cochée « pour
  * faire joli » quand l'état se constate) :
  *  1. sauvegarde confirmée pour cette version (déclaration de la mairie) ;
- *  2. base de données : schéma, montée en échec, documents non déplacés,
- *     années en double ;
+ *  2. base de données : schéma, montée en échec, documents non déplacés ;
  *  3. clé de chiffrement des IBAN : hors de la base, valeurs rechiffrées ;
  *  4. nouveaux réglages : confidentialité, année active, mode debug,
  *     modèles d'e-mails relus ;
@@ -65,25 +64,6 @@ class Psc_Admin_Maintenance extends Psc_Admin_Base {
     }
 
     /**
-     * Années scolaires dont la clé est portée par plusieurs lignes (montée
-     * 4.15.0 arrêtée) : le seul conflit que la mise à jour ne tranche pas.
-     */
-    public static function duplicate_years() {
-        global $wpdb;
-        $t = psc_table('school_years');
-        $cy = psc_table('child_school_years');
-        $has_key = (bool) $wpdb->get_var("SHOW COLUMNS FROM $t LIKE 'year_key'");
-        if (!$has_key) return array();
-        return (array) $wpdb->get_results(
-            "SELECT y.id, y.year_key, y.date_debut, y.date_fin, y.statut,
-                    (SELECT COUNT(*) FROM $cy c WHERE c.school_year_id = y.id) AS inscriptions
-             FROM $t y
-             WHERE y.year_key IN (SELECT year_key FROM $t GROUP BY year_key HAVING COUNT(*) > 1)
-             ORDER BY y.year_key, y.date_debut"
-        );
-    }
-
-    /**
      * État calculé de chaque étape : 'ok', 'a_faire' ou 'bloquant', et les
      * éléments d'affichage utiles.
      */
@@ -96,7 +76,6 @@ class Psc_Admin_Maintenance extends Psc_Admin_Base {
         $db_version = (string) get_option('psc_db_version');
         $failed = get_option('psc_migration_failed');
         $storage = get_option('psc_storage_move_failed');
-        $dupes = self::duplicate_years();
         $db_ok = $db_version === Psc_Installer::DB_VERSION && !is_array($failed) && empty($storage);
         $steps['base'] = array(
             'status'   => $db_ok ? 'ok' : (is_array($failed) || $storage ? 'bloquant' : 'a_faire'),
@@ -104,7 +83,6 @@ class Psc_Admin_Maintenance extends Psc_Admin_Base {
             'attendue' => Psc_Installer::DB_VERSION,
             'echec'    => is_array($failed) ? $failed : null,
             'stockage' => is_array($storage) ? $storage : array(),
-            'doublons' => $dupes,
         );
 
         $report = Psc_Key_Rotation::run(true);

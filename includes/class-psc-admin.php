@@ -495,6 +495,13 @@ class Psc_Admin extends Psc_Admin_Base {
 
         $failed = get_option('psc_migration_failed');
         if (!is_array($failed)) return;
+        if (($failed['etape'] ?? '') === 'version') {
+            // Schéma trop ancien : rien ne se débloquera tout seul.
+            echo '<div class="notice notice-error" data-testid="notice-migration-failed"><p><strong>'
+                . esc_html__('Périscolaire — la base de données est trop ancienne pour cette version.', 'periscolaire-registration') . '</strong></p><p>'
+                . esc_html(ucfirst((string) ($failed['requete'] ?? ''))) . '.</p></div>';
+            return;
+        }
         ?>
         <div class="notice notice-error" data-testid="notice-migration-failed">
             <p><strong><?php esc_html_e('Périscolaire — la mise à jour de la base de données est incomplète.', 'periscolaire-registration'); ?></strong></p>
