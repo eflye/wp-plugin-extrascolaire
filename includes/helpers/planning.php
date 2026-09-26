@@ -70,9 +70,10 @@ function psc_resolve_declaration($is_forfait, $pattern, $exception, $forf_patter
     $forf_effectif = $forf_exception !== null ? (bool) $forf_exception : (bool) $forf_pattern;
 
     if ($is_forfait) {
-        // Le forfait n'est jamais facturé « moins un service » : si une de
-        // ses composantes est fermée, il n'est pas réalisable — équivalent
-        // calculé de la conversion FORF → prestations restantes d'avant.
+        // Le forfait n'est déclaré que réalisable : si une de ses
+        // composantes est fermée, il ne l'est pas ; les composantes encore
+        // ouvertes restent déclarées par le repli ci-dessous et facturées
+        // au tarif unitaire (psc_billing_services).
         return $forf_effectif && $forf_open;
     }
 
@@ -236,6 +237,58 @@ function psc_cantine_sans_repas_convert(array $pats, array $exc) {
  */
 function psc_is_declared($child_id, $date, $service_code) {
     return Psc_Planning::is_declared($child_id, $date, $service_code);
+}
+
+/*
+ * CONTRATS D'UNE JOURNÉE (P3-01). Une journée d'un enfant se lit à travers
+ * sa carte de déclarations effectives {code => bool} (declared_map), où le
+ * forfait déclaré a déjà rendu vrais les créneaux qu'il couvre. Quatre
+ * lectures en sont tirées, chacune par UNE fonction :
+ *
+ *  - prestation déclarée : la carte elle-même (psc_is_declared) ;
+ *  - présence            : psc_day_slots() — listes des intervenants,
+ *                          pointage, avis de fermeture ;
+ *  - repas fourni        : psc_day_meal() — commande au fournisseur ;
+ *  - prestation facturée : psc_billing_services() — factures, estimations
+ *                          du portail, export CSV, effectifs du calendrier.
+ *
+ * Table de décision : docs/contrats-planning.md.
+ */
+
+/**
+ * Présence : créneaux où l'enfant est attendu, dans l'ordre de la journée —
+ * garderie du matin, midi (cantine, ou midi sans repas) et garderie du soir.
+ * Le forfait n'est jamais un créneau : il se lit à travers ceux qu'il couvre,
+ * et une journée au forfait ne s'annonce pas deux fois.
+ *
+ * @param array $day {code => bool} de la journée.
+ * @return string[] Codes parmi GM, CANT, MSR, GS.
+ */
+function psc_day_slots(array $day) {
+    $msr = psc_midi_sans_repas_code();
+    $out = array();
+    if (!empty($day['GM'])) $out[] = 'GM';
+    if (!empty($day['CANT'])) {
+        $out[] = 'CANT';
+    } elseif (!empty($day[$msr])) {
+        $out[] = $msr;
+    }
+    if (!empty($day['GS'])) $out[] = 'GS';
+    return $out;
+}
+
+/**
+ * Repas fourni : un repas est commandé au fournisseur quand l'enfant
+ * déjeune à la cantine. Le midi sans repas n'en a pas (la conversion
+ * « cantine sans repas » l'a déjà écrit en MSR), ni l'enfant allergique,
+ * dont la famille fournit le repas — il reste attendu et facturé.
+ *
+ * @param array $day          {code => bool} de la journée.
+ * @param bool  $food_allergy Allergie alimentaire déclarée.
+ * @return bool
+ */
+function psc_day_meal(array $day, $food_allergy = false) {
+    return !empty($day['CANT']) && !$food_allergy;
 }
 
 /**
