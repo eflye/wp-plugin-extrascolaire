@@ -97,18 +97,6 @@ printf(
 <?php echo esc_html(sprintf(__('étape %1$s : %2$s.', 'periscolaire-registration'), $psc_b['echec']['etape'] ?? '', ($psc_b['echec']['requete'] ?? '') !== '' ? $psc_b['echec']['requete'] : __('erreur SQL', 'periscolaire-registration'))); ?>
 <?php esc_html_e('Les étapes précédentes sont conservées ; rien n’est perdu.', 'periscolaire-registration'); ?></p>
 <?php endif; ?>
-<?php if ($psc_b['doublons']): ?>
-<table class="widefat striped" data-testid="maintenance-doublons">
-<caption><?php esc_html_e('Années scolaires en double : une seule par rentrée. Supprimez dans Année scolaire celle qui est en trop (ses inscriptions sont supprimées avec elle), puis relancez la mise à jour.', 'periscolaire-registration'); ?></caption>
-<thead><tr><th scope="col"><?php esc_html_e('Année', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('N°', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Dates', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Inscriptions', 'periscolaire-registration'); ?></th></tr></thead>
-<tbody>
-<?php foreach ($psc_b['doublons'] as $psc_y): ?>
-<tr><td><?php echo esc_html($psc_y->year_key); ?></td><td><?php echo (int) $psc_y->id; ?></td><td><?php echo esc_html(date_i18n('d/m/Y', strtotime($psc_y->date_debut)) . ' → ' . date_i18n('d/m/Y', strtotime($psc_y->date_fin))); ?></td><td><?php echo esc_html($psc_y->statut); ?></td><td><?php echo (int) $psc_y->inscriptions; ?></td></tr>
-<?php endforeach; ?>
-</tbody>
-</table>
-<p><a class="button" href="<?php echo esc_url(admin_url('admin.php?page=psc_school_calendar_v2&tab=historique')); ?>"><?php esc_html_e('Ouvrir Année scolaire', 'periscolaire-registration'); ?></a></p>
-<?php endif; ?>
 <?php if ($psc_b['stockage']): ?>
 <p><?php esc_html_e('Des documents n’ont pas pu être déplacés vers le dossier privé : voir l’alerte en haut de page. Rien n’a été supprimé.', 'periscolaire-registration'); ?></p>
 <?php endif; ?>
