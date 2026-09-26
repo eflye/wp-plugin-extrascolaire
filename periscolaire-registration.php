@@ -55,6 +55,8 @@ require_once PSC_PATH . 'includes/class-psc-supplier-orders.php';
 require_once PSC_PATH . 'includes/class-psc-school-calendar.php';
 require_once PSC_PATH . 'includes/class-psc-admin-calendar-v2.php';
 require_once PSC_PATH . 'includes/class-psc-school-year.php';
+require_once PSC_PATH . 'includes/class-psc-tarifs.php';
+require_once PSC_PATH . 'includes/class-psc-sans-repas.php';
 require_once PSC_PATH . 'includes/class-psc-planning.php';
 require_once PSC_PATH . 'includes/class-psc-school-years.php';
 require_once PSC_PATH . 'includes/class-psc-retention.php';

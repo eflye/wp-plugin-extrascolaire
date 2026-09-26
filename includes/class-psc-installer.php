@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.16.0';
+    const DB_VERSION = '4.17.0';
     const ROLES_VERSION = '1.5.0';
 
     public static function activate() {
@@ -74,6 +74,7 @@ class Psc_Installer {
         '4.0.0'  => 'migrate_4_0_0',
         '4.14.0' => 'migrate_4_14_0',
         '4.15.0' => 'migrate_4_15_0',
+        '4.17.0' => 'migrate_4_17_0',
     );
 
     /** Un verrou plus ancien est réputé abandonné (processus tué). */
@@ -623,6 +624,57 @@ class Psc_Installer {
         return true;
     }
 
+    /**
+     * 4.17.0 (P1-16) — tarifs et statut « cantine sans repas » datés.
+     *
+     *  1. La grille en vigueur (option psc_service_prices, sinon les tarifs
+     *     par défaut) devient la première ligne de chaque code de
+     *     psc_tarifs, à compter de la première rentrée connue : les
+     *     factures déjà calculées retrouvent exactement leurs prix.
+     *  2. Chaque enfant flagué devient une période sans terme, depuis la
+     *     même date ; puis la colonne children.cantine_sans_repas est
+     *     supprimée.
+     *
+     * Idempotente : un code déjà présent n'est pas réécrit, une période
+     * n'est créée que pour un enfant qui n'en a aucune.
+     */
+    private static function migrate_4_17_0() {
+        global $wpdb;
+        $t_tarifs = psc_table('tarifs');
+        $t_sr = psc_table('sans_repas');
+        $t_child = psc_table('children');
+        $t_years = psc_table('school_years');
+        $now = current_time('mysql');
+
+        $debut = (string) $wpdb->get_var("SELECT MIN(date_debut) FROM $t_years");
+        if (!psc_valid_date($debut)) $debut = psc_rentree_year() . '-09-01';
+
+        $prices = psc_default_service_prices();
+        foreach ((array) get_option('psc_service_prices', array()) as $code => $price) {
+            if (isset($prices[$code])) $prices[$code] = max(0, (float) $price);
+        }
+        foreach ($prices as $code => $price) {
+            $done = $wpdb->query($wpdb->prepare(
+                "INSERT IGNORE INTO $t_tarifs (code, prix_centimes, debut, fin, created_at, created_by) VALUES (%s, %d, %s, NULL, %s, NULL)",
+                $code, (int) round($price * 100), $debut, $now
+            ));
+            if ($done === false) return false;
+        }
+
+        if (self::column_exists($t_child, 'cantine_sans_repas')) {
+            $done = $wpdb->query($wpdb->prepare(
+                "INSERT INTO $t_sr (child_id, debut, fin, created_at, created_by)
+                 SELECT c.id, %s, NULL, %s, NULL FROM $t_child c
+                 WHERE c.cantine_sans_repas = 1 AND NOT EXISTS (SELECT 1 FROM $t_sr s WHERE s.child_id = c.id)",
+                $debut, $now
+            ));
+            if ($done === false) return false;
+            if (false === $wpdb->query("ALTER TABLE $t_child DROP COLUMN cantine_sans_repas")) return false;
+        }
+        delete_option('psc_service_prices');
+        return true;
+    }
+
     private static function migrate_4_15_0() {
         global $wpdb;
         $t_years = psc_table('school_years');
@@ -838,6 +890,7 @@ class Psc_Installer {
             array('exception',          'child_id',       'children',     'CASCADE'),
             array('child_school_years', 'school_year_id', 'school_years', 'CASCADE'),
             array('envois',             'famille_id',     'parents',      'CASCADE'),
+            array('sans_repas',         'child_id',       'children',     'CASCADE'),
             // Le planning désigne l'année par sa clé ('2026-2027') : un
             // rythme ou un férié ne peut citer qu'une année existante, et
             // suit sa clé si les dates de l'année changent de rentrée.
@@ -1566,6 +1619,8 @@ class Psc_Installer {
         $t_conversations = psc_table('conversations');
         $t_conv_messages = psc_table('conversation_messages');
         $t_audit_log = psc_table('audit_log');
+        $t_tarifs = psc_table('tarifs');
+        $t_sans_repas = psc_table('sans_repas');
         // v4.0 — rythme & exceptions ; l'année scolaire est une seule table
         // depuis 4.15.0 (school_years porte aussi le calendrier).
         $t_hol  = psc_table('holidays');
@@ -1587,6 +1642,10 @@ class Psc_Installer {
             ? "statut VARCHAR(20) NOT NULL DEFAULT 'actif',\n            sorti_le DATETIME NULL,\n            "
             : '';
         $child_legacy_index = $before_4_15 ? ",\n            KEY statut (statut)" : '';
+        // Avant 4.17.0, le statut « cantine sans repas » était un booléen de
+        // l'enfant : migrate_4_17_0() le convertit en période datée puis
+        // supprime la colonne.
+        $child_sans_repas_legacy = self::upgrade_before('4.17.0') ? "cantine_sans_repas TINYINT(1) NOT NULL DEFAULT 0,\n            " : '';
 
         $sql = "CREATE TABLE $t_years (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -1683,8 +1742,7 @@ CREATE TABLE $t_child (
             date_naissance DATE NULL,
             sans_porc TINYINT(1) NOT NULL DEFAULT 0,
             vegan TINYINT(1) NOT NULL DEFAULT 0,
-            cantine_sans_repas TINYINT(1) NOT NULL DEFAULT 0,
-            food_allergies TEXT NULL,
+            {$child_sans_repas_legacy}food_allergies TEXT NULL,
             food_allergy_signal TINYINT(1) NOT NULL DEFAULT 0,
             food_allergy_consent_at DATETIME NULL,
             {$child_legacy}created_at DATETIME NOT NULL,
@@ -2025,6 +2083,29 @@ CREATE TABLE $t_audit_log (
             KEY action_horodatage (action, horodatage),
             KEY categorie_horodatage (categorie, horodatage),
             KEY requete_id (requete_id)
+        ) $charset_collate;
+
+CREATE TABLE $t_tarifs (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            code VARCHAR(8) NOT NULL,
+            prix_centimes INT UNSIGNED NOT NULL,
+            debut DATE NOT NULL,
+            fin DATE NULL,
+            created_at DATETIME NOT NULL,
+            created_by BIGINT UNSIGNED NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY code_debut (code, debut)
+        ) $charset_collate;
+
+CREATE TABLE $t_sans_repas (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            child_id BIGINT UNSIGNED NOT NULL,
+            debut DATE NOT NULL,
+            fin DATE NULL,
+            created_at DATETIME NOT NULL,
+            created_by BIGINT UNSIGNED NULL,
+            PRIMARY KEY  (id),
+            KEY child_debut (child_id, debut)
         ) $charset_collate;";
 
         // Tables LÉGACY (trimestres, calendar_days, registrations) : leur

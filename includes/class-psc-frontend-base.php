@@ -57,9 +57,11 @@ abstract class Psc_Frontend_Base {
         $t_child = psc_table('children');
         $inscrit = Psc_School_Years::inscrit_ouvert_sql('c.id');
         $where   = $active_only ? "AND $inscrit" : '';
-        return $wpdb->get_results($wpdb->prepare(
+        // cantine_sans_repas : statut du jour (P1-16), propriété virtuelle
+        // lue par les écrans du portail.
+        return Psc_Sans_Repas::annotate($wpdb->get_results($wpdb->prepare(
             "SELECT c.*, IF($inscrit, 'actif', 'inactif') AS statut FROM $t_child c WHERE c.parent_id = %d $where ORDER BY c.prenom", $parent_id
-        ));
+        )));
     }
 
     /**
@@ -74,6 +76,6 @@ abstract class Psc_Frontend_Base {
             'SELECT * FROM ' . psc_table('children') . ' WHERE id = %d', $child_id
         ));
         if (!$child || (int) $child->parent_id !== (int) $parent_id) return null;
-        return $child;
+        return Psc_Sans_Repas::annotate($child);
     }
 }
