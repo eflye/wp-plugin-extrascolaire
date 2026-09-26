@@ -352,10 +352,11 @@ function psc_billing_services(array $declared, $cantine_sans_repas = false, $reg
 
     $tariffs = psc_billing_tariffs($date);
     $package = $cant ? psc_forfait_code() : 'FSR';
-    $sum = 0.0;
-    foreach ($units as $code) $sum += isset($tariffs[$code]) ? (float) $tariffs[$code]['price'] : 0.0;
-    $package_price = isset($tariffs[$package]) ? (float) $tariffs[$package]['price'] : INF;
-    return $package_price <= $sum + 0.0001 ? array($package) : $units;
+    // Comparaison en centimes entiers : exacte, sans marge de tolérance.
+    $sum = 0;
+    foreach ($units as $code) $sum += isset($tariffs[$code]) ? (int) $tariffs[$code]['centimes'] : 0;
+    if (!isset($tariffs[$package])) return $units;
+    return (int) $tariffs[$package]['centimes'] <= $sum ? array($package) : $units;
 }
 
 /**
