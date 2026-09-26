@@ -11,6 +11,41 @@ Le projet est un plugin WordPress 5.8+ en PHP 7.4+, organisé par domaines mais 
 | Base de données | 2 | 2 | 1 | 5 |
 | **Total** | **6** | **3** | **3** | **12** |
 
+## État au 26 septembre 2026 (version 5.32.1, schéma 4.18.0)
+
+Cet état fait foi sur ceux qui suivent. Plusieurs constats ont été réglés par
+d'autres chantiers (TODO.md : P1-11, P1-16, P1-17, P3-01), sans passer par les
+étapes de ce plan ; les étapes concernées sont annotées « État au 26/09 ».
+
+| Constat / étape | État | Preuve |
+|---|---|---|
+| FA-01 / STEP-04 — requêtes du calendrier | **Fait** (5.31.0) | `Psc_School_Calendar::families_for()` : socle commun des trois listes ; `bin/verify-channel-contracts.php`, `tests/contrats-canaux.spec.ts` |
+| FA-05 / STEP-08 — registre de migrations | **En grande partie fait** (5.25 → 5.32) | `Psc_Installer::STEPS`, `run_step()` (erreurs SQL par étape), verrou `acquire_lock()`, reprise après échec et alerte (`psc_migration_failed`), passe finale ; `bin/verify-migrations.php`, `bin/verify-migration-resume.php`. Reste : l'installateur fait 2 220 lignes, les migrations n'ont pas de fichier propre |
+| DB-01 / STEP-09 (1/2) — index du second parent | **Fait** | `ensure_second_parent_email_unique()` pose un index unique sur `second_parent_email` |
+| DB-05 — schéma réel inconnu | **Fait** | `store_constraints_state()` publie les contraintes absentes (`psc_constraints_missing`) ; alerte `Psc_Admin::notice_db_constraints()` ; nouvelle tentative à chaque écran |
+| DB-02 / STEP-09 (2/2) — index des demandes | **Ouvert** | `requests` n'a que `KEY status` et `KEY email` ; les deux index composites restent à poser |
+| DB-03 / STEP-10 — FK d'audit | **Ouvert** | `attendance.child_id` et `pickup_history.pickup_person_id` absents de `foreign_key_map()` ; décision de suppression à prendre |
+| DB-04 / STEP-11 — unicité croisée des e-mails | **Ouvert** | contrôle applicatif avec `LOCK IN SHARE MODE` (`Psc_Parents`) ; pas de garantie en base |
+| FA-02 / STEP-05 — `handle_submit()` | **Ouvert** | 285 lignes, inchangé |
+| FA-03 / STEP-06 — `build_pdf()` | **Partiel** | le calcul est sorti du rendu (lignes par tarif et centimes dans `generate_one()`, 5.32) ; la mise en page reste en une méthode de 218 lignes |
+| FA-04 / STEP-07 — CSS du portail | **Ouvert, en hausse** | 2 937 lignes (`portal.css` 2 270, `frontend.css` 667) contre 2 826 à l'audit |
+| CM-01 / STEP-02 → STEP-03 — tables legacy | **Bloqué** | les compteurs `psc_legacy_usage_counts` existent mais aucun écran ne les affiche ; le serveur de production n'a pas WP-CLI : les 35 jours d'observation ne peuvent pas être relevés |
+| CM-02 — Planning - 1 | **À requalifier** | ce n'est plus une compatibilité d'URL : l'écran est accessible depuis la bascule de Planning - 2 et a été corrigé (totaux fournis par le serveur, 5.30.0) ; le compteur `planning_v1_url` mesure donc un usage normal, pas un usage legacy |
+
+Filet de sécurité au 26/09 : 1 396 tests unitaires, PHPStan niveau 3, syntaxe
+PHP 7.4 à 8.3, ESLint, parcours Playwright complets et une vingtaine de
+scripts `bin/verify-*.php` en CI (migrations, factures, tarifs datés, journal
+d'audit, versions de règlements…).
+
+Suites recommandées, par ordre :
+
+1. Afficher les compteurs legacy dans **Périscolaire › Maintenance** pour
+   débloquer STEP-02 sur le serveur de production.
+2. DB-02 : deux index composites sur `requests`, petits et sans risque.
+3. DB-03 et DB-04 : décisions de schéma (questions ouvertes 4 et 5).
+4. FA-02, FA-03 (mise en page), FA-04 : refactorings sans effet visible, à
+   faire quand le code concerné doit de toute façon évoluer.
+
 ## État après livraison 5.6.1
 
 Mise à jour ciblée au 10 septembre 2026. Cette section complète l'audit initial
@@ -224,7 +259,10 @@ réellement déployée ; STEP-03 reste donc fermée.
 - **Effort** : L (> 1 j)
 - **Commit suggéré** : `refactor(legacy): remove verified inactive compatibility paths`
 
-### [ ] STEP-04 — Extraire les requêtes du calendrier
+### [x] STEP-04 — Extraire les requêtes du calendrier
+
+**État au 26/09 : fait** (P3-01, 5.31.0) — `families_for()` et ses lectures `slot_items`, direct / forfait ; caractérisé par `bin/verify-channel-contracts.php`.
+
 - **Catégorie** : Factorisation
 - **Constats liés** : FA-01
 - **Prérequis** : STEP-01
@@ -241,6 +279,9 @@ réellement déployée ; STEP-03 reste donc fermée.
 - **Commit suggéré** : `refactor(calendar): centralize affected-family queries`
 
 ### [ ] STEP-05 — Décomposer la soumission publique
+
+**État au 26/09 : ouvert** (`handle_submit()` : 285 lignes).
+
 - **Catégorie** : Factorisation
 - **Constats liés** : FA-02
 - **Prérequis** : STEP-04
@@ -257,6 +298,9 @@ réellement déployée ; STEP-03 reste donc fermée.
 - **Commit suggéré** : `refactor(requests): split submission validation and persistence`
 
 ### [ ] STEP-06 — Séparer le modèle et le rendu des factures
+
+**État au 26/09 : partiel** — le calcul (lignes par prestation et par tarif, montants en centimes) est fait dans `generate_one()` avant le rendu ; `build_pdf()` reste un bloc de 218 lignes.
+
 - **Catégorie** : Factorisation
 - **Constats liés** : FA-03
 - **Prérequis** : STEP-05
@@ -273,6 +317,9 @@ réellement déployée ; STEP-03 reste donc fermée.
 - **Commit suggéré** : `refactor(invoices): separate invoice model from pdf rendering`
 
 ### [ ] STEP-07 — Modulariser les styles du portail
+
+**État au 26/09 : ouvert** (2 937 lignes).
+
 - **Catégorie** : Factorisation
 - **Constats liés** : FA-04
 - **Prérequis** : STEP-06
@@ -289,6 +336,9 @@ réellement déployée ; STEP-03 reste donc fermée.
 - **Commit suggéré** : `refactor(css): split portal styles by component`
 
 ### [ ] STEP-08 — Introduire un registre de migrations
+
+**État au 26/09 : en grande partie fait** (P1-17) — registre ordonné `STEPS`, étape par étape avec contrôle des erreurs SQL, verrou, reprise, alerte et passe finale ; reste l'extraction des migrations hors de l'installateur.
+
 - **Catégorie** : Factorisation
 - **Constats liés** : FA-05
 - **Prérequis** : STEP-07
@@ -305,6 +355,9 @@ réellement déployée ; STEP-03 reste donc fermée.
 - **Commit suggéré** : `refactor(db): introduce ordered migration registry`
 
 ### [ ] STEP-09 — Ajouter les index de lecture observés
+
+**État au 26/09 : moitié faite** — index unique `second_parent_email` posé ; restent `status_created` et `status_decided` sur `requests`.
+
 - **Catégorie** : BDD
 - **Constats liés** : DB-01, DB-02
 - **Prérequis** : STEP-02, STEP-08
@@ -321,6 +374,9 @@ réellement déployée ; STEP-03 reste donc fermée.
 - **Commit suggéré** : `perf(db): index parent login and request cleanup`
 
 ### [ ] STEP-10 — Renforcer l'intégrité des relations d'audit
+
+**État au 26/09 : ouvert** (question 4).
+
 - **Catégorie** : BDD
 - **Constats liés** : DB-03
 - **Prérequis** : STEP-09
@@ -337,6 +393,9 @@ réellement déployée ; STEP-03 reste donc fermée.
 - **Commit suggéré** : `refactor(db): enforce audited relationship integrity`
 
 ### [ ] STEP-11 — Normaliser les adresses de connexion parentales
+
+**État au 26/09 : ouvert** (question 5).
+
 - **Catégorie** : BDD
 - **Constats liés** : DB-04
 - **Prérequis** : STEP-10
@@ -355,14 +414,14 @@ réellement déployée ; STEP-03 reste donc fermée.
 
 ## 5. Questions ouvertes
 
-1. Quelles versions du plugin et du schéma sont réellement encore déployées, et existe-t-il des sites devant monter depuis une version < 4.0 ?
+1. Quelles versions du plugin et du schéma sont réellement encore déployées, et existe-t-il des sites devant monter depuis une version < 4.0 ? *Au 26/09 : un seul site connu, en 5.30.0 (schéma 4.15.0), mis à jour depuis le back office ; aucun site < 4.0 connu.*
 2. Quels sont les volumes, le moteur/version MySQL ou MariaDB, les fenêtres de maintenance et les contraintes d'ALTER en production ?
 3. Quelle durée d'observation couvre un cycle de facturation représentatif avant retrait de la compatibilité legacy ?
 4. L'historique des personnes autorisées doit-il survivre à la suppression de la personne ou de l'enfant, et pendant quelle durée légale ?
 5. Une adresse e-mail peut-elle légitimement appartenir à plusieurs foyers, ou l'unicité globale est-elle une règle métier ferme ?
 6. Quelle référence visuelle fait foi pour les factures et le portail, et peut-elle être intégrée aux tests de non-régression ?
 7. Quelle couverture minimale et quels workflows doivent bloquer une release ?
-8. L'ancienne URL de planning fait-elle partie d'une API publique garantie, ou peut-elle être dépréciée avec redirection et date de fin ?
+8. L'ancienne URL de planning fait-elle partie d'une API publique garantie, ou peut-elle être dépréciée avec redirection et date de fin ? *Au 26/09 : Planning - 1 est un écran en service, accessible depuis Planning - 2 ; la question devient « faut-il garder deux écrans de planning ? », décision métier.*
 
 ### Contrôle final
 
