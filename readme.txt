@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.32.0
+Stable tag: 5.32.1
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,9 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.32.1 =
+* Factures, estimations du portail et comparaison avec le prix du forfait calculés en centimes entiers : plus d'écart d'arrondi possible entre les lignes, le total et les documents. Pas de migration ; les factures déjà émises ne changent pas.
 
 = 5.32.0 =
 * Mise à jour automatique de la base (schémas 4.17.0 puis 4.18.0) : l'étape « Base de données » de Périscolaire › Maintenance doit afficher 4.18.0. Les montants des factures existantes ne changent pas.
