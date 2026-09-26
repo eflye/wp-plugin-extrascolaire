@@ -9,6 +9,10 @@ class Psc_Installer {
     public static function activate() {
         self::create_tables();
         if (!self::remove_pickup_identity_data()) return;
+        // Mêmes étapes finales qu'une montée de version (idempotentes) :
+        // chaînage v2 du journal d'audit et grille de tarifs initiale.
+        self::ensure_audit_chain_v2();
+        self::migrate_4_17_0();
         self::store_constraints_state();
         update_option('psc_db_version', self::DB_VERSION);
         self::sync_roles();
