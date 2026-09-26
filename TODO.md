@@ -14,7 +14,7 @@
 - **P1 mis de côté à la demande :** P1-01.
 - **P1 ouverts, côté hébergement ou DPO :** P1-04, P1-10 et P1-18.
 - **P2 :** tous traités, sauf P2-14 ; P2-06 est traité côté développement, reste le test réseau du site réel.
-- **P3 :** P3-02 est traité ; P3-01 reste ouvert.
+- **P3 :** P3-02 est traité ; P3-01 : premier lot traité (contrats et écarts), la factorisation des listes reste à faire.
 
 ## Avancement au 25 septembre 2026
 
@@ -40,7 +40,7 @@
 | P1-16 | Montants en centimes, périodes d'effet des tarifs et du statut « sans repas » | Schéma à valider |
 | P2-14 | Version du règlement effectivement accepté | Schéma à valider, puis facturation |
 | P1-15 | Fait (règle unique, à publier) ; reste à revoir le tarif FSR, plus cher que ses prestations avec les valeurs par défaut | Facturation |
-| P3-01 | Contrats entre vues et modèle métier | Développement, après P1-15 |
+| P3-01 | Premier lot fait (contrats, table de décision, 4 écarts corrigés, à publier) ; reste la factorisation des trois listes quasi identiques du calendrier scolaire | Développement |
 | P1-06 à P1-10 | Notice relue, durées de conservation, procédure des droits, dossier de conformité et AIPD | DPO et mairie |
 | P1-01 | Permissions par fonction des intervenants | Mis de côté |
 | Documentation | Captures de l'écran **Année scolaire** à régénérer (formulaire sans libellé) | Développement |
@@ -684,6 +684,12 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 **À faire :** contrats d’entrée/sortie documentés, table de décision, fonctions de présentation communes ; réduire les doublons par étapes après couverture des comportements. Ne pas engager une réécriture globale pendant les corrections urgentes.
 
 **Acceptation :** chaque règle possède une définition et des tests partagés ; ajout d’un tarif ou profil répercuté sur tous les canaux. **Développement ; L.**
+
+**Premier lot traité le 26/09/2026 :**
+- **Contrats :** quatre lectures d'une journée, chacune par une fonction pure de `includes/helpers/planning.php` : prestation déclarée (`declared_map`), présence (`psc_day_slots`), repas fourni (`psc_day_meal`), prestation facturée (`psc_billing_services`). Table de décision et canaux : [docs/contrats-planning.md](docs/contrats-planning.md).
+- **Tests partagés :** la table vit dans `tests/unit/contrats-journee.php`, rejouée par les tests unitaires (deux jeux de tarifs) et par `bin/verify-channel-contracts.php` (commande fournisseur, avis de fermeture, annulation de classe, facture), en CI.
+- **Écarts corrigés :** annulation de la cantine d'une classe qui ignorait les enfants au forfait (repas commandé et facturé, famille non prévenue) ; total du portail (Planning - 1) recalculé en JavaScript avec l'ancienne règle, désormais fourni par le serveur ; avis de fermeture d'un jour qui annonçaient le forfait en plus de ses créneaux ; fermeture d'une prestation qui envoyait deux e-mails aux familles au forfait.
+- **Reste :** factoriser les trois listes quasi identiques de `Psc_School_Calendar` (jour, période, prestation) ; la liste des prestations restantes de l'e-mail « forfait remplacé » ne tient pas compte des retraits de la famille.
 
 ### P3-02 — TRAITÉ (après v5.24.0) — Mettre la documentation en accord avec le mode de déploiement réel
 

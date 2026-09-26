@@ -74,6 +74,8 @@ podman exec -u www-data -e WP_CLI_CACHE_DIR=/tmp/wp-cli-cache plugin-extrascolai
   --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-<nom>.php verify-<nom>
 ```
 
+`bin/verify-channel-contracts.php` confronte les canaux (commande fournisseur, avis de fermeture, annulation de classe, facture) à la table de décision des [contrats d'une journée](contrats-planning.md).
+
 Ils purgent leurs données avant et après. **Exception : `bin/verify-migrations.php` détruit le schéma du plugin** pour rejouer une montée depuis 2.4.9. Ne le lancez jamais sur la base locale : utilisez une base jetable, que le conteneur WordPress choisit par la variable `WORDPRESS_DB_NAME`.
 
 ```bash
