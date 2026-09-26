@@ -31,6 +31,10 @@ async function thirdParty(page: Page, url: string): Promise<string[]> {
   await page.goto(url);
   await page.waitForLoadState('networkidle');
   page.off('request', listener);
+  // Le script d'émojis de WordPress télécharge ses images depuis s.w.org,
+  // mais seulement sur un navigateur sans émojis natifs (CI Linux) : sa
+  // simple présence est donc vérifiée, quel que soit le navigateur.
+  if (/wp-?emoji/i.test(await page.content())) outside.push('script d’émojis WordPress (s.w.org)');
   return outside;
 }
 
