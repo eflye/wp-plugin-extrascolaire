@@ -74,6 +74,9 @@ async function frame(page: Page, locator: Locator): Promise<void> {
 }
 
 async function capture(page: Page, filename: string, fullPage = false): Promise<void> {
+  // L'avis « WordPress x.y est disponible » dépend du poste qui capture,
+  // pas de l'extension : il n'a pas sa place dans la documentation.
+  await page.addStyleTag({ content: '.update-nag { display: none !important; }' });
   await page.screenshot({ path: path.join(SCREENSHOTS_DIR, filename), fullPage });
 }
 
@@ -114,7 +117,8 @@ test.describe.serial('Captures de la documentation administrateur', () => {
   test('année scolaire — liste des années existantes', async ({ page }) => {
     await openAdmin(page, 'admin.php?page=psc_school_calendar_v2&tab=historique');
     await frame(page, page.getByRole('heading', { name: 'Années existantes' }));
-    await expect(page.locator('input[value="Documentation active"]')).toBeVisible();
+    // Une année se désigne par sa clé (P2-08), il n'y a plus de libellé.
+    await expect(page.getByTestId(`year-key-${seed().year_id}`)).toHaveText(seed().year_key);
     await capture(page, 'annee-scolaire-liste.png');
   });
 

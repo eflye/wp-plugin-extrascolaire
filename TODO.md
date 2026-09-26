@@ -46,7 +46,7 @@
 | P3-01 | Premier lot publié en 5.30.0, déployé ; second lot fait (listes du calendrier factorisées, e-mail « forfait modifié » par enfant), à publier | Développement |
 | P1-06 à P1-10 | Notice relue, durées de conservation, procédure des droits, dossier de conformité et AIPD | DPO et mairie |
 | P1-01 | Permissions par fonction des intervenants | Mis de côté |
-| Documentation | Captures de l'écran **Année scolaire** à régénérer (formulaire sans libellé) | Développement |
+| Documentation | Captures **Année scolaire** et **Calendrier** régénérées (formulaire sans libellé, jours hors du mois), à publier | — |
 
 ## Périmètre et limites
 
