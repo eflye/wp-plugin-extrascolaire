@@ -141,12 +141,10 @@ function psc_planning_single_variant() {
  */
 function psc_record_legacy_usage($key) {
     static $recorded = array();
+    // Seul compteur restant : les lectures des tables d'avant 4.0 ont
+    // disparu avec leurs migrations (aucune installation < 4.0, 26/09/2026).
     $allowed = array(
         'planning_v1_url',
-        'registrations_migration_read',
-        'registrations_verification_read',
-        'calendar_days_migration_read',
-        'trimestres_migration_read',
     );
     if (!in_array($key, $allowed, true) || isset($recorded[$key])) return;
 
