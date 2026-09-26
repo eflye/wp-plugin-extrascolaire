@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.28.1
+Stable tag: 5.29.0
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,12 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.29.0 =
+* Règle unique de facturation d'une journée, pour les factures, les estimations du portail, les récapitulatifs, l'export CSV et les effectifs du calendrier : une journée complète (garderie du matin, midi, garderie du soir) est facturée au prix du forfait — ou du forfait sans repas — sans jamais dépasser la somme de ses prestations ; sinon, chaque prestation au tarif unitaire. Corrige un cumul : un forfait dont la famille retirait la cantine était facturé forfait + garderies (18,25 € au lieu de 6,55 € avec les tarifs par défaut). Trois prestations cochées séparément sont désormais facturées au prix du forfait.
+* Les factures déjà envoyées ne changent pas : elles restent calculées avec la règle sous laquelle elles ont été émises.
+* **À vérifier après la mise à jour :** avec les tarifs par défaut, le forfait sans repas (9,00 €) coûte plus que ses prestations (7,55 €) et ne s'applique donc plus. Pour qu'il serve, fixez-le sous ce montant dans Réglages › Tarifs.
+* Les effectifs du calendrier tiennent compte du statut « cantine sans repas » (un enfant n'est plus compté deux fois).
 
 = 5.28.1 =
 * Aucune ressource tierce sur le portail des familles : le thème « Montgeroult Familles » (1.1.0) sert lui-même la police Public Sans au lieu de la charger depuis Google Fonts, et le script d'émojis de WordPress, qui téléchargeait des images depuis WordPress.org sur certains navigateurs, est retiré des pages de l'extension et de tout le site. Dans les deux cas, l'adresse IP des visiteurs partait vers un service tiers. **Mettez aussi à jour le thème** (archive montgeroult-familles) si votre site l'utilise.
