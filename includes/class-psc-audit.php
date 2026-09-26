@@ -289,6 +289,16 @@ class Psc_Audit {
         return 'portail';
     }
 
+    /**
+     * Repli quand l'écriture en base échoue : compteur (alerte de l'écran
+     * d'administration) et une ligne dans journal-acces.log, du répertoire
+     * privé. La ligne ne porte que l'horodatage UTC, le code d'action et
+     * un message technique expurgé (psc_audit_technical_message) : jamais
+     * les détails de l'action, qui peuvent être personnels. Au-delà de
+     * psc_audit_fallback_max_bytes(), le fichier est archivé en
+     * journal-acces.log.1 (une seule génération), supprimée par la purge
+     * quotidienne une fois la durée de rétention « normal » écoulée.
+     */
     private static function record_failure($action_code, $message) {
         $count = (int) get_option('psc_audit_failures', 0);
         update_option('psc_audit_failures', $count + 1, false);
@@ -296,10 +306,38 @@ class Psc_Audit {
         $entry = wp_json_encode(array(
             'horodatage' => gmdate('Y-m-d H:i:s'),
             'action'     => (string) $action_code,
-            'erreur'     => (string) $message,
+            'erreur'     => psc_audit_technical_message($message),
         )) . "\n";
-        $path = function_exists('psc_private_path') ? psc_private_path('journal-acces.log') : false;
-        if ($path) @file_put_contents($path, $entry, FILE_APPEND | LOCK_EX); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        $path = self::fallback_path();
+        if (!$path) return;
+        clearstatcache(true, $path);
+        if (is_file($path) && filesize($path) + strlen($entry) > psc_audit_fallback_max_bytes()) {
+            @rename($path, $path . '.1'); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        }
+        @file_put_contents($path, $entry, FILE_APPEND | LOCK_EX); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+    }
+
+    /** Chemin du fichier de repli, ou false si le répertoire privé est indisponible. */
+    public static function fallback_path() {
+        return function_exists('psc_private_path') ? psc_private_path('journal-acces.log') : false;
+    }
+
+    /**
+     * Rétention du fichier de repli : chaque fichier (courant et archive)
+     * dont la dernière écriture dépasse la durée « normal » est supprimé.
+     *
+     * @return int Nombre de fichiers supprimés.
+     */
+    public static function purge_fallback($now = null) {
+        $path = self::fallback_path();
+        if (!$path) return 0;
+        $cutoff = ($now === null ? time() : (int) $now) - psc_audit_retention_days('normal') * DAY_IN_SECONDS;
+        $removed = 0;
+        foreach (array($path . '.1', $path) as $file) {
+            clearstatcache(true, $file);
+            if (is_file($file) && filemtime($file) < $cutoff && @unlink($file)) $removed++; // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        }
+        return $removed;
     }
 
     /* ------------------------------------------------------------------ */
@@ -477,6 +515,8 @@ class Psc_Audit {
 
             if (count($expired_ids) < count($rows)) break; // le lot contenait une ligne encore valide : rien de plus à faire
         }
+
+        self::purge_fallback();
 
         if ($total_deleted > 0) {
             self::log('audit.purge', array(
