@@ -40,7 +40,7 @@
 | **Serveur distant** | **En 5.30.0 (26/09/2026)**, à jour de toutes les versions publiées. Le 25/09, passage 5.23.1 → 5.28.0 avec les cinq étapes de **Périscolaire › Maintenance** (sauvegarde, base au schéma 4.15.0, clé des IBAN hors de la base et rechiffrement, réglages, recette). Reste : tester une restauration avec la clé, puis dérouler la fiche de recette de l'hébergement (P1-04, P1-18) | Exploitation |
 | P2-06 | Polices servies localement (publié en 5.28.1, déployé) ; reste l'inventaire des ressources tierces du site réel (onglet Réseau du navigateur) | Exploitation, puis DPO |
 | P1-11 | Fait, à publier : fichier de repli expurgé et archivé, alerte de retard des tâches planifiées, purge par niveau sans trou dans la chaîne (schéma 4.16.0). Reste : faire valider les durées par le DPO | DPO |
-| P1-16 | Montants en centimes, périodes d'effet des tarifs et du statut « sans repas » | Schéma à valider |
+| P1-16 | Fait, à publier : tarifs et statut « sans repas » datés (schéma 4.17.0). Reste : factures en centimes (lot séparé) et validation de la procédure de correction par la facturation | Facturation |
 | P2-14 | Version du règlement effectivement accepté | Schéma à valider, puis facturation |
 | P1-15 | Règle unique publiée en 5.29.0, déployée ; reste à revoir le tarif FSR, plus cher que ses prestations avec les valeurs par défaut | Facturation |
 | P3-01 | Premier lot publié en 5.30.0, déployé ; second lot fait (listes du calendrier factorisées, e-mail « forfait modifié » par enfant), à publier | Développement |
@@ -359,7 +359,9 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Suppression protégée (après v5.24.0) :** « Supprimer les factures du mois » ne supprime plus que les factures jamais envoyées et sans version archivée. La suppression totale n'est possible qu'en mode debug, activé par WP-CLI (`psc_invoice_debug_delete`), signalé par une alerte et tracé dans le journal d'audit. Preuve : `bin/verify-invoice-deletion.php`, `tests/invoices.spec.ts`.
 
-**Restant :** les périodes d’effet des tarifs et du statut « sans repas » ne sont pas modélisées — c’est la rectification qui rattrape le coup, pas une historisation des paramètres. Les montants restent en flottant, non convertis en centimes. La qualification comptable du PDF et la procédure de correction restent à valider par la facturation et la mairie.
+**Périodes d’effet (schéma 4.17.0, validé le 26/09/2026) :** tables `psc_tarifs` (code, prix en centimes, début, fin) et `psc_sans_repas` (enfant, début, fin) ; la colonne `children.cantine_sans_repas` et l’option `psc_service_prices` sont reprises puis supprimées par la migration. Chaque jour est résolu avec le statut de ce jour et facturé au tarif de ce jour ; un changement en cours de mois coupe la ligne de facture. Réglages › Tarifs : « Nouveau tarif à partir du » et historique ; fiche enfant : « Cantine sans repas / Rétablir les repas à partir du ». Preuves : `bin/verify-dated-tariffs.php` (29 vérifications, dont la migration), `tests/integration/invoice-snapshot.php` (35, en CI : un tarif ou un statut daté d’après le mois ne rectifie pas une facture émise, daté dans le mois il la rectifie), `tests/tarifs-dates.spec.ts`, tests unitaires.
+
+**Restant :** les montants restent en flottant, non convertis en centimes. La qualification comptable du PDF et la procédure de correction restent à valider par la facturation et la mairie.
 
 **Acceptation :** changer un tarif, sortir un enfant ou modifier son flag en octobre n’altère pas une facture de septembre déjà émise ; correction identifiable et archive conservée selon la politique validée. La qualification comptable exacte du PDF doit être confirmée par la mairie. **Développement + facturation/archives ; L.**
 

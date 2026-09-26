@@ -14,6 +14,7 @@ Passer d'une version antérieure à 5.26.0 (5.23.x, 5.24.x ou 5.25.x) à la vers
 
 - **Journal d'audit, schéma 4.16.0 :** deux colonnes ajoutées au journal, calculées automatiquement à la mise à jour, sans toucher aux lignes existantes. Une ligne dont la durée de conservation est dépassée voit désormais son contenu effacé même si des lignes plus anciennes sont conservées plus longtemps. L'étape **2. Base de données** de la page **Maintenance** doit afficher le schéma 4.16.0.
 - **Tâches planifiées :** un avis rouge sur le tableau de bord signale un WP-Cron à l'arrêt. S'il apparaît, suivez [Tâches planifiées](taches-planifiees.md#alerte-de-retard).
+- **Tarifs et statut « cantine sans repas » datés, schéma 4.17.0 :** la grille de tarifs en place devient le premier tarif de chaque prestation, à compter de la première rentrée enregistrée, et chaque enfant signalé « cantine sans repas » l'est depuis cette même date. Les montants des factures existantes ne changent pas. Ensuite, un changement de prix ou de statut se fait **à partir d'une date** : voir [Services et tarifs](../configuration/services-tarifs.md) et [Régimes alimentaires](../configuration/regimes-alimentaires.md). L'étape **2. Base de données** de la page **Maintenance** doit afficher le schéma 4.17.0.
 
 ## Avant de commencer
 
