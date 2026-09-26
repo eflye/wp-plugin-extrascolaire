@@ -239,14 +239,74 @@ function psc_is_declared($child_id, $date, $service_code) {
 }
 
 /**
- * Prestations à FACTURER pour un (enfant, date) d'après sa carte de
- * déclarations effectives. Un forfait déclaré — et réalisable, cf. la
- * résolution — est facturé à lui seul, jamais cumulé avec ses composantes :
- * quand une composante est fermée, le forfait retombe sur les prestations
- * restantes (équivalent calculé de l'ancienne conversion FORF → unités).
- * Le flag enfant sélectionne le tarif FSR pour un forfait sans repas.
+ * Numéro de la règle de facturation en vigueur. Il est inscrit dans
+ * l'instantané de chaque facture (champ « calcul ») : une facture déjà
+ * envoyée est toujours recalculée avec la règle sous laquelle elle a été
+ * émise, jamais avec une règle adoptée depuis (cf. Psc_Invoices).
+ *
+ *  1 — jusqu'à 5.28 : forfait facturé dès qu'il est déclaré et réalisable,
+ *      unités en sus quand la cantine était retirée (cumul) ;
+ *  2 — P1-15 (26/09/2026) : une journée complète au prix du forfait, sinon
+ *      les créneaux consommés au tarif unitaire.
  */
-function psc_billing_services(array $declared, $cantine_sans_repas = false) {
+function psc_billing_rule_version() {
+    return 2;
+}
+
+/**
+ * Prestations à FACTURER pour un (enfant, date), d'après sa carte de
+ * déclarations effectives (psc_is_declared / declared_map). Règle unique,
+ * partagée par factures, estimations du portail, récapitulatifs, export
+ * CSV et comptages (P1-15, règle 2) :
+ *
+ *  - une journée est COMPLÈTE quand ses trois créneaux sont consommés :
+ *    garderie du matin, midi (cantine, ou midi sans repas) et garderie du
+ *    soir — quelle que soit la façon dont ils ont été déclarés (forfait,
+ *    cases séparées, retrait ou fermeture ensuite) ;
+ *  - une journée complète est facturée au prix du forfait — le forfait
+ *    sans repas (FSR) quand le midi est sans repas — sans jamais dépasser
+ *    la somme de ses créneaux au tarif unitaire ;
+ *  - sinon, chaque créneau consommé est facturé au tarif unitaire. Un
+ *    retrait par la famille et une fermeture par la mairie se traitent
+ *    donc de la même façon, et rien ne se cumule jamais.
+ *
+ * @param array    $declared           {code => bool} de la journée.
+ * @param bool     $cantine_sans_repas Enfant flagué par la mairie : son midi
+ *                                     est « sans repas » (la résolution l'a
+ *                                     déjà converti ; filet de sécurité).
+ * @param int|null $regle              Règle à appliquer (null : en vigueur).
+ * @return string[] Codes à facturer (tarifs : psc_billing_tariffs()).
+ */
+function psc_billing_services(array $declared, $cantine_sans_repas = false, $regle = null) {
+    if ((int) $regle === 1) return psc_billing_services_regle1($declared, $cantine_sans_repas);
+
+    $msr   = psc_midi_sans_repas_code();
+    $gm    = !empty($declared['GM']);
+    $gs    = !empty($declared['GS']);
+    $cant  = !empty($declared['CANT']) && !$cantine_sans_repas;
+    $sans  = !$cant && (!empty($declared[$msr]) || (!empty($declared['CANT']) && $cantine_sans_repas));
+
+    $units = array();
+    if ($gm) $units[] = 'GM';
+    if ($cant) $units[] = 'CANT';
+    if ($sans) $units[] = $msr;
+    if ($gs) $units[] = 'GS';
+
+    if (!$gm || !$gs || (!$cant && !$sans)) return $units;
+
+    $tariffs = psc_billing_tariffs();
+    $package = $cant ? psc_forfait_code() : 'FSR';
+    $sum = 0.0;
+    foreach ($units as $code) $sum += isset($tariffs[$code]) ? (float) $tariffs[$code]['price'] : 0.0;
+    $package_price = isset($tariffs[$package]) ? (float) $tariffs[$package]['price'] : INF;
+    return $package_price <= $sum + 0.0001 ? array($package) : $units;
+}
+
+/**
+ * Règle 1 (jusqu'à 5.28), conservée pour recalculer à l'identique les
+ * factures envoyées sous cette règle. Ne pas utiliser ailleurs.
+ */
+function psc_billing_services_regle1(array $declared, $cantine_sans_repas = false) {
     if ($cantine_sans_repas && !empty($declared[psc_forfait_code()])) {
         return array('FSR');
     }
@@ -254,9 +314,6 @@ function psc_billing_services(array $declared, $cantine_sans_repas = false) {
     $out = array();
     if (!empty($declared[$forf])) {
         $out[] = $forf;
-        // Avec repas, les unités résolues décrivent les présences couvertes
-        // par le forfait, pas des prestations à facturer en supplément.
-        // Le traitement des journées sans repas reste indépendant.
         if (!empty($declared['CANT']) && empty($declared[psc_midi_sans_repas_code()])) {
             return $out;
         }
