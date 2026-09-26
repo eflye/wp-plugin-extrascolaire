@@ -12,14 +12,18 @@ L'hébergement expose probablement le répertoire privé à partir d'une URL pub
 
 Une étape de la mise à jour du schéma a rencontré une erreur SQL. Les étapes précédentes sont conservées, et la version n'avance pas au-delà de la dernière étape réussie. Une nouvelle tentative reprend à l'étape indiquée à chaque ouverture du backoffice. L'alerte donne l'étape, la nature de la requête et la table, sans aucune donnée personnelle. Si elle persiste, vérifiez avec l'hébergeur les droits de modification des tables (`ALTER`, `CREATE`), le quota et les délais d'exécution. Le **Journal d'audit** trace l'arrêt (« systeme.montee_de_version_echec ») puis la réussite (« systeme.montee_de_version »).
 
+## L'alerte indique que la base de données est trop ancienne pour cette version
+
+La base est à un schéma antérieur à 4.15.0 (extension antérieure à 5.28.0). Cette version ne porte plus les migrations correspondantes : rien n'a été modifié. Réinstallez la **5.32.1**, laissez-la mettre la base à jour (**Périscolaire › Maintenance**), puis installez de nouveau la version courante. Voir [Notes de mise à jour](notes-mise-a-jour.md).
+
 ## L'alerte indique que des documents n'ont pas pu être déplacés
 
-Après un changement de `PSC_PRIVATE_DIR`, ou lors de la sortie de l'ancien dossier `uploads/periscolaire`, certains fichiers sont restés à l'ancien emplacement. Aucun fichier n'est supprimé, mais ces documents ne peuvent pas être téléchargés tant qu'ils ne sont pas au nouvel emplacement. Deux causes possibles :
+Après un changement de `PSC_PRIVATE_DIR`, certains fichiers sont restés à l'ancien emplacement. Aucun fichier n'est supprimé, mais ces documents ne peuvent pas être téléchargés tant qu'ils ne sont pas au nouvel emplacement. Deux causes possibles :
 
 - **Même nom, contenu différent aux deux endroits :** comparez les deux fichiers, conservez le bon au nouvel emplacement et supprimez l'autre copie.
 - **Droits insuffisants :** le processus PHP doit pouvoir modifier les deux dossiers.
 
-Rechargez ensuite une page du backoffice : le déplacement reprend et l'alerte disparaît dès qu'il est complet. Tant que des fichiers restent dans `uploads/periscolaire`, un fichier `.htaccess` y interdit l'accès direct.
+Rechargez ensuite une page du backoffice : le déplacement reprend et l'alerte disparaît dès qu'il est complet.
 
 ## Pourquoi l'alerte indique-t-elle que les contraintes de base de données ne sont pas posées ?
 

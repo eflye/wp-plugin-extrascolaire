@@ -2,13 +2,7 @@
 
 ## Objectif
 
-Passer d'une version antérieure à la version courante (5.32.1, schéma de base 4.18.0), en une seule fois : inutile d'installer les versions intermédiaires. Depuis 5.28.0, tout se fait **depuis le backoffice**, dans **Périscolaire › Maintenance**, sans ligne de commande : c'est la méthode adaptée à un WordPress en conteneur. Les commandes WP-CLI restent possibles ; elles sont indiquées en encadré.
-
-## Ce qui change entre 5.23 et 5.28
-
-- **Une seule migration de base :** le schéma passe de 4.14.0 à 4.15.0 (5.26.0), avec une seule table d'année scolaire nommée par sa rentrée et le statut de l'enfant porté par l'année. Elle est automatique. Si deux années d'une même rentrée portent chacune des inscriptions, elle s'arrête **sans rien perdre** et la page **Maintenance** affiche les années en cause.
-- **Nouveaux réglages :** rubrique **Confidentialité** (5.24.0), modèle d'e-mail **Réinscription retirée par la famille** (5.26.0).
-- **Clé de chiffrement des IBAN** (5.27.0) : à sortir de la base. Pour un conteneur, la clé se déclare en variable d'environnement (5.28.0).
+Passer d'une version antérieure à la version courante (schéma de base 4.18.0), en une seule fois depuis la **5.28.0 ou plus récente** : inutile d'installer les versions intermédiaires. Depuis une version plus ancienne (schéma antérieur à 4.15.0), installez d'abord la **5.32.1**, la dernière à porter ces migrations, puis la version courante ; sinon la page **Maintenance** signale que la base est trop ancienne et rien n'est modifié. Depuis 5.28.0, tout se fait **depuis le backoffice**, dans **Périscolaire › Maintenance**, sans ligne de commande : c'est la méthode adaptée à un WordPress en conteneur. Les commandes WP-CLI restent possibles ; elles sont indiquées en encadré.
 
 ## Ce qui change entre 5.28 et 5.32
 
@@ -46,7 +40,7 @@ Passer d'une version antérieure à la version courante (5.32.1, schéma de base
 4. **Ouvrez Périscolaire › Maintenance.** La mise à jour de la base se fait au premier affichage du backoffice. La page présente cinq étapes, chacune avec son état (**Fait**, **À faire** ou **Bloquant**) :
 
     - **1. Sauvegarde** : cochez la case une fois l'étape 1 ci-dessus réalisée, puis cliquez sur **Confirmer la sauvegarde**.
-    - **2. Base de données** : l'état doit être **Fait**, avec le schéma **4.18.0** (version 5.32). Les migrations s'enchaînent seules, dans l'ordre, quelle que soit la version de départ. S'il est **Bloquant** avec un tableau d'**années scolaires en double**, ouvrez **Année scolaire**, supprimez l'année en trop, c'est-à-dire celle qui n'aurait pas dû exister (ses inscriptions sont supprimées avec elle), puis cliquez sur **Relancer la mise à jour de la base**. En cas de doute sur l'année à garder, arrêtez-vous et faites-vous accompagner : les étapes réussies sont conservées, rien n'est perdu.
+    - **2. Base de données** : l'état doit être **Fait**, avec le schéma **4.18.0** (version 5.32). Les migrations s'enchaînent seules, dans l'ordre. S'il est **Bloquant**, le motif est affiché : cliquez sur **Relancer la mise à jour de la base** une fois la cause levée ; les étapes réussies sont conservées, rien n'est perdu.
 
 5. **Sortez la clé de chiffrement de la base** (étape **3. Clé de chiffrement des IBAN** de la page) :
 
@@ -69,46 +63,6 @@ Passer d'une version antérieure à la version courante (5.32.1, schéma de base
 8. **Terminez.** Quand les cinq étapes sont **Fait**, le rappel disparaît du tableau de bord. Faites une nouvelle sauvegarde, puis protégez ou supprimez les dumps antérieurs : ils contiennent l'ancienne clé.
 
 !!! note "Avec WP-CLI"
-    Si WP-CLI est disponible, un contrôle des années peut être lancé **avant** la mise à jour, en lecture seule, avec `wp eval-file controle-4.15.php` et ce contenu :
-
-    ```php
-    <?php
-    // Contrôle avant la mise à jour vers 5.26.0 ou plus : années scolaires qui
-    // tomberaient sur la même clé (ex. 2026-2027). Lecture seule.
-    global $wpdb;
-    $t  = $wpdb->prefix . 'psc_school_years';
-    $cy = $wpdb->prefix . 'psc_child_school_years';
-    $has_label = (bool) $wpdb->get_var("SHOW COLUMNS FROM $t LIKE 'label'");
-    $rows = $wpdb->get_results(
-        'SELECT y.id, ' . ($has_label ? 'y.label' : "'' AS label") . ", y.date_debut, y.statut,
-                (SELECT COUNT(*) FROM $cy c WHERE c.school_year_id = y.id) AS inscriptions
-         FROM $t y ORDER BY y.date_debut"
-    );
-    $groups = array();
-    foreach ($rows as $r) {
-        if (preg_match('/^\d{4}-\d{4}$/', (string) $r->label)) {
-            $key = $r->label;
-        } else {
-            $y = (int) substr($r->date_debut, 0, 4);
-            if ((int) substr($r->date_debut, 5, 2) < 8) $y--;
-            $key = $y . '-' . ($y + 1);
-        }
-        $groups[$key][] = $r;
-        printf("#%-4d %-22s début %s -> année %s  %-11s %d inscription(s)\n", $r->id, $r->label, $r->date_debut, $key, $r->statut, $r->inscriptions);
-    }
-    $blocking = 0;
-    foreach ($groups as $key => $list) {
-        $with = array_filter($list, function ($r) { return (int) $r->inscriptions > 0; });
-        if (count($with) > 1) {
-            $blocking++;
-            echo "BLOQUANT : plusieurs années $key portent des inscriptions (ids " . implode(', ', wp_list_pluck($with, 'id')) . ").\n";
-        } elseif (count($list) > 1) {
-            echo "Info : années $key en double sans conflit, la mise à jour gardera " . (count($with) ? 'celle qui a des inscriptions' : 'l’active, sinon la plus récente') . ".\n";
-        }
-    }
-    echo $blocking ? "=> À corriger avant la mise à jour.\n" : "=> Aucun blocage : la mise à jour 4.15.0 peut passer.\n";
-    ```
-
     Les étapes de la clé existent aussi en ligne de commande : `wp psc chiffrement statut`, `generer-cle`, `rechiffrer`. Voir [Clé de chiffrement des IBAN](cle-chiffrement.md).
 
 !!! warning "Retour arrière"
