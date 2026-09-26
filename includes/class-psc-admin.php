@@ -58,6 +58,7 @@ class Psc_Admin extends Psc_Admin_Base {
         add_action('admin_notices', array(__CLASS__, 'notice_storage_move_failed'));
         add_action('admin_notices', array(__CLASS__, 'notice_audit_health'));
         add_action('admin_notices', array(__CLASS__, 'notice_privacy_incomplete'));
+        add_action('admin_notices', array(__CLASS__, 'notice_cron_late'));
         add_action('admin_notices', array(__CLASS__, 'notice_invoice_debug_delete'));
         add_action('show_user_profile', array(__CLASS__, 'user_capabilities_fields'));
         add_action('edit_user_profile', array(__CLASS__, 'user_capabilities_fields'));
@@ -412,6 +413,40 @@ class Psc_Admin extends Psc_Admin_Base {
      * écran admin ; cet avis ferme la boucle côté mairie, qui voit enfin
      * pourquoi sa base ne garantit pas la cohérence qu'elle croit avoir.
      */
+    /**
+     * Tâches planifiées en retard de plus de six heures (P1-11, alerte de
+     * panne) : WP-Cron ne tourne plus — typique d'un WordPress en
+     * conteneur sans trafic ni appel vers lui-même. Purges RGPD, reprise
+     * des envois et messages programmés sont alors à l'arrêt sans aucune
+     * erreur. Avis limité aux tableaux de bord (WordPress et Périscolaire).
+     */
+    public static function notice_cron_late() {
+        if (!current_user_can('psc_manage_config')) return;
+        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+        if (!$screen || !in_array($screen->id, array('dashboard', 'toplevel_page_psc_dashboard'), true)) return;
+
+        $hooks = psc_recurring_cron_hooks();
+        $next = array();
+        foreach (array_keys($hooks) as $hook) $next[$hook] = wp_next_scheduled($hook);
+        $late = psc_late_cron_hooks($next, time());
+        if (!$late) return;
+
+        $oldest = min(array_map(function ($h) use ($next) { return (int) $next[$h]; }, $late));
+        $hours = (int) floor((time() - $oldest) / HOUR_IN_SECONDS);
+        $delay = $hours >= 48
+            ? sprintf(_n('%d jour', '%d jours', intdiv($hours, 24), 'periscolaire-registration'), intdiv($hours, 24))
+            : sprintf(_n('%d heure', '%d heures', $hours, 'periscolaire-registration'), $hours);
+        echo '<div class="notice notice-error" data-testid="notice-cron-late"><p><strong>'
+            . esc_html__('Périscolaire — les tâches planifiées ne s’exécutent plus.', 'periscolaire-registration') . '</strong> '
+            . esc_html(sprintf(
+                /* translators: %s: durée (ex. « 2 jours ») */
+                __('La plus ancienne est en retard de %s. Les purges prévues par la politique de conservation et la reprise des envois sont à l’arrêt.', 'periscolaire-registration'),
+                $delay
+            )) . '</p><ul style="list-style:disc;margin-left:20px">';
+        foreach ($late as $hook) echo '<li>' . esc_html($hooks[$hook]) . '</li>';
+        echo '</ul><p>' . esc_html__('Faites déclencher wp-cron.php régulièrement par l’hébergement (tâche planifiée du serveur ou du conteneur) : voir la documentation, « Tâches planifiées ».', 'periscolaire-registration') . '</p></div>';
+    }
+
     /**
      * La notice de confidentialité montrée aux familles porte « Collectivité
      * (à adapter) » tant que le responsable du traitement n'est pas
