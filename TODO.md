@@ -16,7 +16,7 @@
 - **P2 :** tous traités, sauf P2-14 ; P2-06 est traité côté développement, reste le test réseau du site réel.
 - **P3 :** P3-02 est traité ; P3-01 : premier lot traité (contrats et écarts), la factorisation des listes reste à faire.
 
-## Avancement au 25 septembre 2026
+## Avancement au 26 septembre 2026
 
 ### Versions publiées depuis l'arbitrage
 
@@ -29,18 +29,21 @@
 | 5.26.0 | P2-08 : une seule table d'année (schéma 4.15.0), statut de l'enfant par année, retrait de réinscription, rétention |
 | 5.27.0 | Clé des IBAN : constat qu'elle vivait en base, commande `wp psc chiffrement` (P1-12), notes de mise à jour |
 | 5.28.0 | Page **Périscolaire › Maintenance** (mise à jour conduite depuis le backoffice, sans WP-CLI), clé en variable d'environnement, registre d'audit complété et contrôlé en CI |
+| 5.28.1 | P2-06 : polices du thème et de l'extension servies localement, script d'émojis WordPress désactivé |
+| 5.29.0 | P1-15 : règle unique de facturation d'une journée (plus de cumul forfait + garderies), factures envoyées inchangées |
+| 5.30.0 | P3-01 (premier lot) : contrats d'une journée, annulation de classe au forfait, totaux du portail fournis par le serveur, avis de fermeture |
 
 ### Reste à faire
 
 | Bloc | Ce qui reste | Qui débloque |
 | --- | --- | --- |
-| **Serveur distant** | **Fait le 25/09/2026 :** 5.23.1 → 5.28.0 déployé, les cinq étapes de **Périscolaire › Maintenance** sont faites (sauvegarde, base au schéma 4.15.0, clé des IBAN hors de la base et rechiffrement, réglages, recette). Reste : tester une restauration avec la clé, puis dérouler la fiche de recette de l'hébergement (P1-04, P1-18) | Exploitation |
-| P2-06 | Polices du thème servies localement (fait, à publier) ; reste l'inventaire des ressources tierces du site réel (onglet Réseau du navigateur) | Exploitation, puis DPO |
+| **Serveur distant** | **En 5.30.0 (26/09/2026)**, à jour de toutes les versions publiées. Le 25/09, passage 5.23.1 → 5.28.0 avec les cinq étapes de **Périscolaire › Maintenance** (sauvegarde, base au schéma 4.15.0, clé des IBAN hors de la base et rechiffrement, réglages, recette). Reste : tester une restauration avec la clé, puis dérouler la fiche de recette de l'hébergement (P1-04, P1-18) | Exploitation |
+| P2-06 | Polices servies localement (publié en 5.28.1, déployé) ; reste l'inventaire des ressources tierces du site réel (onglet Réseau du navigateur) | Exploitation, puis DPO |
 | P1-11 | Couverture fine des actions sensibles, rotation du journal des téléchargements, alerte de panne | Développement, puis DPO pour la durée |
 | P1-16 | Montants en centimes, périodes d'effet des tarifs et du statut « sans repas » | Schéma à valider |
 | P2-14 | Version du règlement effectivement accepté | Schéma à valider, puis facturation |
-| P1-15 | Fait (règle unique, à publier) ; reste à revoir le tarif FSR, plus cher que ses prestations avec les valeurs par défaut | Facturation |
-| P3-01 | Premier lot fait (contrats, table de décision, 4 écarts corrigés, à publier) ; reste la factorisation des trois listes quasi identiques du calendrier scolaire | Développement |
+| P1-15 | Règle unique publiée en 5.29.0, déployée ; reste à revoir le tarif FSR, plus cher que ses prestations avec les valeurs par défaut | Facturation |
+| P3-01 | Premier lot publié en 5.30.0, déployé ; reste la factorisation des trois listes quasi identiques du calendrier scolaire et l'e-mail « forfait remplacé » (retraits de la famille ignorés) | Développement |
 | P1-06 à P1-10 | Notice relue, durées de conservation, procédure des droits, dossier de conformité et AIPD | DPO et mairie |
 | P1-01 | Permissions par fonction des intervenants | Mis de côté |
 | Documentation | Captures de l'écran **Année scolaire** à régénérer (formulaire sans libellé) | Développement |
