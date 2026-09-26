@@ -29,7 +29,7 @@ d'autres chantiers (TODO.md : P1-11, P1-16, P1-17, P3-01), sans passer par les
 | FA-02 / STEP-05 — `handle_submit()` | **Ouvert** | 285 lignes, inchangé |
 | FA-03 / STEP-06 — `build_pdf()` | **Partiel** | le calcul est sorti du rendu (lignes par tarif et centimes dans `generate_one()`, 5.32) ; la mise en page reste en une méthode de 218 lignes |
 | FA-04 / STEP-07 — CSS du portail | **Ouvert, en hausse** | 2 937 lignes (`portal.css` 2 270, `frontend.css` 667) contre 2 826 à l'audit |
-| CM-01 / STEP-02 → STEP-03 — tables legacy | **Bloqué** | les compteurs `psc_legacy_usage_counts` existent mais aucun écran ne les affiche ; le serveur de production n'a pas WP-CLI : les 35 jours d'observation ne peuvent pas être relevés |
+| CM-01 / STEP-02 → STEP-03 — tables legacy | **Débloqué** (26/09) | l'utilisateur confirme qu'aucune installation n'est en schéma < 4.0 : les migrations et vérifications legacy (`trimestres`, `calendar_days`, `registrations`) ne servent plus, et ces tables n'existent que sur un site monté depuis < 4.0. Le relevé des compteurs n'est plus nécessaire pour CM-01 ; STEP-03 peut s'ouvrir pour ce sous-ensemble |
 | CM-02 — Planning - 1 | **À requalifier** | ce n'est plus une compatibilité d'URL : l'écran est accessible depuis la bascule de Planning - 2 et a été corrigé (totaux fournis par le serveur, 5.30.0) ; le compteur `planning_v1_url` mesure donc un usage normal, pas un usage legacy |
 
 Filet de sécurité au 26/09 : 1 396 tests unitaires, PHPStan niveau 3, syntaxe
@@ -39,8 +39,9 @@ d'audit, versions de règlements…).
 
 Suites recommandées, par ordre :
 
-1. Afficher les compteurs legacy dans **Périscolaire › Maintenance** pour
-   débloquer STEP-02 sur le serveur de production.
+1. STEP-03, sous-ensemble CM-01 : retirer les migrations et vérifications
+   legacy (< 4.0), désormais sans installation concernée. Planning - 1
+   (CM-02) n'est pas concerné : c'est un écran en service.
 2. DB-02 : deux index composites sur `requests`, petits et sans risque.
 3. DB-03 et DB-04 : décisions de schéma (questions ouvertes 4 et 5).
 4. FA-02, FA-03 (mise en page), FA-04 : refactorings sans effet visible, à
@@ -221,6 +222,9 @@ Les tables `trimestres`, `calendar_days` et `registrations` ne sont créées que
 - **Commit suggéré** : `test(ci): establish refactoring safety net`
 
 ### [ ] STEP-02 — Inventorier le schéma réel et les usages legacy
+
+**État au 26/09 : sans objet pour CM-01** — aucune installation < 4.0 (confirmé). Les compteurs restent utiles pour mesurer l'usage de Planning - 1 (CM-02), mais ne sont pas consultables sans WP-CLI.
+
 - **Catégorie** : Investigation
 - **Constats liés** : CM-01, CM-02, DB-05
 - **Prérequis** : STEP-01
@@ -245,6 +249,9 @@ ne sera cochée qu'après ce relevé et la confirmation de la version minimale
 réellement déployée ; STEP-03 reste donc fermée.
 
 ### [ ] STEP-03 — Retirer uniquement la compatibilité prouvée inactive
+
+**État au 26/09 : ouvrable pour CM-01** (routines de migration et de vérification < 4.0, tables `trimestres`, `calendar_days`, `registrations`). CM-02 exclu : Planning - 1 est un écran en service.
+
 - **Catégorie** : Code mort
 - **Constats liés** : CM-01, CM-02
 - **Prérequis** : STEP-02
@@ -414,7 +421,7 @@ réellement déployée ; STEP-03 reste donc fermée.
 
 ## 5. Questions ouvertes
 
-1. Quelles versions du plugin et du schéma sont réellement encore déployées, et existe-t-il des sites devant monter depuis une version < 4.0 ? *Au 26/09 : un seul site connu, en 5.30.0 (schéma 4.15.0), mis à jour depuis le back office ; aucun site < 4.0 connu.*
+1. Quelles versions du plugin et du schéma sont réellement encore déployées, et existe-t-il des sites devant monter depuis une version < 4.0 ? *Au 26/09 : un seul site connu, en 5.30.0 (schéma 4.15.0), mis à jour depuis le back office ; **aucune installation < 4.0, confirmé par l'utilisateur le 26/09**.*
 2. Quels sont les volumes, le moteur/version MySQL ou MariaDB, les fenêtres de maintenance et les contraintes d'ALTER en production ?
 3. Quelle durée d'observation couvre un cycle de facturation représentatif avant retrait de la compatibilité legacy ?
 4. L'historique des personnes autorisées doit-il survivre à la suppression de la personne ou de l'enfant, et pendant quelle durée légale ?
