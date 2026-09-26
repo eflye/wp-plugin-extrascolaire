@@ -442,6 +442,36 @@ $GLOBALS['psc_test_options']['psc_service_prices'] = array('FSR' => 8.50);
 $assert('FSR : tarif mairie personnalisé', psc_billing_tariffs()['FSR']['price'], 8.5);
 unset($GLOBALS['psc_test_options']);
 
+/* Tarifs et statut « sans repas » datés (P1-16) : fonctions pures. */
+$grille = array(
+    array('code' => 'CANT', 'prix_centimes' => 580, 'debut' => '2026-09-01'),
+    array('code' => 'CANT', 'prix_centimes' => 620, 'debut' => '2027-01-01'),
+    array('code' => 'GM', 'prix_centimes' => 185, 'debut' => '2026-09-01'),
+);
+$assert('tarif daté : veille du changement', psc_tariffs_at($grille, '2026-12-31')['CANT'], 580);
+$assert('tarif daté : jour du changement', psc_tariffs_at($grille, '2027-01-01')['CANT'], 620);
+$assert('tarif daté : avant toute la grille, première ligne', psc_tariffs_at($grille, '2020-01-01')['CANT'], 580);
+$assert('tarif daté : codes sans ligne absents', array_key_exists('FORF', psc_tariffs_at($grille, '2027-01-01')), false);
+$assert('tarif daté : ordre des lignes indifférent', psc_tariffs_at(array_reverse($grille), '2027-02-01'), array('GM' => 185, 'CANT' => 620));
+
+$periodes = array(array('debut' => '2026-10-15', 'fin' => null));
+$assert('période : veille', psc_period_contains($periodes, '2026-10-14'), false);
+$assert('période : premier jour', psc_period_contains($periodes, '2026-10-15'), true);
+$assert('période bornée : dernier jour inclus', psc_period_contains(array(array('debut' => '2026-10-01', 'fin' => '2026-10-31')), '2026-10-31'), true);
+$assert('période bornée : lendemain exclu', psc_period_contains(array(array('debut' => '2026-10-01', 'fin' => '2026-10-31')), '2026-11-01'), false);
+$assert('périodes : activer', psc_periods_apply(array(), true, '2026-10-15'), array(array('debut' => '2026-10-15', 'fin' => null)));
+$assert('périodes : lever coupe la veille', psc_periods_apply($periodes, false, '2026-11-02'), array(array('debut' => '2026-10-15', 'fin' => '2026-11-01')));
+$assert('périodes : réactiver le lendemain fusionne', psc_periods_apply(array(array('debut' => '2026-10-15', 'fin' => '2026-11-01')), true, '2026-11-02'), array(array('debut' => '2026-10-15', 'fin' => null)));
+$assert('périodes : réactiver plus tard, deux périodes', psc_periods_apply(array(array('debut' => '2026-10-15', 'fin' => '2026-11-01')), true, '2027-01-04'), array(array('debut' => '2026-10-15', 'fin' => '2026-11-01'), array('debut' => '2027-01-04', 'fin' => null)));
+$assert('périodes : activer déjà actif, inchangé', psc_periods_apply($periodes, true, '2026-12-01'), $periodes);
+$assert('périodes : lever avant le début efface la période future', psc_periods_apply($periodes, false, '2026-10-01'), array());
+$assert('périodes : le passé n\'est jamais réécrit', psc_periods_apply(array(array('debut' => '2026-09-01', 'fin' => '2026-09-30')), false, '2026-10-15'), array(array('debut' => '2026-09-01', 'fin' => '2026-09-30')));
+
+// Plafond du forfait comparé aux tarifs DU JOUR (ancienne option en test unitaire).
+$GLOBALS['psc_test_options']['psc_service_prices'] = array('FORF' => 11.70);
+$assert('facturation datée : le plafond lit les tarifs du jour', psc_billing_services(array('GM' => true, 'CANT' => true, 'GS' => true), false, null, '2027-01-01'), array('FORF'));
+unset($GLOBALS['psc_test_options']);
+
 /* Contrats d'une journée (P3-01) : une table de décision partagée avec
  * bin/verify-channel-contracts.php — présence, repas fourni, facturation.
  * Rejouée avec les tarifs par défaut (FSR plus cher que ses créneaux) puis

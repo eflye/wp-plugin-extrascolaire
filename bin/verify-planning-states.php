@@ -99,11 +99,8 @@ WP_CLI::add_command('verify-planning-states', function () {
         if (!$condition) $failures[] = $label;
     };
     $reset_caches = function () use ($wpdb, $t_child, $cid) {
+        // Vide aussi le cache des périodes « cantine sans repas ».
         Psc_Planning::flush_cache();
-        // Le flag « cantine sans repas » est mis en cache par requête.
-        $prop = new ReflectionProperty('Psc_Planning', 'csr_flag_cache');
-        $prop->setAccessible(true);
-        $prop->setValue(null, array());
     };
     $declared = function ($date, $svc) use ($cid, $reset_caches) {
         $reset_caches();
@@ -129,7 +126,7 @@ WP_CLI::add_command('verify-planning-states', function () {
         }
     };
     $set_csr = function ($on) use ($wpdb, $t_child, $cid) {
-        $wpdb->update($t_child, array('cantine_sans_repas' => $on ? 1 : 0), array('id' => $cid));
+        Psc_Sans_Repas::set($cid, $on, '2000-01-01');
     };
 
     try {
