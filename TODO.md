@@ -6,11 +6,11 @@
 
 **État au 25/09/2026 :**
 - **P0 :** traités.
-- **P1 traités :** P1-03, P1-05, P1-13, P1-14 et P1-17.
+- **P1 traités :** P1-03, P1-05, P1-13, P1-14, P1-15 et P1-17.
 - **P1 traités techniquement, avec une validation opérationnelle encore à faire :**
   - P1-02 : revue des comptes ;
   - P1-12 : clé sortie de la base sur le serveur distant ; reste une restauration testée avec cette clé.
-- **P1 partiellement avancés :** P1-06, P1-07, P1-08, P1-09, P1-11, P1-15 et P1-16.
+- **P1 partiellement avancés :** P1-06, P1-07, P1-08, P1-09, P1-11 et P1-16.
 - **P1 mis de côté à la demande :** P1-01.
 - **P1 ouverts, côté hébergement ou DPO :** P1-04, P1-10 et P1-18.
 - **P2 :** tous traités, sauf P2-14 ; P2-06 est traité côté développement, reste le test réseau du site réel.
@@ -39,7 +39,7 @@
 | P1-11 | Couverture fine des actions sensibles, rotation du journal des téléchargements, alerte de panne | Développement, puis DPO pour la durée |
 | P1-16 | Montants en centimes, périodes d'effet des tarifs et du statut « sans repas » | Schéma à valider |
 | P2-14 | Version du règlement effectivement accepté | Schéma à valider, puis facturation |
-| P1-15 | Matrice unique de prestation facturable (FORF, CANT, MSR, FSR, retraits, fermetures) | Facturation |
+| P1-15 | Fait (règle unique, à publier) ; reste à revoir le tarif FSR, plus cher que ses prestations avec les valeurs par défaut | Facturation |
 | P3-01 | Contrats entre vues et modèle métier | Développement, après P1-15 |
 | P1-06 à P1-10 | Notice relue, durées de conservation, procédure des droits, dossier de conformité et AIPD | DPO et mairie |
 | P1-01 | Permissions par fonction des intervenants | Mis de côté |
@@ -312,13 +312,30 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** tests juste avant/à/après échéance, Paris hiver/été, transitions d’heure, fuseau UTC et délai zéro. **Développement ; S/M.**
 
-### P1-15 — PARTIELLEMENT AVANCÉ — Supprimer les cumuls restants et aligner CSV, courriels et forfait sans repas
+### P1-15 — TRAITÉ (après v5.28.1) — Supprimer les cumuls restants et aligner CSV, courriels et forfait sans repas
 
-- [ ] **Définir puis partager une règle unique de prestation facturable.**
+- [x] **Définir puis partager une règle unique de prestation facturable.**
 
 **État initial (partiellement corrigé côté développement) :** l’export CSV appelait auparavant `psc_billing_services()` sans le flag enfant, ce qui pouvait diverger du calcul FSR. Il transmet désormais ce flag ; les cas métier forfait/retraits/fermetures et les libellés de récapitulatif restent à valider.
 
 **Avancement technique :** l’export CSV des inscriptions transmet désormais le flag enfant sans repas à la même fonction `psc_billing_services()` que les factures et le planning. La matrice métier forfait/retraits/fermetures et la vérification des historiques restent à finaliser avec la facturation.
+
+**Constaté le 26/09/2026 (sonde sur un enfant de test) :**
+- un forfait dont la famille retirait la cantine était facturé forfait + garderies, soit 18,25 € au lieu de 11,70 € : c'est le cumul restant ;
+- un retrait de garderie gardait le prix du forfait (11,70 €), alors qu'une fermeture de la même garderie le faisait retomber sur les prestations restantes ;
+- trois prestations cochées séparément coûtaient 12,35 €, plus que le forfait ;
+- les effectifs du calendrier ignoraient le drapeau « sans repas », d'où un double comptage.
+
+**Décisions (26/09/2026) :**
+- règle unique : une journée complète (matin, midi, soir) est facturée au forfait, ou au forfait sans repas, sans jamais dépasser la somme de ses créneaux ; sinon, chaque créneau est facturé au tarif unitaire ;
+- la règle s'applique aux factures non envoyées ; une facture envoyée n'est jamais rectifiée par le seul changement de règle.
+
+**Traité :**
+- `psc_billing_services()` applique la règle 2, et `psc_billing_rule_version()` est inscrite dans l'instantané de chaque facture (`calcul`). Une facture envoyée est recalculée avec sa règle d'origine (`psc_billing_services_regle1()` conservée), de sorte que seul un vrai changement de déclarations la rectifie.
+- Factures, estimations, récapitulatifs, export CSV et effectifs du calendrier (drapeau compris) passent par la même fonction.
+- Avec les tarifs par défaut, le forfait sans repas (9,00 €) dépasse ses créneaux (7,55 €) et ne s'applique donc plus ; la documentation invite à le fixer sous ce seuil.
+
+**Preuve :** `bin/verify-billing-rule.php`, lancé en CI (29 vérifications : matrice, aucun dépassement des créneaux, facture envoyée sous la règle 1 non rectifiée par le changement de règle mais rectifiée par un changement de déclarations, facture non envoyée égale à l'estimation du portail). Vérifié par mutation : 4 défauts réintroduits, tous détectés. `tests/planning-2.spec.ts` couvre le chemin FSR jusqu'au PDF.
 
 **Acceptation :** matrice FORF/CANT/MSR/FSR avec retraits et fermetures ; une seule facturation du créneau ; PDF, CSV et totaux cohérents ; récapitulatif intelligible. **Développement + facturation ; M.**
 
