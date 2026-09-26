@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.29.0
+Stable tag: 5.30.0
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,13 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.30.0 =
+* Annulation de la cantine d'une classe : les enfants au forfait journée sont désormais concernés comme les autres. Leur cantine est retirée (le repas sort de la commande, la famille est prévenue), leurs garderies restent et la journée est facturée garderies seules. L'écran de confirmation indique quels enfants sont au forfait.
+* Portail des familles (Planning - 1) : le total du mois affiché après un clic vient du serveur et suit la même règle que la facture ; il pouvait auparavant différer.
+* Avis de fermeture d'un jour ou d'une période : les familles reçoivent la liste des créneaux de leur enfant, sans le forfait en double.
+* Fermeture d'une seule prestation : les familles au forfait ne reçoivent plus deux e-mails.
+* Pas de changement de schéma.
 
 = 5.29.0 =
 * Règle unique de facturation d'une journée, pour les factures, les estimations du portail, les récapitulatifs, l'export CSV et les effectifs du calendrier : une journée complète (garderie du matin, midi, garderie du soir) est facturée au prix du forfait — ou du forfait sans repas — sans jamais dépasser la somme de ses prestations ; sinon, chaque prestation au tarif unitaire. Corrige un cumul : un forfait dont la famille retirait la cantine était facturé forfait + garderies (18,25 € au lieu de 6,55 € avec les tarifs par défaut). Trois prestations cochées séparément sont désormais facturées au prix du forfait.
