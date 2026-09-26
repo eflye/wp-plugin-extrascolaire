@@ -40,7 +40,7 @@
 | **Serveur distant** | **En 5.30.0 (26/09/2026)**, à jour de toutes les versions publiées. Le 25/09, passage 5.23.1 → 5.28.0 avec les cinq étapes de **Périscolaire › Maintenance** (sauvegarde, base au schéma 4.15.0, clé des IBAN hors de la base et rechiffrement, réglages, recette). Reste : tester une restauration avec la clé, puis dérouler la fiche de recette de l'hébergement (P1-04, P1-18) | Exploitation |
 | P2-06 | Polices servies localement (publié en 5.28.1, déployé) ; reste l'inventaire des ressources tierces du site réel (onglet Réseau du navigateur) | Exploitation, puis DPO |
 | P1-11 | Fait, à publier : fichier de repli expurgé et archivé, alerte de retard des tâches planifiées, purge par niveau sans trou dans la chaîne (schéma 4.16.0). Reste : faire valider les durées par le DPO | DPO |
-| P1-16 | Fait, à publier : tarifs et statut « sans repas » datés (schéma 4.17.0). Reste : factures en centimes (lot séparé) et validation de la procédure de correction par la facturation | Facturation |
+| P1-16 | Tarifs et statut datés publiés en 5.32.0 ; calcul des montants en centimes entiers fait, à publier. Reste : validation de la procédure de correction par la facturation | Facturation |
 | P2-14 | Fait, à publier : version du règlement approuvé (texte affiché + PDF, schéma 4.18.0). Reste : valider le circuit de signature et d'archivage du mandat SEPA | Facturation, DPO |
 | P1-15 | Règle unique publiée en 5.29.0, déployée ; reste à revoir le tarif FSR, plus cher que ses prestations avec les valeurs par défaut | Facturation |
 | P3-01 | Premier lot publié en 5.30.0, déployé ; second lot fait (listes du calendrier factorisées, e-mail « forfait modifié » par enfant), à publier | Développement |
@@ -361,7 +361,9 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Périodes d’effet (schéma 4.17.0, validé le 26/09/2026) :** tables `psc_tarifs` (code, prix en centimes, début, fin) et `psc_sans_repas` (enfant, début, fin) ; la colonne `children.cantine_sans_repas` et l’option `psc_service_prices` sont reprises puis supprimées par la migration. Chaque jour est résolu avec le statut de ce jour et facturé au tarif de ce jour ; un changement en cours de mois coupe la ligne de facture. Réglages › Tarifs : « Nouveau tarif à partir du » et historique ; fiche enfant : « Cantine sans repas / Rétablir les repas à partir du ». Preuves : `bin/verify-dated-tariffs.php` (29 vérifications, dont la migration), `tests/integration/invoice-snapshot.php` (35, en CI : un tarif ou un statut daté d’après le mois ne rectifie pas une facture émise, daté dans le mois il la rectifie), `tests/tarifs-dates.spec.ts`, tests unitaires.
 
-**Restant :** les montants restent en flottant, non convertis en centimes. La qualification comptable du PDF et la procédure de correction restent à valider par la facturation et la mairie.
+**Calcul en centimes (26/09/2026, option « calcul décimal maîtrisé », sans changement de schéma) :** factures, estimations du portail et plafond du forfait se calculent en centimes entiers (`psc_billing_tariffs()[code]['centimes']`), convertis en euros une seule fois ; plus d'addition de flottants ni de marge de tolérance. `invoices.total` reste en `DECIMAL(10,2)`. Les instantanés des factures émises restent identiques octet pour octet : ancienne et nouvelle formule comparées sur 5 001 prix × 25 quantités (tests unitaires), et une facture émise avec la 5.32.0 puis régénérée ne change ni de version ni d'instantané.
+
+**Restant :** la qualification comptable du PDF et la procédure de correction restent à valider par la facturation et la mairie.
 
 **Acceptation :** changer un tarif, sortir un enfant ou modifier son flag en octobre n’altère pas une facture de septembre déjà émise ; correction identifiable et archive conservée selon la politique validée. La qualification comptable exacte du PDF doit être confirmée par la mairie. **Développement + facturation/archives ; L.**
 
