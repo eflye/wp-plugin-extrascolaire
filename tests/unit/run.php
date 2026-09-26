@@ -391,7 +391,9 @@ $slot_cant_repli['request'] = 'CANT';
 $assert('flag forfait : MSR déclaré (repli forfait du midi sans repas)', psc_resolve_declaration(false, !empty($fp['MSR']), $fe['MSR'] ?? null, true, null, true, true, true, $slot_repli), true);
 $assert('flag forfait : cantine non déclarée', psc_resolve_declaration(false, !empty($fp['CANT']), $fe['CANT'] ?? null, true, null, true, true, true, $slot_cant_repli), false);
 $assert('flag forfait : garderie matin couverte par le forfait', psc_resolve_declaration(false, false, null, true, null, true, true, true), true);
-$assert('flag forfait : facturation FSR (forfait sans repas)', psc_billing_services(array('FORF' => true, 'GM' => true, 'CANT' => false, 'GS' => true, 'MSR' => true), true), array('FSR'));
+// Règle 2 (P1-15) : journée complète au forfait, jamais au-dessus de ses
+// créneaux. Tarifs par défaut : FSR 9,00 € > GM + MSR + GS 7,55 €.
+$assert('flag forfait : journée complète, FSR plus cher que ses créneaux', psc_billing_services(array('FORF' => true, 'GM' => true, 'CANT' => false, 'GS' => true, 'MSR' => true), true), array('GM', 'MSR', 'GS'));
 
 // Retrait du midi respecté malgré le repli : l'exception de retrait (false)
 // fige l'absence du jour, même pour un enfant au forfait flégué.
@@ -403,7 +405,10 @@ $assert('sans flag : pas de repli forfait vers MSR', psc_resolve_declaration(fal
 
 // 10. Facturation : un forfait déclaré (et réalisable) est facturé à lui
 //     seul, jamais cumulé avec ses composantes ; MSR se facture à part.
-$assert('facturation : forfait seul', psc_billing_services(array('FORF' => true, 'GM' => false, 'CANT' => false, 'GS' => false, 'MSR' => false)), array('FORF'));
+$assert('facturation : forfait sans aucun créneau consommé', psc_billing_services(array('FORF' => true, 'GM' => false, 'CANT' => false, 'GS' => false, 'MSR' => false)), array());
+$assert('facturation : forfait, cantine retirée, sans cumul', psc_billing_services(array('FORF' => true, 'GM' => true, 'CANT' => false, 'GS' => true, 'MSR' => false)), array('GM', 'GS'));
+$assert('facturation : trois créneaux cochés séparément = forfait', psc_billing_services(array('FORF' => false, 'GM' => true, 'CANT' => true, 'GS' => true, 'MSR' => false)), array('FORF'));
+$assert('règle 1 conservée (factures envoyées) : cumul d’origine', psc_billing_services(array('FORF' => true, 'GM' => true, 'CANT' => false, 'GS' => true, 'MSR' => false), false, 1), array('FORF', 'GM', 'GS'));
 // Le résolveur rend aussi les unités couvertes présentes pour les listes
 // intervenants : elles ne doivent pas devenir des lignes facturées en plus.
 $forfait_repas = array();
@@ -424,12 +429,12 @@ $assert('facturation : forfait irréalisable, seules les unités restantes', psc
 $assert('facturation : unités sans forfait', psc_billing_services(array('FORF' => false, 'GM' => true, 'CANT' => false, 'GS' => true, 'MSR' => false)), array('GM', 'GS'));
 $assert('facturation : rien de déclaré', psc_billing_services(array('FORF' => false, 'GM' => false, 'CANT' => false, 'GS' => false, 'MSR' => false)), array());
 $assert('facturation : MSR facturé à part', psc_billing_services(array('FORF' => false, 'GM' => false, 'CANT' => false, 'GS' => false, 'MSR' => true)), array('MSR'));
-$assert('facturation : MSR + garderies cumulés', psc_billing_services(array('FORF' => false, 'GM' => true, 'CANT' => false, 'GS' => true, 'MSR' => true)), array('GM', 'GS', 'MSR'));
+$assert('facturation : MSR + garderies, créneaux (FSR plus cher)', psc_billing_services(array('FORF' => false, 'GM' => true, 'CANT' => false, 'GS' => true, 'MSR' => true)), array('GM', 'MSR', 'GS'));
 
 // Tarif dérivé du forfait pour les enfants signalés par la mairie.
 $assert('FSR : tarif par défaut', psc_billing_tariffs()['FSR']['price'], 9.0);
 $assert('FSR : pas de nouvelle case déclarable', psc_is_valid_service('FSR'), false);
-$assert('FSR : forfait enfant flagué, sans cumul', psc_billing_services($forfait_repas, true), array('FSR'));
+$assert('forfait enfant flagué : midi sans repas, créneaux (FSR plus cher)', psc_billing_services($forfait_repas, true), array('GM', 'MSR', 'GS'));
 $assert('FSR : forfait enfant non flagué inchangé', psc_billing_services($forfait_repas, false), array('FORF'));
 $assert('FSR : midi seul reste MSR', psc_billing_services(array('MSR' => true), true), array('MSR'));
 $assert('FSR : forfait non réalisable, facturation des unités', psc_billing_services(array('FORF' => false, 'GM' => true, 'MSR' => true), true), array('GM', 'MSR'));
