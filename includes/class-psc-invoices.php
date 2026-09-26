@@ -148,18 +148,31 @@ class Psc_Invoices {
             $regle = is_array($stored) && isset($stored['calcul']) ? (int) $stored['calcul'] : 1;
         }
 
-        // Build grid[service_code][child_id] = count
+        // Lignes de facture : une par prestation et par tarif. Chaque jour
+        // est facturé au tarif EN VIGUEUR ce jour-là, avec le statut « sans
+        // repas » de ce jour-là (P1-16) : un changement de prix ou de statut
+        // en cours de mois coupe la ligne en deux, il ne réécrit pas les
+        // jours précédents. grid[clé de ligne][child_id] = nombre.
+        $sans_repas = Psc_Sans_Repas::periods($child_ids);
         $flags = array();
-        foreach ($children as $child) $flags[(int) $child->id] = !empty($child->cantine_sans_repas);
         $grid = array();
+        $lines = array();
         $has_data = false;
         foreach ($declared as $cid => $by_date) {
-            foreach ($by_date as $day) {
-                foreach (psc_billing_services($day, !empty($flags[$cid]), $regle) as $svc) {
-                    if (!isset($grid[$svc])) {
-                        $grid[$svc] = array();
+            foreach ($by_date as $date => $day) {
+                $flag = psc_period_contains($sans_repas[$cid] ?? array(), $date);
+                if ($flag) $flags[$cid] = true;
+                $tariffs = psc_billing_tariffs($date);
+                foreach (psc_billing_services($day, $flag, $regle, $date) as $svc) {
+                    if (!isset($tariffs[$svc])) continue;
+                    $price = round((float) $tariffs[$svc]['price'], 2);
+                    $key = $svc . '|' . number_format($price, 2, '.', '');
+                    if (!isset($lines[$key])) {
+                        $lines[$key] = array('code' => $svc, 'label' => (string) $tariffs[$svc]['label'], 'price' => $price, 'from' => $date);
+                    } elseif ($date < $lines[$key]['from']) {
+                        $lines[$key]['from'] = $date;
                     }
-                    $grid[$svc][$cid] = ($grid[$svc][$cid] ?? 0) + 1;
+                    $grid[$key][$cid] = ($grid[$key][$cid] ?? 0) + 1;
                     $has_data = true;
                 }
             }
@@ -167,23 +180,19 @@ class Psc_Invoices {
         if (!$has_data) {
             return new WP_Error('no_data', __('Aucune inscription ce mois-ci.', 'periscolaire-registration'));
         }
+        $lines = self::order_lines($lines);
 
-        $services = psc_billing_tariffs();
-
-        // Compute total from grid
         $total = 0.0;
-        foreach ($grid as $code => $child_counts) {
-            if (!isset($services[$code])) continue;
-            $price = (float) $services[$code]['price'];
+        foreach ($grid as $key => $child_counts) {
             foreach ($child_counts as $cnt) {
-                $total += $price * $cnt;
+                $total += $lines[$key]['price'] * $cnt;
             }
         }
 
         // Instantané de ce qui a servi au calcul : lignes, tarifs appliqués
         // et statut « sans repas » de chaque enfant. C'est lui, et non les
         // réglages courants, qui dira demain ce que portait la facture.
-        $snapshot = self::build_snapshot($children, $grid, $services, $flags, $total, $regle);
+        $snapshot = self::build_snapshot($children, $grid, $lines, $flags, $total, $regle);
 
         $version = 1;
         if ($existing) {
@@ -261,7 +270,7 @@ class Psc_Invoices {
             return new WP_Error('mkdir_fail', __('Impossible de créer le répertoire des factures.', 'periscolaire-registration'));
         }
 
-        $build_ok = self::build_pdf($parent, $mois, $children, $grid, $services, $pdf_path, $invoice_id, $version);
+        $build_ok = self::build_pdf($parent, $mois, $children, $grid, $lines, $pdf_path, $invoice_id, $version);
         if (is_wp_error($build_ok)) {
             return $build_ok;
         }
@@ -271,6 +280,27 @@ class Psc_Invoices {
         $wpdb->update($t_inv, array('pdf_path' => $rel_path), array('id' => $invoice_id), array('%s'), array('%d'));
 
         return $invoice_id;
+    }
+
+    /**
+     * Lignes dans l'ordre de la grille des tarifs (puis par date d'effet) ;
+     * une prestation facturée à deux tarifs dans le mois voit son libellé
+     * précisé par la date à partir de laquelle chacun s'applique.
+     */
+    private static function order_lines(array $lines) {
+        $order = array_flip(array_keys(psc_billing_tariffs()));
+        uasort($lines, function ($a, $b) use ($order) {
+            $oa = $order[$a['code']] ?? 99;
+            $ob = $order[$b['code']] ?? 99;
+            return $oa === $ob ? strcmp($a['from'], $b['from']) : $oa - $ob;
+        });
+        $per_code = array_count_values(array_column($lines, 'code'));
+        foreach ($lines as $key => $line) {
+            if ($per_code[$line['code']] > 1) {
+                $lines[$key]['label'] .= ' ' . sprintf(__('(à partir du %s)', 'periscolaire-registration'), date_i18n('d/m', strtotime($line['from'])));
+            }
+        }
+        return $lines;
     }
 
     /**
@@ -286,7 +316,7 @@ class Psc_Invoices {
      * doivent produire deux instantanés identiques, sans quoi la comparaison
      * de snapshot_differs() créerait des versions fantômes.
      */
-    private static function build_snapshot($children, $grid, $services, $flags, $total, $regle = null) {
+    private static function build_snapshot($children, $grid, $lines, $flags, $total, $regle = null) {
         $names = array();
         $enfants = array();
         foreach ($children as $child) {
@@ -299,22 +329,25 @@ class Psc_Invoices {
         }
         ksort($enfants);
 
+        // Clés « code|prix » triées : même ordre qu'avant P1-16 (par code)
+        // quand chaque prestation n'a qu'un tarif dans le mois — une facture
+        // inchangée garde exactement le même instantané.
         $lignes = array();
-        $codes = array_keys($grid);
-        sort($codes);
-        foreach ($codes as $code) {
-            $child_counts = $grid[$code];
+        $keys = array_keys($grid);
+        sort($keys);
+        foreach ($keys as $key) {
+            $child_counts = $grid[$key];
             ksort($child_counts);
-            $price = isset($services[$code]['price']) ? round((float) $services[$code]['price'], 2) : null;
+            $price = round((float) $lines[$key]['price'], 2);
             foreach ($child_counts as $cid => $count) {
                 $lignes[] = array(
-                    'service'       => (string) $code,
-                    'libelle'       => isset($services[$code]['label']) ? (string) $services[$code]['label'] : (string) $code,
+                    'service'       => (string) $lines[$key]['code'],
+                    'libelle'       => (string) $lines[$key]['label'],
                     'enfant_id'     => (int) $cid,
                     'enfant'        => isset($names[$cid]) ? $names[$cid] : null,
                     'quantite'      => (int) $count,
                     'prix_unitaire' => $price,
-                    'total'         => $price === null ? null : round($price * (int) $count, 2),
+                    'total'         => round($price * (int) $count, 2),
                 );
             }
         }

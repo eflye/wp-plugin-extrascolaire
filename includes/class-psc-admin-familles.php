@@ -122,6 +122,9 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         // — cf. README.
         $wpdb->delete(psc_table('pickup_history'), array('child_id' => $child_id), array('%d'));
         $wpdb->delete(psc_table('pickup_persons'), array('child_id' => $child_id), array('%d'));
+        // Périodes « cantine sans repas » : la clé étrangère les emporte,
+        // sauf sur un hébergement qui a refusé les contraintes.
+        $wpdb->delete(psc_table('sans_repas'), array('child_id' => $child_id), array('%d'));
         $wpdb->delete(psc_table('children'), array('id' => $child_id), array('%d'));
     }
 
@@ -248,43 +251,37 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
     }
 
     /**
-     * Bascule du flag « cantine sans repas » d'un enfant (décision de la
-     * mairie, posée sur la fiche) : ses déclarations de cantine valent
-     * ensuite « midi sans repas » — facturation au tarif MSR, aucun repas
-     * commandé au fournisseur, mention sur la liste intervenants. Aucune
-     * écriture dans le planning de la famille : la conversion se fait à la
-     * résolution (psc_cantine_sans_repas_convert()).
+     * Statut « cantine sans repas » d'un enfant (décision de la mairie,
+     * posée sur la fiche), À PARTIR D'UNE DATE (P1-16) : ses déclarations
+     * de cantine valent ensuite « midi sans repas » — facturation au tarif
+     * MSR, aucun repas commandé au fournisseur, mention sur la liste
+     * intervenants. Les jours avant la date ne changent pas, déjà facturés
+     * ou non. Aucune écriture dans le planning de la famille : la
+     * conversion se fait à la résolution (psc_cantine_sans_repas_convert()).
      */
     public static function handle_toggle_cantine_sans_repas() {
         self::guard('psc_toggle_cantine_sans_repas');
         global $wpdb;
 
         $child_id = psc_post_int('id');
-        $t_child  = psc_table('children');
-        $current  = $child_id ? (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT cantine_sans_repas FROM $t_child WHERE id = %d", $child_id
-        )) : 0;
-
-        // get_var renvoie null si l'enfant n'existe pas : current vaut 0,
-        // le basculement écrirait 1 sur une ligne absente — on refuse.
-        if (!$child_id || $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_child WHERE id = %d", $child_id)) == 0) {
+        $on = psc_post('sans_repas') === '1';
+        $from = psc_valid_date(psc_post('a_partir_du')) ?: psc_today();
+        if (!$child_id || !$wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM ' . psc_table('children') . ' WHERE id = %d', $child_id))) {
             self::redirect('psc_children', 'invalid');
         }
 
-        $wpdb->update($t_child,
-            array('cantine_sans_repas' => $current ? 0 : 1),
-            array('id' => $child_id),
-            array('%d'),
-            array('%d')
-        );
-        Psc_Planning::flush_cache();
+        $result = Psc_Sans_Repas::set($child_id, $on, $from);
+        if (is_wp_error($result)) self::redirect('psc_children', 'invalid');
 
         Psc_Audit::log('enfant.modification', array(
             'objet_type' => 'enfant', 'objet_id' => $child_id, 'enfant_id' => $child_id,
-            'avant' => array('cantine_sans_repas' => $current), 'apres' => array('cantine_sans_repas' => $current ? 0 : 1),
+            'meta' => array('cantine_sans_repas' => $on ? 1 : 0, 'a_partir_du' => $from, 'periodes' => $result['apres']),
+            'resume' => $on
+                ? sprintf(__('Cantine sans repas à partir du %s.', 'periscolaire-registration'), date_i18n('d/m/Y', strtotime($from)))
+                : sprintf(__('Repas rétablis à partir du %s.', 'periscolaire-registration'), date_i18n('d/m/Y', strtotime($from))),
         ));
 
-        self::redirect('psc_children', $current ? 'csr_off' : 'csr_on');
+        self::redirect('psc_children', $on ? 'csr_on' : 'csr_off');
     }
 
     public static function handle_mark_child_actif() {
@@ -331,6 +328,10 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
              ORDER BY c.nom",
             $selected_year_id
         )) : array();
+
+        // Statut « sans repas » du jour et périodes (P1-16).
+        Psc_Sans_Repas::annotate($children);
+        $psc_sans_repas = Psc_Sans_Repas::periods(wp_list_pluck($children, 'id'));
 
         $parents = Psc_Parents::all();
         // Lu une fois pour toute la liste : le gabarit le relisait par enfant.

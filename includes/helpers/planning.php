@@ -328,9 +328,12 @@ function psc_billing_rule_version() {
  *                                     est « sans repas » (la résolution l'a
  *                                     déjà converti ; filet de sécurité).
  * @param int|null $regle              Règle à appliquer (null : en vigueur).
- * @return string[] Codes à facturer (tarifs : psc_billing_tariffs()).
+ * @param string|null $date            Jour facturé : le plafond compare les
+ *                                     tarifs EN VIGUEUR ce jour-là (P1-16) ;
+ *                                     null : aujourd'hui.
+ * @return string[] Codes à facturer (tarifs : psc_billing_tariffs($date)).
  */
-function psc_billing_services(array $declared, $cantine_sans_repas = false, $regle = null) {
+function psc_billing_services(array $declared, $cantine_sans_repas = false, $regle = null, $date = null) {
     if ((int) $regle === 1) return psc_billing_services_regle1($declared, $cantine_sans_repas);
 
     $msr   = psc_midi_sans_repas_code();
@@ -347,7 +350,7 @@ function psc_billing_services(array $declared, $cantine_sans_repas = false, $reg
 
     if (!$gm || !$gs || (!$cant && !$sans)) return $units;
 
-    $tariffs = psc_billing_tariffs();
+    $tariffs = psc_billing_tariffs($date);
     $package = $cant ? psc_forfait_code() : 'FSR';
     $sum = 0.0;
     foreach ($units as $code) $sum += isset($tariffs[$code]) ? (float) $tariffs[$code]['price'] : 0.0;

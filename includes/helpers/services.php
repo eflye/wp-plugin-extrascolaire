@@ -133,35 +133,134 @@ function psc_service_short_labels() {
     );
 }
 
+/** Tarifs par défaut (euros), avant toute grille enregistrée par la mairie. */
+function psc_default_service_prices() {
+    return array('GM' => 1.85, 'CANT' => 5.80, 'GS' => 4.70, 'FORF' => 11.70, 'MSR' => 1.00, 'FSR' => 9.00);
+}
+
+/** Date du jour (Europe/Paris quand WordPress est chargé). */
+function psc_today() {
+    return function_exists('current_time') ? current_time('Y-m-d') : gmdate('Y-m-d');
+}
+
 /**
- * Services proposés et leurs tarifs (éditables depuis Périscolaire > Réglages).
+ * Grille des tarifs datés (P1-16) : lignes {code, prix_centimes, debut,
+ * fin}. Source : la table psc_tarifs (Psc_Tarifs) une fois la mise à jour
+ * 4.17.0 passée ; avant elle (et dans les tests unitaires, sans base),
+ * l'ancienne option psc_service_prices, vue comme une grille unique en
+ * vigueur depuis toujours.
  */
-function psc_services() {
+function psc_tariff_rows() {
+    if (class_exists('Psc_Tarifs') && Psc_Tarifs::ready()) return Psc_Tarifs::rows();
+    $rows = array();
+    foreach ((array) get_option('psc_service_prices', array()) as $code => $price) {
+        $rows[] = array('code' => (string) $code, 'prix_centimes' => (int) round(max(0, (float) $price) * 100), 'debut' => '1970-01-01', 'fin' => null);
+    }
+    return $rows;
+}
+
+/**
+ * Tarif de chaque code en vigueur à une date (fonction pure) : la ligne
+ * dont le début est le plus récent sans dépasser la date. Une date
+ * antérieure à toute la grille d'un code prend sa première ligne — la
+ * grille migrée démarre à la première rentrée connue.
+ *
+ * @param array  $rows Lignes {code, prix_centimes, debut}.
+ * @param string $date Y-m-d.
+ * @return array {code => centimes}
+ */
+function psc_tariffs_at(array $rows, $date) {
+    $best = array();
+    $first = array();
+    foreach ($rows as $r) {
+        $r = (array) $r;
+        $code = (string) $r['code'];
+        $debut = (string) $r['debut'];
+        if (!isset($first[$code]) || $debut < $first[$code]['debut']) $first[$code] = $r;
+        if ($debut <= $date && (!isset($best[$code]) || $debut > $best[$code]['debut'])) $best[$code] = $r;
+    }
+    $out = array();
+    foreach ($first as $code => $r) {
+        $row = $best[$code] ?? $r;
+        $out[$code] = (int) $row['prix_centimes'];
+    }
+    return $out;
+}
+
+/**
+ * Services proposés et leurs tarifs EN VIGUEUR à une date (aujourd'hui par
+ * défaut), en euros — grille datée éditable dans Périscolaire › Réglages.
+ */
+function psc_services($date = null) {
+    $prices = psc_default_service_prices();
     $defaults = array(
-        'GM'   => array('label' => __('Garderie Matin', 'periscolaire-registration'), 'price' => 1.85),
-        'CANT' => array('label' => __('Cantine', 'periscolaire-registration'), 'price' => 5.80),
-        'GS'   => array('label' => __('Garderie Soir', 'periscolaire-registration'), 'price' => 4.70),
-        'FORF' => array('label' => __('Forfait journée', 'periscolaire-registration'), 'price' => 11.70),
-        'MSR'  => array('label' => __('Cantine sans repas', 'periscolaire-registration'), 'price' => 1.00),
+        'GM'   => array('label' => __('Garderie Matin', 'periscolaire-registration'), 'price' => $prices['GM']),
+        'CANT' => array('label' => __('Cantine', 'periscolaire-registration'), 'price' => $prices['CANT']),
+        'GS'   => array('label' => __('Garderie Soir', 'periscolaire-registration'), 'price' => $prices['GS']),
+        'FORF' => array('label' => __('Forfait journée', 'periscolaire-registration'), 'price' => $prices['FORF']),
+        'MSR'  => array('label' => __('Cantine sans repas', 'periscolaire-registration'), 'price' => $prices['MSR']),
     );
-    $saved = get_option('psc_service_prices', array());
-    if (is_array($saved)) {
-        foreach ($saved as $code => $price) {
-            if (isset($defaults[$code])) {
-                $defaults[$code]['price'] = max(0, floatval($price));
-            }
-        }
+    foreach (psc_tariffs_at(psc_tariff_rows(), $date ?: psc_today()) as $code => $centimes) {
+        if (isset($defaults[$code])) $defaults[$code]['price'] = $centimes / 100;
     }
     return $defaults;
 }
 
-/** Tarifs facturables : FSR est une variante du forfait, pas une case du planning. */
-function psc_billing_tariffs() {
-    $services = psc_services();
-    $saved = get_option('psc_service_prices', array());
+/** Tarifs facturables à une date : FSR est une variante du forfait, pas une case du planning. */
+function psc_billing_tariffs($date = null) {
+    $date = $date ?: psc_today();
+    $services = psc_services($date);
+    $at = psc_tariffs_at(psc_tariff_rows(), $date);
     $services['FSR'] = array(
         'label' => __('Forfait sans repas cantine', 'periscolaire-registration'),
-        'price' => isset($saved['FSR']) ? max(0, (float) $saved['FSR']) : 9.00,
+        'price' => isset($at['FSR']) ? $at['FSR'] / 100 : psc_default_service_prices()['FSR'],
     );
     return $services;
+}
+
+/**
+ * Une date tombe-t-elle dans une des périodes (fonction pure) ? Périodes
+ * {debut, fin} en Y-m-d, fin incluse, fin null = sans terme.
+ */
+function psc_period_contains(array $periods, $date) {
+    foreach ($periods as $p) {
+        $p = (array) $p;
+        if ((string) $p['debut'] <= $date && ($p['fin'] === null || $p['fin'] === '' || $date <= (string) $p['fin'])) return true;
+    }
+    return false;
+}
+
+/**
+ * Applique « actif à partir de $from » ($on) ou « inactif à partir de
+ * $from » à une liste de périodes, et la renvoie triée et fusionnée
+ * (fonction pure). Le passé avant $from n'est jamais modifié : une période
+ * en cours est coupée la veille de $from, les périodes qui commencent à
+ * partir de $from sont remplacées.
+ *
+ * @return array Liste de {debut, fin|null}.
+ */
+function psc_periods_apply(array $periods, $on, $from) {
+    $veille = gmdate('Y-m-d', strtotime($from . ' -1 day'));
+    $kept = array();
+    foreach ($periods as $p) {
+        $p = (array) $p;
+        $debut = (string) $p['debut'];
+        $fin = ($p['fin'] === null || $p['fin'] === '') ? null : (string) $p['fin'];
+        if ($debut >= $from) continue;
+        if ($fin === null || $fin >= $from) $fin = $veille;
+        $kept[] = array('debut' => $debut, 'fin' => $fin);
+    }
+    if ($on) $kept[] = array('debut' => $from, 'fin' => null);
+    usort($kept, function ($a, $b) { return strcmp($a['debut'], $b['debut']); });
+    $merged = array();
+    foreach ($kept as $p) {
+        $last = count($merged) - 1;
+        if ($last >= 0 && $merged[$last]['fin'] !== null
+            && gmdate('Y-m-d', strtotime($merged[$last]['fin'] . ' +1 day')) >= $p['debut']) {
+            $merged[$last]['fin'] = ($p['fin'] === null || $p['fin'] > $merged[$last]['fin']) ? $p['fin'] : $merged[$last]['fin'];
+            continue;
+        }
+        $merged[] = $p;
+    }
+    return $merged;
 }

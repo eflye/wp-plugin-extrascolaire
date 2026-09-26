@@ -520,6 +520,17 @@ class Psc_Privacy {
         return $fields;
     }
 
+    /** Périodes « cantine sans repas » d'un enfant, en clair (export RGPD). */
+    private static function sans_repas_text($child_id) {
+        $periods = Psc_Sans_Repas::periods(array($child_id))[$child_id] ?? array();
+        if (!$periods) return __('non', 'periscolaire-registration');
+        return implode(' ; ', array_map(function ($p) {
+            return $p['fin'] === null
+                ? sprintf(__('depuis le %s', 'periscolaire-registration'), $p['debut'])
+                : sprintf(__('du %1$s au %2$s', 'periscolaire-registration'), $p['debut'], $p['fin']);
+        }, $periods));
+    }
+
     private static function child_fields($child) {
         return array(
             array('name' => __('Prénom', 'periscolaire-registration'), 'value' => (string) $child->prenom),
@@ -527,7 +538,7 @@ class Psc_Privacy {
             array('name' => __('Date de naissance', 'periscolaire-registration'), 'value' => (string) $child->date_naissance),
             array('name' => __('Régime sans porc', 'periscolaire-registration'), 'value' => $child->sans_porc ? __('oui', 'periscolaire-registration') : __('non', 'periscolaire-registration')),
             array('name' => __('Régime végétalien', 'periscolaire-registration'), 'value' => $child->vegan ? __('oui', 'periscolaire-registration') : __('non', 'periscolaire-registration')),
-            array('name' => __('Cantine sans repas fourni', 'periscolaire-registration'), 'value' => $child->cantine_sans_repas ? __('oui', 'periscolaire-registration') : __('non', 'periscolaire-registration')),
+            array('name' => __('Cantine sans repas fourni (périodes)', 'periscolaire-registration'), 'value' => self::sans_repas_text((int) $child->id)),
             array('name' => __('Signalement alimentaire à traiter par la mairie', 'periscolaire-registration'), 'value' => !empty($child->food_allergy_signal) ? __('oui', 'periscolaire-registration') : __('non', 'periscolaire-registration')),
             array('name' => __('Allergies alimentaires déclarées', 'periscolaire-registration'), 'value' => trim((string) $child->food_allergies) !== '' ? __('Donnée de santé présente — détail non inclus dans l’export technique.', 'periscolaire-registration') : ''),
             array('name' => __('Consentement au traitement de cette allergie donné le', 'periscolaire-registration'), 'value' => (string) $child->food_allergy_consent_at),

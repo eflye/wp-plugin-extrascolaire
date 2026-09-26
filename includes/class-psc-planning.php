@@ -59,7 +59,7 @@ class Psc_Planning {
         $child_id = (int) $child_id;
         $date = psc_valid_date($date);
         if (!$child_id || !$date || !psc_is_valid_service($service_code)) return false;
-        if (self::service_restricted_for_child($child_id, $service_code)) return false;
+        if (self::service_restricted_for_child($child_id, $service_code, $date)) return false;
 
         $key = $child_id . '|' . $date . '|' . $service_code;
         if (array_key_exists($key, self::$single_cache)) return self::$single_cache[$key];
@@ -75,7 +75,7 @@ class Psc_Planning {
 
         // Enfant « cantine sans repas » : ses déclarations de cantine valent
         // midi sans repas (cf. psc_cantine_sans_repas_convert()).
-        $csr = self::cantine_sans_repas_flag($child_id);
+        $csr = self::cantine_sans_repas_on($child_id, $date);
         if ($csr) {
             list($pats, $exc) = psc_cantine_sans_repas_convert($pats, $exc);
         }
@@ -232,7 +232,7 @@ class Psc_Planning {
         $patterns   = self::load_patterns($child_ids);
         $exceptions = self::load_exceptions($child_ids, $dates);
         $open_map   = self::open_map($dates);
-        $csr_flags  = self::cantine_sans_repas_flags($child_ids);
+        $csr_periods = Psc_Sans_Repas::periods($child_ids);
 
         // Calculs par DATE une seule fois (clé d'année et jour de semaine) :
         // les boucles ci-dessous parcourent enfant × date × prestation, les
@@ -255,15 +255,16 @@ class Psc_Planning {
                 $exc  = isset($exceptions[$cid][$date]) ? $exceptions[$cid][$date] : array();
                 $forf_exc = array_key_exists($forf, $exc) ? (bool) $exc[$forf] : null;
 
-                // Enfant « cantine sans repas » : cantine convertie en MSR
-                // (cf. psc_cantine_sans_repas_convert()).
-                if (!empty($csr_flags[$cid])) {
+                // Enfant « cantine sans repas » CE JOUR-LÀ : cantine
+                // convertie en MSR (cf. psc_cantine_sans_repas_convert()).
+                $csr = psc_period_contains($csr_periods[$cid] ?? array(), $date);
+                if ($csr) {
                     list($pats, $exc) = psc_cantine_sans_repas_convert($pats, $exc);
                     $forf_exc = array_key_exists($forf, $exc) ? (bool) $exc[$forf] : null;
                 }
 
                 foreach ($services as $svc) {
-                    if (self::service_restricted_for_child($cid, $svc)) {
+                    if (self::service_restricted_for_child($cid, $svc, $date)) {
                         $map[$cid][$date][$svc] = false;
                         continue;
                     }
@@ -276,7 +277,7 @@ class Psc_Planning {
                         $open['day_open'],
                         $svc === $forf ? true : $open['services'][$svc],
                         $open['forf_open'],
-                        self::midi_slot($svc, $pats, $exc, !empty($csr_flags[$cid]))
+                        self::midi_slot($svc, $pats, $exc, $csr)
                     );
                 }
             }
@@ -364,7 +365,6 @@ class Psc_Planning {
         $exceptions  = self::load_exceptions(array($child_id), Psc_School_Year::school_days($month_start, $month_end));
         $excs        = isset($exceptions[$child_id]) ? $exceptions[$child_id] : array();
         $open_map    = self::open_map($dates);
-        $csr         = self::cantine_sans_repas_flag($child_id);
 
         $cells = array();
         foreach ($dates as $date) {
@@ -375,6 +375,7 @@ class Psc_Planning {
             // facturé. Sa cantine (rythme ou exception) vaut midi sans
             // repas ; sans la conversion, la case cantine restait fermée et
             // la case midi sans repas vide, alors que le midi était facturé.
+            $csr = self::cantine_sans_repas_on($child_id, $date);
             if ($csr) {
                 list($pats_wd, $exc_d) = psc_cantine_sans_repas_convert($pats_wd, $exc_d);
             }
@@ -384,7 +385,7 @@ class Psc_Planning {
 
             $per_service = array();
             foreach (psc_allowed_services() as $svc) {
-                if (self::service_restricted_for_child($child_id, $svc)) {
+                if (self::service_restricted_for_child($child_id, $svc, $date)) {
                     $per_service[$svc] = array(
                         'declared' => false,
                         'origin' => 'none',
@@ -434,7 +435,7 @@ class Psc_Planning {
                     'origin'   => $origin,
                     'exception_value' => $exc,
                     'locked'   => $locked,
-                    'closed'   => ($svc === 'CANT' && self::cantine_sans_repas_flag($child_id)) || ($svc === $forf ? !$open['forf_open'] : !$open['services'][$svc]),
+                    'closed'   => ($svc === 'CANT' && $csr) || ($svc === $forf ? !$open['forf_open'] : !$open['services'][$svc]),
                     'price'    => (float) psc_services()[$svc]['price'],
                 );
             }
@@ -487,6 +488,23 @@ class Psc_Planning {
     }
 
     /**
+     * Estimation d'une journée, comme sur la facture : règle unique
+     * (psc_billing_services), statut « sans repas » et tarifs EN VIGUEUR ce
+     * jour-là (P1-16).
+     *
+     * @return array{0: bool, 1: float} [journée facturée ?, montant]
+     */
+    public static function billed_day($child_id, $date, array $declared) {
+        $flag = self::cantine_sans_repas_on($child_id, $date);
+        $billed = psc_billing_services($declared, $flag, null, $date);
+        if (!$billed) return array(false, 0.0);
+        $tariffs = psc_billing_tariffs($date);
+        $amount = 0.0;
+        foreach ($billed as $svc) $amount += (float) ($tariffs[$svc]['price'] ?? 0);
+        return array(true, $amount);
+    }
+
+    /**
      * Récapitulatif fratrie d'un mois ET de l'année : jours + montant par
      * enfant (mois et année) et total famille du mois. Un forfait déclaré
      * (et réalisable) est facturé à lui seul — jamais cumulé avec ses
@@ -496,11 +514,6 @@ class Psc_Planning {
         $months = array_values(array_filter((array) $months, function ($m) {
             return is_string($m) && preg_match('/^\d{4}-\d{2}$/', $m);
         }));
-        $services = psc_billing_tariffs();
-        $billing_flags = array();
-        foreach ($children as $child) $billing_flags[(int) $child->id] = !empty($child->cantine_sans_repas);
-        $forf = psc_forfait_code();
-
         $per_child = array();
         $month_days = 0;
         $month_total = 0.0;
@@ -531,12 +544,7 @@ class Psc_Planning {
                     // déclaré se facture seul, « midi sans repas » se facture
                     // à part des unités comme du forfait.
                     $declared_day = isset($map[$cid][$date]) ? $map[$cid][$date] : array();
-                    $billed = psc_billing_services($declared_day, !empty($billing_flags[$cid]));
-                    $day_amount = 0.0;
-                    foreach ($billed as $svc) {
-                        $day_amount += (float) $services[$svc]['price'];
-                    }
-                    $day_declared = $billed !== array();
+                    list($day_declared, $day_amount) = self::billed_day($cid, $date, $declared_day);
                     if (!$day_declared) continue;
 
                     $per_child[$cid]['year_days']++;
@@ -572,11 +580,6 @@ class Psc_Planning {
      *  'year'       => ['days' => n, 'amount' => f, 'per_child' => [cid => ['days','amount']]]
      */
     public static function year_summary($children, $year_key = null) {
-        $services = psc_billing_tariffs();
-        $billing_flags = array();
-        foreach ($children as $child) $billing_flags[(int) $child->id] = !empty($child->cantine_sans_repas);
-        $forf = psc_forfait_code();
-
         $year = $year_key !== null ? Psc_School_Year::get($year_key) : Psc_School_Year::active();
         if (!$year || empty($children)) {
             return array('months' => array(), 'year' => array('days' => 0, 'amount' => 0.0, 'per_child' => array()));
@@ -618,11 +621,7 @@ class Psc_Planning {
                     $declared = isset($map[$cid][$date]) ? $map[$cid][$date] : array();
                     if (!in_array(true, $declared, true)) continue;
 
-                    $day_amount = 0.0;
-                    $billed = psc_billing_services($declared, !empty($billing_flags[$cid]));
-                    foreach ($billed as $svc) {
-                        $day_amount += (float) $services[$svc]['price'];
-                    }
+                    list(, $day_amount) = self::billed_day($cid, $date, $declared);
 
                     $months_out[$ym]['days']++;
                     $months_out[$ym]['amount'] += $day_amount;
@@ -660,7 +659,7 @@ class Psc_Planning {
         $patterns   = self::load_patterns($child_ids);
         $exceptions = self::load_exceptions($child_ids, $dates);
         $open_map   = self::open_map($dates);
-        $csr_flags  = self::cantine_sans_repas_flags($child_ids);
+        $csr_periods = Psc_Sans_Repas::periods($child_ids);
 
         $map = array();
         foreach ($child_ids as $cid) {
@@ -669,13 +668,14 @@ class Psc_Planning {
                 $pats = isset($patterns[$cid][$year_key][$weekday]) ? $patterns[$cid][$year_key][$weekday] : array();
                 $exc  = isset($exceptions[$cid][$date]) ? $exceptions[$cid][$date] : array();
                 // Même conversion que month_state() : l'écran montre ce qui est facturé.
-                if (!empty($csr_flags[$cid])) {
+                $csr = psc_period_contains($csr_periods[$cid] ?? array(), $date);
+                if ($csr) {
                     list($pats, $exc) = psc_cantine_sans_repas_convert($pats, $exc);
                 }
                 $open = $open_map[$date];
 
                 foreach (psc_allowed_services() as $svc) {
-                    if (self::service_restricted_for_child($cid, $svc)) {
+                    if (self::service_restricted_for_child($cid, $svc, $date)) {
                         $map[$cid][$date][$svc] = array(
                             'explicit' => false,
                             'declared' => false,
@@ -699,13 +699,13 @@ class Psc_Planning {
                         $open['day_open'],
                         $svc === $forf ? true : $open['services'][$svc],
                         $open['forf_open'],
-                        self::midi_slot($svc, $pats, $exc, !empty($csr_flags[$cid]))
+                        self::midi_slot($svc, $pats, $exc, $csr)
                     );
                     $map[$cid][$date][$svc] = array(
                         'explicit' => (bool) $explicit,
                         'declared' => (bool) $declared,
                         'locked'   => psc_is_locked($date),
-                        'closed'   => ($svc === 'CANT' && self::cantine_sans_repas_flag($cid)) || ($svc === $forf ? !$open['forf_open'] : !$open['services'][$svc]),
+                        'closed'   => ($svc === 'CANT' && $csr) || ($svc === $forf ? !$open['forf_open'] : !$open['services'][$svc]),
                     );
                 }
             }
@@ -734,7 +734,7 @@ class Psc_Planning {
             return array('status' => 'invalid');
         }
 
-        if ($on && self::service_restricted_for_child($child_id, $service_code)) {
+        if ($on && self::service_restricted_for_child($child_id, $service_code, $date)) {
             return array('status' => 'invalid');
         }
 
@@ -785,7 +785,7 @@ class Psc_Planning {
         $t_exc = psc_table('exception');
         $msr   = psc_midi_sans_repas_code();
 
-        if ($service_code === $msr && self::cantine_sans_repas_flag($child_id)) {
+        if ($service_code === $msr && self::cantine_sans_repas_on($child_id, $date)) {
             // Enfant « cantine sans repas » : son midi se résout à travers
             // psc_cantine_sans_repas_convert(), où une ancienne exception
             // d'AJOUT de cantine l'emporte sur tout retrait du midi. Elle est
@@ -981,10 +981,10 @@ class Psc_Planning {
         $pats_after     = isset($patterns_after[$child_id][$year_key][$weekday]) ? $patterns_after[$child_id][$year_key][$weekday] : array();
         $exceptions     = self::load_exceptions(array($child_id), $days);
 
-        $csr    = self::cantine_sans_repas_flag($child_id);
         $frozen = 0;
         $purged = 0;
         foreach ($days as $day) {
+            $csr    = self::cantine_sans_repas_on($child_id, $day);
             $locked = psc_is_locked($day);
             $exc_d  = isset($exceptions[$child_id][$day]) ? $exceptions[$child_id][$day] : array();
             $forf_exc = array_key_exists($forf, $exc_d) ? (bool) $exc_d[$forf] : null;
@@ -1461,15 +1461,9 @@ class Psc_Planning {
     public static function flush_cache() {
         self::$single_cache = array();
         self::$svc_closed_cache = array();
-        self::$csr_flag_cache = array();
+        if (class_exists('Psc_Sans_Repas')) Psc_Sans_Repas::flush_cache();
     }
 
-    /**
-     * Cache par requête des enfants flagués « cantine sans repas »
-     * (children.cantine_sans_repas) — un booléen par enfant, lu en une
-     * requête pour les résolutions en masse (declared_map).
-     */
-    private static $csr_flag_cache = array();
 
     /**
      * Ouvre la transaction d'une écriture de planning et verrouille la ligne
@@ -1502,52 +1496,29 @@ class Psc_Planning {
         return array('status' => 'error');
     }
 
-    /** Enfant flagué « cantine sans repas » ? (lut et mis en cache) */
-    protected static function cantine_sans_repas_flag($child_id) {
-        $child_id = (int) $child_id;
-        if (!$child_id) return false;
-        $flags = self::cantine_sans_repas_flags(array($child_id));
-        return !empty($flags[$child_id]);
+    /**
+     * Enfant « cantine sans repas » à une date (P1-16 : statut daté,
+     * table psc_sans_repas) — aujourd'hui par défaut.
+     */
+    protected static function cantine_sans_repas_on($child_id, $date = null) {
+        return Psc_Sans_Repas::on((int) $child_id, $date);
     }
 
-    /** Une famille ne peut choisir que le service de midi autorisé par le flag mairie. */
-    protected static function service_restricted_for_child($child_id, $service_code) {
-        $without_meal = self::cantine_sans_repas_flag($child_id);
+    /** Statut du jour : saisie du rythme habituel, copie entre frères et sœurs. */
+    protected static function cantine_sans_repas_flag($child_id) {
+        return self::cantine_sans_repas_on($child_id);
+    }
+
+    /**
+     * Une famille ne peut choisir, un jour donné, que le service de midi
+     * autorisé par le statut de la mairie ce jour-là (aujourd'hui pour le
+     * rythme habituel, qui n'a pas de date).
+     */
+    protected static function service_restricted_for_child($child_id, $service_code, $date = null) {
+        $without_meal = self::cantine_sans_repas_on($child_id, $date);
         if ($service_code === 'CANT') return $without_meal;
         if ($service_code === psc_midi_sans_repas_code()) return !$without_meal;
         return false;
     }
 
-    /**
-     * Flags « cantine sans repas » d'une liste d'enfants, en UNE requête.
-     * Colonne absente (base pas encore migrée) : tout le monde est
-     * non-flagué — la lecture ne doit jamais casser la résolution.
-     */
-    protected static function cantine_sans_repas_flags(array $child_ids) {
-        $child_ids = array_values(array_unique(array_filter(array_map('intval', $child_ids))));
-        $missing = array();
-        foreach ($child_ids as $cid) {
-            if (!array_key_exists($cid, self::$csr_flag_cache)) $missing[] = $cid;
-        }
-        if ($missing) {
-            global $wpdb;
-            $t_child = psc_table('children');
-            foreach ($missing as $cid) self::$csr_flag_cache[$cid] = false;
-            $placeholders = implode(',', array_fill(0, count($missing), '%d'));
-            $rows = $wpdb->get_results($wpdb->prepare(
-                "SELECT id, cantine_sans_repas FROM $t_child WHERE id IN ($placeholders)",
-                $missing
-            ));
-            if (is_array($rows)) {
-                foreach ($rows as $r) {
-                    self::$csr_flag_cache[(int) $r->id] = (int) $r->cantine_sans_repas === 1;
-                }
-            }
-        }
-        $out = array();
-        foreach ($child_ids as $cid) {
-            $out[$cid] = !empty(self::$csr_flag_cache[$cid]);
-        }
-        return $out;
-    }
 }
