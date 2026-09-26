@@ -12,7 +12,7 @@ La réinscription n'est possible que pendant la campagne ouverte par la mairie. 
 
 1. Ouvrez **Réinscription**.
 2. Pour chaque enfant à réinscrire, cochez **Réinscrire**, puis joignez son **Nouveau justificatif d'assurance scolaire** pour l'année qui vient (PDF, JPG ou PNG, 1 Mo au plus).
-3. Acceptez le règlement, puis cliquez sur **Confirmer la réinscription**.
+3. Lisez le règlement intérieur, affiché au-dessus de la case (le lien vers le PDF s'ouvre dans un nouvel onglet), cochez la case d'acceptation, puis cliquez sur **Confirmer la réinscription**.
 
    ![Écran de réinscription montrant les enfants à confirmer et le dépôt d'un nouveau justificatif](../assets/screenshots/reinscription-fenetre.png)
 

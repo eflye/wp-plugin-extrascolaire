@@ -41,7 +41,7 @@
 | P2-06 | Polices servies localement (publié en 5.28.1, déployé) ; reste l'inventaire des ressources tierces du site réel (onglet Réseau du navigateur) | Exploitation, puis DPO |
 | P1-11 | Fait, à publier : fichier de repli expurgé et archivé, alerte de retard des tâches planifiées, purge par niveau sans trou dans la chaîne (schéma 4.16.0). Reste : faire valider les durées par le DPO | DPO |
 | P1-16 | Fait, à publier : tarifs et statut « sans repas » datés (schéma 4.17.0). Reste : factures en centimes (lot séparé) et validation de la procédure de correction par la facturation | Facturation |
-| P2-14 | Version du règlement effectivement accepté | Schéma à valider, puis facturation |
+| P2-14 | Fait, à publier : version du règlement approuvé (texte affiché + PDF, schéma 4.18.0). Reste : valider le circuit de signature et d'archivage du mandat SEPA | Facturation, DPO |
 | P1-15 | Règle unique publiée en 5.29.0, déployée ; reste à revoir le tarif FSR, plus cher que ses prestations avec les valeurs par défaut | Facturation |
 | P3-01 | Premier lot publié en 5.30.0, déployé ; second lot fait (listes du calendrier factorisées, e-mail « forfait modifié » par enfant), à publier | Développement |
 | P1-06 à P1-10 | Notice relue, durées de conservation, procédure des droits, dossier de conformité et AIPD | DPO et mairie |
@@ -659,6 +659,8 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 **À faire :** conserver référence/version datée, auteur identifiable et mode d’acceptation ; faire valider le circuit réel de signature et d’archivage SEPA. Séparer approbation du règlement, mandat de paiement et éventuel consentement à un traitement particulier.
 
 **Acceptation :** remplacement d’un règlement ne change pas la preuve antérieure ; la mairie retrouve le document applicable à une inscription sans conserver des données supplémentaires inutiles. **Métier/facturation + DPO + développement ; M.**
+
+**Traité le 26/09/2026 (volet technique, schéma 4.18.0) :** table `psc_document_versions` (type, texte exact affiché, empreinte du texte et du PDF, copie privée du PDF) ; colonnes `reglement_version_id` / `sepa_reglement_version_id` sur les familles, les demandes et les années de l'enfant, clés étrangères RESTRICT. Une version se crée d'elle-même quand le texte ou le PDF change. Enregistrée à l'inscription, à la réinscription (qui affiche désormais le règlement) et à l'activation du prélèvement depuis le profil (texte désormais identique à celui de l'inscription). Consultable depuis une demande (écran « Version de règlement », journalisé) et présente dans l'export RGPD. Preuves : `bin/verify-document-versions.php` (12 vérifications, en CI), `tests/reglement-versions.spec.ts`, `request-approval` et `school-year-promotion` étendus. Reste : circuit réel de signature et d'archivage SEPA, à valider par la mairie.
 
 ### P2-15 — TRAITÉ CÔTÉ DÉVELOPPEMENT (après v5.22.0) — Auditer l’accessibilité des parcours essentiels
 
