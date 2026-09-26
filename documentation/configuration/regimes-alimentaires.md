@@ -20,7 +20,7 @@ Pour une modification côté famille, connectez-vous au portail avec le lien re�
 
 3. À l'enregistrement, le service périscolaire reçoit l'e-mail **Échange à prévoir sur l'alimentation**. Il nomme l'enfant, la famille et la classe, sans aucune information de santé, et renvoie vers la fiche enfant du backoffice.
 4. La mairie prend l'initiative du contact et recueille de vive voix ce qui est nécessaire. Aucun menu différencié n'est proposé : lorsque l'enfant déjeune à la cantine, la famille fournit son repas adapté.
-5. À l'issue de l'échange, ouvrez **Périscolaire › Enfants** et activez si nécessaire **Cantine sans repas** sur la ligne de l'enfant. Ce statut n'est jamais activé par la famille : il reste la décision de la mairie, et se retire avec **Rétablir les repas**.
+5. À l'issue de l'échange, ouvrez **Périscolaire › Enfants**. Si nécessaire, sur la ligne de l'enfant, choisissez la date **À partir du** puis cliquez sur **Cantine sans repas**. Ce statut n'est jamais activé par la famille : il reste la décision de la mairie. Il se retire de la même façon, à une date choisie, avec **Rétablir les repas**. Les jours avant la date ne changent pas, qu'ils soient déjà facturés ou non. Un statut prévu pour plus tard s'annonce sous la ligne (« sans repas à partir du… »).
 
     Dans le planning de la famille, la cantine de cet enfant apparaît alors en **Midi sans repas** : ce qui s'affiche est ce qui sera facturé, et la famille peut cocher ou décocher ces jours comme d'habitude.
 

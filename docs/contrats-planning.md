@@ -17,6 +17,8 @@ Aucun canal ne relit `psc_pattern` ou `psc_exception`, et aucun ne réinterprèt
 
 Les listes de familles concernées par une fermeture (`Psc_School_Calendar::affected_families*`) partagent un même socle, `families_for()`, qui ne diffère que par la lecture appliquée à chaque journée.
 
+Tarifs et statut « sans repas » sont **datés** (P1-16, schéma 4.17.0) : la carte d'un jour est résolue avec le statut de ce jour (`Psc_Sans_Repas`, table `psc_sans_repas`), et `psc_billing_services($day, $sans_repas, $regle, $date)` compare les tarifs en vigueur ce jour-là (`psc_billing_tariffs($date)`, table `psc_tarifs`). Une facture regroupe ses jours par prestation et par tarif.
+
 Le navigateur ne calcule aucun montant : les totaux affichés par le portail viennent de la réponse du serveur (`planning_state`).
 
 ## Table de décision
