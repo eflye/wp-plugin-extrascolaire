@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.32.1
+Stable tag: 5.33.0
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,12 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.33.0 =
+* **Mise à jour depuis la 5.28.0 au minimum.** Le code de migration des versions antérieures (schéma inférieur à 4.15.0) est retiré. Depuis une version plus ancienne, installez d'abord la 5.32.1 ; sinon la page Maintenance signale que la base est trop ancienne et rien n'est modifié. Depuis la 5.28.0 ou plus récente, la mise à jour se fait comme d'habitude (schéma 4.18.0).
+* Page Maintenance : le tableau des années scolaires en double, propre à l'ancienne migration, disparaît.
+* Écran des demandes d'inscription : l'acceptation du règlement s'affiche dans un vert lisible (contraste AA).
+* Aucun changement de fonctionnement pour les familles et la mairie.
 
 = 5.32.1 =
 * Factures, estimations du portail et comparaison avec le prix du forfait calculés en centimes entiers : plus d'écart d'arrondi possible entre les lignes, le total et les documents. Pas de migration ; les factures déjà émises ne changent pas.
