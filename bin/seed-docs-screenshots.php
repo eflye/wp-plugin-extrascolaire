@@ -305,6 +305,10 @@ WP_CLI::add_command('seed-docs-screenshots', function ($args, $assoc_args) {
     update_option('psc_billing_org_iban', psc_encrypt('FR7630006000011234567890189'), false);
     update_option('psc_billing_org_bic', 'AGRIFRPP', false);
 
+    // Responsable du traitement renseigné : sinon l'avis « Notice de
+    // confidentialité » occupe le haut de chaque capture de l'administration.
+    update_option('psc_privacy_municipality', 'Mairie de Montgeroult');
+
     /* ---------------------------------------------------------------- */
     /* Fenêtre de réinscription — toujours ouverte au moment du run       */
     /* ---------------------------------------------------------------- */
