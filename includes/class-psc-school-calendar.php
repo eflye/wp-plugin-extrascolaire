@@ -497,105 +497,75 @@ class Psc_School_Calendar {
     /**
      * Familles ayant une déclaration effective à cette date — utilisé pour
      * avertir l'admin avant une fermeture manuelle et notifier les familles.
-     * Passe par la source de vérité unique (psc_is_declared) : le planning
-     * étant calculé (rythme + exceptions), il n'y a plus rien à supprimer
-     * en base quand un jour ferme — la résolution retourne false de
-     *'elle-même, la facturation ne compte pas le jour.
+     * Une ligne par créneau de présence (psc_day_slots) : une journée au
+     * forfait s'annonce par ses créneaux, pas par le forfait ET ses
+     * créneaux. Rien n'est supprimé en base quand le jour ferme : la
+     * résolution l'ignore, la facturation ne le compte pas.
      */
     public static function affected_families($date_str) {
-        global $wpdb;
-        $t_child = psc_table('children');
-        $t_par   = psc_table('parents');
-
-        $children = $wpdb->get_results(
-            "SELECT c.id, c.nom AS child_nom, c.prenom AS child_prenom, c.parent_id,
-                    p.email, p.nom AS parent_nom
-             FROM $t_child c
-             JOIN $t_par p ON p.id = c.parent_id
-             WHERE p.active = 1 AND " . Psc_School_Years::inscrit_sql('c.id', Psc_School_Years::id_for_date($date_str)) . "
-             ORDER BY p.email, c.nom"
-        );
-        if (!$children) {
-            return array('registrations' => 0, 'families' => array());
-        }
-
-        $child_ids = wp_list_pluck($children, 'id');
-        $map = Psc_Planning::declared_map($child_ids, array($date_str));
-
-        $by_family = array();
-        $count = 0;
-        foreach ($children as $c) {
-            // Présence (psc_day_slots) : une journée au forfait s'annonce
-            // par ses créneaux, pas par le forfait ET ses créneaux.
-            $services = psc_day_slots(isset($map[$c->id][$date_str]) ? $map[$c->id][$date_str] : array());
-            if (!$services) continue;
-
-            $count += count($services);
-            $pid = (int) $c->parent_id;
-            if (!isset($by_family[$pid])) {
-                $by_family[$pid] = array(
-                    'email' => $c->email,
-                    'nom'   => $c->parent_nom,
-                    'items' => array(),
-                );
-            }
-            foreach ($services as $svc) {
-                $by_family[$pid]['items'][] = (object) array(
-                    'child_id' => (int) $c->id,
-                    'child_nom' => $c->child_nom,
-                    'child_prenom' => $c->child_prenom,
-                    'service' => $svc,
-                );
-            }
-        }
-
-        return array(
-            'registrations' => $count,
-            'families'      => $by_family,
-        );
+        return self::families_for(array($date_str), array(__CLASS__, 'slot_items'));
     }
 
     /**
-     * Familles ayant une déclaration effective sur une plage de dates —
-     * même usage que affected_families() mais pour une fermeture de
-     * plusieurs jours d'un coup (vacances, fermeture exceptionnelle...).
-     * Source de vérité unique : les déclarations viennent de la résolution
-     * (psc_is_declared), calculée en un lot pour toute la plage.
+     * Même lecture que affected_families() sur une plage de dates (vacances,
+     * fermeture de plusieurs jours), résolue en un lot.
      */
     public static function affected_families_range($date_debut, $date_fin) {
-        global $wpdb;
-        $t_child = psc_table('children');
-        $t_par   = psc_table('parents');
-
-        $children = $wpdb->get_results(
-            "SELECT c.id, c.nom AS child_nom, c.prenom AS child_prenom, c.parent_id,
-                    p.email, p.nom AS parent_nom
-             FROM $t_child c
-             JOIN $t_par p ON p.id = c.parent_id
-             WHERE p.active = 1 AND (" . Psc_School_Years::inscrit_sql('c.id', Psc_School_Years::id_for_date($date_debut))
-                . ' OR ' . Psc_School_Years::inscrit_sql('c.id', Psc_School_Years::id_for_date($date_fin)) . ")
-             ORDER BY p.email, c.nom"
-        );
-        if (!$children) {
-            return array('registrations' => 0, 'families' => array());
-        }
-
         $dates = Psc_School_Year::school_days($date_debut, $date_fin);
         if (!$dates) {
             return array('registrations' => 0, 'families' => array());
         }
+        return self::families_for($dates, array(__CLASS__, 'slot_items'));
+    }
 
-        $child_ids = wp_list_pluck($children, 'id');
-        $map = Psc_Planning::declared_map($child_ids, $dates);
+    /** Une ligne par créneau de présence de la journée. */
+    private static function slot_items(array $day) {
+        return array_map(function ($code) { return array('service' => $code); }, psc_day_slots($day));
+    }
+
+    /**
+     * Socle des listes de familles concernées : enfants inscrits sur l'année
+     * des dates, cartes résolues en un lot (declared_map), regroupement par
+     * famille. $pick reçoit la carte {code => bool} d'une journée et renvoie
+     * les lignes à annoncer pour cet enfant ce jour-là (tableaux fusionnés
+     * dans l'objet ligne) ; 'registrations' compte ces lignes.
+     *
+     * @param string[] $dates Jours concernés, dans l'ordre.
+     * @param callable $pick  function (array $day): array[]
+     * @return array {registrations: int, families: {parent_id: {email, nom, items: object[]}}}
+     */
+    private static function families_for(array $dates, callable $pick) {
+        global $wpdb;
+        $t_child = psc_table('children');
+        $t_par   = psc_table('parents');
+        $first   = reset($dates);
+        $last    = end($dates);
+
+        $enrolled = Psc_School_Years::inscrit_sql('c.id', Psc_School_Years::id_for_date($first));
+        if ($last !== $first) {
+            $enrolled = '(' . $enrolled . ' OR ' . Psc_School_Years::inscrit_sql('c.id', Psc_School_Years::id_for_date($last)) . ')';
+        }
+        $children = $wpdb->get_results(
+            "SELECT c.id, c.nom AS child_nom, c.prenom AS child_prenom, c.parent_id,
+                    p.email, p.nom AS parent_nom
+             FROM $t_child c
+             JOIN $t_par p ON p.id = c.parent_id
+             WHERE p.active = 1 AND $enrolled
+             ORDER BY p.email, c.nom"
+        );
+        if (!$children) {
+            return array('registrations' => 0, 'families' => array());
+        }
+
+        $map = Psc_Planning::declared_map(wp_list_pluck($children, 'id'), $dates);
 
         $by_family = array();
         $count = 0;
         foreach ($children as $c) {
             foreach ($dates as $date) {
-                $services = psc_day_slots(isset($map[$c->id][$date]) ? $map[$c->id][$date] : array());
-                if (!$services) continue;
+                $items = call_user_func($pick, isset($map[$c->id][$date]) ? $map[$c->id][$date] : array());
+                if (!$items) continue;
 
-                $count += count($services);
                 $pid = (int) $c->parent_id;
                 if (!isset($by_family[$pid])) {
                     $by_family[$pid] = array(
@@ -604,14 +574,14 @@ class Psc_School_Calendar {
                         'items' => array(),
                     );
                 }
-                foreach ($services as $svc) {
-                    $by_family[$pid]['items'][] = (object) array(
-                        'child_id' => (int) $c->id,
-                        'child_nom' => $c->child_nom,
+                foreach ($items as $item) {
+                    $count++;
+                    $by_family[$pid]['items'][] = (object) array_merge(array(
+                        'child_id'     => (int) $c->id,
+                        'child_nom'    => $c->child_nom,
                         'child_prenom' => $c->child_prenom,
-                        'jour_date' => $date,
-                        'service' => $svc,
-                    );
+                        'jour_date'    => $date,
+                    ), $item);
                 }
             }
         }
@@ -732,69 +702,27 @@ class Psc_School_Calendar {
 
     /**
      * Familles concernées par la fermeture d'une seule prestation ce
-     * jour-là, séparées en deux groupes disjoints : les enfants qui l'ont
-     * déclarée hors forfait, et les enfants au forfait journée, dont les
-     * prestations restantes sont alors facturées au tarif unitaire. Rien
-     * n'est supprimé : la résolution ignore la prestation fermée.
+     * jour-là, en deux groupes disjoints :
+     *  - direct : les enfants qui l'ont déclarée hors forfait ;
+     *  - forf   : les enfants au forfait journée ; chaque ligne porte
+     *    'remaining', les créneaux qui leur restent ce jour-là (retraits de
+     *    la famille et autres fermetures compris), facturés au tarif
+     *    unitaire (psc_billing_services).
+     * Rien n'est supprimé : la résolution ignore la prestation fermée.
      */
     public static function affected_families_for_service($date_str, $service) {
+        $forf = psc_forfait_code();
         return array(
-            'direct' => self::families_by_service($date_str, $service, true),
-            'forf'   => self::families_by_service($date_str, psc_forfait_code()),
-        );
-    }
-
-    /**
-     * @param bool $without_forfait Écarte les enfants au forfait ce jour-là :
-     *                              le forfait rend vraies les prestations
-     *                              qu'il couvre, ils seraient comptés deux fois.
-     */
-    private static function families_by_service($date_str, $service, $without_forfait = false) {
-        global $wpdb;
-        $t_child = psc_table('children');
-        $t_par   = psc_table('parents');
-
-        $children = $wpdb->get_results(
-            "SELECT c.id, c.nom AS child_nom, c.prenom AS child_prenom, c.parent_id,
-                    p.email, p.nom AS parent_nom
-             FROM $t_child c
-             JOIN $t_par p ON p.id = c.parent_id
-             WHERE p.active = 1 AND " . Psc_School_Years::inscrit_sql('c.id', Psc_School_Years::id_for_date($date_str)) . "
-             ORDER BY p.email, c.nom"
-        );
-        if (!$children) {
-            return array('registrations' => 0, 'families' => array());
-        }
-
-        $child_ids = wp_list_pluck($children, 'id');
-        $map = Psc_Planning::declared_map($child_ids, array($date_str));
-
-        $by_family = array();
-        $count = 0;
-        foreach ($children as $c) {
-            if (empty($map[$c->id][$date_str][$service])) continue;
-            if ($without_forfait && !empty($map[$c->id][$date_str][psc_forfait_code()])) continue;
-
-            $count++;
-            $pid = (int) $c->parent_id;
-            if (!isset($by_family[$pid])) {
-                $by_family[$pid] = array(
-                    'email' => $c->email,
-                    'nom'   => $c->parent_nom,
-                    'items' => array(),
-                );
-            }
-            $by_family[$pid]['items'][] = (object) array(
-                'child_id' => (int) $c->id,
-                'child_nom' => $c->child_nom,
-                'child_prenom' => $c->child_prenom,
-                'service' => $service,
-            );
-        }
-
-        return array(
-            'registrations' => $count,
-            'families'      => $by_family,
+            'direct' => self::families_for(array($date_str), function (array $day) use ($service, $forf) {
+                return (!empty($day[$service]) && empty($day[$forf])) ? array(array('service' => $service)) : array();
+            }),
+            'forf' => self::families_for(array($date_str), function (array $day) use ($service, $forf) {
+                if (empty($day[$forf])) return array();
+                return array(array(
+                    'service'   => $forf,
+                    'remaining' => array_values(array_diff(psc_day_slots($day), array($service))),
+                ));
+            }),
         );
     }
 
@@ -842,16 +770,8 @@ class Psc_School_Calendar {
         }
 
         if (!empty($affected['forf']['families'])) {
-            $closed_now = self::closed_services_for_date($date_str);
-            $remaining  = array_diff(psc_unit_services(), array($service), $closed_now);
-
-            $remaining_labels = array();
-            foreach ($remaining as $code) {
-                $remaining_labels[] = isset($services[$code]) ? $services[$code]['label'] : $code;
-            }
-
             foreach ($affected['forf']['families'] as $fam) {
-                Psc_Mailer::send_forfait_downgraded($fam, $date_str, $service_label, $remaining_labels);
+                Psc_Mailer::send_forfait_downgraded($fam, $date_str, $service_label);
             }
         }
 

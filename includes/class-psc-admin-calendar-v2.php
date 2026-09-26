@@ -68,7 +68,7 @@ class Psc_Admin_Calendar_V2 {
                 'preview_day'           => __('%s déclaration(s) de %s famille(s) passeront à « non déclaré » ce jour-là. Ces prestations ne seront pas facturées, et chaque famille recevra un e-mail.', 'periscolaire-registration'),
                 'no_registrations'      => __('Aucune déclaration ce jour-là.', 'periscolaire-registration'),
                 'preview_service_direct' => __('%s déclaration(s) de %s passeront à « non déclaré » (%s famille(s), non facturées).', 'periscolaire-registration'),
-                'preview_service_forf'  => __('%s enfant(s) en forfait journée (%s famille(s)) seront déclassés vers les prestations restantes ce jour-là.', 'periscolaire-registration'),
+                'preview_service_forf'  => __('%s enfant(s) au forfait journée (%s famille(s)) : ce jour-là, leurs prestations restantes seront facturées à leur tarif, et chaque famille recevra un e-mail.', 'periscolaire-registration'),
             ),
         ));
     }
