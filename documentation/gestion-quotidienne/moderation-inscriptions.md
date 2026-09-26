@@ -11,7 +11,7 @@ Connectez-vous à WordPress avec un rôle autorisé à gérer les demandes. Une 
 ## Étapes
 
 1. Ouvrez **Périscolaire › Demandes d'inscription** et consultez la section **En attente**. Le parent a déjà rempli le formulaire et confirmé son adresse ; les demandes non vérifiées restent hors de cette file.
-2. Examinez l'identité et les coordonnées affichées : e-mail, téléphone, date de réception, message, acceptation du règlement intérieur et mode de paiement. Vérifiez également les enfants déclarés, leur classe, leur date de naissance, leur régime alimentaire, la présence de leur assurance et, le cas échéant, le signalement d'un échange à prévoir sur l'alimentation.
+2. Examinez l'identité et les coordonnées affichées : e-mail, téléphone, date de réception, message, acceptation du règlement intérieur et mode de paiement. À côté de chaque acceptation, un lien « version n° … du … » ouvre la version exacte du règlement que la famille a approuvée : le texte affiché dans le formulaire, son empreinte et, s'il était en ligne, le PDF complémentaire conservé par le plugin. Une acceptation antérieure au suivi des versions n'a pas de lien. Vérifiez également les enfants déclarés, leur classe, leur date de naissance, leur régime alimentaire, la présence de leur assurance et, le cas échéant, le signalement d'un échange à prévoir sur l'alimentation.
 
    ![Section « En attente » affichant une demande avec les coordonnées du parent et le tableau des enfants déclarés](../assets/screenshots/moderation-demandes-attente.png)
 

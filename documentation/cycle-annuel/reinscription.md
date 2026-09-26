@@ -12,7 +12,7 @@ Créez l'année cible avec le statut **En préparation** et vérifiez la corresp
 
 1. Ouvrez **Périscolaire › Réglages**, puis repérez **Fenêtre de réinscription**. Renseignez **Ouverture** et **Fermeture** ; laissez les deux champs vides pour ne jamais afficher l'onglet aux familles.
 2. Enregistrez les réglages. Pendant la période comprise entre ces deux dates, l'onglet **Réinscription** apparaît dans l'espace connecté des familles.
-3. La famille ouvre **Réinscription** et examine chaque enfant. Pour chaque enfant qui continue, elle coche **Réinscrire**, joint un **Nouveau justificatif d'assurance scolaire** et accepte le règlement intérieur pour l'année cible, puis clique sur **Confirmer la réinscription**.
+3. La famille ouvre **Réinscription** et examine chaque enfant. Pour chaque enfant qui continue, elle coche **Réinscrire**, joint un **Nouveau justificatif d'assurance scolaire** et accepte le règlement intérieur pour l'année cible (affiché au-dessus de la case, avec le PDF s'il est en ligne), puis clique sur **Confirmer la réinscription**. La version du règlement approuvée est enregistrée avec la réinscription.
 
    ![Écran de réinscription montrant la fenêtre ouverte, les enfants à confirmer et le dépôt d'un nouveau justificatif](../assets/screenshots/reinscription-fenetre.png)
 
