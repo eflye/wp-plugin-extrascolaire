@@ -33,21 +33,23 @@
 | 5.28.1 | P2-06 : polices du thème et de l'extension servies localement, script d'émojis WordPress désactivé |
 | 5.29.0 | P1-15 : règle unique de facturation d'une journée (plus de cumul forfait + garderies), factures envoyées inchangées |
 | 5.30.0 | P3-01 (premier lot) : contrats d'une journée, annulation de classe au forfait, totaux du portail fournis par le serveur, avis de fermeture |
+| 5.31.0 | P3-01 (second lot) ; P1-11 : fichier de repli expurgé et archivé, alerte de retard des tâches planifiées, purge du journal par niveau (schéma 4.16.0) ; captures Année scolaire et Calendrier |
+| 5.32.0 | P1-16 : tarifs et statut « cantine sans repas » datés (schéma 4.17.0) ; P2-14 : versions des règlements approuvés (schéma 4.18.0) ; activation d'une installation neuve corrigée |
+| 5.32.1 | P1-16 : montants calculés en centimes entiers |
 
 ### Reste à faire
 
 | Bloc | Ce qui reste | Qui débloque |
 | --- | --- | --- |
-| **Serveur distant** | **En 5.30.0 (26/09/2026)**, à jour de toutes les versions publiées. Le 25/09, passage 5.23.1 → 5.28.0 avec les cinq étapes de **Périscolaire › Maintenance** (sauvegarde, base au schéma 4.15.0, clé des IBAN hors de la base et rechiffrement, réglages, recette). Reste : tester une restauration avec la clé, puis dérouler la fiche de recette de l'hébergement (P1-04, P1-18) | Exploitation |
-| P2-06 | Polices servies localement (publié en 5.28.1, déployé) ; reste l'inventaire des ressources tierces du site réel (onglet Réseau du navigateur) | Exploitation, puis DPO |
-| P1-11 | Fait, à publier : fichier de repli expurgé et archivé, alerte de retard des tâches planifiées, purge par niveau sans trou dans la chaîne (schéma 4.16.0). Reste : faire valider les durées par le DPO | DPO |
-| P1-16 | Traité et validé (26/09/2026) : tarifs et statut datés publiés en 5.32.0, calcul en centimes à publier | — |
-| P2-14 | Fait, à publier : version du règlement approuvé (texte affiché + PDF, schéma 4.18.0). Reste : valider le circuit de signature et d'archivage du mandat SEPA | Facturation, DPO |
-| P1-15 | Règle unique publiée en 5.29.0, déployée ; reste à revoir le tarif FSR, plus cher que ses prestations avec les valeurs par défaut | Facturation |
-| P3-01 | Premier lot publié en 5.30.0, déployé ; second lot fait (listes du calendrier factorisées, e-mail « forfait modifié » par enfant), à publier | Développement |
+| **Serveur distant** | Noté en 5.30.0 (26/09/2026). Déployer 5.31.0 → 5.32.1 (schéma 4.18.0, automatique) via **Périscolaire › Maintenance** ; vérifier l'absence d'avis « tâches planifiées » sur le tableau de bord (sinon, appeler `wp-cron.php` depuis l'hôte) ; tester une restauration avec la clé des IBAN ; dérouler la fiche de recette de l'hébergement (P1-04, P1-18) | Exploitation |
+| P2-06 | Inventaire des ressources tierces du site réel (onglet Réseau du navigateur) | Exploitation, puis DPO |
+| P1-15 | Revoir le tarif du forfait sans repas (FSR), plus cher que ses prestations avec les valeurs par défaut | Facturation |
+| P2-14 | Valider le circuit de signature et d'archivage du mandat SEPA (volet technique publié en 5.32.0) | Facturation, DPO |
+| P1-11 | Faire valider les durées de conservation du journal d'audit (volet technique publié en 5.31.0) | DPO |
 | P1-06 à P1-10 | Notice relue, durées de conservation, procédure des droits, dossier de conformité et AIPD | DPO et mairie |
 | P1-01 | Permissions par fonction des intervenants | Mis de côté |
-| Documentation | Captures **Année scolaire** et **Calendrier** régénérées (formulaire sans libellé, jours hors du mois), à publier | — |
+
+Terminés et publiés : P1-16 (validé), P3-01, captures de la documentation. Aucun bloc ne reste côté développement.
 
 ## Périmètre et limites
 
