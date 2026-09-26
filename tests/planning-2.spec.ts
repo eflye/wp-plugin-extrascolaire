@@ -214,7 +214,16 @@ test.describe('Planning - 2 : rythme + exceptions (fonctionnel, base vérifiée)
       await expect(page.getByTestId(`portal-child-row-${data.alice_id}`)).toContainText('Cantine sans repas');
       await expect(page.getByTestId(`portal-child-row-${data.bob_id}`)).not.toContainText('Cantine sans repas');
 
+      // Règle 2 (P1-15) : une journée complète n'est facturée au forfait
+      // sans repas que s'il ne dépasse pas la somme de ses créneaux
+      // (GM + MSR + GS = 7,55 € avec les tarifs par défaut, FSR 9,00 €).
+      // Le tarif FSR est donc porté sous ce seuil le temps du test, pour
+      // couvrir le chemin FSR jusqu'au PDF ; il est rétabli ensuite.
       const result = JSON.parse(wpCliEval(`global $wpdb;
+        $prices_before = get_option('psc_service_prices', array());
+        $prices = is_array($prices_before) ? $prices_before : array();
+        $prices['FSR'] = 7.00;
+        update_option('psc_service_prices', $prices);
         $child = $wpdb->get_row($wpdb->prepare('SELECT * FROM '.psc_table('children').' WHERE id=%d', ${data.alice_id}));
         $tariffs = psc_billing_tariffs();
         $dates = Psc_School_Year::school_days_in_month('${data.month}');
@@ -234,11 +243,11 @@ test.describe('Planning - 2 : rythme + exceptions (fonctionnel, base vérifiée)
           $method->setAccessible(true);
           $method->invoke(null, (object) array('nom'=>'Famille test', 'email'=>'test@example.invalid'), '${data.month}', array($child), $grid, $tariffs, $pdf, 999);
           echo json_encode(array('amount'=>round($amount,2), 'summary'=>round($summary['months']['${data.month}']['amount'],2), 'fsr'=>$fsr, 'price'=>$tariffs['FSR']['price'], 'pdf'=>base64_encode(file_get_contents($pdf))));
-        } finally { unlink($pdf); }
+        } finally { unlink($pdf); update_option('psc_service_prices', $prices_before); }
       `));
       expect(result.fsr).toBeGreaterThan(0);
       expect(result.amount).toBe(result.summary);
-      expect(result.price).toBe(9);
+      expect(result.price).toBe(7);
       const pdf = Buffer.from(result.pdf, 'base64').toString('latin1');
       const { inflateSync } = await import('node:zlib');
       const text = [...pdf.matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g)]
