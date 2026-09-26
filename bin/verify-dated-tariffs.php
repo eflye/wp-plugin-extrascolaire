@@ -71,6 +71,12 @@ WP_CLI::add_command('verify-dated-tariffs', function () {
     };
 
     try {
+        // 0. Toute installation (neuve comprise) a une grille pour chaque
+        //    prestation facturable.
+        foreach (Psc_Tarifs::codes() as $code) {
+            $check(Psc_Tarifs::history($code) !== array(), "grille : aucun tarif pour $code");
+        }
+
         $y = Psc_School_Years::ensure('2091-09-03', '2092-07-04');
         Psc_School_Year::save('2091-2092', '2091-09-03', '2092-07-04', '[]', 48);
         $pid = Psc_Parents::create($email, 'Tarifs');
