@@ -2,10 +2,11 @@
 /**
  * wp eval-file tests/integration/invoice-snapshot.php
  *
- * P1-16 : une facture émise ne bouge plus. Changer un tarif en octobre ne
- * doit pas altérer une facture de septembre déjà envoyée ; la correction
- * crée une version distincte, et la version remise à la famille reste
- * consultable, PDF compris.
+ * P1-16 : une facture émise ne bouge plus. Un tarif ou un statut « sans
+ * repas » daté d'après le mois ne touche pas sa facture ; daté dans le mois
+ * (correction rétroactive), il la rectifie : la correction crée une
+ * version distincte, et la version remise à la famille reste consultable,
+ * PDF compris.
  */
 if (!defined('WP_CLI') || !WP_CLI) return;
 
@@ -37,7 +38,23 @@ foreach (Psc_School_Year::all() as $year) {
 $assert($mois !== null, 'Aucune année scolaire ne fournit de mois avec jours d’école.');
 
 $files = array();
-$prices_before = get_option('psc_service_prices', array());
+$next_month = gmdate('Y-m-01', strtotime($mois . '-01 +1 month'));
+// La grille est restaurée à l'identique en fin de sonde : une écriture
+// du planning ouvre sa propre transaction, qui valide celle de la sonde.
+$tarifs_before = $wpdb->get_results('SELECT code, prix_centimes, debut, fin, created_at, created_by FROM ' . psc_table('tarifs'), ARRAY_A);
+
+// Nettoyage explicite, avant et après : le ROLLBACK final ne suffit pas,
+// une écriture du planning validant la transaction en cours de route.
+$cleanup = function () use ($wpdb, $t_inv, $t_invv) {
+    $pid = (int) $wpdb->get_var($wpdb->prepare('SELECT id FROM ' . psc_table('parents') . ' WHERE email = %s', 'sonde-facture@example.invalid'));
+    if (!$pid) return;
+    foreach ($wpdb->get_col($wpdb->prepare("SELECT id FROM $t_inv WHERE parent_id = %d", $pid)) as $iid) {
+        $wpdb->delete($t_invv, array('invoice_id' => (int) $iid));
+    }
+    $wpdb->delete($t_inv, array('parent_id' => $pid));
+    $wpdb->delete(psc_table('parents'), array('id' => $pid)); // enfants, planning, périodes : cascade
+};
+$cleanup();
 
 $wpdb->query('START TRANSACTION');
 try {
@@ -99,10 +116,17 @@ try {
     $assert((int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_invv WHERE invoice_id = %d", $invoice_id)) === 0,
         'Une archive a été créée alors que rien n’a changé.');
 
-    /* 4. Le tarif change APRÈS l'émission : le cas même de P1-16. */
-    $prices = is_array($prices_before) ? $prices_before : array();
-    $prices['CANT'] = round($unit1 + 1.30, 2);
-    update_option('psc_service_prices', $prices);
+    /* 4. Nouveau tarif à partir du mois suivant : la facture émise ne
+          bouge pas — le cas même de P1-16. */
+    $assert(Psc_Tarifs::set('CANT', (int) round(($unit1 + 2.00) * 100), $next_month) === true, 'Tarif futur non enregistré.');
+    $same = Psc_Invoices::generate_one($parent_id, $mois);
+    $still = $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_inv WHERE id = %d", $invoice_id));
+    $assert((int) $same === (int) $invoice_id && (int) $still->version === 1 && !empty($still->sent_at),
+        'Un tarif daté du mois suivant a rectifié une facture émise.');
+
+    /* 4 bis. Tarif corrigé à partir du premier jour du mois (rétroactif) :
+          rectification. */
+    $assert(Psc_Tarifs::set('CANT', (int) round(($unit1 + 1.30) * 100), $dates[0]) === true, 'Tarif rétroactif non enregistré.');
 
     $corrected = Psc_Invoices::generate_one($parent_id, $mois);
     $assert(!is_wp_error($corrected), 'La rectification échoue : '
@@ -142,11 +166,18 @@ try {
     $assert(count($versions) === 1 && (int) $versions[0]->version === 1,
         'Le lecteur de versions ne restitue pas l’historique.');
 
-    /* 6. Le statut « cantine sans repas » compte aussi comme un changement
-          de calcul : il n'est pas daté, il ne doit pas modifier le passé
-          en silence. */
+    /* 6. Statut « cantine sans repas » daté : à partir du mois suivant,
+          aucun effet ; à partir du premier jour du mois, rectification.
+          (Écriture directe : Psc_Sans_Repas::set() ouvrirait une
+          transaction, qui validerait celle de la sonde.) */
     $wpdb->update($t_inv, array('sent_at' => current_time('mysql')), array('id' => $invoice_id));
-    $wpdb->update(psc_table('children'), array('cantine_sans_repas' => 1), array('id' => $child_id));
+    $t_sr = psc_table('sans_repas');
+    $wpdb->insert($t_sr, array('child_id' => $child_id, 'debut' => $next_month, 'fin' => null, 'created_at' => current_time('mysql')));
+    Psc_Planning::flush_cache();
+    Psc_Invoices::generate_one($parent_id, $mois);
+    $assert((int) $wpdb->get_var($wpdb->prepare("SELECT version FROM $t_inv WHERE id = %d", $invoice_id)) === 2,
+        'Un statut « sans repas » daté du mois suivant a rectifié une facture émise.');
+    $wpdb->update($t_sr, array('debut' => $dates[0]), array('child_id' => $child_id));
     Psc_Planning::flush_cache();
 
     $third = Psc_Invoices::generate_one($parent_id, $mois);
@@ -175,8 +206,12 @@ try {
 
     WP_CLI::log(sprintf('OK : %d vérifications du gel des factures émises (mois %s).', $checks, $mois));
 } finally {
-    update_option('psc_service_prices', $prices_before);
     $wpdb->query('ROLLBACK');
+    $cleanup();
+    $wpdb->query('DELETE FROM ' . psc_table('tarifs'));
+    foreach ($tarifs_before as $row) $wpdb->insert(psc_table('tarifs'), $row);
+    Psc_Tarifs::flush_cache();
+    Psc_Planning::flush_cache();
     foreach (array_unique($files) as $file) {
         if (file_exists($file)) unlink($file);
     }

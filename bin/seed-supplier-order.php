@@ -178,13 +178,17 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
             'prenom'         => $c['prenom'],
             'sans_porc'      => (int) $c['sans_porc'],
             'vegan'          => (int) $c['vegan'],
-            'cantine_sans_repas' => (int) $c['csr'],
             'food_allergies' => $c['allergies'] !== '' ? $c['allergies'] : null,
             'created_at'     => current_time('mysql'),
-        ), array('%d', '%s', '%s', '%d', '%d', '%d', '%s', '%s'));
+        ), array('%d', '%s', '%s', '%d', '%d', '%s', '%s'));
         $child_id = (int) $wpdb->insert_id;
         $child_ids[] = $child_id;
-        if ((int) $c['csr']) $csr_ids[] = $child_id;
+        // Statut « cantine sans repas » daté (P1-16) : en vigueur depuis
+        // toujours pour ce jeu de données.
+        if ((int) $c['csr']) {
+            $csr_ids[] = $child_id;
+            Psc_Sans_Repas::set($child_id, true, '2000-01-01');
+        }
 
         $wpdb->insert($t_cy, array(
             'child_id'       => $child_id,

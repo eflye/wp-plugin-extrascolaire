@@ -166,7 +166,7 @@ test.describe('Planning - 2 : rythme + exceptions (fonctionnel, base vérifiée)
 
   test('forfait sans repas : tarif, résumés, badges et facture', async ({ page }) => {
     wpCliEval(`global $wpdb;
-      $wpdb->update(psc_table('children'), array('cantine_sans_repas'=>1), array('id'=>${data.alice_id}));
+      Psc_Sans_Repas::set(${data.alice_id}, true, '2000-01-01');
       Psc_Planning::toggle_pattern(${data.alice_id}, '${data.year_key}', 1, 'FORF', true);`);
     try {
       await page.reload();
@@ -220,17 +220,14 @@ test.describe('Planning - 2 : rythme + exceptions (fonctionnel, base vérifiée)
       // Le tarif FSR est donc porté sous ce seuil le temps du test, pour
       // couvrir le chemin FSR jusqu'au PDF ; il est rétabli ensuite.
       const result = JSON.parse(wpCliEval(`global $wpdb;
-        $prices_before = get_option('psc_service_prices', array());
-        $prices = is_array($prices_before) ? $prices_before : array();
-        $prices['FSR'] = 7.00;
-        update_option('psc_service_prices', $prices);
+        Psc_Tarifs::set('FSR', 700, '${data.month}-01');
         $child = $wpdb->get_row($wpdb->prepare('SELECT * FROM '.psc_table('children').' WHERE id=%d', ${data.alice_id}));
-        $tariffs = psc_billing_tariffs();
+        $tariffs = psc_billing_tariffs('${data.month}-15');
         $dates = Psc_School_Year::school_days_in_month('${data.month}');
         $map = Psc_Planning::declared_map(array($child->id), $dates);
         $grid = array(); $amount = 0; $fsr = 0;
-        foreach ($map[$child->id] as $day) {
-          foreach (psc_billing_services($day, true) as $svc) {
+        foreach ($map[$child->id] as $d => $day) {
+          foreach (psc_billing_services($day, true, null, $d) as $svc) {
             $grid[$svc][$child->id] = ($grid[$svc][$child->id] ?? 0) + 1;
             $amount += $tariffs[$svc]['price'];
             if ($svc === 'FSR') $fsr++;
@@ -243,7 +240,7 @@ test.describe('Planning - 2 : rythme + exceptions (fonctionnel, base vérifiée)
           $method->setAccessible(true);
           $method->invoke(null, (object) array('nom'=>'Famille test', 'email'=>'test@example.invalid'), '${data.month}', array($child), $grid, $tariffs, $pdf, 999);
           echo json_encode(array('amount'=>round($amount,2), 'summary'=>round($summary['months']['${data.month}']['amount'],2), 'fsr'=>$fsr, 'price'=>$tariffs['FSR']['price'], 'pdf'=>base64_encode(file_get_contents($pdf))));
-        } finally { unlink($pdf); update_option('psc_service_prices', $prices_before); }
+        } finally { unlink($pdf); $wpdb->delete(psc_table('tarifs'), array('code'=>'FSR', 'debut'=>'${data.month}-01')); Psc_Tarifs::flush_cache(); }
       `));
       expect(result.fsr).toBeGreaterThan(0);
       expect(result.amount).toBe(result.summary);
@@ -256,7 +253,7 @@ test.describe('Planning - 2 : rythme + exceptions (fonctionnel, base vérifiée)
       expect(text).toContain('Cantine sans repas');
       expect(text).not.toMatch(/[-—]\s*Cantine sans repas/);
     } finally {
-      wpCliEval(`global $wpdb; $wpdb->update(psc_table('children'), array('cantine_sans_repas'=>0), array('id'=>${data.alice_id}));`);
+      wpCliEval(`Psc_Sans_Repas::set(${data.alice_id}, false, '2000-01-01');`);
     }
   });
 
