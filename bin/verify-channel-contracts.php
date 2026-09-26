@@ -17,7 +17,8 @@
  *  - avis de fermeture du jour : les créneaux de présence, jamais le
  *    forfait en plus ;
  *  - fermeture d'une prestation : familles au forfait et inscriptions
- *    directes dans deux groupes disjoints ;
+ *    directes dans deux groupes disjoints, créneaux restants de chaque
+ *    enfant au forfait (retraits compris) annoncés par l'e-mail ;
  *  - annulation de la cantine d'une classe : l'enfant au forfait est
  *    concerné, sa journée devient « forfait, cantine retirée », sa facture
  *    passe aux garderies seules ce jour-là, le repas sort de la commande.
@@ -150,6 +151,10 @@ WP_CLI::add_command('verify-channel-contracts', function () {
         $check(isset($svc['direct']['families'][$kids['garderies']['pid']]), 'fermeture du soir : famille « garderies » absente des inscriptions directes');
         $check(!isset($svc['direct']['families'][$kids['forfait']['pid']]), 'fermeture du soir : famille au forfait aussi parmi les inscriptions directes');
         $check(isset($svc['forf']['families'][$kids['forfait']['pid']]), 'fermeture du soir : famille au forfait absente du groupe forfait');
+        $restant = $svc['forf']['families'][$kids['forfait']['pid']]['items'][0]->remaining ?? null;
+        $check($restant === array('GM', 'CANT'), 'fermeture du soir, forfait : créneaux restants ' . wp_json_encode($restant) . ' au lieu de GM+CANT');
+        $range = Psc_School_Calendar::affected_families_range($mondays[0], $mondays[1]);
+        $check((int) $range['registrations'] === 12, "fermeture de deux lundis : {$range['registrations']} créneaux au lieu de 12");
 
         // 5. Annulation de la cantine de la classe : le forfait est concerné.
         $concernes = array_map('intval', wp_list_pluck(Psc_Supplier_Orders::cantine_registrations_for_class_day($lundi, 'CE1'), 'child_id'));
@@ -168,6 +173,25 @@ WP_CLI::add_command('verify-channel-contracts', function () {
         $counts = Psc_Supplier_Orders::compute_counts($lundi);
         $row = $counts['rows'][array_search($lundi, $counts['jours'], true)] ?? array();
         $check(($row['midi'] ?? -1) === 0, 'annulation de classe : repas encore commandé');
+
+        // Fermeture du soir après le retrait de la cantine : il ne reste au
+        // forfait que la garderie du matin, et l'e-mail le dit.
+        $svc = Psc_School_Calendar::affected_families_for_service($lundi, 'GS');
+        $restant = $svc['forf']['families'][$kids['forfait']['pid']]['items'][0]->remaining ?? null;
+        $check($restant === array('GM'), 'fermeture du soir après retrait : créneaux restants ' . wp_json_encode($restant) . ' au lieu de GM');
+        $mails = array();
+        $capture = function ($null, $atts) use (&$mails) { $mails[] = $atts; return true; };
+        add_filter('pre_wp_mail', $capture, 10, 2);
+        Psc_School_Calendar::close_service($lundi, 'GS', 'Test');
+        remove_filter('pre_wp_mail', $capture, 10);
+        $forf_mail = null;
+        foreach ($mails as $m) {
+            if ((array) $m['to'] === array($emails['forfait']) || $m['to'] === $emails['forfait']) $forf_mail = $m;
+        }
+        $check($forf_mail !== null && count(array_filter($mails, function ($m) use ($emails) { return in_array($emails['forfait'], (array) $m['to'], true); })) === 1, 'fermeture du soir : la famille au forfait ne reçoit pas exactement un e-mail');
+        $gm = psc_services()['GM']['label'];
+        $check($forf_mail && strpos($forf_mail['message'], 'Forfait Contrat : ' . esc_html($gm) . '</li>') !== false, 'e-mail « forfait modifié » : créneau restant de l’enfant absent');
+        $wpdb->query($wpdb->prepare('DELETE FROM ' . psc_table('service_closures') . ' WHERE jour_date = %s', $lundi));
 
         $tar = psc_billing_tariffs();
         $jour_complet = psc_billing_services($contrats['forfait déclaré, journée complète']['jour']);

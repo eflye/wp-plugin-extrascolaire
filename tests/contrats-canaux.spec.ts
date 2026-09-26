@@ -72,6 +72,25 @@ test.describe.serial('Contrats d’une journée : annulation de la cantine d’u
     expect(declared(data.cantine.child_id, data.date).CANT).toBe(false);
   });
 
+  test('fermeture de la garderie du soir : l’enfant au forfait annoncé à part', async ({ page }) => {
+    const data = seed();
+    await loginAsAdmin(page);
+    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_school_calendar_v2&month=${data.date.slice(0, 7)}`);
+    await page.locator(`.psc-cal2-day[data-date="${data.date}"]`).click();
+    await page.locator('.psc-cal2-menu-item', { hasText: /^Fermer Garderie Soir$/ }).click();
+
+    // Aperçu : un enfant au forfait, aucune inscription directe (l'autre
+    // enfant ne vient qu'à la cantine) — le forfait n'est pas compté deux fois.
+    const body = page.locator('#psc-cal2-modal-body');
+    await expect(body).toHaveText(/^1 enfant\(s\) au forfait journée \(1 famille\(s\)\) : ce jour-là, leurs prestations restantes/);
+
+    const axe = await new AxeBuilder({ page }).include('#wpbody-content').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+    expect(axe.violations.map((v) => `${v.id} : ${v.nodes.length}`)).toEqual([]);
+
+    await page.locator('#psc-cal2-modal-cancel').click();
+    await expect(page.locator('#psc-cal2-modal')).toBeHidden();
+  });
+
   test('sans session d’administration, l’annulation est refusée', async ({ page, request }) => {
     const data = seed();
     // Formulaire rejoué hors session : le nonce et la capacité manquent.
@@ -91,5 +110,12 @@ test.describe.serial('Contrats d’une journée : annulation de la cantine d’u
     });
     expect([302, 400, 403]).toContain(asFamily.status());
     expect(declared(data.forfait.child_id, data.date).CANT).toBe(true);
+
+    // L'aperçu d'une fermeture (liste des familles concernées) n'est pas
+    // lisible depuis une session famille.
+    const preview = await page.request.post(`${APP_BASE}/wp-admin/admin-ajax.php`, {
+      form: { action: 'psc_cal_v2_preview_close_service', date: data.date, service: 'GS', nonce: 'x' },
+    });
+    expect(await preview.text()).not.toContain('forf_registrations');
   });
 });
