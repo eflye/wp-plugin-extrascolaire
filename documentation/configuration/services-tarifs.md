@@ -15,6 +15,17 @@ Connectez-vous avec un rôle autorisé à gérer les réglages. Décidez des mon
 
    ![Écran « Tarifs des prestations » affichant les six lignes de tarifs et leurs montants en euros](../assets/screenshots/services-tarifs.png)
 
+   !!! note "Comment une journée est facturée"
+        La même règle sert aux factures, aux estimations du portail, aux récapitulatifs envoyés aux familles, à l'export CSV et aux effectifs du calendrier :
+
+        - une journée est **complète** quand l'enfant a la garderie du matin, le midi (cantine, ou cantine sans repas) et la garderie du soir, quelle que soit la façon dont la famille les a déclarés (forfait ou cases séparées) ;
+        - une journée complète est facturée au prix du **forfait journée**, ou du **forfait sans repas** pour un enfant « cantine sans repas », sans jamais dépasser la somme des trois prestations au tarif unitaire ;
+        - sinon, chaque prestation de la journée est facturée à son tarif. Un forfait dont la famille retire une prestation, ou dont la mairie ferme une prestation, est donc facturé comme les prestations restantes, sans cumul.
+
+        Avec les tarifs par défaut : forfait 11,70 € ; forfait avec cantine retirée 6,55 € (GM + GS) ; trois prestations cochées séparément 11,70 €. Le forfait sans repas (9,00 €) coûte plus que ses prestations (GM + cantine sans repas + GS = 7,55 €) : c'est alors ce montant qui s'applique. Pour qu'il serve, fixez-le sous la somme de ses prestations.
+
+        Une facture déjà envoyée garde la règle sous laquelle elle a été établie : un changement de règle ne la rectifie pas.
+
 3. Repérez **Délai de modification**, puis renseignez **Préavis minimum** en heures. La valeur par défaut est de 48 heures ; mettez 0 pour désactiver le verrouillage général.
 4. Enregistrez les réglages. Au-delà du délai avant le jour concerné, les familles ne peuvent plus modifier leur planning ni utiliser **Annulation / signalement d'absence**. La mairie peut toujours corriger une réservation depuis le backoffice.
 
