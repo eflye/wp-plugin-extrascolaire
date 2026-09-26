@@ -10,10 +10,11 @@
 - **P1 traités techniquement, avec une validation opérationnelle encore à faire :**
   - P1-02 : revue des comptes ;
   - P1-12 : clé sortie de la base sur le serveur distant ; reste une restauration testée avec cette clé.
-- **P1 partiellement avancés :** P1-06, P1-07, P1-08, P1-09, P1-11 et P1-16.
+- **P1 partiellement avancés :** P1-06, P1-07, P1-08, P1-09 et P1-11 (durées à faire valider par le DPO).
+- **P1-16 :** traité et validé par la facturation et la mairie (26/09/2026).
 - **P1 mis de côté à la demande :** P1-01.
 - **P1 ouverts, côté hébergement ou DPO :** P1-04, P1-10 et P1-18.
-- **P2 :** tous traités, sauf P2-14 ; P2-06 est traité côté développement, reste le test réseau du site réel.
+- **P2 :** tous traités côté développement ; restent le test réseau du site réel (P2-06) et le circuit de signature du mandat SEPA (P2-14).
 - **P3 :** P3-02 est traité ; P3-01 est traité (deux lots).
 
 ## Avancement au 26 septembre 2026
@@ -40,7 +41,7 @@
 | **Serveur distant** | **En 5.30.0 (26/09/2026)**, à jour de toutes les versions publiées. Le 25/09, passage 5.23.1 → 5.28.0 avec les cinq étapes de **Périscolaire › Maintenance** (sauvegarde, base au schéma 4.15.0, clé des IBAN hors de la base et rechiffrement, réglages, recette). Reste : tester une restauration avec la clé, puis dérouler la fiche de recette de l'hébergement (P1-04, P1-18) | Exploitation |
 | P2-06 | Polices servies localement (publié en 5.28.1, déployé) ; reste l'inventaire des ressources tierces du site réel (onglet Réseau du navigateur) | Exploitation, puis DPO |
 | P1-11 | Fait, à publier : fichier de repli expurgé et archivé, alerte de retard des tâches planifiées, purge par niveau sans trou dans la chaîne (schéma 4.16.0). Reste : faire valider les durées par le DPO | DPO |
-| P1-16 | Tarifs et statut datés publiés en 5.32.0 ; calcul en centimes fait, à publier ; procédure de correction validée par la facturation (26/09/2026). Reste : qualification comptable du PDF, à confirmer par la mairie | Mairie |
+| P1-16 | Traité et validé (26/09/2026) : tarifs et statut datés publiés en 5.32.0, calcul en centimes à publier | — |
 | P2-14 | Fait, à publier : version du règlement approuvé (texte affiché + PDF, schéma 4.18.0). Reste : valider le circuit de signature et d'archivage du mandat SEPA | Facturation, DPO |
 | P1-15 | Règle unique publiée en 5.29.0, déployée ; reste à revoir le tarif FSR, plus cher que ses prestations avec les valeurs par défaut | Facturation |
 | P3-01 | Premier lot publié en 5.30.0, déployé ; second lot fait (listes du calendrier factorisées, e-mail « forfait modifié » par enfant), à publier | Développement |
@@ -347,9 +348,9 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Acceptation :** matrice FORF/CANT/MSR/FSR avec retraits et fermetures ; une seule facturation du créneau ; PDF, CSV et totaux cohérents ; récapitulatif intelligible. **Développement + facturation ; M.**
 
-### P1-16 — PARTIELLEMENT AVANCÉ — Figer les factures et historiser les paramètres influant sur le passé
+### P1-16 — TRAITÉ ET VALIDÉ (26/09/2026) — Figer les factures et historiser les paramètres influant sur le passé
 
-- [ ] **Séparer brouillon recalculable, document émis et correction comptable.**
+- [x] **Séparer brouillon recalculable, document émis et correction comptable.**
 
 **Constaté :** `class-psc-invoices.php:103` relit tarifs et flags actuels ; régénérer remplace total, date, fichier et `sent_at` sous le même identifiant. Le schéma ne stocke pas de lignes tarifaires figées. `generate_month():40` ne sélectionne que les enfants/familles actuellement actifs : un enfant sorti peut être omis lors d’une première facturation tardive. Le statut sans repas, non daté, modifie aussi la résolution des jours passés.
 
@@ -365,7 +366,7 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 
 **Procédure de correction validée par la facturation le 26/09/2026** : rectification d'une facture émise par une nouvelle version (numéro `-R2`…), version remise archivée avec son PDF, déclenchée seulement par un changement de déclarations ou par un tarif / statut daté dans le mois facturé.
 
-**Restant :** la qualification comptable exacte du PDF reste à confirmer par la mairie.
+**Validé le 26/09/2026 :** procédure de correction et qualification comptable du PDF, par la facturation et la mairie.
 
 **Acceptation :** changer un tarif, sortir un enfant ou modifier son flag en octobre n’altère pas une facture de septembre déjà émise ; correction identifiable et archive conservée selon la politique validée. La qualification comptable exacte du PDF doit être confirmée par la mairie. **Développement + facturation/archives ; L.**
 
@@ -744,10 +745,9 @@ Les allergies sont des données de santé. Un choix « sans porc » ne prouve pa
 L'ordre initial (P0, accès et confidentialité, intégrité métier, conformité, fiabilisation) est suivi. Les P0, l'essentiel des P1 techniques et les P2 sont faits. Pour la suite :
 
 1. **Serveur distant** : la mise à jour vers 5.28.0 et la sortie de la clé sont faites (25/09/2026). Restent la restauration testée avec la clé et la fiche de recette de l'hébergement (P1-04, P1-18).
-2. **Développement autonome** : volet technique de P1-11 (P2-06 fait côté développement).
-3. **Schéma à valider avant implémentation** : P1-16 (centimes, périodes d'effet), P2-14.
-4. **Facturation** : P1-15, puis P3-01.
-5. **Conformité avec le DPO et la mairie** : P1-06 à P1-10. Aucune purge réelle au-delà de celle des enfants partis avant validation des règles d'archives et de conservation.
+2. **Développement** : fait au 26/09/2026 — P1-11 (volet technique), P1-15, P1-16, P2-14, P3-01.
+3. **Facturation** : tarif du forfait sans repas (P1-15), circuit de signature et d'archivage du mandat SEPA (P2-14).
+4. **Conformité avec le DPO et la mairie** : P1-06 à P1-10. Aucune purge réelle au-delà de celle des enfants partis avant validation des règles d'archives et de conservation.
 
 ## Conditions pour conclure à un niveau de conformité acceptable
 
