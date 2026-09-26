@@ -472,6 +472,22 @@ $GLOBALS['psc_test_options']['psc_service_prices'] = array('FORF' => 11.70);
 $assert('facturation datée : le plafond lit les tarifs du jour', psc_billing_services(array('GM' => true, 'CANT' => true, 'GS' => true), false, null, '2027-01-01'), array('FORF'));
 unset($GLOBALS['psc_test_options']);
 
+/* Calcul en centimes (P1-16) : les instantanés des factures déjà émises
+ * doivent rester identiques octet pour octet. Ancienne formule (flottants
+ * arrondis) contre nouvelle (centimes entiers), pour tout prix jusqu'à
+ * 50,00 € et toute quantité jusqu'à 25 : même JSON. */
+$ecarts = 0;
+for ($c = 0; $c <= 5000; $c++) {
+    $ancien_prix = round((float) ($c / 100), 2);
+    if (json_encode($ancien_prix) !== json_encode($c / 100.0)) $ecarts++;
+    for ($n = 1; $n <= 25; $n++) {
+        if (json_encode(round($ancien_prix * $n, 2)) !== json_encode(($c * $n) / 100.0)) $ecarts++;
+    }
+}
+$assert('centimes : instantanés identiques à l\'ancien calcul (prix et totaux de ligne)', $ecarts, 0);
+$assert('centimes : un tarif rond reste un flottant', is_float(psc_billing_tariffs('2030-01-01')['FSR']['price']), true);
+$assert('centimes : le tarif porte aussi ses centimes entiers', psc_billing_tariffs('2030-01-01')['FSR']['centimes'], 900);
+
 /* Versions des règlements (P2-14) : empreinte du texte et du PDF. */
 require_once __DIR__ . '/../../includes/helpers/reglements.php';
 $assert('version : même texte, même empreinte', psc_document_version_hash('<p>A</p>'), psc_document_version_hash('<p>A</p>', null));
