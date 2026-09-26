@@ -10,6 +10,11 @@ Passer d'une version antérieure à 5.26.0 (5.23.x, 5.24.x ou 5.25.x) à la vers
 - **Nouveaux réglages :** rubrique **Confidentialité** (5.24.0), modèle d'e-mail **Réinscription retirée par la famille** (5.26.0).
 - **Clé de chiffrement des IBAN** (5.27.0) : à sortir de la base. Pour un conteneur, la clé se déclare en variable d'environnement (5.28.0).
 
+## Depuis la 5.30
+
+- **Journal d'audit, schéma 4.16.0 :** deux colonnes ajoutées au journal, calculées automatiquement à la mise à jour, sans toucher aux lignes existantes. Une ligne dont la durée de conservation est dépassée voit désormais son contenu effacé même si des lignes plus anciennes sont conservées plus longtemps. L'étape **2. Base de données** de la page **Maintenance** doit afficher le schéma 4.16.0.
+- **Tâches planifiées :** un avis rouge sur le tableau de bord signale un WP-Cron à l'arrêt. S'il apparaît, suivez [Tâches planifiées](taches-planifiees.md#alerte-de-retard).
+
 ## Avant de commencer
 
 - Un compte administrateur WordPress (capacité de configuration du périscolaire).

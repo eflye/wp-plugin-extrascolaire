@@ -12,7 +12,7 @@ WP-Cron se déclenche lors des visites du site et non à une heure fixe. Sur un 
 
 | Tâche | Fréquence | Rôle |
 |---|---|---|
-| `psc_purge_audit_log` | quotidienne | purge le journal d'audit selon la durée de rétention par catégorie |
+| `psc_purge_audit_log` | quotidienne | efface le contenu des lignes du journal d'audit dont la durée de conservation est dépassée (seuls la date, le code d'action et les empreintes restent, pour la chaîne d'intégrité), puis supprime ces lignes dès qu'aucune ligne plus ancienne n'est conservée ; archive et supprime aussi le fichier de repli `journal-acces.log` |
 | `psc_purge_conversations` | quotidienne | purge les échanges anciens |
 | `psc_cleanup_impersonations` | quotidienne | referme les consultations d'espace famille expirées |
 | `psc_send_scheduled_messages` | horaire | envoie les messages programmés arrivés à échéance |
