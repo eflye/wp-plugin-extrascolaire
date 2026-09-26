@@ -426,6 +426,7 @@ class Psc_Privacy {
                     array('name' => __('Sorti le', 'periscolaire-registration'), 'value' => (string) $enrollment->sorti_le),
                     array('name' => __('Date d’inscription', 'periscolaire-registration'), 'value' => (string) $enrollment->date_inscription),
                     array('name' => __('Règlement intérieur accepté le', 'periscolaire-registration'), 'value' => (string) $enrollment->reglement_accepted_at),
+                    array('name' => __('Version du règlement intérieur acceptée', 'periscolaire-registration'), 'value' => $enrollment->reglement_accepted_at ? Psc_Document_Versions::label($enrollment->reglement_version_id ?? null) : ''),
                     array('name' => __('Justificatif d’assurance déposé', 'periscolaire-registration'), 'value' => $enrollment->assurance_original_filename ? (string) $enrollment->assurance_original_filename : __('Aucun', 'periscolaire-registration')),
                     array('name' => __('Assurance déposée le', 'periscolaire-registration'), 'value' => (string) $enrollment->assurance_uploaded_at),
                     array('name' => __('Statut de l’assurance', 'periscolaire-registration'), 'value' => (string) $enrollment->assurance_status),
@@ -499,6 +500,7 @@ class Psc_Privacy {
             array('name' => __('Second parent — téléphone', 'periscolaire-registration'), 'value' => (string) $parent->second_parent_telephone),
             array('name' => __('Mode de paiement', 'periscolaire-registration'), 'value' => (string) $parent->payment_mode),
             array('name' => __('Règlement intérieur accepté le', 'periscolaire-registration'), 'value' => (string) $parent->reglement_accepted_at),
+            array('name' => __('Version du règlement intérieur acceptée', 'periscolaire-registration'), 'value' => $parent->reglement_accepted_at ? Psc_Document_Versions::label($parent->reglement_version_id ?? null) : ''),
             array('name' => __('Compte actif', 'periscolaire-registration'), 'value' => $parent->active ? __('oui', 'periscolaire-registration') : __('non', 'periscolaire-registration')),
             array('name' => __('Dernière connexion', 'periscolaire-registration'), 'value' => (string) $parent->last_login),
             array('name' => __('Compte créé le', 'periscolaire-registration'), 'value' => (string) $parent->created_at),
@@ -515,6 +517,7 @@ class Psc_Privacy {
             $fields[] = array('name' => __('Titulaire du compte', 'periscolaire-registration'), 'value' => (string) $parent->sepa_titulaire);
             $fields[] = array('name' => __('Référence du mandat SEPA', 'periscolaire-registration'), 'value' => (string) $parent->sepa_mandate_ref);
             $fields[] = array('name' => __('Mandat SEPA accepté le', 'periscolaire-registration'), 'value' => (string) $parent->sepa_reglement_accepted_at);
+            $fields[] = array('name' => __('Version du règlement de prélèvement acceptée', 'periscolaire-registration'), 'value' => $parent->sepa_reglement_accepted_at ? Psc_Document_Versions::label($parent->sepa_reglement_version_id ?? null) : '');
         }
 
         return $fields;
