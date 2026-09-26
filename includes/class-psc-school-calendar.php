@@ -525,12 +525,9 @@ class Psc_School_Calendar {
         $by_family = array();
         $count = 0;
         foreach ($children as $c) {
-            $services = array();
-            foreach (psc_allowed_services() as $svc) {
-                if (!empty($map[$c->id][$date_str][$svc])) {
-                    $services[] = $svc;
-                }
-            }
+            // Présence (psc_day_slots) : une journée au forfait s'annonce
+            // par ses créneaux, pas par le forfait ET ses créneaux.
+            $services = psc_day_slots(isset($map[$c->id][$date_str]) ? $map[$c->id][$date_str] : array());
             if (!$services) continue;
 
             $count += count($services);
@@ -595,12 +592,7 @@ class Psc_School_Calendar {
         $count = 0;
         foreach ($children as $c) {
             foreach ($dates as $date) {
-                $services = array();
-                foreach (psc_allowed_services() as $svc) {
-                    if (!empty($map[$c->id][$date][$svc])) {
-                        $services[] = $svc;
-                    }
-                }
+                $services = psc_day_slots(isset($map[$c->id][$date]) ? $map[$c->id][$date] : array());
                 if (!$services) continue;
 
                 $count += count($services);
@@ -740,19 +732,24 @@ class Psc_School_Calendar {
 
     /**
      * Familles concernées par la fermeture d'une seule prestation ce
-     * jour-là, séparées en deux groupes : les inscriptions directes de
-     * cette prestation (seront supprimées) et les inscriptions en Forfait
-     * journée (seront converties vers les prestations restantes par
-     * close_service()).
+     * jour-là, séparées en deux groupes disjoints : les enfants qui l'ont
+     * déclarée hors forfait, et les enfants au forfait journée, dont les
+     * prestations restantes sont alors facturées au tarif unitaire. Rien
+     * n'est supprimé : la résolution ignore la prestation fermée.
      */
     public static function affected_families_for_service($date_str, $service) {
         return array(
-            'direct' => self::families_by_service($date_str, $service),
-            'forf'   => self::families_by_service($date_str, 'FORF'),
+            'direct' => self::families_by_service($date_str, $service, true),
+            'forf'   => self::families_by_service($date_str, psc_forfait_code()),
         );
     }
 
-    private static function families_by_service($date_str, $service) {
+    /**
+     * @param bool $without_forfait Écarte les enfants au forfait ce jour-là :
+     *                              le forfait rend vraies les prestations
+     *                              qu'il couvre, ils seraient comptés deux fois.
+     */
+    private static function families_by_service($date_str, $service, $without_forfait = false) {
         global $wpdb;
         $t_child = psc_table('children');
         $t_par   = psc_table('parents');
@@ -776,6 +773,7 @@ class Psc_School_Calendar {
         $count = 0;
         foreach ($children as $c) {
             if (empty($map[$c->id][$date_str][$service])) continue;
+            if ($without_forfait && !empty($map[$c->id][$date_str][psc_forfait_code()])) continue;
 
             $count++;
             $pid = (int) $c->parent_id;
