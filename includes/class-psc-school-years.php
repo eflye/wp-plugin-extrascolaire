@@ -320,7 +320,7 @@ class Psc_School_Years {
      * (classe, statut, acceptation du règlement) — n'écrase jamais les
      * champs d'assurance, gérés séparément par Psc_Assurances::store_upload().
      */
-    public static function enroll($child_id, $school_year_id, $classe, $statut = 'inscrit', $reglement_accepted_at = null) {
+    public static function enroll($child_id, $school_year_id, $classe, $statut = 'inscrit', $reglement_accepted_at = null, $reglement_version_id = null) {
         global $wpdb;
         $child_id = absint($child_id);
         $school_year_id = absint($school_year_id);
@@ -339,6 +339,9 @@ class Psc_School_Years {
         if ($reglement_accepted_at !== null) {
             $data['reglement_accepted_at'] = $reglement_accepted_at;
             $format[] = '%s';
+            // Version du règlement approuvée (P2-14) : jamais l'une sans l'autre.
+            $data['reglement_version_id'] = $reglement_version_id !== null ? (int) $reglement_version_id : null;
+            $format[] = '%d';
         }
 
         if ($existing) {

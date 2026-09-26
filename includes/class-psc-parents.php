@@ -679,7 +679,9 @@ class Psc_Parents {
             'sepa_ville'                 => mb_substr(sanitize_text_field($extra['sepa_ville'] ?? ''), 0, 100) ?: null,
             'sepa_mandate_ref'           => $extra['sepa_mandate_ref'] ?? null,
             'reglement_accepted_at'      => $extra['reglement_accepted_at'] ?? null,
+            'reglement_version_id'       => isset($extra['reglement_version_id']) ? (int) $extra['reglement_version_id'] : null,
             'sepa_reglement_accepted_at' => $extra['sepa_reglement_accepted_at'] ?? null,
+            'sepa_reglement_version_id'  => isset($extra['sepa_reglement_version_id']) ? (int) $extra['sepa_reglement_version_id'] : null,
             // Second parent facultatif : jamais revalidé ici, l'appelant
             // (ex. Psc_Requests::approve_request()) est responsable du
             // format — mêmes conventions que sepa_iban/sepa_bic ci-dessus.
@@ -831,6 +833,12 @@ class Psc_Parents {
             if (array_key_exists($field, $data)) {
                 $set[$field] = $data[$field] ?: null;
                 $formats[]   = '%s';
+            }
+        }
+        foreach (array('reglement_version_id', 'sepa_reglement_version_id') as $field) {
+            if (array_key_exists($field, $data)) {
+                $set[$field] = $data[$field] ? (int) $data[$field] : null;
+                $formats[]   = '%d';
             }
         }
 

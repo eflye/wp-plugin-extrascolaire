@@ -44,6 +44,12 @@
     </fieldset>
     <?php endforeach; ?>
 
+    <h2 class="psc-portal-panel-title" id="psc-reinscription-reglement-titre" style="margin-top:16px;"><?php esc_html_e('Règlement intérieur', 'periscolaire-registration'); ?></h2>
+    <div class="psc-wizard-reglement-box" tabindex="0" role="region" aria-labelledby="psc-reinscription-reglement-titre" data-testid="reinscription-reglement-texte">
+      <?php echo psc_reglement_interieur_html(); // phpcs:ignore WordPress.Security.EscapeOutput -- texte échappé à la source ?>
+    </div>
+    <?php echo psc_reglement_pdf_link_html('reglement_interieur'); // phpcs:ignore WordPress.Security.EscapeOutput -- échappé à la source ?>
+
     <label class="psc-wizard-check-line" style="margin-top:16px;">
       <input type="checkbox" name="reglement_accepted" value="1" required data-testid="reinscription-reglement">
       <?php esc_html_e("J'ai pris connaissance du règlement intérieur des services périscolaires et je l'approuve dans sa totalité pour l'année", 'periscolaire-registration'); ?> <?php echo esc_html($psc_target_year->year_key); ?>.
