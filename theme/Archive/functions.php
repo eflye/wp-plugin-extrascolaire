@@ -12,6 +12,22 @@ function montgeroult_setup() {
 }
 add_action('after_setup_theme', 'montgeroult_setup');
 
+/**
+ * Pas d'émojis servis par WordPress.org : sur un navigateur qui ne les
+ * affiche pas lui-même, le script de WordPress les remplace par des images
+ * téléchargées depuis s.w.org, qui reçoit alors l'adresse IP du visiteur.
+ * Les émojis restent affichés par le navigateur quand il le sait.
+ */
+function montgeroult_disable_emoji() {
+    remove_action('wp_head', 'print_emoji_detection_script', 7);
+    remove_action('wp_print_styles', 'print_emoji_styles');
+    remove_action('wp_enqueue_scripts', 'wp_enqueue_emoji_styles');
+    remove_action('admin_print_scripts', 'print_emoji_detection_script');
+    remove_action('admin_print_styles', 'print_emoji_styles');
+    add_filter('emoji_svg_url', '__return_false');
+}
+add_action('init', 'montgeroult_disable_emoji');
+
 if (!function_exists('montgeroult_fallback_menu')) {
     function montgeroult_fallback_menu() {
         echo '<ul><li><a href="' . esc_url(home_url('/')) . '">' . esc_html__('Accueil', 'montgeroult') . '</a></li></ul>';

@@ -85,11 +85,35 @@ class Psc_Frontend extends Psc_Frontend_Base {
         return $post && has_shortcode($post->post_content, 'periscolaire_form');
     }
 
+    /**
+     * Pas de ressource tierce sur les pages du portail (P2-06) : le script
+     * d'émojis de WordPress remplace, sur un navigateur qui ne les affiche
+     * pas lui-même, chaque émoji par une image téléchargée depuis s.w.org —
+     * l'adresse IP de la famille partait chez WordPress.org. Les émojis
+     * restent affichés par le navigateur quand il le sait. Appelée depuis
+     * wp_enqueue_scripts (priorité 1 de wp_head), avant l'impression du
+     * script (priorité 7).
+     */
+    protected static function disable_wp_emoji() {
+        remove_action('wp_head', 'print_emoji_detection_script', 7);
+        remove_action('wp_print_styles', 'print_emoji_styles');
+        remove_action('wp_enqueue_scripts', 'wp_enqueue_emoji_styles');
+        add_filter('emoji_svg_url', '__return_false');
+        add_filter('wp_resource_hints', function ($urls, $relation) {
+            if ($relation !== 'dns-prefetch') return $urls;
+            return array_values(array_filter($urls, function ($url) {
+                $href = is_array($url) ? ($url['href'] ?? '') : (string) $url;
+                return strpos($href, 's.w.org') === false;
+            }));
+        }, 10, 2);
+    }
+
     public static function assets() {
         if (!is_singular()) return;
         $post = get_post();
         if (!$post || !has_shortcode($post->post_content, 'periscolaire_form')) return;
 
+        self::disable_wp_emoji();
         wp_enqueue_style('psc-frontend', PSC_URL . 'assets/css/frontend.css', array(), PSC_VERSION);
         // Mécanique AJAX commune (assets/js/psc-ajax.js) : déclarée en
         // dépendance pour que WordPress garantisse l'ordre de chargement.
