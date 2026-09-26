@@ -23,6 +23,7 @@
  *      automatiquement active (action distincte et explicite).
  */
 
+import AxeBuilder from '@axe-core/playwright';
 import { test, expect, type Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { findLatestMessage } from '../helpers/mailpit';
@@ -187,6 +188,10 @@ test('réinscription — famille confirme un enfant pour l\'année suivante', as
     // PDF minimal mais complet : le contenu des justificatifs est contrôlé.
     buffer: Buffer.from('%PDF-1.4\n% e2e school-year-promotion spec\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[]/Count 0>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n'),
   });
+  // P2-14 : le règlement approuvé est affiché au-dessus de la case.
+  await expect(section2.getByTestId('reinscription-reglement-texte')).toContainText('1 – Préambule');
+  const axe = await new AxeBuilder({ page }).include('[data-testid="portal-section-reinscription"]').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  expect(axe.violations.map((v) => `${v.id} : ${v.nodes.length}`)).toEqual([]);
   await section2.getByTestId('reinscription-reglement').check();
   await section2.getByTestId('reinscription-submit').click();
 
@@ -195,7 +200,7 @@ test('réinscription — famille confirme un enfant pour l\'année suivante', as
   /* ---------------- Vérification base : upsert correct, rien écrasé ---------------- */
   const row = wpCliEval(
     `global $wpdb; $r = $wpdb->get_row($wpdb->prepare(
-      "SELECT classe, statut, reglement_accepted_at, assurance_original_filename
+      "SELECT classe, statut, reglement_accepted_at, assurance_original_filename, reglement_version_id
        FROM {$wpdb->prefix}psc_child_school_years WHERE child_id = %d AND school_year_id = %d",
       ${data.lea_id}, ${data.year_b_id}
     )); echo json_encode($r);`
@@ -204,6 +209,7 @@ test('réinscription — famille confirme un enfant pour l\'année suivante', as
   expect(parsed.classe).toBe('CE2');
   expect(parsed.statut).toBe('inscrit');
   expect(parsed.reglement_accepted_at).not.toBeNull();
+  expect(Number(parsed.reglement_version_id)).toBe(Number(wpCliEval(`echo (int) Psc_Document_Versions::current_id('reglement_interieur');`)));
   expect(parsed.assurance_original_filename).toBe('assurance-lea.pdf');
 
   // La classe de l'année en cours (A) n'a jamais été touchée par la
