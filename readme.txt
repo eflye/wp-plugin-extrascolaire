@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.31.0
+Stable tag: 5.32.0
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,15 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.32.0 =
+* Mise à jour automatique de la base (schémas 4.17.0 puis 4.18.0) : l'étape « Base de données » de Périscolaire › Maintenance doit afficher 4.18.0. Les montants des factures existantes ne changent pas.
+* Tarifs datés : dans Réglages › Tarifs, un nouveau prix s'applique « à partir du » jour choisi, sans changer les jours précédents. L'écran montre le tarif du jour, l'historique et les tarifs à venir (supprimables tant qu'ils ne sont pas entrés en vigueur). La facture d'un mois applique à chaque jour le tarif de ce jour-là. La grille en place est reprise à partir de la première rentrée enregistrée.
+* Cantine sans repas datée : dans Enfants, le statut se pose ou se lève « à partir du » jour choisi, sans effet sur les jours précédents. Les enfants déjà signalés le restent depuis la première rentrée enregistrée.
+* Une facture déjà envoyée n'est rectifiée que par un tarif ou un statut daté dans son propre mois.
+* Règlements approuvés : chaque acceptation (inscription, réinscription, activation du prélèvement) enregistre la version du règlement affichée, texte et PDF compris ; la mairie la consulte depuis la demande d'inscription. Les acceptations antérieures sont indiquées « antérieures au suivi des versions ».
+* Le règlement du prélèvement affiché dans Mon profil est désormais le même que celui de l'inscription ; la réinscription affiche le règlement intérieur au-dessus de la case d'acceptation.
+* Installation neuve : la grille de tarifs et le chaînage du journal d'audit sont en place dès l'activation.
 
 = 5.31.0 =
 * Mise à jour automatique de la base (schéma 4.16.0, journal d'audit) : l'étape « Base de données » de Périscolaire › Maintenance doit afficher 4.16.0.
