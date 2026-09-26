@@ -110,7 +110,7 @@ class Psc_Supplier_Orders {
 
                     foreach ($jours_dates as $jour => $date) {
                         $day = isset($declared[$child->id][$date]) ? $declared[$child->id][$date] : array();
-                        if (!empty($day['CANT'])) {
+                        if (psc_day_meal($day)) {
                             $rows[$jour][$kind]++;
                             $rows[$jour]['midi']++;
                         }
@@ -244,7 +244,8 @@ class Psc_Supplier_Orders {
     /**
      * Enfants de la classe déclarés à la cantine pour un jour donné
      * (source de vérité unique : psc_is_declared) — utilisé pour avertir
-     * l'admin avant annulation.
+     * l'admin avant annulation. ->forfait : l'enfant est au forfait ce
+     * jour-là (il garde ses garderies, facturées au tarif unitaire).
      */
     public static function cantine_registrations_for_class_day($date, $classe) {
         $date = psc_valid_date($date);
@@ -273,11 +274,11 @@ class Psc_Supplier_Orders {
 
         $out = array();
         foreach ($children as $child) {
-            // Un enfant au forfait n'a jamais eu de ligne CANT dans l'ancien
-            // modèle et n'est pas annulé par cette action : le forfait est
-            // indivisible (sa gestion passe par le calendrier scolaire).
-            if (Psc_Planning::is_declared((int) $child->child_id, $date, psc_forfait_code())) continue;
+            // Un enfant au forfait est concerné comme les autres : son
+            // forfait couvre la cantine, qui est retirée ; la journée est
+            // alors facturée garderies seules (psc_billing_services).
             if (!Psc_Planning::is_declared((int) $child->child_id, $date, 'CANT')) continue;
+            $child->forfait = Psc_Planning::is_declared((int) $child->child_id, $date, psc_forfait_code());
             $out[] = $child;
         }
         return $out;

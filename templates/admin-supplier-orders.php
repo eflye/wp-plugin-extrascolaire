@@ -15,7 +15,7 @@ $psc_notices = array(
     'cantine_none'            => array('warning',  __('Aucune inscription cantine trouvée pour cette classe ce jour-là.', 'periscolaire-registration')),
     'cantine_confirm_needed'  => array('warning',  __('Confirmation nécessaire : des familles ont déjà déclaré cette cantine.', 'periscolaire-registration')),
     'cantine_dismissed'       => array('updated',  __("Annulation abandonnée, rien n'a été modifié.", 'periscolaire-registration')),
-    'cantine_cancelled'       => array('updated',  __('Cantine annulée pour la classe :', 'periscolaire-registration') . ' ' . $cantine_n . ' ' . __('inscription(s) supprimée(s), famille(s) prévenue(s) par e-mail.', 'periscolaire-registration')),
+    'cantine_cancelled'       => array('updated',  __('Cantine annulée pour la classe :', 'periscolaire-registration') . ' ' . $cantine_n . ' ' . __('enfant(s) sans cantine ce jour-là, famille(s) prévenue(s) par e-mail.', 'periscolaire-registration')),
 );
 psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
 ?>
@@ -150,15 +150,17 @@ psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
 <p>
     <?php esc_html_e('Annuler la cantine de la classe', 'periscolaire-registration'); ?> <strong><?php echo esc_html($pending_cantine['classe'] !== '' ? (Psc_School_Years::classe_options()[$pending_cantine['classe']] ?? $pending_cantine['classe']) : __('Non renseignée', 'periscolaire-registration')); ?></strong>
     <?php esc_html_e('le', 'periscolaire-registration'); ?> <strong><?php echo esc_html(psc_day_label($pending_cantine['date']) . ' ' . date_i18n('d/m/Y', strtotime($pending_cantine['date']))); ?></strong>
-    <?php esc_html_e('supprimera', 'periscolaire-registration'); ?> <strong><?php echo count($pending_cantine_affected); ?> <?php esc_html_e('inscription(s)', 'periscolaire-registration'); ?></strong> <?php esc_html_e('déjà déclarée(s). Ces prestations ne seront pas facturées, et chaque famille concernée recevra un e-mail avec le motif indiqué :', 'periscolaire-registration'); ?> «&nbsp;<?php echo esc_html($pending_cantine['reason']); ?>&nbsp;».
+    <?php esc_html_e('retirera la cantine de', 'periscolaire-registration'); ?> <strong><?php echo count($pending_cantine_affected); ?> <?php esc_html_e('enfant(s)', 'periscolaire-registration'); ?></strong> <?php esc_html_e('ce jour-là. La cantine ne sera pas facturée ; un enfant au forfait journée garde ses garderies, facturées au tarif unitaire. Chaque famille concernée recevra un e-mail avec le motif indiqué :', 'periscolaire-registration'); ?> «&nbsp;<?php echo esc_html($pending_cantine['reason']); ?>&nbsp;».
 </p>
-<table class="widefat striped" style="margin-bottom:16px;">
-<thead><tr><th><?php esc_html_e('Famille', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Enfant', 'periscolaire-registration'); ?></th></tr></thead>
+<table class="widefat striped" style="margin-bottom:16px;" data-testid="cantine-pending-table">
+<caption class="screen-reader-text"><?php esc_html_e('Enfants dont la cantine sera retirée', 'periscolaire-registration'); ?></caption>
+<thead><tr><th scope="col"><?php esc_html_e('Famille', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Enfant', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Forfait journée', 'periscolaire-registration'); ?></th></tr></thead>
 <tbody>
 <?php foreach ($pending_cantine_affected as $row): ?>
 <tr>
     <td><?php echo esc_html($row->parent_nom ?: $row->email); ?></td>
     <td><?php echo esc_html($row->child_prenom . ' ' . $row->child_nom); ?></td>
+    <td><?php echo !empty($row->forfait) ? esc_html__('Oui : garderies conservées', 'periscolaire-registration') : esc_html__('Non', 'periscolaire-registration'); ?></td>
 </tr>
 <?php endforeach; ?>
 </tbody>

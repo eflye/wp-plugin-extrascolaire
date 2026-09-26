@@ -27,7 +27,7 @@ Cliquer deux fois sur **Confirmer l'envoi** n'envoie pas deux commandes.
 
 ## Annuler la cantine d'une classe
 
-Pour une sortie scolaire ou une fermeture ponctuelle, utilisez **Annuler la cantine de la classe** : choisissez le jour, la classe et le motif. Si des familles ont déjà déclaré la cantine ce jour-là, l'écran demande une confirmation ; les inscriptions concernées sont alors supprimées et les familles prévenues par e-mail.
+Pour une sortie scolaire ou une fermeture ponctuelle, utilisez **Annuler la cantine de la classe** : choisissez le jour, la classe et le motif. Si des familles ont déjà déclaré la cantine ce jour-là, l'écran demande une confirmation. La cantine de ces enfants est alors retirée pour ce jour, le repas sort de la commande et les familles sont prévenues par e-mail. Les enfants au **forfait journée** sont concernés comme les autres : ils gardent leurs garderies, et la journée est facturée garderies seules.
 
 ## Résultat attendu
 
