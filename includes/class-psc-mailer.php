@@ -647,34 +647,40 @@ class Psc_Mailer {
     }
 
     /**
-     * Prévient une famille dont un enfant est en Forfait journée que ce
-     * forfait a été remplacé, pour un jour précis, par les prestations
-     * restantes suite à la fermeture d'une des 3 prestations (le forfait
-     * n'est jamais facturé "moins un service", cf. close_service() dans
-     * Psc_School_Calendar).
+     * Prévient une famille dont un enfant est au forfait journée qu'une des
+     * prestations du forfait est fermée ce jour-là : la journée n'est plus
+     * complète, les créneaux restants sont facturés au tarif unitaire
+     * (psc_billing_services). Chaque ligne de $fam['items'] porte
+     * 'remaining', les créneaux qui restent à CET enfant — ses retraits et
+     * les autres fermetures compris (cf. affected_families_for_service()).
      */
-    public static function send_forfait_downgraded($fam, $date_str, $closed_service_label, $remaining_service_labels) {
-        $site           = self::site_name();
-        $date_lbl       = psc_day_label($date_str) . ' ' . date_i18n('d/m/Y', strtotime($date_str));
-        $subject        = sprintf(__('[%s] Forfait journée modifié le %s', 'periscolaire-registration'), $site, $date_lbl);
-        $remaining_list = implode(__(' et ', 'periscolaire-registration'), $remaining_service_labels);
+    public static function send_forfait_downgraded($fam, $date_str, $closed_service_label) {
+        $site     = self::site_name();
+        $date_lbl = psc_day_label($date_str) . ' ' . date_i18n('d/m/Y', strtotime($date_str));
+        $subject  = sprintf(__('[%s] Forfait journée modifié le %s', 'periscolaire-registration'), $site, $date_lbl);
+        $services = psc_services();
 
         $body = self::h2(__('Forfait journée modifié', 'periscolaire-registration'))
             . self::p(sprintf(
-                __('La mairie a fermé %s le %s. Le forfait journée de votre/vos enfant(s) a été remplacé ce jour-là par : %s.', 'periscolaire-registration'),
-                $closed_service_label, $date_lbl, $remaining_list !== '' ? $remaining_list : __('aucune prestation restante', 'periscolaire-registration')
+                __('La mairie a fermé %s le %s. Ce jour-là, le forfait journée ne s\'applique pas : chaque prestation qui reste à votre enfant est facturée à son tarif.', 'periscolaire-registration'),
+                $closed_service_label, $date_lbl
             ));
 
         $items_list = '<ul style="margin:8px 0;padding-left:20px;">';
         foreach ($fam['items'] as $item) {
+            $labels = array();
+            foreach ((array) ($item->remaining ?? array()) as $code) {
+                $labels[] = isset($services[$code]) ? $services[$code]['label'] : $code;
+            }
             $items_list .= '<li style="color:#1A1A1A;font-size:14px;margin-bottom:4px;">'
-                . esc_html($item->child_prenom . ' ' . $item->child_nom) . '</li>';
+                . esc_html($item->child_prenom . ' ' . $item->child_nom) . ' : '
+                . esc_html($labels ? implode(__(' et ', 'periscolaire-registration'), $labels) : __('aucune prestation restante', 'periscolaire-registration'))
+                . '</li>';
         }
         $items_list .= '</ul>';
 
-        $body .= '<p style="color:#1A1A1A;font-size:14px;font-weight:bold;margin:16px 0 6px;">' . __('Enfant(s) concerné(s) :', 'periscolaire-registration') . '</p>'
+        $body .= '<p style="color:#1A1A1A;font-size:14px;font-weight:bold;margin:16px 0 6px;">' . __('Prestations maintenues ce jour-là :', 'periscolaire-registration') . '</p>'
             . $items_list
-            . self::info_box(__('Le tarif appliqué ce jour-là est ajusté en conséquence (', 'periscolaire-registration') . esc_html($remaining_list !== '' ? $remaining_list : __('aucune prestation', 'periscolaire-registration')) . __(' au lieu du forfait complet).', 'periscolaire-registration'))
             . self::btn(self::form_page_url(), __('Consulter mon planning', 'periscolaire-registration'));
 
         return self::send($fam['email'], $subject, self::layout($body, $subject));
