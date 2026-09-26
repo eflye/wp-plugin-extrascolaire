@@ -135,6 +135,7 @@ test.describe('Journal d’audit', () => {
   test.beforeAll(() => {
     wpEval(`global $wpdb;
       $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}psc_audit_log");
+      update_option('psc_audit_chain_v2_from', 1, false); // identifiants repartis de 1 : tout en v2
       delete_option('psc_audit_last_hash');
       delete_option('psc_audit_failures');
       delete_option('psc_audit_unknown_actions');
@@ -149,6 +150,7 @@ test.describe('Journal d’audit', () => {
     cleanupFamilies();
     wpEval(`global $wpdb;
       $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}psc_audit_log");
+      update_option('psc_audit_chain_v2_from', 1, false); // identifiants repartis de 1 : tout en v2
       delete_option('psc_audit_last_hash');
       update_option('psc_audit_retention_critique',1095);
       update_option('psc_audit_retention_normal',365);
@@ -162,8 +164,8 @@ test.describe('Journal d’audit', () => {
       $cases=array(
         array('critique_expiree','famille.suppression',1001),
         array('normale_expiree','menu.enregistrement',301),
-        array('volumineuse_expiree','planning.exception_modifiee',101),
         array('critique_conservee','famille.suppression',999),
+        array('volumineuse_expiree','planning.exception_modifiee',101),
         array('normale_conservee','menu.enregistrement',299),
         array('volumineuse_conservee','planning.exception_modifiee',99)
       );
@@ -175,8 +177,8 @@ test.describe('Journal d’audit', () => {
       }
       $previous='';
       foreach($wpdb->get_results("SELECT * FROM $t ORDER BY id ASC") as $row){
-        $hash=psc_audit_compute_hash($previous,$row->horodatage,$row->action,$row->acteur_type,$row->acteur_id,$row->objet_type,$row->objet_id,$row->resume);
-        $wpdb->update($t,array('empreinte'=>$hash),array('id'=>$row->id)); $previous=$hash;
+        $e=psc_audit_expected_hashes($previous,$row,Psc_Audit::chain_v2_from());
+        $wpdb->update($t,array('empreinte'=>$e['empreinte'],'empreinte_contenu'=>$e['contenu']),array('id'=>$row->id)); $previous=$e['empreinte'];
       }
       update_option('psc_audit_last_hash',$previous,false);
       echo wp_json_encode($ids);`));
@@ -190,12 +192,19 @@ test.describe('Journal d’audit', () => {
     await expect(page.getByText('Durées de rétention enregistrées.')).toBeVisible();
 
     wpEval(`do_action('psc_purge_audit_log'); echo 'ok';`);
-    for (const key of ['critique_expiree', 'normale_expiree', 'volumineuse_expiree']) {
+    // Début de la table expiré : supprimé.
+    for (const key of ['critique_expiree', 'normale_expiree']) {
       expect(countAuditRows(`id=${ids[key]}`), key).toBe(0);
     }
+    // Expirée mais suivie d'une ligne conservée plus longtemps (P1-11) :
+    // vidée de son contenu, gardée pour la chaîne, absente de l'écran.
+    expect(countAuditRows(`id=${ids.volumineuse_expiree} AND purgee_le IS NOT NULL AND resume='' AND acteur_libelle='' AND details IS NULL AND ip IS NULL`), 'volumineuse_expiree').toBe(1);
     for (const key of ['critique_conservee', 'normale_conservee', 'volumineuse_conservee']) {
-      expect(countAuditRows(`id=${ids[key]}`), key).toBe(1);
+      expect(countAuditRows(`id=${ids[key]} AND purgee_le IS NULL`), key).toBe(1);
     }
+    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_audit&du=2020-01-01`);
+    await expect(page.getByText('AuditE2E critique_conservee')).toBeVisible();
+    await expect(page.getByText('AuditE2E volumineuse_expiree')).toHaveCount(0);
 
     await page.getByTestId('audit-verify-submit').click();
     await expect(page.locator('.notice-success').getByText('Chaîne d’intégrité vérifiée', { exact: false })).toBeVisible();
