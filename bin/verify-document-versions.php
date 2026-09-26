@@ -82,7 +82,8 @@ WP_CLI::add_command('verify-document-versions', function () {
         $check((int) $wpdb->get_var($wpdb->prepare('SELECT reglement_version_id FROM ' . psc_table('parents') . ' WHERE id = %d', $parent_id)) === $avec_pdf, 'famille : version non enregistrée');
         $wpdb->insert(psc_table('children'), array('parent_id' => $parent_id, 'nom' => 'Version', 'prenom' => 'Ana', 'created_at' => current_time('mysql')));
         $cid = (int) $wpdb->insert_id;
-        Psc_School_Years::enroll($cid, Psc_School_Years::active_id(), 'CE1', 'inscrit', current_time('mysql'), $avec_pdf);
+        $year_id = Psc_School_Years::ensure('2093-09-02', '2094-07-04'); // année réservée : l'année active peut manquer
+        $check(Psc_School_Years::enroll($cid, $year_id, 'CE1', 'inscrit', current_time('mysql'), $avec_pdf), 'année de l’enfant : inscription impossible');
         $check((int) $wpdb->get_var($wpdb->prepare('SELECT reglement_version_id FROM ' . psc_table('child_school_years') . ' WHERE child_id = %d', $cid)) === $avec_pdf, 'année de l’enfant : version non enregistrée');
         $check(Psc_Document_Versions::label($avec_pdf) !== Psc_Document_Versions::label(null), 'libellé : version inconnue');
 
@@ -105,6 +106,8 @@ WP_CLI::add_command('verify-document-versions', function () {
             }
             $wpdb->delete(psc_table('parents'), array('id' => $parent_id));
         }
+        $year = Psc_School_Years::get_by_key('2093-2094');
+        if ($year && $year->statut !== 'active') Psc_School_Years::delete((int) $year->id);
         foreach ($attachments as $id) wp_delete_attachment($id, true);
         update_option($option, $saved_option);
         foreach ((array) $wpdb->get_results($wpdb->prepare("SELECT id, pdf_fichier FROM $t WHERE id > %d", $max_before)) as $row) {
