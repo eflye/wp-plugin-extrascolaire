@@ -723,6 +723,62 @@ function psc_audit_action_label($action_code) {
     return psc_audit_default_resume($action_code);
 }
 
+/**
+ * Message d'erreur réduit à sa partie technique, pour le fichier de repli
+ * journal-acces.log (P1-11) : une erreur SQL cite souvent la valeur en
+ * cause (« Duplicate entry 'x@exemple.fr' for key… », « Data too long… »),
+ * donc potentiellement une donnée personnelle. Les littéraux entre
+ * guillemets, les adresses e-mail et les suites de chiffres (identifiants,
+ * IBAN, téléphones) sont masqués ; le reste est tronqué à 200 caractères.
+ */
+function psc_audit_technical_message($message) {
+    $m = (string) $message;
+    $m = preg_replace("/'(?:[^'\\\\]|\\\\.)*'/u", "'…'", $m);
+    $m = preg_replace('/"(?:[^"\\\\]|\\\\.)*"/u', '"…"', $m);
+    $m = preg_replace('/[^\s@]+@[^\s@]+/u', '…@…', $m);
+    $m = preg_replace('/\d{4,}/', '…', $m);
+    $m = trim(preg_replace('/\s+/u', ' ', $m));
+    return function_exists('mb_substr') ? mb_substr($m, 0, 200) : substr($m, 0, 200);
+}
+
+/** Taille au-delà de laquelle le fichier de repli est archivé (une génération). */
+function psc_audit_fallback_max_bytes() {
+    return (int) apply_filters('psc_audit_fallback_max_bytes', 256 * 1024);
+}
+
+/**
+ * Tâches planifiées récurrentes du plugin, avec leur libellé pour la
+ * mairie. Purges RGPD, reprise des envois et messages programmés : si
+ * WP-Cron ne tourne plus, aucune ne s'exécute, sans erreur visible.
+ */
+function psc_recurring_cron_hooks() {
+    return array(
+        'psc_purge_departed_children'  => __('Purge des enfants sortis', 'periscolaire-registration'),
+        'psc_purge_audit_log'          => __('Purge du journal d’audit', 'periscolaire-registration'),
+        'psc_purge_conversations'      => __('Purge des échanges avec les familles', 'periscolaire-registration'),
+        'psc_cleanup_requests'         => __('Nettoyage des demandes d’inscription', 'periscolaire-registration'),
+        'psc_cleanup_impersonations'   => __('Nettoyage des consultations « en tant que »', 'periscolaire-registration'),
+        'psc_cleanup_message_receipts' => __('Nettoyage des accusés de lecture', 'periscolaire-registration'),
+        'psc_send_scheduled_messages'  => __('Envoi des messages programmés', 'periscolaire-registration'),
+        'psc_envois_reprise'           => __('Reprise des envois restés en attente', 'periscolaire-registration'),
+    );
+}
+
+/**
+ * Tâches en retard : échéance dépassée de plus de $grace secondes (une
+ * échéance absente n'est pas un retard, elle est reprogrammée au
+ * chargement suivant). Fonction pure : $next_runs {hook => timestamp|false}.
+ *
+ * @return string[] Hooks en retard, dans l'ordre reçu.
+ */
+function psc_late_cron_hooks(array $next_runs, $now, $grace = 21600) {
+    $late = array();
+    foreach ($next_runs as $hook => $next) {
+        if ($next && (int) $next < (int) $now - (int) $grace) $late[] = $hook;
+    }
+    return $late;
+}
+
 /** Libellés lisibles des catégories (filtre et colonnes de l'écran d'audit). */
 function psc_audit_categorie_labels() {
     return array(
