@@ -14,21 +14,17 @@
  *  - verrou : atomique, rendu par son seul détenteur, repris une fois
  *    abandonné ; une montée ne passe jamais outre un verrou tenu ;
  *  - migrations : une erreur SQL arrête la montée à l'étape en échec
- *    (version non avancée, alerte sans donnée personnelle), les étapes
- *    franchies ne sont pas rejouées, la reprise est espacée côté public
- *    puis aboutit ;
+ *    (version non avancée, alerte sans donnée personnelle), la reprise est
+ *    espacée côté public puis aboutit ;
  *  - répertoire privé déplacé : conflit de contenu et droit refusé
  *    laissent la source intacte et l'ancien chemin retenu ; la reprise
- *    aboutit une fois la cause levée ; garde-fous jamais déplacés ;
- *  - uploads/periscolaire (3.7.0) : même garanties, garde-fou posé tant
- *    que des fichiers y restent.
+ *    aboutit une fois la cause levée ; garde-fous jamais déplacés.
  *
  * Usage :
  *   wp --require=bin/verify-migration-resume.php verify-migration-resume
  *
- * Rejoue les étapes 4.0.0 et 4.14.0 (idempotentes) ; les tables héritées
- * que la reprise depuis 3.8.0 recrée sont supprimées si elles n'existaient
- * pas. Les documents de test vivent dans des dossiers temporaires, derrière
+ * Rejoue la montée depuis le schéma 4.15.0 (étapes idempotentes). Les
+ * documents de test vivent dans des dossiers temporaires, derrière
  * le filtre psc_private_dir : les documents réels ne sont jamais déplacés.
  */
 
@@ -53,18 +49,6 @@ WP_CLI::add_command('verify-migration-resume', function () {
         if (!$condition) $failures[] = $label;
     };
 
-    $reflect = new ReflectionMethod('Psc_Installer', 'legacy_upload_dir');
-    $reflect->setAccessible(true);
-    $legacy = $reflect->invoke(null);
-    if (is_dir($legacy)) {
-        WP_CLI::error("$legacy existe déjà sur ce site : vérification refusée pour ne pas toucher de vrais documents.");
-    }
-
-    $legacy_tables = array(psc_table('trimestres'), psc_table('calendar_days'), psc_table('registrations'));
-    $table_exists = function ($t) use ($wpdb) {
-        return (bool) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $t));
-    };
-    $had_legacy = array_filter($legacy_tables, $table_exists);
     $saved_path = get_option('psc_private_dir_path', '');
 
     $root = trailingslashit(get_temp_dir()) . 'psc-verify-p117-' . wp_generate_password(8, false);
@@ -122,45 +106,40 @@ WP_CLI::add_command('verify-migration-resume', function () {
         $wpdb->update($wpdb->options, array('option_value' => sprintf('%.6F', microtime(true) - Psc_Installer::LOCK_TTL - 5)), array('option_name' => 'psc_migration_lock'));
         $c = Psc_Installer::acquire_lock();
         $check($c !== false, 'verrou : abandonné mais jamais repris');
-        update_option('psc_db_version', '4.13.0');
+        update_option('psc_db_version', '4.15.0');
         Psc_Installer::maybe_upgrade();
-        $check(get_option('psc_db_version') === '4.13.0', 'verrou : montée passée outre un verrou tenu');
+        $check(get_option('psc_db_version') === '4.15.0', 'verrou : montée passée outre un verrou tenu');
         Psc_Installer::release_lock($c);
         Psc_Installer::maybe_upgrade();
         $check(get_option('psc_db_version') === Psc_Installer::DB_VERSION, 'verrou : montée non faite une fois le verrou rendu');
 
         // 2. Erreur SQL : la montée s'arrête à l'étape en échec.
-        update_option('psc_db_version', '3.8.0');
-        $sabotage_sql = "COLUMN_NAME = 'sent_at'"; // première requête de l'étape 4.14.0
+        update_option('psc_db_version', '4.15.0');
+        $sabotage_sql = 'SELECT MIN(date_debut)'; // première requête de l'étape 4.17.0
         Psc_Installer::maybe_upgrade();
         $f = get_option('psc_migration_failed');
-        $check(get_option('psc_db_version') === '4.0.0', 'échec : version ' . get_option('psc_db_version') . ' au lieu de 4.0.0 (dernière étape franchie)');
-        $check(is_array($f) && $f['etape'] === '4.14.0', 'échec : étape en échec non consignée');
+        $check(get_option('psc_db_version') === '4.15.0', 'échec : version ' . get_option('psc_db_version') . ' au lieu de 4.15.0 (étape non franchie)');
+        $check(is_array($f) && $f['etape'] === '4.17.0', 'échec : étape en échec non consignée');
         $check(is_array($f) && $f['requete'] === 'SELECT', 'échec : requête consignée « ' . ($f['requete'] ?? '') . ' »');
-        $check(is_array($f) && strpos(wp_json_encode($f), 'verif_table_inexistante') === false && strpos(wp_json_encode($f), 'sent_at') === false, 'échec : texte de requête recopié dans l’alerte');
+        $check(is_array($f) && strpos(wp_json_encode($f), 'verif_table_inexistante') === false && strpos(wp_json_encode($f), 'date_debut') === false, 'échec : texte de requête recopié dans l’alerte');
 
-        // Reprise espacée côté public, puis complète, sans rejouer 4.0.0.
+        // Reprise espacée côté public, puis complète.
         $sabotage_sql = null;
         Psc_Installer::maybe_upgrade();
-        $check(get_option('psc_db_version') === '4.0.0', 'reprise : relancée avant le délai côté public');
+        $check(get_option('psc_db_version') === '4.15.0', 'reprise : relancée avant le délai côté public');
         $age_failure();
-        $replayed = 0;
-        $spy = function ($sql) use (&$replayed) { if (strpos($sql, "COLUMN_NAME = 'food_allergies'") !== false) $replayed++; return $sql; };
-        add_filter('query', $spy);
         Psc_Installer::maybe_upgrade();
-        remove_filter('query', $spy);
         $check(get_option('psc_db_version') === Psc_Installer::DB_VERSION, 'reprise : version ' . get_option('psc_db_version'));
-        $check($replayed === 0, 'reprise : étape 4.0.0 déjà franchie rejouée');
         $check(get_option('psc_migration_failed') === false, 'reprise : alerte conservée après succès');
 
         // Échec de dbDelta : aucune étape franchie.
-        update_option('psc_db_version', '4.13.0');
+        update_option('psc_db_version', '4.15.0');
         $wpdb->query('ALTER TABLE ' . psc_table('envois') . ' DROP INDEX objet_lot'); // dbDelta le recrée
         $sabotage_sql = 'ADD KEY `objet_lot`';
         Psc_Installer::maybe_upgrade();
         $sabotage_sql = null;
         $f = get_option('psc_migration_failed');
-        $check(get_option('psc_db_version') === '4.13.0', 'dbDelta en échec : version avancée');
+        $check(get_option('psc_db_version') === '4.15.0', 'dbDelta en échec : version avancée');
         $check(is_array($f) && $f['etape'] === 'schema', 'dbDelta en échec : étape « schema » non consignée');
         $age_failure();
         Psc_Installer::maybe_upgrade();
@@ -211,21 +190,6 @@ WP_CLI::add_command('verify-migration-resume', function () {
         chmod("$old/periscolaire/verrou", 0755);
         Psc_Installer::maybe_upgrade();
         $check($read("$new/periscolaire/verrou/child-4.pdf") === 'doc-4' && get_option('psc_private_dir_path') === $new && $failed('private_dir') === null, 'droit rétabli : reprise incomplète');
-
-        // 4. uploads/periscolaire (3.7.0).
-        $put("$legacy/verify-p117/child-5.pdf", 'doc-5');
-        $put("$legacy/verify-p117/child-6.pdf", 'version A');
-        $put("$new/periscolaire/verify-p117/child-6.pdf", 'version B');
-        Psc_Installer::maybe_upgrade();
-        $check($read("$new/periscolaire/verify-p117/child-5.pdf") === 'doc-5', 'uploads : document non déplacé');
-        $check($read("$legacy/verify-p117/child-6.pdf") === 'version A', 'uploads, conflit : source perdue');
-        $check(file_exists("$legacy/.htaccess"), 'uploads, conflit : documents laissés sans garde-fou');
-        $check(($failed('uploads')['restants'] ?? null) === 1, 'uploads, conflit : alerte absente ou mauvais décompte');
-        unlink("$new/periscolaire/verify-p117/child-6.pdf");
-        Psc_Installer::maybe_upgrade();
-        $check($read("$new/periscolaire/verify-p117/child-6.pdf") === 'version A' && !is_dir($legacy), 'uploads, conflit résolu : reprise incomplète');
-        $check($failed('uploads') === null, 'uploads, conflit résolu : alerte conservée');
-        $check(!file_exists("$new/periscolaire/.htaccess"), 'uploads : garde-fou recopié parmi les documents');
     } finally {
         remove_filter('query', $sabotage);
         $wpdb->suppress_errors(false);
@@ -236,9 +200,7 @@ WP_CLI::add_command('verify-migration-resume', function () {
         update_option('psc_private_dir_path', $saved_path, false);
         delete_option('psc_storage_move_failed');
         delete_option('psc_migration_failed');
-        foreach (array_diff($legacy_tables, $had_legacy) as $t) $wpdb->query("DROP TABLE IF EXISTS $t");
         $rm($root);
-        $rm($legacy);
     }
 
     if ($failures) {

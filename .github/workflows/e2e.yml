@@ -160,7 +160,7 @@ jobs:
         run: bash bin/verify-database-backup.sh
 
       # Scénario de migration : détruit le schéma périscolaire, le
-      # reconstruit à un état hérité (2.4.x), rejoue la montée de version
+      # reconstruit en schéma 4.15.0 (version 5.28.0), rejoue la montée de version
       # complète et vérifie le résultat (schéma final, données
       # transformées) — cf. l'en-tête de bin/verify-migrations.php. Il est
       # DÉSTRUCTIF (il ressort avec des tables vides mais valides) : il
