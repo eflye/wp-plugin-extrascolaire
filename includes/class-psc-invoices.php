@@ -126,12 +126,27 @@ class Psc_Invoices {
         }
 
         // Déclarations du mois, source de vérité unique : psc_is_declared
-        // (rythme habituel + exceptions, jours d'école calculés). Un forfait
-        // déclaré est compté à lui seul ; quand une composante est fermée,
-        // le forfait retombe sur les prestations restantes (psc_billing_services).
+        // (rythme habituel + exceptions, jours d'école calculés), puis règle
+        // de facturation unique (psc_billing_services).
         $child_ids = array_map(function ($c) { return (int) $c->id; }, $children);
         $dates = Psc_School_Year::school_days_in_month($mois);
         $declared = $dates ? Psc_Planning::declared_map($child_ids, $dates) : array();
+
+        $t_inv    = psc_table('invoices');
+        $existing = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $t_inv WHERE parent_id = %d AND mois = %s",
+            $parent_id, $mois
+        ));
+
+        // Une facture déjà envoyée se recalcule avec la règle sous laquelle
+        // elle a été émise (champ « calcul » de son instantané, 1 à défaut) :
+        // l'adoption d'une nouvelle règle ne la rectifie jamais d'elle-même.
+        // Seul un vrai changement de déclarations peut encore la corriger.
+        $regle = psc_billing_rule_version();
+        if ($existing && !empty($existing->sent_at)) {
+            $stored = json_decode((string) ($existing->lines_json ?? ''), true);
+            $regle = is_array($stored) && isset($stored['calcul']) ? (int) $stored['calcul'] : 1;
+        }
 
         // Build grid[service_code][child_id] = count
         $flags = array();
@@ -140,7 +155,7 @@ class Psc_Invoices {
         $has_data = false;
         foreach ($declared as $cid => $by_date) {
             foreach ($by_date as $day) {
-                foreach (psc_billing_services($day, !empty($flags[$cid])) as $svc) {
+                foreach (psc_billing_services($day, !empty($flags[$cid]), $regle) as $svc) {
                     if (!isset($grid[$svc])) {
                         $grid[$svc] = array();
                     }
@@ -168,13 +183,7 @@ class Psc_Invoices {
         // Instantané de ce qui a servi au calcul : lignes, tarifs appliqués
         // et statut « sans repas » de chaque enfant. C'est lui, et non les
         // réglages courants, qui dira demain ce que portait la facture.
-        $snapshot = self::build_snapshot($children, $grid, $services, $flags, $total);
-
-        $t_inv    = psc_table('invoices');
-        $existing = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $t_inv WHERE parent_id = %d AND mois = %s",
-            $parent_id, $mois
-        ));
+        $snapshot = self::build_snapshot($children, $grid, $services, $flags, $total, $regle);
 
         $version = 1;
         if ($existing) {
@@ -277,7 +286,7 @@ class Psc_Invoices {
      * doivent produire deux instantanés identiques, sans quoi la comparaison
      * de snapshot_differs() créerait des versions fantômes.
      */
-    private static function build_snapshot($children, $grid, $services, $flags, $total) {
+    private static function build_snapshot($children, $grid, $services, $flags, $total, $regle = null) {
         $names = array();
         $enfants = array();
         foreach ($children as $child) {
@@ -311,7 +320,7 @@ class Psc_Invoices {
         }
 
         return array(
-            'calcul'    => 1,
+            'calcul'    => $regle === null ? psc_billing_rule_version() : (int) $regle,
             'genere_le' => current_time('mysql'),
             'enfants'   => $enfants,
             'lignes'    => $lignes,

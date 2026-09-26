@@ -205,10 +205,12 @@ class Psc_Admin_Calendar_V2 {
 
         // Effectifs déclarés de la période : un seul lot de résolution.
         $children = $wpdb->get_results(
-            'SELECT c.id FROM ' . psc_table('children') . ' c WHERE ' . Psc_School_Years::inscrit_sql('c.id', Psc_School_Years::id_for_date($start))
+            'SELECT c.id, c.cantine_sans_repas FROM ' . psc_table('children') . ' c WHERE ' . Psc_School_Years::inscrit_sql('c.id', Psc_School_Years::id_for_date($start))
             . ' OR ' . Psc_School_Years::inscrit_sql('c.id', Psc_School_Years::id_for_date($end))
         );
         $child_ids = $children ? array_map(function ($c) { return (int) $c->id; }, $children) : array();
+        $flags = array();
+        foreach ((array) $children as $c) $flags[(int) $c->id] = !empty($c->cantine_sans_repas);
         $declared = $child_ids ? Psc_Planning::declared_map($child_ids, $dates) : array();
         $forf = psc_forfait_code();
 
@@ -217,7 +219,10 @@ class Psc_Admin_Calendar_V2 {
             $counts[$date] = array('GM' => 0, 'CANT' => 0, 'GS' => 0, 'FORF' => 0);
             foreach ($child_ids as $cid) {
                 $day = isset($declared[$cid][$date]) ? $declared[$cid][$date] : array();
-                foreach (psc_billing_services($day) as $svc) {
+                // Même règle que la facturation, drapeau « sans repas »
+                // compris ; le forfait sans repas compte parmi les forfaits.
+                foreach (psc_billing_services($day, !empty($flags[$cid])) as $svc) {
+                    if ($svc === 'FSR') $svc = $forf;
                     $counts[$date][$svc] = ($counts[$date][$svc] ?? 0) + 1;
                 }
             }
