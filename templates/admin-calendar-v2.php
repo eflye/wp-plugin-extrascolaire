@@ -59,8 +59,7 @@
          <?php if ($d['status'] !== 'out_of_term'): ?>data-date="<?php echo esc_attr($date); ?>" data-status="<?php echo esc_attr($d['status']); ?>"<?php endif; ?>
          <?php if ($d['status'] === 'open'): foreach ($d['services'] as $code => $svc): ?>
          data-closed-<?php echo esc_attr(strtolower($code)); ?>="<?php echo $svc['closed'] ? '1' : '0'; ?>"
-         <?php endforeach; endif; ?>
-         style="<?php echo $in_month ? '' : 'opacity:.45;'; ?>">
+         <?php endforeach; endif; ?>>
         <div class="psc-cal2-daynum"><?php echo (int) substr($date, 8, 2); ?></div>
 
         <?php if ($d['status'] === 'out_of_term'): ?>
