@@ -310,6 +310,9 @@ test('parent déjà connu — de la connexion au récapitulatif', async ({ page,
       await toggleCant; // jamais l'animation .psc-ok, cf. journeys/parent-connu.md #07
 
       await expect(page.getByTestId(testid.check(openDay, 'CANT'))).toBeChecked();
+      // Total fourni par la réponse du serveur (règle de facturation
+      // unique) : affiché juste après elle, d'où l'attente.
+      await expect.poll(async () => (await readChildTotal()).days).toBe(summaryBeforeToggle.days + 1);
       summaryAfterCant = await readChildTotal();
       // open_day n'était pas encore déclaré avant cette étape (distinct par
       // construction des jours proches pré-cochés par le seed demo — cf.
@@ -334,6 +337,7 @@ test('parent déjà connu — de la connexion au récapitulatif', async ({ page,
       await toggleGm;
 
       await expect(page.getByTestId(testid.check(openDay, 'GM'))).toBeChecked();
+      await expect.poll(async () => (await readChildTotal()).total).toBeCloseTo(summaryBeforeToggle.total + SERVICE_PRICES.CANT + SERVICE_PRICES.GM, 2);
       const summaryAfterGm = await readChildTotal();
       // Même jour que l'étape 07 : le nombre de jours ne change pas, seul
       // le montant augmente (cumul des deux prestations sur open_day).
