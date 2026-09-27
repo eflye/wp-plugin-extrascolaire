@@ -36,12 +36,13 @@
 | 5.31.0 | P3-01 (second lot) ; P1-11 : fichier de repli expurgé et archivé, alerte de retard des tâches planifiées, purge du journal par niveau (schéma 4.16.0) ; captures Année scolaire et Calendrier |
 | 5.32.0 | P1-16 : tarifs et statut « cantine sans repas » datés (schéma 4.17.0) ; P2-14 : versions des règlements approuvés (schéma 4.18.0) ; activation d'une installation neuve corrigée |
 | 5.32.1 | P1-16 : montants calculés en centimes entiers |
+| 5.33.0 | Code de migration antérieur au schéma 4.15.0 retiré (mise à jour depuis la 5.28.0 au minimum, refus explicite en deçà) ; contraste de l'écran des demandes |
 
 ### Reste à faire
 
 | Bloc | Ce qui reste | Qui débloque |
 | --- | --- | --- |
-| **Serveur distant** | Noté en 5.30.0 (26/09/2026). Déployer 5.31.0 → 5.32.1 (schéma 4.18.0, automatique) via **Périscolaire › Maintenance** ; vérifier l'absence d'avis « tâches planifiées » sur le tableau de bord (sinon, appeler `wp-cron.php` depuis l'hôte) ; tester une restauration avec la clé des IBAN ; dérouler la fiche de recette de l'hébergement (P1-04, P1-18) | Exploitation |
+| **Serveur distant** | **En 5.33.0 (27/09/2026)**, à jour de toutes les versions publiées (schéma 4.18.0). Reste : vérifier l'absence d'avis « tâches planifiées » sur le tableau de bord (sinon, appeler `wp-cron.php` depuis l'hôte) ; tester une restauration avec la clé des IBAN ; dérouler la fiche de recette de l'hébergement (P1-04, P1-18) | Exploitation |
 | P2-06 | Inventaire des ressources tierces du site réel (onglet Réseau du navigateur) | Exploitation, puis DPO |
 | P1-15 | Revoir le tarif du forfait sans repas (FSR), plus cher que ses prestations avec les valeurs par défaut | Facturation |
 | P2-14 | Valider le circuit de signature et d'archivage du mandat SEPA (volet technique publié en 5.32.0) | Facturation, DPO |
