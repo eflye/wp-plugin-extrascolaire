@@ -112,7 +112,7 @@ class Psc_Parents {
      * répondre différemment permettrait à un tiers de découvrir quelles
      * familles sont inscrites au service (énumération).
      */
-    public static function send_login_link($email, $context = 'login') {
+    public static function send_login_link($email, $context = 'login', $cible = null) {
         global $wpdb;
 
         $parent = self::get_by_email($email);
@@ -138,10 +138,14 @@ class Psc_Parents {
             array('%d')
         );
 
-        $url = add_query_arg(
-            array('psc_pid' => $parent->id, 'psc_token' => $token),
-            Psc_Mailer::form_page_url()
-        );
+        $args = array('psc_pid' => $parent->id, 'psc_token' => $token);
+        // Conversation visée : le lien y mène après connexion (le portail
+        // vérifie ensuite qu'elle appartient bien à la famille).
+        $conversation_id = Psc_Login_Tokens::conversation_of($cible);
+        if ($conversation_id) {
+            $args += array('psc_tab' => 'messages', 'psc_vue' => 'echanges', 'conversation_id' => $conversation_id);
+        }
+        $url = add_query_arg($args, Psc_Mailer::form_page_url());
 
         $sent = Psc_Mailer::send_login_link($to_email, $url, $context);
         Psc_Audit::log('famille.lien_envoye', array(
@@ -169,7 +173,8 @@ class Psc_Parents {
         $ok_ip   = psc_rate_limit_by_ip('ip_', 10, HOUR_IN_SECONDS);
 
         if ($ok_mail && $ok_ip) {
-            self::send_login_link($email);
+            $cible = isset($_POST['psc_cible']) ? sanitize_text_field(wp_unslash($_POST['psc_cible'])) : null;
+            self::send_login_link($email, 'login', Psc_Login_Tokens::conversation_of($cible) ? $cible : null);
         } else {
             $parent = self::get_by_email($email);
             Psc_Audit::log('famille.lien_envoye', array(
@@ -204,6 +209,10 @@ class Psc_Parents {
      * jeton s'éteint seul à l'expiration (psc_login_link_ttl()).
      */
     public static function maybe_consume_token() {
+        if (!empty($_GET['psc_lt'])) {
+            self::consume_notification_token();
+            return;
+        }
         if (empty($_GET['psc_token']) || empty($_GET['psc_pid'])) {
             return;
         }
@@ -269,6 +278,47 @@ class Psc_Parents {
         ));
 
         wp_safe_redirect(add_query_arg('psc_msg', 'welcome', $redirect));
+        exit;
+    }
+
+    /**
+     * Bouton d'un e-mail de notification (Psc_Login_Tokens) : ouvre la
+     * session et amène la famille sur la conversation, si elle lui
+     * appartient. Jeton expiré ou inconnu : retour au formulaire de
+     * connexion, qui garde la conversation visée (le lien demandé y mènera).
+     */
+    private static function consume_notification_token() {
+        global $wpdb;
+        $token = sanitize_text_field(wp_unslash($_GET['psc_lt']));
+        $back = remove_query_arg(array('psc_lt', 'psc_msg'));
+        $row = Psc_Login_Tokens::consume($token);
+
+        if (is_wp_error($row)) {
+            $expired = $row->get_error_code() === 'expired_token';
+            $data = $row->get_error_data();
+            $pid = is_object($data) ? (int) $data->parent_id : null;
+            Psc_Audit::log('famille.connexion_echouee', array(
+                'objet_type' => 'famille', 'objet_id' => $pid, 'famille_id' => $pid, 'resultat' => 'refus',
+                'resume' => $expired
+                    ? __('Lien d’une notification d’échange expiré.', 'periscolaire-registration')
+                    : __('Lien de notification d’échange inconnu.', 'periscolaire-registration'),
+            ));
+            wp_safe_redirect(add_query_arg('psc_msg', $expired ? 'expired_token' : 'bad_token', $back));
+            exit;
+        }
+
+        $parent = self::get_by_id((int) $row->parent_id);
+        $wpdb->update(psc_table('parents'), array('last_login' => current_time('mysql')), array('id' => $parent->id), array('%s'), array('%d'));
+        self::open_session($parent->id);
+
+        $libelle = trim((string) $parent->nom) !== '' ? sprintf('%s (%s)', $parent->nom, $row->email) : $row->email;
+        Psc_Audit::log('famille.connexion', array(
+            'objet_type' => 'famille', 'objet_id' => $parent->id, 'famille_id' => $parent->id,
+            'resume' => sprintf(__('Connexion de %s depuis une notification d’échange.', 'periscolaire-registration'), $libelle),
+            'acteur' => array('type' => 'famille', 'id' => (int) $parent->id, 'libelle' => $libelle, 'pour_le_compte_de' => null),
+        ));
+
+        wp_safe_redirect(add_query_arg(Psc_Login_Tokens::landing_args($row), Psc_Mailer::form_page_url()));
         exit;
     }
 
