@@ -97,6 +97,8 @@ class Psc_Email_Templates {
                 'label'   => __('Échange famille — nouveau message de la mairie', 'periscolaire-registration'),
                 'subject' => __('[{{site}}] Nouveau message de la mairie', 'periscolaire-registration'),
                 'body'    => __('La mairie vous a répondu dans votre espace famille.', 'periscolaire-registration'),
+                // Défaut antérieur à la 5.34.0 (cf. get_all()).
+                'retired_bodies' => array("La mairie vous a répondu dans votre espace famille.\n\nAucun contenu n'est reproduit ici : consultez le message directement dans votre espace."),
                 'vars'    => array('{{site}}'),
                 'note'    => __('Ajoutés automatiquement sous ce texte : le sujet et le texte des messages non lus (si « Inclure le texte des messages » est coché dans Réglages ; jamais les pièces jointes), puis le bouton « Répondre », qui connecte la famille pendant 72 heures.', 'periscolaire-registration'),
             ),
@@ -104,6 +106,7 @@ class Psc_Email_Templates {
                 'label'   => __('Échange famille — nouveau message d’une famille', 'periscolaire-registration'),
                 'subject' => __('[{{site}}] Nouveau message d’une famille', 'periscolaire-registration'),
                 'body'    => __("{{famille}} vient d'écrire dans un échange.", 'periscolaire-registration'),
+                'retired_bodies' => array("{{famille}} vient d'écrire dans un échange.\n\nAucun contenu n'est reproduit ici : ouvrez la conversation dans le backoffice."),
                 'vars'    => array('{{site}}', '{{famille}}'),
                 'note'    => __('Ajoutés automatiquement sous ce texte : le sujet et le texte des messages non lus (si « Inclure le texte des messages » est coché dans Réglages ; jamais les pièces jointes), puis le bouton vers la conversation dans le backoffice.', 'periscolaire-registration'),
             ),
@@ -119,6 +122,12 @@ class Psc_Email_Templates {
 
     /**
      * Retourne tous les modèles, avec les valeurs personnalisées si elles existent.
+     *
+     * Une valeur enregistrée identique au défaut (aux fins de ligne près)
+     * n'est pas une personnalisation : le défaut s'applique, et suivra donc
+     * ses évolutions d'une version à l'autre. Il en va de même d'un corps
+     * identique à un ancien défaut ('retired_bodies') : figé par un simple
+     * enregistrement de la page, il masquerait le nouveau texte.
      */
     public static function get_all() {
         $defaults = self::defaults();
@@ -127,23 +136,41 @@ class Psc_Email_Templates {
             $saved = array();
         }
         foreach ($defaults as $key => &$tpl) {
-            if (!empty($saved[$key]['subject'])) {
-                $tpl['subject'] = $saved[$key]['subject'];
-            }
-            if (!empty($saved[$key]['body'])) {
-                $tpl['body'] = $saved[$key]['body'];
+            $customized = false;
+            $retired = isset($tpl['retired_bodies']) ? $tpl['retired_bodies'] : array();
+            unset($tpl['retired_bodies']);
+            foreach (array('subject', 'body') as $field) {
+                if (!empty($saved[$key][$field]) && is_string($saved[$key][$field])
+                    && self::normalize($saved[$key][$field]) !== $tpl[$field]
+                    && !($field === 'body' && in_array(self::normalize($saved[$key][$field]), $retired, true))) {
+                    $tpl[$field] = self::normalize($saved[$key][$field]);
+                    $customized  = true;
+                }
             }
             if (!empty($tpl['has_footer'])) {
                 // Pied de mail : '' (vide personnalisé) est un état valide —
                 // il supprime le bloc du rendu. Seule l'ABSENCE d'entrée
                 // retombe sur le défaut.
-                if (isset($saved[$key]['footer']) && is_string($saved[$key]['footer'])) {
-                    $tpl['footer'] = $saved[$key]['footer'];
+                $footer_def = isset($tpl['footer']) ? $tpl['footer'] : '';
+                if (isset($saved[$key]['footer']) && is_string($saved[$key]['footer'])
+                    && self::normalize($saved[$key]['footer']) !== $footer_def) {
+                    $tpl['footer'] = self::normalize($saved[$key]['footer']);
+                    $customized    = true;
                 }
             }
-            $tpl['customized'] = !empty($saved[$key]);
+            $tpl['customized'] = $customized;
         }
         return $defaults;
+    }
+
+    /**
+     * Fins de ligne unifiées : un navigateur soumet les zones de texte en
+     * CRLF, les défauts sont en LF. Sans cela, enregistrer la page sans rien
+     * modifier figeait les modèles de plusieurs lignes dans leur texte du
+     * moment, masquant ensuite les nouveaux défauts.
+     */
+    private static function normalize($text) {
+        return str_replace(array("\r\n", "\r"), "\n", (string) $text);
     }
 
     /**
@@ -191,7 +218,8 @@ class Psc_Email_Templates {
     }
 
     /**
-     * Sauvegarde tous les modèles envoyés depuis le formulaire admin.
+     * Sauvegarde tous les modèles envoyés depuis le formulaire admin. Seuls
+     * les champs qui diffèrent du défaut sont stockés.
      */
     public static function save(array $input) {
         $defaults = self::defaults();
@@ -200,31 +228,31 @@ class Psc_Email_Templates {
             if (!isset($input[$key])) {
                 continue;
             }
-            $subject = isset($input[$key]['subject'])
-                ? sanitize_text_field(wp_unslash($input[$key]['subject']))
-                : '';
-            $body = isset($input[$key]['body'])
-                ? sanitize_textarea_field(wp_unslash($input[$key]['body']))
-                : '';
-            // Ne stocker que si différent du défaut (évite de polluer l'option).
-            if ($subject !== $def['subject'] || $body !== $def['body']) {
-                $clean[$key] = compact('subject', 'body');
+            $entry = array();
+            foreach (array('subject', 'body') as $field) {
+                if (!isset($input[$key][$field])) {
+                    continue;
+                }
+                $value = $field === 'subject'
+                    ? sanitize_text_field(wp_unslash($input[$key][$field]))
+                    : self::normalize(sanitize_textarea_field(wp_unslash($input[$key][$field])));
+                if ($value !== $def[$field]) {
+                    $entry[$field] = $value;
+                }
             }
 
             // Pied de mail (modèles qui en déclarent un) : '' est une valeur
             // personnalisée valide (supprime le bloc du rendu) — on la
             // stocke telle quelle, même vide, dès qu'elle diffère du défaut.
-            if (!empty($def['has_footer'])) {
-                $footer = isset($input[$key]['footer'])
-                    ? sanitize_textarea_field(wp_unslash($input[$key]['footer']))
-                    : (isset($def['footer']) ? $def['footer'] : '');
+            if (!empty($def['has_footer']) && isset($input[$key]['footer'])) {
+                $footer     = self::normalize(sanitize_textarea_field(wp_unslash($input[$key]['footer'])));
                 $footer_def = isset($def['footer']) ? $def['footer'] : '';
-                if (!isset($clean[$key])) {
-                    $clean[$key] = compact('subject', 'body');
-                }
                 if ($footer !== $footer_def) {
-                    $clean[$key]['footer'] = $footer;
+                    $entry['footer'] = $footer;
                 }
+            }
+            if ($entry) {
+                $clean[$key] = $entry;
             }
         }
         update_option(self::OPTION, $clean);
