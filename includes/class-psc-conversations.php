@@ -478,6 +478,23 @@ class Psc_Conversations {
         $wpdb->update(psc_table('conversations'), array($notified_column => current_time('mysql')), array('id' => (int) $conversation->id));
     }
 
+    /**
+     * Messages de l'autre côté que $side n'a pas encore lus, du plus ancien
+     * au plus récent (au plus $limit, les derniers) : contenu des e-mails
+     * de notification.
+     */
+    public static function unread_messages($conversation, $side, $limit = 10) {
+        global $wpdb;
+        $source = $side === 'famille' ? 'mairie' : 'famille';
+        $pointer = $side === 'famille' ? (int) $conversation->famille_dernier_lu_id : (int) $conversation->mairie_dernier_lu_id;
+        $rows = (array) $wpdb->get_results($wpdb->prepare(
+            'SELECT id, corps, piece_jointe_nom, created_at FROM ' . psc_table('conversation_messages') . '
+             WHERE conversation_id=%d AND auteur_type=%s AND id > %d ORDER BY id DESC LIMIT %d',
+            (int) $conversation->id, $source, $pointer, max(1, (int) $limit)
+        ));
+        return array_reverse($rows);
+    }
+
     /** Vrai s'il existe, dans cette conversation, un message de l'autre côté que $side n'a pas encore lu. */
     private static function has_unread($conversation, $side) {
         global $wpdb;

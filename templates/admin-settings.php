@@ -148,6 +148,16 @@ psc_admin_notice_map(array(
 </td>
 </tr>
 <tr>
+<th><?php esc_html_e('Texte des messages dans les e-mails', 'periscolaire-registration'); ?></th>
+<td>
+  <label for="psc-conversations-contenu">
+    <input id="psc-conversations-contenu" type="checkbox" name="conversations_contenu_email" value="1" data-testid="settings-conversations-contenu" <?php checked(psc_conversations_contenu_email()); ?>>
+    <?php esc_html_e('Inclure le texte des messages dans les e-mails de notification des échanges (familles et mairie)', 'periscolaire-registration'); ?>
+  </label>
+  <p class="description"><?php esc_html_e('Les pièces jointes ne sont jamais envoyées par e-mail : seul leur nom est indiqué. Décochez pour des échanges sensibles : l’e-mail annonce alors seulement un nouveau message.', 'periscolaire-registration'); ?></p>
+</td>
+</tr>
+<tr>
 <th><label for="psc-conversations-delai"><?php esc_html_e('Délai de réponse annoncé', 'periscolaire-registration'); ?></label></th>
 <td>
   <input id="psc-conversations-delai" type="number" name="conversations_delai_heures" class="small-text" min="1" max="240"

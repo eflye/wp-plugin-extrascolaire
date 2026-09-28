@@ -81,6 +81,15 @@ function psc_conversations_email() {
 }
 
 /** Délai de réponse annoncé aux familles sur l'écran « Mes échanges » (Réglages > Notifications des échanges familles). */
+/**
+ * Le texte des messages figure-t-il dans les e-mails de notification des
+ * échanges (famille et mairie) ? Activé par défaut ; la mairie peut revenir
+ * à un e-mail sans contenu (Réglages › Notifications).
+ */
+function psc_conversations_contenu_email() {
+    return (bool) get_option('psc_conversations_contenu_email', 1);
+}
+
 function psc_conversations_delai_heures() {
     return max(1, (int) get_option('psc_conversations_delai_heures', 48));
 }

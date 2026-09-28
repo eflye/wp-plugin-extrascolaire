@@ -107,6 +107,8 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         $conversations_mail = isset($_POST['conversations_email']) ? sanitize_email(wp_unslash($_POST['conversations_email'])) : '';
         update_option('psc_conversations_email', is_email($conversations_mail) ? $conversations_mail : '');
 
+        update_option('psc_conversations_contenu_email', isset($_POST['conversations_contenu_email']) ? 1 : 0);
+
         $conv_delai = psc_post_int('conversations_delai_heures', 48);
         update_option('psc_conversations_delai_heures', max(1, min(240, $conv_delai)));
         $conv_tel = isset($_POST['conversations_telephone_urgence']) ? sanitize_text_field(wp_unslash($_POST['conversations_telephone_urgence'])) : '';
