@@ -812,18 +812,41 @@ class Psc_Mailer {
     /* ------------------------------------------------------------------ */
 
     /**
-     * Notification d'un nouveau message dans un échange — sans jamais en
-     * reproduire le sujet ni le contenu (limitation des données
-     * personnelles dans les e-mails, cf. TODO.md). $side : le côté qui
-     * vient de recevoir un message non lu ('famille' ou 'mairie').
+     * Texte des messages non lus, pour l'e-mail de notification d'un
+     * échange (réglage psc_conversations_contenu_email) : date, texte, nom
+     * de la pièce jointe — jamais le fichier lui-même.
+     */
+    private static function conversation_messages_html($conversation, $side) {
+        if (!psc_conversations_contenu_email()) return '';
+        $html = '';
+        foreach (Psc_Conversations::unread_messages($conversation, $side) as $m) {
+            $html .= '<div style="border-left:3px solid #D8D2C4;padding:6px 12px;margin:0 0 12px;">'
+                . '<p style="color:#5A5A5A;font-family:Helvetica,Arial,sans-serif;font-size:12px;margin:0 0 4px;">'
+                . esc_html(date_i18n('d/m/Y à H:i', strtotime($m->created_at))) . '</p>'
+                . '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0;">'
+                . nl2br(esc_html((string) $m->corps)) . '</p>';
+            if (!empty($m->piece_jointe_nom)) {
+                $html .= '<p style="color:#5A5A5A;font-family:Helvetica,Arial,sans-serif;font-size:12px;margin:6px 0 0;">'
+                    . esc_html(sprintf(__('Pièce jointe : %s (à ouvrir dans l’espace)', 'periscolaire-registration'), $m->piece_jointe_nom)) . '</p>';
+            }
+            $html .= '</div>';
+        }
+        if ($html === '') return '';
+        return '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;font-weight:bold;margin:16px 0 8px;">'
+            . esc_html($conversation->sujet) . '</p>' . $html;
+    }
+
+    /**
+     * Notification d'un nouveau message dans un échange. $side : le côté
+     * qui vient de recevoir un message non lu ('famille' ou 'mairie'). Le
+     * texte des messages est recopié dans le corps si le réglage le permet,
+     * jamais dans l'objet. Côté famille, chaque destinataire reçoit son
+     * propre jeton de connexion directe (Psc_Login_Tokens).
      */
     public static function send_conversation_notification($conversation, $side) {
         global $wpdb;
         $site = self::site_name();
-        $url = add_query_arg(
-            array('psc_tab' => 'messages', 'psc_vue' => 'echanges', 'conversation_id' => (int) $conversation->id),
-            self::form_page_url()
-        );
+        $args = array('psc_tab' => 'messages', 'psc_vue' => 'echanges', 'conversation_id' => (int) $conversation->id);
 
         if ($side === 'famille') {
             $family = $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . psc_table('parents') . ' WHERE id=%d', (int) $conversation->family_id));
@@ -835,14 +858,21 @@ class Psc_Mailer {
 
             $subject = Psc_Email_Templates::subject('conversation_famille', array('site' => $site));
             $intro = Psc_Email_Templates::body_html('conversation_famille', array('site' => $site));
-            $body = self::h2(__('Nouveau message de la mairie', 'periscolaire-registration'))
-                . '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 12px;">' . $intro . '</p>'
-                . self::btn($url, __('Lire dans mon espace famille', 'periscolaire-registration'));
-            $html = self::layout($body, $subject);
+            $messages = self::conversation_messages_html($conversation, 'famille');
 
             $sent = false;
             foreach (array_unique($emails) as $email) {
-                $sent = self::send($email, $subject, $html) || $sent;
+                // Un lien de connexion par destinataire (72 h) : le bouton
+                // ouvre la conversation sans demander de lien.
+                $token = Psc_Login_Tokens::issue((int) $family->id, $email, Psc_Login_Tokens::MOTIF_ECHANGE, 'conversation:' . (int) $conversation->id);
+                $url = add_query_arg($token ? $args + array('psc_lt' => $token) : $args, self::form_page_url());
+                $body = self::h2(__('Nouveau message de la mairie', 'periscolaire-registration'))
+                    . '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 12px;">' . $intro . '</p>'
+                    . $messages
+                    . self::btn($url, __('Répondre dans mon espace famille', 'periscolaire-registration'))
+                    . '<p style="color:#5A5A5A;font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.5;margin:12px 0 0;">'
+                    . esc_html__('Ce bouton vous connecte directement pendant 72 heures. Ne transférez pas cet e-mail.', 'periscolaire-registration') . '</p>';
+                $sent = self::send($email, $subject, self::layout($body, $subject)) || $sent;
             }
             return $sent;
         }
@@ -857,7 +887,8 @@ class Psc_Mailer {
         $intro = Psc_Email_Templates::body_html('conversation_mairie', array('site' => $site, 'famille' => $family_label));
         $body = self::h2(__('Nouveau message d’une famille', 'periscolaire-registration'))
             . '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 12px;">' . $intro . '</p>'
-            . self::btn($admin_link, __('Ouvrir la conversation', 'periscolaire-registration'));
+            . self::conversation_messages_html($conversation, 'mairie')
+            . self::btn($admin_link, __('Répondre dans le backoffice', 'periscolaire-registration'));
 
         return self::send($email, $subject, self::layout($body, $subject));
     }

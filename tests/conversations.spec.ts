@@ -125,7 +125,7 @@ test.describe('Échanges familles ↔ mairie', () => {
   test.beforeEach(() => cleanup());
   test.afterEach(() => cleanup());
 
-  test('la famille écrit à la mairie, l’admin voit le non-lu et répond, l’e-mail ne contient aucun contenu', async ({ page }) => {
+  test('la famille écrit à la mairie, l’admin voit le non-lu et répond, le texte est dans le corps de l’e-mail, jamais dans son objet', async ({ page }) => {
     seedFamily(EMAIL_A, EMAIL_A_SECOND);
     await loginAsFamily(page, EMAIL_A);
     await openEchanges(page);
@@ -140,7 +140,7 @@ test.describe('Échanges familles ↔ mairie', () => {
     notify(conversationId, 'mairie');
     const mairieMail = await findLatestMessage('admin@example.invalid', 'Nouveau message d’une famille');
     expect(mairieMail.Subject).not.toContain('Une question sur le portail');
-    expect(mairieMail.Text).not.toContain('Bonjour, une question pour vous.');
+    expect(mairieMail.Text).toContain('Bonjour, une question pour vous.'); // réglage coché par défaut
 
     // Le compteur du menu est mis en cache 60 s (réorganisation du menu,
     // §7) : sans purge explicite, cette assertion dépendrait de l'instant
@@ -168,7 +168,8 @@ test.describe('Échanges familles ↔ mairie', () => {
 
     notify(conversationId, 'famille');
     const familyMail = await findLatestMessage(EMAIL_A, 'Nouveau message de la mairie');
-    expect(familyMail.Text).not.toContain('Bonjour, merci pour votre message.');
+    expect(familyMail.Subject).not.toContain('Bonjour, merci pour votre message.');
+    expect(familyMail.Text).toContain('Bonjour, merci pour votre message.');
     const secondMail = await findLatestMessage(EMAIL_A_SECOND, 'Nouveau message de la mairie');
     expect(secondMail).toBeTruthy();
 

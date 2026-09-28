@@ -58,6 +58,7 @@ require_once PSC_PATH . 'includes/class-psc-school-year.php';
 require_once PSC_PATH . 'includes/class-psc-tarifs.php';
 require_once PSC_PATH . 'includes/class-psc-sans-repas.php';
 require_once PSC_PATH . 'includes/class-psc-document-versions.php';
+require_once PSC_PATH . 'includes/class-psc-login-tokens.php';
 require_once PSC_PATH . 'includes/class-psc-planning.php';
 require_once PSC_PATH . 'includes/class-psc-school-years.php';
 require_once PSC_PATH . 'includes/class-psc-retention.php';
@@ -119,6 +120,7 @@ add_action('plugins_loaded', function () {
     Psc_Admin_Calendar_V2::init();
     Psc_Impersonation::init();
     Psc_Retention::init();
+    Psc_Login_Tokens::init();
     Psc_Parents::init();
     Psc_Requests::init();
     Psc_Messages_Admin::init();

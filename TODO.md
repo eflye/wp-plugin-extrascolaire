@@ -49,8 +49,11 @@
 | P1-11 | Faire valider les durées de conservation du journal d'audit (volet technique publié en 5.31.0) | DPO |
 | P1-06 à P1-10 | Notice relue, durées de conservation, procédure des droits, dossier de conformité et AIPD | DPO et mairie |
 | P1-01 | Permissions par fonction des intervenants | Mis de côté |
+| Échanges par e-mail | Développé, à publier (schéma 4.19.0) : texte des messages dans l'e-mail, bouton de connexion directe 72 h. Confirmer que la recopie du texte dans les messageries est acceptable (réglage coché par défaut) | Mairie, DPO |
 
-Terminés et publiés : P1-16 (validé), P3-01, captures de la documentation. Aucun bloc ne reste côté développement.
+Terminés et publiés : P1-16 (validé), P3-01, captures de la documentation. Aucun autre bloc ne reste côté développement.
+
+Pistes : faire passer les liens de connexion ordinaires (`parents.token_hash`, un seul lien valable à la fois) dans la table `psc_login_tokens` ; la réponse par simple retour d'e-mail (courrier entrant) n'est pas envisagée.
 
 ## Périmètre et limites
 

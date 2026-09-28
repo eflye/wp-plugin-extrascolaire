@@ -2,7 +2,7 @@
 
 ## Objectif
 
-Passer d'une version antérieure à la version courante (schéma de base 4.18.0), en une seule fois depuis la **5.28.0 ou plus récente** : inutile d'installer les versions intermédiaires. Depuis une version plus ancienne (schéma antérieur à 4.15.0), installez d'abord la **5.32.1**, la dernière à porter ces migrations, puis la version courante ; sinon la page **Maintenance** signale que la base est trop ancienne et rien n'est modifié. Depuis 5.28.0, tout se fait **depuis le backoffice**, dans **Périscolaire › Maintenance**, sans ligne de commande : c'est la méthode adaptée à un WordPress en conteneur. Les commandes WP-CLI restent possibles ; elles sont indiquées en encadré.
+Passer d'une version antérieure à la version courante (schéma de base 4.19.0), en une seule fois depuis la **5.28.0 ou plus récente** : inutile d'installer les versions intermédiaires. Depuis une version plus ancienne (schéma antérieur à 4.15.0), installez d'abord la **5.32.1**, la dernière à porter ces migrations, puis la version courante ; sinon la page **Maintenance** signale que la base est trop ancienne et rien n'est modifié. Depuis 5.28.0, tout se fait **depuis le backoffice**, dans **Périscolaire › Maintenance**, sans ligne de commande : c'est la méthode adaptée à un WordPress en conteneur. Les commandes WP-CLI restent possibles ; elles sont indiquées en encadré.
 
 ## Ce qui change entre 5.28 et 5.32
 
@@ -15,6 +15,7 @@ Passer d'une version antérieure à la version courante (schéma de base 4.18.0)
 - **Tâches planifiées :** un avis rouge sur le tableau de bord signale un WP-Cron à l'arrêt. S'il apparaît, suivez [Tâches planifiées](taches-planifiees.md#alerte-de-retard).
 - **Tarifs et statut « cantine sans repas » datés, schéma 4.17.0 :** la grille de tarifs en place devient le premier tarif de chaque prestation, à compter de la première rentrée enregistrée, et chaque enfant signalé « cantine sans repas » l'est depuis cette même date. Les montants des factures existantes ne changent pas. Ensuite, un changement de prix ou de statut se fait **à partir d'une date** : voir [Services et tarifs](../configuration/services-tarifs.md) et [Régimes alimentaires](../configuration/regimes-alimentaires.md).
 - **Versions des règlements approuvés, schéma 4.18.0 :** chaque acceptation enregistre désormais la version du règlement affichée (texte et PDF). Les acceptations antérieures apparaissent « antérieures au suivi des versions ». Le texte du règlement de prélèvement est désormais le même à l'inscription et dans **Mon profil**, et la réinscription affiche le règlement intérieur.
+- **Réponse directe aux échanges, schéma 4.19.0 :** une table de jetons de connexion est ajoutée, vide. L'e-mail « nouveau message de la mairie » contient désormais le texte du message et un bouton qui connecte la famille sur la conversation pendant 72 heures ; l'e-mail à la mairie contient le texte de la famille. Si vous aviez personnalisé les deux modèles **Échange famille**, relisez-les dans **Modèles d'e-mails** : le texte et le bouton sont ajoutés sous votre introduction, qui ne doit plus inviter à se connecter. Pour ne pas recopier le texte, décochez **Texte des messages dans les e-mails** dans **Réglages**.
 
 ## Avant de commencer
 

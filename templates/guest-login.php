@@ -7,6 +7,14 @@
   <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="psc-login-form" data-testid="login-form">
     <?php wp_nonce_field('psc_request_link'); ?>
     <input type="hidden" name="action" value="psc_request_link">
+    <?php
+    // Arrivée depuis une conversation (bouton d'un e-mail dont le lien a
+    // expiré) : le lien envoyé y ramènera directement.
+    $psc_cible_conv = (isset($_GET['psc_tab']) && $_GET['psc_tab'] === 'messages') ? psc_get_int('conversation_id') : 0;
+    if ($psc_cible_conv): ?>
+    <input type="hidden" name="psc_cible" value="<?php echo esc_attr('conversation:' . $psc_cible_conv); ?>">
+    <p class="psc-guest-intro" data-testid="login-cible-conversation"><?php esc_html_e('Le lien que vous allez recevoir vous mènera directement à la conversation.', 'periscolaire-registration'); ?></p>
+    <?php endif; ?>
     <div class="psc-guest-login-row">
       <div style="flex:1">
         <label class="psc-portal-field-label" for="psc-email"><?php esc_html_e('Adresse e-mail', 'periscolaire-registration'); ?></label>

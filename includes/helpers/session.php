@@ -82,6 +82,9 @@ function psc_bump_session_epoch($parent_id) {
     if (!is_array($map)) $map = array();
     $map[$parent_id] = psc_session_epoch($parent_id) + 1;
     update_option('psc_session_epoch', $map, false);
+    // Les liens de connexion des e-mails de notification tombent avec les
+    // sessions : ils en ouvriraient une nouvelle.
+    if (class_exists('Psc_Login_Tokens')) Psc_Login_Tokens::forget_parent($parent_id);
 }
 
 /** Durée de validité d'un lien de connexion envoyé par e-mail (réglable, Réglages > Demandes d'inscription). */

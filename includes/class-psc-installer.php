@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.18.0';
+    const DB_VERSION = '4.19.0';
     const ROLES_VERSION = '1.5.0';
 
     public static function activate() {
@@ -545,6 +545,7 @@ class Psc_Installer {
             array('child_school_years', 'school_year_id', 'school_years', 'CASCADE'),
             array('envois',             'famille_id',     'parents',      'CASCADE'),
             array('sans_repas',         'child_id',       'children',     'CASCADE'),
+            array('login_tokens',       'parent_id',      'parents',      'CASCADE'),
             // Version de règlement acceptée (P2-14) : une version citée par
             // une acceptation ne peut pas disparaître.
             array('parents',            'reglement_version_id',      'document_versions', 'RESTRICT'),
@@ -889,6 +890,7 @@ class Psc_Installer {
         $t_tarifs = psc_table('tarifs');
         $t_sans_repas = psc_table('sans_repas');
         $t_doc_versions = psc_table('document_versions');
+        $t_login_tokens = psc_table('login_tokens');
         // v4.0 — rythme & exceptions ; l'année scolaire est une seule table
         // depuis 4.15.0 (school_years porte aussi le calendrier).
         $t_hol  = psc_table('holidays');
@@ -1367,6 +1369,22 @@ CREATE TABLE $t_doc_versions (
             cree_le DATETIME NOT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY type_empreinte (type, empreinte)
+        ) $charset_collate;
+
+CREATE TABLE $t_login_tokens (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            parent_id BIGINT UNSIGNED NOT NULL,
+            email VARCHAR(191) NOT NULL,
+            token_hash CHAR(64) NOT NULL,
+            motif VARCHAR(24) NOT NULL,
+            cible VARCHAR(64) NULL,
+            expires_at DATETIME NOT NULL,
+            created_at DATETIME NOT NULL,
+            last_used_at DATETIME NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY token_hash (token_hash),
+            KEY parent_expires (parent_id, expires_at),
+            KEY expires_at (expires_at)
         ) $charset_collate;
 
 CREATE TABLE $t_sans_repas (

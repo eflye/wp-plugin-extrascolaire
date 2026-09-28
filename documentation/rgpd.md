@@ -41,6 +41,8 @@ Dans le backoffice, chaque agent n'accède qu'aux domaines cochés sur son profi
 
 Côté familles, chaque foyer ne voit et ne modifie que ses propres données. Des tests automatiques le vérifient à chaque version : une famille qui tente d'atteindre les enfants, documents ou factures d'une autre est refusée.
 
+Les e-mails de notification des échanges recopient par défaut le texte des messages : la messagerie de la famille en conserve alors une copie, hors du plugin. Ce choix se désactive dans **Périscolaire › Réglages** (**Texte des messages dans les e-mails**). Le bouton de ces e-mails connecte la famille pendant 72 heures ; le jeton est conservé haché, supprimé à son expiration, quand l'accès du foyer est révoqué (changement d'adresse, retrait ou remplacement du second parent) et avec son dossier.
+
 ## Preuve des règlements approuvés
 
 Chaque acceptation du règlement intérieur ou du règlement du prélèvement enregistre la **version** approuvée : le texte exact affiché à la famille et, s'il était en ligne, une copie privée du PDF complémentaire, avec leur empreinte. Une nouvelle version se crée d'elle-même quand le texte (mise à jour de l'extension) ou le PDF (**Réglages › Documents**) change. Les acceptations passées gardent la leur, qui ne peut plus être supprimée. La version figure dans l'export des données d'une famille. Le circuit de signature et d'archivage du mandat SEPA reste à valider par la mairie.
