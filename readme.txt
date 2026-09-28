@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.34.0
+Stable tag: 5.34.1
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,10 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.34.1 =
+* **Modèles d'e-mails :** enregistrer la page sans rien modifier ne fige plus les modèles de plusieurs lignes dans leur texte du moment. Ce défaut empêchait l'e-mail d'échange de la 5.34.0 de s'appliquer : il affichait encore « Aucun contenu n'est reproduit ici ». Les modèles figés dans un ancien texte par défaut reprennent d'eux-mêmes le texte actuel ; les vraies personnalisations sont conservées.
+* Aucun changement de schéma.
 
 = 5.34.0 =
 * **Échanges : réponse en un clic depuis l'e-mail.** L'e-mail « nouveau message de la mairie » reprend le sujet et le texte du message, et son bouton « Répondre dans mon espace famille » connecte la famille directement sur la conversation pendant 72 heures. Chaque destinataire (titulaire, second parent) reçoit son propre lien. Passé ce délai, le lien de connexion demandé ramène sur la conversation.
