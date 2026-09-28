@@ -194,6 +194,7 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         // la famille — un oubli antérieur aux conversations, laissé pour
         // une correction dédiée.
         Psc_Impersonation::delete_for_family($id);
+        Psc_Login_Tokens::forget_parent($id);
         Psc_Conversations::delete_for_family($id);
 
         if ($invoices > 0) {

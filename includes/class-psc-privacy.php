@@ -278,6 +278,9 @@ class Psc_Privacy {
             ),
             array('id' => $parent->id)
         );
+        // Liens de connexion des notifications : ils portent l'adresse du
+        // destinataire, celle du second parent comprise.
+        if (class_exists('Psc_Login_Tokens')) Psc_Login_Tokens::forget_parent($parent->id);
 
         return array(
             'items_removed'  => true,
@@ -359,6 +362,9 @@ class Psc_Privacy {
         }
         if (class_exists('Psc_Impersonation')) {
             Psc_Impersonation::delete_for_family($parent->id);
+        }
+        if (class_exists('Psc_Login_Tokens')) {
+            Psc_Login_Tokens::forget_parent($parent->id);
         }
         if (class_exists('Psc_Audit')) {
             Psc_Audit::forget_family($parent->id, $needles);
