@@ -30,6 +30,8 @@ Connectez-vous à WordPress avec un rôle autorisé à gérer les réglages. Les
    | **Échange famille — nouveau message d’une famille** | `{{site}}`, `{{famille}}` |
    | **Envoi de facture** | `{{mois}}`, `{{nom}}`, `{{commune}}`, `{{total}}` |
 
+   Les deux modèles **Échange famille** n'écrivent que l'introduction. Le plugin ajoute ensuite le sujet et le texte des nouveaux messages, puis un bouton : **Répondre dans mon espace famille** pour la famille, qui la connecte pendant 72 heures directement sur la conversation, et **Répondre dans le backoffice** pour la mairie. Pour ne pas recopier le texte des messages dans les e-mails, décochez **Texte des messages dans les e-mails** dans **Périscolaire › Réglages** : l'e-mail signale alors seulement un nouveau message. Les pièces jointes ne partent jamais par e-mail, seul leur nom est indiqué.
+
    ![Liste des cartes de modèles d'e-mails avec les champs Sujet, Corps, variables et actions de réinitialisation](../assets/screenshots/modeles-emails-liste.png)
 
 4. Pour le modèle **Commande fournisseur (cantine & goûters)**, renseignez aussi le **Pied de mail** si vous souhaitez afficher une signature sous le tableau des quantités. Laissez-le vide pour supprimer ce bloc.
