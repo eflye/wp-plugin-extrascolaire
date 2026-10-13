@@ -23,21 +23,27 @@
 
 if (!defined('WP_UNINSTALL_PLUGIN')) exit;
 
-// Retire la capacité accordée par Psc_Installer::sync_roles() (pas de
-// donnée personnelle, aucun risque à le faire systématiquement — même
-// sans PSC_REMOVE_DATA_ON_UNINSTALL — pour ne pas laisser une capacité
-// orpheline sur les rôles une fois le plugin supprimé).
-$psc_role_caps = array('psc_manage_periscolaire', 'psc_impersonate_family', 'psc_manage_families', 'psc_manage_presence',
-    'psc_manage_billing', 'psc_manage_messages', 'psc_manage_config', 'psc_view_health', 'psc_view_audit');
-foreach (array('administrator', 'editor') as $role_name) {
-    $role = get_role($role_name);
-    if ($role) {
-        foreach ($psc_role_caps as $psc_cap) $role->remove_cap($psc_cap);
+// Retire les capacités du plugin (pas de donnée personnelle, aucun risque à
+// le faire systématiquement — même sans PSC_REMOVE_DATA_ON_UNINSTALL — pour
+// ne pas en laisser d'orphelines une fois le plugin supprimé). Découvertes
+// par préfixe, sur tous les rôles (Psc_Installer::sync_roles(), et rôles
+// d'autres extensions auxquels une ancienne version en accordait) et sur
+// les utilisateurs, qui reçoivent les habilitations individuellement
+// (Psc_Admin, écran des habilitations).
+foreach (wp_roles()->role_objects as $psc_role) {
+    foreach (array_keys((array) $psc_role->capabilities) as $psc_cap) {
+        if (strpos((string) $psc_cap, 'psc_') === 0) $psc_role->remove_cap($psc_cap);
     }
 }
-foreach (array('administrator', 'gestionnaire_periscolaire') as $role_name) {
-    $role = get_role($role_name);
-    if ($role) $role->remove_cap('psc_manage_messages');
+$psc_users = get_users(array(
+    'meta_key'     => $GLOBALS['wpdb']->get_blog_prefix() . 'capabilities',
+    'meta_value'   => '"psc_',
+    'meta_compare' => 'LIKE',
+));
+foreach ($psc_users as $psc_user) {
+    foreach (array_keys((array) $psc_user->caps) as $psc_cap) {
+        if (strpos((string) $psc_cap, 'psc_') === 0) $psc_user->remove_cap($psc_cap);
+    }
 }
 delete_option('psc_roles_version');
 
