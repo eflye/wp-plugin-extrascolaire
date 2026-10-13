@@ -44,11 +44,6 @@ class Psc_Requests {
         }
     }
 
-    public static function unschedule_cleanup() {
-        $ts = wp_next_scheduled('psc_cleanup_requests');
-        if ($ts) wp_unschedule_event($ts, 'psc_cleanup_requests');
-    }
-
     /**
      * Supprime les demandes non vérifiées de plus de 7 jours et les
      * demandes traitées de plus de 90 jours — et, avec elles, tout

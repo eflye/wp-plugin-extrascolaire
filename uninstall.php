@@ -41,18 +41,17 @@ foreach (array('administrator', 'gestionnaire_periscolaire') as $role_name) {
 }
 delete_option('psc_roles_version');
 
-// Tâche planifiée (purge RGPD des demandes) : retirée dans tous les cas,
-// sinon WordPress continuerait d'appeler un hook dont le code a disparu.
-// Normalement déjà fait à la désactivation, mais la répéter ici est sans
-// risque et couvre le cas d'une suppression de fichiers "à la main".
-wp_clear_scheduled_hook('psc_cleanup_requests');
-wp_clear_scheduled_hook('psc_send_message_emails');
-wp_clear_scheduled_hook('psc_send_scheduled_messages');
-wp_clear_scheduled_hook('psc_cleanup_message_receipts');
-wp_clear_scheduled_hook('psc_cleanup_impersonations');
-wp_clear_scheduled_hook('psc_conversation_notify');
-wp_clear_scheduled_hook('psc_purge_conversations');
-wp_clear_scheduled_hook('psc_purge_audit_log');
+// Tâches planifiées : retirées dans tous les cas, sinon WordPress
+// continuerait d'appeler des hooks dont le code a disparu. Normalement déjà
+// fait à la désactivation, mais le répéter ici est sans risque et couvre le
+// cas d'une suppression de fichiers "à la main". Découvertes par préfixe,
+// comme les tables plus bas (les helpers du plugin ne sont pas chargés ici) ;
+// wp_unschedule_hook() retire aussi les envois ponctuels porteurs d'arguments.
+foreach ((array) _get_cron_array() as $psc_events) {
+    foreach (array_keys((array) $psc_events) as $psc_hook) {
+        if (strpos((string) $psc_hook, 'psc_') === 0) wp_unschedule_hook($psc_hook);
+    }
+}
 
 if (!defined('PSC_REMOVE_DATA_ON_UNINSTALL') || !PSC_REMOVE_DATA_ON_UNINSTALL) {
     return;

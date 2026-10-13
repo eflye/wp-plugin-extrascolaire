@@ -8,12 +8,14 @@
  * rejoue pas register_activation_hook() : une tâche qui n'est programmée
  * qu'à l'activation disparaît pour de bon dès qu'elle est perdue. Vérifie
  * que chaque tâche récurrente du plugin (wp_schedule_event() dans
- * includes/) est reprogrammée par le seul chargement du plugin.
+ * includes/) est reprogrammée par le seul chargement du plugin, puis que
+ * la désactivation et la désinstallation retirent toutes les tâches, y
+ * compris les envois ponctuels porteurs d'arguments.
  *
  * Usage :
  *   wp --require=bin/verify-crons.php verify-crons
  *
- * Efface puis reprogramme les tâches récurrentes du plugin : seules leurs
+ * Efface puis reprogramme les tâches du plugin : seules leurs
  * prochaines échéances changent. Aucune donnée écrite.
  */
 
@@ -57,6 +59,33 @@ WP_CLI::add_command('verify-crons', function () {
     foreach ($hooks as $hook) {
         $check((bool) wp_next_scheduled($hook), "« $hook » n'est pas reprogrammée au chargement du plugin");
     }
+
+    // Désactivation : plus aucune tâche du plugin, y compris les envois
+    // ponctuels porteurs d'arguments (identifiants fictifs, jamais
+    // exécutés : retirés aussitôt).
+    $single = array(
+        'psc_send_message_emails' => array(999999999),
+        'psc_conversation_notify' => array(999999999, 'famille'),
+    );
+    foreach ($single as $hook => $args) wp_schedule_single_event(time() + HOUR_IN_SECONDS, $hook, $args);
+    psc_unschedule_all_crons();
+    $left = array();
+    foreach ((array) _get_cron_array() as $events) {
+        foreach (array_keys((array) $events) as $hook) {
+            if (strpos((string) $hook, 'psc_') === 0) $left[] = $hook;
+        }
+    }
+    $check(!$left, 'tâches restantes après désactivation : ' . implode(', ', array_unique($left)));
+
+    // Désinstallation : uninstall.php ne peut pas être joué ici (il retire
+    // les capacités des rôles) ; il doit retirer les tâches par
+    // wp_unschedule_hook(), seul à couvrir les événements avec arguments.
+    $uninstall = (string) file_get_contents(PSC_PATH . 'uninstall.php');
+    $check(strpos($uninstall, 'wp_unschedule_hook(') !== false && strpos($uninstall, 'wp_clear_scheduled_hook(') === false,
+        'uninstall.php doit retirer les tâches par wp_unschedule_hook()');
+
+    // Remet les tâches récurrentes en place pour la suite.
+    foreach ($inits as $class) call_user_func(array($class, 'init'));
 
     if ($failures) {
         foreach ($failures as $f) WP_CLI::warning($f);

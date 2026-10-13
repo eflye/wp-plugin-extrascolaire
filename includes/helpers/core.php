@@ -16,6 +16,21 @@ function psc_table($name) {
 }
 
 /**
+ * Retire toutes les tâches planifiées du plugin, découvertes par leur
+ * préfixe plutôt qu'énumérées à la main (une liste manuelle dérive).
+ * wp_unschedule_hook() et non wp_clear_scheduled_hook() : ce dernier ne
+ * retire que les événements sans argument, et laisserait en place les
+ * envois ponctuels (psc_send_message_emails, psc_conversation_notify).
+ */
+function psc_unschedule_all_crons() {
+    foreach ((array) _get_cron_array() as $events) {
+        foreach (array_keys((array) $events) as $hook) {
+            if (strpos((string) $hook, 'psc_') === 0) wp_unschedule_hook($hook);
+        }
+    }
+}
+
+/**
  * Capacité requise pour accéder au backoffice périscolaire. Capacité
  * dédiée (pas manage_options), accordée par défaut aux seuls
  * administrateurs (cf. Psc_Installer::sync_roles()). Elle ouvre le

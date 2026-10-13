@@ -91,18 +91,7 @@ register_activation_hook(__FILE__, function () {
     Psc_Envois::ensure_crons();
 });
 
-register_deactivation_hook(__FILE__, function () {
-    Psc_Requests::unschedule_cleanup();
-    wp_clear_scheduled_hook('psc_send_message_emails');
-    wp_clear_scheduled_hook('psc_send_scheduled_messages');
-    wp_clear_scheduled_hook('psc_cleanup_message_receipts');
-    wp_clear_scheduled_hook('psc_cleanup_impersonations');
-    wp_clear_scheduled_hook('psc_conversation_notify');
-    wp_clear_scheduled_hook('psc_purge_conversations');
-    wp_clear_scheduled_hook('psc_purge_audit_log');
-    wp_clear_scheduled_hook('psc_purge_departed_children');
-    wp_clear_scheduled_hook('psc_envois_reprise');
-});
+register_deactivation_hook(__FILE__, 'psc_unschedule_all_crons');
 
 add_action('plugins_loaded', function () {
     // Text Domain déclaré en en-tête : chargé ici pour que toutes les
