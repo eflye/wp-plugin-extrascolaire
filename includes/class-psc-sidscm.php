@@ -326,6 +326,50 @@ class Psc_Sidscm {
         return Psc_Planning::is_declared($child_id, $date, $service);
     }
 
+    /**
+     * Écrit un pointage (ligne enfant × jour × service) en une seule
+     * requête : INSERT … ON DUPLICATE KEY UPDATE sur la clé unique
+     * child_date_service. Un « lire puis insérer » laissait deux appels
+     * simultanés (double appui) se marcher dessus, et la réponse annonçait
+     * un succès même quand l'écriture avait échoué. Seules les colonnes
+     * de $values (plus pointed_at) sont écrites : une heure d'arrivée ne
+     * touche jamais `present`, et inversement. Répond en erreur, sans
+     * revenir, si l'écriture échoue.
+     *
+     * @param array $values colonne => valeur ; null écrit NULL.
+     */
+    private static function save_attendance($child_id, $date, $service, array $values) {
+        global $wpdb;
+        $t_att = psc_table('attendance');
+        $values['pointed_at'] = current_time('mysql');
+        $row = array('child_id' => (int) $child_id, 'jour_date' => $date, 'service' => $service) + $values;
+
+        $placeholders = array();
+        $args = array();
+        foreach ($row as $value) {
+            if ($value === null) {
+                $placeholders[] = 'NULL';
+                continue;
+            }
+            $placeholders[] = is_int($value) ? '%d' : '%s';
+            $args[] = $value;
+        }
+        $updates = array();
+        foreach (array_keys($values) as $column) {
+            $updates[] = "$column = VALUES($column)";
+        }
+
+        $ok = $wpdb->query($wpdb->prepare(
+            "INSERT INTO $t_att (" . implode(', ', array_keys($row)) . ')
+             VALUES (' . implode(', ', $placeholders) . ')
+             ON DUPLICATE KEY UPDATE ' . implode(', ', $updates),
+            $args
+        ));
+        if ($ok === false) {
+            wp_send_json_error(array('code' => 'save'), 500);
+        }
+    }
+
     public static function ajax_unlock() {
         check_ajax_referer('psc_sidscm_front', 'nonce');
 
@@ -576,31 +620,7 @@ class Psc_Sidscm {
         // jour/service, cf. require_day_service()).
         self::require_day_service($child_id, $date, $service);
 
-        global $wpdb;
-        $t_att = psc_table('attendance');
-        $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $t_att WHERE child_id = %d AND jour_date = %s AND service = %s",
-            $child_id, $date, $service
-        ));
-
-        $now = current_time('mysql');
-        if ($existing) {
-            $wpdb->update(
-                $t_att,
-                array('present' => $present, 'pointed_at' => $now),
-                array('id' => $existing),
-                array('%d', '%s'),
-                array('%d')
-            );
-        } else {
-            $wpdb->insert($t_att, array(
-                'child_id'   => $child_id,
-                'jour_date'  => $date,
-                'service'    => $service,
-                'present'    => $present,
-                'pointed_at' => $now,
-            ), array('%d', '%s', '%s', '%d', '%s'));
-        }
+        self::save_attendance($child_id, $date, $service, array('present' => $present));
 
         Psc_Audit::log('presence.pointage', array(
             'objet_type' => 'presence', 'objet_id' => $child_id, 'enfant_id' => $child_id,
@@ -628,32 +648,7 @@ class Psc_Sidscm {
         }
         self::require_day_service($child_id, $date, 'GM');
 
-        global $wpdb;
-        $t_att = psc_table('attendance');
-        $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $t_att WHERE child_id = %d AND jour_date = %s AND service = 'GM'",
-            $child_id, $date
-        ));
-        $now = current_time('mysql');
-        $arrival_time = $time !== '' ? $time . ':00' : null;
-
-        if ($existing) {
-            $wpdb->update(
-                $t_att,
-                array('arrival_time' => $arrival_time, 'pointed_at' => $now),
-                array('id' => $existing),
-                array('%s', '%s'),
-                array('%d')
-            );
-        } else {
-            $wpdb->insert($t_att, array(
-                'child_id'    => $child_id,
-                'jour_date'   => $date,
-                'service'     => 'GM',
-                'arrival_time'=> $arrival_time,
-                'pointed_at'  => $now,
-            ), array('%d', '%s', '%s', '%s', '%s'));
-        }
+        self::save_attendance($child_id, $date, 'GM', array('arrival_time' => $time !== '' ? $time . ':00' : null));
 
         Psc_Audit::log('presence.pointage', array(
             'objet_type' => 'presence', 'objet_id' => $child_id, 'enfant_id' => $child_id,
@@ -696,36 +691,10 @@ class Psc_Sidscm {
         // refusé (cohérence jour/service, cf. require_day_service()).
         self::require_day_service($child_id, $date, 'GS');
 
-        global $wpdb;
-        $t_att = psc_table('attendance');
-        $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $t_att WHERE child_id = %d AND jour_date = %s AND service = 'GS'",
-            $child_id, $date
-        ));
-
-        $now = current_time('mysql');
-        $departure_time = $time !== '' ? $time . ':00' : null;
-
-        if ($existing) {
-            $wpdb->update(
-                $t_att,
-                array('departure_time' => $departure_time, 'pointed_at' => $now),
-                array('id' => $existing),
-                array('%s', '%s'),
-                array('%d')
-            );
-        } else {
-            // Aucune ligne encore : la présence garde sa valeur par
-            // défaut (colonne `present` DEFAULT 1), seule l'heure de
-            // départ est réellement renseignée par cette action.
-            $wpdb->insert($t_att, array(
-                'child_id'       => $child_id,
-                'jour_date'      => $date,
-                'service'        => 'GS',
-                'departure_time' => $departure_time,
-                'pointed_at'     => $now,
-            ), array('%d', '%s', '%s', '%s', '%s'));
-        }
+        // Aucune ligne encore : la présence garde sa valeur par défaut
+        // (colonne `present` DEFAULT 1), seule l'heure de départ est
+        // réellement renseignée par cette action.
+        self::save_attendance($child_id, $date, 'GS', array('departure_time' => $time !== '' ? $time . ':00' : null));
 
         Psc_Audit::log('presence.pointage', array(
             'objet_type' => 'presence', 'objet_id' => $child_id, 'enfant_id' => $child_id,
