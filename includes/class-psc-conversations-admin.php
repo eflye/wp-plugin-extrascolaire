@@ -11,6 +11,9 @@ class Psc_Conversations_Admin extends Psc_Admin_Base {
         add_action('admin_post_psc_conversation_create', array(__CLASS__, 'handle_create'));
         add_action('psc_conversation_notify', array('Psc_Conversations', 'notify'), 10, 2);
         add_action('psc_purge_conversations', array('Psc_Conversations', 'handle_purge_cron'));
+        // Une mise à jour par zip ne rejoue pas l'activation : la purge RGPD
+        // se reprogramme ici si elle a disparu.
+        Psc_Conversations::ensure_crons();
     }
 
     private static function guard_conversations($nonce_action) {

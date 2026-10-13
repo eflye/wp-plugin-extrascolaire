@@ -15,6 +15,9 @@ class Psc_Messages_Admin extends Psc_Admin_Base {
         add_action('psc_send_message_emails', array('Psc_Messages', 'process_email_batch'));
         add_action('psc_send_scheduled_messages', array('Psc_Messages', 'send_scheduled'));
         add_action('psc_cleanup_message_receipts', array('Psc_Messages', 'cleanup_receipts'));
+        // Une mise à jour par zip ne rejoue pas l'activation : les tâches
+        // planifiées se reprogramment ici si elles ont disparu.
+        Psc_Messages::ensure_crons();
     }
 
     private static function guard_messages($nonce_action) {

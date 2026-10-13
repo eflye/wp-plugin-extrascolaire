@@ -33,6 +33,9 @@ class Psc_Requests {
         // Purge automatique des demandes anciennes (RGPD : on ne conserve
         // pas indéfiniment les données de familles jamais inscrites).
         add_action('psc_cleanup_requests', array(__CLASS__, 'cleanup'));
+        // Une mise à jour par zip ne rejoue pas l'activation : la purge se
+        // reprogramme ici si elle a disparu.
+        self::schedule_cleanup();
     }
 
     public static function schedule_cleanup() {
