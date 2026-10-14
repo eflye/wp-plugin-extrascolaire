@@ -403,6 +403,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
             'profil_sepa_enabled', 'profil_sepa_reglement_required', 'profil_sepa_missing',
             'profil_sepa_bad_iban', 'profil_sepa_bad_bic', 'profil_sepa_bad_postcode', 'profil_sepa_error',
             'email_taken', 'email_changed', 'email_change_cancelled',
+            'email_change_forbidden', 'email_change_relogin', 'email_change_rate',
             'bad_email_token', 'expired_email_token',
             'second_parent_updated', 'second_parent_removed',
             'second_parent_bad_email', 'second_parent_bad_phone', 'second_parent_email_taken',
