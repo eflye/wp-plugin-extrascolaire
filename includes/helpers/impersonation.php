@@ -26,6 +26,11 @@ function psc_impersonation_action_policy() {
         'psc_sidscm_arrival'                     => 'hors_portail',
         'psc_sidscm_departure'                   => 'hors_portail',
 
+        // Lien reçu par l'ANCIENNE adresse lors d'un changement d'e-mail
+        // (SEC-02) : jeton à usage unique, sans session famille ; ne relève
+        // pas du portail consulté par la mairie.
+        'psc_cancel_email_change_link'           => 'hors_portail',
+
         // Écritures du planning.
         'psc_toggle_exception'                   => 'ecriture',
         'psc_toggle_exception_bulk'              => 'ecriture',
