@@ -38,6 +38,11 @@ function psc_audit_action_registry() {
         'psc_cancel_email_change' => array(
             'action' => 'famille.email_change_annule', 'categorie' => 'authentification', 'objet' => 'famille', 'niveau' => 'normal',
         ),
+        // Bouton « Annuler » de l'avis envoyé à l'ancienne adresse (SEC-02) :
+        // jeton, sans session.
+        'psc_cancel_email_change_link' => array(
+            'action' => 'famille.email_change_annule', 'categorie' => 'authentification', 'objet' => 'famille', 'niveau' => 'normal',
+        ),
 
         /* ---------------- Consultation d'espace famille ---------------- */
         'psc_impersonate_start' => array(
@@ -498,6 +503,8 @@ function psc_audit_semantic_extra() {
         'famille.connexion_echouee'     => array('categorie' => 'authentification', 'niveau' => 'normal'),
         'famille.email_change_demande'  => array('categorie' => 'authentification', 'niveau' => 'normal'),
         'famille.email_change_confirme' => array('categorie' => 'authentification', 'niveau' => 'normal'),
+        // Annulation après confirmation : ancienne adresse restaurée, sessions révoquées (SEC-02).
+        'famille.email_change_restaure' => array('categorie' => 'authentification', 'niveau' => 'critique'),
         'audit.consultation'            => array('categorie' => 'securite', 'niveau' => 'critique'),
         'audit.export'                  => array('categorie' => 'securite', 'niveau' => 'critique'),
         'privacy.export'                => array('categorie' => 'donnees_famille', 'niveau' => 'critique'),
