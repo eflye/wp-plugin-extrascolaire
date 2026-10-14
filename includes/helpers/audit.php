@@ -244,6 +244,10 @@ function psc_audit_action_registry() {
         'psc_parent_download_conversation_attachment' => array(
             'action' => 'conversation.piece_jointe_telechargement', 'categorie' => 'communication', 'objet' => 'conversation', 'niveau' => 'normal',
         ),
+        // Téléchargement par la mairie d'une pièce jointe déposée par une famille (PRA-04).
+        'psc_download_conversation_attachment' => array(
+            'action' => 'conversation.piece_jointe_telechargement', 'categorie' => 'communication', 'objet' => 'conversation', 'niveau' => 'normal',
+        ),
 
         /* ---------------- Cantine ---------------- */
         'psc_save_menu' => array(

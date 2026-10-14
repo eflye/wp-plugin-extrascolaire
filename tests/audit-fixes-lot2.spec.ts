@@ -144,3 +144,60 @@ test.describe('Lot 2 — lien de diffusion sans jeton dans l’URL (RGPD-09)', (
     await context.close();
   });
 });
+
+test.describe('Lot 2 — pièce jointe d’une famille visible côté mairie (PRA-04)', () => {
+  const CONV_EMAIL = 'lot2-e2e-echange@example.test';
+  const AGENTS = {
+    messages: ['psc_manage_messages'],
+    familles: ['psc_manage_families'],
+  };
+  const agent = (name: string) => `psc-lot2-e2e-pj-${name}`;
+  let conversationId = 0;
+  let messageId = 0;
+
+  const cleanupConv = () => wpEval(`global $wpdb; require_once ABSPATH.'wp-admin/includes/user.php';
+    foreach(array('${agent('messages')}','${agent('familles')}') as $l){ $u=get_user_by('login',$l); if($u) wp_delete_user((int)$u->ID); }
+    $f=(int)$wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}psc_parents WHERE email=%s",'${CONV_EMAIL}'));
+    if($f){ Psc_Conversations::delete_for_family($f); $wpdb->delete($wpdb->prefix.'psc_parents',array('id'=>$f)); } echo 'ok';`);
+
+  test.beforeAll(() => {
+    cleanupConv();
+    for (const [name, caps] of Object.entries(AGENTS)) {
+      wpEval(`$id=wp_insert_user(array('user_login'=>'${agent(name)}','user_pass'=>'${PASSWORD}','user_email'=>'${agent(name)}@example.test','role'=>'subscriber'));
+        $u=get_user_by('id',$id); ${caps.map((c) => `$u->add_cap('${c}');`).join('')} echo 'ok';`);
+    }
+    const ids = wpEval(`global $wpdb; $now=current_time('mysql');
+      $wpdb->insert($wpdb->prefix.'psc_parents',array('email'=>'${CONV_EMAIL}','nom'=>'Lot2Echange','active'=>1,'created_at'=>$now)); $f=(int)$wpdb->insert_id;
+      $wpdb->insert($wpdb->prefix.'psc_conversations',array('family_id'=>$f,'sujet'=>'Échange Lot2 E2E','initiee_par'=>'famille','dernier_message_at'=>$now,'dernier_auteur'=>'famille','created_at'=>$now,'updated_at'=>$now)); $c=(int)$wpdb->insert_id;
+      $rel='conversations/lot2-e2e/'.wp_generate_password(12,false).'.pdf'; wp_mkdir_p(dirname(psc_private_path($rel))); file_put_contents(psc_private_path($rel),'%PDF-1.4 lot2 e2e');
+      $wpdb->insert($wpdb->prefix.'psc_conversation_messages',array('conversation_id'=>$c,'auteur_type'=>'famille','corps'=>'Voici le certificat','piece_jointe_path'=>$rel,'piece_jointe_nom'=>'certificat.pdf','piece_jointe_taille'=>17,'created_at'=>$now));
+      echo $c.' '.$wpdb->insert_id;`);
+    [conversationId, messageId] = ids.split(' ').map(Number);
+  });
+
+  test.afterAll(() => cleanupConv());
+
+  test('la secrétaire « Messages » voit et télécharge la pièce jointe', async ({ page }) => {
+    await loginAs(page, agent('messages'));
+    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_conversation&id=${conversationId}`);
+    const link = page.getByTestId(`conversation-attachment-${messageId}`);
+    await expect(link).toContainText('certificat.pdf');
+    const href = await link.getAttribute('href');
+    const response = await page.request.get(href ?? '');
+    expect(response.status()).toBe(200);
+    expect(await response.text()).toContain('%PDF-1.4 lot2 e2e');
+    const axe = await new AxeBuilder({ page }).include('.psc-conversation-thread').analyze();
+    expect(axe.violations.map((v) => v.id)).toEqual([]);
+  });
+
+  test('sans l’habilitation « Messages », ou sans nonce, le téléchargement est refusé', async ({ page }) => {
+    await loginAs(page, agent('messages'));
+    const noNonce = await page.request.get(`${APP_BASE}/wp-admin/admin-post.php?action=psc_download_conversation_attachment&message_id=${messageId}`);
+    expect(await noNonce.text()).not.toContain('%PDF-1.4 lot2 e2e');
+
+    await page.context().clearCookies();
+    await loginAs(page, agent('familles'));
+    const forbidden = await page.request.get(`${APP_BASE}/wp-admin/admin-post.php?action=psc_download_conversation_attachment&message_id=${messageId}`);
+    expect(forbidden.status()).toBe(403);
+  });
+});
