@@ -203,7 +203,30 @@ class Psc_School_Calendar {
                 return new WP_Error('psc_ics_url', __('Adresse de calendrier refusée : elle désigne un réseau interne.', 'periscolaire-registration'));
             }
         }
+        self::$validated_ips[$host] = array_values($ips);
         return true;
+    }
+
+    /** Adresses publiques retenues par la dernière validation, par hôte. */
+    private static $validated_ips = array();
+
+    /**
+     * Entrée CURLOPT_RESOLVE (« hôte:port:adresse ») qui épingle l'hôte de
+     * $url sur une adresse validée par validate_ics_url() : la connexion
+     * part vers l'adresse vérifiée, sans seconde résolution DNS (fenêtre
+     * de DNS rebinding, SEC-11). null si l'hôte est une adresse IP ou n'a
+     * pas été validé.
+     */
+    public static function curl_resolve_entry($url) {
+        $parts = wp_parse_url((string) $url);
+        if (!$parts || empty($parts['host'])) return null;
+        $host = strtolower(trim($parts['host'], '[]'));
+        if (filter_var($host, FILTER_VALIDATE_IP) || empty(self::$validated_ips[$host])) return null;
+        $ips = self::$validated_ips[$host];
+        $v4 = array_values(array_filter($ips, function ($ip) { return (bool) filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4); }));
+        $ip = $v4 ? $v4[0] : '[' . $ips[0] . ']';
+        $port = isset($parts['port']) ? (int) $parts['port'] : (strtolower((string) ($parts['scheme'] ?? '')) === 'https' ? 443 : 80);
+        return $host . ':' . $port . ':' . $ip;
     }
 
     /**
@@ -221,12 +244,27 @@ class Psc_School_Calendar {
             $safe = self::validate_ics_url($url);
             if (is_wp_error($safe)) return $safe;
 
-            $response = wp_remote_get($url, array(
-                'timeout'             => 20,
-                'redirection'         => 0,
-                'limit_response_size' => self::ICS_MAX_BYTES + 1,
-                'reject_unsafe_urls'  => true,
-            ));
+            // Épinglage de l'adresse validée (SEC-11) : cURL se connecte à
+            // l'IP contrôlée ci-dessus au lieu de résoudre l'hôte une seconde
+            // fois. Transport cURL de WordPress uniquement (le seul utilisé
+            // quand l'extension est présente) ; l'hôte TLS reste vérifié.
+            $resolve = self::curl_resolve_entry($url);
+            $pin = function ($handle) use ($resolve) {
+                if ($resolve !== null && defined('CURLOPT_RESOLVE')) {
+                    curl_setopt($handle, CURLOPT_RESOLVE, array($resolve));
+                }
+            };
+            add_action('http_api_curl', $pin, 10, 1);
+            try {
+                $response = wp_remote_get($url, array(
+                    'timeout'             => 20,
+                    'redirection'         => 0,
+                    'limit_response_size' => self::ICS_MAX_BYTES + 1,
+                    'reject_unsafe_urls'  => true,
+                ));
+            } finally {
+                remove_action('http_api_curl', $pin, 10);
+            }
             if (is_wp_error($response)) {
                 return $response;
             }

@@ -425,6 +425,35 @@ WP_CLI::add_command('verify-audit-lot3', function () {
         }
     };
 
+    /* SEC-11 : l'adresse validée est épinglée pour la connexion (pas de seconde résolution). */
+    $sections['SEC-11'] = function () use ($check) {
+        $host = 'ics-pin.lot3.invalid';
+        $resolve = function ($ips, $h) use ($host) { return $h === $host ? array('2001:4860:4860::8888', '8.8.8.8') : $ips; };
+        add_filter('psc_ics_resolved_ips', $resolve, 10, 2);
+        $old_url = get_option('psc_school_calendar_ics_url', null);
+        $seen = array();
+        $short = function ($pre, $args, $url) use (&$seen) {
+            $seen[] = array($url, has_action('http_api_curl') !== false);
+            return array('headers' => array(), 'body' => '', 'response' => array('code' => 500, 'message' => 'x'), 'cookies' => array(), 'filename' => null);
+        };
+        add_filter('pre_http_request', $short, 10, 3);
+        try {
+            $check(Psc_School_Calendar::validate_ics_url("https://$host/cal.ics") === true, 'SEC-11 : hôte public simulé refusé');
+            $check(Psc_School_Calendar::curl_resolve_entry("https://$host/cal.ics") === "$host:443:8.8.8.8", 'SEC-11 : entrée CURLOPT_RESOLVE inattendue « ' . Psc_School_Calendar::curl_resolve_entry("https://$host/cal.ics") . ' »');
+            $check(Psc_School_Calendar::curl_resolve_entry("http://$host/cal.ics") === "$host:80:8.8.8.8", 'SEC-11 : port http non pris en compte');
+            $check(Psc_School_Calendar::curl_resolve_entry('https://8.8.8.8/cal.ics') === null, 'SEC-11 : adresse IP littérale épinglée inutilement');
+            $check(Psc_School_Calendar::curl_resolve_entry('https://jamais-valide.invalid/cal.ics') === null, 'SEC-11 : hôte non validé épinglé');
+            update_option('psc_school_calendar_ics_url', "https://$host/cal.ics");
+            Psc_School_Calendar::import();
+            $check(count($seen) === 1 && $seen[0][0] === "https://$host/cal.ics" && $seen[0][1] === true, 'SEC-11 : épinglage non branché pendant le téléchargement');
+            $check(has_action('http_api_curl') === false || !$seen, 'SEC-11 : épinglage resté branché après le téléchargement');
+        } finally {
+            remove_filter('psc_ics_resolved_ips', $resolve, 10);
+            remove_filter('pre_http_request', $short, 10);
+            if ($old_url === null) delete_option('psc_school_calendar_ics_url'); else update_option('psc_school_calendar_ics_url', $old_url);
+        }
+    };
+
     try {
         foreach ($sections as $name => $run) {
             $run();
