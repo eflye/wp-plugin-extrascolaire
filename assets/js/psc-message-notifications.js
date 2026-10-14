@@ -65,10 +65,22 @@
     }
 
     function startPolling() {
-        if (window.Notification.permission !== 'granted' || timer !== null) return;
+        if (window.Notification.permission !== 'granted' || timer !== null || document.hidden) return;
         poll();
         timer = window.setInterval(poll, Math.max(15000, Number(config.pollInterval) || 30000));
     }
+
+    function stopPolling() {
+        if (timer === null) return;
+        window.clearInterval(timer);
+        timer = null;
+    }
+
+    // Onglet masqué : aucune interrogation (PERF-08) ; reprise immédiate,
+    // avec un appel, au retour sur l'onglet.
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) stopPolling(); else startPolling();
+    });
 
     buttons.forEach(function (button) {
         button.addEventListener('click', function () {

@@ -376,6 +376,30 @@ WP_CLI::add_command('verify-audit-lot2', function () {
         $check(!empty($erased['items_removed']) && empty($erased['items_retained']), 'RGPD-13 : bilan de l’effaceur incorrect (sans facture)');
         $check(!$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_par WHERE id = %d", $fam_j)), 'RGPD-13 : foyer sans facture anonymisé au lieu d’être supprimé');
         $check($mentions($tag . 'j') === 0, 'RGPD-13 : identité du foyer effacé encore au journal');
+
+        /* ---------------- PERF-08 : notifications légères ---------------- */
+        $fam_k = $make_family('k');
+        $family_ids[] = $fam_k;
+        $mk_msg = function ($push, $corps) use ($wpdb, $fam_k) {
+            $now = current_time('mysql');
+            $wpdb->insert(psc_table('messages'), array('titre' => 'VerifyLot2 push', 'corps' => $corps, 'statut' => 'envoye', 'canaux' => wp_json_encode(array('portail' => true, 'push' => $push)), 'date_envoi' => $now, 'auteur_id' => 1, 'created_at' => $now, 'updated_at' => $now));
+            $id = (int) $wpdb->insert_id;
+            $wpdb->insert(psc_table('message_destinataires'), array('message_id' => $id, 'family_id' => $fam_k, 'token' => wp_generate_password(32, false, false)));
+            return $id;
+        };
+        $m_push = $mk_msg(true, str_repeat('x', 1000));
+        $m_portal = $mk_msg(false, 'portail seul');
+        $m_read = $mk_msg(true, 'déjà lu');
+        $wpdb->update(psc_table('message_destinataires'), array('vu_le' => current_time('mysql')), array('message_id' => $m_read));
+        $unread = Psc_Messages::push_for_family($fam_k, true, 10);
+        $all = Psc_Messages::push_for_family($fam_k, false, 0);
+        $check(count($unread) === 1 && (int) $unread[0]->id === $m_push, 'PERF-08 : non lus push incorrects');
+        $check(strlen($unread[0]->extrait) === 400 && !isset($unread[0]->corps), 'PERF-08 : corps complet chargé');
+        $check(count($all) === 2, 'PERF-08 : messages push connus incorrects');
+        foreach (array($m_push, $m_portal, $m_read) as $mid) {
+            $wpdb->delete(psc_table('message_destinataires'), array('message_id' => $mid));
+            $wpdb->delete(psc_table('messages'), array('id' => $mid));
+        }
     } finally {
         foreach ($family_ids as $fid) {
             $wpdb->delete($t_child, array('parent_id' => $fid), array('%d'));

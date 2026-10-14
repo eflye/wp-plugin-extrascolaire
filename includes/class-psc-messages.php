@@ -257,6 +257,31 @@ class Psc_Messages {
         return $wpdb->get_results($wpdb->prepare('SELECT m.*,d.vu_le,d.vu_canal,d.accuse_le,d.email_statut,d.token FROM ' . psc_table('message_destinataires') . ' d INNER JOIN ' . psc_table('messages') . " m ON m.id=d.message_id WHERE d.family_id=%d AND m.statut='envoye' ORDER BY m.epingle DESC,m.date_envoi DESC", $family_id));
     }
 
+    /**
+     * Messages envoyés à une famille sur le canal « notification navigateur »
+     * (PERF-08) : colonnes légères seulement (corps tronqué à 400
+     * caractères), non lus d'abord si $unread_only, au plus $limit.
+     *
+     * @return object[] id, titre, extrait, vu_le
+     */
+    public static function push_for_family($family_id, $unread_only = false, $limit = 10) {
+        global $wpdb;
+        $rows = $wpdb->get_results($wpdb->prepare(
+            'SELECT m.id, m.titre, LEFT(m.corps, 400) AS extrait, m.canaux, d.vu_le FROM ' . psc_table('message_destinataires') . ' d INNER JOIN ' . psc_table('messages') . " m ON m.id=d.message_id
+             WHERE d.family_id=%d AND m.statut='envoye'" . ($unread_only ? ' AND d.vu_le IS NULL' : '') . ' ORDER BY m.date_envoi DESC',
+            $family_id
+        ));
+        $out = array();
+        foreach ($rows as $row) {
+            $channels = json_decode((string) $row->canaux, true);
+            if (empty($channels['push'])) continue;
+            unset($row->canaux);
+            $out[] = $row;
+            if ($limit > 0 && count($out) >= $limit) break;
+        }
+        return $out;
+    }
+
     public static function recipient($message_id, $token) {
         global $wpdb;
         return $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . psc_table('message_destinataires') . ' WHERE message_id=%d AND token=%s', $message_id, $token));

@@ -22,12 +22,7 @@ class Psc_Messages_Frontend {
         // déclencher une notification au nom de la famille consultée.
         if ($portal && !Psc_Parents::is_impersonated()) {
             $parent = Psc_Parents::current();
-            $messages = Psc_Messages::for_family((int) $parent->id);
-            $known_ids = array();
-            foreach ($messages as $message) {
-                $channels = json_decode((string) $message->canaux, true);
-                if (!empty($channels['push'])) $known_ids[] = (int) $message->id;
-            }
+            $known_ids = array_map('intval', wp_list_pluck(Psc_Messages::push_for_family((int) $parent->id, false, 0), 'id'));
             wp_enqueue_script('psc-message-notifications', PSC_URL . 'assets/js/psc-message-notifications.js', array(), PSC_VERSION, true);
             wp_localize_script('psc-message-notifications', 'PSC_MESSAGE_NOTIFICATIONS', array(
                 'ajaxUrl' => admin_url('admin-ajax.php'),
@@ -53,18 +48,16 @@ class Psc_Messages_Frontend {
         if (!$parent || !psc_verify_parent_nonce('psc_message_notifications', (int) $parent->id, $parent_nonce)) {
             wp_send_json_error(array('code' => 'auth'), 403);
         }
+        // Colonnes légères et non lus seulement (PERF-08) : jamais le corps
+        // complet de tous les messages à chaque interrogation.
         $items = array();
-        foreach (Psc_Messages::for_family((int) $parent->id) as $message) {
-            if ($message->vu_le) continue;
-            $channels = json_decode((string) $message->canaux, true);
-            if (empty($channels['push'])) continue;
+        foreach (Psc_Messages::push_for_family((int) $parent->id, true, 10) as $message) {
             $items[] = array(
                 'id' => (int) $message->id,
                 'title' => sanitize_text_field($message->titre),
-                'body' => wp_trim_words(wp_strip_all_tags($message->corps), 18, '…'),
+                'body' => wp_trim_words(wp_strip_all_tags($message->extrait), 18, '…'),
                 'url' => add_query_arg(array('psc_tab' => 'messages', 'message_id' => (int) $message->id), Psc_Mailer::form_page_url()),
             );
-            if (count($items) >= 10) break;
         }
         nocache_headers();
         wp_send_json_success(array('messages' => $items));
