@@ -20,6 +20,11 @@ class Psc_Frontend extends Psc_Frontend_Base {
         add_shortcode('periscolaire_form', array(__CLASS__, 'shortcode'));
         add_action('wp_enqueue_scripts', array(__CLASS__, 'assets'));
 
+        // En-têtes anti-cache émis avant tout octet de sortie : le callback
+        // du shortcode s'exécute après l'envoi du <head>, trop tard sans le
+        // tampon de gabarit des versions récentes de WordPress.
+        add_action('template_redirect', array(__CLASS__, 'portal_private_headers'));
+
         // Une fois connectée, la famille n'a plus besoin du texte de
         // présentation rédigé autour du shortcode dans l'éditeur (utile
         // uniquement avant connexion, pour donner envie/expliquer) : le
@@ -592,25 +597,53 @@ class Psc_Frontend extends Psc_Frontend_Base {
 
     /* ---------------- Affichage ---------------- */
 
-    public static function shortcode($atts) {
-        // AUCUN intermédiaire ne doit conserver ces pages : le portail
-        // authentifie un visiteur hors comptes WordPress (cookie
-        // psc_session) et des URL portant des jetons (liens de connexion)
-        // traversent le rendu invité. Un cache partagé — extension de
-        // cache WordPress, CDN, proxy d'hébergeur — qui traiterait ce
-        // cookie comme un marqueur anonyme pourrait servir le HTML d'une
-        // famille à une autre. `no-store` interdit aussi la conservation
-        // par le navigateur (retour arrière, instantanés de session) ;
-        // `private` interdit la mise en cache partagée même si un cache
-        // ignorait no-store. Émis au point d'entrée du rendu, avant tout
-        // octet de sortie — et toujours, vue connectée comme vue invité :
-        // le wizard public porte aussi des acceptations (SEPA, règlement).
-        if (!headers_sent()) {
-            header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0', true);
-            header('Pragma: no-cache', true);
-            header('Expires: Wed, 11 Jan 1984 05:00:00 GMT', true);
+    /**
+     * En-têtes interdisant toute conservation de la page.
+     *
+     * AUCUN intermédiaire ne doit conserver ces pages : le portail
+     * authentifie un visiteur hors comptes WordPress (cookie psc_session)
+     * et des URL portant des jetons (liens de connexion) traversent le
+     * rendu invité. Un cache partagé — extension de cache WordPress, CDN,
+     * proxy d'hébergeur — qui traiterait ce cookie comme un marqueur
+     * anonyme pourrait servir le HTML d'une famille à une autre.
+     * `no-store` interdit aussi la conservation par le navigateur (retour
+     * arrière, instantanés de session) ; `private` interdit la mise en
+     * cache partagée même si un cache ignorait no-store.
+     *
+     * Partagée avec l'écran intervenants (Psc_Sidscm). À appeler sur
+     * `template_redirect`, avant tout octet de sortie ; sans effet si les
+     * en-têtes sont déjà partis.
+     */
+    public static function send_private_headers() {
+        if (headers_sent()) {
+            return;
         }
+        header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0', true);
+        header('Pragma: no-cache', true);
+        header('Expires: Wed, 11 Jan 1984 05:00:00 GMT', true);
         nocache_headers();
+    }
+
+    /**
+     * template_redirect : en-têtes privés sur toute page portant le
+     * portail — vue connectée comme vue invité : le wizard public porte
+     * aussi des acceptations (SEPA, règlement).
+     */
+    public static function portal_private_headers() {
+        if (!is_singular()) {
+            return;
+        }
+        $post = get_post();
+        if ($post && has_shortcode($post->post_content, 'periscolaire_form')) {
+            self::send_private_headers();
+        }
+    }
+
+    public static function shortcode($atts) {
+        // Filet de sécurité (shortcode rendu hors d'une page singulière,
+        // ex. bloc de widget) : sans effet si template_redirect les a déjà
+        // émis ou si la sortie a commencé.
+        self::send_private_headers();
 
         ob_start();
 
