@@ -166,6 +166,34 @@ class Psc_Mailer {
         return self::send($new_email, $subject, self::layout($body, $subject));
     }
 
+    /**
+     * Avis envoyé à l'ANCIENNE adresse lors d'une demande de changement
+     * d'e-mail (SEC-02) : le titulaire est prévenu et peut annuler la
+     * demande tant qu'elle n'est pas confirmée. Le lien d'annulation est
+     * construit et validé par l'appelant (Psc_Parents) ; ce message ne fait
+     * que le transmettre. Texte éditable : modèle « email_change_old ».
+     *
+     * @param string $old_email  Adresse actuelle (destinataire).
+     * @param string $new_email  Adresse demandée.
+     * @param string $cancel_url Lien d'annulation de la demande.
+     * @return bool Résultat de wp_mail().
+     */
+    public static function send_email_change_notice_old($old_email, $new_email, $cancel_url) {
+        if (!is_email($old_email)) {
+            return false;
+        }
+        $site    = self::site_name();
+        $vars    = array('site' => $site, 'nouvelle_adresse' => $new_email);
+        $subject = Psc_Email_Templates::subject('email_change_old', $vars);
+        $intro   = Psc_Email_Templates::body_html('email_change_old', $vars);
+
+        $body = self::h2(__('Changement d\'adresse de connexion demandé', 'periscolaire-registration'))
+            . '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 12px;">' . $intro . '</p>'
+            . self::btn($cancel_url, __('Annuler cette demande', 'periscolaire-registration'));
+
+        return self::send($old_email, $subject, self::layout($body, $subject));
+    }
+
     /* ------------------------------------------------------------------ */
     /* Récapitulatif planning                                               */
     /* ------------------------------------------------------------------ */

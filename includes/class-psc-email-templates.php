@@ -33,6 +33,13 @@ class Psc_Email_Templates {
                 'vars'    => array('{{site}}'),
                 'note'    => __('Le bouton d\'accès est ajouté automatiquement.', 'periscolaire-registration'),
             ),
+            'email_change_old' => array(
+                'label'   => __('Changement d\'adresse e-mail — avis à l\'ancienne adresse', 'periscolaire-registration'),
+                'subject' => __('[{{site}}] Demande de changement de votre adresse de connexion', 'periscolaire-registration'),
+                'body'    => __("Une demande de changement de l'adresse de connexion de votre espace famille vient d'être faite depuis votre espace. La nouvelle adresse demandée est : {{nouvelle_adresse}}.\n\nVotre adresse actuelle reste active tant que la nouvelle n'a pas été confirmée.\n\nSi vous n'êtes pas à l'origine de cette demande, annulez-la avec le bouton ci-dessous, puis contactez la mairie.", 'periscolaire-registration'),
+                'vars'    => array('{{site}}', '{{nouvelle_adresse}}'),
+                'note'    => __('Envoyé à l\'ANCIENNE adresse lors d\'un changement d\'e-mail. Le bouton d\'annulation de la demande est ajouté automatiquement.', 'periscolaire-registration'),
+            ),
             'recap' => array(
                 'label'   => __('Récapitulatif du planning', 'periscolaire-registration'),
                 'subject' => __('[{{site}}] Votre planning périscolaire — {{annee}}', 'periscolaire-registration'),
