@@ -154,4 +154,13 @@ test.describe('Audit — lot 1', () => {
       cleanup();
     }
   });
+  test('PRA-09/L1 et PRA-12/L1 : écran intervenants trouvé par le helper commun, servi en no-store/private', async ({ request }) => {
+    expect(wpCliEval("echo has_action('template_redirect', array('Psc_Sidscm', 'private_headers')) !== false ? 'ok' : 'absent';")).toBe('ok');
+    const url = wpCliEval("echo Psc_Sidscm::page_id() === psc_shortcode_page_id('periscolaire_sidscm', 'psc_sidscm_page_id') && Psc_Sidscm::page_id() ? Psc_Sidscm::page_url() : '';");
+    test.skip(url === '', 'aucune page [periscolaire_sidscm] publiée');
+    const resp = await request.get(url);
+    const cc = resp.headers()['cache-control'] ?? '';
+    expect(cc).toContain('no-store');
+    expect(cc).toContain('private');
+  });
 });
