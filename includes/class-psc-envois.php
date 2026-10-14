@@ -41,6 +41,9 @@ class Psc_Envois {
     /** Délai après lequel une ligne a_envoyer est considérée abandonnée. */
     const REPRISE_APRES = 600;
 
+    /** Durée de conservation du suivi des envois (PERF-12) : 13 mois. */
+    const CONSERVATION_MOIS = 13;
+
     /** Envois traités par passage de la tâche psc_envois_lot. */
     const LOT_TAILLE = 50;
 
@@ -268,7 +271,36 @@ class Psc_Envois {
         foreach ((array) $rows as $row) {
             self::tenter($row);
         }
+        self::purger();
         return count((array) $rows);
+    }
+
+    /**
+     * Purge le suivi des envois de plus de CONSERVATION_MOIS mois (la table
+     * grossissait sans fin). Au plus une fois par jour, depuis la tâche de
+     * reprise, par paquets : seuls des codes et des identifiants y sont
+     * conservés, le statut d'envoi des objets (factures, menus) vit dans
+     * leurs propres tables.
+     *
+     * @param bool $force Ignore le délai d'une journée (tests).
+     * @return int Lignes supprimées.
+     */
+    public static function purger($force = false) {
+        global $wpdb;
+        $last = (int) get_option('psc_envois_purge_at', 0);
+        if (!$force && $last > time() - DAY_IN_SECONDS) return 0;
+        update_option('psc_envois_purge_at', time(), false);
+
+        $seuil = gmdate('Y-m-d H:i:s', strtotime('-' . self::CONSERVATION_MOIS . ' months', time()));
+        $total = 0;
+        do {
+            $n = (int) $wpdb->query($wpdb->prepare(
+                'DELETE FROM ' . psc_table('envois') . ' WHERE created_at < %s LIMIT 1000',
+                $seuil
+            ));
+            $total += max(0, $n);
+        } while ($n === 1000);
+        return $total;
     }
 
     /** Cause du dernier échec d'un lot (code, jamais une adresse), ou null. */

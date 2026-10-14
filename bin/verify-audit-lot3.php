@@ -630,6 +630,28 @@ WP_CLI::add_command('verify-audit-lot3', function () {
         }
     };
 
+    /* PERF-12/L3 : le suivi des envois est purgé après 13 mois. */
+    $sections['PERF-12/L3'] = function () use ($check) {
+        global $wpdb;
+        $t = psc_table('envois');
+        $type = 'verify_lot3_purge';
+        $wpdb->query($wpdb->prepare("DELETE FROM $t WHERE objet_type = %s", $type));
+        $old = gmdate('Y-m-d H:i:s', strtotime('-14 months'));
+        $recent = gmdate('Y-m-d H:i:s', strtotime('-12 months'));
+        foreach (array('vieux' => $old, 'recent' => $recent) as $k => $date) {
+            $wpdb->insert($t, array('objet_type' => $type, 'objet_id' => 1, 'lot' => $k, 'famille_id' => null, 'cle' => "$type:$k",
+                'statut' => Psc_Envois::ACCEPTE, 'tentatives' => 1, 'created_at' => $date, 'updated_at' => $date));
+        }
+        try {
+            Psc_Envois::purger(true);
+            $left = $wpdb->get_col($wpdb->prepare("SELECT lot FROM $t WHERE objet_type = %s", $type));
+            $check($left === array('recent'), 'PERF-12 : purge des envois inexacte (' . implode(',', $left) . ')');
+            $check(Psc_Envois::purger() === 0, 'PERF-12 : purge rejouée dans la journée');
+        } finally {
+            $wpdb->query($wpdb->prepare("DELETE FROM $t WHERE objet_type = %s", $type));
+        }
+    };
+
     try {
         foreach ($sections as $name => $run) {
             $run();
