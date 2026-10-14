@@ -138,10 +138,9 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
 
     /**
      * Suppression d'une famille : purge chacun de ses enfants (cf.
-     * purge_child), ses échanges et ses traces d'impersonation. Les demandes
-     * d'inscription historiques (wp_psc_requests) ne référencent pas
-     * parent_id — elles documentent la candidature d'origine, pas le compte,
-     * et ne sont donc pas purgées ici.
+     * purge_child), ses échanges, ses traces d'impersonation, ses demandes
+     * d'inscription (retrouvées par adresse e-mail, elles ne référencent
+     * pas parent_id) et les accusés de lecture de ses diffusions.
      *
      * Les factures ne sont jamais détruites : ce sont des pièces comptables,
      * dont la conservation relève d'une obligation légale qui prime sur la
@@ -196,13 +195,13 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
 
         // Ne pas dépendre uniquement de la contrainte étrangère : certains
         // hébergeurs ne permettent pas sa création (état déjà surveillé).
-        // Constat hors périmètre (non corrigé ici) : cette méthode ne
-        // supprime pas non plus les lignes de psc_message_destinataires de
-        // la famille — un oubli antérieur aux conversations, laissé pour
-        // une correction dédiée.
         Psc_Impersonation::delete_for_family($id);
         Psc_Login_Tokens::forget_parent($id);
         Psc_Conversations::delete_for_family($id);
+        // Demandes d'inscription (titulaire et second parent) et accusés de
+        // lecture des diffusions : même reliquat que l'effaceur RGPD (RGPD-03).
+        Psc_Privacy::forget_requests(array($family_row->email, $family_row->second_parent_email));
+        Psc_Privacy::delete_message_receipts($id);
 
         if ($invoices > 0) {
             $wpdb->update($t_parent, Psc_Privacy::anonymized_parent_fields($id), array('id' => $id));

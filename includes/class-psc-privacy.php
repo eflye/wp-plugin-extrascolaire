@@ -133,7 +133,13 @@ class Psc_Privacy {
         $email_address = trim((string) wp_unslash($email_address));
         $parent = self::find_family_by_email($email_address);
         if (!$parent) {
-            return array('data' => array(), 'done' => true);
+            // Famille jamais validée : seules ses demandes d'inscription
+            // existent (RGPD-03).
+            $items = self::request_items(array($email_address));
+            if ($items && class_exists('Psc_Audit')) {
+                Psc_Audit::log('privacy.export', array('objet_type' => 'demande', 'meta' => array('demandes' => count($items))));
+            }
+            return array('data' => $items, 'done' => true);
         }
 
         if (class_exists('Psc_Audit')) {
@@ -209,7 +215,149 @@ class Psc_Privacy {
             }
         }
 
+        $items = array_merge($items, self::request_items(array($parent->email, $parent->second_parent_email)));
+
+        foreach (self::message_receipts_of_family($parent->id) as $receipt) {
+            $items[] = array(
+                'group_id'    => 'psc-diffusions',
+                'group_label' => __('Périscolaire — messages de la mairie reçus', 'periscolaire-registration'),
+                'item_id'     => 'psc-diffusion-' . $receipt->id,
+                'data'        => array(
+                    array('name' => __('Message', 'periscolaire-registration'), 'value' => (string) $receipt->titre),
+                    array('name' => __('Envoyé le', 'periscolaire-registration'), 'value' => (string) $receipt->date_envoi),
+                    array('name' => __('Statut de l’e-mail', 'periscolaire-registration'), 'value' => (string) $receipt->email_statut),
+                    array('name' => __('Lu le', 'periscolaire-registration'), 'value' => (string) $receipt->vu_le),
+                    array('name' => __('Accusé de lecture le', 'periscolaire-registration'), 'value' => (string) $receipt->accuse_le),
+                ),
+            );
+        }
+
         return array('data' => $items, 'done' => true);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Demandes d'inscription et accusés de lecture (RGPD-03)              */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Demandes d'inscription dont l'adresse est celle du demandeur ou du
+     * second parent déclaré, quel que soit leur statut.
+     *
+     * @param string[] $emails
+     * @return object[]
+     */
+    public static function requests_for_emails(array $emails) {
+        global $wpdb;
+        $emails = self::normalize_emails($emails);
+        if (!$emails) return array();
+        $ph = implode(',', array_fill(0, count($emails), '%s'));
+        return $wpdb->get_results($wpdb->prepare(
+            'SELECT * FROM ' . psc_table('requests') . " WHERE LOWER(email) IN ($ph) OR LOWER(second_parent_email) IN ($ph) ORDER BY id",
+            array_merge($emails, $emails)
+        ));
+    }
+
+    /**
+     * Efface les demandes d'inscription liées à ces adresses (justificatifs
+     * en attente compris). En portée « second » (effacement du seul second
+     * parent), une demande déposée par l'autre parent n'est pas supprimée :
+     * seuls ses champs second_parent_* sont vidés.
+     *
+     * @param string[] $emails
+     * @return int Nombre de demandes supprimées ou modifiées.
+     */
+    public static function forget_requests(array $emails, $scope = 'foyer') {
+        global $wpdb;
+        $emails = self::normalize_emails($emails);
+        $count = 0;
+        foreach (self::requests_for_emails($emails) as $request) {
+            $is_requester = in_array(strtolower((string) $request->email), $emails, true);
+            if ($scope === 'second' && !$is_requester) {
+                $wpdb->update(psc_table('requests'), array(
+                    'second_parent_prenom' => null, 'second_parent_nom' => null,
+                    'second_parent_email' => null, 'second_parent_telephone' => null,
+                ), array('id' => (int) $request->id));
+                $count++;
+                continue;
+            }
+            if (class_exists('Psc_Assurances')) Psc_Assurances::delete_pending_files((int) $request->id);
+            $count += (int) $wpdb->delete(psc_table('requests'), array('id' => (int) $request->id), array('%d'));
+        }
+        return $count;
+    }
+
+    /** Accusés de lecture et jetons des diffusions d'une famille (aucune clé étrangère ne les couvre). */
+    public static function delete_message_receipts($family_id) {
+        global $wpdb;
+        return (int) $wpdb->delete(psc_table('message_destinataires'), array('family_id' => (int) $family_id), array('%d'));
+    }
+
+    private static function normalize_emails(array $emails) {
+        $out = array();
+        foreach ($emails as $email) {
+            $email = strtolower(trim((string) $email));
+            if ($email !== '' && is_email($email) && !in_array($email, $out, true)) $out[] = $email;
+        }
+        return $out;
+    }
+
+    private static function message_receipts_of_family($family_id) {
+        global $wpdb;
+        return $wpdb->get_results($wpdb->prepare(
+            'SELECT d.id, d.email_statut, d.vu_le, d.accuse_le, m.titre, m.date_envoi FROM ' . psc_table('message_destinataires') . ' d
+             LEFT JOIN ' . psc_table('messages') . ' m ON m.id = d.message_id
+             WHERE d.family_id = %d ORDER BY d.id',
+            (int) $family_id
+        ));
+    }
+
+    /** Groupe d'export « demandes d'inscription » pour ces adresses. */
+    private static function request_items(array $emails) {
+        $items = array();
+        foreach (self::requests_for_emails($emails) as $request) {
+            $items[] = array(
+                'group_id'    => 'psc-demandes',
+                'group_label' => __('Périscolaire — demandes d’inscription', 'periscolaire-registration'),
+                'item_id'     => 'psc-demande-' . $request->id,
+                'data'        => self::request_fields($request),
+            );
+        }
+        return $items;
+    }
+
+    private static function request_fields($request) {
+        $fields = array(
+            array('name' => __('Déposée le', 'periscolaire-registration'), 'value' => (string) $request->created_at),
+            array('name' => __('Statut', 'periscolaire-registration'), 'value' => (string) $request->status),
+            array('name' => __('Décidée le', 'periscolaire-registration'), 'value' => (string) $request->decided_at),
+            array('name' => __('E-mail', 'periscolaire-registration'), 'value' => (string) $request->email),
+            array('name' => __('Nom', 'periscolaire-registration'), 'value' => (string) $request->nom),
+            array('name' => __('Prénom', 'periscolaire-registration'), 'value' => (string) $request->prenom),
+            array('name' => __('Téléphone', 'periscolaire-registration'), 'value' => (string) $request->telephone),
+            array('name' => __('Adresse', 'periscolaire-registration'), 'value' => trim($request->adresse . ' ' . $request->code_postal . ' ' . $request->ville)),
+            array('name' => __('Second parent', 'periscolaire-registration'), 'value' => trim($request->second_parent_prenom . ' ' . $request->second_parent_nom . ' ' . $request->second_parent_email . ' ' . $request->second_parent_telephone)),
+            array('name' => __('Message', 'periscolaire-registration'), 'value' => (string) $request->message),
+            array('name' => __('Mode de paiement', 'periscolaire-registration'), 'value' => (string) $request->payment_mode),
+        );
+        if (!empty($request->sepa_iban) && function_exists('psc_decrypt')) {
+            $iban = (string) psc_decrypt($request->sepa_iban);
+            $fields[] = array('name' => __('IBAN (partiellement masqué)', 'periscolaire-registration'), 'value' => function_exists('psc_mask_iban') ? psc_mask_iban($iban) : self::mask_iban($iban));
+        }
+        if (!empty($request->sepa_titulaire)) {
+            $fields[] = array('name' => __('Titulaire du compte', 'periscolaire-registration'), 'value' => (string) $request->sepa_titulaire);
+        }
+        $children = json_decode((string) $request->children_json, true);
+        if (is_array($children)) {
+            foreach (array_values($children) as $i => $c) {
+                if (!is_array($c)) continue;
+                $fields[] = array(
+                    /* translators: %d: rang de l'enfant dans la demande */
+                    'name'  => sprintf(__('Enfant %d', 'periscolaire-registration'), $i + 1),
+                    'value' => trim(($c['prenom'] ?? '') . ' ' . ($c['nom'] ?? '') . ' ' . ($c['date_naissance'] ?? '') . ' ' . ($c['classe'] ?? '')),
+                );
+            }
+        }
+        return $fields;
     }
 
     public static function register_eraser($erasers) {
@@ -241,10 +389,17 @@ class Psc_Privacy {
         $email_address = trim((string) wp_unslash($email_address));
         $parent = self::find_family_by_email($email_address);
         if (!$parent) {
+            // Famille jamais validée : ses demandes d'inscription (RGPD-03).
+            // Visée comme second parent d'une demande, l'adresse n'efface
+            // que ses propres champs, pas la demande de l'autre parent.
+            $removed = self::forget_requests(array($email_address), 'second');
+            if ($removed > 0 && class_exists('Psc_Audit')) {
+                Psc_Audit::log('privacy.effacement', array('objet_type' => 'demande', 'meta' => array('portee' => 'demandes', 'demandes' => $removed)));
+            }
             return array(
-                'items_removed'  => false,
+                'items_removed'  => $removed > 0,
                 'items_retained' => false,
-                'messages'       => array(),
+                'messages'       => $removed > 0 ? array(__('Les demandes d’inscription liées à cette adresse ont été supprimées.', 'periscolaire-registration')) : array(),
                 'done'           => true,
             );
         }
@@ -271,6 +426,7 @@ class Psc_Privacy {
         // Journal d'audit : les lignes qui nomment le second parent sont
         // neutralisées, le reste du suivi du foyer est conservé (RGPD-04).
         if (class_exists('Psc_Audit')) Psc_Audit::forget_second_parent((int) $parent->id);
+        self::forget_requests(array($parent->second_parent_email), 'second');
 
         $wpdb->update(
             psc_table('parents'),
@@ -370,6 +526,8 @@ class Psc_Privacy {
         if (class_exists('Psc_Login_Tokens')) {
             Psc_Login_Tokens::forget_parent($parent->id);
         }
+        self::forget_requests(array($parent->email, $parent->second_parent_email));
+        self::delete_message_receipts($parent->id);
         if (class_exists('Psc_Audit')) {
             Psc_Audit::forget_family($parent->id, $needles);
         }
@@ -384,7 +542,7 @@ class Psc_Privacy {
             'items_removed'  => true,
             'items_retained' => true,
             'messages'       => array(
-                __('Les données du foyer (enfants, planning, personnes autorisées, échanges) ont été supprimées. Les factures sont conservées, comme le prévoit l’obligation légale de conservation des pièces comptables (10 ans).', 'periscolaire-registration'),
+                __('Les données du foyer (enfants, planning, personnes autorisées, échanges, demandes d’inscription, accusés de lecture) ont été supprimées. Les factures sont conservées, comme le prévoit l’obligation légale de conservation des pièces comptables (10 ans).', 'periscolaire-registration'),
             ),
             'done' => true,
         );

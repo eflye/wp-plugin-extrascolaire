@@ -222,6 +222,48 @@ WP_CLI::add_command('verify-audit-lot2', function () {
         $check(file_exists(psc_private_path($recent_orphan)), 'RGPD-02 : fichier récent supprimé à tort');
         @unlink(psc_private_path($recent_orphan));
         @rmdir(psc_private_path($rel_dir));
+
+        /* ---------------- RGPD-03 : demandes et accusés de lecture ---------------- */
+        $t_req = psc_table('requests');
+        $t_dest = psc_table('message_destinataires');
+        $make_request = function ($email, $second = null) use ($wpdb, $t_req) {
+            $wpdb->insert($t_req, array(
+                'email' => $email, 'nom' => 'Demande', 'status' => 'pending', 'second_parent_email' => $second,
+                'second_parent_nom' => $second ? 'SecondDemande' : null, 'created_at' => current_time('mysql'),
+            ));
+            return (int) $wpdb->insert_id;
+        };
+        $req_exists = function ($id) use ($wpdb, $t_req) {
+            return $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_req WHERE id = %d", $id));
+        };
+        $lone = 'demande' . $tag . '@example.test';
+        $r1 = $make_request($lone);
+        $export = Psc_Privacy::export_family_data($lone);
+        $groups = wp_list_pluck($export['data'], 'group_id');
+        $check(in_array('psc-demandes', $groups, true), 'RGPD-03 : export vide pour une famille jamais validée');
+        $erase = Psc_Privacy::erase_family_data($lone);
+        $check(!empty($erase['items_removed']) && !$req_exists($r1), 'RGPD-03 : demande non effacée (famille jamais validée)');
+
+        $other = 'autre' . $tag . '@example.test';
+        $second = 'secdemande' . $tag . '@example.test';
+        $r2 = $make_request($other, $second);
+        Psc_Privacy::erase_family_data($second);
+        $r = $req_exists($r2);
+        $check($r && $r->second_parent_email === null && $r->second_parent_nom === null, 'RGPD-03 : second parent d’une demande non effacé, ou demande de l’autre parent supprimée');
+        $wpdb->delete($t_req, array('id' => $r2), array('%d'));
+
+        $fam_d = $make_family('d');
+        $family_ids[] = $fam_d;
+        $fam_d_email = $tag . 'd@example.test';
+        $r3 = $make_request($fam_d_email);
+        $wpdb->insert($t_dest, array('message_id' => 999999999, 'family_id' => $fam_d, 'token' => md5($tag)));
+        $receipt = (int) $wpdb->insert_id;
+        $groups = wp_list_pluck(Psc_Privacy::export_family_data($fam_d_email)['data'], 'group_id');
+        $check(in_array('psc-demandes', $groups, true) && in_array('psc-diffusions', $groups, true), 'RGPD-03 : export sans demandes ou accusés de lecture');
+        Psc_Admin_Familles::delete_family($fam_d);
+        $check(!$req_exists($r3), 'RGPD-03 : demande conservée après suppression de la famille');
+        $check(!$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_dest WHERE id = %d", $receipt)), 'RGPD-03 : accusé de lecture conservé après suppression de la famille');
+        $wpdb->delete($t_dest, array('id' => $receipt), array('%d'));
     } finally {
         foreach ($family_ids as $fid) {
             $wpdb->delete($t_child, array('parent_id' => $fid), array('%d'));
