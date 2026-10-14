@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 /**
  * Suivi des envois d'e-mails par destinataire : menus de la semaine,
- * factures, commandes fournisseur.
+ * factures, commandes fournisseur, notifications de fermeture.
  *
  * Chaque envoi unitaire (un objet, un destinataire, un lot) est RÉSERVÉ
  * en base avant le moindre mail, sous une clé d'idempotence unique. Un
@@ -381,6 +381,9 @@ class Psc_Envois {
             'menu'                 => array('Psc_Menus', 'deliver'),
             'facture'              => array('Psc_Invoices', 'deliver'),
             'commande_fournisseur' => array('Psc_Supplier_Orders', 'deliver'),
+            'fermeture'            => array('Psc_School_Calendar', 'deliver_closure'),
+            'fermeture_service'    => array('Psc_School_Calendar', 'deliver_service_closure'),
+            'forfait_declasse'     => array('Psc_School_Calendar', 'deliver_forfait_downgrade'),
         );
         $senders = apply_filters('psc_envoi_senders', $senders);
         return isset($senders[$type]) && is_callable($senders[$type]) ? $senders[$type] : null;

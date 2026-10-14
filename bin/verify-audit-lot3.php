@@ -190,6 +190,110 @@ WP_CLI::add_command('verify-audit-lot3', function () {
         }
     };
 
+    /* PERF-01 : fermeture d'une plage en transaction, un récapitulatif par famille, hors requête. */
+    $sections['PERF-01'] = function () use ($check, &$mails) {
+        global $wpdb;
+        $t_par = psc_table('parents');
+        $t_ch  = psc_table('children');
+        $t_cal = psc_table('school_calendar');
+        $t_env = psc_table('envois');
+        $emails = array('verify-lot3-ferm-a@example.invalid', 'verify-lot3-ferm-b@example.invalid');
+        $year_key = '2085-2086';
+        $purge = function () use ($wpdb, $emails, $t_par, $t_ch, $t_cal, $t_env, $year_key) {
+            foreach ($emails as $email) {
+                $pid = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM $t_par WHERE email = %s", $email));
+                if (!$pid) continue;
+                foreach ($wpdb->get_col($wpdb->prepare("SELECT DISTINCT objet_id FROM $t_env WHERE famille_id = %d AND objet_type IN ('fermeture','fermeture_service','forfait_declasse')", $pid)) as $oid) {
+                    delete_option('psc_fermeture_' . (int) $oid);
+                }
+                foreach ($wpdb->get_col($wpdb->prepare("SELECT id FROM $t_ch WHERE parent_id = %d", $pid)) as $cid) {
+                    Psc_Planning::delete_for_child((int) $cid);
+                    $wpdb->delete(psc_table('child_school_years'), array('child_id' => (int) $cid));
+                }
+                $wpdb->delete($t_ch, array('parent_id' => $pid));
+                $wpdb->delete($t_par, array('id' => $pid));
+            }
+            $wpdb->query("DELETE FROM $t_cal WHERE jour_date BETWEEN '2085-09-01' AND '2086-07-31'");
+            $year = Psc_School_Years::get_by_key($year_key);
+            if ($year && $year->statut !== 'active') Psc_School_Years::delete((int) $year->id);
+            Psc_School_Calendar::flush_closed_cache();
+            Psc_Planning::flush_cache();
+        };
+        $purge();
+        try {
+            $y = Psc_School_Years::ensure('2085-09-03', '2086-07-03');
+            Psc_School_Year::save($year_key, '2085-09-03', '2086-07-03', '[]', 48);
+            $pids = array();
+            foreach ($emails as $i => $email) {
+                $pid = (int) Psc_Parents::create($email, 'Fermeture');
+                $wpdb->insert($t_ch, array('parent_id' => $pid, 'nom' => 'Fermeture', 'prenom' => 'Enfant' . $i, 'created_at' => current_time('mysql')));
+                $cid = (int) $wpdb->insert_id;
+                Psc_School_Years::enroll($cid, $y, 'CE1');
+                Psc_Planning::toggle_pattern($cid, $year_key, 1, 'GM', true); // lundi
+                Psc_Planning::toggle_pattern($cid, $year_key, 2, 'CANT', true); // mardi
+                $pids[$email] = $pid;
+            }
+            Psc_Planning::flush_cache();
+            Psc_School_Year::flush_cache();
+
+            // Deux semaines : 2 lundis + 2 mardis par famille.
+            $debut = '2085-10-08';
+            $fin   = '2085-10-19';
+            $check(date('N', strtotime($debut)) === '1', 'PERF-01 : jeu de dates à revoir (le début doit être un lundi)');
+
+            // Échec d'écriture : rien n'est fermé, personne n'est prévenu.
+            $sabotage = function ($sql) use ($t_cal) { return (strpos($sql, "INSERT INTO $t_cal") === 0) ? 'SELECT * FROM psc_table_inexistante' : $sql; };
+            add_filter('query', $sabotage);
+            $suppress = $wpdb->suppress_errors(true);
+            $mails = array();
+            $r = Psc_School_Calendar::close_range($debut, $fin, 'Vérif');
+            $wpdb->suppress_errors($suppress);
+            remove_filter('query', $sabotage);
+            $check(is_wp_error($r), 'PERF-01 : échec d\'écriture non signalé');
+            $check((int) $wpdb->get_var("SELECT COUNT(*) FROM $t_cal WHERE jour_date BETWEEN '$debut' AND '$fin'") === 0, 'PERF-01 : jours fermés malgré l\'échec');
+            $check(!$mails, 'PERF-01 : familles prévenues d\'une fermeture non enregistrée');
+
+            // Fermeture réelle.
+            $mails = array();
+            $queries = $wpdb->num_queries;
+            $r = Psc_School_Calendar::close_range($debut, $fin, 'Vérif fermeture');
+            $check(!is_wp_error($r) && $r['days'] === 12, 'PERF-01 : ' . (is_wp_error($r) ? $r->get_error_code() : $r['days']) . ' jours au lieu de 12');
+            $closed = (int) $wpdb->get_var("SELECT COUNT(*) FROM $t_cal WHERE jour_date BETWEEN '$debut' AND '$fin' AND is_closed = 1 AND source = 'manual'");
+            $check($closed === 12, "PERF-01 : $closed jours marqués fermés au lieu de 12");
+            $check(Psc_School_Calendar::is_closed($debut), 'PERF-01 : jour non vu fermé (cache)');
+            $check($wpdb->num_queries - $queries < 60, 'PERF-01 : ' . ($wpdb->num_queries - $queries) . ' requêtes pour fermer 12 jours');
+
+            foreach ($emails as $email) {
+                $mine = array_values(array_filter($mails, function ($m) use ($email) { return in_array($email, (array) $m['to'], true); }));
+                $check(count($mine) === 1, "PERF-01 : $email reçoit " . count($mine) . ' e-mail(s) au lieu d\'un récapitulatif');
+                if ($mine) {
+                    $i = array_search($email, $emails, true);
+                    $rows = substr_count((string) $mine[0]['message'], 'Enfant' . $i . ' Fermeture</td>');
+                    $check($rows === 4, "PERF-01 : récapitulatif de $email avec $rows ligne(s) au lieu de 4");
+                    $check(strpos((string) $mine[0]['subject'], date_i18n('d/m/Y', strtotime($debut))) !== false, 'PERF-01 : période absente du sujet');
+                }
+            }
+            $bilan = $r['bilan'];
+            $check($bilan && $bilan['total'] === 2 && $bilan[Psc_Envois::ACCEPTE] === 2, 'PERF-01 : bilan des envois ' . wp_json_encode($bilan));
+            $oid = (int) $wpdb->get_var($wpdb->prepare("SELECT objet_id FROM $t_env WHERE objet_type = 'fermeture' AND lot = %s LIMIT 1", $bilan ? $bilan['lot'] : ''));
+            $stored = Psc_School_Calendar::get_closure($oid);
+            $check($stored && $stored['debut'] === $debut && $stored['fin'] === $fin, 'PERF-01 : fermeture à notifier non conservée');
+            $check($stored && strpos(wp_json_encode($stored), 'example.invalid') === false && strpos(wp_json_encode($stored), 'Fermeture') === false,
+                'PERF-01 : la fermeture conservée contient une adresse ou un nom');
+            $autoload = $wpdb->get_var($wpdb->prepare("SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", 'psc_fermeture_' . $oid));
+            $check(in_array($autoload, array('no', 'off'), true), 'PERF-01 : fermeture conservée en option chargée d\'office');
+
+            // Correction manuelle prioritaire : la plage fermée est marquée manual.
+            // Un renvoi via Psc_Envois (relance) relit la fermeture conservée.
+            $wpdb->update($t_env, array('statut' => Psc_Envois::ECHEC), array('objet_type' => 'fermeture', 'objet_id' => $oid));
+            $mails = array();
+            $b2 = Psc_Envois::relancer_echecs('fermeture', $oid);
+            $check(count($mails) === 2 && $b2[Psc_Envois::ACCEPTE] === 2, 'PERF-01 : relance d\'une fermeture inopérante');
+        } finally {
+            $purge();
+        }
+    };
+
     try {
         foreach ($sections as $name => $run) {
             $run();

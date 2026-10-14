@@ -352,8 +352,17 @@ class Psc_Admin_School_Years extends Psc_Admin_Base {
         }
 
         delete_transient(self::pending_close_key());
-        Psc_School_Calendar::close_range($date_debut, $date_fin, $label);
-        self::redirect_years('closed');
+        $result = Psc_School_Calendar::close_range($date_debut, $date_fin, $label);
+        if (is_wp_error($result)) {
+            self::redirect_years($result->get_error_code() === 'invalid_date' ? 'invalid_date' : 'close_failed');
+        }
+        // Les jours sont fermés ; les récapitulatifs partent hors requête
+        // (Psc_Envois) : l'écran annonce les envois en cours.
+        $bilan = $result['bilan'];
+        self::redirect_years('closed', array(
+            'psc_f' => count($result['affected']['families']),
+            'psc_n' => $bilan ? (int) $bilan[Psc_Envois::A_ENVOYER] : 0,
+        ));
     }
 
     public static function handle_cancel_school_day_close() {

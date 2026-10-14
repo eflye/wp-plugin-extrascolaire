@@ -40,6 +40,13 @@ class Psc_Email_Templates {
                 'vars'    => array('{{site}}', '{{nouvelle_adresse}}'),
                 'note'    => __('Envoyé à l\'ANCIENNE adresse lors d\'un changement d\'e-mail. Le bouton d\'annulation de la demande est ajouté automatiquement.', 'periscolaire-registration'),
             ),
+            'day_closed' => array(
+                'label'   => __('Fermeture du service (jour ou période)', 'periscolaire-registration'),
+                'subject' => __('[{{site}}] Fermeture du service périscolaire {{periode}}', 'periscolaire-registration'),
+                'body'    => __("La mairie a fermé le service périscolaire {{periode}} ({{motif}}). Il n'y a ni périscolaire ni cantine ces jours-là.\n\nLes inscriptions de votre famille sur cette période sont retirées et ne seront pas facturées.", 'periscolaire-registration'),
+                'vars'    => array('{{site}}', '{{periode}}', '{{motif}}'),
+                'note'    => __('Un seul e-mail par famille et par fermeture. La liste des inscriptions retirées (jour, enfant, prestation) et le bouton vers le planning sont ajoutés automatiquement.', 'periscolaire-registration'),
+            ),
             'recap' => array(
                 'label'   => __('Récapitulatif du planning', 'periscolaire-registration'),
                 'subject' => __('[{{site}}] Votre planning périscolaire — {{annee}}', 'periscolaire-registration'),

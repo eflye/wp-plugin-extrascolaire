@@ -563,30 +563,51 @@ class Psc_Mailer {
         return array('subject' => $subject, 'html' => $html);
     }
 
-    public static function send_day_closed($fam, $date_str, $label) {
-        $site      = self::site_name();
-        $date_lbl  = psc_day_label($date_str) . ' ' . date_i18n('d/m/Y', strtotime($date_str));
-        $services  = psc_services();
-        $subject   = sprintf(__('[%s] Jour sans école le %s : vos inscriptions ont été retirées', 'periscolaire-registration'), $site, $date_lbl);
+    /**
+     * Récapitulatif d'une fermeture (un jour ou une plage) : UN e-mail par
+     * famille, listant jour par jour les inscriptions retirées. Texte
+     * éditable : modèle « day_closed ». Envoyé par Psc_Envois (type
+     * « fermeture », cf. Psc_School_Calendar::deliver_closure()).
+     *
+     * @param array  $fam   array('email', 'nom', 'items' => objets child_prenom, child_nom, jour_date, service)
+     * @param string $debut Premier jour fermé (Y-m-d).
+     * @param string $fin   Dernier jour fermé (Y-m-d).
+     * @param string $label Motif de la fermeture.
+     */
+    public static function send_closure_recap($fam, $debut, $fin, $label) {
+        $site = self::site_name();
+        $day  = function ($d) { return psc_day_label($d) . ' ' . date_i18n('d/m/Y', strtotime($d)); };
+        $periode = $debut === $fin
+            /* translators: %s: jour, ex. « lundi 05/01/2026 » */
+            ? sprintf(__('le %s', 'periscolaire-registration'), $day($debut))
+            /* translators: 1: premier jour fermé, 2: dernier jour fermé */
+            : sprintf(__('du %1$s au %2$s', 'periscolaire-registration'), $day($debut), $day($fin));
+        $vars    = array('site' => $site, 'periode' => $periode, 'motif' => $label);
+        $subject = Psc_Email_Templates::subject('day_closed', $vars);
+        $intro   = Psc_Email_Templates::body_html('day_closed', $vars);
+        $services = psc_services();
 
-        $body = self::h2(__('Un jour d\'école a été annulé', 'periscolaire-registration'))
-            . self::p(sprintf(
-                __('La mairie vient de fermer le %s (%s). Il n\'y a donc ni périscolaire ni cantine ce jour-là.', 'periscolaire-registration'),
-                $date_lbl, $label
-            ));
-
-        $items_list = '<ul style="margin:8px 0;padding-left:20px;">';
-        foreach ($fam['items'] as $item) {
+        $items = $fam['items'];
+        usort($items, function ($a, $b) { return strcmp($a->jour_date . $a->child_prenom, $b->jour_date . $b->child_prenom); });
+        $rows = '';
+        foreach ($items as $item) {
             $svc_lbl = isset($services[$item->service]) ? $services[$item->service]['label'] : $item->service;
-            $items_list .= '<li style="color:#1A1A1A;font-size:14px;margin-bottom:4px;">'
-                . esc_html($item->child_prenom . ' ' . $item->child_nom) . ' — ' . esc_html($svc_lbl)
-                . '</li>';
+            $rows .= '<tr>'
+                . '<td style="padding:6px 10px;border:1px solid #E5DCC3;white-space:nowrap;">' . esc_html($day($item->jour_date)) . '</td>'
+                . '<td style="padding:6px 10px;border:1px solid #E5DCC3;">' . esc_html($item->child_prenom . ' ' . $item->child_nom) . '</td>'
+                . '<td style="padding:6px 10px;border:1px solid #E5DCC3;">' . esc_html($svc_lbl) . '</td>'
+                . '</tr>';
         }
-        $items_list .= '</ul>';
 
-        $body .= '<p style="color:#1A1A1A;font-size:14px;font-weight:bold;margin:16px 0 6px;">' . __('Inscriptions retirées :', 'periscolaire-registration') . '</p>'
-            . $items_list
-            . self::warning_box(__('Ces prestations ne seront <strong>pas facturées</strong>.', 'periscolaire-registration'))
+        $body = self::h2(__('Fermeture du service périscolaire', 'periscolaire-registration'))
+            . '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 12px;">' . $intro . '</p>'
+            . '<p style="color:#1A1A1A;font-size:14px;font-weight:bold;margin:16px 0 6px;">' . esc_html__('Inscriptions retirées :', 'periscolaire-registration') . '</p>'
+            . '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:12px;font-size:13px;">'
+            . '<thead><tr>'
+            . '<th scope="col" style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . esc_html__('Jour', 'periscolaire-registration') . '</th>'
+            . '<th scope="col" style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . esc_html__('Enfant', 'periscolaire-registration') . '</th>'
+            . '<th scope="col" style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . esc_html__('Prestation', 'periscolaire-registration') . '</th>'
+            . '</tr></thead><tbody>' . $rows . '</tbody></table>'
             . self::btn(self::form_page_url(), __('Consulter mon planning', 'periscolaire-registration'));
 
         return self::send($fam['email'], $subject, self::layout($body, $subject));

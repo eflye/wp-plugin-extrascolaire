@@ -22,7 +22,7 @@ $psc_notices = array(
     'upload_failed'       => array('error', __("Le fichier n'a pas pu être lu. Vérifiez qu'il s'agit bien d'un export .ics valide.", 'periscolaire-registration')),
     'upload_invalid_type' => array('error', __('Le fichier doit être au format .ics.', 'periscolaire-registration')),
     'upload_too_large'    => array('error', __('Le fichier dépasse la taille maximale autorisée (2 Mo).', 'periscolaire-registration')),
-    'closed'              => array('success', __('Jour(s) fermé(s).', 'periscolaire-registration')),
+    'close_failed'        => array('error', __('La fermeture n’a pas pu être enregistrée : aucun jour n’a été fermé et aucune famille n’a été prévenue.', 'periscolaire-registration')),
     'opened'              => array('success', __('Jour réouvert.', 'periscolaire-registration')),
     'cancelled'           => array('error', __('Fermeture annulée.', 'periscolaire-registration')),
     'confirm_needed'      => array('error', __('Confirmation nécessaire : des inscriptions existent déjà sur cette période.', 'periscolaire-registration')),
@@ -31,7 +31,33 @@ $psc_notices = array(
     'year_config_invalid' => array('error', __('Configuration invalide : vérifiez les dates (la fin doit suivre le début).', 'periscolaire-registration')),
     'year_invalid'        => array('error', __('Aucune année scolaire courante.', 'periscolaire-registration')),
 );
-psc_admin_notice_map($psc_notices, $psc_msg); ?>
+psc_admin_notice_map($psc_notices, $psc_msg);
+if ($psc_msg === 'closed'):
+    // Fermeture enregistrée ; les récapitulatifs aux familles partent hors
+    // requête (Psc_Envois) — annoncé aux technologies d'assistance.
+    $psc_closed_f = isset($_GET['psc_f']) ? absint($_GET['psc_f']) : 0;
+    $psc_closed_n = isset($_GET['psc_n']) ? absint($_GET['psc_n']) : 0;
+?>
+<div class="notice notice-success is-dismissible" role="status" aria-live="polite" data-testid="notice-closed"><p>
+<?php
+esc_html_e('Jour(s) fermé(s).', 'periscolaire-registration');
+if ($psc_closed_f > 0) {
+    echo ' ' . esc_html(sprintf(
+        /* translators: %d: nombre de familles concernées par la fermeture. */
+        _n('%d famille concernée reçoit un récapitulatif.', '%d familles concernées reçoivent un récapitulatif.', $psc_closed_f, 'periscolaire-registration'),
+        $psc_closed_f
+    ));
+}
+if ($psc_closed_n > 0) {
+    echo ' ' . esc_html(sprintf(
+        /* translators: %d: nombre d'e-mails en cours d'envoi. */
+        _n('%d envoi en cours.', '%d envois en cours.', $psc_closed_n, 'periscolaire-registration'),
+        $psc_closed_n
+    ));
+}
+?>
+</p></div>
+<?php endif; ?>
 
 <?php
 /* ------------------------------------------------------------------
