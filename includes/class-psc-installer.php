@@ -237,7 +237,8 @@ class Psc_Installer {
             Psc_Audit::log('systeme.montee_de_version', array(
             'objet_type' => 'reglage',
             'meta' => array('ancienne_version' => $current ?: null, 'nouvelle_version' => self::DB_VERSION),
-            'resume' => sprintf(__('Schéma de la base mis à jour (%s → %s).', 'periscolaire-registration'), $current ?: '—', self::DB_VERSION),
+            /* translators: 1: version précédente du schéma, 2: nouvelle version. */
+            'resume' => sprintf(__('Schéma de la base mis à jour (%1$s → %2$s).', 'periscolaire-registration'), $current ?: '—', self::DB_VERSION),
             'acteur' => array('type' => 'systeme', 'id' => null, 'libelle' => 'mise-a-jour-plugin', 'pour_le_compte_de' => null),
             ));
         }
@@ -296,6 +297,7 @@ class Psc_Installer {
             Psc_Audit::log('systeme.montee_de_version_echec', array(
                 'objet_type' => 'reglage',
                 'meta'       => array('etape' => $step, 'depuis' => (string) $from, 'requete' => trim($kind . ' ' . $table)),
+                /* translators: %s: version de l'étape de migration */
                 'resume'     => sprintf(__('Mise à jour du schéma arrêtée à l’étape %s ; elle reprendra à cette étape.', 'periscolaire-registration'), $step),
                 'acteur'     => array('type' => 'systeme', 'id' => null, 'libelle' => 'mise-a-jour-plugin', 'pour_le_compte_de' => null),
             ));

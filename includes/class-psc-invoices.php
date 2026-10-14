@@ -240,7 +240,8 @@ class Psc_Invoices {
                             'total_nouveau'    => $total,
                         ),
                         'resume' => sprintf(
-                            __('Facture %s rectifiée : version %d archivée, version %d à envoyer.', 'periscolaire-registration'),
+                            /* translators: 1: mois facturé (AAAA-MM), 2: version archivée, 3: nouvelle version. */
+                            __('Facture %1$s rectifiée : version %2$d archivée, version %3$d à envoyer.', 'periscolaire-registration'),
                             $mois, $version - 1, $version
                         ),
                     ));
@@ -300,7 +301,7 @@ class Psc_Invoices {
         $per_code = array_count_values(array_column($lines, 'code'));
         foreach ($lines as $key => $line) {
             if ($per_code[$line['code']] > 1) {
-                $lines[$key]['label'] .= ' ' . sprintf(__('(à partir du %s)', 'periscolaire-registration'), date_i18n('d/m', strtotime($line['from'])));
+                $lines[$key]['label'] .= ' ' . sprintf(/* translators: %s: date (jj/mm) */ __('(à partir du %s)', 'periscolaire-registration'), date_i18n('d/m', strtotime($line['from'])));
             }
         }
         return $lines;
@@ -656,7 +657,8 @@ class Psc_Invoices {
                 $r['adresse'], $r['code_postal'], $r['ville'],
                 $r['mandate_ref'], $r['invoice_ref'], $r['mois_label'],
                 number_format($r['montant'], 2, ',', ''),
-                __('Périscolaire — ', 'periscolaire-registration') . $r['mois_label'],
+                /* translators: %s: mois facturé, ex. « octobre 2026 » */
+                sprintf(__('Périscolaire — %s', 'periscolaire-registration'), $r['mois_label']),
             );
             $ok = fputcsv($stream, array_map('psc_csv_escape', $data), ';', '"', '') !== false && $ok;
         }
@@ -691,7 +693,8 @@ class Psc_Invoices {
                 $r['invoice_ref'],
                 $r['mois_label'],
                 array('float' => $r['montant']),
-                __('Périscolaire — ', 'periscolaire-registration') . $r['mois_label'],
+                /* translators: %s: mois facturé, ex. « octobre 2026 » */
+                sprintf(__('Périscolaire — %s', 'periscolaire-registration'), $r['mois_label']),
             );
         }
 
@@ -1051,7 +1054,9 @@ class Psc_Invoices {
         $month_label  = self::month_label($mois);
         $nom_famille  = trim(($parent->nom ?? '') ?: $parent->email);
         $date_fr      = self::french_full_date((int) current_time('timestamp'));
-        $city_date    = $org_city ? self::enc($org_city . __(', le ', 'periscolaire-registration') . $date_fr) : self::enc($date_fr);
+        $city_date    = $org_city ? self::enc(sprintf(
+            /* translators: 1: ville de la mairie, 2: date en toutes lettres. */
+            __('%1$s, le %2$s', 'periscolaire-registration'), $org_city, $date_fr)) : self::enc($date_fr);
 
         // Margins: left=20, right=20 → usable = 170mm
         $ml = 20;
@@ -1109,8 +1114,10 @@ class Psc_Invoices {
         }
         if ($org_phone || $org_fax) {
             $tel_line = '';
-            if ($org_phone) $tel_line = __('Tél : ', 'periscolaire-registration') . $org_phone;
-            if ($org_fax)   $tel_line .= ($tel_line ? __(' – Télécopie : ', 'periscolaire-registration') : __('Télécopie : ', 'periscolaire-registration')) . $org_fax;
+            /* translators: %s: numéro de téléphone */
+            if ($org_phone) $tel_line = sprintf(__('Tél : %s', 'periscolaire-registration'), $org_phone);
+            /* translators: %s: numéro de télécopie */
+            if ($org_fax)   $tel_line .= ($tel_line ? ' – ' : '') . sprintf(__('Télécopie : %s', 'periscolaire-registration'), $org_fax);
             $pdf->SetX($txt_x);
             $pdf->MultiCell($txt_w, 4, self::enc($tel_line), 0, 'C');
         }
@@ -1156,7 +1163,7 @@ class Psc_Invoices {
         $pdf->SetTextColor(0, 0, 0);
         // "FACTURE N°" en noir, numéro en rouge (comme le PDF de référence)
         $pdf->SetX($ml);
-        $pdf->Write(5, self::enc(__('FACTURE N° ', 'periscolaire-registration')));
+        $pdf->Write(5, self::enc(__('FACTURE N°', 'periscolaire-registration') . ' '));
         $pdf->SetTextColor(180, 30, 30);
         $pdf->Write(5, self::enc($invoice_num));
         $pdf->SetTextColor(0, 0, 0);

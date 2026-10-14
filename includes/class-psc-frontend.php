@@ -236,13 +236,17 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 'exc_state_remove'  => __('Retiré ce jour-là', 'periscolaire-registration'),
                 'exc_state_none'    => __('Non déclaré', 'periscolaire-registration'),
                 'exc_state_locked'  => __('Verrouillé (délai de modification dépassé)', 'periscolaire-registration'),
+                /* translators: %s: nombre d'exceptions du mois (inséré par planning-2.js). */
                 'exc_reset_link'    => __('%s exception(s) ce mois-ci — revenir au rythme', 'periscolaire-registration'),
                 'exc_reset_confirm' => __("Retirer toutes les exceptions de ce mois-ci et revenir au rythme habituel ? Les jours déjà verrouillés ne sont pas touchés.", 'periscolaire-registration'),
+                /* translators: %s: nombre d'exceptions retirées (inséré par planning-2.js). */
                 'exc_reset_done'    => __('%s exception(s) retirée(s) : ce mois-ci suit de nouveau le rythme habituel.', 'periscolaire-registration'),
                 'apply_siblings_confirm' => __("Appliquer ce rythme à toute la fratrie ? Le rythme habituel des autres enfants sera remplacé (leurs exceptions personnelles sont conservées).", 'periscolaire-registration'),
                 'apply_siblings_done'    => __('Rythme appliqué à toute la fratrie.', 'periscolaire-registration'),
                 'apply_siblings_empty'   => __('Cochez d\'abord au moins une case du rythme habituel.', 'periscolaire-registration'),
+                /* translators: 1: nombre de jours du mois, 2: montant en euros. */
                 'recap_month'       => __('Mois : %1$s jour(s) · %2$s €', 'periscolaire-registration'),
+                /* translators: 1: nombre de jours de l'année, 2: montant en euros. */
                 'recap_year'        => __('Année : %1$s jour(s) · %2$s €', 'periscolaire-registration'),
                 // Wizard invité (guest.js) : allergies + rythme habituel.
                 'allergy_toggle'     => __('Cet enfant a une allergie alimentaire', 'periscolaire-registration'),
@@ -469,8 +473,9 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 'name'    => trim($child->prenom . ' ' . $child->nom),
                 'meta'    => $meta,
                 'summary' => sprintf(
-                    __('%d jour%s déclaré%s · %s €', 'periscolaire-registration'),
-                    $child_days, $child_days > 1 ? 's' : '', $child_days > 1 ? 's' : '',
+                    /* translators: 1: nombre de jours déclarés, 2: montant en euros. */
+                    _n('%1$d jour déclaré · %2$s €', '%1$d jours déclarés · %2$s €', $child_days, 'periscolaire-registration'),
+                    $child_days,
                     number_format_i18n($child_amount, 2)
                 ),
             );
@@ -487,8 +492,10 @@ class Psc_Frontend extends Psc_Frontend_Base {
         $current_week = psc_week_start(current_time('Y-m-d'));
 
         return array(
-            'title'          => $parent->nom !== '' ? __('Famille ', 'periscolaire-registration') . $parent->nom : __('Bienvenue', 'periscolaire-registration'),
-            'days_label'     => $days_count . ($days_count > 1 ? ' ' . __('jours', 'periscolaire-registration') : ' ' . __('jour', 'periscolaire-registration')),
+            /* translators: %s: nom de famille */
+            'title'          => $parent->nom !== '' ? sprintf(__('Famille %s', 'periscolaire-registration'), $parent->nom) : __('Bienvenue', 'periscolaire-registration'),
+            /* translators: %d: nombre de jours */
+            'days_label'     => sprintf(_n('%d jour', '%d jours', $days_count, 'periscolaire-registration'), $days_count),
             'amount_label'   => number_format_i18n($amount, 2),
             'next_invoice'   => $next_invoice,
             'menu'           => Psc_Frontend_Menus::menu_days_for_week($current_week),

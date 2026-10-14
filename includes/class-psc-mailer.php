@@ -76,6 +76,20 @@ class Psc_Mailer {
             . Psc_Email_Templates::body_html($key, $vars) . '</p>';
     }
 
+    /** « A, B et C » : énumération traduisible (sans dépendre du paquet de langue de WordPress). */
+    protected static function join_list(array $items) {
+        $items = array_values($items);
+        if (count($items) < 2) return (string) ($items[0] ?? '');
+        $last = array_pop($items);
+        /* translators: 1: éléments séparés par des virgules, 2: dernier élément. */
+        return sprintf(__('%1$s et %2$s', 'periscolaire-registration'), implode(', ', $items), $last);
+    }
+
+    /** Libellé en gras suivi d'une valeur échappée, pour les encadrés. */
+    protected static function field($label, $value_html) {
+        return '<strong>' . esc_html($label) . '</strong> ' . $value_html;
+    }
+
     /** Durée de validité « N jour(s) » du lien de confirmation, au pluriel correct. */
     protected static function validity_days_box($days, $extra_html = '') {
         return self::info_box(
@@ -148,7 +162,11 @@ class Psc_Mailer {
             . '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 12px;">' . $intro . '</p>'
             . self::btn($url, $btn_label)
             . self::info_box(
-                __('<strong>⏱ Durée de validité :</strong> ce lien expire dans <strong>', 'periscolaire-registration') . $minutes . __(' minutes</strong>.', 'periscolaire-registration')
+                self::field(__('⏱ Durée de validité :', 'periscolaire-registration'), esc_html(sprintf(
+                    /* translators: %d: durée de validité du lien, en minutes. */
+                    _n('ce lien expire dans %d minute.', 'ce lien expire dans %d minutes.', $minutes, 'periscolaire-registration'),
+                    $minutes
+                )))
             )
             . self::p(__('Si vous n\'êtes pas à l\'origine de cette demande, vous pouvez ignorer ce message en toute sécurité.', 'periscolaire-registration'));
 
@@ -218,7 +236,8 @@ class Psc_Mailer {
         $intro   = Psc_Email_Templates::body_html('recap', array('site' => $site, 'annee' => $year->year_key));
         $year_key = $year->year_key;
 
-        $body = self::h2(__('Votre planning — année scolaire ', 'periscolaire-registration') . esc_html($year_key));
+        /* translators: %s: année scolaire, ex. « 2026-2027 » */
+        $body = self::h2(sprintf(__('Votre planning — année scolaire %s', 'periscolaire-registration'), $year_key));
         $body .= '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 12px;">' . $intro . '</p>';
 
         $jours = array(1 => __('Lundi', 'periscolaire-registration'), 2 => __('Mardi', 'periscolaire-registration'), 4 => __('Jeudi', 'periscolaire-registration'), 5 => __('Vendredi', 'periscolaire-registration'));
@@ -297,19 +316,20 @@ class Psc_Mailer {
         // Total famille.
         $body .= '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0;"><tr><td style="background-color:#24405C;padding:14px 20px;">'
             . '<p style="margin:0;color:#ffffff;font-size:16px;font-weight:bold;">'
-            . __('Estimation annuelle de la famille : ', 'periscolaire-registration') . number_format((float) $summary['year']['amount'], 2, ',', ' ') . ' €'
+            /* translators: %s: montant en euros */
+            . esc_html(sprintf(__('Estimation annuelle de la famille : %s €', 'periscolaire-registration'), number_format((float) $summary['year']['amount'], 2, ',', ' ')))
             . '</p></td></tr></table>';
 
         $body .= self::warning_box(
-            __('Ce montant est donné <strong>à titre indicatif</strong>. ', 'periscolaire-registration')
-            . __('La facturation définitive est établie par la mairie, mois par mois, d\'après les déclarations effectives.', 'periscolaire-registration')
+            esc_html__('Ce montant est donné à titre indicatif. La facturation définitive est établie par la mairie, mois par mois, d\'après les déclarations effectives.', 'periscolaire-registration')
         );
 
         if (psc_lock_hours() > 0) {
-            $body .= self::p(
-                __('Vous pouvez modifier votre planning jusqu\'à ', 'periscolaire-registration') . psc_lock_hours()
-                . __(' heures avant chaque jour concerné.', 'periscolaire-registration')
-            );
+            $body .= self::p(sprintf(
+                /* translators: %d: délai de modification, en heures. */
+                _n('Vous pouvez modifier votre planning jusqu\'à %d heure avant chaque jour concerné.', 'Vous pouvez modifier votre planning jusqu\'à %d heures avant chaque jour concerné.', psc_lock_hours(), 'periscolaire-registration'),
+                psc_lock_hours()
+            ));
         }
 
         $body .= self::btn(self::form_page_url(), __('Modifier mon planning', 'periscolaire-registration'));
@@ -383,8 +403,7 @@ class Psc_Mailer {
             . esc_html(__('Une information de santé a été ajoutée ou modifiée. Consultez la fiche enfant dans le backoffice pour lire le détail après authentification.', 'periscolaire-registration'))
         );
         $body .= self::warning_box(
-            __('Rappel de la promesse de service : ', 'periscolaire-registration')
-            . __('la mairie prend l\'initiative du contact, et aucun menu différencié n\'est proposé — l\'enfant déjeune à la cantine avec son propre repas fourni par la famille.', 'periscolaire-registration')
+            esc_html__('Rappel de la promesse de service : la mairie prend l\'initiative du contact, et aucun menu différencié n\'est proposé — l\'enfant déjeune à la cantine avec son propre repas fourni par la famille.', 'periscolaire-registration')
         );
         $body .= self::btn(admin_url('admin.php?page=psc_children'), __('Ouvrir la fiche enfant', 'periscolaire-registration'));
 
@@ -482,7 +501,8 @@ class Psc_Mailer {
         $subject = Psc_Email_Templates::subject('weekly_menu', array('site' => $site, 'semaine' => $semaine_label));
         $intro   = Psc_Email_Templates::body_html('weekly_menu', array('site' => $site, 'semaine' => $semaine_label));
 
-        $body = self::h2(__('Menu de la semaine du ', 'periscolaire-registration') . $semaine_label)
+        /* translators: %s: date du lundi de la semaine (jj/mm/aaaa) */
+        $body = self::h2(sprintf(__('Menu de la semaine du %s', 'periscolaire-registration'), $semaine_label))
             . '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 12px;">' . $intro . '</p>';
 
         $body .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:14px;margin:16px 0;">';
@@ -661,9 +681,9 @@ class Psc_Mailer {
         }
         $items_list .= '</ul>';
 
-        $body .= '<p style="color:#1A1A1A;font-size:14px;font-weight:bold;margin:16px 0 6px;">' . __('Enfant(s) concerné(s) :', 'periscolaire-registration') . '</p>'
+        $body .= '<p style="color:#1A1A1A;font-size:14px;font-weight:bold;margin:16px 0 6px;">' . esc_html(_n('Enfant concerné :', 'Enfants concernés :', count($fam['items']), 'periscolaire-registration')) . '</p>'
             . $items_list
-            . self::warning_box(__('Cette prestation ne sera <strong>pas facturée</strong>.', 'periscolaire-registration'))
+            . self::warning_box(esc_html__('Cette prestation ne sera pas facturée.', 'periscolaire-registration'))
             . self::btn(self::form_page_url(), __('Consulter mon planning', 'periscolaire-registration'));
 
         return self::send($fam['email'], $subject, self::layout($body, $subject));
@@ -692,9 +712,9 @@ class Psc_Mailer {
         }
         $items_list .= '</ul>';
 
-        $body .= '<p style="color:#1A1A1A;font-size:14px;font-weight:bold;margin:16px 0 6px;">' . __('Enfant(s) concerné(s) :', 'periscolaire-registration') . '</p>'
+        $body .= '<p style="color:#1A1A1A;font-size:14px;font-weight:bold;margin:16px 0 6px;">' . esc_html(_n('Enfant concerné :', 'Enfants concernés :', count($fam['items']), 'periscolaire-registration')) . '</p>'
             . $items_list
-            . self::warning_box(__('Cette prestation ne sera <strong>pas facturée</strong>.', 'periscolaire-registration'))
+            . self::warning_box(esc_html__('Cette prestation ne sera pas facturée.', 'periscolaire-registration'))
             . self::btn(self::form_page_url(), __('Consulter mon planning', 'periscolaire-registration'));
 
         return self::send($fam['email'], $subject, self::layout($body, $subject));
@@ -726,7 +746,7 @@ class Psc_Mailer {
             }
             $items_list .= '<li style="color:#1A1A1A;font-size:14px;margin-bottom:4px;">'
                 . esc_html($item->child_prenom . ' ' . $item->child_nom) . ' : '
-                . esc_html($labels ? implode(__(' et ', 'periscolaire-registration'), $labels) : __('aucune prestation restante', 'periscolaire-registration'))
+                . esc_html($labels ? self::join_list($labels) : __('aucune prestation restante', 'periscolaire-registration'))
                 . '</li>';
         }
         $items_list .= '</ul>';
@@ -760,12 +780,12 @@ class Psc_Mailer {
         $body = self::h2(__('Absence signalée par une famille', 'periscolaire-registration'))
             . self::intro('absence_cancelled', $vars)
             . self::info_box(
-                __('<strong>Famille :</strong> ', 'periscolaire-registration') . esc_html($parent->nom ?: $parent->email) . ' (' . esc_html($parent->email) . ')<br>'
-                . __('<strong>Enfant :</strong> ', 'periscolaire-registration') . esc_html($child_name) . '<br>'
-                . __('<strong>Jour :</strong> ', 'periscolaire-registration') . esc_html($date_lbl) . '<br>'
-                . __('<strong>Prestations annulées :</strong> ', 'periscolaire-registration') . esc_html($svc_list)
+                self::field(__('Famille :', 'periscolaire-registration'), esc_html($parent->nom ?: $parent->email) . ' (' . esc_html($parent->email) . ')') . '<br>'
+                . self::field(__('Enfant :', 'periscolaire-registration'), esc_html($child_name)) . '<br>'
+                . self::field(__('Jour :', 'periscolaire-registration'), esc_html($date_lbl)) . '<br>'
+                . self::field(_n('Prestation annulée :', 'Prestations annulées :', count($services), 'periscolaire-registration'), esc_html($svc_list))
             )
-            . self::warning_box(__('Ces prestations ne seront <strong>pas facturées</strong>.', 'periscolaire-registration'))
+            . self::warning_box(esc_html(_n('Cette prestation ne sera pas facturée.', 'Ces prestations ne seront pas facturées.', count($services), 'periscolaire-registration')))
             . self::btn(admin_url('admin.php?page=psc_children'), __('Voir les enfants', 'periscolaire-registration'));
 
         return self::send(psc_mairie_email(), $subject, self::layout($body, $subject));
@@ -784,13 +804,10 @@ class Psc_Mailer {
         $body = self::h2(__('Confirmez votre demande d\'inscription', 'periscolaire-registration'))
             . '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 12px;">' . $intro . '</p>'
             . self::btn($url, __('Confirmer ma demande', 'periscolaire-registration'))
-            . self::info_box(
-                __('<strong>⏱ Ce lien est valable ', 'periscolaire-registration') . $days . __(' jour', 'periscolaire-registration') . ($days > 1 ? __('s', 'periscolaire-registration') : '') . '.</strong><br>'
-                . __('Votre demande sera ensuite examinée par la mairie, qui vous contactera par e-mail.', 'periscolaire-registration')
-            )
+            . self::validity_days_box($days, esc_html__('Votre demande sera ensuite examinée par la mairie, qui vous contactera par e-mail.', 'periscolaire-registration'))
             . ($attachments ? self::info_box(
-                __('<strong>📎 Mandat de prélèvement SEPA joint.</strong><br>', 'periscolaire-registration')
-                . __('Merci de l\'imprimer, de le signer, puis de l\'adresser à votre banque.', 'periscolaire-registration')
+                '<strong>' . esc_html__('📎 Mandat de prélèvement SEPA joint.', 'periscolaire-registration') . '</strong><br>'
+                . esc_html__('Merci de l\'imprimer, de le signer, puis de l\'adresser à votre banque.', 'periscolaire-registration')
             ) : '')
             . self::p(
                 __('Si vous n\'êtes pas à l\'origine de cette demande, ignorez ce message : aucune donnée ne sera transmise.', 'periscolaire-registration')
@@ -806,8 +823,8 @@ class Psc_Mailer {
         $body = self::h2(__('Prélèvement automatique activé', 'periscolaire-registration'))
             . self::intro('sepa_enabled', $vars)
             . ($attachments ? self::info_box(
-                __('<strong>📎 Mandat de prélèvement SEPA joint.</strong><br>', 'periscolaire-registration')
-                . __('Merci de l’imprimer, de le signer, puis de l’adresser à votre banque. Conservez-en une copie.', 'periscolaire-registration')
+                '<strong>' . esc_html__('📎 Mandat de prélèvement SEPA joint.', 'periscolaire-registration') . '</strong><br>'
+                . esc_html__('Merci de l’imprimer, de le signer, puis de l’adresser à votre banque. Conservez-en une copie.', 'periscolaire-registration')
             ) : '');
         return self::send($parent->email, $subject, self::layout($body, $subject), $attachments);
     }
@@ -819,9 +836,9 @@ class Psc_Mailer {
 
         $req_family_name = trim(($req->prenom ?? '') . ' ' . ($req->nom ?? ''));
 
-        $contact = __('<strong>E-mail :</strong> ', 'periscolaire-registration') . esc_html($req->email) . '<br>';
-        if ($req_family_name !== '') $contact .= __('<strong>Famille :</strong> ', 'periscolaire-registration') . esc_html($req_family_name) . '<br>';
-        if ($req->telephone)         $contact .= __('<strong>Téléphone :</strong> ', 'periscolaire-registration') . esc_html($req->telephone) . '<br>';
+        $contact = self::field(__('E-mail :', 'periscolaire-registration'), esc_html($req->email)) . '<br>';
+        if ($req_family_name !== '') $contact .= self::field(__('Famille :', 'periscolaire-registration'), esc_html($req_family_name)) . '<br>';
+        if ($req->telephone)         $contact .= self::field(__('Téléphone :', 'periscolaire-registration'), esc_html($req->telephone)) . '<br>';
 
         $children_list = '<ul style="margin:8px 0;padding-left:20px;">';
         foreach ($children as $c) {
@@ -844,7 +861,7 @@ class Psc_Mailer {
         $body = self::h2(__('Nouvelle demande d\'inscription', 'periscolaire-registration'))
             . '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 12px;">' . $intro . '</p>'
             . self::info_box($contact)
-            . '<p style="color:#1A1A1A;font-size:14px;font-weight:bold;margin:16px 0 6px;">' . __('Enfant(s) déclaré(s) :', 'periscolaire-registration') . '</p>'
+            . '<p style="color:#1A1A1A;font-size:14px;font-weight:bold;margin:16px 0 6px;">' . esc_html(_n('Enfant déclaré :', 'Enfants déclarés :', count($children), 'periscolaire-registration')) . '</p>'
             . $children_list;
 
         if ($req->message) {

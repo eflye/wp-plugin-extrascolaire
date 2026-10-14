@@ -410,6 +410,21 @@ WP_CLI::add_command('verify-audit-lot3', function () {
         $check(substr_count($msg, esc_html__('échange alimentation à prévoir', 'periscolaire-registration')) === 2, 'RGPD-10 : badge « échange alimentation à prévoir » absent ou en trop');
     };
 
+    /* PRA-07/L3 : marqueurs numérotés, pluriels, pas de msgid concaténé ni balisé. */
+    $sections['PRA-07/L3'] = function () use ($check) {
+        foreach (array('class-psc-frontend.php', 'class-psc-invoices.php', 'class-psc-mailer.php', 'class-psc-installer.php') as $file) {
+            $src = (string) file_get_contents(PSC_PATH . 'includes/' . $file);
+            preg_match_all("/(?:__|_e|esc_html__|esc_html_e|esc_attr__|_n)\\(\\s*'((?:[^'\\\\]|\\\\.)*)'/", $src, $m);
+            foreach ($m[1] as $msgid) {
+                $unnumbered = preg_match_all('/%[sd]/', $msgid);
+                $check($unnumbered < 2, "PRA-07 : $file — marqueurs non numérotés : « $msgid »");
+                $check(strpos($msgid, '<strong>') === false && strpos($msgid, '<br>') === false, "PRA-07 : $file — HTML dans un msgid : « $msgid »");
+                $check(!preg_match('/^\\s|\\s$/u', $msgid) || $msgid === ' ', "PRA-07 : $file — msgid tronqué pour concaténation : « $msgid »");
+            }
+            $check(strpos($src, "jour%s") === false, "PRA-07 : $file — pluriel fait à la main");
+        }
+    };
+
     try {
         foreach ($sections as $name => $run) {
             $run();
