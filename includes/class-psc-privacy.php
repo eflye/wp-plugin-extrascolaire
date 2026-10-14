@@ -268,6 +268,10 @@ class Psc_Privacy {
     private static function erase_second_parent($parent) {
         global $wpdb;
 
+        // Journal d'audit : les lignes qui nomment le second parent sont
+        // neutralisées, le reste du suivi du foyer est conservé (RGPD-04).
+        if (class_exists('Psc_Audit')) Psc_Audit::forget_second_parent((int) $parent->id);
+
         $wpdb->update(
             psc_table('parents'),
             array(

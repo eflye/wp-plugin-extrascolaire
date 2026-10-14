@@ -570,38 +570,201 @@ class Psc_Audit {
 
     /**
      * Anonymise (sans les supprimer) les lignes concernant une famille
-     * supprimée : famille_id/enfant_id -> NULL, details effacés,
-     * acteur_libelle -> « famille supprimée #id » pour les lignes où la
-     * famille est elle-même l'acteur (connexion, etc.), et resume réécrit
-     * en version générique s'il nomme la famille ($needles : nom, prénom,
-     * e-mail, et ceux de ses enfants — à fournir par l'appelant, AVANT que
-     * les lignes correspondantes des tables métier ne soient supprimées).
+     * supprimée ou effacée (RGPD-04) :
+     *  - famille_id et enfant_id -> NULL, details effacés ;
+     *  - pour_le_compte_de -> NULL quand il désigne cette famille ;
+     *  - ip -> NULL quand l'acteur est la famille elle-même ou un visiteur
+     *    (demande d'inscription) : c'est alors l'adresse de la famille ;
+     *  - acteur_libelle -> « famille supprimée #id » pour les lignes dont la
+     *    famille est l'acteur (connexion, etc.) ;
+     *  - resume réécrit en version générique s'il nomme la famille.
      *
-     * Aucune de ces colonnes n'entre dans le calcul de l'empreinte (cf.
-     * psc_audit_compute_hash()) SAUF resume : le réécrire quand il nomme
-     * la famille impose de recalculer l'empreinte de cette ligne, ce qui
-     * invalide à son tour l'empreinte de toutes les lignes suivantes
-     * (chacune est chaînée à la précédente, sans distinction de famille) —
-     * cette méthode rejoue donc le calcul jusqu'à la ligne la plus
-     * récente de la table entière, pas seulement celles de cette famille.
-     * Une opération rare (suppression de famille), jamais partielle : pas
-     * de limite de temps ici, contrairement à purge_expired().
-     *
-     * À appeler avant la suppression effective de la famille et de ses
-     * enfants (Psc_Admin_Familles::handle_delete_family()), pendant que
-     * leurs noms sont encore disponibles pour $needles.
+     * $needles (nom, prénom, e-mail de la famille, du second parent et des
+     * enfants) est complété ici depuis les tables métier, si les lignes
+     * existent encore : appeler cette méthode AVANT de supprimer ou
+     * d'anonymiser la famille, ou fournir les aiguilles.
      *
      * @return int Nombre de lignes dont l'identité a été effacée.
      */
     public static function forget_family($family_id, array $needles = array()) {
+        $family_id = (int) $family_id;
+        if ($family_id <= 0) return 0;
+        $needles = array_merge($needles, self::family_needles($family_id));
+
+        return self::forget_rows(
+            "(famille_id = %d OR (acteur_type = 'famille' AND acteur_id = %d) OR pour_le_compte_de = %d)",
+            array($family_id, $family_id, $family_id),
+            $needles,
+            function ($row) use ($family_id) {
+                $is_self = $row->acteur_type === 'famille' && (int) $row->acteur_id === $family_id;
+                $changes = array();
+                if ((int) $row->famille_id === $family_id) {
+                    $changes['famille_id'] = null;
+                    $changes['enfant_id'] = null;
+                    $changes['details'] = null;
+                }
+                if ((int) $row->pour_le_compte_de === $family_id) $changes['pour_le_compte_de'] = null;
+                if ($is_self) {
+                    $changes['acteur_libelle'] = sprintf(__('famille supprimée #%d', 'periscolaire-registration'), $family_id);
+                    $changes['details'] = null;
+                }
+                if (($is_self || $row->acteur_type === 'public') && $row->ip !== null && $row->ip !== '') $changes['ip'] = null;
+                return $changes;
+            }
+        );
+    }
+
+    /**
+     * Anonymise les lignes concernant un enfant purgé (RGPD-04) : enfant_id
+     * -> NULL et details effacés sur les lignes qui le visent ; sur les
+     * autres lignes de sa famille, résumé générique et details effacés
+     * seulement s'ils le nomment. Aiguilles complétées depuis la fiche
+     * enfant si elle existe encore : appeler AVANT sa suppression (cf.
+     * Psc_Admin_Familles::purge_child()).
+     *
+     * @return int Nombre de lignes modifiées.
+     */
+    public static function forget_child($child_id, array $needles = array()) {
+        global $wpdb;
+        $child_id = (int) $child_id;
+        if ($child_id <= 0) return 0;
+
+        $child = $wpdb->get_row($wpdb->prepare(
+            'SELECT parent_id, nom, prenom, date_naissance FROM ' . psc_table('children') . ' WHERE id = %d', $child_id
+        ));
+        $family_id = 0;
+        if ($child) {
+            $family_id = (int) $child->parent_id;
+            $needles = array_merge($needles, self::child_needles($child));
+        }
+
+        $where = "(enfant_id = %d OR (objet_type = 'enfant' AND objet_id = %d)";
+        $args = array($child_id, $child_id);
+        if ($family_id > 0) {
+            $where .= ' OR famille_id = %d';
+            $args[] = $family_id;
+        }
+        $where .= ')';
+        $needles = self::clean_needles($needles);
+
+        return self::forget_rows($where, $args, $needles, function ($row) use ($child_id, $needles) {
+            $changes = array();
+            $targets_child = (int) $row->enfant_id === $child_id
+                || ($row->objet_type === 'enfant' && (int) $row->objet_id === $child_id);
+            if ((int) $row->enfant_id === $child_id) $changes['enfant_id'] = null;
+            if ($row->details !== null && ($targets_child || psc_audit_resume_needs_redaction((string) $row->details, $needles))) {
+                $changes['details'] = null;
+            }
+            return $changes;
+        });
+    }
+
+    /**
+     * Effacement du seul second parent (Psc_Privacy::erase_second_parent()) :
+     * la famille reste suivie, ses lignes gardent famille_id. Seules les
+     * lignes dont le résumé ou le détail nomme le second parent sont
+     * neutralisées (résumé générique, details effacés). Aiguilles complétées
+     * depuis la ligne parents : appeler AVANT de vider les champs.
+     *
+     * @return int Nombre de lignes modifiées.
+     */
+    public static function forget_second_parent($family_id, array $needles = array()) {
         global $wpdb;
         $family_id = (int) $family_id;
         if ($family_id <= 0) return 0;
+        $parent = $wpdb->get_row($wpdb->prepare(
+            'SELECT second_parent_email, second_parent_nom, second_parent_prenom FROM ' . psc_table('parents') . ' WHERE id = %d',
+            $family_id
+        ));
+        if ($parent) {
+            $needles = array_merge($needles, array(
+                $parent->second_parent_email,
+                trim($parent->second_parent_prenom . ' ' . $parent->second_parent_nom),
+                trim($parent->second_parent_nom . ' ' . $parent->second_parent_prenom),
+            ));
+        }
+        $needles = self::clean_needles($needles);
+        if (!$needles) return 0;
+
+        return self::forget_rows(
+            "(famille_id = %d OR (acteur_type = 'famille' AND acteur_id = %d))",
+            array($family_id, $family_id),
+            $needles,
+            function ($row) use ($needles, $family_id) {
+                $changes = array();
+                if ($row->details !== null && psc_audit_resume_needs_redaction((string) $row->details, $needles)) $changes['details'] = null;
+                if (psc_audit_resume_needs_redaction((string) $row->acteur_libelle, $needles)) {
+                    /* translators: %d: identifiant de la famille */
+                    $changes['acteur_libelle'] = sprintf(__('Famille #%d', 'periscolaire-registration'), $family_id);
+                }
+                return $changes;
+            }
+        );
+    }
+
+    /** Aiguilles d'une famille encore en base (titulaire, second parent, enfants). */
+    private static function family_needles($family_id) {
+        global $wpdb;
+        $needles = array();
+        $parent = $wpdb->get_row($wpdb->prepare(
+            'SELECT email, nom, prenom, second_parent_email, second_parent_nom, second_parent_prenom FROM ' . psc_table('parents') . ' WHERE id = %d',
+            $family_id
+        ));
+        if ($parent) {
+            $needles = array(
+                $parent->email, $parent->nom, $parent->prenom,
+                trim($parent->prenom . ' ' . $parent->nom), trim($parent->nom . ' ' . $parent->prenom),
+                $parent->second_parent_email, $parent->second_parent_nom, $parent->second_parent_prenom,
+            );
+        }
+        $children = $wpdb->get_results($wpdb->prepare(
+            'SELECT nom, prenom, date_naissance FROM ' . psc_table('children') . ' WHERE parent_id = %d', $family_id
+        ));
+        foreach ($children as $child) {
+            $needles = array_merge($needles, self::child_needles($child));
+        }
+        return $needles;
+    }
+
+    /** Aiguilles d'un enfant : nom, prénom, les deux ordres, date de naissance (ISO et jj/mm/aaaa). */
+    private static function child_needles($child) {
+        $needles = array(
+            $child->nom, $child->prenom,
+            trim($child->prenom . ' ' . $child->nom), trim($child->nom . ' ' . $child->prenom),
+        );
+        if (!empty($child->date_naissance) && preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', (string) $child->date_naissance, $m)) {
+            $needles[] = $child->date_naissance;
+            $needles[] = $m[3] . '/' . $m[2] . '/' . $m[1];
+        }
+        return $needles;
+    }
+
+    private static function clean_needles(array $needles) {
+        $out = array();
+        foreach ($needles as $needle) {
+            $needle = trim((string) $needle);
+            if ($needle !== '' && !in_array($needle, $out, true)) $out[] = $needle;
+        }
+        return $out;
+    }
+
+    /**
+     * Applique $changes_for($row) aux lignes non purgées qui répondent à
+     * $where, et remplace par le résumé générique celles dont le résumé
+     * contient une aiguille.
+     *
+     * Le résumé entre dans l'empreinte : le réécrire impose de recalculer
+     * l'empreinte de la ligne et de toutes les suivantes (chacune est
+     * chaînée à la précédente). Le calcul est donc rejoué depuis la première
+     * ligne concernée jusqu'à la plus récente de la table.
+     */
+    private static function forget_rows($where, array $where_args, array $needles, $changes_for) {
+        global $wpdb;
         $table = psc_table('audit_log');
+        $needles = self::clean_needles($needles);
 
         $first_id = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT MIN(id) FROM $table WHERE famille_id = %d OR (acteur_type = 'famille' AND acteur_id = %d)",
-            $family_id, $family_id
+            "SELECT MIN(id) FROM $table WHERE $where", $where_args
         ));
         if (!$first_id) return 0;
 
@@ -611,6 +774,9 @@ class Psc_Audit {
         $previous_hash = $previous ? (string) $previous->empreinte : '';
         $previous_stored = $previous_hash;
         $seuil = self::chain_v2_from();
+        $touched_ids = array_flip(array_map('intval', $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM $table WHERE id >= %d AND purgee_le IS NULL AND $where", array_merge(array($first_id), $where_args)
+        ))));
         $anonymized = 0;
         $last_id = $first_id - 1;
         $rows = array();
@@ -620,24 +786,18 @@ class Psc_Audit {
                 "SELECT * FROM $table WHERE id > %d ORDER BY id ASC LIMIT 500", $last_id
             ));
             foreach ($rows as $row) {
-                $is_self = $row->acteur_type === 'famille' && (int) $row->acteur_id === $family_id;
-                $is_touched = ((int) $row->famille_id === $family_id) || $is_self;
                 $resume = $row->resume;
 
-                if ($is_touched) {
-                    $anonymized++;
+                if (isset($touched_ids[(int) $row->id])) {
+                    $changes = (array) call_user_func($changes_for, $row);
                     if (psc_audit_resume_needs_redaction($resume, $needles)) {
                         $resume = psc_audit_default_resume($row->action);
+                        $changes['resume'] = $resume;
                     }
-                    $wpdb->update($table, array(
-                        'famille_id'     => null,
-                        'enfant_id'      => null,
-                        'acteur_libelle' => $is_self
-                            ? sprintf(__('famille supprimée #%d', 'periscolaire-registration'), $family_id)
-                            : $row->acteur_libelle,
-                        'details'        => null,
-                        'resume'         => $resume,
-                    ), array('id' => $row->id));
+                    if ($changes) {
+                        $anonymized++;
+                        $wpdb->update($table, $changes, array('id' => $row->id));
+                    }
                 }
 
                 // Rechaînage selon la version de la ligne (v1 historique, v2

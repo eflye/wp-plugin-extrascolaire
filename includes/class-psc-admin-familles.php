@@ -67,7 +67,8 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         Psc_Audit::log('enfant.creation', array(
             'objet_type' => 'enfant', 'objet_id' => $child_id, 'famille_id' => $parent_id, 'enfant_id' => $child_id,
             'apres' => array('nom' => $nom, 'prenom' => $prenom, 'date_naissance' => $naissance ?: null, 'classe' => $classe),
-            'resume' => sprintf(__('Enfant %s %s ajouté par la mairie.', 'periscolaire-registration'), $prenom, $nom),
+            /* translators: %d: identifiant de l'enfant */
+            'resume' => sprintf(__('Enfant #%d ajouté par la mairie.', 'periscolaire-registration'), $child_id),
         ));
 
         self::redirect('psc_children', 'added');
@@ -78,12 +79,14 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         global $wpdb;
         $id = psc_post_int('id');
         if (!$id) self::redirect('psc_children', 'invalid');
-        $child = $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . psc_table('children') . ' WHERE id = %d', $id));
+        $parent_id = (int) $wpdb->get_var($wpdb->prepare('SELECT parent_id FROM ' . psc_table('children') . ' WHERE id = %d', $id));
         self::purge_child($id);
+        // Trace sans identité (RGPD-04) : la fiche vient d'être effacée,
+        // le journal ne doit pas en garder une copie (nom, date de naissance).
         Psc_Audit::log('enfant.suppression', array(
-            'objet_type' => 'enfant', 'objet_id' => $id, 'famille_id' => $child ? (int) $child->parent_id : null, 'enfant_id' => $id,
-            'avant' => $child ? array('nom' => $child->nom, 'prenom' => $child->prenom, 'date_naissance' => $child->date_naissance) : null,
-            'resume' => $child ? sprintf(__('Enfant %s %s supprimé.', 'periscolaire-registration'), $child->prenom, $child->nom) : null,
+            'objet_type' => 'enfant', 'objet_id' => $id, 'famille_id' => $parent_id ?: null, 'enfant_id' => $id,
+            /* translators: %d: identifiant de l'enfant */
+            'resume' => sprintf(__('Enfant #%d supprimé.', 'periscolaire-registration'), $id),
         ));
         self::redirect('psc_children', 'deleted');
     }
@@ -100,6 +103,10 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
     public static function purge_child($child_id) {
         global $wpdb;
         $t_cy = psc_table('child_school_years');
+
+        // Journal d'audit : identité de l'enfant retirée tant que sa fiche
+        // existe encore pour fournir les aiguilles (RGPD-04).
+        Psc_Audit::forget_child((int) $child_id);
 
         $paths = $wpdb->get_col($wpdb->prepare(
             "SELECT assurance_file_path FROM $t_cy WHERE child_id = %d AND assurance_file_path IS NOT NULL",
@@ -203,15 +210,16 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
             $wpdb->delete($t_parent, array('id' => $id), array('%d'));
         }
 
-        // Dernière trace avant disparition : avant complet en liste blanche
-        // (cf. psc_audit_field_policy()), pas seulement l'identifiant.
+        // Dernière trace avant disparition, sans identité (RGPD-04) : le
+        // détail serait de toute façon vidé par forget_family() ci-dessous.
         Psc_Audit::log('famille.suppression', array(
             'objet_type' => 'famille', 'objet_id' => $id, 'famille_id' => $id,
-            'avant' => (array) $family_row,
             'meta'   => array('factures_conservees' => $invoices),
             'resume' => $invoices > 0
-                ? sprintf(__('Famille %s (%s) supprimée ; %d facture(s) conservée(s) au titre de l’obligation comptable, fiche anonymisée.', 'periscolaire-registration'), trim($family_row->nom . ' ' . $family_row->prenom), $family_row->email, $invoices)
-                : sprintf(__('Famille %s (%s) supprimée.', 'periscolaire-registration'), trim($family_row->nom . ' ' . $family_row->prenom), $family_row->email),
+                /* translators: 1: identifiant de la famille, 2: nombre de factures conservées */
+                ? sprintf(_n('Famille #%1$d supprimée ; %2$d facture conservée au titre de l’obligation comptable, fiche anonymisée.', 'Famille #%1$d supprimée ; %2$d factures conservées au titre de l’obligation comptable, fiche anonymisée.', $invoices, 'periscolaire-registration'), $id, $invoices)
+                /* translators: %d: identifiant de la famille */
+                : sprintf(__('Famille #%d supprimée.', 'periscolaire-registration'), $id),
         ));
 
         // Droit à l'oubli : le journal garde la trace des actions passées
@@ -455,8 +463,9 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
             'avant' => array('active' => (int) $parent->active), 'apres' => array('active' => $parent->active ? 0 : 1),
             'meta' => array('vers' => $parent->active ? 'inactif' : 'actif'),
             'resume' => sprintf(
-                $parent->active ? __('Famille %s désactivée.', 'periscolaire-registration') : __('Famille %s réactivée.', 'periscolaire-registration'),
-                trim($parent->nom . ' ' . $parent->prenom) ?: $parent->email
+                /* translators: %d: identifiant de la famille */
+                $parent->active ? __('Famille #%d désactivée.', 'periscolaire-registration') : __('Famille #%d réactivée.', 'periscolaire-registration'),
+                $id
             ),
         ));
         self::redirect('psc_parents', $parent->active ? 'deactivated' : 'reactivated');

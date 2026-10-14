@@ -71,7 +71,7 @@ class Psc_Retention {
         $cutoff = gmdate('Y-m-d H:i:s', $now - $retention_days * DAY_IN_SECONDS);
 
         $rows = $wpdb->get_results($wpdb->prepare(
-            'SELECT c.id, c.parent_id, c.nom, c.prenom FROM ' . psc_table('children') . ' c WHERE ' . self::departed_sql(),
+            'SELECT c.id, c.parent_id FROM ' . psc_table('children') . ' c WHERE ' . self::departed_sql(),
             $cutoff
         ));
         if (!$rows) return 0;
@@ -84,9 +84,12 @@ class Psc_Retention {
                 'objet_id'   => (int) $row->id,
                 'famille_id' => (int) $row->parent_id,
                 'enfant_id'  => (int) $row->id,
+                // Sans identité (RGPD-04) : la fiche vient d'être effacée,
+                // le journal n'en garde que l'identifiant.
                 'resume'     => sprintf(
-                    __('Fiche de %1$s %2$s purgée automatiquement (sortie du service depuis plus de %3$d jours, conservation RGPD expirée).', 'periscolaire-registration'),
-                    $row->prenom, $row->nom, $retention_days
+                    /* translators: 1: identifiant de l'enfant, 2: durée de conservation en jours */
+                    __('Fiche enfant #%1$d purgée automatiquement (sortie du service depuis plus de %2$d jours, conservation RGPD expirée).', 'periscolaire-registration'),
+                    (int) $row->id, $retention_days
                 ),
             ));
         }
