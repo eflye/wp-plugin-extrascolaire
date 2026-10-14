@@ -3,11 +3,16 @@
 
     // Chaînes traduites côté serveur (PSC_SIDSCM.i18n, cf. Psc_Sidscm::assets())
     // : t('cle', args…) remplace les %s dans l'ordre des arguments.
+    // Marqueurs numérotés (%1$s, %2$s : l'ordre peut changer d'une langue
+    // à l'autre) ou simples (%s, remplacés dans l'ordre).
     function t(key) {
         var s = PSC_SIDSCM.i18n[key] || '';
-        for (var i = 1; i < arguments.length; i++) {
-            s = s.replace('%s', arguments[i]);
-        }
+        var args = Array.prototype.slice.call(arguments, 1);
+        s = s.replace(/%(\d+)\$s/g, function (m, n) {
+            var v = args[parseInt(n, 10) - 1];
+            return v === undefined ? m : String(v);
+        });
+        args.forEach(function (v) { s = s.replace('%s', String(v)); });
         return s;
     }
     // Fournie par le serveur (psc_unit_services()) : une seule source pour
@@ -345,7 +350,7 @@
             '<div class="psc-sidscm-panel" data-testid="sidscm-day-panel">' +
             '<div class="psc-sidscm-panel-head">' +
             '<div class="psc-sidscm-panel-title">' + escapeHtml(svcLabel(svc)) + ' — ' + escapeHtml(capitalize(day)) + '</div>' +
-            '<div class="psc-sidscm-panel-count" role="status" aria-live="polite" data-testid="sidscm-present-count">' + t('present_count', presentCount, rows.length) + '</div>' +
+            '<div class="psc-sidscm-panel-count" role="status" aria-live="polite" data-testid="sidscm-present-count">' + t(presentCount > 1 ? 'present_count' : 'present_count_one', presentCount, rows.length) + '</div>' +
             '</div>' + rowsHtml + emptyHtml +
             '</div>';
 

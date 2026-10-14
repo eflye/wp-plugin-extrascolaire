@@ -143,7 +143,13 @@ class Psc_Sidscm {
             // traduits côté serveur, codes et attributs techniques restent bruts.
             'i18n'     => array(
                 'empty_day'     => __('Aucun enfant attendu ce jour pour ce service.', 'periscolaire-registration'),
-                'present_count' => __('%s / %s présents', 'periscolaire-registration'),
+                // Pluriel choisi côté navigateur (le nombre n'est connu
+                // qu'au pointage) : les deux formes de _n() sont transmises,
+                // calculées pour 1 et pour 2.
+                /* translators: 1: nombre d'enfants pointés présents, 2: nombre d'enfants attendus */
+                'present_count'      => _n('%1$s / %2$s présent', '%1$s / %2$s présents', 2, 'periscolaire-registration'),
+                /* translators: 1: nombre d'enfants pointés présents, 2: nombre d'enfants attendus */
+                'present_count_one'  => _n('%1$s / %2$s présent', '%1$s / %2$s présents', 1, 'periscolaire-registration'),
                 'authorised'    => __('Autorisés', 'periscolaire-registration'),
                 'arrival'       => __('Arrivée', 'periscolaire-registration'),
                 'departure'     => __('Départ', 'periscolaire-registration'),
@@ -484,7 +490,8 @@ class Psc_Sidscm {
         $weeks = array();
         for ($offset = 0; $offset <= 8; $offset++) {
             $start = date('Y-m-d', strtotime($current_week . ' +' . $offset . ' weeks'));
-            $weeks[$start] = sprintf(__('Semaine du %s au %s', 'periscolaire-registration'), date_i18n('d/m/Y', strtotime($start)), date_i18n('d/m/Y', strtotime($start . ' +4 days')));
+            /* translators: 1: date du lundi, 2: date du vendredi (jj/mm/aaaa) */
+            $weeks[$start] = sprintf(__('Semaine du %1$s au %2$s', 'periscolaire-registration'), date_i18n('d/m/Y', strtotime($start)), date_i18n('d/m/Y', strtotime($start . ' +4 days')));
         }
         $monday = psc_post('week') ?: $current_week;
         if (!isset($weeks[$monday])) wp_send_json_error(array('code' => 'invalid_week'), 400);
