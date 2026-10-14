@@ -249,13 +249,13 @@ if (is_array($psc_sidscm_rejected) && $psc_sidscm_rejected) {
 </tr>
 </table>
 
-<h2>Assurances scolaires</h2>
-<table class="form-table"><tr><th><label for="psc-assurance-review">Validation des justificatifs</label></th><td>
-<select id="psc-assurance-review" name="assurance_review_mode">
-<option value="auto" <?php selected(!Psc_Assurances::manual_review()); ?>>Acceptation automatique après dépôt</option>
-<option value="manual" <?php selected(Psc_Assurances::manual_review()); ?>>Revue par la mairie avant accès au planning</option>
+<h2><?php esc_html_e('Assurances scolaires', 'periscolaire-registration'); ?></h2>
+<table class="form-table"><tr><th><label for="psc-assurance-review"><?php esc_html_e('Validation des justificatifs', 'periscolaire-registration'); ?></label></th><td>
+<select id="psc-assurance-review" name="assurance_review_mode" aria-describedby="psc-assurance-review-help">
+<option value="auto" <?php selected(!Psc_Assurances::manual_review()); ?>><?php esc_html_e('Acceptation automatique après dépôt', 'periscolaire-registration'); ?></option>
+<option value="manual" <?php selected(Psc_Assurances::manual_review()); ?>><?php esc_html_e('Revue par la mairie avant accès au planning', 'periscolaire-registration'); ?></option>
 </select>
-<p class="description">Le planning reste bloqué tant que les assurances des enfants actifs ne sont pas acceptées. Les documents déjà acceptés restent valables pour leur année scolaire. Un document refusé doit être remplacé.</p>
+<p class="description" id="psc-assurance-review-help"><?php esc_html_e('Le planning reste bloqué tant que les assurances des enfants actifs ne sont pas acceptées. Les documents déjà acceptés restent valables pour leur année scolaire. Un document refusé doit être remplacé.', 'periscolaire-registration'); ?></p>
 </td></tr></table>
 
 <h2><?php esc_html_e('Calendrier scolaire', 'periscolaire-registration'); ?></h2>
