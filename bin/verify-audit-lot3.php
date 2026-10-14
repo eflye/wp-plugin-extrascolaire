@@ -566,6 +566,31 @@ WP_CLI::add_command('verify-audit-lot3', function () {
         }
     };
 
+    /* PERF-10 : maybe_upgrade() sans requête ni appel système sur une page publique. */
+    $sections['PERF-10'] = function () use ($check) {
+        global $wpdb;
+        if (get_option('psc_db_version') !== Psc_Installer::DB_VERSION) {
+            $check(false, 'PERF-10 : schéma pas à jour, test impossible');
+            return;
+        }
+        // Un passage « écran mairie » pose les options en autoload.
+        $m = new ReflectionMethod('Psc_Installer', 'run_upgrade');
+        $m->setAccessible(true);
+        $m->invoke(null);
+        $all = wp_load_alloptions(true);
+        foreach (array('psc_db_version', 'psc_roles_version', 'psc_private_dir_path', 'psc_storage_move_failed') as $opt) {
+            if (psc_running_as_root() && $opt === 'psc_private_dir_path') continue;
+            $check(array_key_exists($opt, $all), "PERF-10 : option $opt non chargée d'office");
+        }
+        $check(!get_option('psc_storage_move_failed'), 'PERF-10 : marqueur d\'échec de déménagement non vide');
+        wp_cache_delete('notoptions', 'options');
+        $q = $wpdb->num_queries;
+        Psc_Installer::maybe_upgrade(); // contexte WP-CLI = page publique
+        $check($wpdb->num_queries === $q, 'PERF-10 : maybe_upgrade() public : ' . ($wpdb->num_queries - $q) . ' requête(s)');
+        $src = (string) file_get_contents(PSC_PATH . 'includes/helpers/files.php');
+        $check(strpos($src, "psc_private_path(\$rel_path) {\n    // Tout accès") !== false, 'PERF-10 : garde-fous non posés au premier accès à un document');
+    };
+
     try {
         foreach ($sections as $name => $run) {
             $run();

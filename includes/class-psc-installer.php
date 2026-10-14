@@ -94,11 +94,11 @@ class Psc_Installer {
      */
     public static function maybe_upgrade() {
         // Chemin courant, sans écriture : rien à migrer ni à déménager. Le
-        // répertoire privé doit tout de même exister (et porter ses
-        // garde-fous) à chaque chargement, même si un administrateur l'a
-        // supprimé à la main ou si l'hébergeur a réinitialisé le disque.
+        // répertoire privé et ses garde-fous sont (re)posés au premier accès
+        // à un document (psc_private_path()) et à chaque écran de la mairie
+        // (run_upgrade()) — plus à chaque page publique du site (PERF-10).
+        // Les options lues ici sont chargées d'office (autoload).
         if (!self::has_pending_work()) {
-            psc_ensure_private_dir();
             return;
         }
 
@@ -157,6 +157,10 @@ class Psc_Installer {
 
         psc_ensure_private_dir();
         self::sync_private_dir();
+        // Lue à chaque chargement (has_pending_work()) : présente et chargée
+        // d'office même quand le déménagement n'est pas vérifié (root).
+        $move_failed = get_option('psc_storage_move_failed', array());
+        self::ensure_autoloaded('psc_storage_move_failed', is_array($move_failed) ? $move_failed : array());
 
         // Hors bloc de version également : les contraintes sont idempotentes
         // et bon marché quand tout est en place (trois SELECT). Un ALTER
@@ -372,6 +376,9 @@ class Psc_Installer {
 
         if ($known === $current) {
             self::storage_move_result('private_dir', true);
+            // Lu à chaque chargement (has_pending_work()) : l'option doit
+            // être chargée d'office, sans requête dédiée (PERF-10).
+            self::ensure_autoloaded('psc_private_dir_path', $current);
             return;
         }
 
@@ -383,8 +390,20 @@ class Psc_Installer {
         }
 
         if (is_dir($current)) {
-            update_option('psc_private_dir_path', $current, false);
+            update_option('psc_private_dir_path', $current, true);
+            self::ensure_autoloaded('psc_private_dir_path', $current);
         }
+    }
+
+    /**
+     * Garantit qu'une option lue à chaque chargement est chargée d'office
+     * (une option créée avec autoload « non » coûte une requête par page).
+     */
+    private static function ensure_autoloaded($name, $value) {
+        $all = wp_load_alloptions();
+        if (is_array($all) && array_key_exists($name, $all)) return;
+        delete_option($name);
+        add_option($name, $value, '', 'yes');
     }
 
     /**
@@ -403,16 +422,19 @@ class Psc_Installer {
         $failed = get_option('psc_storage_move_failed');
         $failed = is_array($failed) ? $failed : array();
         if ($ok) {
-            if (!isset($failed[$source])) return;
+            if (!isset($failed[$source])) {
+                // Option absente : get_option() la cherche en base à chaque
+                // page. Un tableau vide chargé d'office l'évite (PERF-10).
+                self::ensure_autoloaded('psc_storage_move_failed', $failed);
+                return;
+            }
             unset($failed[$source]);
         } else {
             $failed[$source] = array('depuis' => $from, 'vers' => $to, 'restants' => self::count_files($from), 'ts' => time());
         }
-        if ($failed) {
-            update_option('psc_storage_move_failed', $failed, false);
-        } else {
-            delete_option('psc_storage_move_failed');
-        }
+        // Toujours présente et chargée d'office : tableau vide = aucun échec.
+        update_option('psc_storage_move_failed', $failed, true);
+        self::ensure_autoloaded('psc_storage_move_failed', $failed);
     }
 
     protected static function count_files($dir) {

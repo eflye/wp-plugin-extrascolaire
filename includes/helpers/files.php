@@ -104,6 +104,10 @@ function psc_running_as_root() {
  *                qui échoue alors proprement).
  */
 function psc_private_path($rel_path) {
+    // Tout accès à un document passe par ici : c'est le moment de
+    // (re)poser le répertoire et ses garde-fous (une fois par requête),
+    // plutôt qu'à chaque page publique du site (PERF-10).
+    psc_ensure_private_dir();
     $root = wp_normalize_path(psc_private_dir());
     $rel  = str_replace('\\', '/', ltrim((string) $rel_path, '/'));
 
@@ -143,7 +147,20 @@ function psc_private_path($rel_path) {
  * pas .htaccess, d'où la vérification active côté administration.
  */
 function psc_ensure_private_dir() {
+    // Une vérification par emplacement et par requête : appelée à chaque
+    // accès à un document (psc_private_path()), elle ne doit pas répéter
+    // ses appels système.
+    static $done = array();
     $dir = psc_private_dir();
+    if (isset($done[$dir])) {
+        return $done[$dir];
+    }
+    $done[$dir] = psc_ensure_private_dir_now($dir);
+    return $done[$dir];
+}
+
+/** Corps de psc_ensure_private_dir(), sans mémorisation. */
+function psc_ensure_private_dir_now($dir) {
     if (!is_dir($dir) && !wp_mkdir_p($dir)) {
         return false;
     }
