@@ -339,6 +339,34 @@ WP_CLI::add_command('verify-audit-lot2', function () {
         $p = $parent_i();
         $check(!is_wp_error($res) && psc_read_iban($p) === '' && empty($p->sepa_bic) && empty($p->sepa_titulaire) && empty($p->sepa_adresse) && $p->payment_mode === 'autre', 'RGPD-07 : coordonnées bancaires non supprimées');
         $check($mentions($iban) === 0 && $mentions('Titulaire' . $tag) === 0, 'RGPD-07 : IBAN complet ou titulaire écrit au journal');
+
+        /* ---------------- SEC-06 : verrou de chaînage ---------------- */
+        // Écritures concurrentes : 4 processus WP-CLI écrivent 15 lignes
+        // chacun en même temps ; la chaîne doit rester sans rupture.
+        $php = escapeshellarg(PHP_BINARY);
+        $cli = escapeshellarg(isset($GLOBALS['argv'][0]) ? realpath($GLOBALS['argv'][0]) : '/usr/local/bin/wp-cli.phar');
+        $code = escapeshellarg("for (\$i = 0; \$i < 15; \$i++) Psc_Audit::log('menu.enregistrement', array('resume' => 'VerifyLot2 concurrence'));");
+        $cmd = "$php $cli --allow-root --path=" . escapeshellarg(ABSPATH) . " eval $code";
+        $procs = array();
+        for ($p = 0; $p < 4; $p++) {
+            $procs[] = proc_open($cmd, array(1 => array('file', '/dev/null', 'w'), 2 => array('file', '/dev/null', 'w')), $pipes);
+        }
+        foreach ($procs as $proc) if (is_resource($proc)) proc_close($proc);
+        $concurrent = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_audit WHERE id > %d AND resume = %s", $start_id, 'VerifyLot2 concurrence'));
+        $check($concurrent === 60, "SEC-06 : $concurrent ligne(s) concurrente(s) écrite(s) au lieu de 60");
+        $check($verify() === null, 'SEC-06 : rupture de chaîne après écritures concurrentes');
+
+        // Verrou tenu ailleurs : l'écriture a lieu quand même, l'échec est compté.
+        $other = new wpdb(DB_USER, DB_PASSWORD, DB_NAME, DB_HOST);
+        $other->get_var("SELECT GET_LOCK('psc_audit_chain', 5)");
+        $timeouts = (int) get_option('psc_audit_lock_timeouts', 0);
+        $before_count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_audit WHERE id > %d", $start_id));
+        Psc_Audit::log('menu.enregistrement', array('resume' => 'VerifyLot2 verrou occupé'));
+        $other->get_var("SELECT RELEASE_LOCK('psc_audit_chain')");
+        $check((int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_audit WHERE id > %d", $start_id)) === $before_count + 1, 'SEC-06 : ligne perdue quand le verrou est occupé');
+        $check((int) get_option('psc_audit_lock_timeouts', 0) === $timeouts + 1, 'SEC-06 : délai de verrou non compté');
+        update_option('psc_audit_lock_timeouts', $timeouts, false);
+        $check($verify() === null, 'SEC-06 : chaîne invalide après un délai de verrou');
     } finally {
         foreach ($family_ids as $fid) {
             $wpdb->delete($t_child, array('parent_id' => $fid), array('%d'));

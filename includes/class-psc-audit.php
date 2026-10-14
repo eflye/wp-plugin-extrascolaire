@@ -166,32 +166,9 @@ class Psc_Audit {
             $args['meta']
         );
 
-        $horodatage = gmdate('Y-m-d H:i:s');
-        $previous_hash = (string) get_option('psc_audit_last_hash', '');
-        // Chaînage v2 (P1-11) dès que la mise à jour 4.16.0 a posé son
-        // seuil : l'empreinte de contenu est gardée à part, pour qu'une
-        // ligne expirée puisse être vidée sans casser la chaîne.
-        $contenu = null;
-        if (self::chain_v2_from() > 0) {
-            $contenu = psc_audit_content_hash($horodatage, $action_code, $actor['type'], $actor['id'], $args['objet_type'], $args['objet_id'], $resume);
-            $empreinte = psc_audit_chain_hash($previous_hash, $contenu);
-        } else {
-            $empreinte = psc_audit_compute_hash(
-                $previous_hash,
-                $horodatage,
-                $action_code,
-                $actor['type'],
-                $actor['id'],
-                $args['objet_type'],
-                $args['objet_id'],
-                $resume
-            );
-        }
-
         $resultat = in_array($args['resultat'], array('succes', 'refus', 'erreur', 'tentative'), true) ? $args['resultat'] : 'succes';
 
         $row = array(
-            'horodatage'         => $horodatage,
             'requete_id'         => self::request_id(),
             'acteur_type'        => $actor['type'],
             'acteur_id'          => $actor['id'] !== null ? (int) $actor['id'] : null,
@@ -208,16 +185,55 @@ class Psc_Audit {
             'details'            => $details,
             'ip'                 => psc_client_ip() ?: null,
             'canal'              => self::detect_channel(),
-            'empreinte'          => $empreinte,
         );
-        if ($contenu !== null) $row['empreinte_contenu'] = $contenu;
 
-        $inserted = $wpdb->insert(psc_table('audit_log'), $row);
-        if ($inserted === false) {
-            self::record_failure($action_code, $wpdb->last_error);
-            return;
+        // Lecture de la tête de chaîne -> insertion -> mise à jour, sous
+        // verrou (SEC-06) : sans lui, deux requêtes simultanées chaînent sur
+        // la même empreinte et la vérification signale une fausse rupture.
+        // Verrou indisponible (délai de 2 s dépassé) : l'écriture a lieu
+        // quand même — le journal ne bloque jamais une action — et l'échec
+        // est compté (option psc_audit_lock_timeouts).
+        $locked = (string) $wpdb->get_var("SELECT GET_LOCK('psc_audit_chain', 2)") === '1';
+        if (!$locked) update_option('psc_audit_lock_timeouts', (int) get_option('psc_audit_lock_timeouts', 0) + 1, false);
+        try {
+            $horodatage = gmdate('Y-m-d H:i:s');
+            // Lu en base, pas dans le cache d'options : une autre requête
+            // a pu avancer la tête depuis le dernier appel de celle-ci.
+            $previous_hash = (string) $wpdb->get_var($wpdb->prepare(
+                "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", 'psc_audit_last_hash'
+            ));
+            // Chaînage v2 (P1-11) dès que la mise à jour 4.16.0 a posé son
+            // seuil : l'empreinte de contenu est gardée à part, pour qu'une
+            // ligne expirée puisse être vidée sans casser la chaîne.
+            $contenu = null;
+            if (self::chain_v2_from() > 0) {
+                $contenu = psc_audit_content_hash($horodatage, $action_code, $actor['type'], $actor['id'], $args['objet_type'], $args['objet_id'], $resume);
+                $empreinte = psc_audit_chain_hash($previous_hash, $contenu);
+            } else {
+                $empreinte = psc_audit_compute_hash(
+                    $previous_hash,
+                    $horodatage,
+                    $action_code,
+                    $actor['type'],
+                    $actor['id'],
+                    $args['objet_type'],
+                    $args['objet_id'],
+                    $resume
+                );
+            }
+            $row['horodatage'] = $horodatage;
+            $row['empreinte'] = $empreinte;
+            if ($contenu !== null) $row['empreinte_contenu'] = $contenu;
+
+            $inserted = $wpdb->insert(psc_table('audit_log'), $row);
+            if ($inserted === false) {
+                self::record_failure($action_code, $wpdb->last_error);
+                return;
+            }
+            update_option('psc_audit_last_hash', $empreinte, false);
+        } finally {
+            if ($locked) $wpdb->query("SELECT RELEASE_LOCK('psc_audit_chain')");
         }
-        update_option('psc_audit_last_hash', $empreinte, false);
 
         // Une action produit une seule ligne : un appel sémantique qui porte
         // le même code que la capture générique en attente la referme — le
