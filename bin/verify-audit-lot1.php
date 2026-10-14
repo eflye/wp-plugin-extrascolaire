@@ -14,6 +14,10 @@
  *    de confirmation en GET (rien n'est annulé), annulation en POST,
  *    usage unique, rétablissement de l'ancienne adresse après
  *    confirmation, avec révocation des sessions.
+ *  - SEC-01 : une soumission anonyme ne réécrit jamais une demande ; une
+ *    demande en attente de la mairie reste intacte (réponse identique) ;
+ *    les demandes non confirmées de la même adresse ne disparaissent qu'à
+ *    la confirmation de l'une d'elles.
  *
  * Usage :
  *   wp --require=bin/verify-audit-lot1.php verify-audit-lot1
@@ -52,7 +56,17 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         'nouvelle'  => 'verify-lot1-nouvelle@example.invalid',
         'autre'     => 'verify-lot1-autre@example.invalid',
         'occupant'  => 'verify-lot1-occupant@example.invalid',
+        'demande'   => 'verify-lot1-demande@example.invalid',
     );
+    $t_req = psc_table('requests');
+    $purge_requests = function () use ($wpdb, $emails, $t_req) {
+        foreach ($wpdb->get_col($wpdb->prepare("SELECT id FROM $t_req WHERE email = %s", $emails['demande'])) as $rid) {
+            Psc_Assurances::delete_pending_files((int) $rid);
+            $wpdb->delete($t_req, array('id' => (int) $rid));
+        }
+    };
+    $purge_requests();
+    $saved_auto = get_option('psc_auto_approve_requests', null);
 
     $purge = function () use ($wpdb, $emails, $t_par) {
         foreach ($emails as $e) {
@@ -160,7 +174,73 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         return $run(function () { do_action('admin_post_nopriv_psc_cancel_email_change_link'); });
     };
 
+    /** Soumission publique du formulaire d'inscription (anonyme). */
+    $submit_request = function ($nom) use ($run, $emails) {
+        wp_set_current_user(0);
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_GET = array();
+        $_POST = $_REQUEST = array(
+            'action'             => 'psc_submit_request',
+            '_wpnonce'           => wp_create_nonce('psc_submit_request'),
+            'req_email'          => $emails['demande'],
+            'req_nom'            => $nom,
+            'req_prenom'         => 'Verification',
+            'req_telephone'      => '0612345678',
+            'req_adresse'        => '1 rue de la Mairie',
+            'req_code_postal'    => '95000',
+            'req_ville'          => 'Montgeroult',
+            'child_nom_0'        => $nom,
+            'child_prenom_0'     => 'Enfant',
+            'child_classe_0'     => 'CP',
+            'child_naissance_0'  => (string) ((int) gmdate('Y') - 7) . '-03-15',
+            'reglement_accepted' => '1',
+            'payment_mode'       => 'autre',
+        );
+        return $run(function () { do_action('admin_post_nopriv_psc_submit_request'); });
+    };
+    $verify_token_of = function (array $mails) {
+        foreach (array_reverse($mails) as $m) {
+            if (preg_match('/psc_req=(\d+)&psc_vtoken=([a-f0-9]{64})/', html_entity_decode((string) $m['message']), $mm)) return array((int) $mm[1], $mm[2]);
+        }
+        return array(0, '');
+    };
+
     try {
+        /* ---------- SEC-01 : demandes d'inscription ---------- */
+        update_option('psc_auto_approve_requests', 0);
+        $mails = array();
+        $r = $submit_request('Premiere');
+        $check($msg_of($r) === 'request_sent', 'SEC-01 : première soumission → ' . $r['kind'] . ' ' . $msg_of($r));
+        list($first_id, $first_token) = $verify_token_of($mails);
+        $first_before = $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_req WHERE id = %d", $first_id));
+        $check($first_id > 0 && $first_before && $first_before->status === 'unverified', 'SEC-01 données : première demande absente');
+
+        $mails = array();
+        $r = $submit_request('Tiers');
+        list($second_id, $second_token) = $verify_token_of($mails);
+        $first_after = $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_req WHERE id = %d", $first_id));
+        $check($second_id > 0 && $second_id !== $first_id, 'SEC-01 : la deuxième soumission n’a pas créé de nouvelle demande');
+        $check($first_after && $first_after->nom === 'Premiere' && $first_after->verify_hash === $first_before->verify_hash, 'SEC-01 : la demande non confirmée existante a été réécrite');
+
+        // Confirmation de la première : elle remplace la seconde.
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_GET = array('psc_req' => (string) $first_id, 'psc_vtoken' => $first_token);
+        $r = $run(function () { Psc_Requests::maybe_verify(); });
+        $check($msg_of($r) === 'verified', 'SEC-01 : confirmation → ' . $msg_of($r));
+        $check($wpdb->get_var($wpdb->prepare("SELECT status FROM $t_req WHERE id = %d", $first_id)) === 'pending', 'SEC-01 : demande confirmée non passée en attente');
+        $check((int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_req WHERE id = %d", $second_id)) === 0, 'SEC-01 : demande non confirmée concurrente conservée après confirmation');
+
+        // Demande en attente de la mairie : une nouvelle soumission ne change rien.
+        $before = $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_req WHERE id = %d", $first_id), ARRAY_A);
+        $mails = array();
+        $r = $submit_request('Attaquant');
+        $after = $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_req WHERE id = %d", $first_id), ARRAY_A);
+        $check($msg_of($r) === 'request_sent', 'SEC-01 : réponse différente pour une demande en attente');
+        $check($before === $after, 'SEC-01 : demande en attente modifiée par une soumission anonyme');
+        $check((int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_req WHERE email = %s", $emails['demande'])) === 1, 'SEC-01 : nouvelle demande créée malgré une demande en attente');
+        $check(count($mails) === 0, 'SEC-01 : e-mail envoyé pour une demande en attente');
+        $_GET = array();
+
         $pid = Psc_Parents::create($emails['titulaire'], 'Lot1', array('second_parent_email' => $emails['second']));
         $check(is_int($pid) && $pid > 0, 'SEC-02 données : foyer non créé');
         $occupant = Psc_Parents::create($emails['occupant'], 'Occupant');
@@ -288,6 +368,8 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         Psc_Parents::reset_current_cache();
         $_GET = $_POST = $_REQUEST = array();
         $purge();
+        $purge_requests();
+        if ($saved_auto === null) delete_option('psc_auto_approve_requests'); else update_option('psc_auto_approve_requests', $saved_auto);
     }
 
     if ($failures) {

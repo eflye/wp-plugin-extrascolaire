@@ -259,11 +259,19 @@ class Psc_Requests {
             exit;
         }
 
-        // Une demande déjà en cours ne doit pas être dupliquée.
+        // Une demande confirmée, en attente de la mairie, n'est JAMAIS
+        // modifiée depuis ce formulaire public (SEC-01) : n'importe qui
+        // connaissant l'adresse pourrait sinon la réécrire. Réponse
+        // identique, rien n'est changé ; pour corriger, la famille
+        // contacte la mairie.
         $t = psc_table('requests');
-        $existing = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $t WHERE email = %s AND status IN ('unverified','pending')", $email
+        $has_pending = (bool) $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $t WHERE email = %s AND status = 'pending' LIMIT 1", $email
         ));
+        if ($has_pending) {
+            wp_safe_redirect(add_query_arg('psc_msg', 'request_sent', $back));
+            exit;
+        }
 
         $nom       = psc_post('req_nom');
         $prenom    = psc_post('req_prenom');
@@ -467,16 +475,13 @@ class Psc_Requests {
             'created_at'                 => current_time('mysql'),
         );
 
-        if ($existing) {
-            $wpdb->update($t, $data, array('id' => $existing->id));
-            $request_id = $existing->id;
-        } else {
-            $wpdb->insert($t, $data);
-            $request_id = (int) $wpdb->insert_id;
-        }
-
-        // Nettoie les pièces d'une éventuelle ancienne demande resoumise.
-        Psc_Assurances::delete_pending_files($request_id);
+        // Toujours une nouvelle ligne (SEC-01) : une demande non confirmée
+        // de la même adresse n'est ni réécrite ni supprimée ici — son lien
+        // de confirmation reste valable. Les anciennes ne disparaissent
+        // qu'à la confirmation de l'une d'elles (maybe_verify()), c'est-à-
+        // dire une fois l'adresse prouvée.
+        $wpdb->insert($t, $data);
+        $request_id = (int) $wpdb->insert_id;
 
         // Prélèvement : le mandat SEPA est généré tout de suite (la RUM ne
         // dépend que de l'id de la demande, déjà connu) et joint à l'e-mail
@@ -547,6 +552,12 @@ class Psc_Requests {
             array('%d')
         );
 
+        // L'adresse est désormais prouvée : les autres demandes non
+        // confirmées de la même adresse (soumissions précédentes, ou d'un
+        // tiers qui la connaissait) sont remplacées par celle-ci, fichiers
+        // compris (SEC-01).
+        self::delete_superseded_unverified($req);
+
         // Validation automatique (Réglages) : la famille accède directement
         // à son espace, sans relecture par la mairie — mêmes écritures que
         // handle_approve(), déclenchées ici au lieu d'un clic mairie. On est
@@ -580,6 +591,34 @@ class Psc_Requests {
 
         wp_safe_redirect(add_query_arg('psc_msg', 'verified', $redirect));
         exit;
+    }
+
+    /**
+     * Supprime les demandes non confirmées de la même adresse que $req,
+     * qui vient d'être confirmée, et leurs justificatifs en attente.
+     */
+    private static function delete_superseded_unverified($req) {
+        global $wpdb;
+        $t = psc_table('requests');
+        $ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM $t WHERE email = %s AND status = 'unverified' AND id <> %d",
+            strtolower((string) $req->email), (int) $req->id
+        ));
+        foreach ($ids as $id) {
+            Psc_Assurances::delete_pending_files((int) $id);
+            $wpdb->delete($t, array('id' => (int) $id), array('%d'));
+        }
+        if ($ids) {
+            Psc_Audit::log('demande.suppression', array(
+                'objet_type' => 'demande', 'objet_id' => (int) $req->id,
+                'meta' => array('supprimees' => count($ids)),
+                'resume' => sprintf(
+                    /* translators: 1: nombre de demandes supprimées, 2: identifiant de la demande confirmée */
+                    _n('%1$d demande non confirmée remplacée par la demande d’inscription #%2$d.', '%1$d demandes non confirmées remplacées par la demande d’inscription #%2$d.', count($ids), 'periscolaire-registration'),
+                    count($ids), (int) $req->id
+                ),
+            ));
+        }
     }
 
     /* ---------------- Modération (backoffice) ---------------- */
