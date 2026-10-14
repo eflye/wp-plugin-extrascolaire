@@ -188,10 +188,31 @@ function psc_hash_token($token) {
 }
 
 /**
- * Signe une valeur avec les clés secrètes du site.
+ * Clé de signature des sessions (familles, consultation mairie) — SEC-07.
+ *
+ * wp_salt('psc_session') retombe, comme tout sel propre au plugin, sur
+ * l'option `secret_key` stockée EN BASE (cf. psc_encryption_secrets()) :
+ * une fuite de sauvegarde suffisait alors à forger le cookie de n'importe
+ * quel foyer. Quand une clé hors base existe (PSC_ENCRYPTION_KEY en
+ * constante ou en variable d'environnement), la signature en dérive une
+ * sous-clé dédiée ; sinon, repli sur wp_salt('psc_session') (installation
+ * pas encore configurée, l'écran Maintenance le signale déjà).
+ *
+ * Changer de clé (déclaration de la constante, rotation) invalide les
+ * sessions ouvertes : les familles se reconnectent une fois.
+ */
+function psc_session_signing_key() {
+    if (psc_encryption_key_outside_db()) {
+        return hash_hmac('sha256', 'psc_session_signature', psc_encryption_key());
+    }
+    return wp_salt('psc_session');
+}
+
+/**
+ * Signe une valeur avec la clé de signature des sessions.
  * Permet de faire confiance au contenu d'un cookie sans stocker de session
  * en base : si la signature ne correspond pas, la valeur a été altérée.
  */
 function psc_sign($payload) {
-    return hash_hmac('sha256', $payload, wp_salt('psc_session'));
+    return hash_hmac('sha256', $payload, psc_session_signing_key());
 }

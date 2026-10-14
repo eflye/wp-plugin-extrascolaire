@@ -144,7 +144,8 @@ function psc_parent_nonce($action, $parent_id, $tick_offset = 0) {
     return substr(hash_hmac(
         'sha256',
         $tick . '|' . $action . '|' . (int) $parent_id,
-        wp_salt('psc_parent_nonce')
+        // Même clé hors base que la signature des sessions (SEC-07).
+        psc_session_signing_key() . '|psc_parent_nonce'
     ), 0, 24);
 }
 

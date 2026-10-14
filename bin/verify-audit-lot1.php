@@ -29,6 +29,8 @@
  *  - RGPD-06 : liste intervenants — allergies transmises seulement pour un
  *    enfant attendu au midi, personnes autorisées seulement sur demande
  *    (semaine en cours).
+ *  - SEC-07 : avec une clé hors base, sessions et jetons du portail sont
+ *    signés avec elle ; un cookie signé avec le sel en base est refusé.
  *  - RGPD-04/L1 : les lignes du journal écrites pour le foyer de test ne
  *    contiennent ni e-mail ni nom (résumé et libellé d'acteur).
  *
@@ -519,6 +521,22 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         $wpdb->update($t_par, array('second_parent_email' => $emails['titulaire']), array('id' => $occupant));
         $r = $cancel_post($cancel);
         $check($parent_row($pid)->email === $emails['nouvelle'] && strpos($r['value'], 'mairie') !== false, 'SEC-02 : ancienne adresse occupée, rétablissement inattendu ou message absent');
+        /* ---------- SEC-07 : signature avec la clé hors base ---------- */
+        $current_email = (string) $parent_row($pid)->email; // modifiée par la section SEC-02
+        $use_session($pid, $current_email);
+        $db_cookie = $_COOKIE[psc_session_cookie_name()];
+        $db_nonce = psc_parent_nonce('psc_parent_update_profile', $pid);
+        $outside = function ($secrets) { return array('constante' => 'verify-lot1-cle-hors-base-0123456789') + $secrets; };
+        add_filter('psc_encryption_secrets', $outside);
+        $check(psc_encryption_key_outside_db() && psc_session_signing_key() !== wp_salt('psc_session'), 'SEC-07 : clé hors base non utilisée pour signer');
+        $set_cookie($db_cookie);
+        $check(Psc_Parents::current() === null, 'SEC-07 : cookie signé avec le sel en base accepté malgré la clé hors base');
+        $check(!psc_verify_parent_nonce('psc_parent_update_profile', $pid, $db_nonce), 'SEC-07 : jeton du portail signé avec le sel en base accepté');
+        $use_session($pid, $current_email);
+        $check(Psc_Parents::current() && Psc_Parents::session_login_role() === 'titulaire', 'SEC-07 : session signée avec la clé hors base refusée');
+        remove_filter('psc_encryption_secrets', $outside);
+        $check(psc_session_signing_key() === wp_salt('psc_session'), 'SEC-07 : repli sur wp_salt absent sans clé hors base');
+
         /* ---------- RGPD-04/L1 : journal sans identité ---------- */
         $t_audit = psc_table('audit_log');
         $rows = $wpdb->get_results($wpdb->prepare(
