@@ -18,6 +18,7 @@ function psc_impersonation_action_policy() {
         'psc_message_notifications'              => 'lecture',
         'psc_parent_download_invoice'            => 'lecture',
         'psc_parent_download_assurance'          => 'lecture',
+        'psc_parent_download_conversation_attachment' => 'lecture',
 
         // Écran intervenants indépendant du portail famille.
         'psc_sidscm_unlock'                      => 'hors_portail',
