@@ -645,12 +645,39 @@ class Psc_Frontend extends Psc_Frontend_Base {
         }
     }
 
+    /** Rendus du portail déjà produits dans la requête, par contexte. */
+    private static $rendered = array();
+
+    /**
+     * Shortcode [periscolaire_form].
+     *
+     * Le portail connecté est demandé deux fois par page : par do_shortcode
+     * (the_content, priorité 11), puis par hide_page_chrome_when_connected()
+     * (priorité 20), qui remplace la page par le seul portail. Le rendu est
+     * donc mémorisé pour la requête : le second appel ne refait ni les
+     * requêtes ni le gabarit. La clé couvre ce dont dépend le rendu
+     * (famille, consultation par la mairie, paramètres d'URL).
+     */
     public static function shortcode($atts) {
         // Filet de sécurité (shortcode rendu hors d'une page singulière,
         // ex. bloc de widget) : sans effet si template_redirect les a déjà
         // émis ou si la sortie a commencé.
         self::send_private_headers();
 
+        $parent = Psc_Parents::current();
+        $key = md5((string) wp_json_encode(array(
+            $parent ? (int) $parent->id : 0,
+            Psc_Parents::is_impersonated(),
+            wp_unslash($_GET), // phpcs:ignore WordPress.Security.NonceVerification -- clé de cache, aucune action
+        )));
+        if (!isset(self::$rendered[$key])) {
+            self::$rendered[$key] = self::render();
+        }
+        return self::$rendered[$key];
+    }
+
+    /** Rendu du portail (invité ou connecté), cf. shortcode(). */
+    private static function render() {
         ob_start();
 
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';

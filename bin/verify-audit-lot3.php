@@ -333,6 +333,26 @@ WP_CLI::add_command('verify-audit-lot3', function () {
         }
     };
 
+    /* PERF-04 : le portail n'est rendu qu'une fois par requête. */
+    $sections['PERF-04'] = function () use ($check) {
+        global $wpdb;
+        $get = $_GET;
+        try {
+            $_GET = array('psc_verify_lot3' => '1');
+            $first = Psc_Frontend::shortcode(array());
+            $q = $wpdb->num_queries;
+            $second = Psc_Frontend::shortcode(array());
+            $check($second === $first && $first !== '', 'PERF-04 : second rendu différent du premier');
+            $check($wpdb->num_queries - $q <= 2, 'PERF-04 : second appel du shortcode : ' . ($wpdb->num_queries - $q) . ' requêtes (rendu refait)');
+            $_GET = array('psc_verify_lot3' => '2', 'psc_msg' => 'bad_email');
+            $q = $wpdb->num_queries;
+            $third = Psc_Frontend::shortcode(array());
+            $check($third !== '' && $third !== $first, 'PERF-04 : paramètres d\'URL différents servis depuis le même rendu');
+        } finally {
+            $_GET = $get;
+        }
+    };
+
     try {
         foreach ($sections as $name => $run) {
             $run();
