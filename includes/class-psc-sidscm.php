@@ -23,7 +23,13 @@ if (!defined('ABSPATH')) exit;
 class Psc_Sidscm {
 
     const SESSION_TTL = 28800;
+    /** Longueur minimale d'un code individuel créé ou modifié (SEC-03). */
+    const MIN_CODE_LENGTH = 8;
+    /** Codes erronés tolérés par heure pour un même intervenant (SEC-03). */
+    const BAD_CODES_PER_ID = 10;
     private static $request_actor = null;
+    /** @var string[] Noms des intervenants dont le nouveau code a été refusé au dernier enregistrement. */
+    private static $rejected_codes = array();
 
 
     public static function init() {
@@ -181,8 +187,37 @@ class Psc_Sidscm {
         })));
     }
 
+    /**
+     * Intervenant du registre actif à ce jour (ni désactivé, ni révoqué,
+     * ni expiré), ou null.
+     *
+     * @return array|null
+     */
+    public static function find_active_intervenant($id) {
+        $id = (string) $id;
+        if ($id === '') return null;
+        foreach (self::intervenants() as $row) {
+            if ((string) $row['id'] !== $id) continue;
+            if (empty($row['active']) || !empty($row['revoked_at']) || (($row['expires_at'] ?? '') !== '' && $row['expires_at'] < current_time('Y-m-d'))) return null;
+            return $row;
+        }
+        return null;
+    }
+
+    /**
+     * Noms des intervenants dont le nouveau code a été refusé par le
+     * dernier appel à sanitize_intervenants() (trop court) : l'écran des
+     * réglages les signale. Un intervenant existant garde alors son code.
+     *
+     * @return string[]
+     */
+    public static function rejected_codes() {
+        return self::$rejected_codes;
+    }
+
     public static function sanitize_intervenants($raw) {
         $out = array();
+        self::$rejected_codes = array();
         foreach (is_array($raw) ? $raw : array() as $row) {
             if (!is_array($row)) continue;
             $nom = sanitize_text_field($row['nom'] ?? '');
@@ -192,6 +227,14 @@ class Psc_Sidscm {
             if ($id === '') $id = sanitize_key(substr(md5($nom . wp_generate_uuid4()), 0, 12));
             $old = null;
             foreach (self::intervenants() as $candidate) if ((string) $candidate['id'] === $id) { $old = $candidate; break; }
+            // Un code créé ou modifié doit compter au moins MIN_CODE_LENGTH
+            // caractères (SEC-03) ; les codes déjà enregistrés restent
+            // valables. Refusé : l'ancien code est conservé (nouvel
+            // intervenant : il n'est pas créé) et l'écran le signale.
+            if ($code !== '' && mb_strlen($code) < self::MIN_CODE_LENGTH) {
+                self::$rejected_codes[] = mb_substr($nom, 0, 120);
+                $code = '';
+            }
             $hash = $code !== '' ? wp_hash_password($code) : (!empty($old['code_hash']) ? $old['code_hash'] : '');
             if ($hash === '') continue;
             $out[] = array(
@@ -217,12 +260,25 @@ class Psc_Sidscm {
             // configurée, comme le code lui-même (cf. ci-dessous). Exiger
             // un id refusait toute requête après le déverrouillage.
             $legacy_ok = is_array($actor) && array_key_exists('id', $actor) && $actor['id'] === null && !self::intervenants();
-            if (is_array($actor) && !empty($actor['nom']) && (!empty($actor['id']) || $legacy_ok)) { set_transient(self::session_key($token), $actor, self::SESSION_TTL); self::$request_actor = $actor; return $actor; }
+            // Le registre est revérifié à chaque appel (SEC-03) : un
+            // intervenant révoqué, désactivé ou expiré perd sa session
+            // tout de suite, pas au bout de 8 h.
+            $row = is_array($actor) && !empty($actor['id']) ? self::find_active_intervenant($actor['id']) : null;
+            if (is_array($actor) && !empty($actor['nom']) && ($row || $legacy_ok)) {
+                if ($row) $actor['nom'] = (string) $row['nom'];
+                set_transient(self::session_key($token), $actor, self::SESSION_TTL);
+                self::$request_actor = $actor;
+                return $actor;
+            }
+            if ($actor !== false) delete_transient(self::session_key($token));
         }
         $rows = self::intervenants();
         foreach ($rows as $row) {
             if (empty($row['active']) || !empty($row['revoked_at']) || ($row['expires_at'] !== '' && $row['expires_at'] < current_time('Y-m-d'))) continue;
-            if ($id !== '' && (string) $row['id'] !== $id) continue;
+            // L'intervenant est désigné (SEC-03) : un code n'est jamais
+            // essayé contre tout le registre. L'écran de déverrouillage
+            // transmet toujours l'identifiant choisi.
+            if ($id === '' || (string) $row['id'] !== $id) continue;
             if (!empty($row['code_hash']) && wp_check_password($code, $row['code_hash'])) {
                 $actor = array('id' => (string) $row['id'], 'nom' => (string) $row['nom']);
                 self::$request_actor = $actor;
@@ -275,13 +331,26 @@ class Psc_Sidscm {
      * rafale de pointage ne peut pas s'y faire bloquer.
      */
     protected static function require_code() {
-        $actor = self::authenticate((string) psc_post('session_token'), sanitize_key((string) psc_post('intervenant_id')), (string) psc_post('code'));
+        $id = sanitize_key((string) psc_post('intervenant_id'));
+        $actor = self::authenticate((string) psc_post('session_token'), $id, (string) psc_post('code'));
         if ($actor) return $actor;
 
-        if (!psc_rate_limit_by_ip('sidscm_bad_', 20, HOUR_IN_SECONDS)) {
+        if (!self::count_bad_code($id)) {
             wp_send_json_error(array('code' => 'rate'), 429);
         }
         wp_send_json_error(array('code' => 'auth'), 403);
+    }
+
+    /**
+     * Compte un échec d'authentification : 20 par heure et par IP, et en
+     * plus 10 par heure et par intervenant visé (SEC-03), pour qu'un
+     * attaquant changeant d'adresse IP ne puisse pas éprouver un même
+     * code indéfiniment. Faux si une limite est atteinte.
+     */
+    private static function count_bad_code($id) {
+        $ok_ip = psc_rate_limit_by_ip('sidscm_bad_', 20, HOUR_IN_SECONDS);
+        $ok_id = $id === '' || psc_rate_limit('sidscm_bad_id_' . $id, self::BAD_CODES_PER_ID, HOUR_IN_SECONDS);
+        return $ok_ip && $ok_id;
     }
 
     /* ---------------- Cohérence jour/service ---------------- */
@@ -377,12 +446,18 @@ class Psc_Sidscm {
             wp_send_json_error(array('code' => 'rate'), 429);
         }
 
-        $actor = self::authenticate('', sanitize_key((string) psc_post('intervenant_id')), (string) psc_post('code'));
+        $id = sanitize_key((string) psc_post('intervenant_id'));
+        // Intervenant verrouillé par trop d'échecs : refusé avant même de
+        // tester le code (sinon le bon code finirait par passer).
+        if ($id !== '' && psc_rate_limit_reached('sidscm_bad_id_' . $id, self::BAD_CODES_PER_ID)) {
+            wp_send_json_error(array('code' => 'rate'), 429);
+        }
+        $actor = self::authenticate('', $id, (string) psc_post('code'));
         if (!$actor) {
             // Les échecs de déverrouillage comptent aussi dans le seau
             // partagé des mauvais codes (cf. require_code()) : 20 essais
-            // ratés par heure et par IP, sur l'ensemble des endpoints.
-            if (!psc_rate_limit_by_ip('sidscm_bad_', 20, HOUR_IN_SECONDS)) {
+            // ratés par heure et par IP, 10 par intervenant visé.
+            if (!self::count_bad_code($id)) {
                 wp_send_json_error(array('code' => 'rate'), 429);
             }
             Psc_Audit::log('intervenant.deverrouillage', array('resultat' => 'refus', 'resume' => __('Code d’accès intervenants invalide.', 'periscolaire-registration')));

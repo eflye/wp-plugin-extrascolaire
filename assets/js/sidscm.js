@@ -73,7 +73,16 @@
             intervenant_id: state.intervenantId
         };
         Object.keys(params || {}).forEach(function (k) { all[k] = params[k]; });
-        return window.PscAjax.data(PSC_SIDSCM.ajax_url, all);
+        return window.PscAjax.data(PSC_SIDSCM.ajax_url, all).catch(function (err) {
+            // Session refusée par le serveur (intervenant révoqué, désactivé
+            // ou expiré, session échue) : retour immédiat à l'écran de code,
+            // la liste affichée n'est plus à jour ni autorisée.
+            var code = err && err.data && err.data.data ? err.data.data.code : '';
+            if (code === 'auth' && action !== 'psc_sidscm_unlock' && state.sessionToken) {
+                lock();
+            }
+            throw err;
+        });
     }
 
     /* ---------------- Déverrouillage ---------------- */

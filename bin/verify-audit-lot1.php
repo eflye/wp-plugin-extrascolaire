@@ -22,6 +22,10 @@
  *    et à la validation (IBAN, BIC, titulaire, adresse du compte).
  *  - RGPD-01/L1 : une demande en attente de la mairie depuis plus de 180
  *    jours est purgée par cleanup(), pas une plus récente.
+ *  - SEC-03 : écran intervenants — session révoquée dès que l'intervenant
+ *    est désactivé, code de moins de 8 caractères refusé à la création ou
+ *    à la modification (code existant conservé), identifiant obligatoire,
+ *    limite d'échecs par intervenant.
  *  - RGPD-04/L1 : les lignes du journal écrites pour le foyer de test ne
  *    contiennent ni e-mail ni nom (résumé et libellé d'acteur).
  *
@@ -80,6 +84,7 @@ WP_CLI::add_command('verify-audit-lot1', function () {
     };
     $purge_requests();
     $saved_auto = get_option('psc_auto_approve_requests', null);
+    $saved_intervenants = get_option('psc_sidscm_intervenants', null);
 
     $purge = function () use ($wpdb, $emails, $t_par) {
         foreach ($emails as $e) {
@@ -316,6 +321,45 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         $check((int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_req WHERE id = %d", $first_id)) === 0, 'RGPD-01/L1 : demande en attente depuis 181 jours conservée');
         $check((int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_req WHERE status = 'pending' AND created_at >= %s", wp_date('Y-m-d H:i:s', time() - 179 * DAY_IN_SECONDS))) === $fresh, 'RGPD-01/L1 : demande en attente récente purgée');
 
+        /* ---------- SEC-03 : écran intervenants ---------- */
+        $auth = new ReflectionMethod('Psc_Sidscm', 'authenticate');
+        $auth->setAccessible(true);
+        $skey = new ReflectionMethod('Psc_Sidscm', 'session_key');
+        $skey->setAccessible(true);
+        $bad = new ReflectionMethod('Psc_Sidscm', 'count_bad_code');
+        $bad->setAccessible(true);
+        $rows = Psc_Sidscm::sanitize_intervenants(array(
+            array('nom' => 'Verif Court', 'code' => 'court', 'active' => 1),
+            array('nom' => 'Verif Long', 'code' => 'Code-Long-123', 'active' => 1),
+        ));
+        $check(count($rows) === 1 && $rows[0]['nom'] === 'Verif Long', 'SEC-03 : intervenant créé avec un code de moins de 8 caractères');
+        $check(Psc_Sidscm::rejected_codes() === array('Verif Court'), 'SEC-03 : code trop court non signalé');
+        $iid = (string) $rows[0]['id'];
+        update_option('psc_sidscm_intervenants', $rows);
+        $kept = Psc_Sidscm::sanitize_intervenants(array(array('id' => $iid, 'nom' => 'Verif Long', 'code' => '1234', 'active' => 1)));
+        $check(count($kept) === 1 && wp_check_password('Code-Long-123', $kept[0]['code_hash']), 'SEC-03 : code existant perdu après une modification trop courte');
+        update_option('psc_sidscm_intervenants', $rows);
+        $check($auth->invoke(null, '', '', 'Code-Long-123') === false, 'SEC-03 : code accepté sans intervenant désigné');
+        $actor = $auth->invoke(null, '', $iid, 'Code-Long-123');
+        $check(is_array($actor) && $actor['id'] === $iid, 'SEC-03 : code valide refusé pour son intervenant');
+        $token = wp_generate_password(48, false, false);
+        set_transient($skey->invoke(null, $token), $actor, HOUR_IN_SECONDS);
+        $check(is_array($auth->invoke(null, $token, $iid, '')), 'SEC-03 : session valide refusée');
+        $rows[0]['active'] = 0;
+        update_option('psc_sidscm_intervenants', $rows);
+        $check($auth->invoke(null, $token, $iid, '') === false, 'SEC-03 : session d’un intervenant désactivé acceptée');
+        $check(get_transient($skey->invoke(null, $token)) === false, 'SEC-03 : session d’un intervenant désactivé non supprimée');
+        // Limite d'échecs par intervenant (indépendante de l'adresse IP).
+        add_filter('psc_rate_limit_enabled', '__return_true', 100);
+        $rl_key = 'psc_rl_' . md5('sidscm_bad_id_' . $iid);
+        delete_transient($rl_key);
+        for ($i = 0; $i < Psc_Sidscm::BAD_CODES_PER_ID; $i++) $bad->invoke(null, $iid);
+        $check(psc_rate_limit_reached('sidscm_bad_id_' . $iid, Psc_Sidscm::BAD_CODES_PER_ID), 'SEC-03 : limite d’échecs par intervenant non atteinte');
+        $check($bad->invoke(null, $iid) === false, 'SEC-03 : échec au-delà de la limite par intervenant accepté');
+        remove_filter('psc_rate_limit_enabled', '__return_true', 100);
+        delete_transient($rl_key);
+        delete_transient('psc_rl_' . md5('sidscm_bad_' . psc_client_ip()));
+
         $pid = Psc_Parents::create($emails['titulaire'], 'Lot1', array('second_parent_email' => $emails['second']));
         $check(is_int($pid) && $pid > 0, 'SEC-02 données : foyer non créé');
         $occupant = Psc_Parents::create($emails['occupant'], 'Occupant');
@@ -460,6 +504,7 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         $_GET = $_POST = $_REQUEST = array();
         $purge();
         $purge_requests();
+        if ($saved_intervenants === null) delete_option('psc_sidscm_intervenants'); else update_option('psc_sidscm_intervenants', $saved_intervenants);
         if ($saved_auto === null) delete_option('psc_auto_approve_requests'); else update_option('psc_auto_approve_requests', $saved_auto);
     }
 

@@ -56,6 +56,20 @@ function psc_rate_limit($key, $max, $window) {
 }
 
 /**
+ * La limite de psc_rate_limit($key, $max) est-elle déjà atteinte ? Lecture
+ * seule : aucune tentative n'est comptée. Sert à refuser une demande AVANT
+ * de l'évaluer (ex. un code testé alors que son titulaire est verrouillé).
+ */
+function psc_rate_limit_reached($key, $max) {
+    $enabled = !in_array(wp_get_environment_type(), array('local', 'development'), true);
+    if (!apply_filters('psc_rate_limit_enabled', $enabled)) {
+        return false;
+    }
+    $data = get_transient('psc_rl_' . md5($key));
+    return is_array($data) && !empty($data['expires']) && $data['expires'] > time() && (int) $data['count'] >= (int) $max;
+}
+
+/**
  * Limitation de fréquence indexée sur l'adresse IP de l'appelant.
  *
  * Laisse passer lorsque l'IP n'est pas déterminable : à défaut, toutes les
