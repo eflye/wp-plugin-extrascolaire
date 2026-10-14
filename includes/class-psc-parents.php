@@ -377,6 +377,13 @@ class Psc_Parents {
         if (self::get_by_email($new_email)) {
             return new WP_Error('psc_email_taken', __('Cette adresse est déjà utilisée par une autre famille.', 'periscolaire-registration'));
         }
+        // Chaque demande envoie deux e-mails au nom de la mairie, dont un
+        // vers une adresse saisie librement : 3 demandes par jour et par
+        // foyer (SEC-10), contrôlées après la validation pour qu'une faute
+        // de frappe ne consomme pas le quota.
+        if (!psc_rate_limit('email_change_' . (int) $parent_id, 3, DAY_IN_SECONDS)) {
+            return new WP_Error('psc_rate', __('Trop de demandes de changement d’adresse. Réessayez demain.', 'periscolaire-registration'));
+        }
 
         $token = bin2hex(random_bytes(32));
         $wpdb->update(

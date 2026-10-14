@@ -75,7 +75,7 @@ class Psc_Frontend_Profil extends Psc_Frontend_Base {
 
         if ($email_changes) {
             $r = Psc_Parents::request_email_change($parent->id, $new_email);
-            if (is_wp_error($r)) self::parent_form_redirect('email_taken');
+            if (is_wp_error($r)) self::parent_form_redirect($r->get_error_code() === 'psc_rate' ? 'email_change_rate' : 'email_taken');
             self::parent_form_redirect('profil_updated_email_pending');
         }
 

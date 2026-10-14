@@ -31,6 +31,8 @@
  *    (semaine en cours).
  *  - SEC-07 : avec une clé hors base, sessions et jetons du portail sont
  *    signés avec elle ; un cookie signé avec le sel en base est refusé.
+ *  - SEC-10 : au plus 3 demandes de changement d'adresse par jour et par
+ *    foyer ; la 4e est refusée sans e-mail (email_change_rate).
  *  - RGPD-04/L1 : les lignes du journal écrites pour le foyer de test ne
  *    contiennent ni e-mail ni nom (résumé et libellé d'acteur).
  *
@@ -536,6 +538,22 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         $check(Psc_Parents::current() && Psc_Parents::session_login_role() === 'titulaire', 'SEC-07 : session signée avec la clé hors base refusée');
         remove_filter('psc_encryption_secrets', $outside);
         $check(psc_session_signing_key() === wp_salt('psc_session'), 'SEC-07 : repli sur wp_salt absent sans clé hors base');
+
+        /* ---------- SEC-10 : limite des changements d'adresse ---------- */
+        $wpdb->update($t_par, array('email' => $emails['titulaire'], 'pending_email' => null), array('id' => $pid));
+        add_filter('psc_rate_limit_enabled', '__return_true', 100);
+        $rl = 'psc_rl_' . md5('email_change_' . $pid);
+        delete_transient($rl);
+        $use_session($pid, $emails['titulaire']);
+        $codes = array();
+        for ($i = 0; $i < 4; $i++) $codes[] = $msg_of($profile_post($pid, $emails['nouvelle']));
+        $mails = array();
+        $codes[] = $msg_of($profile_post($pid, $emails['nouvelle']));
+        remove_filter('psc_rate_limit_enabled', '__return_true', 100);
+        delete_transient($rl);
+        $check(array_slice($codes, 0, 3) === array_fill(0, 3, 'profil_updated_email_pending'), 'SEC-10 : demandes légitimes refusées : ' . implode(', ', $codes));
+        $check($codes[3] === 'email_change_rate' && $codes[4] === 'email_change_rate', 'SEC-10 : 4e demande du jour acceptée : ' . implode(', ', $codes));
+        $check(count($mails) === 0, 'SEC-10 : e-mail envoyé au-delà de la limite');
 
         /* ---------- RGPD-04/L1 : journal sans identité ---------- */
         $t_audit = psc_table('audit_log');
