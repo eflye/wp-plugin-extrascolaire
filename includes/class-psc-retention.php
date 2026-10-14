@@ -18,30 +18,70 @@ if (!defined('ABSPATH')) exit;
  */
 class Psc_Retention {
 
-    /** Exécute le registre en simulation par défaut, sans mutation implicite. */
+    /**
+     * Rapport de rétention (RGPD-14) : SIMULATION uniquement. Pour chaque
+     * catégorie active du registre (psc_retention_policies()), compte les
+     * lignes que sa prochaine purge supprimerait, sans rien écrire. Les
+     * purges elles-mêmes restent exécutées par leurs tâches planifiées.
+     *
+     * @return array{mode: string, categories: array, examined: int, removed: int, retained: int, errors: array, next_run: string}
+     */
     public static function run($mode = 'simulation', $now = null) {
-        $mode = $mode === 'execution' ? 'execution' : 'simulation';
         $now = $now === null ? time() : (int) $now;
-        $report = array('mode' => $mode, 'categories' => array(), 'examined' => 0, 'removed' => 0, 'retained' => 0, 'errors' => array(), 'next_run' => gmdate('c', $now + DAY_IN_SECONDS));
+        $report = array('mode' => 'simulation', 'categories' => array(), 'examined' => 0, 'removed' => 0, 'retained' => 0, 'errors' => array(), 'next_run' => gmdate('c', $now + DAY_IN_SECONDS));
 
         foreach (psc_retention_policies() as $key => $policy) {
-            $entry = array('key' => $key, 'label' => $policy['label'], 'examined' => 0, 'removed' => 0, 'retained' => 0, 'status' => 'retenu', 'reason' => 'durée non validée');
-            if ($key === 'departed_children') {
-                $entry['examined'] = self::count_departed_children($now);
-                $entry['status'] = $mode === 'execution' ? 'exécuté' : 'simulation';
-                $entry['reason'] = $mode === 'execution' ? 'purge des fiches sorties' : 'aucune écriture en mode simulation';
-                if ($mode === 'execution' && $entry['examined'] > 0) {
-                    $entry['removed'] = self::purge_departed_children($now);
+            $entry = array(
+                'key' => $key, 'label' => $policy['label'], 'days' => $policy['days'], 'hook' => $policy['hook'],
+                'examined' => 0, 'removed' => 0, 'retained' => 0,
+                'status' => empty($policy['enabled']) ? 'sans purge propre' : 'simulation',
+                'reason' => $policy['reason'],
+            );
+            if (!empty($policy['enabled'])) {
+                try {
+                    $entry['examined'] = self::count_due($key, (int) $policy['days'], $now);
+                } catch (\Throwable $e) {
+                    $report['errors'][] = $key;
                 }
-            } else {
-                $entry['retained'] = $entry['examined'];
             }
             $report['categories'][] = $entry;
             $report['examined'] += $entry['examined'];
-            $report['removed'] += $entry['removed'];
-            $report['retained'] += $entry['retained'];
         }
         return $report;
+    }
+
+    /** Lignes que la prochaine purge de la catégorie supprimerait (même critère que la purge). */
+    private static function count_due($key, $days, $now) {
+        global $wpdb;
+        // Colonnes en heure du site (current_time('mysql')) : seuil dans la même horloge.
+        $cutoff = wp_date('Y-m-d H:i:s', $now - $days * DAY_IN_SECONDS);
+        $t_req = psc_table('requests');
+        switch ($key) {
+            case 'requests_unconfirmed':
+                return (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_req WHERE status = 'unverified' AND created_at < %s", $cutoff));
+            case 'requests_processed':
+                return (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_req WHERE status IN ('approved','rejected') AND decided_at < %s", $cutoff));
+            case 'requests_pending':
+                return (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_req WHERE status = 'pending' AND created_at < %s", $cutoff));
+            case 'departed_children':
+                return self::count_departed_children($now);
+            case 'childless_families':
+                return (int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM (' . self::childless_families_sql() . ') x', $cutoff));
+            case 'conversations':
+                return (int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM ' . psc_table('conversations') . ' WHERE dernier_message_at < %s', $cutoff));
+            case 'audit_log':
+                $total = 0;
+                foreach (array_keys(psc_audit_retention_defaults()) as $niveau) {
+                    $actions = psc_audit_actions_by_niveau($niveau);
+                    if (!$actions) continue;
+                    $total += (int) $wpdb->get_var($wpdb->prepare(
+                        'SELECT COUNT(*) FROM ' . psc_table('audit_log') . ' WHERE purgee_le IS NULL AND horodatage < %s AND action IN (' . implode(',', array_fill(0, count($actions), '%s')) . ')',
+                        array_merge(array(gmdate('Y-m-d H:i:s', $now - psc_audit_retention_days($niveau) * DAY_IN_SECONDS)), $actions)
+                    ));
+                }
+                return $total;
+        }
+        return 0;
     }
 
     public static function init() {

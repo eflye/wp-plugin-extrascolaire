@@ -57,13 +57,16 @@ $contract('P1-07', 'réglages de confidentialité normalisés et paramétrables'
     is_array($settings) && array_key_exists('dpo_email', $settings) && array_key_exists('policy_url', $settings));
 
 /* ---- Rétention ---- */
+// RGPD-14 : le registre décrit les purges réelles ; chaque catégorie
+// active a une durée et une tâche récurrente effectivement planifiée.
 $policies = psc_retention_policies();
-$unvalidated_enabled = array();
+$unscheduled = array();
 foreach ($policies as $key => $policy) {
-    if (!empty($policy['enabled']) && empty($policy['validated'])) $unvalidated_enabled[] = $key;
+    if (empty($policy['enabled'])) continue;
+    if ((int) $policy['days'] <= 0 || !isset(psc_recurring_cron_hooks()[$policy['hook']]) || !wp_next_scheduled($policy['hook'])) $unscheduled[] = $key;
 }
-$contract('P1-08', 'aucune catégorie de purge active sans validation',
-    $unvalidated_enabled === array());
+$contract('P1-08', 'chaque purge du registre a une durée et une tâche planifiée',
+    $unscheduled === array());
 $report = Psc_Retention::run('simulation', time());
 $contract('P1-08', 'simulation de rétention sans aucune suppression',
     is_array($report) && (int) $report['removed'] === 0);

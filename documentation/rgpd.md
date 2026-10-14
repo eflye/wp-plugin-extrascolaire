@@ -37,7 +37,23 @@ L'**Aperçu** montre la notice exactement telle que les familles la voient, avec
 
    Les échanges avec la mairie sont supprimés 395 jours après leur dernier message, **pièces jointes comprises** : le fichier déposé est effacé du disque en même temps que le message, comme lors de la suppression ou de l'effacement d'un foyer.
 
-6. Avant d'activer une nouvelle durée, faites exécuter le rapport de rétention en mode **simulation** par l'administrateur (WP-CLI ou outil d'administration qui l'exposera). Les catégories non validées par la mairie/DPO restent bloquées et le rapport indique les volumes examinés, conservés et les erreurs éventuelles. La validation des durées, du circuit PAI, de l'AIPD et des archives reste manuelle.
+6. Pour connaître le volume que chaque purge supprimera à son prochain passage, l'administrateur peut produire le rapport de rétention (`Psc_Retention::run()`, en WP-CLI). Ce rapport est une **simulation** : il ne supprime rien. Les purges elles-mêmes tournent chaque jour, chacune sur sa propre tâche planifiée.
+
+## Durées de conservation appliquées
+
+Ces durées sont celles que le plugin applique réellement, chaque jour, sans action humaine. Elles restent à valider par le DPO (voir plus bas).
+
+| Données | Durée | Point de départ | Tâche planifiée |
+| --- | --- | --- | --- |
+| Demande d'inscription non confirmée | 7 jours | dépôt | Nettoyage des demandes d'inscription |
+| Demande d'inscription validée ou refusée | 90 jours | décision | Nettoyage des demandes d'inscription |
+| Demande d'inscription restée en attente | 180 jours | dépôt | Nettoyage des demandes d'inscription |
+| Fiche enfant (planning, présences, personnes autorisées et historique, allergies, justificatifs d'assurance) | 400 jours | sortie ou fin de la dernière année d'inscription ; création de la fiche pour un enfant sans année | Purge des enfants sortis |
+| Foyer sans enfant | 400 jours | dernière activité (connexion, facture, message) | Purge des enfants sortis |
+| Échanges avec la mairie, pièces jointes comprises | 395 jours | dernier message | Purge des échanges avec les familles |
+| Consultations de l'espace famille par la mairie | 365 jours | début de la consultation | Nettoyage des consultations « en tant que » |
+| Journal d'audit | 1 095 / 365 / 180 jours selon le niveau (critique / normal / volumineux) | action | Purge du journal d'audit |
+| Factures | jamais supprimées ni réécrites | — | durée à fixer par le DPO |
 
 ## Qui voit quoi
 
