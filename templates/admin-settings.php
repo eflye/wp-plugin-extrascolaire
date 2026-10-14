@@ -11,6 +11,19 @@ psc_admin_notice_map(array(
     'privacy_refused' => array('error', __('Réglages enregistrés, sauf un champ de la rubrique Confidentialité : une adresse e-mail ou l’adresse de la notice n’est pas valide. La valeur précédente est conservée.', 'periscolaire-registration')),
     'ics_url_refused' => array('error', __('Réglages enregistrés, sauf l’adresse du calendrier scolaire : elle doit être une adresse web publique (http ou https). L’adresse précédente est conservée.', 'periscolaire-registration')),
 ), $psc_msg);
+
+// Codes intervenants refusés au dernier enregistrement (SEC-03) : noms
+// conservés brièvement par Psc_Admin_Config::handle_save_settings().
+$psc_sidscm_rejected = get_transient('psc_sidscm_rejected_' . get_current_user_id());
+if (is_array($psc_sidscm_rejected) && $psc_sidscm_rejected) {
+    delete_transient('psc_sidscm_rejected_' . get_current_user_id());
+    psc_admin_notice(sprintf(
+        /* translators: 1: noms des intervenants concernés, 2: longueur minimale du code. */
+        _n('Code refusé pour %1$s : %2$d caractères minimum. L’ancien code est conservé ; un nouvel intervenant n’est pas créé.', 'Codes refusés pour %1$s : %2$d caractères minimum. Les anciens codes sont conservés ; un nouvel intervenant n’est pas créé.', count($psc_sidscm_rejected), 'periscolaire-registration'),
+        implode(', ', array_map('strval', $psc_sidscm_rejected)),
+        defined('Psc_Sidscm::MIN_CODE_LENGTH') ? (int) Psc_Sidscm::MIN_CODE_LENGTH : 8
+    ), 'error', true, 'sidscm-code-refused');
+}
 ?>
 
 <div class="psc-box" id="psc-tarifs">
@@ -542,18 +555,22 @@ $doc_rp_id = (int) get_option('psc_doc_reglement_prelevement_id', 0);
 <th scope="row"><?php esc_html_e('Identités intervenantes', 'periscolaire-registration'); ?></th>
 <td>
   <p class="description"><?php esc_html_e('Chaque intervenant dispose d’un identifiant et d’un code individuel. Laisser le code vide conserve le code existant ; décocher désactive l’accès. Dès qu’une identité est enregistrée, l’ancien code partagé n’est plus accepté.', 'periscolaire-registration'); ?></p>
+  <p class="description" id="psc-sidscm-code-min"><?php
+    /* translators: %d: longueur minimale d'un code intervenant. */
+    echo esc_html(sprintf(__('Code individuel : %d caractères minimum.', 'periscolaire-registration'), (int) (defined('Psc_Sidscm::MIN_CODE_LENGTH') ? Psc_Sidscm::MIN_CODE_LENGTH : 8)));
+  ?></p>
   <?php $psc_intervenants = class_exists('Psc_Sidscm') ? Psc_Sidscm::intervenants() : array(); foreach ($psc_intervenants as $i => $intervenant): ?>
     <p style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <input type="hidden" name="sidscm_intervenants[<?php echo (int) $i; ?>][id]" value="<?php echo esc_attr($intervenant['id']); ?>">
-      <input type="text" name="sidscm_intervenants[<?php echo (int) $i; ?>][nom]" value="<?php echo esc_attr($intervenant['nom']); ?>" placeholder="<?php esc_attr_e('Nom', 'periscolaire-registration'); ?>" maxlength="120">
-      <input type="password" name="sidscm_intervenants[<?php echo (int) $i; ?>][code]" value="" placeholder="<?php esc_attr_e('Nouveau code (facultatif)', 'periscolaire-registration'); ?>" autocomplete="new-password">
+      <input type="text" name="sidscm_intervenants[<?php echo (int) $i; ?>][nom]" value="<?php echo esc_attr($intervenant['nom']); ?>" placeholder="<?php esc_attr_e('Nom', 'periscolaire-registration'); ?>" aria-label="<?php esc_attr_e('Nom de l’intervenant', 'periscolaire-registration'); ?>" maxlength="120">
+      <input type="password" name="sidscm_intervenants[<?php echo (int) $i; ?>][code]" value="" placeholder="<?php esc_attr_e('Nouveau code (facultatif)', 'periscolaire-registration'); ?>" aria-label="<?php esc_attr_e('Nouveau code (facultatif)', 'periscolaire-registration'); ?>" aria-describedby="psc-sidscm-code-min" minlength="<?php echo (int) (defined('Psc_Sidscm::MIN_CODE_LENGTH') ? Psc_Sidscm::MIN_CODE_LENGTH : 8); ?>" autocomplete="new-password">
       <input type="date" name="sidscm_intervenants[<?php echo (int) $i; ?>][expires_at]" value="<?php echo esc_attr($intervenant['expires_at'] ?? ''); ?>" aria-label="<?php esc_attr_e('Expiration', 'periscolaire-registration'); ?>">
       <label><input type="checkbox" name="sidscm_intervenants[<?php echo (int) $i; ?>][active]" value="1" <?php checked(!empty($intervenant['active'])); ?>> <?php esc_html_e('Actif', 'periscolaire-registration'); ?></label>
     </p>
   <?php endforeach; $new_index = count($psc_intervenants); ?>
   <p style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-    <input type="text" name="sidscm_intervenants[<?php echo (int) $new_index; ?>][nom]" value="" placeholder="<?php esc_attr_e('Nouvel intervenant', 'periscolaire-registration'); ?>" maxlength="120">
-    <input type="password" name="sidscm_intervenants[<?php echo (int) $new_index; ?>][code]" value="" placeholder="<?php esc_attr_e('Code individuel', 'periscolaire-registration'); ?>" autocomplete="new-password">
+    <input type="text" name="sidscm_intervenants[<?php echo (int) $new_index; ?>][nom]" value="" placeholder="<?php esc_attr_e('Nouvel intervenant', 'periscolaire-registration'); ?>" aria-label="<?php esc_attr_e('Nom du nouvel intervenant', 'periscolaire-registration'); ?>" maxlength="120">
+    <input type="password" name="sidscm_intervenants[<?php echo (int) $new_index; ?>][code]" value="" placeholder="<?php esc_attr_e('Code individuel', 'periscolaire-registration'); ?>" aria-label="<?php esc_attr_e('Code individuel du nouvel intervenant', 'periscolaire-registration'); ?>" aria-describedby="psc-sidscm-code-min" minlength="<?php echo (int) (defined('Psc_Sidscm::MIN_CODE_LENGTH') ? Psc_Sidscm::MIN_CODE_LENGTH : 8); ?>" autocomplete="new-password">
     <input type="date" name="sidscm_intervenants[<?php echo (int) $new_index; ?>][expires_at]" value="" aria-label="<?php esc_attr_e('Expiration', 'periscolaire-registration'); ?>">
     <label><input type="checkbox" name="sidscm_intervenants[<?php echo (int) $new_index; ?>][active]" value="1" checked> <?php esc_html_e('Actif', 'periscolaire-registration'); ?></label>
   </p>

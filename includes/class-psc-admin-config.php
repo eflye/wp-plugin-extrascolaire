@@ -98,6 +98,13 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         if (class_exists('Psc_Sidscm')) {
             $rows = isset($_POST['sidscm_intervenants']) && is_array($_POST['sidscm_intervenants']) ? wp_unslash($_POST['sidscm_intervenants']) : array();
             update_option('psc_sidscm_intervenants', Psc_Sidscm::sanitize_intervenants($rows));
+            // Codes refusés (trop courts, SEC-03) : noms gardés le temps de
+            // l'affichage suivant, pour cet utilisateur seulement — jamais
+            // dans l'URL.
+            $rejected = method_exists('Psc_Sidscm', 'rejected_codes') ? Psc_Sidscm::rejected_codes() : array();
+            if ($rejected) {
+                set_transient('psc_sidscm_rejected_' . get_current_user_id(), array_values($rejected), 5 * MINUTE_IN_SECONDS);
+            }
         }
         update_option('psc_sidscm_page_id', psc_post_int('sidscm_page_id', 0));
         update_option('psc_form_page_id', psc_post_int('form_page_id', 0));
