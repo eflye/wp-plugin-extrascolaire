@@ -15,6 +15,8 @@ abstract class Psc_Admin_Base {
      * Contrôle d'accès + nonce, appliqué en tête de chaque action.
      * Le nonce seul ne suffit pas (il prouve l'intention, pas le droit) ;
      * la capacité seule ne suffit pas non plus (elle n'empêche pas le CSRF).
+     * La capacité vient de la table explicite psc_capability_map() : une
+     * action qui n'y figure pas est refusée à tous (do_not_allow).
      */
     protected static function guard($nonce_action) {
         $required = psc_required_capability($nonce_action);

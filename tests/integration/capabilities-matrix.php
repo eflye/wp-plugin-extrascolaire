@@ -50,6 +50,14 @@ $users = array(
     'editeur'     => $make_user('psc-probe-editeur', 'editor', array()),
     'facturation' => $make_user('psc-probe-facturation', 'subscriber', array('psc_manage_billing')),
     'familles'    => $make_user('psc-probe-familles', 'subscriber', array('psc_manage_families')),
+    'presence'    => $make_user('psc-probe-presence', 'subscriber', array('psc_manage_presence')),
+    'config'      => $make_user('psc-probe-config', 'subscriber', array('psc_manage_config')),
+);
+$user_for_cap = array(
+    'psc_manage_billing'  => 'facturation',
+    'psc_manage_families' => 'familles',
+    'psc_manage_presence' => 'presence',
+    'psc_manage_config'   => 'config',
 );
 
 // Endpoints admin du plugin : ceux qui ont une variante anonyme (nopriv)
@@ -130,6 +138,78 @@ foreach ($outside as $who => $hooks) {
         if (!isset($by_hook[$hook])) { $failures[] = "endpoint attendu absent : $hook"; continue; }
         $result = $call($users[$who], $by_hook[$hook]);
         if ($result !== null) $failures[] = "$who → $hook : $result";
+    }
+}
+
+// PRA-02 — table explicite : chaque action passée à guard() dans le code
+// figure dans psc_capability_map(), et la table ne garde aucune entrée
+// morte. Une action inconnue est refusée à tous (do_not_allow).
+$guarded = array();
+$it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(PSC_PATH . 'includes', FilesystemIterator::SKIP_DOTS));
+foreach ($it as $file) {
+    if (substr($file->getFilename(), -4) !== '.php') continue;
+    if (preg_match_all("/self::guard\\('([a-z0-9_]+)'\\)/", (string) file_get_contents($file->getPathname()), $m)) {
+        foreach ($m[1] as $a) $guarded[$a] = true;
+    }
+}
+$map = psc_capability_map();
+$checks++;
+if (count($guarded) < 40) $failures[] = 'trop peu d’appels à guard() découverts (' . count($guarded) . ')';
+foreach (array_keys($guarded) as $a) {
+    $checks++;
+    if (!isset($map[$a])) $failures[] = "action gardée absente de psc_capability_map() : $a";
+}
+foreach ($map as $a => $cap) {
+    $checks++;
+    if (!isset($guarded[$a])) $failures[] = "entrée morte dans psc_capability_map() : $a";
+    $checks++;
+    if (!isset($user_for_cap[$cap])) $failures[] = "capacité inattendue pour $a : $cap";
+}
+$checks++;
+if (psc_required_capability('psc_action_inconnue') !== 'do_not_allow') $failures[] = 'action inconnue non refusée par défaut';
+$checks++;
+if (current_user_can(psc_required_capability('psc_action_inconnue'))) $failures[] = 'do_not_allow accordé';
+// Mappages explicitement demandés par l'audit (IBAN en clair, paiements).
+foreach (array('psc_download_pain008' => 'psc_manage_billing', 'psc_payment_received' => 'psc_manage_billing', 'psc_download_general' => 'psc_manage_billing', 'psc_admin_update_registrations' => 'psc_manage_presence', 'psc_close_school_day' => 'psc_manage_config', 'psc_add_school_holiday' => 'psc_manage_config', 'psc_confirm_promotion' => 'psc_manage_config') as $a => $cap) {
+    $checks++;
+    if (psc_required_capability($a) !== $cap) $failures[] = "$a devrait exiger $cap";
+}
+
+// Accès légitime : l'habilitation du domaine franchit le contrôle de
+// capacité et n'est arrêtée que par le nonce (volontairement invalide, pour
+// qu'aucune action ne s'exécute) ; une autre habilitation est refusée dès
+// le contrôle de capacité.
+$denied_msg = esc_html__('Vous n\'avez pas les droits nécessaires.', 'periscolaire-registration');
+$probe_guard = function ($user_id, $action) use (&$last_status) {
+    wp_set_current_user($user_id);
+    $_SERVER['REQUEST_METHOD'] = 'POST';
+    $_GET = $_POST = $_REQUEST = array('action' => $action, '_wpnonce' => 'invalide');
+    $last_status = null;
+    ob_start();
+    try {
+        do_action('admin_post_' . $action);
+        ob_end_clean();
+        return 'a rendu la main';
+    } catch (Psc_Probe_Stop $stop) {
+        ob_end_clean();
+        return $stop->getMessage();
+    } catch (Throwable $e) {
+        ob_end_clean();
+        return 'erreur ' . get_class($e);
+    }
+};
+foreach ($map as $a => $cap) {
+    if (!isset($user_for_cap[$cap])) continue;
+    $checks++;
+    if (!has_action('admin_post_' . $a)) { $failures[] = "endpoint attendu absent : admin_post_$a"; continue; }
+    $own = $probe_guard($users[$user_for_cap[$cap]], $a);
+    if ($own === $denied_msg || $own === 'a rendu la main' || strpos($own, 'erreur ') === 0) {
+        $failures[] = "accès légitime refusé : {$user_for_cap[$cap]} → $a ($own)";
+    }
+    foreach ($user_for_cap as $other_cap => $other) {
+        if ($other_cap === $cap) continue;
+        $checks++;
+        if ($probe_guard($users[$other], $a) !== $denied_msg) $failures[] = "$other → $a non refusé par la capacité";
     }
 }
 

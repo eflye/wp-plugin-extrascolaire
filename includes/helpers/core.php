@@ -65,16 +65,98 @@ function psc_domain_capabilities() {
     );
 }
 
-/** Associe un nonce d’action ou un slug admin à sa capacité minimale. */
-function psc_required_capability($context) {
-    $context = sanitize_key((string) $context);
-    if (strpos($context, 'audit') !== false) return 'psc_view_audit';
-    if (strpos($context, 'invoice') !== false || strpos($context, 'factur') !== false || strpos($context, 'sepa') !== false) return 'psc_manage_billing';
-    if (strpos($context, 'message') !== false || strpos($context, 'conversation') !== false) return 'psc_manage_messages';
-    if (strpos($context, 'setting') !== false || strpos($context, 'email_template') !== false || strpos($context, 'calendar') !== false || strpos($context, 'school_year') !== false || strpos($context, 'config') !== false || strpos($context, 'tarif') !== false) return 'psc_manage_config';
-    if (strpos($context, 'inscription') !== false || strpos($context, 'attendance') !== false || strpos($context, 'menu') !== false || strpos($context, 'supplier') !== false) return 'psc_manage_presence';
-    if (strpos($context, 'parent') !== false || strpos($context, 'family') !== false || strpos($context, 'child') !== false || strpos($context, 'assurance') !== false || strpos($context, 'pickup') !== false || strpos($context, 'request') !== false || strpos($context, 'impersonate') !== false) return 'psc_manage_families';
-    return psc_manage_cap();
+/**
+ * Table explicite action d'administration → capacité métier requise (PRA-02).
+ *
+ * Chaque action passée à Psc_Admin_Base::guard() figure ici, rattachée au
+ * domaine de l'écran qui l'émet. Une action absente est refusée à tous
+ * (do_not_allow) : ajouter une action impose de choisir son domaine, au
+ * lieu d'hériter d'une capacité déduite de son nom.
+ *
+ * @return array<string,string>
+ */
+function psc_capability_map() {
+    return array(
+        // Familles, enfants (écrans Familles et Enfants).
+        'psc_add_child'                     => 'psc_manage_families',
+        'psc_delete_child'                  => 'psc_manage_families',
+        'psc_delete_family'                 => 'psc_manage_families',
+        'psc_mark_child_sorti'              => 'psc_manage_families',
+        'psc_mark_child_actif'              => 'psc_manage_families',
+        'psc_toggle_cantine_sans_repas'     => 'psc_manage_families',
+        'psc_add_parent'                    => 'psc_manage_families',
+        'psc_toggle_parent'                 => 'psc_manage_families',
+        'psc_send_link'                     => 'psc_manage_families',
+        'psc_edit_parent'                   => 'psc_manage_families',
+
+        // Planning, menus, commande fournisseur et présences.
+        'psc_save_menu'                     => 'psc_manage_presence',
+        'psc_send_menu'                     => 'psc_manage_presence',
+        'psc_retry_menu'                    => 'psc_manage_presence',
+        'psc_delete_menu'                   => 'psc_manage_presence',
+        'psc_send_supplier_order'           => 'psc_manage_presence',
+        'psc_retry_supplier_order'          => 'psc_manage_presence',
+        'psc_cancel_class_meals'            => 'psc_manage_presence',
+        'psc_dismiss_cancel_class_meals'    => 'psc_manage_presence',
+        'psc_admin_update_registrations'    => 'psc_manage_presence',
+        // Adresse du fournisseur : destinataire des commandes, réglage du
+        // service (capacité inchangée par rapport au mappage historique).
+        'psc_save_supplier_settings'        => 'psc_manage_config',
+
+        // Facturation et prélèvements (IBAN en clair dans les exports).
+        'psc_payment_received'              => 'psc_manage_billing',
+        'psc_download_general'              => 'psc_manage_billing',
+        'psc_delete_invoices'               => 'psc_manage_billing',
+        'psc_download_sepa'                 => 'psc_manage_billing',
+        'psc_download_pain008'              => 'psc_manage_billing',
+        'psc_generate_invoices'             => 'psc_manage_billing',
+        'psc_send_invoice'                  => 'psc_manage_billing',
+        'psc_send_all_invoices'             => 'psc_manage_billing',
+
+        // Configuration : tarifs, réglages, modèles, maintenance.
+        'psc_save_tarif'                    => 'psc_manage_config',
+        'psc_delete_tarif'                  => 'psc_manage_config',
+        'psc_save_settings'                 => 'psc_manage_config',
+        'psc_save_email_templates'          => 'psc_manage_config',
+        'psc_config_maintenance_sauvegarde' => 'psc_manage_config',
+        'psc_config_maintenance_relancer'   => 'psc_manage_config',
+        'psc_config_maintenance_rechiffrer' => 'psc_manage_config',
+        'psc_config_maintenance_modeles'    => 'psc_manage_config',
+        'psc_config_maintenance_recette'    => 'psc_manage_config',
+
+        // Années scolaires, calendrier, vacances, passage d'année.
+        'psc_add_school_year'               => 'psc_manage_config',
+        'psc_activate_school_year'          => 'psc_manage_config',
+        'psc_archive_school_year'           => 'psc_manage_config',
+        'psc_update_school_year'            => 'psc_manage_config',
+        'psc_delete_school_year'            => 'psc_manage_config',
+        'psc_save_school_year_config'       => 'psc_manage_config',
+        'psc_stage_promotion'               => 'psc_manage_config',
+        'psc_confirm_promotion'             => 'psc_manage_config',
+        'psc_cancel_promotion'              => 'psc_manage_config',
+        'psc_add_school_holiday'            => 'psc_manage_config',
+        'psc_remove_school_holiday'         => 'psc_manage_config',
+        'psc_import_school_calendar'        => 'psc_manage_config',
+        'psc_upload_school_calendar'        => 'psc_manage_config',
+        'psc_close_school_day'              => 'psc_manage_config',
+        'psc_cancel_school_day_close'       => 'psc_manage_config',
+        'psc_open_school_day'               => 'psc_manage_config',
+    );
+}
+
+/**
+ * Capacité minimale exigée pour une action d'administration (nonce
+ * d'action passé à Psc_Admin_Base::guard()). Refus par défaut : une action
+ * inconnue renvoie 'do_not_allow', que current_user_can() refuse à tous,
+ * administrateurs compris.
+ *
+ * @param string $action Nom d'action (identique au nonce).
+ * @return string
+ */
+function psc_required_capability($action) {
+    $map = psc_capability_map();
+    $action = sanitize_key((string) $action);
+    return isset($map[$action]) ? $map[$action] : 'do_not_allow';
 }
 
 /**
