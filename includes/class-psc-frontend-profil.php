@@ -145,7 +145,8 @@ class Psc_Frontend_Profil extends Psc_Frontend_Base {
         Psc_Audit::log('sepa.mandat_active', array(
             'objet_type' => 'famille', 'objet_id' => (int) $parent->id, 'famille_id' => (int) $parent->id,
             'apres' => array('payment_mode' => 'prelevement', 'sepa_iban' => $iban),
-            'resume' => sprintf(__('Prélèvement SEPA activé pour %s.', 'periscolaire-registration'), $parent->email),
+            /* translators: %d: identifiant de la famille */
+            'resume' => sprintf(__('Prélèvement SEPA activé pour la famille #%d.', 'periscolaire-registration'), (int) $parent->id),
         ));
 
         Psc_Mailer::send_sepa_enabled($parent, $mandate ? array($mandate) : array());

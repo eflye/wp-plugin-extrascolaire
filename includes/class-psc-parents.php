@@ -174,7 +174,11 @@ class Psc_Parents {
         Psc_Audit::log('famille.lien_envoye', array(
             'objet_type' => 'famille', 'objet_id' => $parent->id, 'famille_id' => $parent->id,
             'resultat' => $sent ? 'succes' : 'erreur',
-            'resume' => sprintf(__('Lien de connexion envoyé à %s.', 'periscolaire-registration'), $to_email),
+            'resume' => $role_prefix === '1'
+                /* translators: %d: identifiant de la famille */
+                ? sprintf(__('Lien de connexion envoyé au titulaire de la famille #%d.', 'periscolaire-registration'), (int) $parent->id)
+                /* translators: %d: identifiant de la famille */
+                : sprintf(__('Lien de connexion envoyé au second parent de la famille #%d.', 'periscolaire-registration'), (int) $parent->id),
         ));
         return $sent;
     }
@@ -204,7 +208,7 @@ class Psc_Parents {
                 'objet_type' => 'famille', 'objet_id' => $parent ? $parent->id : null,
                 'famille_id' => $parent ? $parent->id : null,
                 'resultat' => 'refus',
-                'resume' => sprintf(__('Demande de lien de connexion bloquée par la limite de débit (%s).', 'periscolaire-registration'), $email),
+                'resume' => __('Demande de lien de connexion bloquée par la limite de débit.', 'periscolaire-registration'),
             ));
         }
 
@@ -261,7 +265,7 @@ class Psc_Parents {
         if (strtotime($parent->token_expires . ' UTC') < time()) {
             Psc_Audit::log('famille.connexion_echouee', array(
                 'objet_type' => 'famille', 'objet_id' => $parent->id, 'famille_id' => $parent->id, 'resultat' => 'refus',
-                'resume' => sprintf(__('Tentative de connexion avec un jeton expiré (%s).', 'periscolaire-registration'), $parent->email),
+                'resume' => __('Tentative de connexion avec un jeton expiré.', 'periscolaire-registration'),
             ));
             wp_safe_redirect(add_query_arg('psc_msg', 'expired_token', $redirect));
             exit;
@@ -272,7 +276,7 @@ class Psc_Parents {
         if (!hash_equals($parent->token_hash, psc_hash_token($token))) {
             Psc_Audit::log('famille.connexion_echouee', array(
                 'objet_type' => 'famille', 'objet_id' => $parent->id, 'famille_id' => $parent->id, 'resultat' => 'refus',
-                'resume' => sprintf(__('Tentative de connexion avec un jeton invalide (%s).', 'periscolaire-registration'), $parent->email),
+                'resume' => __('Tentative de connexion avec un jeton invalide.', 'periscolaire-registration'),
             ));
             wp_safe_redirect(add_query_arg('psc_msg', 'bad_token', $redirect));
             exit;
@@ -298,10 +302,12 @@ class Psc_Parents {
         // L'acteur est forcé : la session vient tout juste d'être ouverte,
         // et la résolution automatique lirait un cookie posé par setcookie()
         // mais pas encore reflété dans $_COOKIE pour cette même requête.
-        $libelle = trim((string) $parent->nom) !== '' ? sprintf('%s (%s)', $parent->nom, $parent->email) : $parent->email;
+        // Libellé sans nom ni e-mail (RGPD-04) : identifiant et rôle.
+        $libelle = self::actor_label((int) $parent->id, $prefix === '1' ? 'titulaire' : ($prefix === '2' ? 'second' : ''));
         Psc_Audit::log('famille.connexion', array(
             'objet_type' => 'famille', 'objet_id' => $parent->id, 'famille_id' => $parent->id,
-            'resume' => sprintf(__('Connexion de %s.', 'periscolaire-registration'), $libelle),
+            /* translators: %s: libellé de l'acteur, ex. « Famille #12 (titulaire) » */
+            'resume' => sprintf(__('Connexion : %s.', 'periscolaire-registration'), $libelle),
             'acteur' => array('type' => 'famille', 'id' => (int) $parent->id, 'libelle' => $libelle, 'pour_le_compte_de' => null),
         ));
 
@@ -339,10 +345,12 @@ class Psc_Parents {
         $wpdb->update(psc_table('parents'), array('last_login' => current_time('mysql')), array('id' => $parent->id), array('%s'), array('%d'));
         self::open_session($parent->id, (string) $row->email);
 
-        $libelle = trim((string) $parent->nom) !== '' ? sprintf('%s (%s)', $parent->nom, $row->email) : $row->email;
+        $row_email = strtolower((string) $row->email);
+        $libelle = self::actor_label((int) $parent->id, $row_email === strtolower((string) $parent->email) ? 'titulaire' : ($row_email !== '' && $row_email === strtolower((string) $parent->second_parent_email) ? 'second' : ''));
         Psc_Audit::log('famille.connexion', array(
             'objet_type' => 'famille', 'objet_id' => $parent->id, 'famille_id' => $parent->id,
-            'resume' => sprintf(__('Connexion de %s depuis une notification d’échange.', 'periscolaire-registration'), $libelle),
+            /* translators: %s: libellé de l'acteur, ex. « Famille #12 (titulaire) » */
+            'resume' => sprintf(__('Connexion depuis une notification d’échange : %s.', 'periscolaire-registration'), $libelle),
             'acteur' => array('type' => 'famille', 'id' => (int) $parent->id, 'libelle' => $libelle, 'pour_le_compte_de' => null),
         ));
 
@@ -500,9 +508,11 @@ class Psc_Parents {
             Psc_Audit::log('famille.email_change_restaure', array(
                 'objet_type' => 'famille', 'objet_id' => (int) $parent->id, 'famille_id' => (int) $parent->id,
                 'resultat' => $restored ? 'succes' : 'erreur',
-                'acteur' => array('type' => 'famille', 'id' => (int) $parent->id, 'libelle' => sprintf(__('Famille #%d (ancienne adresse)', 'periscolaire-registration'), (int) $parent->id), 'pour_le_compte_de' => null),
+                'acteur' => array('type' => 'famille', 'id' => (int) $parent->id, 'libelle' => self::actor_label((int) $parent->id, 'ancienne'), 'pour_le_compte_de' => null),
                 'resume' => $restored
+                    /* translators: %d: identifiant de la famille */
                     ? sprintf(__('Changement d’adresse e-mail de la famille #%d annulé depuis l’ancienne adresse : ancienne adresse rétablie, sessions révoquées.', 'periscolaire-registration'), (int) $parent->id)
+                    /* translators: %d: identifiant de la famille */
                     : sprintf(__('Changement d’adresse e-mail de la famille #%d contesté depuis l’ancienne adresse : rétablissement impossible (adresse déjà utilisée), sessions révoquées.', 'periscolaire-registration'), (int) $parent->id),
             ));
             if (!$restored) {
@@ -521,13 +531,35 @@ class Psc_Parents {
             );
             Psc_Audit::log('famille.email_change_annule', array(
                 'objet_type' => 'famille', 'objet_id' => (int) $parent->id, 'famille_id' => (int) $parent->id,
-                'acteur' => array('type' => 'famille', 'id' => (int) $parent->id, 'libelle' => sprintf(__('Famille #%d (ancienne adresse)', 'periscolaire-registration'), (int) $parent->id), 'pour_le_compte_de' => null),
+                'acteur' => array('type' => 'famille', 'id' => (int) $parent->id, 'libelle' => self::actor_label((int) $parent->id, 'ancienne'), 'pour_le_compte_de' => null),
+                /* translators: %d: identifiant de la famille */
                 'resume' => sprintf(__('Changement d’adresse e-mail de la famille #%d annulé depuis l’ancienne adresse.', 'periscolaire-registration'), (int) $parent->id),
             ));
             self::email_cancel_page($title, '<p>' . esc_html__('La demande de changement d’adresse a été annulée : votre adresse actuelle reste l’adresse de connexion. Si vous n’êtes pas à l’origine de cette demande, prévenez la mairie.', 'periscolaire-registration') . '</p>' . $back);
         }
 
         self::email_cancel_page($title, '<p>' . esc_html__('Aucun changement d’adresse n’est en cours : il a déjà été annulé ou remplacé par une autre demande.', 'periscolaire-registration') . '</p>' . $back);
+    }
+
+    /**
+     * Libellé d'acteur famille pour le journal, sans nom ni e-mail
+     * (RGPD-04) : « Famille #12 (titulaire) », « (second parent) »,
+     * « (ancienne adresse) », ou « Famille #12 » si le rôle est inconnu.
+     */
+    private static function actor_label($parent_id, $role) {
+        switch ($role) {
+            case 'titulaire':
+                /* translators: %d: identifiant de la famille */
+                return sprintf(__('Famille #%d (titulaire)', 'periscolaire-registration'), (int) $parent_id);
+            case 'second':
+                /* translators: %d: identifiant de la famille */
+                return sprintf(__('Famille #%d (second parent)', 'periscolaire-registration'), (int) $parent_id);
+            case 'ancienne':
+                /* translators: %d: identifiant de la famille */
+                return sprintf(__('Famille #%d (ancienne adresse)', 'periscolaire-registration'), (int) $parent_id);
+        }
+        /* translators: %d: identifiant de la famille */
+        return sprintf(__('Famille #%d', 'periscolaire-registration'), (int) $parent_id);
     }
 
     /** Page autonome (sans thème) du parcours d'annulation ; termine la requête. */
@@ -986,7 +1018,8 @@ class Psc_Parents {
                 'second_parent_nom' => $data['second_parent_nom'], 'second_parent_prenom' => $data['second_parent_prenom'],
                 'second_parent_email' => $data['second_parent_email'], 'second_parent_telephone' => $data['second_parent_telephone'],
             ),
-            'resume' => sprintf(__('Famille %s (%s) créée.', 'periscolaire-registration'), trim($data['nom'] . ' ' . $data['prenom']), $email),
+            /* translators: %d: identifiant de la famille */
+            'resume' => sprintf(__('Famille #%d créée.', 'periscolaire-registration'), $new_id),
         ));
 
         return $new_id;

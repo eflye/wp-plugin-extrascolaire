@@ -18,6 +18,8 @@
  *    demande en attente de la mairie reste intacte (réponse identique) ;
  *    les demandes non confirmées de la même adresse ne disparaissent qu'à
  *    la confirmation de l'une d'elles.
+ *  - RGPD-04/L1 : les lignes du journal écrites pour le foyer de test ne
+ *    contiennent ni e-mail ni nom (résumé et libellé d'acteur).
  *
  * Usage :
  *   wp --require=bin/verify-audit-lot1.php verify-audit-lot1
@@ -357,6 +359,22 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         $wpdb->update($t_par, array('second_parent_email' => $emails['titulaire']), array('id' => $occupant));
         $r = $cancel_post($cancel);
         $check($parent_row($pid)->email === $emails['nouvelle'] && strpos($r['value'], 'mairie') !== false, 'SEC-02 : ancienne adresse occupée, rétablissement inattendu ou message absent');
+        /* ---------- RGPD-04/L1 : journal sans identité ---------- */
+        $t_audit = psc_table('audit_log');
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT action, resume, acteur_libelle FROM $t_audit WHERE (famille_id = %d OR (objet_type = 'demande' AND objet_id IN (SELECT r.id FROM $t_req r WHERE r.email = %s))) AND horodatage >= %s",
+            $pid, $emails['demande'], gmdate('Y-m-d H:i:s', time() - DAY_IN_SECONDS)
+        ));
+        $check(count($rows) > 0, 'RGPD-04/L1 : aucune ligne de journal relevée pour le foyer de test');
+        foreach ($rows as $row) {
+            foreach (array('resume', 'acteur_libelle') as $col) {
+                $val = (string) $row->$col;
+                $check(strpos($val, '@') === false && stripos($val, 'Lot1') === false && stripos($val, 'Verification') === false,
+                    "RGPD-04/L1 : donnée d'identité dans $col de {$row->action}");
+            }
+        }
+        $check((bool) $wpdb->get_var($wpdb->prepare("SELECT id FROM $t_audit WHERE action = 'famille.connexion' AND famille_id = %d AND acteur_libelle LIKE %s", $pid, '%(second parent)%')),
+            'RGPD-04/L1 : connexion du second parent sans rôle dans le libellé');
     } catch (Throwable $e) {
         $failures[] = 'exception ' . get_class($e) . ' : ' . $e->getMessage() . ' (' . basename($e->getFile()) . ':' . $e->getLine() . ')';
     } finally {
