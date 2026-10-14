@@ -269,14 +269,24 @@ class Psc_Audit {
             return array('type' => 'agent', 'id' => (int) $user->ID, 'libelle' => $user->user_login, 'pour_le_compte_de' => null);
         }
 
-        // La session famille ne distingue pas titulaire et second parent :
-        // l'acteur est le foyer, on ne devine jamais lequel des deux agit.
+        // L'acteur est le foyer ; l'identité de connexion de la session
+        // (SEC-02) dit lequel des deux responsables agit. Libellé sans nom
+        // ni e-mail (RGPD-04) : l'écran du journal résout le nom du foyer à
+        // l'affichage, tant que la fiche existe.
         if (class_exists('Psc_Parents')) {
             $parent = Psc_Parents::current();
             if ($parent) {
-                $libelle = trim((string) $parent->nom) !== ''
-                    ? sprintf('%s (%s)', $parent->nom, $parent->email)
-                    : $parent->email;
+                $role = method_exists('Psc_Parents', 'session_login_role') ? Psc_Parents::session_login_role() : '';
+                if ($role === 'titulaire') {
+                    /* translators: %d: identifiant de la famille */
+                    $libelle = sprintf(__('Famille #%d (titulaire)', 'periscolaire-registration'), (int) $parent->id);
+                } elseif ($role === 'second') {
+                    /* translators: %d: identifiant de la famille */
+                    $libelle = sprintf(__('Famille #%d (second parent)', 'periscolaire-registration'), (int) $parent->id);
+                } else {
+                    /* translators: %d: identifiant de la famille */
+                    $libelle = sprintf(__('Famille #%d', 'periscolaire-registration'), (int) $parent->id);
+                }
                 return array('type' => 'famille', 'id' => (int) $parent->id, 'libelle' => $libelle, 'pour_le_compte_de' => null);
             }
         }

@@ -218,6 +218,9 @@ $export_ods_url = wp_nonce_url(add_query_arg(array_merge($export_query_args, arr
         <td>
           <?php echo esc_html(isset($acteur_labels[$item->acteur_type]) ? $acteur_labels[$item->acteur_type] : $item->acteur_type); ?>
           — <?php echo esc_html($item->acteur_libelle); ?>
+          <?php if ($item->acteur_type === 'famille' && $item->acteur_id): ?>
+            <br><small><?php echo esc_html($psc_audit_family_label((int) $item->acteur_id)); ?></small>
+          <?php endif; ?>
           <?php if ($item->pour_le_compte_de): ?>
             <br><small><?php echo esc_html(sprintf(__('via consultation de l’espace de %s', 'periscolaire-registration'), $psc_audit_family_label((int) $item->pour_le_compte_de))); ?></small>
           <?php endif; ?>
