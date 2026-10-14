@@ -112,6 +112,84 @@ WP_CLI::add_command('verify-audit-lot3', function () {
         }
     };
 
+    /* PERF-02 : réservation, quelques envois en ligne, le reste par psc_envois_lot. */
+    $sections['PERF-02'] = function () use ($check) {
+        global $wpdb;
+        $t_par = psc_table('parents');
+        $t_env = psc_table('envois');
+        $type  = 'verify_lot3';
+        $prefix = 'verify-lot3-envoi-';
+        $purge = function () use ($wpdb, $t_par, $t_env, $type, $prefix) {
+            $wpdb->query($wpdb->prepare("DELETE FROM $t_env WHERE objet_type = %s", $type));
+            $wpdb->query($wpdb->prepare("DELETE FROM $t_par WHERE email LIKE %s", $wpdb->esc_like($prefix) . '%'));
+        };
+        $purge();
+        $calls = array();
+        $refuse = array();
+        $sender = function ($objet_id, $famille_id) use (&$calls, &$refuse) {
+            $calls[] = (int) $famille_id;
+            return in_array((int) $famille_id, $refuse, true) ? new WP_Error('mail_refuse', 'refus') : true;
+        };
+        $senders = function ($s) use ($type, $sender) { $s[$type] = $sender; return $s; };
+        add_filter('psc_envoi_senders', $senders);
+        $lot = Psc_Envois::lot(); // UUID : la colonne lot est bornée à 40 caractères
+        $n = 2 * Psc_Envois::INLINE_MAX + Psc_Envois::LOT_TAILLE + 3; // deux passages de tâche après deux soumissions
+        try {
+            $ids = array();
+            for ($i = 0; $i < $n; $i++) {
+                $wpdb->insert($t_par, array('email' => $prefix . $i . '@example.invalid', 'nom' => 'VerifyLot3', 'active' => 1, 'created_at' => current_time('mysql')));
+                $ids[] = (int) $wpdb->insert_id;
+            }
+            $refuse = array($ids[$n - 1]);
+
+            $bilan = Psc_Envois::lancer($type, 1, $lot, $ids);
+            $check(count($calls) === Psc_Envois::INLINE_MAX, 'PERF-02 : ' . count($calls) . ' envois en ligne au lieu de ' . Psc_Envois::INLINE_MAX);
+            $check($bilan[Psc_Envois::A_ENVOYER] === $n - Psc_Envois::INLINE_MAX && $bilan['total'] === $n, 'PERF-02 : bilan « en cours » inexact ' . wp_json_encode($bilan));
+            $check((bool) wp_next_scheduled('psc_envois_lot', array($type, $lot)), 'PERF-02 : tâche psc_envois_lot non programmée');
+            $check(has_action('psc_envois_lot', array('Psc_Envois', 'cron_lot')) !== false, 'PERF-02 : psc_envois_lot sans gestionnaire');
+
+            // Double soumission du même lot : rien de neuf en ligne, pas de seconde tâche.
+            Psc_Envois::lancer($type, 1, $lot, $ids);
+            // (les envois encore jamais tentés du lot sont légitimement repris en ligne)
+            $check(count($calls) === Psc_Envois::INLINE_MAX * 2, 'PERF-02 : double soumission inattendue (' . count($calls) . ')');
+            $before = count($calls);
+
+            // Tâche planifiée jouée comme WP-Cron : un paquet par passage, reprogrammée.
+            wp_clear_scheduled_hook('psc_envois_lot', array($type, $lot));
+            do_action('psc_envois_lot', $type, $lot);
+            $check(count($calls) - $before === Psc_Envois::LOT_TAILLE,
+                'PERF-02 : premier passage de ' . (count($calls) - $before) . ' envois');
+            $check((bool) wp_next_scheduled('psc_envois_lot', array($type, $lot)), 'PERF-02 : tâche non reprogrammée alors qu\'il reste des envois');
+            while (Psc_Envois::traiter_lot($type, $lot) > 0) {}
+            wp_clear_scheduled_hook('psc_envois_lot', array($type, $lot));
+
+            $per = array_count_values($calls);
+            $check(count($per) === $n, 'PERF-02 : ' . count($per) . ' familles servies sur ' . $n);
+            $check(max($per) === 1, 'PERF-02 : une famille a reçu deux envois');
+            $bilan = Psc_Envois::bilan($type, 1, $lot);
+            $check($bilan[Psc_Envois::ACCEPTE] === $n - 1 && $bilan[Psc_Envois::ECHEC] === 1 && $bilan[Psc_Envois::A_ENVOYER] === 0,
+                'PERF-02 : bilan final inexact ' . wp_json_encode($bilan));
+            $check(Psc_Envois::bilan_lot($type, $lot) == $bilan, 'PERF-02 : bilan_lot diffère du bilan de l\'objet');
+
+            // Une ligne tentée puis restée a_envoyer (processus tué) n'est pas rejouée par la tâche.
+            $wpdb->query($wpdb->prepare("UPDATE $t_env SET statut = %s WHERE objet_type = %s AND famille_id = %d", Psc_Envois::A_ENVOYER, $type, $ids[0]));
+            $before = count($calls);
+            Psc_Envois::traiter_lot($type, $lot);
+            $check(count($calls) === $before, 'PERF-02 : la tâche rejoue une ligne déjà tentée (relève de la reprise)');
+
+            // Relance des échecs : l'échec repart, rien d'autre.
+            $refuse = array();
+            $wpdb->query($wpdb->prepare("UPDATE $t_env SET statut = %s WHERE objet_type = %s AND famille_id = %d", Psc_Envois::ACCEPTE, $type, $ids[0]));
+            $before = count($calls);
+            $bilan = Psc_Envois::relancer_echecs($type, 1);
+            $check(count($calls) === $before + 1 && $bilan[Psc_Envois::ACCEPTE] === $n, 'PERF-02 : relance des échecs inexacte ' . wp_json_encode($bilan));
+        } finally {
+            remove_filter('psc_envoi_senders', $senders);
+            wp_clear_scheduled_hook('psc_envois_lot', array($type, $lot));
+            $purge();
+        }
+    };
+
     try {
         foreach ($sections as $name => $run) {
             $run();

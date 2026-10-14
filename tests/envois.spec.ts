@@ -72,7 +72,11 @@ test.describe('Envois suivis : échec visible, relance, accessibilité', () => {
     await expectAccessible(page);
 
     await page.getByTestId(`menu-relancer-${menuId}`).click();
-    await expect(page.getByText('Menu envoyé aux familles.')).toBeVisible();
+    // PERF-02 : au-delà des premiers envois, la relance se poursuit par la
+    // tâche psc_envois_lot ; on la joue ici comme le ferait WP-Cron.
+    await expect(page.getByText(/Menu envoyé aux familles\.|envois? en cours/).first()).toBeVisible();
+    wpEval(`$b=Psc_Envois::bilan('menu',${menuId}); while(Psc_Envois::traiter_lot('menu',$b['lot'])>0){} echo 'ok';`);
+    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_menus`);
     await expect(page.getByTestId(`menu-bilan-${menuId}`)).toHaveCount(0);
     await expect(page.getByTestId(`menu-envoi-${menuId}`)).toContainText('✔');
     await expectAccessible(page);

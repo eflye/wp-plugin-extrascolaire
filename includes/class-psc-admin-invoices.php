@@ -232,31 +232,53 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
         }
 
         // Un seul lot pour tout l'envoi groupé : soumettre deux fois le même
-        // formulaire ne renvoie aucune facture déjà acceptée.
+        // formulaire ne renvoie aucune facture déjà acceptée. Les envois
+        // sont réservés ici puis confiés à la tâche psc_envois_lot (cf.
+        // Psc_Envois::traiter_lot()) : l'écran n'attend pas le serveur
+        // d'envoi, il affiche les envois en cours.
         $lot = Psc_Envois::lot(psc_post('lot'));
         $invoices = Psc_Invoices::get_for_month($mois);
-        $sent_count = 0;
-        $failed_count = 0;
+        $queued = 0;
         foreach ($invoices as $inv) {
             if (!$inv->sent_at) {
-                $result = Psc_Invoices::send((int) $inv->id, $lot);
-                if (is_wp_error($result)) $failed_count++; else $sent_count++;
+                Psc_Envois::lancer('facture', (int) $inv->id, $lot, array((int) $inv->parent_id), 0);
+                $queued++;
             }
         }
+        // Les premiers envois partent tout de suite (un petit mois se
+        // termine dans la requête) ; le reste attend la tâche planifiée.
+        if ($queued > 0) {
+            Psc_Envois::traiter_lot('facture', $lot, Psc_Envois::INLINE_MAX);
+        }
+        $bilan = Psc_Envois::bilan_lot('facture', $lot);
 
         // Une ligne pour tout l'envoi groupé, pas une par facture.
         Psc_Audit::log('facture.envoi', array(
             'objet_type' => 'facture',
-            'meta' => array('mois' => $mois, 'lot' => true, 'envoyees' => $sent_count, 'echecs' => $failed_count),
-            'resume' => sprintf(__('Envoi groupé des factures de %s : %d envoyée(s), %d échec(s).', 'periscolaire-registration'), $mois, $sent_count, $failed_count),
+            'meta' => array('mois' => $mois, 'lot' => true, 'mises_en_file' => $queued, 'en_cours' => $bilan[Psc_Envois::A_ENVOYER], 'echecs' => $bilan[Psc_Envois::ECHEC]),
+            'resume' => sprintf(
+                /* translators: 1: mois (AAAA-MM), 2: nombre de factures mises en file d'envoi. */
+                _n('Envoi groupé des factures de %1$s : %2$d facture mise en file d’envoi.', 'Envoi groupé des factures de %1$s : %2$d factures mises en file d’envoi.', $queued, 'periscolaire-registration'),
+                $mois, $queued
+            ),
         ));
 
-        // Bilan fidèle : « toutes envoyées » seulement s'il n'y a aucun échec.
+        // Bilan fidèle : « envoyées » seulement si tout est accepté ; sinon
+        // le nombre d'envois encore en cours, puis les échecs.
+        if ($bilan['total'] > 0 && $bilan[Psc_Envois::ACCEPTE] === $bilan['total']) {
+            $msg = 'sent_all';
+        } elseif ($bilan[Psc_Envois::A_ENVOYER] > 0) {
+            $msg = 'sent_all_queued';
+        } elseif ($bilan[Psc_Envois::ECHEC] > 0) {
+            $msg = 'sent_all_partial';
+        } else {
+            $msg = 'sent_all';
+        }
         wp_safe_redirect(add_query_arg(
             array(
                 'page' => 'psc_factures', 'mois' => $mois,
-                'psc_msg' => $failed_count ? 'sent_all_partial' : 'sent_all',
-                'psc_ok' => $sent_count, 'psc_ko' => $failed_count,
+                'psc_msg' => $msg,
+                'psc_ok' => $bilan[Psc_Envois::ACCEPTE], 'psc_ko' => $bilan[Psc_Envois::ECHEC], 'psc_n' => $bilan[Psc_Envois::A_ENVOYER],
             ),
             admin_url('admin.php')
         ));
@@ -291,6 +313,7 @@ class Psc_Admin_Invoices extends Psc_Admin_Base {
         $invoice_bilans = Psc_Envois::bilans('facture', wp_list_pluck((array) $invoices, 'id'));
         $psc_ok = isset($_GET['psc_ok']) ? absint($_GET['psc_ok']) : 0;
         $psc_ko = isset($_GET['psc_ko']) ? absint($_GET['psc_ko']) : 0;
+        $psc_n  = isset($_GET['psc_n']) ? absint($_GET['psc_n']) : 0;
         $psc_msg  = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
 
         include PSC_PATH . 'templates/admin-factures.php';

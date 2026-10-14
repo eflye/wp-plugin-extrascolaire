@@ -73,4 +73,25 @@ test.describe('Audit — lot 3', () => {
       expect(post.status()).toBeGreaterThanOrEqual(400);
     });
   });
+
+  test('PERF-02 : les envois en cours sont annoncés (role=status, pluriel) et l\'écran reste accessible', async ({ page }) => {
+    await page.goto(`${APP_BASE}/wp-login.php`);
+    await page.locator('#user_login').fill('admin');
+    await page.locator('#user_pass').fill('admin');
+    await page.locator('#wp-submit').click();
+    await page.waitForURL('**/wp-admin/**');
+
+    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_factures&psc_msg=sent_all_queued&psc_n=3&psc_ok=2&psc_ko=0`);
+    const notice = page.getByTestId('notice-sent-all-queued');
+    await expect(notice).toHaveAttribute('role', 'status');
+    await expect(notice).toContainText('3 envois de factures en cours');
+    await expect(notice).toContainText('2 déjà envoyées');
+
+    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_menus&psc_msg=sent_queued&psc_n=1`);
+    const menuNotice = page.getByTestId('notice-menu-sent-queued');
+    await expect(menuNotice).toHaveAttribute('role', 'status');
+    await expect(menuNotice).toContainText('1 envoi en cours');
+    const axe = await new AxeBuilder({ page }).include('#wpbody-content .wrap').withTags(['wcag2a', 'wcag2aa']).analyze();
+    expect(axe.violations.map((v) => v.id)).toEqual([]);
+  });
 });

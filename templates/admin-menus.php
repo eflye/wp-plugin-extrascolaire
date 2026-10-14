@@ -12,7 +12,21 @@ $psc_notices = array(
     'invalid'   => array('error',    __('Paramètre invalide.', 'periscolaire-registration')),
 );
 psc_admin_notice_map($psc_notices, $psc_msg);
+if ($psc_msg === 'sent_queued'):
+    // Envoi confié à la tâche psc_envois_lot : bilan provisoire, annoncé
+    // aux technologies d'assistance (role="status").
 ?>
+<div class="notice notice-info is-dismissible" role="status" aria-live="polite" data-testid="notice-menu-sent-queued"><p>
+<?php
+echo esc_html(sprintf(
+    /* translators: %d: nombre d'e-mails de menu en cours d'envoi. */
+    _n('%d envoi en cours.', '%d envois en cours.', $psc_n, 'periscolaire-registration'),
+    $psc_n
+));
+echo ' ' . esc_html__('Les envois se poursuivent en arrière-plan : le menu sera marqué « envoyé » quand toutes les familles l’auront reçu. Rechargez la page dans quelques minutes.', 'periscolaire-registration');
+?>
+</p></div>
+<?php endif; ?>
 
 <div class="psc-box">
 <h2><?php echo $editing ? esc_html__('Modifier le menu', 'periscolaire-registration') : esc_html__('Saisir un menu', 'periscolaire-registration'); ?> — <?php esc_html_e('semaine du', 'periscolaire-registration'); ?> <?php echo esc_html(date_i18n('d/m/Y', strtotime($target_week))); ?></h2>
@@ -101,7 +115,7 @@ psc_admin_notice_map($psc_notices, $psc_msg);
             <span style="color:#666"><?php esc_html_e('Non envoyé', 'periscolaire-registration'); ?></span>
         <?php endif; ?>
         <?php if ($bilan && ($bilan[Psc_Envois::ECHEC] > 0 || $bilan[Psc_Envois::A_ENVOYER] > 0)): ?>
-            <br><span style="color:#B32D2E" data-testid="menu-bilan-<?php echo esc_attr($m->id); ?>">
+            <br><span<?php echo $bilan[Psc_Envois::ECHEC] > 0 ? ' style="color:#B32D2E"' : ''; ?> data-testid="menu-bilan-<?php echo esc_attr($m->id); ?>">
                 <?php printf(
                     /* translators: 1: envois acceptés, 2: total, 3: échecs, 4: en attente. */
                     esc_html__('Dernier envoi : %1$d/%2$d accepté(s), %3$d échec(s), %4$d en attente', 'periscolaire-registration'),
