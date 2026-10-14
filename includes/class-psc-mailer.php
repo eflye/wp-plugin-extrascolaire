@@ -828,10 +828,11 @@ class Psc_Mailer {
             $badges = array();
             if (!empty($c['sans_porc'])) $badges[] = __('sans porc', 'periscolaire-registration');
             if (!empty($c['vegan']))     $badges[] = __('sans viande', 'periscolaire-registration');
-            // Allergie alimentaire déclarée : alerte PAI dans le même mail
-            // — le service doit prendre contact, la promesse est faite au
-            // parent dès la demande.
-            if (!empty($c['food_allergies'])) $badges[] = __('ALLERGIE ALIMENTAIRE : ', 'periscolaire-registration') . $c['food_allergies'];
+            // Alimentation : un simple badge, jamais le détail médical
+            // (RGPD-10) — le service prend contact avec la famille, comme
+            // pour notify_food_allergy(). Le détail éventuel (fiches
+            // anciennes) reste consultable dans le backoffice.
+            if (!empty($c['food_allergies']) || !empty($c['food_allergy_signal'])) $badges[] = __('échange alimentation à prévoir', 'periscolaire-registration');
             $children_list .= '<li style="color:#1A1A1A;font-size:14px;margin-bottom:4px;">'
                 . esc_html($c['prenom'] . ' ' . $c['nom'])
                 . (!empty($c['classe']) ? ' <span style="color:#8B8279;">(' . esc_html($c['classe']) . ')</span>' : '')

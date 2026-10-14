@@ -395,6 +395,21 @@ WP_CLI::add_command('verify-audit-lot3', function () {
         }
     };
 
+    /* RGPD-10/L3 : l'e-mail « nouvelle demande » ne transmet plus le détail des allergies. */
+    $sections['RGPD-10/L3'] = function () use ($check, &$mails) {
+        $req = (object) array('email' => 'rgpd10@example.invalid', 'prenom' => 'P', 'nom' => 'N', 'telephone' => '', 'message' => '');
+        $mails = array();
+        Psc_Mailer::notify_mairie_new_request($req, array(
+            array('prenom' => 'A', 'nom' => 'B', 'classe' => 'CP', 'food_allergies' => 'Arachide-SECRET-PAI'),
+            array('prenom' => 'C', 'nom' => 'D', 'classe' => 'CP', 'food_allergy_signal' => 1),
+            array('prenom' => 'E', 'nom' => 'F', 'classe' => 'CP'),
+        ));
+        $msg = $mails ? (string) $mails[0]['message'] : '';
+        $check($msg !== '', 'RGPD-10 : e-mail « nouvelle demande » non envoyé');
+        $check(strpos($msg, 'Arachide-SECRET-PAI') === false, 'RGPD-10 : détail des allergies encore transmis par e-mail');
+        $check(substr_count($msg, esc_html__('échange alimentation à prévoir', 'periscolaire-registration')) === 2, 'RGPD-10 : badge « échange alimentation à prévoir » absent ou en trop');
+    };
+
     try {
         foreach ($sections as $name => $run) {
             $run();
