@@ -6,10 +6,10 @@
   var $title = $('#psc-message-title');
   var i18n = (window.PSC_MESSAGES && PSC_MESSAGES.i18n) || {};
   function fmt(template, n) { return String(template || '').replace('%d', n); }
-  // Règle française : 0 et 1 au singulier ; wp.i18n._n prioritaire s'il est chargé.
+  // Règle française : 0 et 1 au singulier. Pas de wp.i18n._n : sans
+  // données de langue chargées, il applique la règle anglaise (0 au pluriel).
   function plural(pair, n) {
     n = Number(n) || 0;
-    if (window.wp && wp.i18n && typeof wp.i18n._n === 'function') return fmt(wp.i18n._n(pair[0], pair[1], n, 'periscolaire-registration'), n);
     return fmt(n > 1 ? pair[1] : pair[0], n);
   }
   function bodyText() {
