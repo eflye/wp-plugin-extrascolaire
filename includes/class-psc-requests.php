@@ -567,7 +567,9 @@ class Psc_Requests {
             if (!empty($children)) {
                 $result = self::approve_request($req, $children, false);
                 if (!is_wp_error($result)) {
-                    Psc_Parents::open_session($result);
+                    // La demande vient d'être confirmée depuis l'adresse du
+                    // titulaire : la session porte cette identité (SEC-02).
+                    Psc_Parents::open_session($result, (string) $req->email);
                     wp_safe_redirect(add_query_arg('psc_msg', 'welcome', $redirect));
                     exit;
                 }
