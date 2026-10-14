@@ -41,6 +41,24 @@ class Psc_Messages_Admin extends Psc_Admin_Base {
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'countNonce' => wp_create_nonce('psc_message_count_targets'),
             'confirm' => __('Confirmer l’envoi de ce message ? Le ciblage sera figé et le message ne pourra plus être modifié.', 'periscolaire-registration'),
+            // Chaînes de l'écran d'édition (PRA-06) ; %d remplacé côté JS.
+            'i18n' => array(
+                /* translators: %d: nombre de caractères du titre */
+                'titleCount'          => __('%d / 80 caractères', 'periscolaire-registration'),
+                'titlePlaceholder'    => __('Titre du message', 'periscolaire-registration'),
+                /* translators: %d: nombre */
+                'families'            => array(__('%d famille', 'periscolaire-registration'), __('%d familles', 'periscolaire-registration')),
+                /* translators: %d: nombre */
+                'children'            => array(__('%d enfant concerné', 'periscolaire-registration'), __('%d enfants concernés', 'periscolaire-registration')),
+                /* translators: %d: nombre */
+                'sendTo'              => array(__('Envoyer à %d famille', 'periscolaire-registration'), __('Envoyer à %d familles', 'periscolaire-registration')),
+                'pickAttachment'      => __('Choisir une pièce jointe', 'periscolaire-registration'),
+                'tooLarge'            => __('Le fichier dépasse 5 Mo.', 'periscolaire-registration'),
+                'channelsPortal'      => __('Espace famille', 'periscolaire-registration'),
+                'channelsPortalEmail' => __('Espace famille + e-mail', 'periscolaire-registration'),
+                'withAttachment'      => __('avec pièce jointe', 'periscolaire-registration'),
+                'withoutAttachment'   => __('sans pièce jointe', 'periscolaire-registration'),
+            ),
         ));
     }
 

@@ -224,3 +224,25 @@ test.describe('Lot 2 — écrans Messages sans code brut ni texte de l’URL (PR
     await expect(page.locator('.notice')).toContainText('Message supprimé');
   });
 });
+
+test.describe('Lot 2 — écran Assurances traduisible et accessible (PRA-06)', () => {
+  const user = 'psc-lot2-e2e-assurances';
+  test.beforeAll(() => {
+    wpEval(`require_once ABSPATH.'wp-admin/includes/user.php'; $u=get_user_by('login','${user}'); if($u) wp_delete_user((int)$u->ID);
+      $id=wp_insert_user(array('user_login'=>'${user}','user_pass'=>'${PASSWORD}','user_email'=>'${user}@example.test','role'=>'subscriber'));
+      get_user_by('id',$id)->add_cap('psc_manage_families'); echo 'ok';`);
+  });
+  test.afterAll(() => {
+    wpEval(`require_once ABSPATH.'wp-admin/includes/user.php'; $u=get_user_by('login','${user}'); if($u) wp_delete_user((int)$u->ID); echo 'ok';`);
+  });
+
+  test('le tableau a une légende et des en-têtes de colonnes', async ({ page }) => {
+    await loginAs(page, user);
+    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_assurances`);
+    await expect(page.getByRole('heading', { level: 1, name: 'Assurances scolaires' })).toBeVisible();
+    await expect(page.locator('table.widefat caption')).toHaveCount(1);
+    await expect(page.locator('table.widefat thead th[scope="col"]')).toHaveCount(4);
+    const axe = await new AxeBuilder({ page }).include('.wrap').analyze();
+    expect(axe.violations.map((v) => v.id)).toEqual([]);
+  });
+});

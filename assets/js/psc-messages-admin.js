@@ -4,22 +4,25 @@
   var $form = $('#psc-message-form');
   if (!$form.length) return;
   var $title = $('#psc-message-title');
+  var i18n = (window.PSC_MESSAGES && PSC_MESSAGES.i18n) || {};
+  function fmt(template, n) { return String(template || '').replace('%d', n); }
+  function plural(pair, n) { return fmt(Number(n) === 1 ? pair[0] : pair[1], n); }
   function bodyText() {
     if (window.tinymce && tinymce.get('psc_message_body')) return tinymce.get('psc_message_body').getContent({ format: 'text' });
     return $('<div>').html($('#psc_message_body').val() || '').text();
   }
   function refreshPreview() {
     var cat = $('input[name="categorie"]:checked').closest('label');
-    $('#psc-title-count').text(($title.val() || '').length + ' / 80 caractères');
+    $('#psc-title-count').text(fmt(i18n.titleCount, ($title.val() || '').length));
     $('#psc-preview-cat').text(cat.text().trim()).attr('style', cat.attr('style') || '');
-    $('#psc-preview-title').text($title.val() || 'Titre du message');
+    $('#psc-preview-title').text($title.val() || i18n.titlePlaceholder);
     var text = bodyText(); $('#psc-preview-body').text(text.length > 110 ? text.slice(0, 107) + '…' : text);
   }
   function targetData() {
     return { action: 'psc_message_count_targets', nonce: PSC_MESSAGES.countNonce, cible_type: $('input[name="cible_type"]:checked').val(), cible_ecole: $('[name="cible_ecole"]').val(), cible_service: $('[name="cible_service"]').val(), family_ids: $('[name="family_ids[]"]').val() || [] };
   }
   function refreshCount() {
-    $.post(PSC_MESSAGES.ajaxUrl, targetData()).done(function (r) { if (r.success) { $('#psc-target-count').html('<strong>' + r.data.familles + ' familles</strong> · ' + r.data.enfants + ' enfants concernés'); $('[data-message-action="send"]').text('Envoyer à ' + r.data.familles + ' familles'); } });
+    $.post(PSC_MESSAGES.ajaxUrl, targetData()).done(function (r) { if (r.success) { var $count = $('#psc-target-count').empty(); $('<strong>').text(plural(i18n.families, r.data.familles)).appendTo($count); $count.append(document.createTextNode(' · ' + plural(i18n.children, r.data.enfants))); $('[data-message-action="send"]').text(plural(i18n.sendTo, r.data.familles)); } });
   }
   function refreshTargetFields() {
     var type = $('input[name="cible_type"]:checked').val();
@@ -30,7 +33,7 @@
   $form.on('input change', 'input,textarea,select', function () { refreshPreview(); if ($(this).is('[name^="cible"],[name="family_ids[]"]')) { refreshTargetFields(); refreshCount(); } });
   $(document).on('tinymce-editor-init', function (_, editor) { if (editor.id === 'psc_message_body') editor.on('input change keyup', refreshPreview); });
   var frame;
-  $('#psc-attachment-pick').on('click', function () { frame = frame || wp.media({ title: 'Choisir une pièce jointe', multiple: false, library: { type: ['application/pdf', 'image/jpeg', 'image/png'] } }); frame.off('select').on('select', function () { var a = frame.state().get('selection').first().toJSON(); if (a.filesizeInBytes > 5 * 1024 * 1024) return window.alert('Le fichier dépasse 5 Mo.'); $('#psc-attachment-id').val(a.id); $('#psc-attachment-label').text(a.filename + (a.filesizeHumanReadable ? ' · ' + a.filesizeHumanReadable : '')); }); frame.open(); });
+  $('#psc-attachment-pick').on('click', function () { frame = frame || wp.media({ title: i18n.pickAttachment, multiple: false, library: { type: ['application/pdf', 'image/jpeg', 'image/png'] } }); frame.off('select').on('select', function () { var a = frame.state().get('selection').first().toJSON(); if (a.filesizeInBytes > 5 * 1024 * 1024) return window.alert(i18n.tooLarge); $('#psc-attachment-id').val(a.id); $('#psc-attachment-label').text(a.filename + (a.filesizeHumanReadable ? ' · ' + a.filesizeHumanReadable : '')); }); frame.open(); });
   $('#psc-attachment-remove').on('click', function () { $('#psc-attachment-id').val(''); $('#psc-attachment-label').text(''); });
   $form.on('click', '[data-message-action]', function (e) {
     e.preventDefault(); var action = $(this).data('message-action');
@@ -38,7 +41,7 @@
     if (action === 'send') {
       var dialog = document.getElementById('psc-send-confirm');
       if (dialog && typeof dialog.showModal === 'function') {
-        $('#psc-send-summary').text($('#psc-target-count').text() + ' · ' + ($('[name="canal_email"]').is(':checked') ? 'Espace famille + e-mail' : 'Espace famille') + ($('#psc-attachment-id').val() ? ' · avec pièce jointe' : ' · sans pièce jointe'));
+        $('#psc-send-summary').text($('#psc-target-count').text() + ' · ' + ($('[name="canal_email"]').is(':checked') ? i18n.channelsPortalEmail : i18n.channelsPortal) + ' · ' + ($('#psc-attachment-id').val() ? i18n.withAttachment : i18n.withoutAttachment));
         dialog.showModal(); return;
       }
       if (!window.confirm(PSC_MESSAGES.confirm + '\n\n' + $('#psc-target-count').text())) return;
