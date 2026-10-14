@@ -26,6 +26,9 @@
  *    est désactivé, code de moins de 8 caractères refusé à la création ou
  *    à la modification (code existant conservé), identifiant obligatoire,
  *    limite d'échecs par intervenant.
+ *  - RGPD-06 : liste intervenants — allergies transmises seulement pour un
+ *    enfant attendu au midi, personnes autorisées seulement sur demande
+ *    (semaine en cours).
  *  - RGPD-04/L1 : les lignes du journal écrites pour le foyer de test ne
  *    contiennent ni e-mail ni nom (résumé et libellé d'acteur).
  *
@@ -69,6 +72,7 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         'demande'   => 'verify-lot1-demande@example.invalid',
         'sepa_refus' => 'verify-lot1-sepa-refus@example.invalid',
         'sepa_ok'    => 'verify-lot1-sepa-ok@example.invalid',
+        'sidscm'     => 'verify-lot1-sidscm@example.invalid',
     );
     $t_req = psc_table('requests');
     $purge_requests = function () use ($wpdb, $emails, $t_req) {
@@ -359,6 +363,45 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         remove_filter('psc_rate_limit_enabled', '__return_true', 100);
         delete_transient($rl_key);
         delete_transient('psc_rl_' . md5('sidscm_bad_' . psc_client_ip()));
+
+        /* ---------- RGPD-06 : minimisation de la liste intervenants ---------- */
+        $open_days = psc_open_days(psc_week_start(current_time('Y-m-d')));
+        $year_id = $open_days ? Psc_School_Years::id_for_date(reset($open_days)) : 0;
+        if ($open_days && $year_id) {
+            $sid_family = Psc_Parents::create($emails['sidscm'], 'Lot1', array('second_parent_prenom' => 'Second', 'second_parent_nom' => 'Lot1', 'second_parent_telephone' => '0612345678'));
+            $t_child = psc_table('children');
+            $mk = function ($prenom) use ($wpdb, $t_child, $sid_family) {
+                $wpdb->insert($t_child, array('parent_id' => $sid_family, 'nom' => 'Lot1', 'prenom' => $prenom, 'food_allergies' => 'Arachide', 'created_at' => current_time('mysql')));
+                return (int) $wpdb->insert_id;
+            };
+            $garderie = $mk('Garderie');
+            $cantine = $mk('Cantine');
+            Psc_School_Years::enroll($garderie, $year_id, 'CP');
+            Psc_School_Years::enroll($cantine, $year_id, 'CP');
+            foreach ($open_days as $date) {
+                Psc_Planning::toggle_exception($garderie, $date, 'GS', true, true);
+                Psc_Planning::toggle_exception($cantine, $date, 'CANT', true, true);
+            }
+            Psc_Planning::flush_cache();
+            $by_id = function (array $week) {
+                $out = array();
+                foreach ($week['children'] as $c) $out[$c['id']] = $c;
+                return $out;
+            };
+            $with = $by_id(Psc_Sidscm::week_children($open_days, true));
+            $without = $by_id(Psc_Sidscm::week_children($open_days, false));
+            $check(isset($with[$garderie], $with[$cantine]), 'RGPD-06 données : enfants de test absents de la liste');
+            if (isset($with[$garderie], $with[$cantine])) {
+                $check($with[$garderie]['allergies'] === null && empty($with[$garderie]['brings_meal']), 'RGPD-06 : allergies transmises pour un enfant de garderie seule');
+                $check($with[$cantine]['allergies'] === 'Arachide', 'RGPD-06 : allergies absentes pour un enfant de cantine');
+                $check(!empty($with[$garderie]['authorized']), 'RGPD-06 : personnes autorisées absentes pour la semaine en cours');
+                $check(empty($with[$cantine]['authorized']), 'RGPD-06 : personnes autorisées transmises hors garderie du soir');
+                $check(empty($without[$garderie]['authorized']), 'RGPD-06 : personnes autorisées transmises hors semaine en cours');
+            }
+            Psc_Admin_Familles::delete_family($sid_family);
+        } else {
+            WP_CLI::log('RGPD-06 : semaine sans jour ouvert, vérification sautée.');
+        }
 
         $pid = Psc_Parents::create($emails['titulaire'], 'Lot1', array('second_parent_email' => $emails['second']));
         $check(is_int($pid) && $pid > 0, 'SEC-02 données : foyer non créé');

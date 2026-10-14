@@ -251,6 +251,12 @@
      * + tiers ajoutés côté famille) — la gestion reste dans "Mon profil".
      */
     function renderAuthPanel(c) {
+        // Les personnes autorisées ne sont transmises que pour la semaine
+        // en cours (minimisation, RGPD-06) : ailleurs, on le dit plutôt
+        // que d'annoncer une liste vide.
+        if (state.week !== state.currentWeek) {
+            return '<div class="psc-sidscm-auth-panel" data-testid="sidscm-auth-panel-' + c.id + '"><div class="psc-sidscm-auth-empty">' + t('authorised_current_week') + '</div></div>';
+        }
         var persons = c.authorized || [];
         var personsHtml = persons.length
             ? persons.map(function (p) {

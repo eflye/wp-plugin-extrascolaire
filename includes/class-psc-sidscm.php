@@ -160,6 +160,7 @@ class Psc_Sidscm {
                 'arrival'       => __('Arrivée', 'periscolaire-registration'),
                 'departure'     => __('Départ', 'periscolaire-registration'),
                 'no_authorised' => __('Aucune personne autorisée renseignée.', 'periscolaire-registration'),
+                'authorised_current_week' => __('Personnes autorisées consultables uniquement pour la semaine en cours.', 'periscolaire-registration'),
                 'choose_week' => __('Semaine à consulter', 'periscolaire-registration'),
                 'load_error' => __('Chargement impossible. Réessayez.', 'periscolaire-registration'),
                 'week'          => __('semaine', 'periscolaire-registration'),
@@ -520,7 +521,9 @@ class Psc_Sidscm {
             wp_send_json_success($out);
         }
 
-        $week = self::week_children($open_days);
+        // Personnes autorisées (noms, téléphones de tiers) : seulement pour
+        // la semaine en cours, la seule où un départ se contrôle (RGPD-06).
+        $week = self::week_children($open_days, $monday === $current_week);
         $out['children']   = $week['children'];
         $out['attendance'] = $week['attendance'] ?: new stdClass();
         $out['arrivals']   = $week['arrivals'] ?: new stdClass();
@@ -535,10 +538,17 @@ class Psc_Sidscm {
      * (bin/verify-query-budget.php). Nombre de requêtes indépendant du
      * nombre d'enfants.
      *
+     * Minimisation (RGPD-06) : le texte des allergies et la mention « apporte
+     * son repas » ne partent que pour un enfant attendu au créneau du midi
+     * cette semaine ; les personnes autorisées que pour un enfant attendu
+     * en garderie du soir, et seulement si $with_authorized (semaine en
+     * cours).
+     *
      * @param array $open_days [jour => date]
+     * @param bool  $with_authorized Joindre les personnes autorisées.
      * @return array ['children', 'attendance', 'arrivals', 'departures']
      */
-    public static function week_children(array $open_days) {
+    public static function week_children(array $open_days, $with_authorized = true) {
         global $wpdb;
         $empty = array('children' => array(), 'attendance' => array(), 'arrivals' => array(), 'departures' => array());
         if (!$open_days) return $empty;
@@ -619,9 +629,13 @@ class Psc_Sidscm {
             // Personnes autorisées : seulement pour un enfant attendu en
             // garderie du soir (sidscm.js n'affiche ce bloc que sur cet
             // onglet) ; lues en lot après la boucle.
-            if (!empty($per_service['GS'])) $needs_authorized[] = (int) $c->id;
+            if ($with_authorized && !empty($per_service['GS'])) $needs_authorized[] = (int) $c->id;
 
-            $allergies = trim((string) $c->food_allergies);
+            // Donnée de santé : transmise seulement si l'enfant déjeune
+            // (cantine ou midi sans repas) cette semaine — un intervenant
+            // de garderie n'en a pas l'usage (RGPD-06).
+            $at_lunch = !empty($per_service['CANT']) || !empty($per_service['MSR']);
+            $allergies = $at_lunch ? trim((string) $c->food_allergies) : '';
 
             $out_children[] = array(
                 'id'         => (int) $c->id,
