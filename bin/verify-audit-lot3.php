@@ -591,6 +591,45 @@ WP_CLI::add_command('verify-audit-lot3', function () {
         $check(strpos($src, "psc_private_path(\$rel_path) {\n    // Tout accès") !== false, 'PERF-10 : garde-fous non posés au premier accès à un document');
     };
 
+    /* PERF-11 : import ICS en requêtes groupées, corrections manuelles prioritaires (règle n°7). */
+    $sections['PERF-11'] = function () use ($check) {
+        global $wpdb;
+        $t = psc_table('school_calendar');
+        $year = (int) current_time('Y') + 4;
+        $label = 'Vacances verify-lot3';
+        $cleanup = function () use ($wpdb, $t, $year) {
+            $wpdb->query($wpdb->prepare("DELETE FROM $t WHERE jour_date BETWEEN %s AND %s", "$year-02-01", "$year-03-31"));
+            Psc_School_Calendar::flush_closed_cache();
+        };
+        $cleanup();
+        try {
+            // Correction manuelle : jour rouvert au milieu des vacances, et
+            // jour fermé avec un autre libellé.
+            $now = current_time('mysql');
+            $wpdb->insert($t, array('jour_date' => "$year-02-20", 'label' => null, 'is_closed' => 0, 'source' => 'manual', 'created_at' => $now, 'updated_at' => $now));
+            $wpdb->insert($t, array('jour_date' => "$year-02-21", 'label' => 'Manuel lot3', 'is_closed' => 1, 'source' => 'manual', 'created_at' => $now, 'updated_at' => $now));
+            // Jour déjà importé : mis à jour.
+            $wpdb->insert($t, array('jour_date' => "$year-02-22", 'label' => 'Ancien import', 'is_closed' => 1, 'source' => 'import', 'created_at' => $now, 'updated_at' => $now));
+            $ics = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nDTSTART;VALUE=DATE:{$year}0214\r\nDTEND;VALUE=DATE:{$year}0302\r\nSUMMARY:$label - Zone C\r\nLOCATION:Zone C\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+            $expected = count(Psc_School_Calendar::parse_ics($ics));
+            $q = $wpdb->num_queries;
+            $n = Psc_School_Calendar::import_from_upload($ics);
+            $used = $wpdb->num_queries - $q;
+            $check($n === $expected - 2, 'PERF-11 : ' . (is_wp_error($n) ? $n->get_error_code() : $n) . " jours importés au lieu de " . ($expected - 2));
+            $check($used <= 8, "PERF-11 : $used requêtes pour importer $expected jours");
+            $row = function ($d) use ($wpdb, $t) { return $wpdb->get_row($wpdb->prepare("SELECT label, is_closed, source FROM $t WHERE jour_date = %s", $d)); };
+            $r = $row("$year-02-20");
+            $check($r && (int) $r->is_closed === 0 && $r->source === 'manual', 'PERF-11 : réouverture manuelle écrasée par l\'import');
+            $r = $row("$year-02-21");
+            $check($r && $r->label === 'Manuel lot3' && $r->source === 'manual', 'PERF-11 : fermeture manuelle écrasée par l\'import');
+            $r = $row("$year-02-22");
+            $check($r && $r->source === 'import' && strpos((string) $r->label, $label) === 0, 'PERF-11 : jour importé non mis à jour');
+            $check(Psc_School_Calendar::is_closed("$year-02-16") && !Psc_School_Calendar::is_closed("$year-02-20"), 'PERF-11 : fermetures lues incohérentes');
+        } finally {
+            $cleanup();
+        }
+    };
+
     try {
         foreach ($sections as $name => $run) {
             $run();

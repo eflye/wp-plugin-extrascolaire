@@ -364,23 +364,51 @@ class Psc_School_Calendar {
         $count = 0;
         $now   = current_time('mysql');
 
-        $wpdb->query('START TRANSACTION');
-        foreach ($closed_days as $date => $label) {
-            $existing_source = $wpdb->get_var($wpdb->prepare("SELECT source FROM $t WHERE jour_date = %s", $date));
-            if ($existing_source === 'manual') continue; // ne jamais écraser une correction manuelle
+        // Corrections manuelles de la période, lues en UNE requête : elles
+        // priment toujours sur l'import (règle métier n°7) et ne sont pas
+        // comptées. Puis upsert multi-lignes par paquets (PERF-11), avec la
+        // même garde dans ON DUPLICATE KEY UPDATE au cas où une correction
+        // serait posée entre-temps.
+        $dates = array_keys($closed_days);
+        $manual = array();
+        if ($dates) {
+            foreach ((array) $wpdb->get_col($wpdb->prepare(
+                "SELECT jour_date FROM $t WHERE source = 'manual' AND jour_date BETWEEN %s AND %s",
+                min($dates), max($dates)
+            )) as $d) {
+                $manual[(string) $d] = true;
+            }
+        }
 
+        $wpdb->query('START TRANSACTION');
+        $rows = array();
+        foreach ($closed_days as $date => $label) {
+            if (isset($manual[$date])) continue; // ne jamais écraser une correction manuelle
+            $rows[] = array($date, mb_substr($label, 0, 191));
+        }
+        foreach (array_chunk($rows, 200) as $chunk) {
+            $values = array();
+            $args = array();
+            foreach ($chunk as $row) {
+                $values[] = "(%s, %s, 1, 'import', %s, %s)";
+                array_push($args, $row[0], $row[1], $now, $now);
+            }
             $written = $wpdb->query($wpdb->prepare(
                 "INSERT INTO $t (jour_date, label, is_closed, source, created_at, updated_at)
-                 VALUES (%s, %s, 1, 'import', %s, %s)
-                 ON DUPLICATE KEY UPDATE label = VALUES(label), is_closed = 1, source = 'import', updated_at = VALUES(updated_at)",
-                $date, mb_substr($label, 0, 191), $now, $now
+                 VALUES " . implode(', ', $values) . "
+                 ON DUPLICATE KEY UPDATE
+                    label      = IF(source = 'manual', label, VALUES(label)),
+                    is_closed  = IF(source = 'manual', is_closed, 1),
+                    updated_at = IF(source = 'manual', updated_at, VALUES(updated_at)),
+                    source     = IF(source = 'manual', 'manual', 'import')",
+                $args
             ));
             if (false === $written) {
                 $wpdb->query('ROLLBACK');
                 self::flush_closed_cache();
                 return new WP_Error('psc_ics_db', __('Enregistrement du calendrier impossible : rien n’a été modifié.', 'periscolaire-registration'));
             }
-            $count++;
+            $count += count($chunk);
         }
         $wpdb->query('COMMIT');
 
