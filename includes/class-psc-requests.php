@@ -46,6 +46,10 @@ class Psc_Requests {
 
     /** Durée de conservation d'une demande jamais traitée par la mairie (RGPD-01). */
     const PENDING_RETENTION_DAYS = 180;
+    /** Durée de conservation d'une demande dont l'adresse n'a pas été confirmée. */
+    const UNVERIFIED_RETENTION_DAYS = 7;
+    /** Durée de conservation d'une demande validée ou refusée, après la décision. */
+    const DECIDED_RETENTION_DAYS = 90;
 
     /**
      * Supprime les demandes non vérifiées de plus de 7 jours, les
@@ -61,8 +65,8 @@ class Psc_Requests {
         // created_at et decided_at sont écrits en heure du site
         // (current_time('mysql')) : les seuils sont calculés dans la même
         // horloge (PRA-14), sinon la purge se décalait de l'écart UTC.
-        $unverified_cutoff = wp_date('Y-m-d H:i:s', time() - 7 * DAY_IN_SECONDS);
-        $stale_cutoff      = wp_date('Y-m-d H:i:s', time() - 90 * DAY_IN_SECONDS);
+        $unverified_cutoff = wp_date('Y-m-d H:i:s', time() - self::UNVERIFIED_RETENTION_DAYS * DAY_IN_SECONDS);
+        $stale_cutoff      = wp_date('Y-m-d H:i:s', time() - self::DECIDED_RETENTION_DAYS * DAY_IN_SECONDS);
         $unverified_ids = $wpdb->get_col($wpdb->prepare(
             "SELECT id FROM $t WHERE status = 'unverified' AND created_at < %s",
             $unverified_cutoff
