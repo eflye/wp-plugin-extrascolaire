@@ -621,6 +621,24 @@ class Psc_Requests {
         }
     }
 
+    /**
+     * Coordonnées bancaires d'une demande à effacer une fois la décision
+     * prise (RGPD-03) : reportées sur le compte famille à la validation,
+     * sans objet après un refus.
+     *
+     * @return array<string,null>
+     */
+    private static function cleared_sepa_fields() {
+        return array(
+            'sepa_iban'        => null,
+            'sepa_bic'         => null,
+            'sepa_titulaire'   => null,
+            'sepa_adresse'     => null,
+            'sepa_code_postal' => null,
+            'sepa_ville'       => null,
+        );
+    }
+
     /* ---------------- Modération (backoffice) ---------------- */
 
     public static function handle_approve() {
@@ -1009,17 +1027,16 @@ class Psc_Requests {
         // famille : les conserver en double dans la demande ne sert plus à
         // rien et doublerait inutilement la surface d'exposition de l'IBAN.
         // La demande garde le mode de paiement et l'acceptation du règlement,
-        // qui documentent le consentement.
+        // qui documentent le consentement. Titulaire et adresse du compte
+        // suivent l'IBAN (RGPD-03) : ils sont sur le compte famille.
         $updated = $wpdb->update(
             psc_table('requests'),
-            array(
+            array_merge(array(
                 'status'     => 'approved',
                 'decided_at' => current_time('mysql'),
-                'sepa_iban'  => null,
-                'sepa_bic'   => null,
-            ),
+            ), self::cleared_sepa_fields()),
             array('id' => $req->id),
-            array('%s', '%s', '%s', '%s'),
+            array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s'),
             array('%d')
         );
         if (false === $updated) {
@@ -1089,8 +1106,13 @@ class Psc_Requests {
         // Transition conditionnelle : si une validation est passée entre la
         // lecture ci-dessus et cette écriture, la demande n'est plus en
         // attente et le refus ne doit ni l'écraser ni prévenir la famille.
+        // Coordonnées bancaires effacées dans la même écriture (RGPD-03) :
+        // une demande refusée n'a plus aucune raison de garder un IBAN,
+        // même chiffré, pendant les 90 jours qui précèdent sa purge.
         $decided = $wpdb->query($wpdb->prepare(
-            'UPDATE ' . psc_table('requests') . " SET status = 'rejected', note = %s, decided_at = %s WHERE id = %d AND status = 'pending'",
+            'UPDATE ' . psc_table('requests') . " SET status = 'rejected', note = %s, decided_at = %s,
+                sepa_iban = NULL, sepa_bic = NULL, sepa_titulaire = NULL, sepa_adresse = NULL, sepa_code_postal = NULL, sepa_ville = NULL
+             WHERE id = %d AND status = 'pending'",
             mb_substr($note, 0, 1000), current_time('mysql'), $req->id
         ));
         if (!$decided) {

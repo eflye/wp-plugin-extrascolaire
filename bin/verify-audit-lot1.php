@@ -18,6 +18,8 @@
  *    demande en attente de la mairie reste intacte (réponse identique) ;
  *    les demandes non confirmées de la même adresse ne disparaissent qu'à
  *    la confirmation de l'une d'elles.
+ *  - RGPD-03/L1 : coordonnées bancaires d'une demande effacées au refus
+ *    et à la validation (IBAN, BIC, titulaire, adresse du compte).
  *  - RGPD-04/L1 : les lignes du journal écrites pour le foyer de test ne
  *    contiennent ni e-mail ni nom (résumé et libellé d'acteur).
  *
@@ -59,13 +61,20 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         'autre'     => 'verify-lot1-autre@example.invalid',
         'occupant'  => 'verify-lot1-occupant@example.invalid',
         'demande'   => 'verify-lot1-demande@example.invalid',
+        'sepa_refus' => 'verify-lot1-sepa-refus@example.invalid',
+        'sepa_ok'    => 'verify-lot1-sepa-ok@example.invalid',
     );
     $t_req = psc_table('requests');
     $purge_requests = function () use ($wpdb, $emails, $t_req) {
-        foreach ($wpdb->get_col($wpdb->prepare("SELECT id FROM $t_req WHERE email = %s", $emails['demande'])) as $rid) {
-            Psc_Assurances::delete_pending_files((int) $rid);
-            $wpdb->delete($t_req, array('id' => (int) $rid));
+        foreach (array('demande', 'sepa_refus', 'sepa_ok') as $k) {
+            foreach ($wpdb->get_col($wpdb->prepare("SELECT id FROM $t_req WHERE email = %s", $emails[$k])) as $rid) {
+                Psc_Assurances::delete_pending_files((int) $rid);
+                $wpdb->delete($t_req, array('id' => (int) $rid));
+            }
         }
+        // Foyer créé par la validation automatique (RGPD-03/L1).
+        $fid = (int) $wpdb->get_var($wpdb->prepare('SELECT id FROM ' . psc_table('parents') . ' WHERE email = %s', $emails['sepa_ok']));
+        if ($fid) Psc_Admin_Familles::delete_family($fid);
     };
     $purge_requests();
     $saved_auto = get_option('psc_auto_approve_requests', null);
@@ -177,14 +186,14 @@ WP_CLI::add_command('verify-audit-lot1', function () {
     };
 
     /** Soumission publique du formulaire d'inscription (anonyme). */
-    $submit_request = function ($nom) use ($run, $emails) {
+    $submit_request = function ($nom, $email_key = 'demande', $sepa = false) use ($run, $emails) {
         wp_set_current_user(0);
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_GET = array();
         $_POST = $_REQUEST = array(
             'action'             => 'psc_submit_request',
             '_wpnonce'           => wp_create_nonce('psc_submit_request'),
-            'req_email'          => $emails['demande'],
+            'req_email'          => $emails[$email_key],
             'req_nom'            => $nom,
             'req_prenom'         => 'Verification',
             'req_telephone'      => '0612345678',
@@ -198,6 +207,20 @@ WP_CLI::add_command('verify-audit-lot1', function () {
             'reglement_accepted' => '1',
             'payment_mode'       => 'autre',
         );
+        if ($sepa) {
+            $_POST += array(
+                'payment_mode'            => 'prelevement',
+                'sepa_reglement_accepted' => '1',
+                'sepa_titulaire'          => 'Titulaire Verification',
+                'sepa_adresse'            => '1 rue de la Mairie',
+                'sepa_code_postal'        => '95000',
+                'sepa_ville'              => 'Montgeroult',
+                'sepa_iban'               => 'FR7630006000011234567890189',
+                'sepa_bic'                => 'BNPAFRPP',
+            );
+            $_POST['payment_mode'] = 'prelevement';
+            $_REQUEST = $_POST;
+        }
         return $run(function () { do_action('admin_post_nopriv_psc_submit_request'); });
     };
     $verify_token_of = function (array $mails) {
@@ -241,6 +264,47 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         $check($before === $after, 'SEC-01 : demande en attente modifiée par une soumission anonyme');
         $check((int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_req WHERE email = %s", $emails['demande'])) === 1, 'SEC-01 : nouvelle demande créée malgré une demande en attente');
         $check(count($mails) === 0, 'SEC-01 : e-mail envoyé pour une demande en attente');
+        $_GET = array();
+
+        /* ---------- RGPD-03/L1 : coordonnées bancaires effacées à la décision ---------- */
+        $sepa_cols = array('sepa_iban', 'sepa_bic', 'sepa_titulaire', 'sepa_adresse', 'sepa_code_postal', 'sepa_ville');
+        $sepa_left = function ($rid) use ($wpdb, $t_req, $sepa_cols) {
+            $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_req WHERE id = %d", $rid), ARRAY_A);
+            if (!$row) return array('demande absente');
+            return array_keys(array_filter(array_intersect_key($row, array_flip($sepa_cols)), function ($v) { return $v !== null; }));
+        };
+        // Refus par la mairie.
+        $mails = array();
+        $submit_request('Refus', 'sepa_refus', true);
+        list($rid, $tok) = $verify_token_of($mails);
+        $check($rid > 0 && count($sepa_left($rid)) === 6, 'RGPD-03/L1 données : demande SEPA incomplète avant refus');
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_GET = array('psc_req' => (string) $rid, 'psc_vtoken' => $tok);
+        $run(function () { Psc_Requests::maybe_verify(); });
+        $admins = get_users(array('role' => 'administrator', 'number' => 1, 'fields' => 'ID'));
+        wp_set_current_user($admins ? (int) $admins[0] : 0);
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_GET = array();
+        $_POST = $_REQUEST = array('action' => 'psc_reject_request', '_wpnonce' => wp_create_nonce('psc_reject_request'), 'id' => (string) $rid, 'note' => '');
+        $run(function () { do_action('admin_post_psc_reject_request'); });
+        wp_set_current_user(0);
+        $check($wpdb->get_var($wpdb->prepare("SELECT status FROM $t_req WHERE id = %d", $rid)) === 'rejected', 'RGPD-03/L1 données : refus non enregistré');
+        $check($sepa_left($rid) === array(), 'RGPD-03/L1 : coordonnées bancaires conservées après refus : ' . implode(', ', $sepa_left($rid)));
+        // Validation (automatique, même chemin approve_request() que la mairie).
+        update_option('psc_auto_approve_requests', 1);
+        $mails = array();
+        $submit_request('Valide', 'sepa_ok', true);
+        list($rid, $tok) = $verify_token_of($mails);
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_GET = array('psc_req' => (string) $rid, 'psc_vtoken' => $tok);
+        $run(function () { Psc_Requests::maybe_verify(); });
+        unset($_COOKIE[psc_session_cookie_name()]);
+        Psc_Parents::reset_current_cache();
+        update_option('psc_auto_approve_requests', 0);
+        $check($wpdb->get_var($wpdb->prepare("SELECT status FROM $t_req WHERE id = %d", $rid)) === 'approved', 'RGPD-03/L1 données : validation non enregistrée');
+        $check($sepa_left($rid) === array(), 'RGPD-03/L1 : coordonnées bancaires conservées après validation : ' . implode(', ', $sepa_left($rid)));
+        $fam = Psc_Parents::get_by_email($emails['sepa_ok']);
+        $check($fam && !empty($fam->sepa_iban) && $fam->sepa_titulaire === 'Titulaire Verification', 'RGPD-03/L1 : coordonnées bancaires non reportées sur le compte famille');
         $_GET = array();
 
         $pid = Psc_Parents::create($emails['titulaire'], 'Lot1', array('second_parent_email' => $emails['second']));
