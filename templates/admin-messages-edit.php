@@ -5,7 +5,7 @@ $target = json_decode((string) $m->cible_valeur, true) ?: array(); $channels = j
 ?>
 <div class="wrap psc-messages-admin"><h1><?php echo $m->id ? esc_html__('Modifier le message', 'periscolaire-registration') : esc_html__('Nouveau message', 'periscolaire-registration'); ?></h1>
 <?php if ($readonly): ?><div class="notice notice-info"><p><?php esc_html_e('Ce message a été envoyé : seul son épinglage peut encore être modifié.', 'periscolaire-registration'); ?></p></div><?php endif; ?>
-<?php if (!empty($_GET['psc_msg'])): ?><div class="notice notice-info is-dismissible"><p><?php echo esc_html(sanitize_text_field(wp_unslash($_GET['psc_msg']))); ?></p></div><?php endif; ?>
+<?php psc_admin_notice_map(Psc_Messages_Admin::notices(), isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : ''); ?>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="psc-message-form" data-readonly="<?php echo $readonly ? '1' : '0'; ?>" data-nonce-save="<?php echo esc_attr(wp_create_nonce('psc_save_message')); ?>" data-nonce-send="<?php echo esc_attr(wp_create_nonce('psc_send_message')); ?>" data-nonce-test="<?php echo esc_attr(wp_create_nonce('psc_test_message')); ?>">
 <input type="hidden" name="action" id="psc-message-action" value="psc_save_message"><input type="hidden" name="submit_action" id="psc-message-submit-action" value="draft"><input type="hidden" name="id" value="<?php echo (int) $m->id; ?>">
 <input type="hidden" name="_wpnonce" value="<?php echo esc_attr(wp_create_nonce('psc_save_message')); ?>">

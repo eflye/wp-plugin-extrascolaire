@@ -201,3 +201,26 @@ test.describe('Lot 2 — pièce jointe d’une famille visible côté mairie (PR
     expect(forbidden.status()).toBe(403);
   });
 });
+
+test.describe('Lot 2 — écrans Messages sans code brut ni texte de l’URL (PRA-05)', () => {
+  const user = 'psc-lot2-e2e-messages';
+  test.beforeAll(() => {
+    wpEval(`require_once ABSPATH.'wp-admin/includes/user.php'; $u=get_user_by('login','${user}'); if($u) wp_delete_user((int)$u->ID);
+      $id=wp_insert_user(array('user_login'=>'${user}','user_pass'=>'${PASSWORD}','user_email'=>'${user}@example.test','role'=>'subscriber'));
+      get_user_by('id',$id)->add_cap('psc_manage_messages'); echo 'ok';`);
+  });
+  test.afterAll(() => {
+    wpEval(`require_once ABSPATH.'wp-admin/includes/user.php'; $u=get_user_by('login','${user}'); if($u) wp_delete_user((int)$u->ID); echo 'ok';`);
+  });
+
+  test('un texte forgé dans psc_msg n’est jamais affiché ; un code connu l’est en clair', async ({ page }) => {
+    await loginAs(page, user);
+    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_message_edit&psc_msg=${encodeURIComponent('Votre compte est suspendu')}`);
+    await expect(page.locator('.notice')).not.toContainText('suspendu');
+    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_message_edit&psc_msg=test_sent`);
+    await expect(page.locator('.notice')).toContainText('Message de test envoyé');
+    await expect(page.locator('body')).not.toContainText('test_sent');
+    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_messages&psc_msg=deleted`);
+    await expect(page.locator('.notice')).toContainText('Message supprimé');
+  });
+});
