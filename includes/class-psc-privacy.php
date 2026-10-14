@@ -54,6 +54,7 @@ class Psc_Privacy {
         $settings = self::privacy_settings();
         $html = '<p class="psc-privacy-notice">'
             . esc_html(sprintf(
+                /* translators: %s: nom de la collectivité */
                 __('Les données sont traitées par %s pour gérer les inscriptions périscolaires, la sécurité des enfants et la facturation.', 'periscolaire-registration'),
                 $settings['municipality']
             ))
@@ -318,7 +319,9 @@ class Psc_Privacy {
                 /* translators: 1: date, 2: code du service */
                 'name'  => sprintf(__('Pointage du %1$s (%2$s)', 'periscolaire-registration'), $row->jour_date, $row->service),
                 'value' => trim(($row->present ? __('présent', 'periscolaire-registration') : __('absent', 'periscolaire-registration'))
+                    /* translators: %s: heure d'arrivée */
                     . ($row->arrival_time ? ' · ' . sprintf(__('arrivée %s', 'periscolaire-registration'), $row->arrival_time) : '')
+                    /* translators: %s: heure de départ */
                     . ($row->departure_time ? ' · ' . sprintf(__('départ %s', 'periscolaire-registration'), $row->departure_time) : '')),
             );
         }
@@ -362,7 +365,7 @@ class Psc_Privacy {
             $fields[] = array(
                 /* translators: %s: date de début de la consultation */
                 'name'  => sprintf(__('Consultation du %s', 'periscolaire-registration'), $row->started_at),
-                'value' => trim($row->motif_type . ($row->motif_detail ? ' — ' . $row->motif_detail : '') . ($row->ended_at ? ' · ' . sprintf(__('fin %s', 'periscolaire-registration'), $row->ended_at) : '')),
+                'value' => trim($row->motif_type . ($row->motif_detail ? ' — ' . $row->motif_detail : '') . ($row->ended_at ? ' · ' . sprintf(/* translators: %s: date de fin de la consultation */ __('fin %s', 'periscolaire-registration'), $row->ended_at) : '')),
             );
         }
         return $fields;
@@ -529,11 +532,11 @@ class Psc_Privacy {
      * complet du foyer, à une exception près : les factures. L'article 17§3-b
      * du RGPD écarte le droit à l'effacement quand le traitement reste
      * nécessaire au respect d'une obligation légale — ici la conservation
-     * décennale des pièces comptables imposée par le Code de commerce. La
-     * ligne « parents » n'est donc pas supprimée mais anonymisée sur place
-     * (même logique que Psc_Audit::forget_family) : les factures gardent un
-     * parent_id qui pointe vers une ligne réelle, ni orpheline ni ambiguë,
-     * plutôt que vers un identifiant qui n'existerait plus.
+     * décennale des pièces comptables imposée par le Code de commerce. Tant
+     * qu'une facture existe, la ligne « parents » n'est donc pas supprimée
+     * mais anonymisée sur place : les factures gardent un parent_id qui
+     * pointe vers une ligne réelle. Sans facture, elle est supprimée — le
+     * chemin est celui de Psc_Admin_Familles::delete_family() (RGPD-13).
      */
     public static function erase_family_data($email_address, $page = 1) {
         $email_address = trim((string) wp_unslash($email_address));
@@ -645,56 +648,23 @@ class Psc_Privacy {
         );
     }
 
+    /**
+     * Effacement complet du foyer : même chemin que la suppression manuelle
+     * depuis Périscolaire › Familles (RGPD-13), pour laisser exactement le
+     * même reliquat — fiche supprimée s'il n'existe aucune facture,
+     * anonymisée sinon, factures jamais réécrites ni supprimées.
+     */
     private static function erase_household($parent) {
-        global $wpdb;
-
-        $needles = array_filter(array(
-            (string) $parent->nom,
-            (string) $parent->prenom,
-            (string) $parent->email,
-            trim($parent->prenom . ' ' . $parent->nom),
-            (string) $parent->second_parent_email,
-            trim((string) $parent->second_parent_prenom . ' ' . (string) $parent->second_parent_nom),
-        ));
-
-        $children = self::children_of_parent($parent->id);
-        foreach ($children as $child) {
-            $needles[] = (string) $child->nom;
-            $needles[] = (string) $child->prenom;
-            if (class_exists('Psc_Admin_Familles')) {
-                Psc_Admin_Familles::purge_child($child->id);
-            }
-        }
-        $needles = array_values(array_unique(array_filter($needles)));
-
-        if (class_exists('Psc_Conversations')) {
-            Psc_Conversations::delete_for_family($parent->id);
-        }
-        if (class_exists('Psc_Impersonation')) {
-            Psc_Impersonation::delete_for_family($parent->id);
-        }
-        if (class_exists('Psc_Login_Tokens')) {
-            Psc_Login_Tokens::forget_parent($parent->id);
-        }
-        self::forget_requests(array($parent->email, $parent->second_parent_email));
-        self::delete_message_receipts($parent->id);
-        if (class_exists('Psc_Audit')) {
-            Psc_Audit::forget_family($parent->id, $needles);
-        }
-
-        $wpdb->update(
-            psc_table('parents'),
-            self::anonymized_parent_fields($parent->id),
-            array('id' => $parent->id)
-        );
+        $result = class_exists('Psc_Admin_Familles') ? Psc_Admin_Familles::delete_family((int) $parent->id) : null;
+        $retained = is_array($result) && $result['invoices_retained'] > 0;
 
         return array(
-            'items_removed'  => true,
-            'items_retained' => true,
-            'messages'       => array(
-                __('Les données du foyer (enfants, planning, personnes autorisées, échanges, demandes d’inscription, accusés de lecture) ont été supprimées. Les factures sont conservées, comme le prévoit l’obligation légale de conservation des pièces comptables (10 ans).', 'periscolaire-registration'),
-            ),
-            'done' => true,
+            'items_removed'  => is_array($result),
+            'items_retained' => $retained,
+            'messages'       => array($retained
+                ? __('Les données du foyer (enfants, planning, personnes autorisées, échanges, demandes d’inscription, accusés de lecture) ont été supprimées. Les factures sont conservées, comme le prévoit l’obligation légale de conservation des pièces comptables (10 ans).', 'periscolaire-registration')
+                : __('Les données du foyer (enfants, planning, personnes autorisées, échanges, demandes d’inscription, accusés de lecture) ont été supprimées. Aucune facture n’était à conserver.', 'periscolaire-registration')),
+            'done'           => true,
         );
     }
 
@@ -771,6 +741,7 @@ class Psc_Privacy {
         $jours = array(1 => 'Lundi', 2 => 'Mardi', 3 => 'Mercredi', 4 => 'Jeudi', 5 => 'Vendredi', 6 => 'Samedi', 0 => 'Dimanche');
         foreach ($pattern_rows as $row) {
             $fields[] = array(
+                /* translators: 1: année scolaire, 2: jour de la semaine */
                 'name'  => sprintf(__('Rythme %1$s (%2$s)', 'periscolaire-registration'), $row->school_year, $jours[(int) $row->weekday] ?? $row->weekday),
                 'value' => $row->service_code,
             );
@@ -782,6 +753,7 @@ class Psc_Privacy {
         ));
         foreach ($exception_rows as $row) {
             $fields[] = array(
+                /* translators: %s: date */
                 'name'  => sprintf(__('Exception du %s', 'periscolaire-registration'), $row->jour_date),
                 'value' => sprintf('%s : %s', $row->service_code, $row->value ? __('ajouté', 'periscolaire-registration') : __('retiré', 'periscolaire-registration')),
             );
@@ -847,7 +819,9 @@ class Psc_Privacy {
         if (!$periods) return __('non', 'periscolaire-registration');
         return implode(' ; ', array_map(function ($p) {
             return $p['fin'] === null
+                /* translators: %s: date de début */
                 ? sprintf(__('depuis le %s', 'periscolaire-registration'), $p['debut'])
+                /* translators: 1: date de début, 2: date de fin */
                 : sprintf(__('du %1$s au %2$s', 'periscolaire-registration'), $p['debut'], $p['fin']);
         }, $periods));
     }
@@ -897,8 +871,9 @@ class Psc_Privacy {
         );
         foreach ($messages as $i => $message) {
             $fields[] = array(
+                /* translators: 1: rang du message, 2: auteur (famille ou mairie), 3: date */
                 'name'  => sprintf(__('Message %1$d (%2$s, %3$s)', 'periscolaire-registration'), $i + 1, $message->auteur_type, $message->created_at),
-                'value' => (string) $message->corps . ($message->piece_jointe_nom ? ' [' . sprintf(__('pièce jointe : %s', 'periscolaire-registration'), $message->piece_jointe_nom) . ']' : ''),
+                'value' => (string) $message->corps . ($message->piece_jointe_nom ? ' [' . sprintf(/* translators: %s: nom du fichier joint */ __('pièce jointe : %s', 'periscolaire-registration'), $message->piece_jointe_nom) . ']' : ''),
             );
         }
         return $fields;

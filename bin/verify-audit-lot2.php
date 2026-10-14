@@ -367,6 +367,15 @@ WP_CLI::add_command('verify-audit-lot2', function () {
         $check((int) get_option('psc_audit_lock_timeouts', 0) === $timeouts + 1, 'SEC-06 : délai de verrou non compté');
         update_option('psc_audit_lock_timeouts', $timeouts, false);
         $check($verify() === null, 'SEC-06 : chaîne invalide après un délai de verrou');
+
+        /* ---------------- RGPD-13 : même reliquat que la suppression manuelle ---------------- */
+        $fam_j = $make_family('j');
+        $family_ids[] = $fam_j;
+        $make_child($fam_j, 'Eff' . $tag);
+        $erased = Psc_Privacy::erase_family_data($tag . 'j@example.test');
+        $check(!empty($erased['items_removed']) && empty($erased['items_retained']), 'RGPD-13 : bilan de l’effaceur incorrect (sans facture)');
+        $check(!$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_par WHERE id = %d", $fam_j)), 'RGPD-13 : foyer sans facture anonymisé au lieu d’être supprimé');
+        $check($mentions($tag . 'j') === 0, 'RGPD-13 : identité du foyer effacé encore au journal');
     } finally {
         foreach ($family_ids as $fid) {
             $wpdb->delete($t_child, array('parent_id' => $fid), array('%d'));
