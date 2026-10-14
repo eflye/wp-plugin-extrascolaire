@@ -115,8 +115,28 @@ class Psc_Installer {
         }
     }
 
+    /**
+     * Écran d'administration consulté par la mairie : seul contexte où le
+     * chemin complet (contraintes, répertoire privé, reprise immédiate
+     * d'une montée en échec) est rejoué à chaque chargement.
+     *
+     * is_admin() seul est vrai aussi sur admin-ajax.php (planning,
+     * pointage, notifications des familles toutes les 30 s) et sur
+     * admin-post.php (formulaires du portail famille) : ces requêtes
+     * payaient une dizaine de requêtes dont information_schema. Exclus :
+     * AJAX, cron, et tout visiteur sans la capacité du backoffice — une
+     * action admin-post de la mairie (ex. « Relancer la mise à jour » de
+     * l'écran Maintenance) garde le chemin complet.
+     */
+    protected static function is_admin_screen() {
+        if (!is_admin() || wp_doing_ajax() || wp_doing_cron()) {
+            return false;
+        }
+        return function_exists('current_user_can') && current_user_can(psc_manage_cap());
+    }
+
     protected static function has_pending_work() {
-        return is_admin()
+        return self::is_admin_screen()
             || get_option('psc_db_version') !== self::DB_VERSION
             || get_option('psc_roles_version') !== self::ROLES_VERSION
             || get_option('psc_storage_move_failed')
@@ -143,10 +163,10 @@ class Psc_Installer {
         // refusé par l'hébergeur est donc retenté à chaque écran admin —
         // plus besoin d'attendre la prochaine montée de version pour que la
         // pose se rejoue — et l'état publié alimente l'alerte admin
-        // (Psc_Admin::notice_db_constraints). Hors admin : la mairie
-        // n'écrit pas, et le coût des requêtes sur information_schema ne
-        // doit pas peser sur le portail public.
-        if (is_admin()) {
+        // (Psc_Admin::notice_db_constraints). Hors écran de la mairie
+        // (portail, admin-ajax, admin-post des familles, cron) : le coût des
+        // requêtes sur information_schema ne doit pas peser sur ces appels.
+        if (self::is_admin_screen()) {
             self::store_constraints_state();
         }
     }
@@ -158,7 +178,7 @@ class Psc_Installer {
      */
     protected static function may_retry_migration() {
         $failed = get_option('psc_migration_failed');
-        return !is_array($failed) || is_admin() || (time() - (int) ($failed['ts'] ?? 0)) >= self::RETRY_DELAY;
+        return !is_array($failed) || self::is_admin_screen() || (time() - (int) ($failed['ts'] ?? 0)) >= self::RETRY_DELAY;
     }
 
     protected static function run_migrations($current) {

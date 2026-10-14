@@ -294,6 +294,45 @@ WP_CLI::add_command('verify-audit-lot3', function () {
         }
     };
 
+    /* PERF-03 : le chemin admin complet de maybe_upgrade() réservé aux écrans de la mairie. */
+    $sections['PERF-03'] = function () use ($check) {
+        $m = new ReflectionMethod('Psc_Installer', 'is_admin_screen');
+        $m->setAccessible(true);
+        $prev_screen = isset($GLOBALS['current_screen']) ? $GLOBALS['current_screen'] : null;
+        $prev_user = get_current_user_id();
+        // is_admin() suit $GLOBALS['current_screen']->in_admin() quand il existe.
+        $GLOBALS['current_screen'] = new class { public function in_admin($admin = null) { return true; } };
+        $admins = get_users(array('capability' => psc_manage_cap(), 'number' => 1, 'fields' => 'ID'));
+        try {
+            wp_set_current_user(0);
+            $check($m->invoke(null) === false, 'PERF-03 : visiteur sans compte (admin-post famille) traité comme écran mairie');
+            if ($admins) {
+                wp_set_current_user((int) $admins[0]);
+                $check($m->invoke(null) === true, 'PERF-03 : écran admin de la mairie non reconnu');
+                add_filter('wp_doing_ajax', '__return_true');
+                $check($m->invoke(null) === false, 'PERF-03 : appel admin-ajax traité comme écran mairie');
+                remove_filter('wp_doing_ajax', '__return_true');
+                add_filter('wp_doing_cron', '__return_true');
+                $check($m->invoke(null) === false, 'PERF-03 : cron traité comme écran mairie');
+                remove_filter('wp_doing_cron', '__return_true');
+            } else {
+                $check(false, 'PERF-03 : aucun compte avec la capacité du backoffice pour le test');
+            }
+            $src = '';
+            foreach (token_get_all((string) file_get_contents(PSC_PATH . 'includes/class-psc-installer.php')) as $tok) {
+                if (is_array($tok) && in_array($tok[0], array(T_COMMENT, T_DOC_COMMENT), true)) continue;
+                $src .= is_array($tok) ? $tok[1] : $tok;
+            }
+            $check(preg_match('/\bis_admin\(\)/', preg_replace('/protected static function is_admin_screen\(\).*?\n    }\n/s', '', $src)) === 0,
+                'PERF-03 : is_admin() encore utilisé hors de is_admin_screen()');
+        } finally {
+            remove_filter('wp_doing_ajax', '__return_true');
+            remove_filter('wp_doing_cron', '__return_true');
+            if ($prev_screen === null) unset($GLOBALS['current_screen']); else $GLOBALS['current_screen'] = $prev_screen;
+            wp_set_current_user($prev_user);
+        }
+    };
+
     try {
         foreach ($sections as $name => $run) {
             $run();
