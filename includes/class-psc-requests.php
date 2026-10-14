@@ -752,8 +752,10 @@ class Psc_Requests {
         $t_par  = psc_table('parents');
         $t_chil = psc_table('children');
 
+        // Identifiant du foyer lu par la jointure (PERF-07) : plus de
+        // requête par demande pour le retrouver.
         $requests = $wpdb->get_results(
-            "SELECT r.* FROM $t_req r
+            "SELECT r.*, p.id AS psc_family_id FROM $t_req r
              INNER JOIN $t_par p ON p.email = r.email
              WHERE r.status = 'approved'
              ORDER BY r.decided_at DESC
@@ -761,22 +763,39 @@ class Psc_Requests {
         );
         if (!$requests) return array();
 
+        // Seules les demandes déclarant au moins une allergie peuvent
+        // donner lieu à un rapprochement : leurs enfants sont lus en une
+        // seule requête, regroupés par foyer.
+        $declared_by_req = array();
+        $family_ids = array();
+        foreach ($requests as $req) {
+            $declared = array_values(array_filter(self::children_of($req), function ($c) {
+                return ($c['food_allergies'] ?? '') !== '';
+            }));
+            if (!$declared) continue;
+            $declared_by_req[(int) $req->id] = $declared;
+            $family_ids[(int) $req->psc_family_id] = true;
+        }
+        if (!$family_ids) return array();
+
+        $ids = array_keys($family_ids);
+        $rows_by_family = array();
+        $child_rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, parent_id, prenom, nom, food_allergies FROM $t_chil WHERE parent_id IN (" . implode(',', array_fill(0, count($ids), '%d')) . ') ORDER BY id',
+            $ids
+        ));
+        foreach ($child_rows as $row) {
+            $rows_by_family[(int) $row->parent_id][] = $row;
+        }
+
         $out = array();
         foreach ($requests as $req) {
-            $parent_id = (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT id FROM $t_par WHERE email = %s", $req->email
-            ));
-            if (!$parent_id) continue;
-
-            $rows = $wpdb->get_results($wpdb->prepare(
-                "SELECT id, prenom, nom, food_allergies FROM $t_chil WHERE parent_id = %d ORDER BY id",
-                $parent_id
-            ));
+            if (!isset($declared_by_req[(int) $req->id])) continue;
+            $rows = $rows_by_family[(int) $req->psc_family_id] ?? array();
             if (!$rows) continue;
 
             $fill = array();
-            foreach (self::children_of($req) as $declared) {
-                if (($declared['food_allergies'] ?? '') === '') continue;
+            foreach ($declared_by_req[(int) $req->id] as $declared) {
                 foreach ($rows as $row) {
                     // Appariement exact (collation insensible à la casse
                     // et aux accents) ; une fiche portant déjà une allergie

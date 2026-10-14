@@ -33,6 +33,8 @@
  *    signés avec elle ; un cookie signé avec le sel en base est refusé.
  *  - SEC-10 : au plus 3 demandes de changement d'adresse par jour et par
  *    foyer ; la 4e est refusée sans e-mail (email_change_rate).
+ *  - PERF-07 : allergies_to_reconcile() en un nombre de requêtes constant,
+ *    résultat inchangé (fiche vide complétée, fiche renseignée intacte).
  *  - RGPD-04/L1 : les lignes du journal écrites pour le foyer de test ne
  *    contiennent ni e-mail ni nom (résumé et libellé d'acteur).
  *
@@ -77,10 +79,13 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         'sepa_refus' => 'verify-lot1-sepa-refus@example.invalid',
         'sepa_ok'    => 'verify-lot1-sepa-ok@example.invalid',
         'sidscm'     => 'verify-lot1-sidscm@example.invalid',
+        'perf1'      => 'verify-lot1-perf1@example.invalid',
+        'perf2'      => 'verify-lot1-perf2@example.invalid',
+        'perf3'      => 'verify-lot1-perf3@example.invalid',
     );
     $t_req = psc_table('requests');
     $purge_requests = function () use ($wpdb, $emails, $t_req) {
-        foreach (array('demande', 'sepa_refus', 'sepa_ok') as $k) {
+        foreach (array('demande', 'sepa_refus', 'sepa_ok', 'perf1', 'perf2', 'perf3') as $k) {
             foreach ($wpdb->get_col($wpdb->prepare("SELECT id FROM $t_req WHERE email = %s", $emails[$k])) as $rid) {
                 Psc_Assurances::delete_pending_files((int) $rid);
                 $wpdb->delete($t_req, array('id' => (int) $rid));
@@ -554,6 +559,41 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         $check(array_slice($codes, 0, 3) === array_fill(0, 3, 'profil_updated_email_pending'), 'SEC-10 : demandes légitimes refusées : ' . implode(', ', $codes));
         $check($codes[3] === 'email_change_rate' && $codes[4] === 'email_change_rate', 'SEC-10 : 4e demande du jour acceptée : ' . implode(', ', $codes));
         $check(count($mails) === 0, 'SEC-10 : e-mail envoyé au-delà de la limite');
+
+        /* ---------- PERF-07 : rapprochement des allergies sans N+1 ---------- */
+        $perf_children = array();
+        foreach (array('perf1', 'perf2', 'perf3') as $k) {
+            $fid = Psc_Parents::create($emails[$k], 'Perf');
+            $wpdb->insert(psc_table('children'), array('parent_id' => $fid, 'nom' => 'Perf', 'prenom' => 'Vide', 'created_at' => current_time('mysql')));
+            $empty_child = (int) $wpdb->insert_id;
+            $wpdb->insert(psc_table('children'), array('parent_id' => $fid, 'nom' => 'Perf', 'prenom' => 'Pleine', 'food_allergies' => 'Déjà saisie', 'created_at' => current_time('mysql')));
+            $perf_children[$k] = $empty_child;
+            $wpdb->insert($t_req, array(
+                'email' => $emails[$k], 'nom' => 'Perf', 'prenom' => 'Perf', 'status' => 'approved', 'verified' => 1,
+                'decided_at' => current_time('mysql'), 'created_at' => current_time('mysql'),
+                'children_json' => wp_json_encode(array(
+                    array('nom' => 'Perf', 'prenom' => 'Vide', 'food_allergies' => 'Arachide'),
+                    array('nom' => 'Perf', 'prenom' => 'Pleine', 'food_allergies' => 'Autre'),
+                )),
+            ));
+        }
+        $before_q = $wpdb->num_queries;
+        $gaps = Psc_Requests::allergies_to_reconcile();
+        $used = $wpdb->num_queries - $before_q;
+        $found = array();
+        foreach ($gaps as $g) foreach ($g['children'] as $c) $found[] = $c['child_id'];
+        sort($found);
+        $expected_ids = array_values($perf_children);
+        sort($expected_ids);
+        $check(array_values(array_intersect($found, $expected_ids)) === $expected_ids, 'PERF-07 : fiches vides non proposées au rapprochement');
+        $check(count(array_intersect($found, $expected_ids)) === count(array_filter($found, function ($id) use ($wpdb) {
+            return (string) $wpdb->get_var($wpdb->prepare('SELECT nom FROM ' . psc_table('children') . ' WHERE id = %d', $id)) === 'Perf';
+        })), 'PERF-07 : fiche déjà renseignée proposée au rapprochement');
+        $check($used <= 2, "PERF-07 : $used requêtes (2 attendues au plus)");
+        foreach (array('perf1', 'perf2', 'perf3') as $k) {
+            $fid = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM $t_par WHERE email = %s", $emails[$k]));
+            if ($fid) Psc_Admin_Familles::delete_family($fid);
+        }
 
         /* ---------- RGPD-04/L1 : journal sans identité ---------- */
         $t_audit = psc_table('audit_log');
