@@ -238,7 +238,11 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         if ($anonymized > 0) {
             Psc_Audit::log('audit.purge', array(
                 'meta'   => array('operation' => 'oubli_famille', 'famille_id' => $id, 'lignes_anonymisees' => $anonymized),
-                'resume' => sprintf(__('%d ligne(s) du journal d’audit anonymisée(s) suite à la suppression de la famille #%d.', 'periscolaire-registration'), $anonymized, $id),
+                'resume' => sprintf(
+                    /* translators: 1: nombre de lignes du journal, 2: identifiant de la famille */
+                    _n('%1$d ligne du journal d’audit anonymisée suite à la suppression de la famille #%2$d.', '%1$d lignes du journal d’audit anonymisées suite à la suppression de la famille #%2$d.', $anonymized, 'periscolaire-registration'),
+                    $anonymized, $id
+                ),
             ));
         }
 
@@ -286,7 +290,9 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
             'objet_type' => 'enfant', 'objet_id' => $child_id, 'enfant_id' => $child_id,
             'meta' => array('cantine_sans_repas' => $on ? 1 : 0, 'a_partir_du' => $from, 'periodes' => $result['apres']),
             'resume' => $on
+                /* translators: %s: date de début (jj/mm/aaaa) */
                 ? sprintf(__('Cantine sans repas à partir du %s.', 'periscolaire-registration'), date_i18n('d/m/Y', strtotime($from)))
+                /* translators: %s: date de début (jj/mm/aaaa) */
                 : sprintf(__('Repas rétablis à partir du %s.', 'periscolaire-registration'), date_i18n('d/m/Y', strtotime($from))),
         ));
 
@@ -322,6 +328,7 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         }
         Psc_Audit::log('reglage.version_reglement_consultee', array(
             'objet_type' => 'reglage', 'meta' => array('version' => (int) $version->id),
+            /* translators: %d: numéro de version du règlement */
             'resume' => sprintf(__('Version n° %d d’un règlement consultée.', 'periscolaire-registration'), (int) $version->id),
         ));
         include PSC_PATH . 'templates/admin-reglement-version.php';
