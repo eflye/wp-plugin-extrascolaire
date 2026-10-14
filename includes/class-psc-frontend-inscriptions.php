@@ -89,7 +89,12 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
 
     /** Année scolaire configurée, ou erreur 403 (planning fermé). */
     protected static function ajax_year() {
-        Psc_School_Year::ensure_default();
+        // Une consultation par la mairie est en lecture seule : comme le
+        // shortcode, la lecture AJAX ne crée jamais l'année par défaut
+        // (PRA-18).
+        if (!Psc_Parents::is_impersonated()) {
+            Psc_School_Year::ensure_default();
+        }
         $year = Psc_School_Year::active();
         if (!$year) {
             wp_send_json_error(array('code' => 'closed'), 403);

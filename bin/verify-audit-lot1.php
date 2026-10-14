@@ -35,6 +35,8 @@
  *    foyer ; la 4e est refusée sans e-mail (email_change_rate).
  *  - PERF-07 : allergies_to_reconcile() en un nombre de requêtes constant,
  *    résultat inchangé (fiche vide complétée, fiche renseignée intacte).
+ *  - PRA-18 : en consultation mairie, la lecture AJAX du planning ne crée
+ *    pas d'année scolaire (ensure_default() non appelé).
  *  - RGPD-04/L1 : les lignes du journal écrites pour le foyer de test ne
  *    contiennent ni e-mail ni nom (résumé et libellé d'acteur).
  *
@@ -594,6 +596,29 @@ WP_CLI::add_command('verify-audit-lot1', function () {
             $fid = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM $t_par WHERE email = %s", $emails[$k]));
             if ($fid) Psc_Admin_Familles::delete_family($fid);
         }
+
+        /* ---------- PRA-18 : consultation en lecture seule ---------- */
+        $ajax_year = new ReflectionMethod('Psc_Frontend_Inscriptions', 'ajax_year');
+        $ajax_year->setAccessible(true);
+        $imp_cache = new ReflectionProperty('Psc_Impersonation', 'active_cache');
+        $imp_cache->setAccessible(true);
+        $imp_set = new ReflectionProperty('Psc_Impersonation', 'active_cache_set');
+        $imp_set->setAccessible(true);
+        $year_queries = 0;
+        $spy = function ($q) use (&$year_queries) {
+            if (stripos($q, 'SHOW TABLES LIKE') !== false && strpos($q, psc_table('school_years')) !== false) $year_queries++;
+            return $q;
+        };
+        add_filter('query', $spy);
+        $imp_cache->setValue(null, (object) array('id' => 0, 'family_id' => $pid));
+        $imp_set->setValue(null, true);
+        $run(function () use ($ajax_year) { $ajax_year->invoke(null); });
+        $check($year_queries === 0, 'PRA-18 : ensure_default() appelé pendant une consultation');
+        $imp_cache->setValue(null, null);
+        $imp_set->setValue(null, false);
+        $run(function () use ($ajax_year) { $ajax_year->invoke(null); });
+        $check($year_queries === 1, 'PRA-18 : ensure_default() non appelé hors consultation (sonde inopérante)');
+        remove_filter('query', $spy);
 
         /* ---------- RGPD-04/L1 : journal sans identité ---------- */
         $t_audit = psc_table('audit_log');
