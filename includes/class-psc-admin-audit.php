@@ -85,6 +85,7 @@ class Psc_Admin_Audit {
 
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         $chain_break_id = isset($_GET['rupture_id']) ? absint($_GET['rupture_id']) : 0;
+        $chain_anonymized = isset($_GET['anonymisees']) ? absint($_GET['anonymisees']) : 0;
 
         // Consulter l'écran est aussi une action journalisée — une seule
         // fois par requête, sans les résultats affichés (les filtres
@@ -120,11 +121,15 @@ class Psc_Admin_Audit {
         self::guard_audit('psc_audit_verify');
 
         $limit = 1000;
-        $rupture_id = Psc_Audit::verify_chain($limit);
+        $report = Psc_Audit::verify_chain_report($limit);
+        $rupture_id = $report['rupture'];
+        // Lignes anonymisées (oubli d'une famille ou d'un enfant) : acceptées
+        // via leur empreinte de contenu, décomptées à part (PERF-05).
+        $anonymized = (int) $report['anonymisees'];
 
         Psc_Audit::log('audit.verification', array(
             'resultat' => $rupture_id ? 'erreur' : 'succes',
-            'meta'     => array('limite' => $limit, 'rupture_id' => $rupture_id),
+            'meta'     => array('limite' => $limit, 'rupture_id' => $rupture_id, 'anonymisees' => $anonymized),
             'resume'   => $rupture_id
                 ? sprintf(__('Rupture de chaîne détectée à la ligne #%d.', 'periscolaire-registration'), $rupture_id)
                 : sprintf(__('Chaîne d’intégrité vérifiée sur les %d dernières lignes : aucune rupture.', 'periscolaire-registration'), $limit),
@@ -132,6 +137,7 @@ class Psc_Admin_Audit {
 
         $args = array('page' => 'psc_audit', 'psc_msg' => $rupture_id ? 'chain_broken' : 'chain_ok');
         if ($rupture_id) $args['rupture_id'] = $rupture_id;
+        if ($anonymized > 0) $args['anonymisees'] = $anonymized;
         wp_safe_redirect(add_query_arg($args, admin_url('admin.php')));
         exit;
     }

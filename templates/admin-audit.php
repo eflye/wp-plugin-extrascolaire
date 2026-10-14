@@ -38,7 +38,20 @@ $export_ods_url = wp_nonce_url(add_query_arg(array_merge($export_query_args, arr
   <h1><?php esc_html_e('Journal d\'audit', 'periscolaire-registration'); ?></h1>
 
   <?php if ($psc_msg === 'chain_ok'): ?>
-    <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Chaîne d’intégrité vérifiée sur les 1 000 dernières entrées : aucune rupture détectée.', 'periscolaire-registration'); ?></p></div>
+    <div class="notice notice-success is-dismissible" role="status"><p><?php esc_html_e('Chaîne d’intégrité vérifiée sur les 1 000 dernières entrées : aucune rupture détectée.', 'periscolaire-registration'); ?>
+      <?php if (!empty($chain_anonymized)): ?>
+        <?php echo esc_html(sprintf(
+            /* translators: %d: nombre de lignes du journal anonymisées */
+            _n(
+                '%d ligne anonymisée (oubli d’une famille ou d’un enfant) est acceptée via son empreinte de contenu conservée.',
+                '%d lignes anonymisées (oubli d’une famille ou d’un enfant) sont acceptées via leur empreinte de contenu conservée.',
+                (int) $chain_anonymized,
+                'periscolaire-registration'
+            ),
+            (int) $chain_anonymized
+        )); ?>
+      <?php endif; ?>
+    </p></div>
   <?php elseif ($psc_msg === 'chain_broken'): ?>
     <div class="notice notice-error"><p><?php echo esc_html(sprintf(__('Rupture de chaîne détectée : la ligne #%d ne correspond plus à ce qui précède. Une altération directe en base a eu lieu.', 'periscolaire-registration'), $chain_break_id)); ?></p></div>
   <?php elseif ($psc_msg === 'health_reset'): ?>

@@ -897,13 +897,35 @@ function psc_audit_row_chain_version($row, $seuil) {
 }
 
 /**
+ * Ligne anonymisée par l'oubli d'une famille ou d'un enfant (PERF-05) :
+ * non purgée, résumé EXACTEMENT égal au résumé générique de son action,
+ * et details, famille_id, enfant_id, ip vidés. Psc_Audit::forget_rows()
+ * ne réécrit le résumé qu'à ces conditions, sans toucher aux empreintes :
+ * la vérification accepte alors l'empreinte de contenu conservée. Une
+ * altération qui garde cette forme ne peut qu'effacer, jamais réécrire.
+ */
+function psc_audit_row_is_anonymized_shape($row) {
+    $get = function ($field) use ($row) {
+        return is_array($row) ? ($row[$field] ?? null) : ($row->$field ?? null);
+    };
+    if ((string) $get('purgee_le') !== '') return false;
+    foreach (array('details', 'famille_id', 'enfant_id', 'ip') as $field) {
+        if ($get($field) !== null && (string) $get($field) !== '') return false;
+    }
+    return (string) $get('resume') === psc_audit_default_resume((string) $get('action'));
+}
+
+/**
  * Empreintes attendues d'une ligne après $empreinte_precedente, selon sa
  * version. Une ligne purgée (purgee_le renseigné) n'a plus de contenu :
  * en v2, son empreinte de contenu conservée fait foi ; en v1, rien ne
  * permet de la recalculer (null : acceptée telle quelle, c'est la ligne
  * suivante qui l'ancre).
  *
- * @return array{contenu: ?string, empreinte: ?string}
+ * Une ligne anonymisée (cf. psc_audit_row_is_anonymized_shape()) dont le
+ * contenu ne correspond plus est traitée de même ('anonymisee' => true).
+ *
+ * @return array{contenu: ?string, empreinte: ?string, anonymisee: bool}
  */
 function psc_audit_expected_hashes($empreinte_precedente, $row, $seuil) {
     $get = function ($field) use ($row) {
@@ -915,14 +937,22 @@ function psc_audit_expected_hashes($empreinte_precedente, $row, $seuil) {
         $get('objet_type'), $get('objet_id'), $get('resume')
     );
     if (psc_audit_row_chain_version($row, $seuil) === 2) {
+        if (!$purgee && $contenu !== (string) $get('empreinte_contenu') && psc_audit_row_is_anonymized_shape($row)) {
+            return array('contenu' => null, 'empreinte' => psc_audit_chain_hash((string) $empreinte_precedente, (string) $get('empreinte_contenu')), 'anonymisee' => true);
+        }
         $base = $purgee ? (string) $get('empreinte_contenu') : $contenu;
-        return array('contenu' => $contenu, 'empreinte' => psc_audit_chain_hash((string) $empreinte_precedente, $base));
+        return array('contenu' => $contenu, 'empreinte' => psc_audit_chain_hash((string) $empreinte_precedente, $base), 'anonymisee' => false);
     }
-    if ($purgee) return array('contenu' => null, 'empreinte' => null);
-    return array('contenu' => $contenu, 'empreinte' => psc_audit_compute_hash(
+    if ($purgee) return array('contenu' => null, 'empreinte' => null, 'anonymisee' => false);
+    $empreinte = psc_audit_compute_hash(
         (string) $empreinte_precedente, $get('horodatage'), $get('action'), $get('acteur_type'), $get('acteur_id'),
         $get('objet_type'), $get('objet_id'), $get('resume')
-    ));
+    );
+    if ($empreinte !== (string) $get('empreinte') && psc_audit_row_is_anonymized_shape($row)) {
+        // v1 : pas d'empreinte de contenu, la ligne suivante l'ancre.
+        return array('contenu' => null, 'empreinte' => null, 'anonymisee' => true);
+    }
+    return array('contenu' => $contenu, 'empreinte' => $empreinte, 'anonymisee' => false);
 }
 
 /**
@@ -932,30 +962,45 @@ function psc_audit_expected_hashes($empreinte_precedente, $row, $seuil) {
  * précédente, hors du lot) ; chaque ligne suivante doit produire, à partir
  * de l'empreinte stockée de la précédente, la même empreinte que celle
  * qu'elle a elle-même stockée — et, en v2, son empreinte de contenu doit
- * correspondre à son contenu (sauf ligne purgée, sans contenu).
+ * correspondre à son contenu (sauf ligne purgée, sans contenu, ou
+ * anonymisée, cf. psc_audit_row_is_anonymized_shape()).
  *
  * @param array<int, object|array> $rows Chaque élément expose id,
  *        horodatage, action, acteur_type, acteur_id, objet_type, objet_id,
  *        resume, empreinte, et en v2 empreinte_contenu, purgee_le.
  * @param int $seuil Premier id chaîné en v2 (0 : tout en v1).
- * @return int|null L'id de la première ligne dont l'empreinte ne
- *         correspond plus, ou null si la chaîne est intacte.
+ * @return array{rupture: ?int, anonymisees: int} Id de la première ligne
+ *         dont l'empreinte ne correspond plus (null si la chaîne est
+ *         intacte) et nombre de lignes anonymisées acceptées avant elle.
  */
-function psc_audit_verify_chain_rows($rows, $seuil = 0) {
+function psc_audit_verify_chain_report($rows, $seuil = 0) {
     $get = function ($row, $field) {
         return is_array($row) ? ($row[$field] ?? null) : ($row->$field ?? null);
     };
     $count = count($rows);
+    $anonymisees = 0;
     for ($i = 1; $i < $count; $i++) {
         $current  = $rows[$i];
         $expected = psc_audit_expected_hashes((string) $get($rows[$i - 1], 'empreinte'), $current, $seuil);
         if ($expected['empreinte'] !== null && !hash_equals($expected['empreinte'], (string) $get($current, 'empreinte'))) {
-            return (int) $get($current, 'id');
+            return array('rupture' => (int) $get($current, 'id'), 'anonymisees' => $anonymisees);
         }
         if ($expected['contenu'] !== null && psc_audit_row_chain_version($current, $seuil) === 2
             && !hash_equals($expected['contenu'], (string) $get($current, 'empreinte_contenu'))) {
-            return (int) $get($current, 'id');
+            return array('rupture' => (int) $get($current, 'id'), 'anonymisees' => $anonymisees);
         }
+        if (!empty($expected['anonymisee'])) $anonymisees++;
     }
-    return null;
+    return array('rupture' => null, 'anonymisees' => $anonymisees);
+}
+
+/**
+ * Comme psc_audit_verify_chain_report(), sans le décompte.
+ *
+ * @return int|null L'id de la première ligne dont l'empreinte ne
+ *         correspond plus, ou null si la chaîne est intacte.
+ */
+function psc_audit_verify_chain_rows($rows, $seuil = 0) {
+    $report = psc_audit_verify_chain_report($rows, $seuil);
+    return $report['rupture'];
 }

@@ -460,13 +460,25 @@ class Psc_Audit {
      *         correspond plus, ou null si la chaîne est intacte.
      */
     public static function verify_chain($limit = 1000) {
+        $report = self::verify_chain_report($limit);
+        return $report['rupture'];
+    }
+
+    /**
+     * Même vérification que verify_chain(), avec le nombre de lignes
+     * anonymisées (oubli d'une famille ou d'un enfant) acceptées via leur
+     * empreinte de contenu conservée — à afficher à part (PERF-05).
+     *
+     * @return array{rupture: ?int, anonymisees: int}
+     */
+    public static function verify_chain_report($limit = 1000) {
         global $wpdb;
         $limit = max(2, (int) $limit);
         $rows = $wpdb->get_results($wpdb->prepare(
             'SELECT * FROM (SELECT * FROM ' . psc_table('audit_log') . ' ORDER BY id DESC LIMIT %d) x ORDER BY id ASC',
             $limit + 1
         ));
-        return psc_audit_verify_chain_rows($rows, self::chain_v2_from());
+        return psc_audit_verify_chain_report($rows, self::chain_v2_from());
     }
 
     /**
@@ -750,79 +762,47 @@ class Psc_Audit {
 
     /**
      * Applique $changes_for($row) aux lignes non purgées qui répondent à
-     * $where, et remplace par le résumé générique celles dont le résumé
-     * contient une aiguille.
+     * $where, et remplace par le résumé générique celles dont le résumé ou
+     * le libellé d'acteur contient une aiguille.
      *
-     * Le résumé entre dans l'empreinte : le réécrire impose de recalculer
-     * l'empreinte de la ligne et de toutes les suivantes (chacune est
-     * chaînée à la précédente). Le calcul est donc rejoué depuis la première
-     * ligne concernée jusqu'à la plus récente de la table.
+     * Aucune empreinte n'est recalculée (PERF-05) : details, famille_id,
+     * enfant_id, ip, pour_le_compte_de et acteur_libelle n'entrent pas dans
+     * l'empreinte. Le résumé, lui, y entre : quand il doit être réécrit, la
+     * ligne prend la forme « anonymisée » (résumé générique EXACT, details,
+     * famille_id, enfant_id et ip vidés) que la vérification accepte via son
+     * empreinte de contenu conservée (cf. psc_audit_row_is_anonymized_shape()).
+     * Plus de rechaînage de la table : un coût proportionnel aux seules
+     * lignes concernées, et une interruption ne peut plus casser la chaîne.
      */
     private static function forget_rows($where, array $where_args, array $needles, $changes_for) {
         global $wpdb;
         $table = psc_table('audit_log');
         $needles = self::clean_needles($needles);
-
-        $first_id = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT MIN(id) FROM $table WHERE $where", $where_args
-        ));
-        if (!$first_id) return 0;
-
-        $previous = $wpdb->get_row($wpdb->prepare(
-            "SELECT empreinte FROM $table WHERE id < %d ORDER BY id DESC LIMIT 1", $first_id
-        ));
-        $previous_hash = $previous ? (string) $previous->empreinte : '';
-        $previous_stored = $previous_hash;
-        $seuil = self::chain_v2_from();
-        $touched_ids = array_flip(array_map('intval', $wpdb->get_col($wpdb->prepare(
-            "SELECT id FROM $table WHERE id >= %d AND purgee_le IS NULL AND $where", array_merge(array($first_id), $where_args)
-        ))));
         $anonymized = 0;
-        $last_id = $first_id - 1;
-        $rows = array();
+        $last_id = 0;
 
         do {
             $rows = $wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM $table WHERE id > %d ORDER BY id ASC LIMIT 500", $last_id
+                "SELECT id, action, acteur_type, acteur_id, acteur_libelle, pour_le_compte_de, objet_type, objet_id,
+                        famille_id, enfant_id, resume, details, ip
+                 FROM $table WHERE id > %d AND purgee_le IS NULL AND $where ORDER BY id ASC LIMIT 500",
+                array_merge(array($last_id), $where_args)
             ));
             foreach ($rows as $row) {
-                $resume = $row->resume;
-
-                if (isset($touched_ids[(int) $row->id])) {
-                    $changes = (array) call_user_func($changes_for, $row);
-                    if (psc_audit_resume_needs_redaction($resume, $needles)) {
-                        $resume = psc_audit_default_resume($row->action);
-                        $changes['resume'] = $resume;
-                    }
-                    if ($changes) {
-                        $anonymized++;
-                        $wpdb->update($table, $changes, array('id' => $row->id));
-                    }
-                }
-
-                // Rechaînage selon la version de la ligne (v1 historique, v2
-                // à empreinte de contenu). Une ligne purgée v1 ne peut pas
-                // être recalculée : elle prend l'empreinte v2 de son contenu
-                // conservé, que la vérification accepte (cf.
-                // psc_audit_expected_hashes()).
-                $row->resume = $resume;
-                $expected = psc_audit_expected_hashes($previous_hash, $row, $seuil);
-                $empreinte = $expected['empreinte'] !== null
-                    ? $expected['empreinte']
-                    : ($previous_hash === $previous_stored ? (string) $row->empreinte : psc_audit_chain_hash($previous_hash, (string) $row->empreinte_contenu));
-                $update = array();
-                if ($empreinte !== $row->empreinte) $update['empreinte'] = $empreinte;
-                if ($expected['contenu'] !== null && psc_audit_row_chain_version($row, $seuil) === 2 && $expected['contenu'] !== $row->empreinte_contenu) {
-                    $update['empreinte_contenu'] = $expected['contenu'];
-                }
-                if ($update) $wpdb->update($table, $update, array('id' => $row->id));
-                $previous_stored = (string) $row->empreinte;
-                $previous_hash = $empreinte;
                 $last_id = (int) $row->id;
+                $changes = (array) call_user_func($changes_for, $row);
+                if (psc_audit_resume_needs_redaction($row->resume, $needles)) {
+                    $changes['resume'] = psc_audit_default_resume($row->action);
+                    $changes['details'] = null;
+                    $changes['famille_id'] = null;
+                    $changes['enfant_id'] = null;
+                    $changes['ip'] = null;
+                }
+                if (!$changes) continue;
+                $anonymized++;
+                $wpdb->update($table, $changes, array('id' => $row->id));
             }
         } while (count($rows) === 500);
-
-        update_option('psc_audit_last_hash', $previous_hash, false);
 
         return $anonymized;
     }

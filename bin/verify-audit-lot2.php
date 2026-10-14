@@ -128,9 +128,15 @@ WP_CLI::add_command('verify-audit-lot2', function () {
         $check($verify() === null, 'RGPD-04 forget_child : chaîne invalide');
         $check($mentions($child_prenom) === 0, 'RGPD-04 forget_child : prénom de l’enfant encore dans le journal');
 
-        // Oubli de la famille.
+        // Oubli de la famille, sans rechaînage (PERF-05) : aucune empreinte
+        // ni la tête de chaîne ne bougent.
+        $hashes_before = $wpdb->get_results($wpdb->prepare("SELECT id, empreinte, empreinte_contenu FROM $t_audit WHERE id > %d", $start_id), OBJECT_K);
+        $head_before = get_option('psc_audit_last_hash', '');
         $n = Psc_Audit::forget_family($fam);
-        $check($n >= 4, "RGPD-04 forget_family : $n ligne(s), au moins 4 attendues");
+        $hashes_after = $wpdb->get_results($wpdb->prepare("SELECT id, empreinte, empreinte_contenu FROM $t_audit WHERE id > %d", $start_id), OBJECT_K);
+        $check($hashes_before == $hashes_after, 'PERF-05 : empreintes recalculées par l’oubli');
+        $check(get_option('psc_audit_last_hash', '') === $head_before, 'PERF-05 : tête de chaîne modifiée par l’oubli');
+        $check($n === 3, "RGPD-04 forget_family : $n ligne(s) au lieu de 3 (connexion, demande, consultation)");
         $r = $audit_row($r_self);
         $check($r && $r->famille_id === null && $r->ip === null && $r->details === null, 'RGPD-04 forget_family : famille_id, IP ou détail conservés (acteur famille)');
         $check($r && strpos($r->acteur_libelle, $tag) === false, 'RGPD-04 forget_family : libellé d’acteur nominatif conservé');
@@ -142,6 +148,33 @@ WP_CLI::add_command('verify-audit-lot2', function () {
         $check($r && $r->ip === '192.0.2.44', 'RGPD-04 forget_family : IP de l’agent effacée à tort');
         $check($verify() === null, 'RGPD-04 forget_family : chaîne invalide');
         $check($mentions($tag) === 0, 'RGPD-04 forget_family : identité de la famille encore dans le journal');
+
+        /* ---------------- PERF-05 : lignes anonymisées et vérification ---------------- */
+        $rows_since = function () use ($wpdb, $t_audit, $start_id) {
+            return $wpdb->get_results($wpdb->prepare("SELECT * FROM $t_audit WHERE id >= %d ORDER BY id ASC", max(1, $start_id)));
+        };
+        $report = psc_audit_verify_chain_report($rows_since(), Psc_Audit::chain_v2_from());
+        $check($report['rupture'] === null && $report['anonymisees'] >= 2, 'PERF-05 : lignes anonymisées non décomptées (' . $report['anonymisees'] . ')');
+        $self = $audit_row($r_self);
+        $check($self && $self->resume === psc_audit_default_resume('famille.connexion'), 'PERF-05 : résumé anonymisé différent du résumé générique');
+        // Toute autre réécriture du résumé reste une rupture.
+        $wpdb->update($t_audit, array('resume' => 'Résumé réécrit'), array('id' => $r_self));
+        $check($verify() === $r_self, 'PERF-05 : résumé réécrit (non générique) non détecté');
+        // Résumé générique mais identifiants conservés : rupture aussi.
+        $wpdb->update($t_audit, array('resume' => $self->resume, 'famille_id' => $fam), array('id' => $r_self));
+        $check($verify() === $r_self, 'PERF-05 : résumé générique avec famille_id conservé non détecté');
+        $wpdb->update($t_audit, array('famille_id' => null, 'details' => '{"x":1}'), array('id' => $r_self));
+        $check($verify() === $r_self, 'PERF-05 : résumé générique avec détail conservé non détecté');
+        $wpdb->update($t_audit, array('details' => null, 'ip' => '192.0.2.45'), array('id' => $r_self));
+        $check($verify() === $r_self, 'PERF-05 : résumé générique avec IP conservée non détecté');
+        $wpdb->update($t_audit, array('ip' => null), array('id' => $r_self));
+        $check($verify() === null, 'PERF-05 : ligne anonymisée restaurée non acceptée');
+        // Une ligne intacte réécrite au résumé générique, identifiants vidés,
+        // ne peut qu'effacer : elle est acceptée et décomptée à part.
+        $before = psc_audit_verify_chain_report($rows_since(), Psc_Audit::chain_v2_from());
+        $wpdb->update($t_audit, array('resume' => psc_audit_default_resume('planning.exception_modifiee'), 'ip' => null), array('id' => $r_imperso));
+        $after = psc_audit_verify_chain_report($rows_since(), Psc_Audit::chain_v2_from());
+        $check($after['rupture'] === null && $after['anonymisees'] === $before['anonymisees'] + 1, 'PERF-05 : effacement au résumé générique non décompté');
 
         // Suppression manuelle complète : aucune identité écrite au journal.
         $fam_b = $make_family('b');
