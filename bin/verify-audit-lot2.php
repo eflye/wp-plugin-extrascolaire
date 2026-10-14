@@ -400,6 +400,24 @@ WP_CLI::add_command('verify-audit-lot2', function () {
             $wpdb->delete(psc_table('message_destinataires'), array('message_id' => $mid));
             $wpdb->delete(psc_table('messages'), array('id' => $mid));
         }
+
+        /* ---------------- PERF-12/L2 : marqueur des accusés nettoyés ---------------- */
+        $saved_marker = get_option('psc_receipts_cleaned_until', '');
+        $queries = array();
+        // Les UPDATE sont comptés puis neutralisés : aucune donnée réelle modifiée.
+        $spy = function ($q) use (&$queries) { if (strpos($q, 'SET d.vu_le=NULL') !== false) { $queries[] = $q; return 'SELECT 1'; } return $q; };
+        add_filter('query', $spy);
+        delete_option('psc_receipts_cleaned_until');
+        Psc_Messages::cleanup_receipts();
+        $first = count($queries);
+        $marker = get_option('psc_receipts_cleaned_until', '');
+        $queries = array();
+        Psc_Messages::cleanup_receipts();
+        remove_filter('query', $spy);
+        $closed = (int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM ' . psc_table('school_years') . ' WHERE date_fin < %s', gmdate('Y-m-d', strtotime('-1 year'))));
+        $check($first === $closed && ($closed === 0 || $marker !== ''), "PERF-12 : premier passage incorrect ($first requêtes pour $closed années)");
+        $check(count($queries) === 0, 'PERF-12 : années déjà nettoyées reparcourues');
+        if ($saved_marker === '' || $saved_marker === false) delete_option('psc_receipts_cleaned_until'); else update_option('psc_receipts_cleaned_until', $saved_marker, false);
     } finally {
         foreach ($family_ids as $fid) {
             $wpdb->delete($t_child, array('parent_id' => $fid), array('%d'));

@@ -213,11 +213,22 @@ class Psc_Messages {
     }
 
     /** Efface les traces de lecture un an après la fin de leur année scolaire. */
+    /**
+     * Efface les accusés de lecture des années closes depuis plus d'un an.
+     * Marqueur psc_receipts_cleaned_until (PERF-12) : une année déjà
+     * traitée n'est plus reparcourue chaque jour.
+     */
     public static function cleanup_receipts() {
         global $wpdb;
-        $years = $wpdb->get_results($wpdb->prepare('SELECT date_debut,date_fin FROM ' . psc_table('school_years') . ' WHERE date_fin < %s', gmdate('Y-m-d', strtotime('-1 year'))));
+        $done_until = (string) get_option('psc_receipts_cleaned_until', '');
+        $years = $wpdb->get_results($wpdb->prepare(
+            'SELECT date_debut,date_fin FROM ' . psc_table('school_years') . ' WHERE date_fin < %s AND date_fin > %s ORDER BY date_fin ASC',
+            gmdate('Y-m-d', strtotime('-1 year')), $done_until !== '' ? $done_until : '0000-00-00'
+        ));
         foreach ($years as $year) {
-            $wpdb->query($wpdb->prepare('UPDATE ' . psc_table('message_destinataires') . ' d INNER JOIN ' . psc_table('messages') . ' m ON m.id=d.message_id SET d.vu_le=NULL,d.vu_canal=NULL,d.accuse_le=NULL WHERE m.date_envoi BETWEEN %s AND %s', $year->date_debut . ' 00:00:00', $year->date_fin . ' 23:59:59'));
+            $ok = $wpdb->query($wpdb->prepare('UPDATE ' . psc_table('message_destinataires') . ' d INNER JOIN ' . psc_table('messages') . ' m ON m.id=d.message_id SET d.vu_le=NULL,d.vu_canal=NULL,d.accuse_le=NULL WHERE m.date_envoi BETWEEN %s AND %s', $year->date_debut . ' 00:00:00', $year->date_fin . ' 23:59:59'));
+            if ($ok === false) break; // reprise au prochain passage
+            update_option('psc_receipts_cleaned_until', $year->date_fin, false);
         }
     }
 
