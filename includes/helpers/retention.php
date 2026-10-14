@@ -16,22 +16,26 @@ if (!defined('ABSPATH')) exit;
  */
 function psc_retention_policies() {
     $children_days = max(1, (int) apply_filters('psc_children_retention_days', 400));
+    // Durées des demandes : constantes de Psc_Requests, lues par cleanup().
+    $request_days = function ($constant, $default) {
+        return class_exists('Psc_Requests') && defined('Psc_Requests::' . $constant) ? (int) constant('Psc_Requests::' . $constant) : $default;
+    };
     $with_child = __('Supprimé avec la fiche enfant (cf. « Enfants sortis »).', 'periscolaire-registration');
     $policies = array(
         'requests_unconfirmed' => array(
             'label' => __('Demandes d’inscription non confirmées', 'periscolaire-registration'),
-            'enabled' => true, 'days' => 7, 'hook' => 'psc_cleanup_requests',
+            'enabled' => true, 'days' => $request_days('UNVERIFIED_RETENTION_DAYS', 7), 'hook' => 'psc_cleanup_requests',
             'reason' => __('Adresse e-mail jamais confirmée, à compter du dépôt.', 'periscolaire-registration'),
         ),
         'requests_processed' => array(
             'label' => __('Demandes d’inscription traitées', 'periscolaire-registration'),
-            'enabled' => true, 'days' => 90, 'hook' => 'psc_cleanup_requests',
+            'enabled' => true, 'days' => $request_days('DECIDED_RETENTION_DAYS', 90), 'hook' => 'psc_cleanup_requests',
             'reason' => __('Validées ou refusées, à compter de la décision.', 'periscolaire-registration'),
         ),
         'requests_pending' => array(
             'label' => __('Demandes d’inscription en attente', 'periscolaire-registration'),
             'enabled' => true,
-            'days' => class_exists('Psc_Requests') && defined('Psc_Requests::PENDING_RETENTION_DAYS') ? (int) Psc_Requests::PENDING_RETENTION_DAYS : 180,
+            'days' => $request_days('PENDING_RETENTION_DAYS', 180),
             'hook' => 'psc_cleanup_requests',
             'reason' => __('Jamais traitées par la mairie, à compter du dépôt.', 'periscolaire-registration'),
         ),
