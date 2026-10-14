@@ -186,42 +186,9 @@
     function initChildren() {
         var list   = document.getElementById('psc-children-list');
         var addBtn = document.getElementById('psc-add-child');
-        if (!list || !addBtn) return;
-
+        var tpl    = document.getElementById('psc-child-row-tpl');
+        if (!list || !addBtn || !tpl) return;
         var next = 1;
-        var firstSelect = list.querySelector('select');
-        var classeOptionsHTML = firstSelect ? firstSelect.innerHTML : '';
-
-        // Allergies alimentaires : la case précède le champ. Décochée :
-        // le champ est masqué et désactivé (food_allergies à NULL).
-        // Cochée : champ libre requis — une allergie déclarée sans
-        // description n'est pas exploitable par la restauration.
-        function wireAllergyToggle(scope) {
-            scope.querySelectorAll('.psc-child-allergy-toggle').forEach(function (cb) {
-                cb.addEventListener('change', function () {
-                    var idx = cb.dataset.toggle;
-                    var field = list.querySelector('.psc-child-allergy-field[data-field="' + idx + '"]');
-                    var textarea = field ? field.querySelector('textarea') : null;
-                    var consent = field ? field.querySelector('.psc-child-allergy-consent') : null;
-                    if (!field || !textarea) return;
-                    field.hidden = !cb.checked;
-                    textarea.required = cb.checked;
-                    if (consent) consent.required = cb.checked;
-                    if (!cb.checked) {
-                        textarea.value = '';
-                        textarea.disabled = true;
-                        if (consent) {
-                            consent.checked = false;
-                            consent.disabled = true;
-                        }
-                    } else {
-                        textarea.disabled = false;
-                        if (consent) consent.disabled = false;
-                    }
-                });
-            });
-        }
-        wireAllergyToggle(list);
 
         function updateRemoveButtons() {
             var rows = list.querySelectorAll('.psc-wizard-child-row');
@@ -255,37 +222,13 @@
             var idx = next++;
             var n = list.children.length + 1;
 
-            var row = document.createElement('div');
-            row.className = 'psc-wizard-child-row';
-            row.dataset.index = idx;
-            row.innerHTML =
-                '<div><label class="psc-portal-field-label screen-reader-text" for="psc-cp-' + idx + '">' + t('child_firstname', n) + '</label>' +
-                '<input id="psc-cp-' + idx + '" class="psc-portal-field-underline" type="text" name="child_prenom_' + idx + '" placeholder="' + t('firstname') + '" maxlength="190" required></div>' +
-                '<div><label class="psc-portal-field-label screen-reader-text" for="psc-cn-' + idx + '">' + t('child_lastname', n) + '</label>' +
-                '<input id="psc-cn-' + idx + '" class="psc-portal-field-underline" type="text" name="child_nom_' + idx + '" placeholder="' + t('lastname') + '" maxlength="190" required></div>' +
-                '<div><label class="psc-portal-field-label screen-reader-text" for="psc-cc-' + idx + '">' + t('child_class', n) + '</label>' +
-                '<select id="psc-cc-' + idx + '" class="psc-portal-field-underline" name="child_classe_' + idx + '" required>' + classeOptionsHTML + '</select></div>' +
-                '<div><label class="psc-portal-field-label" for="psc-cb-' + idx + '">' + t('child_birthdate') + '</label>' +
-                '<input id="psc-cb-' + idx + '" class="psc-portal-field-underline" type="date" name="child_naissance_' + idx + '" max="' + t('child_birthdate_max') + '" required></div>' +
-                '<div class="psc-wizard-diet-cell"><div class="psc-portal-field-label">' + t('diet') + '</div>' +
-                '<div class="psc-wizard-diet-group">' +
-                '<label class="psc-wizard-diet-check"><input type="checkbox" name="child_sans_porc_' + idx + '" value="1"> ' + t('diet_pork') + '</label>' +
-                '<label class="psc-wizard-diet-check"><input type="checkbox" name="child_vegan_' + idx + '" value="1"> ' + t('diet_meat') + '</label>' +
-                '</div></div>' +
-                '<div class="psc-wizard-allergy-cell" style="grid-column: 1 / -1;">' +
-                '<label class="psc-wizard-diet-check" style="font-weight:600;"><input type="checkbox" class="psc-child-allergy-toggle" data-toggle="' + idx + '" name="child_has_allergy_' + idx + '" value="1"> ' + t('allergy_toggle') + '</label>' +
-                '<div class="psc-child-allergy-field" data-field="' + idx + '" hidden>' +
-                '<textarea name="child_food_allergies_' + idx + '" rows="2" maxlength="1000" placeholder="' + t('allergy_placeholder') + '" style="width:100%;resize:vertical;border:1px solid rgba(36,64,92,0.3);background:#fff;font-size:13px;padding:8px;"></textarea>' +
-                '<p class="psc-child-allergy-help" style="font-size:11px;color:#665F58;margin:6px 0 0;">' + t('allergy_help') + '</p>' +
-                '<label class="psc-wizard-check-line" style="margin-top:10px;">' +
-                '<input type="checkbox" class="psc-child-allergy-consent" name="child_allergy_consent_' + idx + '"> ' + t('allergy_consent') + ' <span class="psc-req">*</span>' +
-                '</label>' +
-                '</div></div>' +
-                '<button type="button" class="psc-wizard-remove-btn" aria-label="' + t('child_remove') + '">' + t('remove') + '</button>';
-
+            // Balisage unique (templates/partials/guest-child-row.php) : les
+            // champs portent exactement les noms lus par le serveur (PRA-03).
+            var holder = document.createElement('div');
+            holder.innerHTML = tpl.innerHTML.replace(/__IDX__/g, String(idx)).replace(/__NUM__/g, String(n));
+            var row = holder.firstElementChild;
             list.appendChild(row);
             wireRemove(row);
-            wireAllergyToggle(row);
             updateRemoveButtons();
             updateAddBtn();
             row.querySelector('input[type="text"]').focus();

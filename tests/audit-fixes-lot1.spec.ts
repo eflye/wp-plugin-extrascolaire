@@ -8,6 +8,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { execFileSync } from 'node:child_process';
+import { readFormPageUrl } from '../playwright/seed-result';
 
 const ENGINE = process.env.PSC_CONTAINER_ENGINE ?? 'podman';
 const CONTAINER = process.env.PSC_WP_CONTAINER ?? 'plugin-extrascolaire-wordpress-1';
@@ -105,5 +106,52 @@ test.describe('Audit — lot 1', () => {
       await page.goto(cancelUrl);
       await expect(page.getByText('déjà été utilisé')).toBeVisible();
     });
+  });
+  test('PRA-03 : le signalement alimentaire de l\'enfant 2 atteint la demande', async ({ page }) => {
+    const EMAIL = 'e2e-lot1-pra03@example.test';
+    const t = "psc_table('requests')";
+    const cleanup = () => wpCliEval(`global $wpdb; foreach ($wpdb->get_col($wpdb->prepare('SELECT id FROM ' . ${t} . ' WHERE email = %s', '${EMAIL}')) as $id) { Psc_Assurances::delete_pending_files((int) $id); $wpdb->delete(${t}, array('id' => (int) $id)); } echo 'ok';`);
+    cleanup();
+    try {
+      await page.goto(readFormPageUrl());
+      await page.locator('#psc-req-email').fill(EMAIL);
+      await page.locator('#psc-req-prenom').fill('Famille');
+      await page.locator('#psc-req-nom').fill('Lot1');
+      await page.locator('#psc-req-tel').fill('06 12 34 56 78');
+      await page.getByTestId('address-toggle').click();
+      await page.locator('#psc-req-adresse').fill('1 rue de la Mairie');
+      await page.locator('#psc-req-cp').fill('95830');
+      await page.locator('#psc-req-ville').fill('Montgeroult');
+      await page.getByTestId('wizard-next').click();
+
+      await page.locator('#psc-cp-0').fill('Aine');
+      await page.locator('#psc-cn-0').fill('Lot1');
+      await page.locator('#psc-cc-0').selectOption({ label: 'CP' });
+      await page.locator('#psc-cb-0').fill('2019-03-01');
+      await page.getByTestId('add-child-button').click();
+      // Même balisage que l'enfant 1 : case de signalement, aucune zone de texte médicale.
+      await expect(page.getByLabel('Prénom de l’enfant 2')).toBeFocused();
+      await expect(page.locator('textarea[name^="child_food_allergies_"]')).toHaveCount(0);
+      await page.locator('#psc-cp-1').fill('Cadet');
+      await page.locator('#psc-cn-1').fill('Lot1');
+      await page.locator('#psc-cc-1').selectOption({ label: 'CP' });
+      await page.locator('#psc-cb-1').fill('2019-09-01');
+      await page.getByTestId('child-food-signal-1').check();
+
+      const axe = await new AxeBuilder({ page }).include('[data-testid="wizard-step-1"]').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+      expect(axe.violations.map((v) => `${v.id} : ${v.nodes.length}`)).toEqual([]);
+
+      await page.getByTestId('wizard-next').click();
+      await page.getByTestId('wizard-next').click();
+      await page.locator('input[name="reglement_accepted"]').check();
+      await page.getByTestId('wizard-submit').click();
+      await expect(page.getByTestId('notice-request_sent')).toBeVisible();
+
+      const signals = wpCliEval(`global $wpdb; $r = $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . ${t} . ' WHERE email = %s ORDER BY id DESC LIMIT 1', '${EMAIL}'));
+        echo wp_json_encode(array_map(function ($c) { return array($c['prenom'], $c['food_allergy_signal']); }, Psc_Requests::children_of($r)));`);
+      expect(JSON.parse(signals)).toEqual([['Aine', 0], ['Cadet', 1]]);
+    } finally {
+      cleanup();
+    }
   });
 });
