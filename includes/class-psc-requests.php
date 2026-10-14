@@ -58,17 +58,21 @@ class Psc_Requests {
         global $wpdb;
         $t = psc_table('requests');
 
+        // created_at et decided_at sont écrits en heure du site
+        // (current_time('mysql')) : les seuils sont calculés dans la même
+        // horloge (PRA-14), sinon la purge se décalait de l'écart UTC.
+        $unverified_cutoff = wp_date('Y-m-d H:i:s', time() - 7 * DAY_IN_SECONDS);
+        $stale_cutoff      = wp_date('Y-m-d H:i:s', time() - 90 * DAY_IN_SECONDS);
         $unverified_ids = $wpdb->get_col($wpdb->prepare(
             "SELECT id FROM $t WHERE status = 'unverified' AND created_at < %s",
-            gmdate('Y-m-d H:i:s', time() - 7 * DAY_IN_SECONDS)
+            $unverified_cutoff
         ));
         $stale_ids = $wpdb->get_col($wpdb->prepare(
             "SELECT id FROM $t WHERE status IN ('approved','rejected') AND decided_at < %s",
-            gmdate('Y-m-d H:i:s', time() - 90 * DAY_IN_SECONDS)
+            $stale_cutoff
         ));
         // Demande confirmée mais jamais traitée (RGPD-01) : elle n'est pas
-        // gardée indéfiniment. created_at est en heure du site
-        // (current_time('mysql')) : seuil calculé dans la même horloge.
+        // gardée indéfiniment.
         $pending_cutoff = wp_date('Y-m-d H:i:s', time() - self::PENDING_RETENTION_DAYS * DAY_IN_SECONDS);
         $pending_ids = $wpdb->get_col($wpdb->prepare(
             "SELECT id FROM $t WHERE status = 'pending' AND created_at < %s",
@@ -85,11 +89,11 @@ class Psc_Requests {
 
         $wpdb->query($wpdb->prepare(
             "DELETE FROM $t WHERE status = 'unverified' AND created_at < %s",
-            gmdate('Y-m-d H:i:s', time() - 7 * DAY_IN_SECONDS)
+            $unverified_cutoff
         ));
         $wpdb->query($wpdb->prepare(
             "DELETE FROM $t WHERE status IN ('approved','rejected') AND decided_at < %s",
-            gmdate('Y-m-d H:i:s', time() - 90 * DAY_IN_SECONDS)
+            $stale_cutoff
         ));
         foreach ($pending_ids as $id) {
             $wpdb->delete($t, array('id' => (int) $id, 'status' => 'pending'), array('%d', '%s'));

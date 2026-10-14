@@ -51,7 +51,9 @@ class Psc_Impersonation {
         if (!$family_id) return array();
 
         global $wpdb;
-        $cutoff = gmdate('Y-m-d H:i:s', strtotime('-' . $months . ' months', current_time('timestamp')));
+        // started_at est en heure du site (current_time('mysql')) : seuil
+        // dans la même horloge (PRA-14).
+        $cutoff = wp_date('Y-m-d H:i:s', strtotime('-' . $months . ' months'));
         return $wpdb->get_results($wpdb->prepare(
             'SELECT started_at, motif_type FROM ' . psc_table('impersonations') . ' WHERE family_id = %d AND started_at >= %s ORDER BY started_at DESC',
             $family_id,
@@ -87,7 +89,7 @@ class Psc_Impersonation {
         ));
 
         $retention_days = max(1, (int) apply_filters('psc_impersonation_retention_days', 365));
-        $cutoff = gmdate('Y-m-d H:i:s', current_time('timestamp') - $retention_days * DAY_IN_SECONDS);
+        $cutoff = wp_date('Y-m-d H:i:s', time() - $retention_days * DAY_IN_SECONDS); // heure du site, comme started_at
         $deleted = $wpdb->query($wpdb->prepare(
             "DELETE FROM $table WHERE started_at < %s",
             $cutoff
@@ -378,7 +380,14 @@ class Psc_Impersonation {
             'motif_type'  => $motif_type,
             'motif_detail'=> $motif_detail,
             'started_at'  => current_time('mysql'),
-            'expires_at'  => gmdate('Y-m-d H:i:s', current_time('timestamp') + $ttl),
+            // Exception à AGENTS §4.1 (échéances en UTC), arbitrée : cette
+            // colonne reste en heure du site, comparée à current_time('mysql')
+            // partout (active(), cleanup(), écran Familles, bandeau du
+            // portail, tests). La basculer en UTC décalerait les
+            // consultations en cours au déploiement et toucherait quatre
+            // fichiers hors de ce correctif. Le cookie porte, lui, une
+            // échéance time() indépendante.
+            'expires_at'  => wp_date('Y-m-d H:i:s', $expires),
             'ip'          => psc_client_ip() ?: null,
         ), array('%d', '%d', '%s', '%s', '%s', '%s', '%s'));
         if (!$inserted) self::confirmation_error($family_id, 'impersonation_failed');

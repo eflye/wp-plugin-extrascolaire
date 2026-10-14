@@ -37,6 +37,8 @@
  *    résultat inchangé (fiche vide complétée, fiche renseignée intacte).
  *  - PRA-18 : en consultation mairie, la lecture AJAX du planning ne crée
  *    pas d'année scolaire (ensure_default() non appelé).
+ *  - PRA-14/L1 : purge des demandes non confirmées au seuil de 7 jours
+ *    calculé en heure du site, comme created_at.
  *  - RGPD-04/L1 : les lignes du journal écrites pour le foyer de test ne
  *    contiennent ni e-mail ni nom (résumé et libellé d'acteur).
  *
@@ -595,6 +597,21 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         foreach (array('perf1', 'perf2', 'perf3') as $k) {
             $fid = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM $t_par WHERE email = %s", $emails[$k]));
             if ($fid) Psc_Admin_Familles::delete_family($fid);
+        }
+
+        /* ---------- PRA-14/L1 : horloge de la purge des demandes ---------- */
+        $mk_unverified = function ($age) use ($wpdb, $t_req, $emails) {
+            $wpdb->insert($t_req, array('email' => $emails['demande'], 'nom' => 'Horloge', 'prenom' => 'Test', 'status' => 'unverified', 'verified' => 0,
+                'created_at' => wp_date('Y-m-d H:i:s', time() - $age)));
+            return (int) $wpdb->insert_id;
+        };
+        $old_req = $mk_unverified(7 * DAY_IN_SECONDS + 30 * MINUTE_IN_SECONDS);
+        $young_req = $mk_unverified(7 * DAY_IN_SECONDS - 30 * MINUTE_IN_SECONDS);
+        Psc_Requests::cleanup();
+        $check(!$wpdb->get_var($wpdb->prepare("SELECT id FROM $t_req WHERE id = %d", $old_req)), 'PRA-14/L1 : demande non confirmée de 7 j 30 min conservée');
+        $check((bool) $wpdb->get_var($wpdb->prepare("SELECT id FROM $t_req WHERE id = %d", $young_req)), 'PRA-14/L1 : demande non confirmée de 6 j 23 h 30 purgée');
+        if (wp_timezone()->getOffset(new DateTime('now', new DateTimeZone('UTC'))) === 0) {
+            WP_CLI::log('PRA-14/L1 : fuseau du site en UTC, le décalage d’horloge n’est pas exercé.');
         }
 
         /* ---------- PRA-18 : consultation en lecture seule ---------- */
