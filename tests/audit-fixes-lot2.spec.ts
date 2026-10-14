@@ -109,3 +109,38 @@ test.describe('Lot 2 — IBAN et habilitation Facturation (RGPD-07)', () => {
     expect(storedIban()).toBe('FR1420041010050500013M02606');
   });
 });
+
+test.describe('Lot 2 — lien de diffusion sans jeton dans l’URL (RGPD-09)', () => {
+  const MSG_EMAIL = 'lot2-e2e-diffusion@example.test';
+  const TOKEN = 'lot2e2elot2e2elot2e2elot2e2e1234';
+  let messageId = 0;
+
+  test.beforeAll(() => {
+    messageId = Number(wpEval(`global $wpdb; $wpdb->delete($wpdb->prefix.'psc_parents',array('email'=>'${MSG_EMAIL}'));
+      $wpdb->insert($wpdb->prefix.'psc_parents',array('email'=>'${MSG_EMAIL}','nom'=>'Lot2Diffusion','created_at'=>current_time('mysql'))); $f=(int)$wpdb->insert_id;
+      $wpdb->insert($wpdb->prefix.'psc_messages',array('titre'=>'Diffusion Lot2 E2E','corps'=>'Corps Lot2','statut'=>'envoye','date_envoi'=>current_time('mysql'),'auteur_id'=>1,'created_at'=>current_time('mysql'),'updated_at'=>current_time('mysql'))); $m=(int)$wpdb->insert_id;
+      $wpdb->insert($wpdb->prefix.'psc_message_destinataires',array('message_id'=>$m,'family_id'=>$f,'token'=>'${TOKEN}')); echo $m;`));
+  });
+
+  test.afterAll(() => {
+    wpEval(`global $wpdb; $wpdb->delete($wpdb->prefix.'psc_message_destinataires',array('message_id'=>${messageId}));
+      $wpdb->delete($wpdb->prefix.'psc_messages',array('id'=>${messageId})); $wpdb->delete($wpdb->prefix.'psc_parents',array('email'=>'${MSG_EMAIL}')); echo 'ok';`);
+  });
+
+  test('le jeton disparaît de l’URL, le message reste lisible', async ({ page }) => {
+    await page.goto(`${APP_BASE}/?psc_msg=${messageId}&t=${TOKEN}`);
+    expect(page.url()).not.toContain(TOKEN);
+    expect(new URL(page.url()).searchParams.get('psc_msg')).toBe(String(messageId));
+    await expect(page.locator('body')).toContainText('Diffusion Lot2 E2E');
+  });
+
+  test('un autre navigateur, sans le lien, ne voit pas le message', async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await page.goto(`${APP_BASE}/?psc_msg=${messageId}`);
+    await expect(page.locator('body')).not.toContainText('Diffusion Lot2 E2E');
+    await page.goto(`${APP_BASE}/?psc_msg=${messageId}&t=mauvais-jeton`);
+    await expect(page.locator('body')).not.toContainText('Diffusion Lot2 E2E');
+    await context.close();
+  });
+});

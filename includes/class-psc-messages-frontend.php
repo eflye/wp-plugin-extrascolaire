@@ -12,7 +12,7 @@ class Psc_Messages_Frontend {
     }
 
     public static function assets() {
-        $email_view = isset($_GET['psc_msg'], $_GET['t']);
+        $email_view = isset($_GET['psc_msg']) && (isset($_GET['t']) || isset($_COOKIE[self::VIEW_COOKIE]));
         $post = is_singular() ? get_post() : null;
         $portal = $post && has_shortcode($post->post_content, 'periscolaire_form') && Psc_Parents::current();
         if (!$email_view && !$portal) return;
@@ -95,9 +95,37 @@ class Psc_Messages_Frontend {
         return $urgent;
     }
 
+    /** Cookie de passage du jeton de diffusion (RGPD-09) : 10 minutes, HttpOnly. */
+    const VIEW_COOKIE = 'psc_msg_view';
+
+    /**
+     * Jeton retiré de l'URL (RGPD-09) : le lien ?psc_msg=ID&t=JETON de
+     * l'e-mail pose le jeton dans un cookie HttpOnly de courte durée, puis
+     * redirige vers ?psc_msg=ID — l'historique du navigateur, les en-têtes
+     * Referer et les journaux d'accès ne gardent plus le jeton.
+     */
     public static function handle_email_link() {
-        if (!isset($_GET['psc_msg'], $_GET['t']) || !ctype_digit((string) $_GET['psc_msg'])) return;
-        $id = absint($_GET['psc_msg']); $token = sanitize_text_field(wp_unslash($_GET['t']));
+        if (!isset($_GET['psc_msg']) || !ctype_digit((string) $_GET['psc_msg'])) return;
+        $id = absint($_GET['psc_msg']);
+        if (isset($_GET['t'])) {
+            $token = sanitize_text_field(wp_unslash($_GET['t']));
+            if (!Psc_Messages::recipient($id, $token)) { wp_safe_redirect(Psc_Mailer::form_page_url()); exit; }
+            setcookie(self::VIEW_COOKIE, $id . ':' . $token, array(
+                'expires'  => time() + 10 * MINUTE_IN_SECONDS,
+                'path'     => COOKIEPATH ?: '/',
+                'domain'   => COOKIE_DOMAIN ?: '',
+                'secure'   => is_ssl(),
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ));
+            nocache_headers();
+            wp_safe_redirect(add_query_arg('psc_msg', $id, home_url('/')));
+            exit;
+        }
+        $cookie = isset($_COOKIE[self::VIEW_COOKIE]) ? sanitize_text_field(wp_unslash($_COOKIE[self::VIEW_COOKIE])) : '';
+        $parts = explode(':', $cookie, 2);
+        if (count($parts) !== 2 || (int) $parts[0] !== $id) return;
+        $token = $parts[1];
         $recipient = Psc_Messages::recipient($id, $token);
         if (!$recipient) { wp_safe_redirect(Psc_Mailer::form_page_url()); exit; }
         // Un lien de message ouvert depuis un navigateur où une consultation
