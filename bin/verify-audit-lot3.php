@@ -353,6 +353,48 @@ WP_CLI::add_command('verify-audit-lot3', function () {
         }
     };
 
+    /* PRA-10 : notifications en modèles éditables ; la facture passe par le Mailer. */
+    $sections['PRA-10'] = function () use ($check, &$mails) {
+        $option = Psc_Email_Templates::OPTION;
+        $backup = get_option($option, null);
+        $keys = array('email_change', 'sepa_enabled', 'recap_mairie', 'admin_correction', 'service_closed', 'forfait_downgraded', 'cantine_cancelled', 'absence_cancelled', 'day_closed');
+        try {
+            $defaults = Psc_Email_Templates::defaults();
+            $custom = array();
+            foreach ($keys as $k) {
+                $check(isset($defaults[$k]), "PRA-10 : modèle « $k » absent");
+                $custom[$k] = array('subject' => "PERSO-$k", 'body' => "CORPS-$k");
+            }
+            update_option($option, $custom);
+            $fam = array('email' => 'pra10@example.invalid', 'nom' => 'X', 'items' => array((object) array(
+                'child_id' => 1, 'child_prenom' => 'A', 'child_nom' => 'B', 'jour_date' => '2030-01-07', 'service' => 'GM', 'remaining' => array('CANT'),
+            )));
+            $parent = (object) array('id' => 1, 'email' => 'pra10@example.invalid', 'nom' => 'X');
+            $calls = array(
+                'email_change'       => function () use ($parent) { Psc_Mailer::send_email_change_confirmation($parent, 'new@example.invalid', 'https://example.invalid/'); },
+                'sepa_enabled'       => function () use ($parent) { Psc_Mailer::send_sepa_enabled($parent); },
+                'admin_correction'   => function () use ($parent) { Psc_Mailer::send_admin_correction($parent, '2029-2030', array(), psc_services()); },
+                'service_closed'     => function () use ($fam) { Psc_Mailer::send_service_closed($fam, '2030-01-07', 'Garderie', 'Grève'); },
+                'forfait_downgraded' => function () use ($fam) { Psc_Mailer::send_forfait_downgraded($fam, '2030-01-07', 'Garderie'); },
+                'cantine_cancelled'  => function () use ($fam) { Psc_Mailer::send_cantine_cancelled($fam, '2030-01-07', 'CE1', 'Sortie'); },
+                'absence_cancelled'  => function () use ($parent) { Psc_Mailer::notify_absence_cancelled($parent, (object) array('prenom' => 'A', 'nom' => 'B'), '2030-01-07', array('GM')); },
+                'day_closed'         => function () use ($fam) { Psc_Mailer::send_closure_recap($fam, '2030-01-07', '2030-01-08', 'Grève'); },
+            );
+            foreach ($calls as $k => $call) {
+                $mails = array();
+                $call();
+                $check(count($mails) === 1, "PRA-10 : $k — " . count($mails) . ' e-mail(s)');
+                $check($mails && $mails[0]['subject'] === "PERSO-$k", "PRA-10 : $k — sujet personnalisé ignoré");
+                $check($mails && strpos((string) $mails[0]['message'], "CORPS-$k") !== false, "PRA-10 : $k — corps personnalisé ignoré");
+            }
+            $src = (string) file_get_contents(PSC_PATH . 'includes/class-psc-invoices.php');
+            $check(strpos($src, 'Psc_Mailer::send_html(') !== false && strpos($src, "'From: '") === false && strpos($src, 'wp_mail(') === false,
+                'PRA-10 : la facture contourne encore le Mailer');
+        } finally {
+            if ($backup === null) delete_option($option); else update_option($option, $backup);
+        }
+    };
+
     try {
         foreach ($sections as $name => $run) {
             $run();

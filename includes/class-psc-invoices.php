@@ -846,7 +846,6 @@ class Psc_Invoices {
         $nom         = $invoice->parent_nom ?: $invoice->parent_email;
         $month_label = self::month_label($invoice->mois);
         $commune     = get_option('blogname', __('la mairie', 'periscolaire-registration'));
-        $site_name   = wp_specialchars_decode(get_bloginfo('name'), ENT_QUOTES);
 
         $subject = Psc_Email_Templates::subject('invoice', array(
             'mois'    => $month_label,
@@ -864,31 +863,16 @@ class Psc_Invoices {
 
         $body_html =
             '<h2 style="color:#24405C;font-family:Georgia,\'Times New Roman\',serif;font-weight:bold;font-size:17px;margin:0 0 16px;padding-bottom:8px;border-bottom:1px solid #E5DCC3;">'
-            . __('Votre facture périscolaire — ', 'periscolaire-registration') . esc_html($month_label) . '</h2>'
+            /* translators: %s: mois facturé, ex. « octobre 2026 » */
+            . esc_html(sprintf(__('Votre facture périscolaire — %s', 'periscolaire-registration'), $month_label)) . '</h2>'
             . '<p style="color:#1A1A1A;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;margin:0 0 20px;">' . $body_text . '</p>'
             . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0;">'
             . '<tr><td style="background-color:#F5E7DC;border:1px solid #E5DCC3;border-left:4px solid #E08A5F;padding:16px 18px 16px 14px;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#1A1A1A;line-height:1.5;">'
-            . __('<strong>Montant total :</strong> ', 'periscolaire-registration') . number_format((float) $invoice->total, 2, ',', ' ') . ' €'
+            . '<strong>' . esc_html__('Montant total :', 'periscolaire-registration') . '</strong> ' . esc_html(number_format((float) $invoice->total, 2, ',', ' ')) . ' €'
             . '</td></tr></table>';
 
-        ob_start();
-        $title     = $subject;
-        $body_html = $body_html;
-        include PSC_PATH . 'templates/email/layout.php';
-        $html = ob_get_clean();
-
-        $headers = array(
-            'Content-Type: text/html; charset=UTF-8',
-            'From: ' . $site_name . ' <' . get_option('admin_email') . '>',
-        );
-
-        $ok = wp_mail(
-            $invoice->parent_email,
-            $subject,
-            $html,
-            $headers,
-            array($pdf_path)
-        );
+        // Mise en page, en-tête From et envoi : point unique du Mailer.
+        $ok = Psc_Mailer::send_html($invoice->parent_email, $subject, $body_html, array($pdf_path));
 
         if ($ok) {
             global $wpdb;
