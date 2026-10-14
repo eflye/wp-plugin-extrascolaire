@@ -416,7 +416,8 @@ class Psc_Conversations {
     public static function purge_old() {
         global $wpdb;
         $retention_days = max(1, (int) apply_filters('psc_conversations_retention_days', 395));
-        $cutoff = gmdate('Y-m-d H:i:s', current_time('timestamp') - $retention_days * DAY_IN_SECONDS);
+        // dernier_message_at est en heure du site : seuil dans la même horloge (PRA-14).
+        $cutoff = wp_date('Y-m-d H:i:s', time() - $retention_days * DAY_IN_SECONDS);
         $ids = $wpdb->get_col($wpdb->prepare('SELECT id FROM ' . psc_table('conversations') . ' WHERE dernier_message_at < %s', $cutoff));
         // Fichiers restés orphelins par les purges antérieures (RGPD-02).
         self::sweep_orphan_attachments(time() - $retention_days * DAY_IN_SECONDS);
@@ -531,7 +532,7 @@ class Psc_Conversations {
         $notified_column = $side === 'famille' ? 'famille_notifie_le' : 'mairie_notifie_le';
         $notified_at = $conversation->$notified_column;
         $interval = max(0, (int) apply_filters('psc_conversation_notify_interval', 15 * MINUTE_IN_SECONDS));
-        if ($notified_at && (current_time('timestamp') - strtotime($notified_at)) < $interval) return;
+        if ($notified_at && $notified_at > wp_date('Y-m-d H:i:s', time() - $interval)) return;
 
         Psc_Mailer::send_conversation_notification($conversation, $side);
         $wpdb->update(psc_table('conversations'), array($notified_column => current_time('mysql')), array('id' => (int) $conversation->id));
@@ -612,7 +613,7 @@ class Psc_Conversations {
     /** Anti double-soumission : même corps, même côté, même conversation, moins de 30 secondes. */
     private static function is_duplicate($conversation_id, $auteur_type, $corps) {
         global $wpdb;
-        $since = gmdate('Y-m-d H:i:s', current_time('timestamp') - 30);
+        $since = wp_date('Y-m-d H:i:s', time() - 30);
         return (int) $wpdb->get_var($wpdb->prepare(
             'SELECT COUNT(*) FROM ' . psc_table('conversation_messages') . '
              WHERE conversation_id=%d AND auteur_type=%s AND corps=%s AND created_at >= %s',

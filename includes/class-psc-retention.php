@@ -117,8 +117,9 @@ class Psc_Retention {
     public static function purge_departed_children($now = null) {
         global $wpdb;
         $retention_days = max(1, (int) apply_filters('psc_children_retention_days', 400));
-        $now = $now === null ? current_time('timestamp') : (int) $now;
-        $cutoff = gmdate('Y-m-d H:i:s', $now - $retention_days * DAY_IN_SECONDS);
+        $now = $now === null ? time() : (int) $now;
+        // sorti_le et date_fin sont en heure du site : seuil dans la même horloge (PRA-14).
+        $cutoff = wp_date('Y-m-d H:i:s', $now - $retention_days * DAY_IN_SECONDS);
 
         $rows = $wpdb->get_results($wpdb->prepare(
             'SELECT c.id, c.parent_id FROM ' . psc_table('children') . ' c WHERE ' . self::departed_sql(),
@@ -206,7 +207,7 @@ class Psc_Retention {
     private static function count_departed_children($now) {
         global $wpdb;
         $retention_days = max(1, (int) apply_filters('psc_children_retention_days', 400));
-        $cutoff = gmdate('Y-m-d H:i:s', (int) $now - $retention_days * DAY_IN_SECONDS);
+        $cutoff = wp_date('Y-m-d H:i:s', (int) $now - $retention_days * DAY_IN_SECONDS);
         return (int) $wpdb->get_var($wpdb->prepare(
             'SELECT COUNT(*) FROM ' . psc_table('children') . ' c WHERE ' . self::departed_sql(),
             $cutoff
