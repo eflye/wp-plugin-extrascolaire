@@ -67,6 +67,51 @@ WP_CLI::add_command('verify-audit-lot3', function () {
         }
     };
 
+    /* PRA-12 : détection commune des pages à shortcode, cache invalidé. */
+    $sections['PRA-12'] = function () use ($check) {
+        $sc = 'psc_verify_lot3_sc';
+        $opt = 'psc_verify_lot3_page_id';
+        add_shortcode($sc, '__return_empty_string'); // has_shortcode() exige un shortcode déclaré
+        delete_option($opt);
+        delete_transient('psc_page_lookup_' . $sc);
+        $page = 0;
+        try {
+            $check(psc_shortcode_page_id($sc, $opt) === 0, 'PRA-12 : page trouvée alors qu\'aucune ne porte le shortcode');
+            $check(get_transient('psc_page_lookup_' . $sc) !== false, 'PRA-12 : absence non mise en cache');
+
+            // Page publiée après coup : save_post_page vide le cache.
+            $page = (int) wp_insert_post(array('post_type' => 'page', 'post_status' => 'publish', 'post_title' => 'Verify lot3', 'post_content' => '[' . $sc . ']'));
+            $check(has_action('save_post_page', 'psc_shortcode_page_id_flush') !== false, 'PRA-12 : invalidation non branchée sur save_post_page');
+            // psc_shortcode_page_id_flush ne vide que les shortcodes connus : on simule pour le shortcode de test.
+            delete_transient('psc_page_lookup_' . $sc);
+            $check(psc_shortcode_page_id($sc, $opt) === $page, 'PRA-12 : page publiée non détectée');
+
+            // Page dépubliée : le cache est revalidé, pas servi tel quel.
+            wp_update_post(array('ID' => $page, 'post_status' => 'draft'));
+            set_transient('psc_page_lookup_' . $sc, $page, DAY_IN_SECONDS);
+            $check(psc_shortcode_page_id($sc, $opt) === 0, 'PRA-12 : page dépubliée encore servie depuis le cache');
+
+            // Option explicite prioritaire.
+            wp_update_post(array('ID' => $page, 'post_status' => 'publish'));
+            $other = (int) wp_insert_post(array('post_type' => 'page', 'post_status' => 'publish', 'post_title' => 'Verify lot3 bis', 'post_content' => 'x'));
+            update_option($opt, $other);
+            $check(psc_shortcode_page_id($sc, $opt) === $other, 'PRA-12 : option de Réglages ignorée');
+            wp_delete_post($other, true);
+
+            // Flush réel sur les shortcodes du plugin.
+            set_transient('psc_page_lookup_periscolaire_form', 999999, DAY_IN_SECONDS);
+            do_action('save_post_page', $page, get_post($page), true);
+            $check(get_transient('psc_page_lookup_periscolaire_form') === false, 'PRA-12 : save_post_page ne vide pas le cache du portail');
+            $check(Psc_Mailer::form_page_url() !== '', 'PRA-12 : form_page_url vide');
+        } finally {
+            if ($page) wp_delete_post($page, true);
+            delete_option($opt);
+            delete_transient('psc_page_lookup_' . $sc);
+            remove_shortcode($sc);
+            psc_shortcode_page_id_flush();
+        }
+    };
+
     try {
         foreach ($sections as $name => $run) {
             $run();

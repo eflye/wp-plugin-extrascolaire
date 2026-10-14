@@ -90,6 +90,30 @@ psc_admin_notice_map(array(
 <?php wp_nonce_field('psc_save_settings'); ?>
 <input type="hidden" name="action" value="psc_save_settings">
 
+<h2><?php esc_html_e('Page de l\'espace famille', 'periscolaire-registration'); ?></h2>
+<table class="form-table">
+<tr>
+<th><label for="psc-form-page"><?php esc_html_e('Page « Espace famille »', 'periscolaire-registration'); ?></label></th>
+<td>
+  <?php
+  wp_dropdown_pages(array(
+      'name'              => 'form_page_id',
+      'id'                => 'psc-form-page',
+      'selected'          => (int) get_option('psc_form_page_id', 0),
+      'show_option_none'  => __('Détection automatique (page contenant [periscolaire_form])', 'periscolaire-registration'),
+      'option_none_value' => 0,
+  ));
+  ?>
+  <p class="description">
+    <?php
+    /* translators: %s: nom du shortcode, ex. [periscolaire_form] */
+    echo esc_html(sprintf(__('Page WordPress contenant le shortcode %s, vers laquelle pointent les liens envoyés aux familles (connexion, planning, messages). Laissez sur détection automatique si une seule page utilise ce shortcode.', 'periscolaire-registration'), '[periscolaire_form]'));
+    ?>
+  </p>
+</td>
+</tr>
+</table>
+
 <h2><?php esc_html_e('Délai de modification', 'periscolaire-registration'); ?></h2>
 <p><?php esc_html_e('Au-delà de ce délai avant le jour concerné, les familles ne peuvent plus modifier leur planning en ligne, y compris via le bouton "Annulation / signalement d\'absence" du tableau de bord. La mairie, elle, reste toujours en mesure de corriger depuis ce backoffice.', 'periscolaire-registration'); ?></p>
 <table class="form-table">

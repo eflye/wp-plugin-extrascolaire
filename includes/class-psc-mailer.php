@@ -21,31 +21,13 @@ class Psc_Mailer {
         return wp_mail($recipient->email, $message->titre, self::layout($body, $message->titre), $headers);
     }
 
+    /**
+     * URL de la page famille (shortcode [periscolaire_form]) : page choisie
+     * en Réglages, sinon détectée (psc_shortcode_page_id), sinon l'accueil.
+     */
     public static function form_page_url() {
-        $id = (int) get_option('psc_form_page_id', 0);
-        if ($id && get_post_status($id) === 'publish') {
-            return get_permalink($id);
-        }
-
-        $found = get_transient('psc_form_page_lookup');
-        if ($found === false) {
-            $found = 0;
-            $pages = get_posts(array(
-                'post_type'   => 'page',
-                'post_status' => 'publish',
-                'numberposts' => 50,
-                's'           => 'periscolaire_form',
-            ));
-            foreach ($pages as $p) {
-                if (has_shortcode($p->post_content, 'periscolaire_form')) {
-                    $found = $p->ID;
-                    break;
-                }
-            }
-            set_transient('psc_form_page_lookup', $found, DAY_IN_SECONDS);
-        }
-
-        return $found ? get_permalink($found) : home_url('/');
+        $id = psc_shortcode_page_id('periscolaire_form', 'psc_form_page_id');
+        return $id ? get_permalink($id) : home_url('/');
     }
 
     protected static function site_name() {

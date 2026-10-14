@@ -25,6 +25,11 @@ class Psc_Frontend extends Psc_Frontend_Base {
         // tampon de gabarit des versions récentes de WordPress.
         add_action('template_redirect', array(__CLASS__, 'portal_private_headers'));
 
+        // Détection des pages à shortcode (psc_shortcode_page_id) : tout
+        // enregistrement de page — y compris par l'éditeur de blocs, en
+        // REST — vide le cache, pour que les liens suivent sans délai.
+        add_action('save_post_page', 'psc_shortcode_page_id_flush');
+
         // Une fois connectée, la famille n'a plus besoin du texte de
         // présentation rédigé autour du shortcode dans l'éditeur (utile
         // uniquement avant connexion, pour donner envie/expliquer) : le

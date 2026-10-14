@@ -100,6 +100,7 @@ class Psc_Admin_Config extends Psc_Admin_Base {
             update_option('psc_sidscm_intervenants', Psc_Sidscm::sanitize_intervenants($rows));
         }
         update_option('psc_sidscm_page_id', psc_post_int('sidscm_page_id', 0));
+        update_option('psc_form_page_id', psc_post_int('form_page_id', 0));
 
         $mairie_mail = isset($_POST['mairie_email']) ? sanitize_email(wp_unslash($_POST['mairie_email'])) : '';
         update_option('psc_mairie_email', is_email($mairie_mail) ? $mairie_mail : '');
