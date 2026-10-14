@@ -112,6 +112,12 @@ WP_CLI::add_command('verify-audit-lot2', function () {
             'resume' => 'Planning modifié en consultation',
         ));
         $r_imperso = $last_audit_id();
+        // Ligne historique demande.* : e-mail dans le résumé, sans famille_id.
+        Psc_Audit::log('demande.validation', array(
+            'acteur' => $agent, 'objet_type' => 'demande', 'objet_id' => 1,
+            'resume' => 'Demande de ' . $tag . 'a@example.test validée',
+        ));
+        $r_legacy = $last_audit_id();
         $wpdb->query($wpdb->prepare("UPDATE $t_audit SET ip = '192.0.2.44' WHERE id > %d", $start_id));
         $check($verify() === null, 'RGPD-04 : chaîne invalide avant oubli');
 
@@ -136,7 +142,9 @@ WP_CLI::add_command('verify-audit-lot2', function () {
         $hashes_after = $wpdb->get_results($wpdb->prepare("SELECT id, empreinte, empreinte_contenu FROM $t_audit WHERE id > %d", $start_id), OBJECT_K);
         $check($hashes_before == $hashes_after, 'PERF-05 : empreintes recalculées par l’oubli');
         $check(get_option('psc_audit_last_hash', '') === $head_before, 'PERF-05 : tête de chaîne modifiée par l’oubli');
-        $check($n === 3, "RGPD-04 forget_family : $n ligne(s) au lieu de 3 (connexion, demande, consultation)");
+        $check($n === 4, "RGPD-04 forget_family : $n ligne(s) au lieu de 4 (connexion, demande, consultation, demande historique)");
+        $r = $audit_row($r_legacy);
+        $check($r && $r->resume === psc_audit_default_resume('demande.validation'), 'RGPD-04 forget_family : ligne demande historique (sans famille_id) non anonymisée');
         $r = $audit_row($r_self);
         $check($r && $r->famille_id === null && $r->ip === null && $r->details === null, 'RGPD-04 forget_family : famille_id, IP ou détail conservés (acteur famille)');
         $check($r && strpos($r->acteur_libelle, $tag) === false, 'RGPD-04 forget_family : libellé d’acteur nominatif conservé');

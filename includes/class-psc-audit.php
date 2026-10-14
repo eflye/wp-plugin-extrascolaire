@@ -601,11 +601,24 @@ class Psc_Audit {
     public static function forget_family($family_id, array $needles = array()) {
         $family_id = (int) $family_id;
         if ($family_id <= 0) return 0;
-        $needles = array_merge($needles, self::family_needles($family_id));
+        $needles = self::clean_needles(array_merge($needles, self::family_needles($family_id)));
+
+        // Lignes historiques sans famille_id (demande.* antérieures à la
+        // convention RGPD-04) qui portent l'e-mail de la famille dans le
+        // résumé : retrouvées par l'adresse, puis anonymisées.
+        global $wpdb;
+        $where = "(famille_id = %d OR (acteur_type = 'famille' AND acteur_id = %d) OR pour_le_compte_de = %d";
+        $args = array($family_id, $family_id, $family_id);
+        $emails = array_values(array_filter($needles, 'is_email'));
+        if ($emails) {
+            $where .= ' OR (famille_id IS NULL AND (' . implode(' OR ', array_fill(0, count($emails), 'resume LIKE %s')) . '))';
+            foreach ($emails as $email) $args[] = '%' . $wpdb->esc_like($email) . '%';
+        }
+        $where .= ')';
 
         return self::forget_rows(
-            "(famille_id = %d OR (acteur_type = 'famille' AND acteur_id = %d) OR pour_le_compte_de = %d)",
-            array($family_id, $family_id, $family_id),
+            $where,
+            $args,
             $needles,
             function ($row) use ($family_id) {
                 $is_self = $row->acteur_type === 'famille' && (int) $row->acteur_id === $family_id;
