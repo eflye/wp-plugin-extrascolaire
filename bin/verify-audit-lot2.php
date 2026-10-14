@@ -287,6 +287,35 @@ WP_CLI::add_command('verify-audit-lot2', function () {
         $check((bool) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_par WHERE id = %d", $fam_g)), 'RGPD-01 : foyer actif récemment purgé à tort');
         $check(Psc_Retention::purge_childless_families($now_1991) === 0, 'RGPD-01 : deuxième passage non idempotent');
         $check($mentions($tag) === 0, 'RGPD-01 : identité écrite au journal par la purge');
+
+        /* ---------------- RGPD-05 : export complet, portée du second parent ---------------- */
+        $fam_h = $make_family('h');
+        $family_ids[] = $fam_h;
+        $wpdb->update($t_par, array('adresse' => 'AdresseTitulaire' . $tag), array('id' => $fam_h));
+        $child_h = $make_child($fam_h, 'Exp' . $tag);
+        $wpdb->update($t_child, array('food_allergies' => 'Arachide' . $tag), array('id' => $child_h));
+        $wpdb->insert(psc_table('attendance'), array('child_id' => $child_h, 'jour_date' => '1990-03-05', 'service' => 'GM', 'present' => 1, 'arrival_time' => '07:45:00', 'pointed_at' => '1990-03-05 07:45:00'));
+        $now_mysql = current_time('mysql');
+        $wpdb->insert(psc_table('conversations'), array(
+            'family_id' => $fam_h, 'sujet' => 'VerifyLot2', 'initiee_par' => 'famille',
+            'dernier_message_at' => $now_mysql, 'dernier_auteur' => 'famille', 'created_at' => $now_mysql, 'updated_at' => $now_mysql,
+        ));
+        $conv_h = (int) $wpdb->insert_id;
+        $wpdb->insert(psc_table('conversation_messages'), array('conversation_id' => $conv_h, 'auteur_type' => 'famille', 'corps' => 'Corps' . $tag, 'created_at' => $now_mysql));
+        $flatten = function ($export) {
+            $out = '';
+            foreach ($export['data'] as $item) foreach ($item['data'] as $f) $out .= $item['group_id'] . '|' . $f['value'] . "\n";
+            return $out;
+        };
+        $full = $flatten(Psc_Privacy::export_family_data($tag . 'h@example.test'));
+        $check(strpos($full, 'psc-presences|') !== false && strpos($full, '07:45') !== false, 'RGPD-05 : présences absentes de l’export');
+        $check(strpos($full, 'Arachide' . $tag) !== false, 'RGPD-05 : contenu des allergies absent de l’export');
+        $check(strpos($full, 'Corps' . $tag) !== false, 'RGPD-05 : contenu des messages absent de l’export');
+        $second_export = $flatten(Psc_Privacy::export_family_data('second' . $tag . 'h@example.test'));
+        $check(strpos($second_export, 'AdresseTitulaire' . $tag) === false && strpos($second_export, $tag . 'h@example.test|') === false, 'RGPD-05 : export du second parent avec les coordonnées du titulaire');
+        $check(strpos($second_export, 'Exp' . $tag) !== false && strpos($second_export, 'second' . $tag . 'h@example.test') !== false, 'RGPD-05 : export du second parent sans ses données ou sans les enfants');
+        Psc_Conversations::delete_for_family($fam_h);
+        Psc_Admin_Familles::purge_child($child_h);
     } finally {
         foreach ($family_ids as $fid) {
             $wpdb->delete($t_child, array('parent_id' => $fid), array('%d'));
