@@ -42,6 +42,10 @@ class Psc_Sidscm {
         // du thème n'a pas sa place ici, ni au tout premier écran de code.
         add_filter('the_content', array(__CLASS__, 'hide_page_chrome'), 20);
         add_filter('body_class', array(__CLASS__, 'add_body_class'));
+        // En-têtes privés émis avant tout rendu (PRA-09) : depuis le
+        // shortcode, ils partaient trop tard sur un WordPress sans tampon
+        // de gabarit.
+        add_action('template_redirect', array(__CLASS__, 'private_headers'));
 
         add_action('wp_ajax_nopriv_psc_sidscm_unlock', array(__CLASS__, 'ajax_unlock'));
         add_action('wp_ajax_psc_sidscm_unlock', array(__CLASS__, 'ajax_unlock'));
@@ -101,6 +105,13 @@ class Psc_Sidscm {
         return $post && has_shortcode($post->post_content, 'periscolaire_sidscm');
     }
 
+    /** template_redirect : en-têtes privés sur la page de l'écran intervenants. */
+    public static function private_headers() {
+        if (self::page_has_shortcode()) {
+            Psc_Frontend::send_private_headers();
+        }
+    }
+
     public static function hide_page_chrome($content) {
         if (!self::page_has_shortcode()) return $content;
         return self::shortcode(array());
@@ -117,13 +128,10 @@ class Psc_Sidscm {
         // Listes nominatives + allergies + coordonnées de tiers : mêmes
         // en-têtes anti-intermédiaires que le portail famille (cf.
         // Psc_Frontend::shortcode()), et le code d'accès passe dans le
-        // rendu initial.
-        if (!headers_sent()) {
-            header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0', true);
-            header('Pragma: no-cache', true);
-            header('Expires: Wed, 11 Jan 1984 05:00:00 GMT', true);
-        }
-        nocache_headers();
+        // rendu initial. Émis normalement sur template_redirect
+        // (private_headers()) ; ici, filet pour un shortcode placé hors
+        // d'une page singulière (sans effet si les en-têtes sont partis).
+        Psc_Frontend::send_private_headers();
 
         ob_start();
         include PSC_PATH . 'templates/sidscm.php';
