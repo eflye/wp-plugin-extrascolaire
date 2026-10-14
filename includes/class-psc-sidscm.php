@@ -62,35 +62,15 @@ class Psc_Sidscm {
     /**
      * ID de la page "Accès intervenants" — d'abord la page choisie en
      * Réglages (psc_sidscm_page_id), sinon la première page publiée
-     * portant le shortcode [periscolaire_sidscm] (même stratégie de
-     * repli que Psc_Mailer::form_page_url() pour la page famille). 0 si
-     * rien n'est configuré ni détectable.
+     * portant le shortcode [periscolaire_sidscm] (même helper que
+     * Psc_Mailer::form_page_url() pour la page famille). 0 si rien n'est
+     * configuré ni détectable.
      */
     public static function page_id() {
-        $id = (int) get_option('psc_sidscm_page_id', 0);
-        if ($id && get_post_status($id) === 'publish') {
-            return $id;
-        }
-
-        $found = get_transient('psc_sidscm_page_lookup');
-        if ($found === false) {
-            $found = 0;
-            $pages = get_posts(array(
-                'post_type'   => 'page',
-                'post_status' => 'publish',
-                'numberposts' => 50,
-                's'           => 'periscolaire_sidscm',
-            ));
-            foreach ($pages as $p) {
-                if (has_shortcode($p->post_content, 'periscolaire_sidscm')) {
-                    $found = $p->ID;
-                    break;
-                }
-            }
-            set_transient('psc_sidscm_page_lookup', $found, DAY_IN_SECONDS);
-        }
-
-        return (int) $found;
+        // Recherche commune avec la page du portail (PRA-12) : option des
+        // Réglages, sinon détection mise en cache et invalidée à chaque
+        // enregistrement de page.
+        return psc_shortcode_page_id('periscolaire_sidscm', 'psc_sidscm_page_id');
     }
 
     /** URL de la page "Accès intervenants", ou l'accueil du site si introuvable. */
