@@ -479,6 +479,93 @@ WP_CLI::add_command('verify-audit-lot3', function () {
         $check($wpdb->num_queries === $q + 1, 'PERF-06 : écriture sur menus sans invalidation');
     };
 
+    /* PERF-09 : brouillon inchangé non reconstruit ; facture envoyée jamais recalculée. */
+    $sections['PERF-09'] = function () use ($check) {
+        global $wpdb;
+        $t_par = psc_table('parents');
+        $t_ch  = psc_table('children');
+        $t_inv = psc_table('invoices');
+        $email = 'verify-lot3-perf09@example.invalid';
+        $year_key = '2083-2084';
+        $mois = '2083-10';
+        $purge = function () use ($wpdb, $email, $t_par, $t_ch, $t_inv, $year_key) {
+            $pid = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM $t_par WHERE email = %s", $email));
+            if ($pid) {
+                foreach ((array) $wpdb->get_results($wpdb->prepare("SELECT id, pdf_path FROM $t_inv WHERE parent_id = %d", $pid)) as $inv) {
+                    if ($inv->pdf_path) @unlink(psc_private_path($inv->pdf_path)); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+                    foreach ((array) $wpdb->get_col($wpdb->prepare('SELECT pdf_path FROM ' . psc_table('invoice_versions') . ' WHERE invoice_id = %d', $inv->id)) as $p) {
+                        if ($p) @unlink(psc_private_path($p)); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+                    }
+                    $wpdb->delete(psc_table('invoice_versions'), array('invoice_id' => (int) $inv->id));
+                }
+                $wpdb->delete($t_inv, array('parent_id' => $pid));
+                foreach ($wpdb->get_col($wpdb->prepare("SELECT id FROM $t_ch WHERE parent_id = %d", $pid)) as $cid) {
+                    Psc_Planning::delete_for_child((int) $cid);
+                    $wpdb->delete(psc_table('child_school_years'), array('child_id' => (int) $cid));
+                }
+                $wpdb->delete($t_ch, array('parent_id' => $pid));
+                $wpdb->delete($t_par, array('id' => $pid));
+            }
+            $year = Psc_School_Years::get_by_key($year_key);
+            if ($year && $year->statut !== 'active') Psc_School_Years::delete((int) $year->id);
+            Psc_Planning::flush_cache();
+        };
+        $purge();
+        try {
+            $y = Psc_School_Years::ensure('2083-09-03', '2084-07-03');
+            Psc_School_Year::save($year_key, '2083-09-03', '2084-07-03', '[]', 48);
+            $pid = (int) Psc_Parents::create($email, 'Perf09');
+            $wpdb->insert($t_ch, array('parent_id' => $pid, 'nom' => 'Perf09', 'prenom' => 'Enfant', 'created_at' => current_time('mysql')));
+            $cid = (int) $wpdb->insert_id;
+            Psc_School_Years::enroll($cid, $y, 'CE1');
+            Psc_Planning::toggle_pattern($cid, $year_key, 1, 'GM', true);
+            Psc_Planning::flush_cache();
+
+            $id = Psc_Invoices::generate_one($pid, $mois);
+            $check(!is_wp_error($id), 'PERF-09 : brouillon non généré ' . (is_wp_error($id) ? $id->get_error_code() : ''));
+            if (is_wp_error($id)) return;
+            $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_inv WHERE id = %d", $id));
+            $pdf = psc_private_path($row->pdf_path);
+            clearstatcache();
+            $mtime = filemtime($pdf);
+            touch($pdf, $mtime - 100);
+            clearstatcache();
+
+            // generate_month() : même résultat, sans reconstruire le PDF inchangé.
+            $q = $wpdb->num_queries;
+            Psc_Invoices::generate_month($mois);
+            clearstatcache();
+            $check(filemtime($pdf) === $mtime - 100, 'PERF-09 : PDF d\'un brouillon inchangé reconstruit');
+            $row2 = $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_inv WHERE id = %d", $id));
+            $check($row2->lines_json === $row->lines_json && $row2->created_at === $row->created_at, 'PERF-09 : brouillon inchangé réécrit');
+
+            // Destinataire modifié : le PDF du brouillon est reconstruit.
+            $wpdb->update($t_par, array('adresse' => '1 rue du Test'), array('id' => $pid));
+            Psc_Invoices::generate_one($pid, $mois);
+            clearstatcache();
+            $check(filemtime($pdf) !== $mtime - 100, 'PERF-09 : adresse modifiée, PDF du brouillon non reconstruit');
+
+            // Facture envoyée : jamais réécrite si rien ne change.
+            $wpdb->update($t_inv, array('sent_at' => current_time('mysql')), array('id' => $id));
+            $sent = $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_inv WHERE id = %d", $id));
+            touch($pdf, $mtime - 200);
+            $wpdb->update($t_par, array('adresse' => '2 rue du Test'), array('id' => $pid));
+            Psc_Invoices::generate_one($pid, $mois);
+            clearstatcache();
+            $after = $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_inv WHERE id = %d", $id));
+            $check($after == $sent && filemtime($pdf) === $mtime - 200, 'PERF-09 : facture envoyée réécrite alors que le calcul est inchangé');
+
+            // Préchargement du calendrier : une seconde fois sans requête.
+            $days = Psc_School_Year::school_days_in_month($mois);
+            Psc_School_Calendar::preload_closed($days);
+            $q = $wpdb->num_queries;
+            Psc_School_Calendar::preload_closed($days);
+            $check($wpdb->num_queries === $q, 'PERF-09 : preload_closed relit des dates déjà en cache');
+        } finally {
+            $purge();
+        }
+    };
+
     try {
         foreach ($sections as $name => $run) {
             $run();

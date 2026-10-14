@@ -87,9 +87,11 @@ class Psc_Invoices {
             }
         }
 
+        // La résolution du mois, déjà faite pour tous les enfants, est
+        // transmise à generate_one() : pas de seconde résolution par famille.
         $count = 0;
         foreach (array_keys($parent_ids) as $parent_id) {
-            $result = self::generate_one((int) $parent_id, $mois);
+            $result = self::generate_one((int) $parent_id, $mois, $declared);
             if (!is_wp_error($result)) {
                 $count++;
             }
@@ -102,8 +104,14 @@ class Psc_Invoices {
      * La génération et l'envoi sont décorrelés : régénérer remplace le
      * calcul et le PDF mais conserve le statut d'envoi existant.
      * Retourne l'ID de la facture en base, ou WP_Error.
+     *
+     * @param int        $parent_id
+     * @param string     $mois         AAAA-MM
+     * @param array|null $declared_all Résolution du mois déjà calculée
+     *                                 (declared_map de generate_month()),
+     *                                 dont on prend la tranche de la famille.
      */
-    public static function generate_one($parent_id, $mois) {
+    public static function generate_one($parent_id, $mois, $declared_all = null) {
         global $wpdb;
 
         $parent = $wpdb->get_row($wpdb->prepare(
@@ -130,7 +138,14 @@ class Psc_Invoices {
         // de facturation unique (psc_billing_services).
         $child_ids = array_map(function ($c) { return (int) $c->id; }, $children);
         $dates = Psc_School_Year::school_days_in_month($mois);
-        $declared = $dates ? Psc_Planning::declared_map($child_ids, $dates) : array();
+        if (is_array($declared_all)) {
+            $declared = array();
+            foreach ($child_ids as $cid) {
+                if (isset($declared_all[$cid])) $declared[$cid] = $declared_all[$cid];
+            }
+        } else {
+            $declared = $dates ? Psc_Planning::declared_map($child_ids, $dates) : array();
+        }
 
         $t_inv    = psc_table('invoices');
         $existing = $wpdb->get_row($wpdb->prepare(
@@ -196,6 +211,10 @@ class Psc_Invoices {
         // et statut « sans repas » de chaque enfant. C'est lui, et non les
         // réglages courants, qui dira demain ce que portait la facture.
         $snapshot = self::build_snapshot($children, $grid, $lines, $flags, $total, $regle);
+        // Empreinte de ce que le PDF affiche en plus du calcul (destinataire,
+        // en-tête de la mairie) : hors signature, elle ne sert qu'à décider
+        // si un brouillon inchangé doit être reconstruit.
+        $snapshot['pdf'] = self::pdf_fingerprint($parent, $children);
 
         $version = 1;
         if ($existing) {
@@ -208,6 +227,14 @@ class Psc_Invoices {
             // même le PDF — son en-tête porte la date du jour, le régénérer
             // modifierait un document déjà remis à la famille.
             if ($issued && !$changed) {
+                return $invoice_id;
+            }
+
+            // Brouillon inchangé (calcul, destinataire, en-tête) dont le PDF
+            // existe : rien à réécrire ni à reconstruire (PERF-09).
+            if (!$issued && !$changed && !empty($existing->pdf_path)
+                && self::stored_pdf_fingerprint($existing) === $snapshot['pdf']
+                && file_exists(psc_private_path($existing->pdf_path))) {
                 return $invoice_id;
             }
 
@@ -363,6 +390,34 @@ class Psc_Invoices {
             'lignes'    => $lignes,
             'total'     => round((float) $total, 2),
         );
+    }
+
+    /**
+     * Empreinte (HMAC, aucune donnée lisible) des éléments du PDF qui ne
+     * figurent pas dans le calcul : coordonnées de la famille, noms des
+     * enfants, en-tête et pied de la mairie.
+     */
+    private static function pdf_fingerprint($parent, $children) {
+        $kids = array();
+        foreach ($children as $c) $kids[] = array((int) $c->id, (string) $c->nom, (string) $c->prenom);
+        $org = array();
+        foreach (array('psc_billing_org_intro', 'psc_billing_org_name', 'psc_billing_org_address', 'psc_billing_org_phone', 'psc_billing_org_fax',
+                       'psc_billing_org_email', 'psc_billing_org_city', 'psc_billing_footer', 'psc_billing_logo_left_id', 'psc_billing_logo_right_id') as $opt) {
+            $org[$opt] = (string) get_option($opt, '');
+        }
+        $data = array(
+            'famille' => array((string) ($parent->nom ?? ''), (string) ($parent->email ?? ''), (string) ($parent->adresse ?? ''),
+                               (string) ($parent->code_postal ?? ''), (string) ($parent->ville ?? ''), (string) ($parent->payment_mode ?? '')),
+            'enfants' => $kids,
+            'mairie'  => $org,
+        );
+        return substr(hash_hmac('sha256', (string) wp_json_encode($data), wp_salt('auth')), 0, 32);
+    }
+
+    /** Empreinte PDF enregistrée avec l'instantané d'une facture ('' si absente). */
+    private static function stored_pdf_fingerprint($existing) {
+        $decoded = json_decode((string) ($existing->lines_json ?? ''), true);
+        return is_array($decoded) && isset($decoded['pdf']) ? (string) $decoded['pdf'] : '';
     }
 
     /**

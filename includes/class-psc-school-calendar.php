@@ -122,7 +122,11 @@ class Psc_School_Calendar {
      * cache que is_closed() ; les lectures suivantes n'interrogent plus la base.
      */
     public static function preload_closed($dates) {
-        $dates = array_values(array_unique(array_filter((array) $dates)));
+        // Seules les dates absentes du cache sont lues : un second
+        // préchargement du même mois ne coûte plus de requête.
+        $dates = array_values(array_filter(array_unique(array_filter((array) $dates)), function ($d) {
+            return !isset(self::$closed_cache[$d]);
+        }));
         if (!$dates) return;
         global $wpdb;
         $t = psc_table('school_calendar');
