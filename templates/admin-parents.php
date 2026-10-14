@@ -100,6 +100,12 @@ if (current_user_can('psc_manage_billing')): ?>
 <tr><th><label for="psc-edit-sepa-bic"><?php esc_html_e('BIC', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-edit-sepa-bic" type="text" name="sepa_bic" class="regular-text" maxlength="11"
     value="<?php echo esc_attr($edit_parent->sepa_bic ?? ''); ?>" placeholder="XXXXFRPPXXX"></td></tr>
+<?php if ($psc_masked_iban !== '' || !empty($edit_parent->sepa_bic) || !empty($edit_parent->sepa_titulaire)): ?>
+<tr><th scope="row"><?php esc_html_e('Suppression', 'periscolaire-registration'); ?></th>
+<td><input type="checkbox" id="psc-edit-sepa-supprimer" name="sepa_supprimer" value="1" aria-describedby="psc-edit-sepa-supprimer-help">
+<label for="psc-edit-sepa-supprimer"><?php esc_html_e('Supprimer les coordonnées bancaires', 'periscolaire-registration'); ?></label>
+<p class="description" id="psc-edit-sepa-supprimer-help"><?php esc_html_e('Efface l’IBAN, le BIC, le titulaire et son adresse, et repasse la famille en paiement par chèque ou espèces. Les champs bancaires ci-dessus sont alors ignorés.', 'periscolaire-registration'); ?></p></td></tr>
+<?php endif; ?>
 <?php else: ?>
 <tr><th scope="row"><?php esc_html_e('Prélèvement SEPA', 'periscolaire-registration'); ?></th>
 <td>

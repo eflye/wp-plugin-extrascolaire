@@ -496,7 +496,7 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         // demande (déjà validée à la source) — la rejeter là rendrait des
         // demandes légitimes inapprovables. Facultatif : seules les valeurs
         // renseignées sont contrôlées.
-        foreach (array(psc_post('code_postal'), current_user_can('psc_manage_billing') ? psc_post('sepa_code_postal') : '') as $psc_edit_cp) {
+        foreach (array(psc_post('code_postal'), current_user_can('psc_manage_billing') && empty($_POST['sepa_supprimer']) ? psc_post('sepa_code_postal') : '') as $psc_edit_cp) {
             if ($psc_edit_cp !== '' && !psc_valid_postcode($psc_edit_cp)) {
                 self::redirect('psc_parents', 'bad_code_postal');
             }
@@ -509,20 +509,7 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
             'ville'            => psc_post('ville'),
             'payment_mode'     => psc_post('payment_mode'),
         );
-        // Données bancaires : habilitation « Facturation » seule (RGPD-07).
-        // L'IBAN n'est jamais pré-rempli : un champ vide le laisse inchangé.
-        if (current_user_can('psc_manage_billing')) {
-            $data += array(
-                'sepa_titulaire'   => psc_post('sepa_titulaire'),
-                'sepa_adresse'     => psc_post('sepa_adresse'),
-                'sepa_code_postal' => psc_post('sepa_code_postal'),
-                'sepa_ville'       => psc_post('sepa_ville'),
-                'sepa_country'     => psc_post('sepa_country', 'FR'),
-                'sepa_bic'         => psc_post('sepa_bic'),
-            );
-            $psc_new_iban = trim(sanitize_text_field(wp_unslash($_POST['sepa_iban'] ?? '')));
-            if ($psc_new_iban !== '') $data['sepa_iban'] = $psc_new_iban;
-        }
+        $data = array_merge($data, self::bank_fields_from_request(current_user_can('psc_manage_billing')));
         $result = Psc_Parents::update($id, $data);
         if (is_wp_error($result)) {
             wp_safe_redirect(add_query_arg(
@@ -532,6 +519,42 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
             exit;
         }
         self::redirect('psc_parents', 'updated');
+    }
+
+    /**
+     * Champs bancaires du formulaire d'édition d'une famille (RGPD-07) :
+     * rien sans l'habilitation « Facturation » ($can_billing). L'IBAN n'est
+     * jamais pré-rempli : un champ vide le laisse inchangé ; la case
+     * « Supprimer les coordonnées bancaires » vide IBAN, BIC, titulaire et
+     * adresse SEPA et repasse le foyer hors prélèvement. Le journal
+     * (famille.modification) n'en garde que l'IBAN masqué.
+     *
+     * @return array Champs à passer à Psc_Parents::update().
+     */
+    public static function bank_fields_from_request($can_billing) {
+        if (!$can_billing) return array();
+        if (!empty($_POST['sepa_supprimer'])) {
+            return array(
+                'payment_mode'     => 'autre',
+                'sepa_iban'        => '',
+                'sepa_bic'         => '',
+                'sepa_titulaire'   => '',
+                'sepa_adresse'     => '',
+                'sepa_code_postal' => '',
+                'sepa_ville'       => '',
+            );
+        }
+        $fields = array(
+            'sepa_titulaire'   => psc_post('sepa_titulaire'),
+            'sepa_adresse'     => psc_post('sepa_adresse'),
+            'sepa_code_postal' => psc_post('sepa_code_postal'),
+            'sepa_ville'       => psc_post('sepa_ville'),
+            'sepa_country'     => psc_post('sepa_country', 'FR'),
+            'sepa_bic'         => psc_post('sepa_bic'),
+        );
+        $new_iban = trim(sanitize_text_field(wp_unslash($_POST['sepa_iban'] ?? '')));
+        if ($new_iban !== '') $fields['sepa_iban'] = $new_iban;
+        return $fields;
     }
 
     public static function page_parents() {

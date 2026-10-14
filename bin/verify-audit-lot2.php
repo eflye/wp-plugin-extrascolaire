@@ -316,6 +316,29 @@ WP_CLI::add_command('verify-audit-lot2', function () {
         $check(strpos($second_export, 'Exp' . $tag) !== false && strpos($second_export, 'second' . $tag . 'h@example.test') !== false, 'RGPD-05 : export du second parent sans ses données ou sans les enfants');
         Psc_Conversations::delete_for_family($fam_h);
         Psc_Admin_Familles::purge_child($child_h);
+
+        /* ---------------- RGPD-07 : suppression explicite de l'IBAN ---------------- */
+        $iban = 'FR7630006000011234567890189';
+        $fam_i = $make_family('i');
+        $family_ids[] = $fam_i;
+        $wpdb->update($t_par, array('payment_mode' => 'prelevement', 'sepa_iban' => psc_encrypt($iban), 'sepa_bic' => 'AGRIFRPP882', 'sepa_titulaire' => 'Titulaire' . $tag, 'sepa_adresse' => '1 rue ' . $tag), array('id' => $fam_i));
+        $parent_i = function () use ($wpdb, $t_par, $fam_i) {
+            return $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_par WHERE id = %d", $fam_i));
+        };
+        $saved_post = $_POST;
+        $_POST = array('sepa_supprimer' => '1', 'sepa_iban' => '');
+        $check(Psc_Admin_Familles::bank_fields_from_request(false) === array(), 'RGPD-07 : suppression acceptée sans habilitation Facturation');
+        Psc_Parents::update($fam_i, Psc_Admin_Familles::bank_fields_from_request(false));
+        $check(psc_read_iban($parent_i()) === $iban, 'RGPD-07 : IBAN modifié sans habilitation Facturation');
+        $_POST = array('sepa_iban' => '');
+        Psc_Parents::update($fam_i, Psc_Admin_Familles::bank_fields_from_request(true));
+        $check(psc_read_iban($parent_i()) === $iban, 'RGPD-07 : champ IBAN vide a effacé l’IBAN');
+        $_POST = array('sepa_supprimer' => '1', 'sepa_iban' => 'DE89370400440532013000');
+        $res = Psc_Parents::update($fam_i, Psc_Admin_Familles::bank_fields_from_request(true));
+        $_POST = $saved_post;
+        $p = $parent_i();
+        $check(!is_wp_error($res) && psc_read_iban($p) === '' && empty($p->sepa_bic) && empty($p->sepa_titulaire) && empty($p->sepa_adresse) && $p->payment_mode === 'autre', 'RGPD-07 : coordonnées bancaires non supprimées');
+        $check($mentions($iban) === 0 && $mentions('Titulaire' . $tag) === 0, 'RGPD-07 : IBAN complet ou titulaire écrit au journal');
     } finally {
         foreach ($family_ids as $fid) {
             $wpdb->delete($t_child, array('parent_id' => $fid), array('%d'));
