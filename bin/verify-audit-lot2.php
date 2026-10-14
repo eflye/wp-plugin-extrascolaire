@@ -192,6 +192,36 @@ WP_CLI::add_command('verify-audit-lot2', function () {
         $check(is_array($res) && $res['children_purged'] === 1, 'RGPD-04 delete_family : enfant non purgé');
         $check($mentions($tag) === 0, 'RGPD-04 delete_family : identité écrite au journal');
         $check($verify() === null, 'RGPD-04 delete_family : chaîne invalide');
+
+        /* ---------------- RGPD-02 : pièces jointes des échanges ---------------- */
+        $fam_c = $make_family('c');
+        $family_ids[] = $fam_c;
+        $now_mysql = current_time('mysql');
+        $wpdb->insert(psc_table('conversations'), array(
+            'family_id' => $fam_c, 'sujet' => 'VerifyLot2', 'initiee_par' => 'famille',
+            'dernier_message_at' => $now_mysql, 'dernier_auteur' => 'famille', 'created_at' => $now_mysql, 'updated_at' => $now_mysql,
+        ));
+        $conv_id = (int) $wpdb->insert_id;
+        $rel_dir = 'conversations/verify-lot2-' . $tag;
+        wp_mkdir_p(psc_private_path($rel_dir));
+        $attached = $rel_dir . '/piece.pdf';
+        $orphan = $rel_dir . '/orphelin.pdf';
+        $recent_orphan = $rel_dir . '/recent.pdf';
+        foreach (array($attached, $orphan, $recent_orphan) as $rel) file_put_contents(psc_private_path($rel), '%PDF-1.4 verify');
+        $wpdb->insert(psc_table('conversation_messages'), array(
+            'conversation_id' => $conv_id, 'auteur_type' => 'famille', 'corps' => 'VerifyLot2',
+            'piece_jointe_path' => $attached, 'piece_jointe_nom' => 'piece.pdf', 'piece_jointe_taille' => 15, 'created_at' => $now_mysql,
+        ));
+        Psc_Conversations::delete_for_family($fam_c);
+        $check(!file_exists(psc_private_path($attached)), 'RGPD-02 : pièce jointe conservée après suppression des échanges de la famille');
+        $check(!$wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM ' . psc_table('conversation_messages') . ' WHERE conversation_id = %d', $conv_id)), 'RGPD-02 : messages conservés');
+        // Orphelin ancien supprimé, orphelin récent conservé (dépôt en cours).
+        touch(psc_private_path($orphan), 978307200); // 01/01/2001
+        $swept = Psc_Conversations::sweep_orphan_attachments(978393600); // 02/01/2001 : ne vise que la fixture
+        $check($swept === 1 && !file_exists(psc_private_path($orphan)), 'RGPD-02 : orphelin ancien non supprimé');
+        $check(file_exists(psc_private_path($recent_orphan)), 'RGPD-02 : fichier récent supprimé à tort');
+        @unlink(psc_private_path($recent_orphan));
+        @rmdir(psc_private_path($rel_dir));
     } finally {
         foreach ($family_ids as $fid) {
             $wpdb->delete($t_child, array('parent_id' => $fid), array('%d'));

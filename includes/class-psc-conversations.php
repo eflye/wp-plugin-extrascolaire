@@ -402,6 +402,7 @@ class Psc_Conversations {
         $family_id = absint($family_id);
         $ids = $wpdb->get_col($wpdb->prepare('SELECT id FROM ' . psc_table('conversations') . ' WHERE family_id=%d', $family_id));
         if ($ids) {
+            self::unlink_attachments($ids);
             $placeholders = implode(',', array_fill(0, count($ids), '%d'));
             $wpdb->query($wpdb->prepare('DELETE FROM ' . psc_table('conversation_messages') . " WHERE conversation_id IN ($placeholders)", $ids));
         }
@@ -417,7 +418,10 @@ class Psc_Conversations {
         $retention_days = max(1, (int) apply_filters('psc_conversations_retention_days', 395));
         $cutoff = gmdate('Y-m-d H:i:s', current_time('timestamp') - $retention_days * DAY_IN_SECONDS);
         $ids = $wpdb->get_col($wpdb->prepare('SELECT id FROM ' . psc_table('conversations') . ' WHERE dernier_message_at < %s', $cutoff));
+        // Fichiers restés orphelins par les purges antérieures (RGPD-02).
+        self::sweep_orphan_attachments(time() - $retention_days * DAY_IN_SECONDS);
         if (!$ids) return 0;
+        self::unlink_attachments($ids);
         $placeholders = implode(',', array_fill(0, count($ids), '%d'));
         $wpdb->query($wpdb->prepare('DELETE FROM ' . psc_table('conversation_messages') . " WHERE conversation_id IN ($placeholders)", $ids));
         $wpdb->query($wpdb->prepare('DELETE FROM ' . psc_table('conversations') . " WHERE id IN ($placeholders)", $ids));
@@ -429,6 +433,61 @@ class Psc_Conversations {
         ));
 
         return count($ids);
+    }
+
+    /**
+     * Supprime du disque les pièces jointes des conversations données
+     * (RGPD-02). À appeler AVANT la suppression des lignes de messages,
+     * qui portent les chemins. Seuls les chemins sous conversations/ du
+     * répertoire privé sont visés.
+     *
+     * @param int[] $conversation_ids
+     * @return int Nombre de fichiers supprimés.
+     */
+    public static function unlink_attachments(array $conversation_ids) {
+        global $wpdb;
+        $conversation_ids = array_values(array_filter(array_map('absint', $conversation_ids)));
+        if (!$conversation_ids) return 0;
+        $placeholders = implode(',', array_fill(0, count($conversation_ids), '%d'));
+        $paths = $wpdb->get_col($wpdb->prepare(
+            'SELECT piece_jointe_path FROM ' . psc_table('conversation_messages')
+            . " WHERE conversation_id IN ($placeholders) AND piece_jointe_path IS NOT NULL AND piece_jointe_path <> ''",
+            $conversation_ids
+        ));
+        $removed = 0;
+        foreach ($paths as $rel_path) {
+            if (strpos((string) $rel_path, 'conversations/') !== 0) continue;
+            $abs = psc_private_path($rel_path);
+            if ($abs && is_file($abs) && @unlink($abs)) $removed++; // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        }
+        return $removed;
+    }
+
+    /**
+     * Fichiers de conversations/ que plus aucun message ne référence et
+     * plus anciens que $before (horodatage Unix) : reliquat des purges et
+     * suppressions de famille antérieures à RGPD-02. Le délai évite de
+     * toucher un dépôt en cours d'enregistrement.
+     *
+     * @return int Nombre de fichiers supprimés.
+     */
+    public static function sweep_orphan_attachments($before) {
+        global $wpdb;
+        $root = psc_private_path('conversations');
+        if (!$root || !is_dir($root)) return 0;
+        $known = array_flip($wpdb->get_col(
+            'SELECT piece_jointe_path FROM ' . psc_table('conversation_messages') . " WHERE piece_jointe_path IS NOT NULL AND piece_jointe_path <> ''"
+        ));
+        $root = wp_normalize_path($root);
+        $removed = 0;
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS));
+        foreach ($iterator as $file) {
+            if (!$file->isFile() || $file->getMTime() >= (int) $before) continue;
+            $rel = 'conversations/' . ltrim(substr(wp_normalize_path($file->getPathname()), strlen($root)), '/');
+            if (isset($known[$rel]) || $file->getFilename()[0] === '.' || $file->getExtension() === 'php') continue;
+            if (@unlink($file->getPathname())) $removed++; // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        }
+        return $removed;
     }
 
     public static function handle_purge_cron() {
