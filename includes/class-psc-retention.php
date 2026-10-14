@@ -45,8 +45,18 @@ class Psc_Retention {
     }
 
     public static function init() {
-        add_action('psc_purge_departed_children', array(__CLASS__, 'purge_departed_children'));
+        add_action('psc_purge_departed_children', array(__CLASS__, 'handle_purge_cron'), 10, 0);
         self::ensure_crons();
+    }
+
+    /**
+     * Tâche quotidienne : enfants sortis, puis foyers sans enfant — un foyer
+     * vidé de son dernier enfant suit la même horloge, à partir de sa
+     * dernière activité (RGPD-01).
+     */
+    public static function handle_purge_cron() {
+        self::purge_departed_children();
+        self::purge_childless_families();
     }
 
     public static function ensure_crons() {
@@ -97,6 +107,62 @@ class Psc_Retention {
         return count($rows);
     }
 
+    /**
+     * Foyers sans enfant et sans activité depuis la durée de conservation
+     * des enfants (RGPD-01) : supprimés par Psc_Admin_Familles::delete_family(),
+     * qui anonymise la fiche au lieu de la supprimer tant qu'il reste une
+     * facture (jamais réécrite ni supprimée). L'activité est la plus
+     * récente de : création, dernière connexion, dernière facture
+     * (création ou envoi), dernier message échangé. Un foyer déjà anonymisé
+     * n'est plus examiné. Au plus $limit foyers par passage.
+     *
+     * @return int Nombre de foyers traités.
+     */
+    public static function purge_childless_families($now = null, $limit = 200) {
+        global $wpdb;
+        $retention_days = max(1, (int) apply_filters('psc_children_retention_days', 400));
+        $now = $now === null ? time() : (int) $now;
+        // Colonnes en heure du site (current_time('mysql')) : seuil dans la même horloge.
+        $cutoff = wp_date('Y-m-d H:i:s', $now - $retention_days * DAY_IN_SECONDS);
+
+        $ids = $wpdb->get_col($wpdb->prepare(self::childless_families_sql() . ' LIMIT %d', $cutoff, max(1, (int) $limit)));
+        $done = 0;
+        foreach ($ids as $id) {
+            $result = Psc_Admin_Familles::delete_family((int) $id);
+            if ($result === null) continue;
+            $done++;
+            Psc_Audit::log('systeme.purge', array(
+                'objet_type' => 'famille',
+                'objet_id'   => (int) $id,
+                'meta'       => array('portee' => 'foyer_sans_enfant', 'factures_conservees' => (int) $result['invoices_retained']),
+                'resume'     => sprintf(
+                    /* translators: 1: identifiant de la famille, 2: durée de conservation en jours */
+                    __('Famille #%1$d sans enfant purgée automatiquement (aucune activité depuis plus de %2$d jours).', 'periscolaire-registration'),
+                    (int) $id, $retention_days
+                ),
+            ));
+        }
+        return $done;
+    }
+
+    /** Requête des foyers à purger (placeholder %s : seuil d'activité, heure du site). */
+    private static function childless_families_sql() {
+        $t_par  = psc_table('parents');
+        $t_ch   = psc_table('children');
+        $t_inv  = psc_table('invoices');
+        $t_conv = psc_table('conversations');
+        return "SELECT p.id FROM $t_par p
+            WHERE NOT EXISTS (SELECT 1 FROM $t_ch c WHERE c.parent_id = p.id)
+              AND p.email NOT LIKE 'famille-supprimee-%%'
+              AND GREATEST(
+                    p.created_at,
+                    COALESCE(p.last_login, '1000-01-01'),
+                    COALESCE((SELECT MAX(GREATEST(i.created_at, COALESCE(i.sent_at, '1000-01-01'))) FROM $t_inv i WHERE i.parent_id = p.id), '1000-01-01'),
+                    COALESCE((SELECT MAX(cv.dernier_message_at) FROM $t_conv cv WHERE cv.family_id = p.id), '1000-01-01')
+                  ) < %s
+            ORDER BY p.id";
+    }
+
     private static function count_departed_children($now) {
         global $wpdb;
         $retention_days = max(1, (int) apply_filters('psc_children_retention_days', 400));
@@ -112,18 +178,20 @@ class Psc_Retention {
      * n'est inscrit ni à l'année active ni à celle en préparation, et
      * l'horloge de conservation — la plus récente de sa dernière sortie en
      * cours d'année et de la fin de la dernière année où il était inscrit —
-     * est dépassée. Un enfant sans aucune ligne d'année n'a pas d'horloge :
-     * il n'est jamais purgé automatiquement.
+     * est dépassée. Un enfant sans aucune ligne d'année datée (ajouté hors
+     * année active, ou dont l'année a été supprimée) prend pour horloge la
+     * création de sa fiche (RGPD-01).
      */
     private static function departed_sql() {
         $t_cy    = psc_table('child_school_years');
         $t_years = psc_table('school_years');
         return 'NOT ' . Psc_School_Years::inscrit_ouvert_sql('c.id') . "
-            AND EXISTS (SELECT 1 FROM $t_cy cyr WHERE cyr.child_id = c.id)
-            AND (SELECT GREATEST(
+            AND COALESCE(
+                (SELECT NULLIF(GREATEST(
                         COALESCE(MAX(cyr.sorti_le), '1000-01-01'),
-                        COALESCE(MAX(IF(cyr.statut = 'inscrit', CONCAT(yr.date_fin, ' 23:59:59'), NULL)), '1000-01-01'))
+                        COALESCE(MAX(IF(cyr.statut = 'inscrit', CONCAT(yr.date_fin, ' 23:59:59'), NULL)), '1000-01-01')), '1000-01-01')
                  FROM $t_cy cyr INNER JOIN $t_years yr ON yr.id = cyr.school_year_id
-                 WHERE cyr.child_id = c.id) < %s";
+                 WHERE cyr.child_id = c.id),
+                c.created_at) < %s";
     }
 }

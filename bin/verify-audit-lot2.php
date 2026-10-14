@@ -264,6 +264,29 @@ WP_CLI::add_command('verify-audit-lot2', function () {
         $check(!$req_exists($r3), 'RGPD-03 : demande conservée après suppression de la famille');
         $check(!$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_dest WHERE id = %d", $receipt)), 'RGPD-03 : accusé de lecture conservé après suppression de la famille');
         $wpdb->delete($t_dest, array('id' => $receipt), array('%d'));
+
+        /* ---------------- RGPD-01 : foyers sans enfant, enfants sans année ---------------- */
+        // Fixtures datées de 1990 et horloge simulée en 1991 : seules elles
+        // sont assez anciennes pour être purgées par ces passages.
+        $old = '1990-01-01 00:00:00';
+        $now_1991 = strtotime('1991-02-10 00:00:00');
+        $fam_e = $make_family('e'); // sans enfant, inactif depuis 1990
+        $fam_f = $make_family('f'); // un enfant sans ligne d'année, créé en 1990
+        $fam_g = $make_family('g'); // sans enfant mais connecté récemment
+        $family_ids[] = $fam_e; $family_ids[] = $fam_f; $family_ids[] = $fam_g;
+        $wpdb->query($wpdb->prepare("UPDATE $t_par SET created_at = %s WHERE id IN (%d, %d, %d)", $old, $fam_e, $fam_f, $fam_g));
+        $wpdb->update($t_par, array('last_login' => '1991-01-20 00:00:00'), array('id' => $fam_g));
+        $child_f = $make_child($fam_f, 'Sans' . $tag);
+        $wpdb->update($t_child, array('created_at' => $old), array('id' => $child_f));
+
+        $purged_children = Psc_Retention::purge_departed_children($now_1991);
+        $check($purged_children === 1 && !$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_child WHERE id = %d", $child_f)), "RGPD-01 : enfant sans ligne d'année non purgé ($purged_children)");
+        $purged_families = Psc_Retention::purge_childless_families($now_1991);
+        $check($purged_families === 2, "RGPD-01 : $purged_families foyer(s) purgé(s), 2 attendus");
+        $check(!$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_par WHERE id IN (%d, %d)", $fam_e, $fam_f)), 'RGPD-01 : foyer sans enfant inactif conservé');
+        $check((bool) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_par WHERE id = %d", $fam_g)), 'RGPD-01 : foyer actif récemment purgé à tort');
+        $check(Psc_Retention::purge_childless_families($now_1991) === 0, 'RGPD-01 : deuxième passage non idempotent');
+        $check($mentions($tag) === 0, 'RGPD-01 : identité écrite au journal par la purge');
     } finally {
         foreach ($family_ids as $fid) {
             $wpdb->delete($t_child, array('parent_id' => $fid), array('%d'));
