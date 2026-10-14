@@ -6,7 +6,12 @@
   var $title = $('#psc-message-title');
   var i18n = (window.PSC_MESSAGES && PSC_MESSAGES.i18n) || {};
   function fmt(template, n) { return String(template || '').replace('%d', n); }
-  function plural(pair, n) { return fmt(Number(n) === 1 ? pair[0] : pair[1], n); }
+  // Règle française : 0 et 1 au singulier ; wp.i18n._n prioritaire s'il est chargé.
+  function plural(pair, n) {
+    n = Number(n) || 0;
+    if (window.wp && wp.i18n && typeof wp.i18n._n === 'function') return fmt(wp.i18n._n(pair[0], pair[1], n, 'periscolaire-registration'), n);
+    return fmt(n > 1 ? pair[1] : pair[0], n);
+  }
   function bodyText() {
     if (window.tinymce && tinymce.get('psc_message_body')) return tinymce.get('psc_message_body').getContent({ format: 'text' });
     return $('<div>').html($('#psc_message_body').val() || '').text();
