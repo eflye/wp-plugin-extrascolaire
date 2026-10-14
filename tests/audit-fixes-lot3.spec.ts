@@ -94,4 +94,22 @@ test.describe('Audit — lot 3', () => {
     const axe = await new AxeBuilder({ page }).include('#wpbody-content .wrap').withTags(['wcag2a', 'wcag2aa']).analyze();
     expect(axe.violations.map((v) => v.id)).toEqual([]);
   });
+
+  test('PRA-08 : aucun lien vide dans le menu, l\'écran d\'origine reste en surbrillance', async ({ page }) => {
+    await page.goto(`${APP_BASE}/wp-login.php`);
+    await page.locator('#user_login').fill('admin');
+    await page.locator('#user_pass').fill('admin');
+    await page.locator('#wp-submit').click();
+    await page.waitForURL('**/wp-admin/**');
+
+    for (const [slug, origin] of [['psc_message_edit', 'psc_messages'], ['psc_passage_annee', 'psc_school_calendar_v2']]) {
+      await page.goto(`${APP_BASE}/wp-admin/admin.php?page=${slug}`);
+      const empty = await page.locator('#adminmenu a').evaluateAll(
+        (links) => links.filter((a) => (a.textContent ?? '').trim() === '' && !a.querySelector('img, .wp-menu-image')).map((a) => a.getAttribute('href'))
+      );
+      expect(empty).toEqual([]);
+      await expect(page.locator(`#adminmenu a[href="admin.php?page=${slug}"]`)).toHaveCount(0);
+      await expect(page.locator(`#adminmenu li.current > a[href="admin.php?page=${origin}"]`)).toHaveCount(1);
+    }
+  });
 });

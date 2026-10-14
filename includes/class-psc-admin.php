@@ -220,6 +220,55 @@ class Psc_Admin extends Psc_Admin_Base {
         // d'affichage inhabituel (aperçu, cache) contournerait la
         // redirection.
         add_filter('submenu_file', array(__CLASS__, 'never_highlight_sections'));
+
+        // Écrans sans entrée de menu (menu_title null : fiche, confirmation,
+        // édition) : WordPress génère malgré tout un lien vide, atteignable
+        // au clavier (RGAA 6.2). Retirés du sous-menu une fois l'accès à la
+        // page vérifié et son titre calculé (admin_head précède le rendu du
+        // menu), puis rattachés à leur écran d'origine pour la surbrillance.
+        add_action('admin_head', array(__CLASS__, 'remove_hidden_submenus'));
+        add_filter('submenu_file', array(__CLASS__, 'highlight_hidden_parent'), 20);
+    }
+
+    /**
+     * Écran d'origine de chaque page masquée du menu : c'est lui qui reste
+     * en surbrillance quand la page masquée est affichée.
+     */
+    const HIDDEN_PAGE_ORIGINS = array(
+        'psc_pickup_persons'    => 'psc_children',
+        'psc_impersonate'       => 'psc_parents',
+        'psc_reglement_version' => 'psc_parents',
+        'psc_passage_annee'     => 'psc_school_calendar_v2',
+        'psc_conversation'      => 'psc_conversations',
+        'psc_message_edit'      => 'psc_messages',
+        'psc_message_stats'     => 'psc_messages',
+    );
+
+    /** Slugs retirés du menu par remove_hidden_submenus() pendant la requête. */
+    private static $hidden_submenus = array();
+
+    /** admin_head : retire du menu du plugin toute entrée sans intitulé. */
+    public static function remove_hidden_submenus() {
+        global $submenu;
+        if (empty($submenu['psc_dashboard']) || !is_array($submenu['psc_dashboard'])) return;
+        foreach ($submenu['psc_dashboard'] as $item) {
+            if (isset($item[2]) && (!isset($item[0]) || trim(wp_strip_all_tags((string) $item[0])) === '')) {
+                self::$hidden_submenus[] = (string) $item[2];
+            }
+        }
+        foreach (self::$hidden_submenus as $slug) {
+            remove_submenu_page('psc_dashboard', $slug);
+        }
+    }
+
+    /** Surbrillance : une page masquée met en avant son écran d'origine. */
+    public static function highlight_hidden_parent($submenu_file) {
+        global $plugin_page;
+        $current = is_string($plugin_page) && $plugin_page !== '' ? $plugin_page : (string) $submenu_file;
+        if (isset(self::HIDDEN_PAGE_ORIGINS[$current])) {
+            return self::HIDDEN_PAGE_ORIGINS[$current];
+        }
+        return $submenu_file;
     }
 
     public static function never_highlight_sections($submenu_file) {
