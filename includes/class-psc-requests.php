@@ -44,9 +44,13 @@ class Psc_Requests {
         }
     }
 
+    /** Durée de conservation d'une demande jamais traitée par la mairie (RGPD-01). */
+    const PENDING_RETENTION_DAYS = 180;
+
     /**
-     * Supprime les demandes non vérifiées de plus de 7 jours et les
-     * demandes traitées de plus de 90 jours — et, avec elles, tout
+     * Supprime les demandes non vérifiées de plus de 7 jours, les
+     * demandes traitées de plus de 90 jours et les demandes restées en
+     * attente de la mairie plus de 180 jours — et, avec elles, tout
      * justificatif d'assurance resté en zone d'attente (jamais promu si la
      * demande n'a jamais été approuvée).
      */
@@ -62,10 +66,18 @@ class Psc_Requests {
             "SELECT id FROM $t WHERE status IN ('approved','rejected') AND decided_at < %s",
             gmdate('Y-m-d H:i:s', time() - 90 * DAY_IN_SECONDS)
         ));
+        // Demande confirmée mais jamais traitée (RGPD-01) : elle n'est pas
+        // gardée indéfiniment. created_at est en heure du site
+        // (current_time('mysql')) : seuil calculé dans la même horloge.
+        $pending_cutoff = wp_date('Y-m-d H:i:s', time() - self::PENDING_RETENTION_DAYS * DAY_IN_SECONDS);
+        $pending_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM $t WHERE status = 'pending' AND created_at < %s",
+            $pending_cutoff
+        ));
         // Les rattachements en échec sont repris avant la purge ; une zone
         // d'attente qui en garde encore survit à sa demande (P1-13).
         Psc_Assurances::retry_failed_promotions();
-        foreach (array_merge($unverified_ids, $stale_ids) as $id) {
+        foreach (array_merge($unverified_ids, $stale_ids, $pending_ids) as $id) {
             if (!Psc_Assurances::has_failed_promotions($id)) {
                 Psc_Assurances::delete_pending_files($id);
             }
@@ -79,12 +91,15 @@ class Psc_Requests {
             "DELETE FROM $t WHERE status IN ('approved','rejected') AND decided_at < %s",
             gmdate('Y-m-d H:i:s', time() - 90 * DAY_IN_SECONDS)
         ));
+        foreach ($pending_ids as $id) {
+            $wpdb->delete($t, array('id' => (int) $id, 'status' => 'pending'), array('%d', '%s'));
+        }
 
-        $total = count($unverified_ids) + count($stale_ids);
+        $total = count($unverified_ids) + count($stale_ids) + count($pending_ids);
         if ($total > 0) {
             Psc_Audit::log('systeme.purge', array(
                 'objet_type' => 'demande',
-                'meta' => array('portee' => 'demandes', 'non_verifiees' => count($unverified_ids), 'traitees' => count($stale_ids)),
+                'meta' => array('portee' => 'demandes', 'non_verifiees' => count($unverified_ids), 'traitees' => count($stale_ids), 'en_attente' => count($pending_ids)),
                 'resume' => sprintf(__('%d demande(s) d’inscription purgée(s).', 'periscolaire-registration'), $total),
             ));
         }

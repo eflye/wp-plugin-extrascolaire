@@ -20,6 +20,8 @@
  *    la confirmation de l'une d'elles.
  *  - RGPD-03/L1 : coordonnées bancaires d'une demande effacées au refus
  *    et à la validation (IBAN, BIC, titulaire, adresse du compte).
+ *  - RGPD-01/L1 : une demande en attente de la mairie depuis plus de 180
+ *    jours est purgée par cleanup(), pas une plus récente.
  *  - RGPD-04/L1 : les lignes du journal écrites pour le foyer de test ne
  *    contiennent ni e-mail ni nom (résumé et libellé d'acteur).
  *
@@ -306,6 +308,13 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         $fam = Psc_Parents::get_by_email($emails['sepa_ok']);
         $check($fam && !empty($fam->sepa_iban) && $fam->sepa_titulaire === 'Titulaire Verification', 'RGPD-03/L1 : coordonnées bancaires non reportées sur le compte famille');
         $_GET = array();
+
+        /* ---------- RGPD-01/L1 : demandes en attente purgées à 180 jours ---------- */
+        $wpdb->update($t_req, array('created_at' => wp_date('Y-m-d H:i:s', time() - 181 * DAY_IN_SECONDS)), array('id' => $first_id));
+        $fresh = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_req WHERE status = 'pending' AND created_at >= %s", wp_date('Y-m-d H:i:s', time() - 179 * DAY_IN_SECONDS)));
+        Psc_Requests::cleanup();
+        $check((int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_req WHERE id = %d", $first_id)) === 0, 'RGPD-01/L1 : demande en attente depuis 181 jours conservée');
+        $check((int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_req WHERE status = 'pending' AND created_at >= %s", wp_date('Y-m-d H:i:s', time() - 179 * DAY_IN_SECONDS))) === $fresh, 'RGPD-01/L1 : demande en attente récente purgée');
 
         $pid = Psc_Parents::create($emails['titulaire'], 'Lot1', array('second_parent_email' => $emails['second']));
         $check(is_int($pid) && $pid > 0, 'SEC-02 données : foyer non créé');
