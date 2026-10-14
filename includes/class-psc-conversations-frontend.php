@@ -50,7 +50,9 @@ class Psc_Conversations_Frontend extends Psc_Frontend_Base {
                 }
                 $messages = Psc_Conversations::messages($requested);
                 self::prepare_thread($selected, $messages, $children_map);
-                Psc_Conversations::mark_read($requested, 'famille');
+                // Une consultation par la mairie est en lecture seule : elle
+                // ne marque jamais l'échange lu pour la famille (SEC-09).
+                if (!Psc_Parents::is_impersonated()) Psc_Conversations::mark_read($requested, 'famille');
                 $reply_draft_key = 'psc_conv_reply_draft_' . $family_id . '_' . $requested;
                 $reply_draft = get_transient($reply_draft_key);
                 if ($reply_draft) delete_transient($reply_draft_key);

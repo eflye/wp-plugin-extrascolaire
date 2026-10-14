@@ -8,6 +8,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { execFileSync } from 'node:child_process';
+import { readFormPageUrl } from '../playwright/seed-result';
 
 const APP_BASE = 'http://localhost:8080';
 const ENGINE = process.env.PSC_CONTAINER_ENGINE ?? 'podman';
@@ -244,5 +245,44 @@ test.describe('Lot 2 — écran Assurances traduisible et accessible (PRA-06)', 
     await expect(page.locator('table.widefat thead th[scope="col"]')).toHaveCount(4);
     const axe = await new AxeBuilder({ page }).include('.wrap').analyze();
     expect(axe.violations.map((v) => v.id)).toEqual([]);
+  });
+});
+
+test.describe('Lot 2 — consultation mairie en lecture seule sur les échanges (SEC-09)', () => {
+  const CONS_EMAIL = 'lot2-e2e-consultation@example.test';
+  let familyId = 0;
+  let conversationId = 0;
+
+  const cleanupCons = () => wpEval(`global $wpdb; $f=(int)$wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}psc_parents WHERE email=%s",'${CONS_EMAIL}'));
+    if($f){ Psc_Conversations::delete_for_family($f); $wpdb->delete($wpdb->prefix.'psc_impersonations',array('family_id'=>$f)); $wpdb->delete($wpdb->prefix.'psc_parents',array('id'=>$f)); } echo 'ok';`);
+
+  test.beforeAll(() => {
+    cleanupCons();
+    const ids = wpEval(`global $wpdb; $now=current_time('mysql');
+      $wpdb->insert($wpdb->prefix.'psc_parents',array('email'=>'${CONS_EMAIL}','nom'=>'Lot2Consultation','prenom'=>'Famille','active'=>1,'onboarding_seen_at'=>$now,'created_at'=>$now)); $f=(int)$wpdb->insert_id;
+      $c=Psc_Conversations::create_by_mairie($f,'Échange Lot2 consultation','Réponse de la mairie',1);
+      echo $f.' '.(int)$c;`);
+    [familyId, conversationId] = ids.split(' ').map(Number);
+  });
+
+  test.afterAll(() => cleanupCons());
+
+  test('ouvrir un échange en consultation ne le marque pas lu pour la famille', async ({ page }) => {
+    const unreadBefore = wpEval(`echo Psc_Conversations::unread_count_for_family(${familyId});`);
+    expect(Number(unreadBefore)).toBeGreaterThan(0);
+    await page.goto(`${APP_BASE}/wp-login.php`);
+    await page.locator('#user_login').fill('admin');
+    await page.locator('#user_pass').fill('admin');
+    await page.locator('#wp-submit').click();
+    await page.waitForURL('**/wp-admin/**');
+    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_parents`);
+    await page.getByTestId(`impersonate-open-${familyId}`).click();
+    await page.getByTestId('impersonate-motif-verification').check();
+    await page.getByTestId('impersonate-submit').click();
+    await expect(page.getByTestId('portal-root')).toHaveAttribute('data-psc-readonly', '1');
+    const base = readFormPageUrl();
+    await page.goto(`${base}${base.includes('?') ? '&' : '?'}psc_tab=messages&psc_vue=echanges&conversation_id=${conversationId}`);
+    await expect(page.locator('body')).toContainText('Réponse de la mairie');
+    expect(wpEval(`echo Psc_Conversations::unread_count_for_family(${familyId});`)).toBe(unreadBefore);
   });
 });
