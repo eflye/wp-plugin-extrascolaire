@@ -496,26 +496,34 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         // demande (déjà validée à la source) — la rejeter là rendrait des
         // demandes légitimes inapprovables. Facultatif : seules les valeurs
         // renseignées sont contrôlées.
-        foreach (array(psc_post('code_postal'), psc_post('sepa_code_postal')) as $psc_edit_cp) {
+        foreach (array(psc_post('code_postal'), current_user_can('psc_manage_billing') ? psc_post('sepa_code_postal') : '') as $psc_edit_cp) {
             if ($psc_edit_cp !== '' && !psc_valid_postcode($psc_edit_cp)) {
                 self::redirect('psc_parents', 'bad_code_postal');
             }
         }
 
-        $result = Psc_Parents::update($id, array(
+        $data = array(
             'nom'              => psc_post('nom'),
             'adresse'          => psc_post('adresse'),
             'code_postal'      => psc_post('code_postal'),
             'ville'            => psc_post('ville'),
             'payment_mode'     => psc_post('payment_mode'),
-            'sepa_titulaire'   => psc_post('sepa_titulaire'),
-            'sepa_adresse'     => psc_post('sepa_adresse'),
-            'sepa_code_postal' => psc_post('sepa_code_postal'),
-            'sepa_ville'       => psc_post('sepa_ville'),
-            'sepa_country'     => psc_post('sepa_country', 'FR'),
-            'sepa_iban'        => wp_unslash($_POST['sepa_iban'] ?? ''),
-            'sepa_bic'         => psc_post('sepa_bic'),
-        ));
+        );
+        // Données bancaires : habilitation « Facturation » seule (RGPD-07).
+        // L'IBAN n'est jamais pré-rempli : un champ vide le laisse inchangé.
+        if (current_user_can('psc_manage_billing')) {
+            $data += array(
+                'sepa_titulaire'   => psc_post('sepa_titulaire'),
+                'sepa_adresse'     => psc_post('sepa_adresse'),
+                'sepa_code_postal' => psc_post('sepa_code_postal'),
+                'sepa_ville'       => psc_post('sepa_ville'),
+                'sepa_country'     => psc_post('sepa_country', 'FR'),
+                'sepa_bic'         => psc_post('sepa_bic'),
+            );
+            $psc_new_iban = trim(sanitize_text_field(wp_unslash($_POST['sepa_iban'] ?? '')));
+            if ($psc_new_iban !== '') $data['sepa_iban'] = $psc_new_iban;
+        }
+        $result = Psc_Parents::update($id, $data);
         if (is_wp_error($result)) {
             wp_safe_redirect(add_query_arg(
                 array('page' => 'psc_parents', 'edit' => $id, 'psc_msg' => $result->get_error_code() === 'psc_bad_country' ? 'bad_country' : ($result->get_error_code() === 'psc_bad_iban' ? 'bad_iban' : 'bad_bic')),

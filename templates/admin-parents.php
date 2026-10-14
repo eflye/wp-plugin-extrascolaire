@@ -69,6 +69,11 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
     <label><input type="radio" name="payment_mode" value="autre" <?php checked(($edit_parent->payment_mode ?? 'autre') !== 'prelevement'); ?>> <?php esc_html_e('Chèque ou espèces', 'periscolaire-registration'); ?></label><br>
     <label><input type="radio" name="payment_mode" value="prelevement" <?php checked(($edit_parent->payment_mode ?? 'autre') === 'prelevement'); ?>> <?php esc_html_e('Prélèvement automatique (SEPA)', 'periscolaire-registration'); ?></label>
 </td></tr>
+<?php
+// IBAN jamais pré-rempli en clair (RGPD-07) ; données bancaires modifiables
+// avec la seule habilitation « Facturation et prélèvements ».
+$psc_masked_iban = psc_read_iban($edit_parent) !== '' ? psc_mask_iban(psc_read_iban($edit_parent)) : '';
+if (current_user_can('psc_manage_billing')): ?>
 <tr><th><label for="psc-edit-sepa-titulaire"><?php esc_html_e('Titulaire du compte', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-edit-sepa-titulaire" type="text" name="sepa_titulaire" class="regular-text" maxlength="190"
     value="<?php echo esc_attr($edit_parent->sepa_titulaire ?? ''); ?>"></td></tr>
@@ -87,10 +92,25 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 <p class="description"><?php esc_html_e('Code ISO : FR pour la France. Indiquez le pays de l’adresse du titulaire, même si sa banque est à l’étranger.', 'periscolaire-registration'); ?></p></td></tr>
 <tr><th><label for="psc-edit-sepa-iban"><?php esc_html_e('IBAN', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-edit-sepa-iban" type="text" name="sepa_iban" data-bank-validation="iban" data-bank-error="<?php esc_attr_e('IBAN invalide : vérifiez le pays, la longueur, les caractères et les chiffres de contrôle.', 'periscolaire-registration'); ?>" class="large-text" maxlength="42"
-    value="<?php echo esc_attr(psc_read_iban($edit_parent)); ?>" placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX"></td></tr>
+    value="" aria-describedby="psc-edit-sepa-iban-help" placeholder="<?php echo esc_attr($psc_masked_iban !== '' ? $psc_masked_iban : 'FR76 XXXX XXXX XXXX XXXX XXXX XXX'); ?>" autocomplete="off">
+<p class="description" id="psc-edit-sepa-iban-help"><?php echo esc_html($psc_masked_iban !== ''
+    /* translators: %s: IBAN masqué */
+    ? sprintf(__('IBAN enregistré : %s. Laissez vide pour le conserver ; saisissez un nouvel IBAN pour le remplacer.', 'periscolaire-registration'), $psc_masked_iban)
+    : __('Aucun IBAN enregistré.', 'periscolaire-registration')); ?></p></td></tr>
 <tr><th><label for="psc-edit-sepa-bic"><?php esc_html_e('BIC', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-edit-sepa-bic" type="text" name="sepa_bic" class="regular-text" maxlength="11"
     value="<?php echo esc_attr($edit_parent->sepa_bic ?? ''); ?>" placeholder="XXXXFRPPXXX"></td></tr>
+<?php else: ?>
+<tr><th scope="row"><?php esc_html_e('Prélèvement SEPA', 'periscolaire-registration'); ?></th>
+<td>
+  <dl class="psc-readonly-sepa">
+    <dt><?php esc_html_e('Titulaire du compte', 'periscolaire-registration'); ?></dt><dd><?php echo esc_html($edit_parent->sepa_titulaire ?: '—'); ?></dd>
+    <dt><?php esc_html_e('IBAN', 'periscolaire-registration'); ?></dt><dd><?php echo esc_html($psc_masked_iban !== '' ? $psc_masked_iban : '—'); ?></dd>
+    <dt><?php esc_html_e('BIC', 'periscolaire-registration'); ?></dt><dd><?php echo esc_html($edit_parent->sepa_bic ?: '—'); ?></dd>
+  </dl>
+  <p class="description"><?php esc_html_e('Les coordonnées bancaires ne sont modifiables qu’avec l’habilitation « Facturation et prélèvements ».', 'periscolaire-registration'); ?></p>
+</td></tr>
+<?php endif; ?>
 <?php if (!empty($edit_parent->sepa_mandate_ref)): ?>
 <tr><th><?php esc_html_e('Référence du mandat SEPA', 'periscolaire-registration'); ?></th><td><code><?php echo esc_html($edit_parent->sepa_mandate_ref); ?></code></td></tr>
 <?php endif; ?>
