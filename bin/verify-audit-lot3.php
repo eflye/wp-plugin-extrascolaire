@@ -454,6 +454,31 @@ WP_CLI::add_command('verify-audit-lot3', function () {
         }
     };
 
+    /* PERF-06 : lectures répétées mémorisées, invalidées à la moindre écriture. */
+    $sections['PERF-06'] = function () use ($check) {
+        global $wpdb;
+        Psc_School_Years::flush_cache();
+        $a = Psc_School_Years::active();
+        $q = $wpdb->num_queries;
+        for ($i = 0; $i < 5; $i++) Psc_School_Years::active();
+        $check($wpdb->num_queries === $q, 'PERF-06 : année active relue (' . ($wpdb->num_queries - $q) . ' requêtes)');
+        if ($a) {
+            // Une écriture sur la table (même en SQL direct) invalide la lecture.
+            $wpdb->query($wpdb->prepare('UPDATE ' . psc_table('school_years') . ' SET date_fin = date_fin WHERE id = %d', (int) $a->id));
+            $q = $wpdb->num_queries;
+            Psc_School_Years::active();
+            $check($wpdb->num_queries === $q + 1, 'PERF-06 : écriture sur school_years sans invalidation');
+        }
+        $q = $wpdb->num_queries;
+        Psc_Menus::get_by_week('2091-01-01');
+        Psc_Menus::get_by_week('2091-01-01');
+        $check($wpdb->num_queries === $q + 1, 'PERF-06 : menu de la semaine relu');
+        $wpdb->query("DELETE FROM " . psc_table('menus') . " WHERE semaine_debut = '2091-01-01'");
+        $q = $wpdb->num_queries;
+        Psc_Menus::get_by_week('2091-01-01');
+        $check($wpdb->num_queries === $q + 1, 'PERF-06 : écriture sur menus sans invalidation');
+    };
+
     try {
         foreach ($sections as $name => $run) {
             $run();
