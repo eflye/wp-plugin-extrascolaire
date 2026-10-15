@@ -68,7 +68,14 @@ function psc_retention_policies() {
         'pickup_persons'      => array('label' => __('Personnes autorisées et historique', 'periscolaire-registration'), 'enabled' => false, 'days' => null, 'hook' => null, 'reason' => $with_child),
         'allergies'           => array('label' => __('Allergies et régimes', 'periscolaire-registration'), 'enabled' => false, 'days' => null, 'hook' => null, 'reason' => $with_child),
         'private_files'       => array('label' => __('Justificatifs d’assurance', 'periscolaire-registration'), 'enabled' => false, 'days' => null, 'hook' => null, 'reason' => $with_child),
-        'invoices'            => array('label' => __('Factures', 'periscolaire-registration'), 'enabled' => false, 'days' => null, 'hook' => null, 'reason' => __('Jamais supprimées ni réécrites ; durée de conservation à fixer par le DPO.', 'periscolaire-registration')),
+        'invoices'            => class_exists('Psc_Retention') && Psc_Retention::invoice_retention_enabled()
+            ? array(
+                'label' => __('Factures', 'periscolaire-registration'),
+                'enabled' => true, 'days' => Psc_Retention::invoice_retention_years() * 365, 'hook' => 'psc_purge_departed_children',
+                /* translators: %d: nombre d'années */
+                'reason' => sprintf(__('Jamais réécrites ; supprimées en entier (versions et PDF compris) %d ans révolus après la fin de leur année de facturation.', 'periscolaire-registration'), Psc_Retention::invoice_retention_years()),
+            )
+            : array('label' => __('Factures', 'periscolaire-registration'), 'enabled' => false, 'days' => null, 'hook' => null, 'reason' => __('Jamais supprimées ni réécrites : la purge à 10 ans est désactivée (Réglages › Confidentialité).', 'periscolaire-registration')),
     );
     return apply_filters('psc_retention_policies', $policies);
 }

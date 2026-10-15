@@ -34,10 +34,10 @@ Les corrections ont été appliquées sur la branche `audit-fixes` par trois cor
 
 | Statut | Nombre | Constats |
 |---|---|---|
-| Corrigé | 41 | SEC-01, 02, 03, 07, 09, 10, 11 · RGPD-01 à 07, 13, 14 · PERF-01 à 11 · PRA-01 à 12, 15, 18 |
+| Corrigé | 42 | SEC-01, 02, 03, 07, 09, 10, 11 · RGPD-01 à 08, 13, 14 · PERF-01 à 11 · PRA-01 à 12, 15, 18 |
 | Partiellement corrigé | 6 | SEC-06, RGPD-09, RGPD-10, PERF-12, PRA-14, PRA-17 |
 | Risque accepté (décision) | 2 | SEC-04, SEC-08 |
-| Mis de côté (validation humaine) | 6 | SEC-05, RGPD-08, RGPD-11, RGPD-12, PRA-13, PRA-16 |
+| Mis de côté (validation humaine) | 5 | SEC-05, RGPD-11, RGPD-12, PRA-13, PRA-16 |
 
 Contrôles de consolidation, le 15/10/2026 :
 - `php -l` en PHP 7.4 et 8.3 sur les 212 fichiers PHP : aucune erreur.
@@ -394,7 +394,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-privacy.php:107` et `:383`, `includes/helpers/retention.php:15`, `includes/class-psc-invoices.php:496-554`.
 - **Priorité :** Moyenne.
-- **Statut (branche `audit-fixes`) :** Mis de côté — durée de conservation des factures : décision du DPO.
+- **Statut (branche `audit-fixes`) :** Corrigé — décision du 15/10/2026 : 10 ans révolus après la fin de l'année de facturation (10 ans minimum), purge quotidienne désactivée par défaut et activable dans Réglages › Confidentialité ; bin/verify-invoice-retention.php.
 - **Explication :** la décision de ne jamais réécrire une facture est respectée. Mais rien ne supprime les factures, leurs versions (`lines_json` avec les noms des enfants) ni les PDF au terme annoncé (10 ans).
 - **Correction :** purge annuelle désactivée par défaut, avec une durée validée par le DPO.
   ```php
@@ -909,7 +909,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 | RGPD-05 | Moyenne | Données | Export RGPD incomplet | `class-psc-privacy.php:132-213` | Corrigé |
 | RGPD-06 | Moyenne | Données | SIDSCM : allergies et téléphones envoyés au-delà du besoin | `class-psc-sidscm.php:419-590` | Corrigé |
 | RGPD-07 | Moyenne | Données | IBAN en clair avec l'habilitation « Familles » | `templates/admin-parents.php:89-90` | Corrigé |
-| RGPD-08 | Moyenne | Données | Conservation des factures non bornée | `class-psc-privacy.php:107` | Mis de côté |
+| RGPD-08 | Moyenne | Données | Conservation des factures non bornée | `class-psc-privacy.php:107` | Corrigé |
 | RGPD-09 | Moyenne | Données | Jeton des diffusions en clair, sans expiration | `class-psc-messages-frontend.php:98-124` | Partiel |
 | RGPD-10 | Moyenne | Données | Allergies héritées en clair, envoyées par e-mail | `class-psc-mailer.php:776-779` | Partiel |
 | PERF-02 | Moyenne | Performance | Envois groupés synchrones (factures, menus, fermetures) | `class-psc-envois.php:101-227` | Corrigé |

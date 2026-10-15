@@ -67,6 +67,8 @@ class Psc_Retention {
                 return self::count_departed_children($now);
             case 'childless_families':
                 return (int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM (' . self::childless_families_sql() . ') x', $cutoff));
+            case 'invoices':
+                return (int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM ' . psc_table('invoices') . ' WHERE mois < %s', self::invoice_retention_cutoff_month($now)));
             case 'conversations':
                 return (int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM ' . psc_table('conversations') . ' WHERE dernier_message_at < %s', $cutoff));
             case 'audit_log':
@@ -97,6 +99,100 @@ class Psc_Retention {
     public static function handle_purge_cron() {
         self::purge_departed_children();
         self::purge_childless_families();
+        self::purge_expired_invoices();
+    }
+
+    /** Purge des factures activée par la mairie (désactivée par défaut, RGPD-08). */
+    public static function invoice_retention_enabled() {
+        return (bool) get_option('psc_invoice_retention_enabled', 0);
+    }
+
+    /** Années révolues de conservation des factures : 10 au minimum (pièces comptables). */
+    public static function invoice_retention_years() {
+        return max(10, (int) get_option('psc_invoice_retention_years', 10));
+    }
+
+    /**
+     * Premier mois CONSERVÉ : les factures des mois antérieurs ont dépassé
+     * la durée de conservation. Les années de facturation sont comptées
+     * révolues (une facture de 2015 se purge à partir du 1er janvier 2026
+     * pour 10 ans), comme les pièces comptables d'un exercice clos.
+     */
+    public static function invoice_retention_cutoff_month($now = null) {
+        $now = $now === null ? time() : (int) $now;
+        $year = (int) wp_date('Y', $now) - self::invoice_retention_years();
+        return sprintf('%04d-01', $year);
+    }
+
+    /**
+     * Purge des factures arrivées au terme de leur conservation (RGPD-08) :
+     * lignes, versions archivées et PDF, puis fiches parent anonymisées qui
+     * ne portent plus ni facture ni enfant. Une facture n'est jamais réécrite
+     * avant ce terme ; elle disparaît en entier une fois le terme atteint.
+     * Ne fait rien tant que la mairie n'a pas activé la purge.
+     *
+     * @return array{invoices: int, versions: int, families: int}
+     */
+    public static function purge_expired_invoices($now = null, $limit = 500) {
+        global $wpdb;
+        $done = array('invoices' => 0, 'versions' => 0, 'families' => 0);
+        if (!self::invoice_retention_enabled()) return $done;
+
+        $cutoff = self::invoice_retention_cutoff_month($now);
+        $t_inv  = psc_table('invoices');
+        $t_invv = psc_table('invoice_versions');
+
+        $ids = array_map('intval', $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM $t_inv WHERE mois < %s ORDER BY id LIMIT %d", $cutoff, max(1, (int) $limit)
+        )));
+        if ($ids) {
+            $ph = implode(',', array_fill(0, count($ids), '%d'));
+            // Chemins lus AVANT la suppression des lignes.
+            $paths = array_merge(
+                $wpdb->get_col($wpdb->prepare("SELECT pdf_path FROM $t_inv WHERE id IN ($ph) AND pdf_path IS NOT NULL AND pdf_path <> ''", $ids)),
+                $wpdb->get_col($wpdb->prepare("SELECT pdf_path FROM $t_invv WHERE invoice_id IN ($ph) AND pdf_path IS NOT NULL AND pdf_path <> ''", $ids))
+            );
+            $months = $wpdb->get_col($wpdb->prepare("SELECT DISTINCT mois FROM $t_inv WHERE id IN ($ph)", $ids));
+            $done['versions'] = (int) $wpdb->query($wpdb->prepare("DELETE FROM $t_invv WHERE invoice_id IN ($ph)", $ids));
+            $done['invoices'] = (int) $wpdb->query($wpdb->prepare("DELETE FROM $t_inv WHERE id IN ($ph)", $ids));
+            foreach ($paths as $rel) {
+                $abs = psc_private_path($rel);
+                if ($abs && file_exists($abs)) {
+                    @unlink($abs); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+                }
+            }
+            foreach ($months as $mois) {
+                // Répertoire du mois retiré s'il est désormais vide.
+                $dir = psc_private_path('periscolaire/factures/' . $mois);
+                if ($dir && is_dir($dir)) {
+                    @rmdir($dir); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+                }
+            }
+        }
+
+        // Fiches anonymisées conservées pour leurs seules factures : plus
+        // de raison d'exister une fois la dernière facture purgée.
+        $t_par = psc_table('parents');
+        $t_ch  = psc_table('children');
+        $done['families'] = (int) $wpdb->query(
+            "DELETE p FROM $t_par p
+             WHERE p.email LIKE 'famille-supprimee-%'
+               AND NOT EXISTS (SELECT 1 FROM $t_inv i WHERE i.parent_id = p.id)
+               AND NOT EXISTS (SELECT 1 FROM $t_ch c WHERE c.parent_id = p.id)"
+        );
+
+        if ($done['invoices'] || $done['families']) {
+            Psc_Audit::log('systeme.purge', array(
+                'objet_type' => 'facture',
+                'meta'       => array('portee' => 'factures_expirees', 'factures' => $done['invoices'], 'versions' => $done['versions'], 'familles' => $done['families']),
+                'resume'     => sprintf(
+                    /* translators: 1: nombre de factures, 2: nombre de fiches anonymisées, 3: premier mois conservé (AAAA-MM) */
+                    __('Purge des factures expirées : %1$d facture(s) et %2$d fiche(s) anonymisée(s) supprimées (antérieures à %3$s).', 'periscolaire-registration'),
+                    $done['invoices'], $done['families'], $cutoff
+                ),
+            ));
+        }
+        return $done;
     }
 
     public static function ensure_crons() {

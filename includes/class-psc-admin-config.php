@@ -131,6 +131,10 @@ class Psc_Admin_Config extends Psc_Admin_Base {
 
         update_option('psc_conversations_contenu_email', isset($_POST['conversations_contenu_email']) ? 1 : 0);
 
+        // Conservation des factures (RGPD-08) : 10 ans révolus au minimum.
+        update_option('psc_invoice_retention_enabled', isset($_POST['invoice_retention_enabled']) ? 1 : 0, false);
+        update_option('psc_invoice_retention_years', max(10, min(30, psc_post_int('invoice_retention_years', 10))), false);
+
         $conv_delai = psc_post_int('conversations_delai_heures', 48);
         update_option('psc_conversations_delai_heures', max(1, min(240, $conv_delai)));
         $conv_tel = isset($_POST['conversations_telephone_urgence']) ? sanitize_text_field(wp_unslash($_POST['conversations_telephone_urgence'])) : '';

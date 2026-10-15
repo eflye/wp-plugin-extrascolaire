@@ -431,6 +431,21 @@ $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
 </td>
 </tr>
 <tr>
+<th scope="row"><?php esc_html_e('Conservation des factures', 'periscolaire-registration'); ?></th>
+<td>
+  <label for="psc-invoice-retention-enabled">
+    <input id="psc-invoice-retention-enabled" type="checkbox" name="invoice_retention_enabled" value="1" data-testid="settings-invoice-retention" aria-describedby="psc-invoice-retention-help" <?php checked(Psc_Retention::invoice_retention_enabled()); ?>>
+    <?php esc_html_e('Supprimer les factures arrivées au terme de leur conservation', 'periscolaire-registration'); ?>
+  </label>
+  <p>
+    <label for="psc-invoice-retention-years"><?php esc_html_e('Durée de conservation (années révolues)', 'periscolaire-registration'); ?></label>
+    <input id="psc-invoice-retention-years" type="number" name="invoice_retention_years" min="10" max="30" step="1" class="small-text"
+           value="<?php echo esc_attr(Psc_Retention::invoice_retention_years()); ?>" aria-describedby="psc-invoice-retention-help">
+  </p>
+  <p class="description" id="psc-invoice-retention-help"><?php esc_html_e('10 ans au minimum (pièces comptables). Une facture est supprimée en entier, versions et PDF compris, une fois ce nombre d’années révolu après la fin de son année de facturation ; elle n’est jamais modifiée avant. Désactivé : aucune facture n’est jamais supprimée.', 'periscolaire-registration'); ?></p>
+</td>
+</tr>
+<tr>
 <th scope="row"><?php esc_html_e('Aperçu', 'periscolaire-registration'); ?></th>
 <td>
   <div class="psc-privacy-preview" data-testid="privacy-preview" role="group" aria-label="<?php esc_attr_e('Aperçu de la notice telle que les familles la voient', 'periscolaire-registration'); ?>" style="max-width:640px;padding:12px 16px;background:#fff;border:1px solid #dcdcde;border-left:4px solid #24405C;">

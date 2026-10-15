@@ -53,7 +53,7 @@ Ces durées sont celles que le plugin applique réellement, chaque jour, sans ac
 | Échanges avec la mairie, pièces jointes comprises | 395 jours | dernier message | Purge des échanges avec les familles |
 | Consultations de l'espace famille par la mairie | 365 jours | début de la consultation | Nettoyage des consultations « en tant que » |
 | Journal d'audit | 1 095 / 365 / 180 jours selon le niveau (critique / normal / volumineux) | action | Purge du journal d'audit |
-| Factures | jamais supprimées ni réécrites | — | durée à fixer par le DPO |
+| Factures (versions archivées et PDF compris) | 10 ans révolus (réglable, 10 ans minimum) ; jamais réécrites avant | fin de l'année de facturation | Purge des enfants sortis, si **Périscolaire › Réglages › Confidentialité › Conservation des factures** est cochée (désactivée par défaut). Une fiche anonymisée qui ne porte plus ni facture ni enfant est supprimée en même temps. |
 
 ## Qui voit quoi
 
