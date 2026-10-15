@@ -255,10 +255,26 @@ html[data-psc-theme="light"] .psc-theme-toggle:hover {
 }
 html[data-psc-theme="light"] .psc-theme-toggle .psc-theme-toggle-sun { display: none; }
 html[data-psc-theme="light"] .psc-theme-toggle .psc-theme-toggle-moon { display: block; }
+/* Focus sur fond clair (bandeau blanc du Clair, repli posé sur la
+   crème) : l'abricot n'y tient que ~2,6:1, sous les 3:1 d'un indicateur
+   de focus. L'abricot foncé (~5,4:1) prend le relais ; sur l'encre,
+   l'abricot reste. */
+html[data-psc-theme="light"] .psc-theme-toggle:focus-visible,
+.psc-theme-toggle--inline:focus-visible {
+    outline-color: #9A5B2E;
+}
 @media (max-width: 900px) {
     .psc-theme-toggle {
         min-width: 44px;
         min-height: 44px;
+    }
+}
+/* Sous 584 px, le thème empile le menu et le bouton (cf.
+   .site-header-actions) : la cible de 44 px déborde sur le padding du
+   bandeau au lieu de l'agrandir, qui garde ainsi sa hauteur d'origine. */
+@media (max-width: 584px) {
+    .site-header .psc-theme-toggle {
+        margin: -4px -12px -12px 0;
     }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -113,3 +113,10 @@ button, input, select, textarea { font-family: 'Public Sans', sans-serif; }
   .primary-nav ul { gap: 16px; }
   .site-header-actions { gap: 12px; }
 }
+/* Sous 584 px, le bouton du plugin passe sous le menu plutôt qu'à sa
+   droite : la largeur prise au nom de la commune ferait passer le
+   surtitre sur une ligne de plus et agrandirait le bandeau (mesuré :
+   au-dessus de ce seuil, la ligne tient sans rien agrandir). */
+@media (max-width: 584px) {
+  .site-header-actions { flex-direction: column; align-items: flex-end; gap: 0; }
+}
