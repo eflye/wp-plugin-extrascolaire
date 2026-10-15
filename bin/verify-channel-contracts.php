@@ -162,12 +162,13 @@ WP_CLI::add_command('verify-channel-contracts', function () {
         $range = Psc_School_Calendar::affected_families_range($mondays[0], $mondays[1]);
         $check((int) $range['registrations'] === 12, "fermeture de deux lundis : {$range['registrations']} créneaux au lieu de 12");
 
-        // 5. Annulation de la cantine de la classe : le forfait est concerné ;
-        //    l'enfant en « cantine sans repas » (midi sans repas) ne l'est
-        //    pas, faute de cantine déclarée.
+        // 5. Annulation de la cantine de la classe : le forfait est concerné,
+        //    et l'enfant en « cantine sans repas » aussi (son midi sans repas
+        //    est retiré : absent le jour de la sortie, il ne le paie pas).
         $concernes = array_map('intval', wp_list_pluck(Psc_Supplier_Orders::cantine_registrations_for_class_day($lundi, 'CE1'), 'child_id'));
         sort($concernes);
-        $attendus = array($kids['forfait']['cid']);
+        $attendus = array($kids['forfait']['cid'], $kids['allergie']['cid']);
+        sort($attendus);
         $check($concernes === $attendus, 'annulation de classe : enfants concernés ' . implode(',', $concernes) . ' au lieu de ' . implode(',', $attendus));
 
         $avant = Psc_Invoices::generate_one($kids['forfait']['pid'], $mois);
@@ -175,7 +176,9 @@ WP_CLI::add_command('verify-channel-contracts', function () {
         $wpdb->delete($t_inv, array('id' => (int) $avant));
 
         $n = Psc_Supplier_Orders::cancel_class_meals($lundi, 'CE1', 'Sortie scolaire');
-        $check($n === 1, "annulation de classe : $n enfant(s) au lieu de 1");
+        $check($n === 2, "annulation de classe : $n enfant(s) au lieu de 2");
+        $check($day_of($kids['allergie']['cid'], $lundi) === array('FORF' => false, 'GM' => false, 'CANT' => false, 'GS' => false, 'MSR' => false), 'annulation de classe : le midi sans repas de l’enfant « cantine sans repas » reste déclaré');
+        $check(psc_billing_services($day_of($kids['allergie']['cid'], $lundi), true) === array(), 'annulation de classe : le midi sans repas reste facturé');
         $check($day_of($kids['forfait']['cid'], $lundi) === $contrats['forfait, cantine retirée (famille ou annulation de classe)']['jour'], 'annulation de classe : le forfait garde sa cantine');
         $counts = Psc_Supplier_Orders::compute_counts($lundi);
         $row = $counts['rows'][array_search($lundi, $counts['jours'], true)] ?? array();

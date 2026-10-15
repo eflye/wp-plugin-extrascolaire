@@ -30,6 +30,7 @@ Source unique : `tests/unit/contrats-journee.php`. Elle est rejouée par `tests/
 | Forfait déclaré, journée complète | GM, CANT, GS | oui | FORF si son tarif ≤ GM + CANT + GS, sinon les trois |
 | Trois créneaux cochés séparément | GM, CANT, GS | oui | comme ci-dessus |
 | Forfait, cantine retirée (famille ou annulation de classe) | GM, GS | non | GM + GS |
+| Enfant « cantine sans repas », annulation de la cantine de sa classe | — (midi retiré) | non | — |
 | Forfait, garderie du soir fermée par la mairie | GM, CANT | oui | GM + CANT |
 | Cantine seule | CANT | oui | CANT |
 | Cantine seule, enfant « cantine sans repas » (allergie) | MSR | non (la famille fournit le repas) | MSR |
