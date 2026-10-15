@@ -4,7 +4,7 @@ Theme URI: https://montgeroult.fr
 Author: Mairie de Montgeroult
 Author URI: https://montgeroult.fr
 Description: Thème institutionnel du site de la commune de Montgeroult, avec un habillage dédié au portail familles (inscriptions périscolaires, cantine, garderie). Restyle automatiquement le plugin "Périscolaire - Inscriptions" (classes .psc-*) avec la même charte : bleu encre / abricot terracotta, Public Sans. Compatible WordPress 5.8+.
-Version: 1.1.0
+Version: 1.2.0
 Requires PHP: 7.4
 License: GNU General Public License v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -66,6 +66,10 @@ button, input, select, textarea { font-family: 'Public Sans', sans-serif; }
   color: var(--cream); text-decoration: none; line-height: 1;
 }
 .site-title:hover { color: var(--gold); }
+/* Menu + actions ajoutées par les extensions (montgeroult_header_actions),
+   alignés à droite du bandeau. Sans action, le menu seul s'y trouve et le
+   rendu reste celui d'avant. */
+.site-header-actions { display: flex; align-items: center; gap: 16px; }
 .primary-nav ul { list-style: none; display: flex; gap: 28px; margin: 0; padding: 0; flex-wrap: wrap; }
 .primary-nav a {
   color: rgba(250,246,241,0.85); text-decoration: none;
@@ -107,4 +111,5 @@ button, input, select, textarea { font-family: 'Public Sans', sans-serif; }
 @media (max-width: 640px) {
   .site-header-inner, .site-main, .site-footer-inner { padding-left: 20px; padding-right: 20px; }
   .primary-nav ul { gap: 16px; }
+  .site-header-actions { gap: 12px; }
 }

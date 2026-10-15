@@ -20,12 +20,19 @@
         <a class="site-title" href="<?php echo esc_url(home_url('/')); ?>"><?php bloginfo('name'); ?></a>
       </div>
     </div>
-    <nav class="primary-nav" aria-label="<?php esc_attr_e('Menu principal', 'montgeroult'); ?>">
-      <?php wp_nav_menu(array(
-          'theme_location' => 'primary',
-          'container'      => false,
-          'fallback_cb'    => 'montgeroult_fallback_menu',
-      )); ?>
-    </nav>
+    <div class="site-header-actions">
+      <nav class="primary-nav" aria-label="<?php esc_attr_e('Menu principal', 'montgeroult'); ?>">
+        <?php wp_nav_menu(array(
+            'theme_location' => 'primary',
+            'container'      => false,
+            'fallback_cb'    => 'montgeroult_fallback_menu',
+        )); ?>
+      </nav>
+      <?php
+      // Emplacement à droite du menu pour les extensions (bascule de thème
+      // Encre / Clair du plugin « Périscolaire - Inscriptions »).
+      do_action('montgeroult_header_actions');
+      ?>
+    </div>
   </div>
 </header>
