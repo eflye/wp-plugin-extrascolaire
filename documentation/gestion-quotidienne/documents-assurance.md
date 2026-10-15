@@ -27,6 +27,9 @@ Connectez-vous à WordPress avec un rôle autorisé à gérer les familles. Dema
 5. Cliquez sur **Valider l’assurance** si le justificatif est conforme. S'il ne l'est pas, cliquez sur **Refuser — demander un remplacement** et indiquez obligatoirement le motif à transmettre à la famille.
 6. Contrôlez ensuite l'état affiché dans la liste. Un justificatif manquant ou refusé bloque le planning pour l'enfant concerné jusqu'à la réception et l'acceptation d'un nouveau document.
 
+!!! note "Conservation"
+    Une attestation ne sert que l'année scolaire qu'elle couvre. Elle est supprimée automatiquement dès la fin de cette année scolaire. L'attestation de l'année active est toujours conservée, même si la date de fin est passée, tant que vous n'avez pas activé l'année suivante. Si vous avez besoin d'une attestation pour un sinistre, téléchargez-la avant la fin de l'année scolaire.
+
 ## Résultat attendu
 
 Chaque enfant actif possède un justificatif identifiable et accepté pour l'année en cours, ou la famille sait précisément quel document remplacer avant de pouvoir déclarer son planning.
