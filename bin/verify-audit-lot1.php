@@ -441,7 +441,7 @@ WP_CLI::add_command('verify-audit-lot1', function () {
             $without = $by_id(Psc_Sidscm::week_children($open_days, false));
             $check(isset($with[$garderie], $with[$cantine]), 'RGPD-06 données : enfants de test absents de la liste');
             if (isset($with[$garderie], $with[$cantine])) {
-                $check($with[$garderie]['allergies'] === null && empty($with[$garderie]['brings_meal']), 'RGPD-06 : allergies transmises pour un enfant de garderie seule');
+                $check($with[$garderie]['allergies'] === null, 'RGPD-06 : allergies transmises pour un enfant de garderie seule');
                 $check(is_string($with[$cantine]['allergies']) && $with[$cantine]['allergies'] !== '', 'RGPD-06 : signalement d’allergie absent pour un enfant de cantine');
                 $check(!empty($with[$garderie]['authorized']), 'RGPD-06 : personnes autorisées absentes pour la semaine en cours');
                 $check(empty($with[$cantine]['authorized']), 'RGPD-06 : personnes autorisées transmises hors garderie du soir');

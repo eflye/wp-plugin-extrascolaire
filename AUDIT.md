@@ -414,7 +414,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-installer.php:1003`, `includes/class-psc-requests.php:766-779`, `includes/class-psc-mailer.php:776-779`, `documentation/rgpd.md:59`.
 - **Priorité :** Moyenne.
-- **Statut (branche `audit-fixes`) :** Corrigé — a647988 (détail retiré de l'e-mail mairie) ; texte libre supprimé partout (décision du 15/10/2026) : migration 4.20.0 qui convertit tout texte en signalement puis supprime la colonne, rapprochement des allergies retiré, écrans et commande fournisseur fondés sur le signalement.
+- **Statut (branche `audit-fixes`) :** Corrigé — a647988 (détail retiré de l'e-mail mairie) ; texte libre supprimé partout (décision du 15/10/2026) : migration 4.20.0 qui convertit tout texte en signalement puis supprime la colonne, rapprochement des allergies retiré, écrans fondés sur le signalement ; la commande fournisseur ne dépend que du statut « Cantine sans repas » posé par la mairie (ni repas ni goûter), le doublon par allergie étant supprimé.
 - **Explication :**
   - Le parcours ne collecte plus le détail médical. Pourtant `food_allergies` (TEXT en clair) reste peuplé pour les fiches anciennes, et peut être recopié par le rapprochement mairie.
   - La famille ne peut ni le voir, ni le corriger, ni l'effacer.

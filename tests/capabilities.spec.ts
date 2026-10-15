@@ -17,7 +17,7 @@ const WP = '/usr/local/bin/wp-cli.phar';
 const PASSWORD = 'Habilitations-E2E-2026';
 const EMAIL = 'habilitations.e2e@example.test';
 // Texte libre supprimé (RGPD-10) : l'écran affiche le signalement.
-const ALLERGY = 'Signalement alimentaire : apporte son repas';
+const ALLERGY = 'Signalement alimentaire : échange à prévoir';
 const USERS = {
   editeur: { role: 'editor', caps: [] as string[] },
   facturation: { role: 'subscriber', caps: ['psc_manage_billing'] },

@@ -504,7 +504,7 @@ foreach (array('tarifs par défaut' => null, 'FSR à 6,00' => array('FSR' => 6.0
     $tar = psc_billing_tariffs();
     foreach ($contrats as $label => $row) {
         $assert("contrat présence : $label", psc_day_slots($row['jour']), $row['presence']);
-        $assert("contrat repas : $label", psc_day_meal($row['jour'], $row['allergie']), $row['repas']);
+        $assert("contrat repas : $label", psc_day_meal($row['jour']), $row['repas']);
         $sum = 0.0;
         foreach ($row['unites'] as $code) $sum += $tar[$code]['price'];
         $attendu = ($row['complete'] && $tar[$row['complete']]['price'] <= $sum + 0.0001) ? array($row['complete']) : $row['unites'];

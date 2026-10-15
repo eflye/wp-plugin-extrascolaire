@@ -9,10 +9,12 @@
  * commande, un tiret est une ambiguïté.
  *
  * Cas couverts par le jeu de données du seed :
- *   Aline    standard (CANT lun+mar, GM lun hors comptage, GS lun → goûter)
- *   Baptiste sans porc (CANT jeu, GS jeu → goûter)
+ *   Aline    standard, signalement alimentaire seul (CANT lun+mar, GM lun
+ *            hors comptage, GS lun → goûter) : toujours comptée
+ *   Baptiste sans porc, « cantine sans repas » (CANT jeu, GS jeu) : rien
  *   Chloé    sans viande → Végétarien (CANT mar)
- *   Théo     allergies alimentaires → compté dans AUCUNE colonne
+ *   Théo     allergique, « cantine sans repas » posé par la mairie → compté
+ *            dans AUCUNE colonne (ni repas ni goûter)
  *
  * Le pied de mail est configurable (Modèles e-mails) : le test vérifie le
  * défaut rendu, puis la personnalisation (variables interpolées) et le
@@ -177,8 +179,8 @@ test.describe.serial('Commande fournisseur (backoffice)', () => {
 
     // Ventilation par régime, jour par jour : Standard / Sans porc /
     // Végétarien / Total midi / Goûters. Un enfant « sans viande »
-    // apparaît en Végétarien, jamais en Standard ; l'enfant allergique
-    // n'est compté dans aucune colonne.
+    // apparaît en Végétarien, jamais en Standard ; un enfant en « cantine
+    // sans repas » n'est compté dans aucune colonne.
     for (const [jour, row] of Object.entries(expected.rows)) {
       // Le libellé du mail porte le jour + la date grise (d/m) : "Lundi 27/08 1 0 0 1 1".
       const dayLabel = jour.charAt(0).toUpperCase() + jour.slice(1);

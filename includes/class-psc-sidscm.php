@@ -159,7 +159,6 @@ class Psc_Sidscm {
                 'load_error' => __('Chargement impossible. Réessayez.', 'periscolaire-registration'),
                 'week'          => __('semaine', 'periscolaire-registration'),
                 'child'         => __('Enfant', 'periscolaire-registration'),
-                'brings_meal'   => __('Apporte son repas — à ne pas compter dans les couverts', 'periscolaire-registration'),
                 'no_meal'       => __('Midi sans repas — à ne pas compter dans les couverts', 'periscolaire-registration'),
             ),
         ));
@@ -631,9 +630,10 @@ class Psc_Sidscm {
             // de garderie n'en a pas l'usage (RGPD-06).
             $at_lunch = !empty($per_service['CANT']) || !empty($per_service['MSR']);
             // Plus de texte d'allergies (RGPD-10) : le signalement suffit,
-            // l'enfant apporte son repas ; le détail relève du PAI.
+            // le détail relève du PAI. Un enfant qui apporte son repas est en
+            // « cantine sans repas » : il figure au midi comme MSR.
             $allergies = ($at_lunch && !empty($c->food_allergy_signal))
-                ? __('Allergie signalée : apporte son repas (PAI, voir la mairie)', 'periscolaire-registration')
+                ? __('Signalement alimentaire : voir la mairie (PAI)', 'periscolaire-registration')
                 : '';
 
             $out_children[] = array(
@@ -645,10 +645,6 @@ class Psc_Sidscm {
                 // Allergie alimentaire : usage critique de la liste cantine,
                 // en priorité et lisible sans déplier (#9E4A4A, cf. sidscm.js).
                 'allergies'  => $allergies !== '' ? $allergies : null,
-                // L'enfant apporte son repas fourni par la famille :
-                // l'encadrant ne doit pas le compter dans les couverts
-                // (aucun menu différencié n'est proposé).
-                'brings_meal' => $allergies !== '',
                 'GM'         => $per_service['GM'],
                 // Liste cantine : un enfant « midi sans repas » est présent
                 // sur le créneau du midi — il y figure ; la liste MSR (jours

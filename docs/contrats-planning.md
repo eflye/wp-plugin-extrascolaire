@@ -12,7 +12,7 @@ Aucun canal ne relit `psc_pattern` ou `psc_exception`, et aucun ne réinterprèt
 | --- | --- | --- |
 | Prestation déclarée | `declared_map()` / `psc_is_declared()` | Écrans de saisie du portail (état affiché), pointage SIDSCM (enfant attendu à un service), annulations |
 | Présence | `psc_day_slots($day)` : GM, CANT ou MSR, GS, dans l'ordre de la journée ; jamais FORF | Avis de fermeture d'un jour ou d'une période, créneaux restants d'un enfant au forfait quand une prestation ferme |
-| Repas fourni | `psc_day_meal($day, $allergie)` : cantine, hors allergie alimentaire | Commande au fournisseur |
+| Repas fourni | `psc_day_meal($day)` : cantine (jamais le midi sans repas) | Commande au fournisseur |
 | Prestation facturée | `psc_billing_services($day, $sans_repas, $regle)` : règle 2 (P1-15) | Factures, estimations du portail (`sibling_summary`, `year_summary`), export CSV des inscriptions, effectifs du calendrier mairie |
 
 Les listes de familles concernées par une fermeture (`Psc_School_Calendar::affected_families*`) partagent un même socle, `families_for()`, qui ne diffère que par la lecture appliquée à chaque journée.
@@ -32,7 +32,7 @@ Source unique : `tests/unit/contrats-journee.php`. Elle est rejouée par `tests/
 | Forfait, cantine retirée (famille ou annulation de classe) | GM, GS | non | GM + GS |
 | Forfait, garderie du soir fermée par la mairie | GM, CANT | oui | GM + CANT |
 | Cantine seule | CANT | oui | CANT |
-| Cantine seule, allergie alimentaire | CANT | **non** (la famille fournit le repas) | CANT |
+| Cantine seule, enfant « cantine sans repas » (allergie) | MSR | non (la famille fournit le repas) | MSR |
 | Midi sans repas seul | MSR | non | MSR |
 | Journée complète, midi sans repas | GM, MSR, GS | non | FSR si son tarif ≤ GM + MSR + GS, sinon les trois |
 | Enfant « cantine sans repas » au forfait | GM, MSR, GS | non | comme ci-dessus |
@@ -41,7 +41,8 @@ Source unique : `tests/unit/contrats-journee.php`. Elle est rejouée par `tests/
 
 Deux compléments :
 
-- **Goûter** : il suit la garderie du soir (`Psc_Supplier_Orders::gouter_services()`, filtre `psc_gouter_services`), sauf allergie alimentaire.
+- **Goûter** : il suit la garderie du soir (`Psc_Supplier_Orders::gouter_services()`, filtre `psc_gouter_services`), sauf pour un enfant « cantine sans repas » ce jour-là, qui apporte aussi son goûter.
+- **Allergie alimentaire** : le signalement de la famille ne change ni la présence, ni le repas, ni la facture. Il déclenche l'échange avec la mairie ; c'est ensuite la mairie qui pose, si besoin, le statut « cantine sans repas ».
 - **Factures envoyées** : elles sont recalculées avec la règle inscrite dans leur instantané (`calcul`), jamais avec une règle adoptée depuis.
 
 ## Ajouter un tarif ou un profil

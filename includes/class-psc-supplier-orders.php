@@ -48,11 +48,11 @@ class Psc_Supplier_Orders {
      *   - régime « sans viande » (colonne vegan, libellé côté famille) →
      *     Végétarien — le vocabulaire du fournisseur s'applique à la
      *     génération ;
-     *   - signalement alimentaire (food_allergy_signal) → compté dans
-     *     AUCUNE colonne repas ni goûter : règle de la mairie, un enfant
-     *     allergique ne mange pas le repas de la cantine (« garderie
-     *     cantine ») et apporte les siens ; il reste sur les listes de
-     *     présence.
+     *   - statut « cantine sans repas » (posé par la mairie après l'échange
+     *     sur l'alimentation) → compté dans AUCUNE colonne repas ni goûter :
+     *     l'enfant apporte les siens (« garderie cantine ») et reste sur les
+     *     listes de présence. Le signalement de la famille ne change rien
+     *     tant que la mairie n'a pas posé ce statut.
      *
      * Les trois régimes sont mutuellement exclusifs : chaque enfant inscrit
      * au déjeuner compte pour exactement un des trois, Total midi = somme
@@ -87,7 +87,7 @@ class Psc_Supplier_Orders {
 
         if (!empty($jours_dates)) {
             $children = $wpdb->get_results(
-                "SELECT c.id, c.sans_porc, c.vegan, c.food_allergy_signal
+                "SELECT c.id, c.sans_porc, c.vegan
                  FROM $t_child c
                  JOIN $t_par p ON p.id = c.parent_id
                  WHERE p.active = 1 AND " . Psc_School_Years::inscrit_sql('c.id', Psc_School_Years::id_for_date($semaine))
@@ -95,13 +95,9 @@ class Psc_Supplier_Orders {
             if ($children) {
                 $child_ids = array_map(function ($c) { return (int) $c->id; }, $children);
                 $declared = Psc_Planning::declared_map($child_ids, array_values($jours_dates));
+                Psc_Sans_Repas::periods($child_ids); // préchargé : un seul aller-retour pour on()
 
                 foreach ($children as $child) {
-                    // Allergie alimentaire signalée : l'enfant apporte son
-                    // repas ET son goûter fournis par la famille — compté
-                    // dans aucune colonne (règle de la mairie).
-                    if (!empty($child->food_allergy_signal)) continue;
-
                     // Les trois régimes sont mutuellement exclusifs. Sans
                     // viande (vegan) est la restriction la plus large : elle
                     // l'emporte si un jeu de données incohérent cumule les
@@ -116,6 +112,9 @@ class Psc_Supplier_Orders {
                             $rows[$jour][$kind]++;
                             $rows[$jour]['midi']++;
                         }
+                        // « Cantine sans repas » : ni repas (déjà converti en
+                        // MSR) ni goûter, apportés par la famille.
+                        if (Psc_Sans_Repas::on((int) $child->id, $date)) continue;
                         foreach (self::gouter_services() as $svc) {
                             if (!empty($day[$svc])) {
                                 $rows[$jour]['gouter']++;

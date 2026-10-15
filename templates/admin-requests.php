@@ -115,7 +115,7 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
                 <?php echo psc_health_restricted_html(); // phpcs:ignore WordPress.Security.EscapeOutput -- échappé par la fonction ?>
               <?php elseif ($c && !empty($c['food_allergy_signal'])): ?>
                 <div style="max-width:220px;line-height:1.45;color:#9E4A4A;font-weight:600;"><?php esc_html_e('Signalement alimentaire', 'periscolaire-registration'); ?></div>
-                <p class="description" style="margin:4px 0 0;max-width:220px;"><?php esc_html_e("La mairie contactera la famille si un PAI doit être mis en place. L'enfant ne mange pas le repas de la cantine : il apporte son plat (garderie cantine).", 'periscolaire-registration'); ?></p>
+                <p class="description" style="margin:4px 0 0;max-width:220px;"><?php esc_html_e("La mairie contacte la famille. Après l'échange, activez « Cantine sans repas » sur la fiche de l'enfant s'il doit apporter son plat : il n'est alors plus compté dans les commandes et passe au tarif midi sans repas.", 'periscolaire-registration'); ?></p>
               <?php else: ?>
                 <span style="color:#b32d2e">—</span>
               <?php endif; ?>
