@@ -30,6 +30,9 @@ WP_CLI::add_command('verify-email-templates', function () {
     global $wpdb;
     $option  = Psc_Email_Templates::OPTION;
     $backup  = get_option($option, null);
+    // Texte des messages dans les e-mails : désactivé par défaut (RGPD-12),
+    // activé le temps du test qui vérifie sa présence, puis rétabli.
+    $contenu_backup = get_option('psc_conversations_contenu_email', null);
     $failures = array();
     $checks = 0;
     $check = function ($condition, $label) use (&$failures, &$checks) {
@@ -75,6 +78,7 @@ WP_CLI::add_command('verify-email-templates', function () {
             $check(empty($tpl['customized']), "$key : ancien défaut affiché « Personnalisé »");
             $check(!isset($tpl['retired_bodies']), "$key : anciens défauts exposés à l'écran");
         }
+        update_option('psc_conversations_contenu_email', 1);
         $pid = Psc_Parents::create($email, 'Modèles');
         $cid = Psc_Conversations::create_by_mairie($pid, 'Sujet de vérification', 'Texte de vérification.', 1);
         $mails = array();
@@ -108,6 +112,7 @@ WP_CLI::add_command('verify-email-templates', function () {
         remove_filter('pre_wp_mail', $capture, 10);
         $purge();
         if ($backup === null) delete_option($option); else update_option($option, $backup);
+        if ($contenu_backup === null) delete_option('psc_conversations_contenu_email'); else update_option('psc_conversations_contenu_email', $contenu_backup);
     }
 
     if ($failures) {
