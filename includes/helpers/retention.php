@@ -67,7 +67,11 @@ function psc_retention_policies() {
         'planning_attendance' => array('label' => __('Planning et présences', 'periscolaire-registration'), 'enabled' => false, 'days' => null, 'hook' => null, 'reason' => $with_child),
         'pickup_persons'      => array('label' => __('Personnes autorisées et historique', 'periscolaire-registration'), 'enabled' => false, 'days' => null, 'hook' => null, 'reason' => $with_child),
         'allergies'           => array('label' => __('Allergies et régimes', 'periscolaire-registration'), 'enabled' => false, 'days' => null, 'hook' => null, 'reason' => $with_child),
-        'private_files'       => array('label' => __('Justificatifs d’assurance', 'periscolaire-registration'), 'enabled' => false, 'days' => null, 'hook' => null, 'reason' => $with_child),
+        'private_files'       => array(
+            'label' => __('Justificatifs d’assurance', 'periscolaire-registration'),
+            'enabled' => true, 'days' => 1, 'hook' => 'psc_purge_departed_children',
+            'reason' => __('Supprimé dès la fin de son année scolaire (l’année active est toujours conservée) ; sinon avec la fiche enfant.', 'periscolaire-registration'),
+        ),
         'invoices'            => class_exists('Psc_Retention') && Psc_Retention::invoice_retention_enabled()
             ? array(
                 'label' => __('Factures', 'periscolaire-registration'),

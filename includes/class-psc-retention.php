@@ -67,6 +67,14 @@ class Psc_Retention {
                 return self::count_departed_children($now);
             case 'childless_families':
                 return (int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM (' . self::childless_families_sql() . ') x', $cutoff));
+            case 'private_files':
+                $t_cy = psc_table('child_school_years');
+                $t_years = psc_table('school_years');
+                return (int) $wpdb->get_var($wpdb->prepare(
+                    "SELECT COUNT(*) FROM $t_cy cy INNER JOIN $t_years y ON y.id = cy.school_year_id
+                     WHERE y.date_fin < %s AND y.id <> %d AND cy.assurance_file_path IS NOT NULL",
+                    wp_date('Y-m-d', $now), (int) Psc_School_Years::active_id()
+                ));
             case 'invoices':
                 return (int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM ' . psc_table('invoices') . ' WHERE mois < %s', self::invoice_retention_cutoff_month($now)));
             case 'conversations':
@@ -100,6 +108,67 @@ class Psc_Retention {
         self::purge_departed_children();
         self::purge_childless_families();
         self::purge_expired_invoices();
+        self::purge_past_year_insurance();
+    }
+
+    /**
+     * Attestations d'assurance des années scolaires terminées (RGPD-11,
+     * décision du 15/10/2026) : une attestation ne sert que l'année qu'elle
+     * couvre. Supprimée du disque dès que son année est finie (date_fin
+     * passée), sauf pour l'année active tant que la mairie ne l'a pas
+     * remplacée. La ligne d'inscription est conservée, sans plus aucune
+     * trace du document.
+     *
+     * @return int Nombre d'attestations supprimées.
+     */
+    public static function purge_past_year_insurance($now = null, $limit = 500) {
+        global $wpdb;
+        $now = $now === null ? time() : (int) $now;
+        $today = wp_date('Y-m-d', $now);
+        $t_cy = psc_table('child_school_years');
+        $t_years = psc_table('school_years');
+        $active = (int) Psc_School_Years::active_id();
+
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT cy.id, cy.assurance_file_path FROM $t_cy cy
+             INNER JOIN $t_years y ON y.id = cy.school_year_id
+             WHERE y.date_fin < %s AND y.id <> %d AND cy.assurance_file_path IS NOT NULL
+             ORDER BY cy.id LIMIT %d",
+            $today, $active, max(1, (int) $limit)
+        ));
+        $done = 0;
+        $dirs = array();
+        foreach ((array) $rows as $row) {
+            $abs = psc_private_path($row->assurance_file_path);
+            if ($abs && file_exists($abs)) {
+                @unlink($abs); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+            }
+            if ($abs) $dirs[dirname($abs)] = true;
+            $updated = $wpdb->update($t_cy, array(
+                'assurance_file_path'         => null,
+                'assurance_original_filename' => null,
+                'assurance_uploaded_at'       => null,
+                'assurance_revision'          => '',
+                'assurance_reviewed_at'       => null,
+                'assurance_reviewed_by'       => null,
+                'assurance_review_note'       => null,
+            ), array('id' => (int) $row->id));
+            if ($updated !== false) $done++;
+        }
+        foreach (array_keys($dirs) as $dir) {
+            // Répertoire de l'année retiré s'il est désormais vide.
+            if (is_dir($dir)) @rmdir($dir); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        }
+
+        if ($done) {
+            Psc_Audit::log('systeme.purge', array(
+                'objet_type' => 'enfant',
+                'meta'       => array('portee' => 'attestations_annees_passees', 'attestations' => $done),
+                /* translators: %d: nombre d'attestations supprimées */
+                'resume'     => sprintf(_n('%d attestation d’assurance d’une année scolaire terminée supprimée.', '%d attestations d’assurance d’années scolaires terminées supprimées.', $done, 'periscolaire-registration'), $done),
+            ));
+        }
+        return $done;
     }
 
     /** Purge des factures activée par la mairie (désactivée par défaut, RGPD-08). */

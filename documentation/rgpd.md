@@ -48,7 +48,8 @@ Ces durées sont celles que le plugin applique réellement, chaque jour, sans ac
 | Demande d'inscription non confirmée | 7 jours | dépôt | Nettoyage des demandes d'inscription |
 | Demande d'inscription validée ou refusée | 90 jours | décision | Nettoyage des demandes d'inscription |
 | Demande d'inscription restée en attente | 180 jours | dépôt | Nettoyage des demandes d'inscription |
-| Fiche enfant (planning, présences, personnes autorisées et historique, allergies, justificatifs d'assurance) | 400 jours | sortie ou fin de la dernière année d'inscription ; création de la fiche pour un enfant sans année | Purge des enfants sortis |
+| Fiche enfant (planning, présences, personnes autorisées et historique, signalement alimentaire, justificatifs d'assurance restants) | 400 jours | sortie ou fin de la dernière année d'inscription ; création de la fiche pour un enfant sans année | Purge des enfants sortis |
+| Attestation d'assurance d'une année scolaire terminée | jusqu'à la fin de son année scolaire (celle de l'année active est toujours conservée) | fin de l'année scolaire | Purge des enfants sortis |
 | Foyer sans enfant | 400 jours | dernière activité (connexion, facture, message) | Purge des enfants sortis |
 | Échanges avec la mairie, pièces jointes comprises | 395 jours | dernier message | Purge des échanges avec les familles |
 | Consultations de l'espace famille par la mairie | 365 jours | début de la consultation | Nettoyage des consultations « en tant que » |

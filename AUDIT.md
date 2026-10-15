@@ -34,10 +34,10 @@ Les corrections ont été appliquées sur la branche `audit-fixes` par trois cor
 
 | Statut | Nombre | Constats |
 |---|---|---|
-| Corrigé | 47 | SEC-01, 02, 03, 07, 09, 10, 11 · RGPD-01 à 10, 12, 13, 14 · PERF-01 à 12 · PRA-01 à 12, 14, 15, 18 |
+| Corrigé | 48 | SEC-01, 02, 03, 07, 09, 10, 11 · RGPD-01 à 14 · PERF-01 à 12 · PRA-01 à 12, 14, 15, 18 |
 | Partiellement corrigé | 2 | SEC-06, PRA-17 |
 | Risque accepté (décision) | 2 | SEC-04, SEC-08 |
-| Mis de côté (validation humaine) | 4 | SEC-05, RGPD-11, PRA-13, PRA-16 |
+| Mis de côté (validation humaine) | 3 | SEC-05, PRA-13, PRA-16 |
 
 Contrôles de consolidation, le 15/10/2026 :
 - `php -l` en PHP 7.4 et 8.3 sur les 212 fichiers PHP : aucune erreur.
@@ -428,7 +428,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-admin-familles.php:100-113`, `includes/class-psc-school-years.php:195-210`.
 - **Priorité :** Faible.
-- **Statut (branche `audit-fixes`) :** Mis de côté — suppression de documents d’assurance : décision de la mairie.
+- **Statut (branche `audit-fixes`) :** Corrigé — décision du 15/10/2026 : attestation supprimée (fichier et colonnes `assurance_*`) dès la fin de son année scolaire, l'année active étant toujours conservée ; purge quotidienne, bin/verify-insurance-retention.php.
 - **Explication :** une attestation ne sert que l'année concernée. Un enfant scolarisé 6 ans en accumule 6.
 - **Correction :** à l'archivage d'une année plus vieille d'un an, supprimer les fichiers `assurance_file_path` (`unlink`) et vider les colonnes `assurance_*`.
 
@@ -929,7 +929,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 | SEC-09 | Faible | Sécurité | La consultation par la mairie marque les échanges lus | `class-psc-conversations-frontend.php:53` | Corrigé |
 | SEC-10 | Faible | Sécurité | Changement d'e-mail sans limite de débit | `class-psc-parents.php:335-370` | Corrigé |
 | SEC-11 | Faible | Sécurité | Import iCal : DNS rebinding | `class-psc-school-calendar.php:173-229` | Corrigé |
-| RGPD-11 | Faible | Données | Attestations des années passées conservées | `class-psc-admin-familles.php:100-113` | Mis de côté |
+| RGPD-11 | Faible | Données | Attestations des années passées conservées | `class-psc-admin-familles.php:100-113` | Corrigé |
 | RGPD-12 | Faible | Données | Contenu des échanges dans les e-mails par défaut | `helpers/settings.php:90` | Corrigé |
 | RGPD-13 | Faible | Données | Effaceur et suppression : reliquats différents | `class-psc-privacy.php:373-377` | Corrigé |
 | RGPD-14 | Faible | Données | Registre de conservation sans effet | `class-psc-retention.php:22-45` | Corrigé |
