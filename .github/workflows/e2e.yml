@@ -223,6 +223,7 @@ jobs:
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-rate-limit.php verify-rate-limit
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-invoice-deletion.php verify-invoice-deletion
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-invoice-retention.php verify-invoice-retention
+          wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-message-links.php verify-message-links
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-document-writes.php verify-document-writes
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-migration-resume.php verify-migration-resume
 

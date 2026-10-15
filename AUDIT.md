@@ -34,8 +34,8 @@ Les corrections ont été appliquées sur la branche `audit-fixes` par trois cor
 
 | Statut | Nombre | Constats |
 |---|---|---|
-| Corrigé | 46 | SEC-01, 02, 03, 07, 09, 10, 11 · RGPD-01 à 08, 10, 12, 13, 14 · PERF-01 à 12 · PRA-01 à 12, 14, 15, 18 |
-| Partiellement corrigé | 3 | SEC-06, RGPD-09, PRA-17 |
+| Corrigé | 47 | SEC-01, 02, 03, 07, 09, 10, 11 · RGPD-01 à 10, 12, 13, 14 · PERF-01 à 12 · PRA-01 à 12, 14, 15, 18 |
+| Partiellement corrigé | 2 | SEC-06, PRA-17 |
 | Risque accepté (décision) | 2 | SEC-04, SEC-08 |
 | Mis de côté (validation humaine) | 4 | SEC-05, RGPD-11, PRA-13, PRA-16 |
 
@@ -406,7 +406,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-installer.php:1256`, `includes/class-psc-mailer.php:11`, `includes/class-psc-messages-frontend.php:98-124`.
 - **Priorité :** Moyenne. L'exploitabilité a été contestée et ramenée à Faible par « sécurité » : environ 190 bits, contenu collectif. La conformité reste en cause.
-- **Statut (branche `audit-fixes`) :** Partiellement corrigé — 3463198 — jeton retiré de l'URL ; stockage haché mis de côté (changement de schéma).
+- **Statut (branche `audit-fixes`) :** Corrigé — 3463198 (jeton retiré de l'URL) ; lien valable 90 jours après l'envoi du message (décision du 15/10/2026). Stockage du jeton en clair : risque accepté, le jeton n'ouvre aucune session et n'affiche que ce message ; le hacher obligerait à invalider le lien de l'e-mail précédent à chaque relance.
 - **Explication :** `message_destinataires.token` (CHAR 32) est stocké en clair et n'expire jamais. La page `?psc_msg=&t=` est rendue sans redirection, donc le jeton reste dans l'historique du navigateur. Cela contredit AGENTS §7 (jeton haché, durée courte).
 - **Correction :** stocker `hash_hmac('sha256', $token, wp_salt('psc_token'))`, rechercher par empreinte, et rediriger après lecture pour retirer le jeton de l'URL.
 
@@ -910,7 +910,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 | RGPD-06 | Moyenne | Données | SIDSCM : allergies et téléphones envoyés au-delà du besoin | `class-psc-sidscm.php:419-590` | Corrigé |
 | RGPD-07 | Moyenne | Données | IBAN en clair avec l'habilitation « Familles » | `templates/admin-parents.php:89-90` | Corrigé |
 | RGPD-08 | Moyenne | Données | Conservation des factures non bornée | `class-psc-privacy.php:107` | Corrigé |
-| RGPD-09 | Moyenne | Données | Jeton des diffusions en clair, sans expiration | `class-psc-messages-frontend.php:98-124` | Partiel |
+| RGPD-09 | Moyenne | Données | Jeton des diffusions en clair, sans expiration | `class-psc-messages-frontend.php:98-124` | Corrigé |
 | RGPD-10 | Moyenne | Données | Allergies héritées en clair, envoyées par e-mail | `class-psc-mailer.php:776-779` | Corrigé |
 | PERF-02 | Moyenne | Performance | Envois groupés synchrones (factures, menus, fermetures) | `class-psc-envois.php:101-227` | Corrigé |
 | PERF-03 | Moyenne | Performance | `maybe_upgrade()` sur chaque appel AJAX famille | `class-psc-installer.php:118-151` | Corrigé |

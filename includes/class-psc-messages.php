@@ -293,9 +293,28 @@ class Psc_Messages {
         return $out;
     }
 
+    /** Durée de validité du lien d'un e-mail de diffusion, en jours (RGPD-09). */
+    public static function link_ttl_days() {
+        return max(1, (int) apply_filters('psc_message_link_ttl_days', 90));
+    }
+
+    /**
+     * Destinataire désigné par le lien d'un e-mail de diffusion. Le lien
+     * n'ouvre qu'un message envoyé depuis moins de link_ttl_days() jours
+     * (RGPD-09) : au-delà, il ne mène plus qu'au portail, où la famille
+     * retrouve le message une fois connectée. Le jeton reste stocké en
+     * clair (décision du 15/10/2026) : il n'ouvre aucune session et ne
+     * permet que d'afficher ce message et de le marquer vu.
+     */
     public static function recipient($message_id, $token) {
         global $wpdb;
-        return $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . psc_table('message_destinataires') . ' WHERE message_id=%d AND token=%s', $message_id, $token));
+        // date_envoi est en heure du site (current_time('mysql')).
+        $cutoff = wp_date('Y-m-d H:i:s', time() - self::link_ttl_days() * DAY_IN_SECONDS);
+        return $wpdb->get_row($wpdb->prepare(
+            'SELECT d.* FROM ' . psc_table('message_destinataires') . ' d INNER JOIN ' . psc_table('messages') . " m ON m.id = d.message_id
+             WHERE d.message_id = %d AND d.token = %s AND m.statut = 'envoye' AND m.date_envoi >= %s",
+            $message_id, $token, $cutoff
+        ));
     }
 
     public static function resend_unread($message_id) {
