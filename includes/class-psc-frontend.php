@@ -447,8 +447,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
             if ((int) $child->vegan) $diet_bits[] = __('Sans viande', 'periscolaire-registration');
             $meta = Psc_School_Years::classe_for($child->id);
             if ($diet_bits) $meta .= ($meta !== '' ? ' · ' : '') . implode(', ', $diet_bits);
-            $allergies = trim((string) $child->food_allergies);
-            if ($allergies !== '') {
+            if (!empty($child->food_allergy_signal)) {
                 $meta .= ($meta !== '' ? ' · ' : '') . __('Allergies alimentaires', 'periscolaire-registration');
             }
             if ($meta === '') $meta = '—';

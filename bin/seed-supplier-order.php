@@ -178,9 +178,10 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
             'prenom'         => $c['prenom'],
             'sans_porc'      => (int) $c['sans_porc'],
             'vegan'          => (int) $c['vegan'],
-            'food_allergies' => $c['allergies'] !== '' ? $c['allergies'] : null,
+            // Texte libre supprimé (RGPD-10) : une allergie vaut signalement.
+            'food_allergy_signal' => $c['allergies'] !== '' ? 1 : 0,
             'created_at'     => current_time('mysql'),
-        ), array('%d', '%s', '%s', '%d', '%d', '%s', '%s'));
+        ), array('%d', '%s', '%s', '%d', '%d', '%d', '%s'));
         $child_id = (int) $wpdb->insert_id;
         $child_ids[] = $child_id;
         // Statut « cantine sans repas » daté (P1-16) : en vigueur depuis

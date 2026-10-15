@@ -630,7 +630,11 @@ class Psc_Sidscm {
             // (cantine ou midi sans repas) cette semaine — un intervenant
             // de garderie n'en a pas l'usage (RGPD-06).
             $at_lunch = !empty($per_service['CANT']) || !empty($per_service['MSR']);
-            $allergies = $at_lunch ? trim((string) $c->food_allergies) : '';
+            // Plus de texte d'allergies (RGPD-10) : le signalement suffit,
+            // l'enfant apporte son repas ; le détail relève du PAI.
+            $allergies = ($at_lunch && !empty($c->food_allergy_signal))
+                ? __('Allergie signalée : apporte son repas (PAI, voir la mairie)', 'periscolaire-registration')
+                : '';
 
             $out_children[] = array(
                 'id'         => (int) $c->id,

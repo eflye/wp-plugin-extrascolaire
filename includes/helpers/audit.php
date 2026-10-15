@@ -65,9 +65,6 @@ function psc_audit_action_registry() {
         'psc_delete_request' => array(
             'action' => 'demande.suppression', 'categorie' => 'donnees_famille', 'objet' => 'demande', 'niveau' => 'normal',
         ),
-        'psc_reconcile_request_allergies' => array(
-            'action' => 'demande.allergies_reconciliees', 'categorie' => 'donnees_famille', 'objet' => 'demande', 'niveau' => 'normal',
-        ),
 
         /* ---------------- Portail famille ---------------- */
         'psc_parent_update_profile' => array(

@@ -16,7 +16,8 @@ const CONTAINER = process.env.PSC_WP_CONTAINER ?? 'plugin-extrascolaire-wordpres
 const WP = '/usr/local/bin/wp-cli.phar';
 const PASSWORD = 'Habilitations-E2E-2026';
 const EMAIL = 'habilitations.e2e@example.test';
-const ALLERGY = 'Kiwi — habilitations E2E';
+// Texte libre supprimé (RGPD-10) : l'écran affiche le signalement.
+const ALLERGY = 'Signalement alimentaire : apporte son repas';
 const USERS = {
   editeur: { role: 'editor', caps: [] as string[] },
   facturation: { role: 'subscriber', caps: ['psc_manage_billing'] },
@@ -71,7 +72,7 @@ test.describe('Habilitations du backoffice', () => {
     }
     wpEval(`global $wpdb;
       $wpdb->insert($wpdb->prefix.'psc_parents',array('email'=>'${EMAIL}','nom'=>'HabilitationsE2E','prenom'=>'Famille','active'=>1,'created_at'=>current_time('mysql')));
-      $wpdb->insert($wpdb->prefix.'psc_children',array('parent_id'=>(int)$wpdb->insert_id,'nom'=>'HabilitationsE2E','prenom'=>'Noa','food_allergies'=>'${ALLERGY}','created_at'=>current_time('mysql')));
+      $wpdb->insert($wpdb->prefix.'psc_children',array('parent_id'=>(int)$wpdb->insert_id,'nom'=>'HabilitationsE2E','prenom'=>'Noa','food_allergy_signal'=>1,'created_at'=>current_time('mysql')));
       Psc_School_Years::enroll((int)$wpdb->insert_id,Psc_School_Years::active_id(),'CE2','inscrit',current_time('mysql'));
       echo 'ok';`);
   });

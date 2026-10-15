@@ -33,8 +33,8 @@
  *    signés avec elle ; un cookie signé avec le sel en base est refusé.
  *  - SEC-10 : au plus 3 demandes de changement d'adresse par jour et par
  *    foyer ; la 4e est refusée sans e-mail (email_change_rate).
- *  - PERF-07 : allergies_to_reconcile() en un nombre de requêtes constant,
- *    résultat inchangé (fiche vide complétée, fiche renseignée intacte).
+ *  - PERF-07 : sans objet depuis 4.20.0 (RGPD-10) — le rapprochement des
+ *    allergies a été supprimé avec le texte libre ; vérifié absent.
  *  - PRA-18 : en consultation mairie, la lecture AJAX du planning ne crée
  *    pas d'année scolaire (ensure_default() non appelé).
  *  - PRA-14/L1 : purge des demandes non confirmées au seuil de 7 jours
@@ -420,7 +420,7 @@ WP_CLI::add_command('verify-audit-lot1', function () {
             $sid_family = Psc_Parents::create($emails['sidscm'], 'Lot1', array('second_parent_prenom' => 'Second', 'second_parent_nom' => 'Lot1', 'second_parent_telephone' => '0612345678'));
             $t_child = psc_table('children');
             $mk = function ($prenom) use ($wpdb, $t_child, $sid_family) {
-                $wpdb->insert($t_child, array('parent_id' => $sid_family, 'nom' => 'Lot1', 'prenom' => $prenom, 'food_allergies' => 'Arachide', 'created_at' => current_time('mysql')));
+                $wpdb->insert($t_child, array('parent_id' => $sid_family, 'nom' => 'Lot1', 'prenom' => $prenom, 'food_allergy_signal' => 1, 'created_at' => current_time('mysql')));
                 return (int) $wpdb->insert_id;
             };
             $garderie = $mk('Garderie');
@@ -442,7 +442,7 @@ WP_CLI::add_command('verify-audit-lot1', function () {
             $check(isset($with[$garderie], $with[$cantine]), 'RGPD-06 données : enfants de test absents de la liste');
             if (isset($with[$garderie], $with[$cantine])) {
                 $check($with[$garderie]['allergies'] === null && empty($with[$garderie]['brings_meal']), 'RGPD-06 : allergies transmises pour un enfant de garderie seule');
-                $check($with[$cantine]['allergies'] === 'Arachide', 'RGPD-06 : allergies absentes pour un enfant de cantine');
+                $check(is_string($with[$cantine]['allergies']) && $with[$cantine]['allergies'] !== '', 'RGPD-06 : signalement d’allergie absent pour un enfant de cantine');
                 $check(!empty($with[$garderie]['authorized']), 'RGPD-06 : personnes autorisées absentes pour la semaine en cours');
                 $check(empty($with[$cantine]['authorized']), 'RGPD-06 : personnes autorisées transmises hors garderie du soir');
                 $check(empty($without[$garderie]['authorized']), 'RGPD-06 : personnes autorisées transmises hors semaine en cours');
@@ -600,40 +600,8 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         $check($codes[3] === 'email_change_rate' && $codes[4] === 'email_change_rate', 'SEC-10 : 4e demande du jour acceptée : ' . implode(', ', $codes));
         $check(count($mails) === 0, 'SEC-10 : e-mail envoyé au-delà de la limite');
 
-        /* ---------- PERF-07 : rapprochement des allergies sans N+1 ---------- */
-        $perf_children = array();
-        foreach (array('perf1', 'perf2', 'perf3') as $k) {
-            $fid = Psc_Parents::create($emails[$k], 'Perf');
-            $wpdb->insert(psc_table('children'), array('parent_id' => $fid, 'nom' => 'Perf', 'prenom' => 'Vide', 'created_at' => current_time('mysql')));
-            $empty_child = (int) $wpdb->insert_id;
-            $wpdb->insert(psc_table('children'), array('parent_id' => $fid, 'nom' => 'Perf', 'prenom' => 'Pleine', 'food_allergies' => 'Déjà saisie', 'created_at' => current_time('mysql')));
-            $perf_children[$k] = $empty_child;
-            $wpdb->insert($t_req, array(
-                'email' => $emails[$k], 'nom' => 'Perf', 'prenom' => 'Perf', 'status' => 'approved', 'verified' => 1,
-                'decided_at' => current_time('mysql'), 'created_at' => current_time('mysql'),
-                'children_json' => wp_json_encode(array(
-                    array('nom' => 'Perf', 'prenom' => 'Vide', 'food_allergies' => 'Arachide'),
-                    array('nom' => 'Perf', 'prenom' => 'Pleine', 'food_allergies' => 'Autre'),
-                )),
-            ));
-        }
-        $before_q = $wpdb->num_queries;
-        $gaps = Psc_Requests::allergies_to_reconcile();
-        $used = $wpdb->num_queries - $before_q;
-        $found = array();
-        foreach ($gaps as $g) foreach ($g['children'] as $c) $found[] = $c['child_id'];
-        sort($found);
-        $expected_ids = array_values($perf_children);
-        sort($expected_ids);
-        $check(array_values(array_intersect($found, $expected_ids)) === $expected_ids, 'PERF-07 : fiches vides non proposées au rapprochement');
-        $check(count(array_intersect($found, $expected_ids)) === count(array_filter($found, function ($id) use ($wpdb) {
-            return (string) $wpdb->get_var($wpdb->prepare('SELECT nom FROM ' . psc_table('children') . ' WHERE id = %d', $id)) === 'Perf';
-        })), 'PERF-07 : fiche déjà renseignée proposée au rapprochement');
-        $check($used <= 2, "PERF-07 : $used requêtes (2 attendues au plus)");
-        foreach (array('perf1', 'perf2', 'perf3') as $k) {
-            $fid = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM $t_par WHERE email = %s", $emails[$k]));
-            if ($fid) Psc_Admin_Familles::delete_family($fid);
-        }
+        /* ---------- PERF-07 : rapprochement supprimé avec le texte libre (RGPD-10) ---------- */
+        $check(!method_exists('Psc_Requests', 'allergies_to_reconcile') && !has_action('admin_post_psc_reconcile_request_allergies'), 'PERF-07 : le rapprochement des allergies existe encore');
 
         /* ---------- PRA-14/L1 : horloge de la purge des demandes ---------- */
         $mk_unverified = function ($age) use ($wpdb, $t_req, $emails) {

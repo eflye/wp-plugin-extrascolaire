@@ -400,7 +400,7 @@ WP_CLI::add_command('verify-audit-lot3', function () {
         $req = (object) array('email' => 'rgpd10@example.invalid', 'prenom' => 'P', 'nom' => 'N', 'telephone' => '', 'message' => '');
         $mails = array();
         Psc_Mailer::notify_mairie_new_request($req, array(
-            array('prenom' => 'A', 'nom' => 'B', 'classe' => 'CP', 'food_allergies' => 'Arachide-SECRET-PAI'),
+            array('prenom' => 'A', 'nom' => 'B', 'classe' => 'CP', 'food_allergies' => 'Arachide-SECRET-PAI', 'food_allergy_signal' => 1),
             array('prenom' => 'C', 'nom' => 'D', 'classe' => 'CP', 'food_allergy_signal' => 1),
             array('prenom' => 'E', 'nom' => 'F', 'classe' => 'CP'),
         ));

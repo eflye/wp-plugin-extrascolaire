@@ -107,7 +107,7 @@ WP_CLI::add_command('verify-channel-contracts', function () {
         ) as $key => $services) {
             $pid = Psc_Parents::create($emails[$key], 'Contrats');
             $row = array('parent_id' => $pid, 'nom' => 'Contrat', 'prenom' => ucfirst($key), 'created_at' => current_time('mysql'));
-            if ($key === 'allergie') $row['food_allergies'] = 'Arachide';
+            if ($key === 'allergie') $row['food_allergy_signal'] = 1;
             $wpdb->insert($t_ch, $row);
             $cid = (int) $wpdb->insert_id;
             Psc_School_Years::enroll($cid, $y, 'CE1');

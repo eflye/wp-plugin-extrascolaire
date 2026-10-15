@@ -157,11 +157,10 @@ WP_CLI::add_command('seed-docs-screenshots', function ($args, $assoc_args) {
     // d'assurance en attente de revue.
     $noe_id = $make_child('Noé', 'Rivière', 'CP', array('sans_porc' => 1));
 
-    // Alma (CE2) : allergie alimentaire déclarée et consentie — capture
-    // de la case "Cet enfant a une allergie alimentaire" (étape 12).
+    // Alma (CE2) : allergie alimentaire signalée — l'enfant apporte son
+    // repas (garderie cantine). Plus de texte libre depuis 4.20.0 (RGPD-10).
     $alma_id = $make_child('Alma', 'Rivière', 'CE2', array(
-        'food_allergies'          => 'Arachides, réaction cutanée',
-        'food_allergy_consent_at' => current_time('mysql'),
+        'food_allergy_signal' => 1,
     ));
 
     /* ---------------------------------------------------------------- */
@@ -239,7 +238,7 @@ WP_CLI::add_command('seed-docs-screenshots', function ($args, $assoc_args) {
             'date_naissance' => $fmt((clone $today)->modify('-7 years')),
             'sans_porc'      => 0,
             'vegan'          => 0,
-            'food_allergies' => '',
+            'food_allergy_signal' => 0,
         ))),
         'verified'       => 1,
         'status'         => 'pending',

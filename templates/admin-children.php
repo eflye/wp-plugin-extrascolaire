@@ -92,7 +92,7 @@ if ((int) $c->vegan) $diet[] = __('Sans viande', 'periscolaire-registration');
 echo $diet ? esc_html(implode(' · ', $diet)) : '—';
 ?>
 </td>
-<td><?php echo !psc_user_can_view_health() ? psc_health_restricted_html() : (trim((string) $c->food_allergies) !== '' ? '<div style="max-width:220px;line-height:1.45;color:#9E4A4A;">' . esc_html($c->food_allergies) . '</div>' : '—'); ?></td>
+<td><?php echo !psc_user_can_view_health() ? psc_health_restricted_html() : (!empty($c->food_allergy_signal) ? '<div style="max-width:220px;line-height:1.45;color:#9E4A4A;">' . esc_html__('Signalement alimentaire : apporte son repas', 'periscolaire-registration') . '</div>' : '—'); ?></td>
 <td style="white-space:nowrap">
 <?php
 $psc_csr_on = (int) $c->cantine_sans_repas === 1;

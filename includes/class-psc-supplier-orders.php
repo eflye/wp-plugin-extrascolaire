@@ -48,9 +48,11 @@ class Psc_Supplier_Orders {
      *   - régime « sans viande » (colonne vegan, libellé côté famille) →
      *     Végétarien — le vocabulaire du fournisseur s'applique à la
      *     génération ;
-     *   - food_allergies renseigné → compté dans AUCUNE colonne repas ni
-     *     goûter : l'enfant apporte les siens, mais reste sur les listes
-     *     de présence avec la mention « apporte son repas ».
+     *   - signalement alimentaire (food_allergy_signal) → compté dans
+     *     AUCUNE colonne repas ni goûter : règle de la mairie, un enfant
+     *     allergique ne mange pas le repas de la cantine (« garderie
+     *     cantine ») et apporte les siens ; il reste sur les listes de
+     *     présence.
      *
      * Les trois régimes sont mutuellement exclusifs : chaque enfant inscrit
      * au déjeuner compte pour exactement un des trois, Total midi = somme
@@ -85,7 +87,7 @@ class Psc_Supplier_Orders {
 
         if (!empty($jours_dates)) {
             $children = $wpdb->get_results(
-                "SELECT c.id, c.sans_porc, c.vegan, c.food_allergies
+                "SELECT c.id, c.sans_porc, c.vegan, c.food_allergy_signal
                  FROM $t_child c
                  JOIN $t_par p ON p.id = c.parent_id
                  WHERE p.active = 1 AND " . Psc_School_Years::inscrit_sql('c.id', Psc_School_Years::id_for_date($semaine))
@@ -95,10 +97,10 @@ class Psc_Supplier_Orders {
                 $declared = Psc_Planning::declared_map($child_ids, array_values($jours_dates));
 
                 foreach ($children as $child) {
-                    // Allergie alimentaire déclarée : l'enfant apporte son
+                    // Allergie alimentaire signalée : l'enfant apporte son
                     // repas ET son goûter fournis par la famille — compté
-                    // dans aucune colonne.
-                    if (trim((string) $child->food_allergies) !== '') continue;
+                    // dans aucune colonne (règle de la mairie).
+                    if (!empty($child->food_allergy_signal)) continue;
 
                     // Les trois régimes sont mutuellement exclusifs. Sans
                     // viande (vegan) est la restriction la plus large : elle

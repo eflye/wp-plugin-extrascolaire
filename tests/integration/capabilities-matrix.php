@@ -127,8 +127,8 @@ foreach ($endpoints as $ep) {
 // Hors de leur domaine, les habilitations partielles sont refusées ; les
 // allergies exigent psc_view_health en plus du dossier famille.
 $outside = array(
-    'facturation' => array('admin_post_psc_approve_request', 'admin_post_psc_reconcile_request_allergies', 'admin_post_psc_save_settings', 'admin_post_psc_admin_update_registrations'),
-    'familles'    => array('admin_post_psc_reconcile_request_allergies', 'admin_post_psc_save_settings', 'admin_post_psc_download_sepa'),
+    'facturation' => array('admin_post_psc_approve_request', 'admin_post_psc_save_settings', 'admin_post_psc_admin_update_registrations'),
+    'familles'    => array('admin_post_psc_save_settings', 'admin_post_psc_download_sepa'),
 );
 $by_hook = array();
 foreach ($endpoints as $ep) $by_hook[$ep['hook']] = $ep;

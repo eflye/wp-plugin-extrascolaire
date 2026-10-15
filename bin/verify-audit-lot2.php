@@ -293,7 +293,7 @@ WP_CLI::add_command('verify-audit-lot2', function () {
         $family_ids[] = $fam_h;
         $wpdb->update($t_par, array('adresse' => 'AdresseTitulaire' . $tag), array('id' => $fam_h));
         $child_h = $make_child($fam_h, 'Exp' . $tag);
-        $wpdb->update($t_child, array('food_allergies' => 'Arachide' . $tag), array('id' => $child_h));
+        $wpdb->update($t_child, array('food_allergy_signal' => 1), array('id' => $child_h));
         $wpdb->insert(psc_table('attendance'), array('child_id' => $child_h, 'jour_date' => '1990-03-05', 'service' => 'GM', 'present' => 1, 'arrival_time' => '07:45:00', 'pointed_at' => '1990-03-05 07:45:00'));
         $now_mysql = current_time('mysql');
         $wpdb->insert(psc_table('conversations'), array(
@@ -309,7 +309,14 @@ WP_CLI::add_command('verify-audit-lot2', function () {
         };
         $full = $flatten(Psc_Privacy::export_family_data($tag . 'h@example.test'));
         $check(strpos($full, 'psc-presences|') !== false && strpos($full, '07:45') !== false, 'RGPD-05 : présences absentes de l’export');
-        $check(strpos($full, 'Arachide' . $tag) !== false, 'RGPD-05 : contenu des allergies absent de l’export');
+        // Texte libre des allergies supprimé (RGPD-10) : l'export restitue le signalement.
+        $signal_exported = false;
+        foreach (Psc_Privacy::export_family_data($tag . 'h@example.test')['data'] as $item) {
+            foreach ($item['data'] as $f) {
+                if (strpos((string) $f['name'], 'Signalement alimentaire') === 0 && $f['value'] === __('oui', 'periscolaire-registration')) $signal_exported = true;
+            }
+        }
+        $check($signal_exported, 'RGPD-05 : signalement alimentaire absent de l’export');
         $check(strpos($full, 'Corps' . $tag) !== false, 'RGPD-05 : contenu des messages absent de l’export');
         $second_export = $flatten(Psc_Privacy::export_family_data('second' . $tag . 'h@example.test'));
         $check(strpos($second_export, 'AdresseTitulaire' . $tag) === false && strpos($second_export, $tag . 'h@example.test|') === false, 'RGPD-05 : export du second parent avec les coordonnées du titulaire');

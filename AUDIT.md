@@ -34,8 +34,8 @@ Les corrections ont été appliquées sur la branche `audit-fixes` par trois cor
 
 | Statut | Nombre | Constats |
 |---|---|---|
-| Corrigé | 45 | SEC-01, 02, 03, 07, 09, 10, 11 · RGPD-01 à 08, 12, 13, 14 · PERF-01 à 12 · PRA-01 à 12, 14, 15, 18 |
-| Partiellement corrigé | 4 | SEC-06, RGPD-09, RGPD-10, PRA-17 |
+| Corrigé | 46 | SEC-01, 02, 03, 07, 09, 10, 11 · RGPD-01 à 08, 10, 12, 13, 14 · PERF-01 à 12 · PRA-01 à 12, 14, 15, 18 |
+| Partiellement corrigé | 3 | SEC-06, RGPD-09, PRA-17 |
 | Risque accepté (décision) | 2 | SEC-04, SEC-08 |
 | Mis de côté (validation humaine) | 4 | SEC-05, RGPD-11, PRA-13, PRA-16 |
 
@@ -414,7 +414,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-installer.php:1003`, `includes/class-psc-requests.php:766-779`, `includes/class-psc-mailer.php:776-779`, `documentation/rgpd.md:59`.
 - **Priorité :** Moyenne.
-- **Statut (branche `audit-fixes`) :** Partiellement corrigé — a647988 — détail retiré de l'e-mail mairie ; chiffrement ou retrait de la colonne : décision du DPO.
+- **Statut (branche `audit-fixes`) :** Corrigé — a647988 (détail retiré de l'e-mail mairie) ; texte libre supprimé partout (décision du 15/10/2026) : migration 4.20.0 qui convertit tout texte en signalement puis supprime la colonne, rapprochement des allergies retiré, écrans et commande fournisseur fondés sur le signalement.
 - **Explication :**
   - Le parcours ne collecte plus le détail médical. Pourtant `food_allergies` (TEXT en clair) reste peuplé pour les fiches anciennes, et peut être recopié par le rapprochement mairie.
   - La famille ne peut ni le voir, ni le corriger, ni l'effacer.
@@ -911,7 +911,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 | RGPD-07 | Moyenne | Données | IBAN en clair avec l'habilitation « Familles » | `templates/admin-parents.php:89-90` | Corrigé |
 | RGPD-08 | Moyenne | Données | Conservation des factures non bornée | `class-psc-privacy.php:107` | Corrigé |
 | RGPD-09 | Moyenne | Données | Jeton des diffusions en clair, sans expiration | `class-psc-messages-frontend.php:98-124` | Partiel |
-| RGPD-10 | Moyenne | Données | Allergies héritées en clair, envoyées par e-mail | `class-psc-mailer.php:776-779` | Partiel |
+| RGPD-10 | Moyenne | Données | Allergies héritées en clair, envoyées par e-mail | `class-psc-mailer.php:776-779` | Corrigé |
 | PERF-02 | Moyenne | Performance | Envois groupés synchrones (factures, menus, fermetures) | `class-psc-envois.php:101-227` | Corrigé |
 | PERF-03 | Moyenne | Performance | `maybe_upgrade()` sur chaque appel AJAX famille | `class-psc-installer.php:118-151` | Corrigé |
 | PERF-04 | Moyenne | Performance | Portail rendu deux fois | `class-psc-frontend.php:58-61` | Corrigé |
