@@ -34,9 +34,9 @@ Les corrections ont été appliquées sur la branche `audit-fixes` par trois cor
 
 | Statut | Nombre | Constats |
 |---|---|---|
-| Corrigé | 40 | SEC-01, 02, 03, 07, 09, 10, 11 · RGPD-01 à 07, 13, 14 · PERF-01 à 11 · PRA-02 à 12, 15, 18 |
+| Corrigé | 41 | SEC-01, 02, 03, 07, 09, 10, 11 · RGPD-01 à 07, 13, 14 · PERF-01 à 11 · PRA-01 à 12, 15, 18 |
 | Partiellement corrigé | 6 | SEC-06, RGPD-09, RGPD-10, PERF-12, PRA-14, PRA-17 |
-| Mis de côté (validation humaine) | 9 | SEC-04, SEC-05, SEC-08, RGPD-08, RGPD-11, RGPD-12, PRA-01, PRA-13, PRA-16 |
+| Mis de côté (validation humaine) | 8 | SEC-04, SEC-05, SEC-08, RGPD-08, RGPD-11, RGPD-12, PRA-13, PRA-16 |
 
 Contrôles de consolidation, le 15/10/2026 :
 - `php -l` en PHP 7.4 et 8.3 sur les 212 fichiers PHP : aucune erreur.
@@ -634,7 +634,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-installer.php:1084` (`UNIQUE KEY parent_mois (parent_id, mois)`), `includes/class-psc-invoices.php:58-140`, `includes/class-psc-installer.php:942-952`, `AGENTS.md` (non suivi par git).
 - **Priorité :** Élevée.
-- **Statut (branche `audit-fixes`) :** Mis de côté — décision de la mairie : facture par foyer ou migration de schéma.
+- **Statut (branche `audit-fixes`) :** Corrigé — décision du 15/10/2026 : une facture par foyer et par mois est conservée ; AGENTS.md est aligné sur le modèle réel et versionné.
 - **Explication :**
   - Le code produit **une facture par foyer et par mois**, alors qu'AGENTS §2.1 demande une facture par enfant.
   - Il n'existe pas de table de liaison `autorite_parentale` / `responsable_facturation` (§2.4) : un second parent est porté en colonnes.
@@ -899,7 +899,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 | RGPD-03 | Élevée | Données | Effaceur et export ignorent `requests` et `message_destinataires` | `class-psc-privacy.php:338-410` | Corrigé |
 | RGPD-04 | Élevée | Données | Le journal d'audit garde noms, e-mails et IP malgré la purge ou l'effacement | `class-psc-retention.php:87-90` | Corrigé |
 | PERF-01 | Élevée | Performance | `close_range()` : e-mails synchrones jour par jour, fermeture partielle possible | `class-psc-school-calendar.php:637-654` | Corrigé |
-| PRA-01 | Élevée | Pratiques | AGENTS.md contredit le modèle en production (facture par foyer) | `class-psc-installer.php:1084` | Mis de côté |
+| PRA-01 | Élevée | Pratiques | AGENTS.md contredit le modèle en production (facture par foyer) | `class-psc-installer.php:1084` | Corrigé |
 | PRA-02 | Élevée | Pratiques | Capacité déduite par sous-chaîne ; pain008 (IBAN) hors habilitation | `helpers/core.php:69-78` | Corrigé |
 | PRA-03 | Élevée | Pratiques | Signalement alimentaire perdu pour les enfants 2 à 5 | `assets/js/guest.js:275-283` | Corrigé |
 | SEC-03 | Moyenne | Sécurité | SIDSCM : sessions non révoquées, codes faibles | `class-psc-sidscm.php:184-264` | Corrigé |
