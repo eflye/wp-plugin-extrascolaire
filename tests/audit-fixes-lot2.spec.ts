@@ -217,12 +217,14 @@ test.describe('Lot 2 — écrans Messages sans code brut ni texte de l’URL (PR
   test('un texte forgé dans psc_msg n’est jamais affiché ; un code connu l’est en clair', async ({ page }) => {
     await loginAs(page, user);
     await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_message_edit&psc_msg=${encodeURIComponent('Votre compte est suspendu')}`);
-    await expect(page.locator('.notice')).not.toContainText('suspendu');
+    await expect(page.getByRole('heading', { level: 1, name: 'Nouveau message' })).toBeVisible();
+    await expect(page.locator('body')).not.toContainText('suspendu');
+    // Seule la notice du plugin est visée : l'environnement en affiche d'autres.
     await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_message_edit&psc_msg=test_sent`);
-    await expect(page.locator('.notice')).toContainText('Message de test envoyé');
+    await expect(page.locator('.wrap .notice', { hasText: 'Message de test envoyé' })).toBeVisible();
     await expect(page.locator('body')).not.toContainText('test_sent');
     await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_messages&psc_msg=deleted`);
-    await expect(page.locator('.notice')).toContainText('Message supprimé');
+    await expect(page.locator('.wrap .notice', { hasText: 'Message supprimé' })).toBeVisible();
   });
 });
 
