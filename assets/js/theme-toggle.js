@@ -9,9 +9,9 @@
  * sécurité relu par le script en ligne de <head> si le cookie disparaît.
  *
  * Plusieurs boutons peuvent coexister (bandeau du thème, repli dans le
- * contenu) : tous sont tenus à jour. aria-pressed vaut "true" quand le
- * Clair est actif ; aria-label et title annoncent l'action du prochain
- * clic. Aucune animation ici : la seule transition, de couleur, est en CSS.
+ * contenu) : tous sont tenus à jour. Bouton bascule : nom fixe « Thème
+ * clair », aria-pressed vaut "true" quand le Clair est actif ; title
+ * annonce l'action du prochain clic. Aucune animation ici : la seule transition, de couleur, est en CSS.
  */
 (function () {
     'use strict';
@@ -32,13 +32,11 @@
     function syncButtons() {
         var light = isLight();
         buttons.forEach(function (button) {
-            // Le libellé décrit l'action : en Clair, on propose l'Encre.
-            var label = light ? button.getAttribute('data-label-ink') : button.getAttribute('data-label-light');
+            // Nom accessible fixe (« Thème clair ») : seul aria-pressed
+            // porte l'état. L'infobulle décrit le prochain clic.
+            var title = light ? button.getAttribute('data-title-ink') : button.getAttribute('data-title-light');
             button.setAttribute('aria-pressed', light ? 'true' : 'false');
-            if (label) {
-                button.setAttribute('aria-label', label);
-                button.setAttribute('title', label);
-            }
+            if (title) button.setAttribute('title', title);
         });
     }
 

@@ -3,8 +3,8 @@
  *
  *  - Encre par défaut : pas d'attribut data-psc-theme, bouton soleil,
  *    aria-pressed="false" ;
- *  - bascule sans rechargement, au clavier, avec aria-pressed, aria-label
- *    et title à jour, préférence écrite dans le cookie psc_theme et dans
+ *  - bascule sans rechargement, au clavier : nom accessible fixe « Thème
+ *    clair », aria-pressed et title à jour, préférence écrite dans le cookie psc_theme et dans
  *    localStorage ;
  *  - pas de flash : avec le cookie, le HTML servi porte déjà l'attribut ;
  *  - filet localStorage : cookie effacé, préférence Clair rétablie avant
@@ -66,7 +66,7 @@ test.describe('Thème Clair du portail famille', () => {
     const toggle = page.locator(TOGGLE).first();
     expect(await theme(page)).toBeNull();
     await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    await expect(toggle).toHaveAttribute('aria-label', 'Activer le thème clair');
+    await expect(toggle).toHaveAccessibleName('Thème clair');
     await expect(toggle).toHaveAttribute('title', 'Activer le thème clair');
     await expect(toggle.locator('.psc-theme-toggle-sun')).toBeVisible();
     await expect(toggle.locator('.psc-theme-toggle-moon')).toBeHidden();
@@ -76,7 +76,8 @@ test.describe('Thème Clair du portail famille', () => {
     await page.keyboard.press('Enter');
     expect(await theme(page)).toBe('light');
     await expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    await expect(toggle).toHaveAttribute('aria-label', 'Activer le thème encre');
+    await expect(toggle).toHaveAccessibleName('Thème clair');
+    await expect(toggle).toHaveAttribute('title', 'Activer le thème encre');
     await expect(toggle.locator('.psc-theme-toggle-moon')).toBeVisible();
     await expect(toggle.locator('.psc-theme-toggle-sun')).toBeHidden();
     expect(await themeCookie(page)).toBe('light');

@@ -106,7 +106,7 @@ class Psc_Theme_Toggle {
     }
 
     /**
-     * Bouton soleil/lune. Le soleil (« passer en clair ») s'affiche en
+     * Bouton soleil/lune, de nom « Thème clair » avec aria-pressed. Le soleil (« passer en clair ») s'affiche en
      * Encre, la lune (« passer en encre ») en Clair : les deux pictogrammes
      * sont dans le markup et la feuille portal-light.css n'en montre qu'un
      * selon l'attribut de <html>, ce qui évite tout rendu JS au chargement.
@@ -116,12 +116,17 @@ class Psc_Theme_Toggle {
      */
     public static function render_button($inline = false) {
         $light = self::is_light();
-        $label_light = __('Activer le thème clair', 'periscolaire-registration');
-        $label_ink = __('Activer le thème encre', 'periscolaire-registration');
-        $label = $light ? $label_ink : $label_light;
+        // Bouton bascule : nom fixe + aria-pressed (« Thème clair, activé »).
+        // Un nom qui décrirait l'action (« Activer le thème encre ») se
+        // contredirait avec l'état annoncé (« …, activé »). L'infobulle,
+        // elle, décrit le prochain clic.
+        $name = __('Thème clair', 'periscolaire-registration');
+        $title_light = __('Activer le thème clair', 'periscolaire-registration');
+        $title_ink = __('Activer le thème encre', 'periscolaire-registration');
+        $title = $light ? $title_ink : $title_light;
         $class = 'psc-theme-toggle' . ($inline ? ' psc-theme-toggle--inline' : '');
         ?>
-<button type="button" class="<?php echo esc_attr($class); ?>" data-psc-theme-toggle aria-pressed="<?php echo $light ? 'true' : 'false'; ?>" aria-label="<?php echo esc_attr($label); ?>" title="<?php echo esc_attr($label); ?>" data-label-light="<?php echo esc_attr($label_light); ?>" data-label-ink="<?php echo esc_attr($label_ink); ?>">
+<button type="button" class="<?php echo esc_attr($class); ?>" data-psc-theme-toggle aria-pressed="<?php echo $light ? 'true' : 'false'; ?>" aria-label="<?php echo esc_attr($name); ?>" title="<?php echo esc_attr($title); ?>" data-title-light="<?php echo esc_attr($title_light); ?>" data-title-ink="<?php echo esc_attr($title_ink); ?>">
   <svg class="psc-theme-toggle-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
   <svg class="psc-theme-toggle-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" focusable="false"><path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10Z"/></svg>
 </button>
