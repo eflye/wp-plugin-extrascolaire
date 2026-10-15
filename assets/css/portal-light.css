@@ -1,0 +1,691 @@
+/* ===================================================================
+   Thème « Clair » du portail famille
+   Chargé après portal.css, psc-messages.css et la feuille du thème
+   (psc-theme.css), sur la page [periscolaire_form] uniquement
+   (cf. Psc_Theme_Toggle). Toutes les règles sont préfixées
+   html[data-psc-theme="light"] : sans cet attribut, posé côté serveur
+   d'après le cookie psc_theme, l'Encre reste strictement inchangée.
+   Seule exception : le bouton de bascule soleil/lune, composant présent
+   dans les deux thèmes (section « Bouton de bascule »).
+   Mêmes jetons que l'Encre, autre répartition : cf. DESIGN.md,
+   section « Thème Clair ». L'écran intervenants et le bandeau de
+   consultation mairie ne sont jamais concernés.
+   Sections : 1. Coque (fond, bandeau, pied, barre latérale, typographie
+   partagée, bouton de bascule) — 2. Écrans (tableau de bord, planning,
+   menu, encarts, boutons) — 3. Messagerie, pages invité et popins.
+   =================================================================== */
+
+/* ===================================================================
+   Thème « Clair » — Coque (fond, bandeau et pied du thème, barre
+   latérale, typographie partagée, bouton de bascule).
+   Activé par data-psc-theme="light" sur <html> : sans cet attribut,
+   aucune règle ci-dessous ne s'applique et le thème Encre reste
+   inchangé au pixel près. Seul le bouton de bascule (nouveau composant,
+   présent dans les deux thèmes) est stylé sans le préfixe.
+   Le bandeau, le pied et <body> vivent hors de .psc-portal/.psc-guest :
+   les jetons --psc-* n'y existent pas, d'où les valeurs littérales.
+   body:not(.psc-sidscm-active) : l'écran intervenants reste en Encre,
+   même si l'attribut venait à être posé sur sa page.
+   =================================================================== */
+
+/* ---- Fond : papier froid au lieu de la crème. Les cartes restent
+   blanches et se détachent par leur bordure. ---- */
+html[data-psc-theme="light"] body:not(.psc-sidscm-active) {
+    background: #EAEFF4;
+}
+html[data-psc-theme="light"] .psc-portal,
+html[data-psc-theme="light"] .psc-guest {
+    background: var(--psc-paper);
+}
+
+/* ---- Bandeau de site (theme/Archive/header.php) : blanc, filet bas.
+   L'écusson SVG garde ses couleurs (abricot + encre, lisible sur blanc). ---- */
+html[data-psc-theme="light"] body:not(.psc-sidscm-active) .site-header {
+    background: #fff;
+    border-bottom: 1px solid rgba(36, 64, 92, 0.22);
+}
+html[data-psc-theme="light"] body:not(.psc-sidscm-active) .site-tagline {
+    color: #4E6C8D; /* ~5,3:1 sur blanc, tient en 10 px */
+    letter-spacing: 0.16em;
+    font-weight: 600;
+}
+html[data-psc-theme="light"] body:not(.psc-sidscm-active) .site-title {
+    color: #24405C;
+    font-weight: 700;
+}
+/* Le survol abricot #E08A5F du thème ne tient que ~2,6:1 sur blanc :
+   abricot assombri (#9A5B2E, ~5,6:1) et soulignement, pour que le
+   survol ne repose pas sur la seule couleur. */
+html[data-psc-theme="light"] body:not(.psc-sidscm-active) .site-title:hover,
+html[data-psc-theme="light"] body:not(.psc-sidscm-active) .primary-nav a:hover {
+    color: #9A5B2E;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+html[data-psc-theme="light"] body:not(.psc-sidscm-active) .primary-nav a {
+    color: #24405C;
+    font-weight: 600;
+}
+
+/* ---- Pied de page du thème : blanc, filet haut, texte ardoise. ---- */
+html[data-psc-theme="light"] body:not(.psc-sidscm-active) .site-footer {
+    background: #fff;
+    border-top: 1px solid rgba(36, 64, 92, 0.22);
+    color: #4E6C8D;
+}
+html[data-psc-theme="light"] body:not(.psc-sidscm-active) .site-footer-inner {
+    font-size: 12.5px;
+}
+/* Liens : l'abricot clair du thème (lisible sur l'encre) tombe à ~2,6:1
+   sur blanc ; encre soulignée, survol en abricot assombri. */
+html[data-psc-theme="light"] body:not(.psc-sidscm-active) .site-footer a {
+    color: #24405C;
+    text-decoration: underline;
+}
+html[data-psc-theme="light"] body:not(.psc-sidscm-active) .site-footer a:hover {
+    color: #9A5B2E;
+}
+
+/* ---- Barre latérale : blanche, filet droit. L'état actif est porté par
+   un fond teinté encre, un liseré gauche de 3 px et la graisse — jamais
+   par la couleur seule, et sans teinte abricot. ---- */
+html[data-psc-theme="light"] .psc-portal-sidebar {
+    background: #fff;
+    color: var(--psc-ink);
+    border-right: 1px solid var(--psc-rule);
+    padding: 32px 16px;
+}
+html[data-psc-theme="light"] .psc-portal-section-label {
+    color: var(--psc-forest);
+    border-bottom-color: var(--psc-rule-light);
+    letter-spacing: 0.16em;
+    padding-bottom: 20px;
+}
+html[data-psc-theme="light"] .psc-portal-nav {
+    gap: 2px;
+}
+html[data-psc-theme="light"] .psc-portal-nav-btn {
+    color: var(--psc-forest);
+    font-weight: 500;
+    border-left: 2px solid transparent;
+    padding: 9px 12px;
+}
+html[data-psc-theme="light"] .psc-portal-nav-btn:hover {
+    color: var(--psc-forest);
+    background: var(--psc-cream);
+}
+html[data-psc-theme="light"] .psc-portal-nav-btn.is-active {
+    background: rgba(36, 64, 92, 0.1);
+    border-left: 3px solid var(--psc-forest);
+    color: var(--psc-forest);
+    font-weight: 600;
+}
+html[data-psc-theme="light"] .psc-portal-help-link,
+html[data-psc-theme="light"] .psc-portal-help-link:hover,
+html[data-psc-theme="light"] .psc-portal-help-link:focus-visible {
+    color: var(--psc-moss);
+}
+html[data-psc-theme="light"] .psc-portal-account {
+    border-top-color: var(--psc-rule-light);
+}
+html[data-psc-theme="light"] .psc-portal-account-label {
+    color: var(--psc-stone);
+}
+html[data-psc-theme="light"] .psc-portal-account-email {
+    color: var(--psc-ink);
+}
+html[data-psc-theme="light"] .psc-portal-account-logout {
+    color: var(--psc-moss);
+}
+html[data-psc-theme="light"] .psc-portal-account-logout:hover {
+    color: var(--psc-forest);
+}
+
+/* ---- Typographie partagée : graisses et espacements adoucis. La spec
+   écrite fixe la colonne à 40/64/80 px (la maquette CSS dit 32/56/72) :
+   on suit la spec. ---- */
+html[data-psc-theme="light"] .psc-portal-main {
+    padding: 40px 64px 80px;
+}
+html[data-psc-theme="light"] .psc-portal-h1 {
+    font-weight: 600;
+    font-size: 32px;
+}
+html[data-psc-theme="light"] .psc-portal-h1--dashboard {
+    margin-bottom: 8px;
+}
+html[data-psc-theme="light"] .psc-portal-subtitle {
+    font-weight: 400;
+    font-size: 17px;
+    color: var(--psc-moss); /* ~4,7:1 sur le papier */
+}
+html[data-psc-theme="light"] .psc-portal-eyebrow,
+html[data-psc-theme="light"] .psc-portal-switch {
+    letter-spacing: 0.14em;
+    font-weight: 500;
+}
+html[data-psc-theme="light"] .psc-portal-heading-label {
+    letter-spacing: 0.12em;
+    font-weight: 500;
+}
+html[data-psc-theme="light"] .psc-portal-numeral {
+    border-color: var(--psc-rule);
+    color: var(--psc-moss);
+}
+
+/* ---- Sous 900 px : la barre latérale devient un bandeau horizontal
+   blanc, filet bas au lieu du filet droit. ---- */
+@media (max-width: 900px) {
+    html[data-psc-theme="light"] .psc-portal-sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--psc-rule);
+        padding: 14px 16px;
+    }
+    html[data-psc-theme="light"] .psc-portal-nav {
+        gap: 4px;
+    }
+    html[data-psc-theme="light"] .psc-portal-nav-btn {
+        padding: 6px 10px;
+    }
+    html[data-psc-theme="light"] .psc-portal-main {
+        padding: 24px 20px 56px;
+    }
+    html[data-psc-theme="light"] .psc-portal-h1,
+    html[data-psc-theme="light"] .psc-portal-h1--dashboard {
+        font-size: 28px;
+    }
+    html[data-psc-theme="light"] body:not(.psc-sidscm-active) .site-header-inner {
+        padding: 14px 20px;
+    }
+}
+
+/* ---- Bouton de bascule soleil/lune (deux thèmes). Zone cliquable
+   36×36 (44×44 au doigt sous 900 px), sans rayon ni ombre. Le focus
+   utilise la valeur littérale de l'abricot : le bouton vit dans le
+   bandeau du thème, hors de portée des jetons --psc-*. ---- */
+.psc-theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 0;
+    box-shadow: none;
+    /* Encre : trait clair sur l'encre (~7,1:1). */
+    color: #C9D3DC;
+    cursor: pointer;
+    line-height: 0;
+    transition: color 0.12s, background-color 0.12s;
+}
+.psc-theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+.psc-theme-toggle:focus-visible {
+    outline: 3px solid #E08A5F;
+    outline-offset: 2px;
+}
+.psc-theme-toggle svg {
+    display: block;
+    pointer-events: none;
+}
+/* Encre actif → soleil (« passer en clair »). */
+.psc-theme-toggle .psc-theme-toggle-moon { display: none; }
+/* Rendu dans le contenu (faute de hook du thème) : posé sur la crème,
+   le trait clair ne tiendrait pas — ardoise (~4,8:1). */
+.psc-theme-toggle--inline {
+    color: #4E6C8D;
+}
+.psc-theme-toggle--inline:hover {
+    background: rgba(36, 64, 92, 0.08);
+    color: #24405C;
+}
+/* Clair actif → lune (« passer en encre »), ardoise sur blanc (~5,3:1). */
+html[data-psc-theme="light"] .psc-theme-toggle {
+    color: #4E6C8D;
+}
+html[data-psc-theme="light"] .psc-theme-toggle:hover {
+    background: #F2F3F5;
+    color: #24405C;
+}
+html[data-psc-theme="light"] .psc-theme-toggle .psc-theme-toggle-sun { display: none; }
+html[data-psc-theme="light"] .psc-theme-toggle .psc-theme-toggle-moon { display: block; }
+@media (max-width: 900px) {
+    .psc-theme-toggle {
+        min-width: 44px;
+        min-height: 44px;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .psc-theme-toggle { transition: none; }
+}
+
+/* ===================================================================
+   Thème Clair — écrans du portail famille (tableau de bord, planning,
+   menu, Mes enfants, Habilitations, Mes factures, Mon profil, Documents,
+   Réinscription). La coque (bandeau, barre latérale, pied, fond de page,
+   titres partagés) est traitée dans la section précédente.
+   Principe : le fond de page passe au papier froid (#EAEFF4) ; tout ce
+   qui était posé sur ce même papier se confondrait avec lui et passe en
+   blanc bordé d'un filet léger. Les aplats d'encre deviennent des
+   contours ; il ne reste qu'une action abricot en aplat par écran.
+   =================================================================== */
+
+/* ---- Tableau de bord ---- */
+html[data-psc-theme="light"] .psc-portal-cards {
+    gap: 26px;
+    margin-bottom: 48px;
+}
+html[data-psc-theme="light"] .psc-portal-card {
+    border-color: var(--psc-rule-light);
+    padding: 26px;
+}
+html[data-psc-theme="light"] .psc-portal-card-label {
+    letter-spacing: 0.12em;
+    font-weight: 500;
+}
+html[data-psc-theme="light"] .psc-portal-card-value { font-weight: 600; }
+/* La carte « Accès rapide » perd son aplat abricot : la couleur se
+   concentre sur la seule action principale de l'écran, le bouton
+   « Déclarer un jour ». */
+html[data-psc-theme="light"] .psc-portal-card--gold {
+    background: #fff;
+    border: 1px solid var(--psc-rule-light);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+html[data-psc-theme="light"] .psc-portal-card--gold .psc-portal-card-label {
+    color: var(--psc-stone);
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+/* « Déclarer un jour » reprend exactement le bouton principal du plugin
+   (.psc-btn-primary, psc-messages.css) : aplat abricot, filet bas 3px,
+   texte encre. Le survol garde le texte encre : le thème colore sinon les
+   liens survolés en abricot, illisible sur l'abricot. */
+html[data-psc-theme="light"] .psc-portal-card--gold .psc-portal-btn-ink {
+    width: 100%;
+    margin: 0;
+    background: #E08A5F;
+    border: none;
+    border-bottom: 3px solid #9A5B2E;
+    color: #1A1A1A;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 12px 20px 9px;
+}
+html[data-psc-theme="light"] .psc-portal-card--gold a.psc-portal-btn-ink:hover,
+html[data-psc-theme="light"] .psc-portal-card--gold a.psc-portal-btn-ink:focus {
+    background: #E08A5F;
+    color: #1A1A1A;
+}
+/* Les actions secondaires de la carte : contour bleu encre sur blanc. */
+html[data-psc-theme="light"] .psc-portal-card--gold .psc-portal-btn-outline-ink {
+    margin: 0;
+    background: none;
+    border: 1px solid var(--psc-forest);
+    color: var(--psc-forest);
+}
+html[data-psc-theme="light"] .psc-portal-card--gold .psc-portal-btn-outline-ink:hover,
+html[data-psc-theme="light"] .psc-portal-card--gold a.psc-portal-btn-outline-ink:hover {
+    background: var(--psc-cream);
+    color: var(--psc-forest);
+}
+/* Le menu de la semaine du tableau de bord était posé sur le papier :
+   même fond que la page désormais, d'où la carte blanche bordée. */
+html[data-psc-theme="light"] .psc-portal-dash-menu {
+    background: #fff;
+    border: 1px solid var(--psc-rule-light);
+    margin-bottom: 48px;
+}
+html[data-psc-theme="light"] .psc-portal-dash-menu-day {
+    letter-spacing: 0.12em;
+    font-weight: 600;
+}
+html[data-psc-theme="light"] .psc-portal-dash-child-card {
+    border-color: var(--psc-rule-light);
+    padding: 20px 22px;
+}
+html[data-psc-theme="light"] .psc-portal-dash-child-name {
+    font-weight: 600;
+    color: var(--psc-forest);
+}
+html[data-psc-theme="light"] .psc-portal-dash-child-meta { letter-spacing: 0.08em; }
+
+/* ---- Menu de la semaine (écran dédié et bloc du tableau de bord) ---- */
+html[data-psc-theme="light"] .psc-portal-menu-nav,
+html[data-psc-theme="light"] .psc-portal-menu-table,
+html[data-psc-theme="light"] .psc-portal-menu-empty { border-color: var(--psc-rule-light); }
+html[data-psc-theme="light"] .psc-portal-menu-week-label { font-weight: 600; }
+html[data-psc-theme="light"] .psc-portal-menu-table th {
+    letter-spacing: 0.12em;
+    font-weight: 600;
+}
+html[data-psc-theme="light"] .psc-portal-menu-nav-btn:hover { background: var(--psc-cream); }
+/* Lien « Revenir à cette semaine » : l'abricot clair ne tient pas
+   4,5:1 sur blanc, l'abricot assombri si. */
+html[data-psc-theme="light"] .psc-portal-menu-today-link { color: var(--psc-gold-ink); }
+/* Le filet de la légende AB / Label Rouge est posé en style en ligne
+   (Psc_Menus::render_legend) dans une teinte chaude : seul !important
+   peut l'aligner sur les filets bleutés du thème. */
+html[data-psc-theme="light"] .psc-portal .psc-menu-legend {
+    border-top-color: var(--psc-rule-light) !important;
+}
+/* « Origine de la viande » : fond blanc, liseré abricot conservé. */
+html[data-psc-theme="light"] .psc-portal .psc-menu-origin {
+    background: #fff;
+    color: var(--psc-ink);
+}
+html[data-psc-theme="light"] .psc-portal .psc-menu-origin h3 {
+    font-weight: 600;
+    color: var(--psc-forest);
+}
+
+/* ---- Planning : frise de l'année ---- */
+html[data-psc-theme="light"] .psc-frieze-title,
+html[data-psc-theme="light"] .psc-child-tabs-label,
+html[data-psc-theme="light"] .psc-sibling-recap-title { letter-spacing: 0.12em; }
+html[data-psc-theme="light"] .psc-frieze-btn {
+    border-color: var(--psc-rule-light);
+    color: var(--psc-forest);
+    font-weight: 600;
+}
+html[data-psc-theme="light"] .psc-frieze-btn:hover { border-color: var(--psc-rule); }
+/* Mois affiché : plus d'aplat abricot, un cadre bleu encre et un filet
+   bas (ombre portée intérieure, sans flou : c'est un trait, pas un
+   relief). Le libellé en 800 double l'indication sans la couleur. */
+html[data-psc-theme="light"] .psc-frieze-btn.is-current {
+    background: #fff;
+    border: 1px solid var(--psc-forest);
+    box-shadow: inset 0 -2px 0 var(--psc-forest);
+    color: var(--psc-forest);
+    font-weight: 800;
+}
+html[data-psc-theme="light"] .psc-frieze-btn.is-current .psc-frieze-count { color: var(--psc-moss); }
+
+/* ---- Planning : onglets enfants ---- */
+html[data-psc-theme="light"] .psc-child-tabs { gap: 12px; }
+html[data-psc-theme="light"] .psc-child-tab {
+    border-color: var(--psc-rule-light);
+    border-left: 3px solid transparent;
+    color: var(--psc-forest);
+    font-weight: 600;
+}
+html[data-psc-theme="light"] .psc-child-tab .psc-child-tab-meta { color: var(--psc-moss); }
+html[data-psc-theme="light"] .psc-child-tab:hover {
+    border-color: var(--psc-rule);
+    border-left-color: transparent;
+}
+html[data-psc-theme="light"] .psc-child-tab.is-active,
+html[data-psc-theme="light"] .psc-child-tab.is-active:hover {
+    background: #fff;
+    border-color: var(--psc-rule);
+    border-left-color: var(--psc-forest);
+    color: var(--psc-forest);
+    font-weight: 800;
+}
+html[data-psc-theme="light"] .psc-child-tab.is-active .psc-child-tab-meta { color: var(--psc-moss); }
+
+/* ---- Planning : cartes Étape 1 / Étape 2 ---- */
+html[data-psc-theme="light"] .psc-planning-panel {
+    background: #fff;
+    border-color: var(--psc-rule-light);
+}
+html[data-psc-theme="light"] .psc-panel-step {
+    letter-spacing: 0.12em;
+    font-weight: 600;
+}
+html[data-psc-theme="light"] .psc-panel-title { font-weight: 600; }
+html[data-psc-theme="light"] .psc-apply-siblings:hover { background: var(--psc-cream); }
+html[data-psc-theme="light"] .psc-month-nav-btn { border-color: var(--psc-rule); }
+html[data-psc-theme="light"] .psc-month-nav-btn:hover:not(:disabled) { background: var(--psc-cream); }
+/* Bande de synthèse de l'enfant : crème plutôt que papier, pour rester
+   distincte du fond de page. */
+html[data-psc-theme="light"] .psc-exc-bar { background: var(--psc-cream); }
+html[data-psc-theme="light"] .psc-exc-tout { border-color: var(--psc-rule); }
+html[data-psc-theme="light"] .psc-exc-tout:hover:not(:disabled) {
+    border-color: var(--psc-rule);
+    background: var(--psc-cream);
+}
+/* Jours verrouillés : ligne crème, libellé pierre, cadenas conservé
+   (l'état ne repose pas sur la seule couleur). Les cases elles-mêmes
+   gardent leur rendu (aplat abricot + ✓, pointillés). */
+html[data-psc-theme="light"] .psc-exception-grid tr.psc-row-locked > th,
+html[data-psc-theme="light"] .psc-exception-grid tr.psc-row-locked > td { background: var(--psc-cream); }
+html[data-psc-theme="light"] .psc-exception-grid tbody .psc-exc-day.is-locked { color: var(--psc-stone); }
+/* Badge « Cantine sans repas » : posé sur le fond de page, il passe en
+   blanc bordé pour ne pas s'y fondre. */
+html[data-psc-theme="light"] .psc-portal .psc-planning-sans-repas {
+    background: #fff;
+    border: 1px solid var(--psc-rule-light);
+}
+
+/* ---- Planning : récapitulatif fratrie et confirmation ---- */
+html[data-psc-theme="light"] .psc-sibling-recap { border-color: var(--psc-rule-light); }
+html[data-psc-theme="light"] .psc-sibling-card { border-left-color: var(--psc-forest); }
+html[data-psc-theme="light"] .psc-sibling-card-name {
+    font-weight: 600;
+    color: var(--psc-forest);
+}
+html[data-psc-theme="light"] .psc-portal-confirm {
+    background: #fff;
+    padding: 22px 26px;
+}
+html[data-psc-theme="light"] .psc-portal-confirm-title {
+    font-weight: 600;
+    color: var(--psc-forest);
+    font-size: 16px;
+}
+
+/* ---- Encarts (Mes enfants, Habilitations, Profil, Documents,
+   Réinscription) : blancs et bordés, le papier se confondant avec le
+   nouveau fond de page. ---- */
+html[data-psc-theme="light"] .psc-portal-panel {
+    background: #fff;
+    border: 1px solid var(--psc-rule-light);
+}
+html[data-psc-theme="light"] .psc-portal-panel-title,
+html[data-psc-theme="light"] .psc-portal-reins-child legend,
+html[data-psc-theme="light"] .psc-portal-pickup-child-name,
+html[data-psc-theme="light"] .psc-portal-child-header h2 {
+    font-weight: 600;
+    color: var(--psc-forest);
+}
+html[data-psc-theme="light"] .psc-portal-field-label {
+    letter-spacing: 0.1em;
+    font-weight: 600;
+}
+html[data-psc-theme="light"] .psc-portal-table,
+html[data-psc-theme="light"] .psc-sibling-recap,
+html[data-psc-theme="light"] .psc-planning-panel { border-color: var(--psc-rule-light); }
+html[data-psc-theme="light"] .psc-portal-table th { letter-spacing: 0.12em; }
+html[data-psc-theme="light"] .psc-portal .psc-notice-ok { background: #fff; }
+
+/* ---- Boutons pleins encre (Modifier, Remplacer, + Ajouter une
+   personne…) : contour discret, texte bleu encre. Seule la carte
+   « Accès rapide » du tableau de bord fait exception (règles plus
+   spécifiques ci-dessus). ---- */
+html[data-psc-theme="light"] .psc-portal-btn-sm,
+html[data-psc-theme="light"] .psc-portal-btn-ink {
+    background: none;
+    color: var(--psc-forest);
+    border: 1px solid var(--psc-rule);
+}
+html[data-psc-theme="light"] .psc-portal-btn-sm:hover,
+html[data-psc-theme="light"] .psc-portal-btn-ink:hover {
+    background: var(--psc-cream);
+    color: var(--psc-forest);
+}
+
+/* ===================================================================
+   Thème Clair — Messagerie famille, pages invité, popins et toasts
+   -------------------------------------------------------------------
+   En Clair, le fond de page passe au papier (#EAEFF4, posé par la
+   section Coque) : toute surface qui était déjà en papier ou en crème
+   s'y confondrait. Elles passent donc en blanc, avec un filet
+   --psc-rule-light pour garder leur contour. La typographie s'allège
+   comme sur le reste du portail : titres en 600, libellés en capitales
+   resserrés à 0,12–0,14em.
+
+   Ce qui NE change pas, volontairement :
+   - le bandeau du fil de conversation (.psc-conv-thread-head) reste en
+     encre plein : c'est la zone qui fait autorité (DESIGN.md) ; aucune
+     règle de cette section ne le vise ;
+   - le statut « reçue » reste le seul statut en aplat (règle de marque) ;
+   - les boutons primaires abricot restent abricot ;
+   - les toasts, réellement flottants, gardent leur ombre.
+
+   .psc-family-messages redéfinit --psc-ink à #24405C (encre bleue) et
+   stylise TOUT h2 : les règles ci-dessous visent l'en-tête de page par
+   `> header h2`, jamais un h2 nu, pour ne pas atteindre le sujet du fil
+   de conversation (h2 blanc sur l'encre).
+   =================================================================== */
+
+/* ---- Messages : en-tête de page (aligné sur .psc-portal-h1 en Clair) ---- */
+html[data-psc-theme="light"] .psc-family-messages > header h2 {
+    font-weight: 600;
+    font-size: 32px;
+}
+/* Même taille que .psc-portal-h1 en Clair sous 900 px (section Coque). */
+@media (max-width: 900px) {
+    html[data-psc-theme="light"] .psc-family-messages > header h2 { font-size: 28px; }
+}
+html[data-psc-theme="light"] .psc-family-messages > header p {
+    font-weight: 400;
+    font-size: 17px;
+    color: #4E6C8D;
+}
+/* Bouton de notifications : quand il n'est plus actionnable, il ne fait
+   qu'afficher un état (« Notifications activées » / « bloquées ») : filet
+   léger et graisse 500, comme l'étiquette de la maquette. L'opacité .65
+   de l'Encre est retirée — le texte en moss tient 4,7:1 sur le papier.
+   Tant qu'il reste actionnable, il garde son contour encre (contour de
+   composant ≥ 3:1). */
+html[data-psc-theme="light"] .psc-browser-notification-toggle:disabled {
+    border-color: rgba(36, 64, 92, 0.22);
+    color: #4E6C8D;
+    font-weight: 500;
+    opacity: 1;
+}
+html[data-psc-theme="light"] .psc-message-tab.is-active { font-weight: 600; }
+
+/* ---- Messages : liste des annonces ----
+   Toutes les annonces sur fond blanc, filet rule-light. Une annonce lue
+   n'est plus signalée par un fond : son titre passe en 500 (au lieu de
+   700 pour une non lue). L'état « non lu » reste aussi porté par la
+   pastille abricot (présente / absente : forme, pas seulement couleur). */
+html[data-psc-theme="light"] .psc-message-list-item,
+html[data-psc-theme="light"] .psc-message-list-item.is-unread {
+    background: #fff;
+    border-color: rgba(36, 64, 92, 0.15);
+}
+html[data-psc-theme="light"] .psc-message-list-item.is-selected { border-color: #24405C; }
+html[data-psc-theme="light"] .psc-message-list-item:not(.is-unread) > strong { font-weight: 500; }
+
+/* Étiquette « Urgent » : de l'aplat erreur à un contour. La catégorie
+   n'a pas de classe propre (couleurs passées en variables inline par
+   Psc_Messages::get_categories()) : on la reconnaît à sa variable de
+   fond. Le filet de 1px est pris sur le padding pour garder la taille. */
+html[data-psc-theme="light"] .psc-family-messages .psc-cat[style*="--cat-bg:#9E4A4A"] {
+    background: #fff;
+    color: #9E4A4A;
+    border: 1px solid #9E4A4A;
+    padding: 2px 7px;
+}
+
+/* ---- Messages : annonce ouverte ---- */
+html[data-psc-theme="light"] .psc-message-open { border-color: rgba(36, 64, 92, 0.15); }
+html[data-psc-theme="light"] .psc-message-open h3 { font-weight: 600; }
+
+/* ---- Mes échanges : liste ---- */
+html[data-psc-theme="light"] .psc-conv-row.is-unread { background: #fff; }
+html[data-psc-theme="light"] .psc-conv-delay {
+    border: 1px solid rgba(36, 64, 92, 0.15);
+    border-left: 4px solid #24405C;
+}
+html[data-psc-theme="light"] .psc-conv-empty h3 { font-weight: 600; }
+/* L'état vide répète « Écrire à la mairie » déjà présent en abricot dans
+   la barre d'outils : une seule action abricot par écran, la répétition
+   passe en bouton contour. */
+html[data-psc-theme="light"] .psc-conv-empty .psc-btn-primary {
+    background: none;
+    border: 1px solid rgba(36, 64, 92, 0.3);
+    color: #24405C;
+    padding: 11px 18px;
+}
+
+/* ---- Mes échanges : fil et rédaction ---- */
+html[data-psc-theme="light"] .psc-conv-reply-zone > form > label,
+html[data-psc-theme="light"] .psc-conv-field-label,
+html[data-psc-theme="light"] .psc-conv-side-shortcuts > div:first-child {
+    letter-spacing: 0.12em;
+    font-weight: 600;
+}
+html[data-psc-theme="light"] .psc-conv-compose-main h2 { font-weight: 600; }
+/* Encart « Données de santé » : il était en papier, il se fondrait dans
+   le fond de page. */
+html[data-psc-theme="light"] .psc-conv-side-warning {
+    background: #fff;
+    border-color: rgba(36, 64, 92, 0.15);
+}
+html[data-psc-theme="light"] .psc-conv-side-warning-head span { letter-spacing: 0.12em; font-weight: 600; }
+
+/* ---- Notices en page (hors toasts) ----
+   La notice de succès était en papier : en blanc, filet rule-light,
+   liseré encre conservé. */
+html[data-psc-theme="light"] .psc-portal .psc-notice-ok:not(.psc-toast),
+html[data-psc-theme="light"] .psc-guest .psc-notice-ok:not(.psc-toast) {
+    background: #fff;
+    border: 1px solid rgba(36, 64, 92, 0.15);
+    border-left: 4px solid #24405C;
+}
+
+/* ---- Toasts : surface blanche, ombre existante conservée (élément
+   réellement flottant). ---- */
+html[data-psc-theme="light"] .psc-portal .psc-toast.psc-notice-ok,
+html[data-psc-theme="light"] .psc-guest .psc-toast.psc-notice-ok {
+    background: #fff;
+    border: 1px solid rgba(36, 64, 92, 0.15);
+    border-left: 4px solid #24405C;
+}
+
+/* ---- Popins du portail (.psc-portal-modal : absence, enfant,
+   assurance, habilitation, découverte) ---- */
+html[data-psc-theme="light"] .psc-portal-modal {
+    background: #fff;
+    border-color: rgba(36, 64, 92, 0.15);
+}
+html[data-psc-theme="light"] .psc-portal-modal-title {
+    font-weight: 600;
+    color: #24405C;
+}
+html[data-psc-theme="light"] .psc-portal-modal .psc-portal-field-label { letter-spacing: 0.12em; }
+
+/* ---- Pages invité : masthead « Espace familles » (gabarit du thème) ----
+   Hors de .psc-guest : les jetons --psc-* n'y existent pas, les couleurs
+   restent celles du thème (--moss). */
+html[data-psc-theme="light"] .familles-brand { letter-spacing: 0.16em; }
+html[data-psc-theme="light"] .familles-eyebrow { letter-spacing: 0.14em; }
+
+/* ---- Pages invité : widget menu ---- */
+html[data-psc-theme="light"] .psc-guest-menu-label { letter-spacing: 0.12em; }
+html[data-psc-theme="light"] .psc-guest-menu-week { font-weight: 600; }
+html[data-psc-theme="light"] .psc-guest-menu-table th { letter-spacing: 0.12em; font-weight: 600; }
+/* Encart « Origine de la viande » : il était en crème ; en blanc avec son
+   liseré abricot, comme dans le portail. */
+html[data-psc-theme="light"] .psc-guest .psc-menu-origin { background: #fff; }
+
+/* ---- Pages invité : cartes connexion / demande ---- */
+html[data-psc-theme="light"] .psc-guest-eyebrow { letter-spacing: 0.14em; font-weight: 600; }
+html[data-psc-theme="light"] .psc-guest-h1 { font-weight: 600; }
+html[data-psc-theme="light"] .psc-guest-divider-label { letter-spacing: 0.14em; font-weight: 500; }
+html[data-psc-theme="light"] .psc-guest .psc-portal-field-label { letter-spacing: 0.12em; }
+html[data-psc-theme="light"] .psc-wizard-payment-card-title { font-weight: 600; }

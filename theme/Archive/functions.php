@@ -43,7 +43,7 @@ function montgeroult_assets() {
         array(),
         '1.1.0'
     );
-    wp_enqueue_style('montgeroult-style', get_stylesheet_uri(), array('montgeroult-fonts'), '1.1.0');
+    wp_enqueue_style('montgeroult-style', get_stylesheet_uri(), array('montgeroult-fonts'), '1.2.0');
 
     // Restyle the "Périscolaire - Inscriptions" plugin (handle "psc-frontend")
     // with the commune's palette, without touching the plugin itself.

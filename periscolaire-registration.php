@@ -78,6 +78,7 @@ require_once PSC_PATH . 'includes/class-psc-frontend-profil.php';
 require_once PSC_PATH . 'includes/class-psc-frontend-reinscription.php';
 require_once PSC_PATH . 'includes/class-psc-frontend-menus.php';
 require_once PSC_PATH . 'includes/class-psc-sidscm.php';
+require_once PSC_PATH . 'includes/class-psc-theme-toggle.php';
 require_once PSC_PATH . 'includes/class-psc-envois.php';
 
 register_activation_hook(__FILE__, function () {
@@ -119,5 +120,6 @@ add_action('plugins_loaded', function () {
     Psc_Conversations_Frontend::init();
     Psc_Frontend::init();
     Psc_Sidscm::init();
+    Psc_Theme_Toggle::init();
     Psc_Envois::init();
 });

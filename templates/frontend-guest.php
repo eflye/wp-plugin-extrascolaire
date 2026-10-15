@@ -1,6 +1,13 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="psc-guest alignfull" data-testid="guest-root">
   <div class="psc-guest-inner">
+    <?php
+    // Repli de la bascule de thème quand le bandeau du thème installé ne
+    // propose pas l'emplacement montgeroult_header_actions.
+    if (!did_action('montgeroult_header_actions') && Psc_Theme_Toggle::in_scope()) {
+        Psc_Theme_Toggle::render_button(true);
+    }
+    ?>
 
     <?php include PSC_PATH . 'templates/guest-menu.php'; ?>
 
