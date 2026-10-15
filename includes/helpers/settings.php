@@ -82,11 +82,12 @@ function psc_conversations_email() {
 
 /**
  * Le texte des messages figure-t-il dans les e-mails de notification des
- * échanges (famille et mairie) ? Activé par défaut ; la mairie peut revenir
- * à un e-mail sans contenu (Réglages › Notifications).
+ * échanges (famille et mairie) ? Désactivé par défaut (RGPD-12, protection
+ * des données dès la conception) : une copie dans une messagerie échappe aux
+ * purges et à l'effacement. La mairie peut l'activer (Réglages › Notifications).
  */
 function psc_conversations_contenu_email() {
-    return (bool) get_option('psc_conversations_contenu_email', 1);
+    return (bool) get_option('psc_conversations_contenu_email', 0);
 }
 
 /** Délai de réponse annoncé aux familles sur l'écran « Mes échanges » (Réglages > Notifications des échanges familles). */

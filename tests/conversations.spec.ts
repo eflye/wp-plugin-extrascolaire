@@ -127,6 +127,9 @@ test.describe('Échanges familles ↔ mairie', () => {
 
   test('la famille écrit à la mairie, l’admin voit le non-lu et répond, le texte est dans le corps de l’e-mail, jamais dans son objet', async ({ page }) => {
     seedFamily(EMAIL_A, EMAIL_A_SECOND);
+    // Texte des messages dans les e-mails : désactivé par défaut (RGPD-12),
+    // activé ici pour vérifier qu'il part dans le corps, jamais dans l'objet.
+    wpEval(`update_option('psc_conversations_contenu_email', 1); echo 'ok';`);
     await loginAsFamily(page, EMAIL_A);
     await openEchanges(page);
     await page.getByTestId('conversation-new').click();
@@ -140,7 +143,7 @@ test.describe('Échanges familles ↔ mairie', () => {
     notify(conversationId, 'mairie');
     const mairieMail = await findLatestMessage('admin@example.invalid', 'Nouveau message d’une famille');
     expect(mairieMail.Subject).not.toContain('Une question sur le portail');
-    expect(mairieMail.Text).toContain('Bonjour, une question pour vous.'); // réglage coché par défaut
+    expect(mairieMail.Text).toContain('Bonjour, une question pour vous.'); // réglage activé ci-dessus
 
     // Le compteur du menu est mis en cache 60 s (réorganisation du menu,
     // §7) : sans purge explicite, cette assertion dépendrait de l'instant

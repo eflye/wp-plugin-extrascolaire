@@ -61,7 +61,7 @@ Dans le backoffice, chaque agent n'accède qu'aux domaines cochés sur son profi
 
 Côté familles, chaque foyer ne voit et ne modifie que ses propres données. Des tests automatiques le vérifient à chaque version : une famille qui tente d'atteindre les enfants, documents ou factures d'une autre est refusée.
 
-Les e-mails de notification des échanges recopient par défaut le texte des messages : la messagerie de la famille en conserve alors une copie, hors du plugin. Ce choix se désactive dans **Périscolaire › Réglages** (**Texte des messages dans les e-mails**). Le bouton de ces e-mails connecte la famille pendant 72 heures ; le jeton est conservé haché, supprimé à son expiration, quand l'accès du foyer est révoqué (changement d'adresse, retrait ou remplacement du second parent) et avec son dossier.
+Les e-mails de notification des échanges annoncent par défaut un nouveau message, sans en recopier le texte. La mairie peut activer la recopie dans **Périscolaire › Réglages** (**Texte des messages dans les e-mails**) : la messagerie de la famille en conserve alors une copie, hors du plugin, que ni les purges ni l'effacement n'atteignent. Le bouton de ces e-mails connecte la famille pendant 72 heures ; le jeton est conservé haché, supprimé à son expiration, quand l'accès du foyer est révoqué (changement d'adresse, retrait ou remplacement du second parent) et avec son dossier.
 
 ## Preuve des règlements approuvés
 

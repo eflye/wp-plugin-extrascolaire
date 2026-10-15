@@ -34,10 +34,10 @@ Les corrections ont été appliquées sur la branche `audit-fixes` par trois cor
 
 | Statut | Nombre | Constats |
 |---|---|---|
-| Corrigé | 42 | SEC-01, 02, 03, 07, 09, 10, 11 · RGPD-01 à 08, 13, 14 · PERF-01 à 11 · PRA-01 à 12, 15, 18 |
+| Corrigé | 43 | SEC-01, 02, 03, 07, 09, 10, 11 · RGPD-01 à 08, 12, 13, 14 · PERF-01 à 11 · PRA-01 à 12, 15, 18 |
 | Partiellement corrigé | 6 | SEC-06, RGPD-09, RGPD-10, PERF-12, PRA-14, PRA-17 |
 | Risque accepté (décision) | 2 | SEC-04, SEC-08 |
-| Mis de côté (validation humaine) | 5 | SEC-05, RGPD-11, RGPD-12, PRA-13, PRA-16 |
+| Mis de côté (validation humaine) | 4 | SEC-05, RGPD-11, PRA-13, PRA-16 |
 
 Contrôles de consolidation, le 15/10/2026 :
 - `php -l` en PHP 7.4 et 8.3 sur les 212 fichiers PHP : aucune erreur.
@@ -436,7 +436,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/helpers/settings.php:90`, `includes/class-psc-mailer.php:819-837` et `:855-857`.
 - **Priorité :** Faible.
-- **Statut (branche `audit-fixes`) :** Mis de côté — choix documenté par la mairie (rgpd.md).
+- **Statut (branche `audit-fixes`) :** Corrigé — décision du 15/10/2026 : texte des messages non recopié par défaut ; la mairie peut l'activer (Réglages › Notifications).
 - **Explication :** l'option `psc_conversations_contenu_email` vaut 1 par défaut. Les copies dans les boîtes de réception échappent à la purge à 395 j et à l'effacement. Ce choix est documenté, mais il va à l'inverse de la protection par défaut.
 - **Correction :** `get_option('psc_conversations_contenu_email', 0)`.
 
@@ -930,7 +930,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 | SEC-10 | Faible | Sécurité | Changement d'e-mail sans limite de débit | `class-psc-parents.php:335-370` | Corrigé |
 | SEC-11 | Faible | Sécurité | Import iCal : DNS rebinding | `class-psc-school-calendar.php:173-229` | Corrigé |
 | RGPD-11 | Faible | Données | Attestations des années passées conservées | `class-psc-admin-familles.php:100-113` | Mis de côté |
-| RGPD-12 | Faible | Données | Contenu des échanges dans les e-mails par défaut | `helpers/settings.php:90` | Mis de côté |
+| RGPD-12 | Faible | Données | Contenu des échanges dans les e-mails par défaut | `helpers/settings.php:90` | Corrigé |
 | RGPD-13 | Faible | Données | Effaceur et suppression : reliquats différents | `class-psc-privacy.php:373-377` | Corrigé |
 | RGPD-14 | Faible | Données | Registre de conservation sans effet | `class-psc-retention.php:22-45` | Corrigé |
 | PERF-06 | Faible | Performance | Lectures répétées sans mémoïsation | `class-psc-school-years.php:32-42` | Corrigé |

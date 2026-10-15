@@ -191,7 +191,7 @@ if (is_array($psc_sidscm_rejected) && $psc_sidscm_rejected) {
     <input id="psc-conversations-contenu" type="checkbox" name="conversations_contenu_email" value="1" data-testid="settings-conversations-contenu" <?php checked(psc_conversations_contenu_email()); ?>>
     <?php esc_html_e('Inclure le texte des messages dans les e-mails de notification des échanges (familles et mairie)', 'periscolaire-registration'); ?>
   </label>
-  <p class="description"><?php esc_html_e('Les pièces jointes ne sont jamais envoyées par e-mail : seul leur nom est indiqué. Décochez pour des échanges sensibles : l’e-mail annonce alors seulement un nouveau message.', 'periscolaire-registration'); ?></p>
+  <p class="description"><?php esc_html_e('Désactivé par défaut : l’e-mail annonce seulement un nouveau message. Coché, le texte est recopié dans les messageries, où il échappe aux purges et à l’effacement RGPD. Les pièces jointes ne sont jamais envoyées par e-mail : seul leur nom est indiqué.', 'periscolaire-registration'); ?></p>
 </td>
 </tr>
 <tr>
