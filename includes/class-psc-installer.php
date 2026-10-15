@@ -554,7 +554,8 @@ class Psc_Installer {
      * enfant dont le texte était renseigné reçoit le signalement alimentaire,
      * qui l'exclut des repas de la cantine (règle de la mairie) : aucun
      * enfant allergique ne perd son exclusion. Le texte est aussi retiré des
-     * demandes d'inscription encore en base. Idempotente.
+     * demandes d'inscription encore en base, avec la date de consentement
+     * à sa collecte (colonne food_allergy_consent_at supprimée). Idempotente.
      */
     private static function migrate_4_20_0() {
         global $wpdb;
@@ -566,18 +567,24 @@ class Psc_Installer {
             if ($done === false) return false;
             if (false === $wpdb->query("ALTER TABLE $t_child DROP COLUMN food_allergies")) return false;
         }
+        // Consentement à la collecte du texte d'allergies : sans objet une
+        // fois le texte supprimé.
+        if (self::column_exists($t_child, 'food_allergy_consent_at')) {
+            if (false === $wpdb->query("ALTER TABLE $t_child DROP COLUMN food_allergy_consent_at")) return false;
+        }
 
         $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT id, children_json FROM $t_req WHERE children_json LIKE %s",
-            '%' . $wpdb->esc_like('"food_allergies"') . '%'
+            "SELECT id, children_json FROM $t_req WHERE children_json LIKE %s OR children_json LIKE %s",
+            '%' . $wpdb->esc_like('"food_allergies"') . '%',
+            '%' . $wpdb->esc_like('"food_allergy_consent_at"') . '%'
         ));
         foreach ((array) $rows as $row) {
             $children = json_decode((string) $row->children_json, true);
             if (!is_array($children)) continue;
             foreach ($children as &$c) {
-                if (!is_array($c) || !array_key_exists('food_allergies', $c)) continue;
-                if (trim((string) $c['food_allergies']) !== '') $c['food_allergy_signal'] = 1;
-                unset($c['food_allergies']);
+                if (!is_array($c)) continue;
+                if (trim((string) ($c['food_allergies'] ?? '')) !== '') $c['food_allergy_signal'] = 1;
+                unset($c['food_allergies'], $c['food_allergy_consent_at']);
             }
             unset($c);
             $done = $wpdb->update($t_req, array('children_json' => wp_json_encode($children)), array('id' => (int) $row->id));
@@ -985,6 +992,7 @@ class Psc_Installer {
         // Avant 4.20.0, l'enfant portait un texte libre d'allergies :
         // migrate_4_20_0() le convertit en signalement puis supprime la colonne.
         $child_allergies_legacy = self::upgrade_before('4.20.0') ? "food_allergies TEXT NULL,\n            " : '';
+        $child_consent_legacy = self::upgrade_before('4.20.0') ? "food_allergy_consent_at DATETIME NULL,\n            " : '';
 
         $sql = "CREATE TABLE $t_years (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -1085,8 +1093,7 @@ CREATE TABLE $t_child (
             sans_porc TINYINT(1) NOT NULL DEFAULT 0,
             vegan TINYINT(1) NOT NULL DEFAULT 0,
             {$child_sans_repas_legacy}{$child_allergies_legacy}food_allergy_signal TINYINT(1) NOT NULL DEFAULT 0,
-            food_allergy_consent_at DATETIME NULL,
-            created_at DATETIME NOT NULL,
+            {$child_consent_legacy}created_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
             KEY parent_id (parent_id)
         ) $charset_collate;

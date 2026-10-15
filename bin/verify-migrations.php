@@ -107,7 +107,7 @@ WP_CLI::add_command('verify-migrations', function () {
     $unflagged = (int) $wpdb->insert_id;
     // Demande d'époque portant encore le texte libre d'allergies (4.20.0).
     $wpdb->insert(psc_table('requests'), array('email' => 'verif-migrations-demande@example.invalid', 'status' => 'pending', 'created_at' => current_time('mysql'),
-        'children_json' => wp_json_encode(array(array('nom' => 'Migration', 'prenom' => 'Demande', 'food_allergies' => 'Gluten (test)'), array('nom' => 'Migration', 'prenom' => 'Vide', 'food_allergies' => '')))));
+        'children_json' => wp_json_encode(array(array('nom' => 'Migration', 'prenom' => 'Demande', 'food_allergies' => 'Gluten (test)', 'food_allergy_consent_at' => '2026-01-01 10:00:00'), array('nom' => 'Migration', 'prenom' => 'Vide', 'food_allergies' => '')))));
     $legacy_request = (int) $wpdb->insert_id;
     foreach (array('A', 'B', 'C') as $l) Psc_Audit::log('menu.enregistrement', array('objet_type' => 'menu', 'resume' => 'Migration ' . $l));
     $audit_before = (int) $wpdb->get_var('SELECT COUNT(*) FROM ' . psc_table('audit_log'));
@@ -174,10 +174,11 @@ WP_CLI::add_command('verify-migrations', function () {
 
     // 4.20.0 : texte libre des allergies supprimé, converti en signalement (RGPD-10).
     $assert('4.20.0 : colonne children.food_allergies supprimée', $column_exists('children', 'food_allergies'), false);
+    $assert('4.20.0 : colonne children.food_allergy_consent_at supprimée', $column_exists('children', 'food_allergy_consent_at'), false);
     $assert('4.20.0 : enfant avec texte d’allergie signalé', (int) $wpdb->get_var($wpdb->prepare('SELECT food_allergy_signal FROM ' . psc_table('children') . ' WHERE id = %d', $flagged)), 1);
     $assert('4.20.0 : enfant sans texte non signalé', (int) $wpdb->get_var($wpdb->prepare('SELECT food_allergy_signal FROM ' . psc_table('children') . ' WHERE id = %d', $unflagged)), 0);
     $req_children = json_decode((string) $wpdb->get_var($wpdb->prepare('SELECT children_json FROM ' . psc_table('requests') . ' WHERE id = %d', $legacy_request)), true);
-    $assert('4.20.0 : texte retiré des demandes', strpos(wp_json_encode($req_children), 'food_allergies') === false, true);
+    $assert('4.20.0 : texte et consentement retirés des demandes', strpos(wp_json_encode($req_children), 'food_allergies') === false && strpos(wp_json_encode($req_children), 'consent') === false, true);
     $assert('4.20.0 : demande avec texte → signalement', array((int) ($req_children[0]['food_allergy_signal'] ?? 0), (int) ($req_children[1]['food_allergy_signal'] ?? 0)), array(1, 0));
 
     // 4.20.0 : index du journal d'audit par enfant (PERF-12).

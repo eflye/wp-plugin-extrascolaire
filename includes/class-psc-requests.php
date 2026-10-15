@@ -181,12 +181,6 @@ class Psc_Requests {
                 // 4.20.0, RGPD-10). Une ancienne demande qui portait encore
                 // un texte vaut signalement.
                 'food_allergy_signal'          => (!empty($c['food_allergy_signal']) || trim((string) ($c['food_allergies'] ?? '')) !== '') ? 1 : 0,
-                // Consentement à la collecte de cette donnée de santé,
-                // horodaté à la déclaration (handle_submit) — jamais
-                // recalculé ici : une allergie sans date de consentement
-                // valide (l'un des deux manque) est traitée comme non
-                // consentie par approve_request().
-                'food_allergy_consent_at'      => isset($c['food_allergy_consent_at']) ? psc_valid_mysql_datetime($c['food_allergy_consent_at']) : null,
                 'assurance_rel_path'           => isset($c['assurance_rel_path']) ? sanitize_text_field($c['assurance_rel_path']) : '',
                 'assurance_original_filename'  => isset($c['assurance_original_filename']) ? sanitize_text_field($c['assurance_original_filename']) : '',
                 'personnes_autorisees'         => self::pickup_persons_of($c),
@@ -385,7 +379,6 @@ class Psc_Requests {
                 'sans_porc'               => isset($_POST['child_sans_porc_' . $i]) ? 1 : 0,
                 'vegan'                   => isset($_POST['child_vegan_' . $i]) ? 1 : 0,
                 'food_allergy_signal'     => $food_signal,
-                'food_allergy_consent_at' => null,
                 'personnes_autorisees'    => array(),
             );
         }
@@ -699,10 +692,6 @@ class Psc_Requests {
                 // sinon l'édition mairie des autres champs effacerait
                 // le signalement déclaré par la famille.
                 'food_allergy_signal'          => !empty($req_children[$i]['food_allergy_signal']) ? 1 : 0,
-                // Même principe : le consentement va toujours de pair avec
-                // la donnée de santé qu'il couvre, jamais avec la relecture
-                // qu'en fait la mairie.
-                'food_allergy_consent_at'      => $req_children[$i]['food_allergy_consent_at'] ?? null,
                 'personnes_autorisees'         => $req_children[$i]['personnes_autorisees'] ?? array(),
             );
         }
@@ -847,11 +836,8 @@ class Psc_Requests {
                 'sans_porc'               => !empty($c['sans_porc']) ? 1 : 0,
                 'vegan'                   => !empty($c['vegan']) ? 1 : 0,
                 'food_allergy_signal'     => !empty($c['food_allergy_signal']) ? 1 : 0,
-                // Plus de texte d'allergies à couvrir (RGPD-10, 4.20.0) :
-                // le consentement associé n'est plus enregistré.
-                'food_allergy_consent_at' => null,
                 'created_at'              => current_time('mysql'),
-            ), array('%d', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%s'));
+            ), array('%d', '%s', '%s', '%s', '%d', '%d', '%d', '%s'));
             if (false === $inserted) {
                 return $rollback(__('Création de l\'enfant impossible.', 'periscolaire-registration'));
             }
