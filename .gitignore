@@ -71,3 +71,12 @@ theme/Archive/Archive.zip
 # jamais un artefact du dépôt. .impeccable/design.json reste versionné.
 .impeccable/hook.cache.json
 .impeccable/config.local.json
+
+# Synchronisation claude.ai/design (/design-sync) : scripts copiés, sortie
+# reconstruite, état machine. Le reste de .design-sync/ est versionné.
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
+.design-sync/kit/dist/
