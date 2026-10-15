@@ -82,6 +82,13 @@
         document.querySelectorAll('[data-portal-tab]').forEach(function (link) {
             link.classList.toggle('is-active', link.dataset.portalTab === tab);
         });
+        // Le lien « Messages » n'a pas de data-portal-tab (il recharge la
+        // page pour marquer les annonces lues côté serveur) : sans ce
+        // passage, une page chargée sur Messages le garderait surligné
+        // après un changement d'onglet côté client.
+        document.querySelectorAll('.psc-portal-nav .psc-portal-nav-btn:not([data-portal-tab])').forEach(function (link) {
+            link.classList.remove('is-active');
+        });
     }
 
     function onTabLinkClick(e) {
