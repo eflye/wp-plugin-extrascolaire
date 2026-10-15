@@ -9,7 +9,7 @@
       <span><?php echo esc_html(sprintf(
           __('Vous consultez l’espace de la famille %1$s en lecture seule. Fin automatique à %2$s.', 'periscolaire-registration'),
           $parent->nom ?: $parent->email,
-          date_i18n('H:i', strtotime($psc_impersonation->expires_at))
+          wp_date('H:i', strtotime($psc_impersonation->expires_at . ' UTC'))
       )); ?></span>
     </div>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">

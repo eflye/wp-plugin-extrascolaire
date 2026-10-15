@@ -34,14 +34,15 @@ try {
         }
     }
 
-    $insert_impersonation = function ($family, $type, $started, $expires, $ended = null, $detail = null) use ($wpdb, $table, $admin) {
+    $insert_impersonation = function ($family, $type, $started, $expires, $ended = null, $detail = null) use ($wpdb, $table, $admin, $now) {
         $wpdb->insert($table, array(
             'wp_user_id'   => (int) $admin->ID,
             'family_id'    => $family,
             'motif_type'   => $type,
             'motif_detail' => $detail,
             'started_at'   => gmdate('Y-m-d H:i:s', $started),
-            'expires_at'   => gmdate('Y-m-d H:i:s', $expires),
+            // expires_at en UTC ; $expires est exprimé en heure du site ($now).
+            'expires_at'   => gmdate('Y-m-d H:i:s', $expires - ($now - time())),
             'ended_at'     => $ended ? gmdate('Y-m-d H:i:s', $ended) : null,
             'ended_reason' => $ended ? 'manuel' : null,
             'ip'           => '192.0.2.42',

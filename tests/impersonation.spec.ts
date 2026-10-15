@@ -250,7 +250,7 @@ test.describe('Consultation d’un espace famille', () => {
     await loginAsAdmin(page);
     await startConsultation(page, familyId);
     const consultation = latestConsultation(familyId);
-    wpEval(`global $wpdb; $wpdb->update($wpdb->prefix.'psc_impersonations',array('expires_at'=>gmdate('Y-m-d H:i:s',current_time('timestamp')-60)),array('id'=>${consultation.id})); echo 'ok';`);
+    wpEval(`global $wpdb; $wpdb->update($wpdb->prefix.'psc_impersonations',array('expires_at'=>gmdate('Y-m-d H:i:s',time()-60)),array('id'=>${consultation.id})); echo 'ok';`);
     await page.reload();
     await expect(page.getByTestId('portal-root')).toHaveCount(0);
     expect(latestConsultation(familyId).ended_reason).toBe('expiration');

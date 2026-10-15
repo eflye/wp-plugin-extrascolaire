@@ -34,8 +34,8 @@ Les corrections ont été appliquées sur la branche `audit-fixes` par trois cor
 
 | Statut | Nombre | Constats |
 |---|---|---|
-| Corrigé | 44 | SEC-01, 02, 03, 07, 09, 10, 11 · RGPD-01 à 08, 12, 13, 14 · PERF-01 à 12 · PRA-01 à 12, 15, 18 |
-| Partiellement corrigé | 5 | SEC-06, RGPD-09, RGPD-10, PRA-14, PRA-17 |
+| Corrigé | 45 | SEC-01, 02, 03, 07, 09, 10, 11 · RGPD-01 à 08, 12, 13, 14 · PERF-01 à 12 · PRA-01 à 12, 14, 15, 18 |
+| Partiellement corrigé | 4 | SEC-06, RGPD-09, RGPD-10, PRA-17 |
 | Risque accepté (décision) | 2 | SEC-04, SEC-08 |
 | Mis de côté (validation humaine) | 4 | SEC-05, RGPD-11, PRA-13, PRA-16 |
 
@@ -826,7 +826,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-requests.php:57-80` ; `current_time('timestamp')` à 10 endroits, dont `includes/class-psc-impersonation.php:54`, `:90`, `:381`, `includes/class-psc-conversations.php:418`, `:475`, `:556`, `includes/class-psc-retention.php:70`.
 - **Priorité :** Faible.
-- **Statut (branche `audit-fixes`) :** Partiellement corrigé — ef1133e, 68465a2, 1402526 — horloges unifiées ; impersonations.expires_at reste en heure du site (exception documentée).
+- **Statut (branche `audit-fixes`) :** Corrigé — ef1133e, 68465a2, 1402526 (horloges unifiées) ; `impersonations.expires_at` stocké en UTC et comparé à `gmdate()` (validé le 15/10/2026), vérifié en UTC et en Europe/Paris.
 - **Explication :**
   - Les dates `created_at` sont en heure du site, mais comparées à `gmdate()` : la purge est décalée de 1 à 2 h.
   - `current_time('timestamp')` est déprécié.
@@ -943,7 +943,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 | PRA-11 | Faible | Pratiques | Intitulés du menu non stylés hors du plugin | `class-psc-admin.php:304-307` | Corrigé |
 | PRA-12 | Faible | Pratiques | URL du portail : cache d'absence de 24 h | `class-psc-mailer.php:24-49` | Corrigé |
 | PRA-13 | Faible | Pratiques | JS et CSS écrits dans les gabarits | `templates/*` | Mis de côté |
-| PRA-14 | Faible | Pratiques | Horloges mélangées | `class-psc-requests.php:57-80` | Partiel |
+| PRA-14 | Faible | Pratiques | Horloges mélangées | `class-psc-requests.php:57-80` | Corrigé |
 | PRA-15 | Faible | Pratiques | Code mort et docblocks orphelins | `class-psc-frontend-enfants.php:19` | Corrigé |
 | PRA-16 | Faible | Pratiques | Fonctions trop longues | `class-psc-requests.php:224` | Mis de côté |
 | PRA-17 | Faible | Pratiques | Réglages hors Settings API, journal trompeur | `class-psc-admin-config.php:63-204` | Partiel |

@@ -37,7 +37,7 @@ try {
         'family_id'   => $family_id,
         'motif_type'  => 'verification',
         'started_at'  => gmdate('Y-m-d H:i:s', current_time('timestamp') - 10 * MINUTE_IN_SECONDS),
-        'expires_at'  => gmdate('Y-m-d H:i:s', current_time('timestamp') + 20 * MINUTE_IN_SECONDS),
+        'expires_at'  => gmdate('Y-m-d H:i:s', time() + 20 * MINUTE_IN_SECONDS), // UTC
         'ended_at'    => current_time('mysql'),
         'ended_reason'=> 'manuel',
     ));

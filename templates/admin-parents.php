@@ -153,7 +153,8 @@ if (current_user_can('psc_manage_billing')): ?>
         'revoquee' => __('Révoquée', 'periscolaire-registration'),
     );
     foreach ($impersonation_history as $psc_consultation):
-        $psc_end_at = $psc_consultation->ended_at ?: min($psc_consultation->expires_at, current_time('mysql'));
+        // ended_at et started_at en heure du site, expires_at en UTC.
+        $psc_end_at = $psc_consultation->ended_at ?: min(get_date_from_gmt($psc_consultation->expires_at), current_time('mysql'));
         $psc_duration_minutes = max(0, (int) floor((strtotime($psc_end_at) - strtotime($psc_consultation->started_at)) / MINUTE_IN_SECONDS));
         $psc_duration = $psc_duration_minutes < 1
             ? __('Moins d’une minute', 'periscolaire-registration')
