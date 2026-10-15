@@ -52,6 +52,10 @@ class Psc_Admin extends Psc_Admin_Base {
         // elle, existe bel et bien (cf. redirect_section_slugs()).
         add_action('admin_init', array(__CLASS__, 'redirect_section_slugs'));
         add_action('admin_enqueue_scripts', array(__CLASS__, 'assets'));
+        // Le menu du plugin est visible sur TOUS les écrans d'administration :
+        // ses intitulés de section doivent y être stylés (non cliquables),
+        // pas seulement sur les écrans psc_ où admin.css est chargé (PRA-11).
+        add_action('admin_enqueue_scripts', array(__CLASS__, 'menu_styles'));
         add_action('admin_notices', array(__CLASS__, 'notice_private_dir_exposed'));
         add_action('admin_notices', array(__CLASS__, 'notice_db_constraints'));
         add_action('admin_notices', array(__CLASS__, 'notice_migration_failed'));
@@ -348,6 +352,26 @@ class Psc_Admin extends Psc_Admin_Base {
             admin_url('admin.php')
         ), 302);
         exit;
+    }
+
+    /**
+     * Styles du sous-menu Périscolaire, ajoutés à la feuille « admin-menu »
+     * du cœur (chargée partout) : intitulés de section non cliquables —
+     * WordPress n'a pas de troisième niveau de menu natif — et filets de
+     * regroupement.
+     */
+    public static function menu_styles() {
+        $css = '#adminmenu .wp-submenu a[href*="page=psc_menus"],'
+            . '#adminmenu .wp-submenu a[href*="page=psc_requests"],'
+            . '#adminmenu .wp-submenu a[href*="page=psc_parents"],'
+            . '#adminmenu .wp-submenu a[href*="page=psc_factures"],'
+            . '#adminmenu .wp-submenu a[href*="page=psc_email_templates"],'
+            . '#adminmenu .wp-submenu a[href*="page=psc_settings"]'
+            . '{border-top:1px solid rgba(240,246,252,.15);margin-top:6px;padding-top:8px}'
+            . '#adminmenu .psc-menu-section{display:block;padding:10px 0 3px;font-size:10px;font-weight:700;letter-spacing:.14em;'
+            . 'text-transform:uppercase;color:#a7aaad;cursor:default;pointer-events:none}'
+            . '#adminmenu li a:has(.psc-menu-section){cursor:default;background:none!important;pointer-events:none}';
+        wp_add_inline_style('admin-menu', $css);
     }
 
     public static function assets($hook) {

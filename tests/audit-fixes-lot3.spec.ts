@@ -112,4 +112,16 @@ test.describe('Audit — lot 3', () => {
       await expect(page.locator(`#adminmenu li.current > a[href="admin.php?page=${origin}"]`)).toHaveCount(1);
     }
   });
+
+  test('PRA-11 : intitulés de section du menu stylés hors des écrans du plugin', async ({ page }) => {
+    await page.goto(`${APP_BASE}/wp-login.php`);
+    await page.locator('#user_login').fill('admin');
+    await page.locator('#user_pass').fill('admin');
+    await page.locator('#wp-submit').click();
+    await page.waitForURL('**/wp-admin/**');
+    await page.goto(`${APP_BASE}/wp-admin/index.php`);
+    const section = page.locator('#adminmenu .psc-menu-section').first();
+    await expect(section).toHaveCSS('pointer-events', 'none');
+    await expect(section).toHaveCSS('text-transform', 'uppercase');
+  });
 });
