@@ -116,7 +116,7 @@ Chaque écran créé ou modifié (parent **et** admin) respecte le RGAA 4.1 :
 - Données d'enfants = données sensibles : collecte minimale, accès journalisé côté admin.
 - Tout nouveau champ personnel est intégré à la **purge RGPD** existante et à l'export des données.
 - Documents déposés stockés hors de l'accès public direct, servis via un contrôleur qui vérifie les droits.
-- Magic links : usage unique, durée de vie courte, jeton stocké haché.
+- Magic links : jeton stocké haché, durée de vie bornée. **Ils ouvrent la session en un seul clic, sans page de confirmation** (décision du 15/10/2026 : fluidité sur mobile, mécanique sans mot de passe) ; ils restent donc réutilisables pendant leur durée de vie. Ne pas ajouter d'étape de confirmation ni d'usage unique sans nouvelle décision.
 - Journaux et messages d'erreur exempts de données personnelles.
 
 ---

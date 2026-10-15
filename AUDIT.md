@@ -36,7 +36,8 @@ Les corrections ont été appliquées sur la branche `audit-fixes` par trois cor
 |---|---|---|
 | Corrigé | 41 | SEC-01, 02, 03, 07, 09, 10, 11 · RGPD-01 à 07, 13, 14 · PERF-01 à 11 · PRA-01 à 12, 15, 18 |
 | Partiellement corrigé | 6 | SEC-06, RGPD-09, RGPD-10, PERF-12, PRA-14, PRA-17 |
-| Mis de côté (validation humaine) | 8 | SEC-04, SEC-05, SEC-08, RGPD-08, RGPD-11, RGPD-12, PRA-13, PRA-16 |
+| Risque accepté (décision) | 2 | SEC-04, SEC-08 |
+| Mis de côté (validation humaine) | 6 | SEC-05, RGPD-08, RGPD-11, RGPD-12, PRA-13, PRA-16 |
 
 Contrôles de consolidation, le 15/10/2026 :
 - `php -l` en PHP 7.4 et 8.3 sur les 212 fichiers PHP : aucune erreur.
@@ -132,7 +133,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-parents.php:200-282`, `includes/class-psc-login-tokens.php:28-30` et `:60-74`, `includes/class-psc-mailer.php:874`.
 - **Priorité :** Moyenne.
-- **Statut (branche `audit-fixes`) :** Mis de côté — changement de la connexion de toutes les familles : décision produit.
+- **Statut (branche `audit-fixes`) :** Risque accepté — décision du 15/10/2026 : connexion en un seul clic, sans page de confirmation, pour une expérience fluide sur mobile (mécanique sans mot de passe). AGENTS.md §7 est aligné.
 - **Explication :**
   - Le lien de connexion est rejouable pendant toute sa durée de vie (30 min, réglable jusqu'à 24 h).
   - Le jeton porté par les e-mails de notification ouvre une session pendant **72 h**.
@@ -189,7 +190,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-parents.php:211-282`, branché sur `init` pour toute URL.
 - **Priorité :** Faible.
-- **Statut (branche `audit-fixes`) :** Mis de côté — même mécanisme que SEC-04 : décision produit.
+- **Statut (branche `audit-fixes`) :** Risque accepté — conséquence de la décision SEC-04 (connexion en un seul clic).
 - **Explication :** une victime qui clique sur un lien valide de l'attaquant se retrouve connectée **à son foyer**, où elle peut saisir un IBAN ou des enfants.
 - **Correction :** même mécanisme que SEC-04, avec une page de confirmation POST qui affiche « Vous allez vous connecter à l'espace de … ».
 
@@ -903,7 +904,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 | PRA-02 | Élevée | Pratiques | Capacité déduite par sous-chaîne ; pain008 (IBAN) hors habilitation | `helpers/core.php:69-78` | Corrigé |
 | PRA-03 | Élevée | Pratiques | Signalement alimentaire perdu pour les enfants 2 à 5 | `assets/js/guest.js:275-283` | Corrigé |
 | SEC-03 | Moyenne | Sécurité | SIDSCM : sessions non révoquées, codes faibles | `class-psc-sidscm.php:184-264` | Corrigé |
-| SEC-04 | Moyenne | Sécurité | Liens magiques réutilisables, jetons de 72 h | `class-psc-parents.php:200-282` | Mis de côté |
+| SEC-04 | Moyenne | Sécurité | Liens magiques réutilisables, jetons de 72 h | `class-psc-parents.php:200-282` | Risque accepté |
 | SEC-05 | Moyenne | Sécurité | `docker-compose.prod.yml` : Mailpit exposé, mu-plugins de dev | `docker-compose.prod.yml:26-60` | Mis de côté |
 | RGPD-05 | Moyenne | Données | Export RGPD incomplet | `class-psc-privacy.php:132-213` | Corrigé |
 | RGPD-06 | Moyenne | Données | SIDSCM : allergies et téléphones envoyés au-delà du besoin | `class-psc-sidscm.php:419-590` | Corrigé |
@@ -924,7 +925,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 | PRA-10 | Moyenne | Pratiques | Notifications hors modèles éditables | `class-psc-mailer.php:149-757` | Corrigé |
 | SEC-06 | Faible | Sécurité | Chaîne d'audit sans clé et sans verrou | `helpers/audit.php:854-877` | Partiel |
 | SEC-07 | Faible | Sécurité | Signature des sessions dérivable d'un secret en base | `helpers/crypto.php:187-197` | Corrigé |
-| SEC-08 | Faible | Sécurité | Login CSRF par lien magique | `class-psc-parents.php:211-282` | Mis de côté |
+| SEC-08 | Faible | Sécurité | Login CSRF par lien magique | `class-psc-parents.php:211-282` | Risque accepté |
 | SEC-09 | Faible | Sécurité | La consultation par la mairie marque les échanges lus | `class-psc-conversations-frontend.php:53` | Corrigé |
 | SEC-10 | Faible | Sécurité | Changement d'e-mail sans limite de débit | `class-psc-parents.php:335-370` | Corrigé |
 | SEC-11 | Faible | Sécurité | Import iCal : DNS rebinding | `class-psc-school-calendar.php:173-229` | Corrigé |
