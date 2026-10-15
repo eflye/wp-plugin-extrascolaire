@@ -103,25 +103,6 @@ function psc_conflicting_services($service) {
     return array();
 }
 
-/**
- * Une prestation est-elle fermée ce jour-là, d'après une carte de
- * fermetures déjà chargée (clés « date|code », cf. service_closures_map()) ?
- *
- * Pendant du contrôle en base côté serveur, pour les gabarits qui ont déjà
- * la carte en main et n'ont pas à réinterroger. Même règle : le forfait est
- * bloqué dès qu'une seule de ses composantes l'est, puisqu'on ne peut pas
- * en facturer une partie.
- */
-function psc_service_closed_in_map(array $closures, $date, $service) {
-    $codes = $service === psc_forfait_code() ? psc_unit_services() : array($service);
-    foreach ($codes as $code) {
-        if (isset($closures[$date . '|' . $code])) {
-            return true;
-        }
-    }
-    return false;
-}
-
 /** Libellés abrégés, pour les en-têtes de colonnes serrées. */
 function psc_service_short_labels() {
     return array(

@@ -13,16 +13,6 @@ function psc_is_school_vacation($date_str) {
 }
 
 /**
- * Vacances scolaires de la zone C (Créteil, Montpellier, Paris, Toulouse,
- * Versailles) — chargées par la mairie depuis le calendrier officiel du
- * ministère de l'Éducation nationale (Périscolaire > Calendrier scolaire).
- * Voir Psc_School_Calendar.
- */
-function psc_school_vacation_label($date_str) {
-    return Psc_School_Calendar::label($date_str);
-}
-
-/**
  * Un jour est-il un jour d'école (donc de service périscolaire/cantine
  * potentiel) ? Ne dépend d'aucune configuration en base (ex : widget menu public).
  */

@@ -170,21 +170,11 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 'remove'            => __('Retirer', 'periscolaire-registration'),
                 'sending'           => __('Envoi en cours...', 'periscolaire-registration'),
                 'summary_sent'      => __('Récapitulatif envoyé.', 'periscolaire-registration'),
-                'firstname'         => __('Prénom', 'periscolaire-registration'),
-                'lastname'          => __('Nom', 'periscolaire-registration'),
                 'phone'             => __('Téléphone', 'periscolaire-registration'),
-                'child_firstname'   => __('Prénom de l’enfant %s', 'periscolaire-registration'),
-                'child_lastname'    => __('Nom de l’enfant %s', 'periscolaire-registration'),
-                'child_class'       => __('Classe de l’enfant %s', 'periscolaire-registration'),
-                'child_birthdate'   => __('Date de naissance', 'periscolaire-registration'),
                 'insurance_unreadable' => __('Ce fichier est vide ou inaccessible. Enregistrez le PDF dans les fichiers de votre appareil, puis sélectionnez-le à nouveau.', 'periscolaire-registration'),
                 'insurance'         => __('Justificatif d’assurance scolaire (PDF)', 'periscolaire-registration'),
-                'diet'              => __('Régime alimentaire', 'periscolaire-registration'),
-                'diet_pork'         => __('Sans porc', 'periscolaire-registration'),
-                'diet_meat'         => __('Sans viande', 'periscolaire-registration'),
                 'pickup_title'      => __('Personnes autorisées à récupérer cet enfant en fin de garderie du soir (facultatif)', 'periscolaire-registration'),
                 'pickup_add'        => __('+ Ajouter une personne autorisée', 'periscolaire-registration'),
-                'child_remove'      => __('Supprimer cet enfant', 'periscolaire-registration'),
                 'pickup_firstname'  => __('Prénom de la personne autorisée', 'periscolaire-registration'),
                 'pickup_lastname'   => __('Nom de la personne autorisée', 'periscolaire-registration'),
                 'pickup_phone'      => __('Téléphone de la personne autorisée', 'periscolaire-registration'),
@@ -208,7 +198,6 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 // Messages natifs de validation (attributs pattern/max/title).
                 'phone_pattern_title'   => __('Format attendu : 06 12 34 56 78 ou +33 6 12 34 56 78.', 'periscolaire-registration'),
                 'postcode_pattern_title' => __('Format attendu : 5 chiffres.', 'periscolaire-registration'),
-                'child_birthdate_max'   => psc_child_birthdate_max(),
                 // Écran Planning - 2 (planning-2.js) : libellés d'état et
                 // confirmations côté client.
                 'day_0'          => __('Dimanche', 'periscolaire-registration'),
@@ -248,11 +237,6 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 'recap_month'       => __('Mois : %1$s jour(s) · %2$s €', 'periscolaire-registration'),
                 /* translators: 1: nombre de jours de l'année, 2: montant en euros. */
                 'recap_year'        => __('Année : %1$s jour(s) · %2$s €', 'periscolaire-registration'),
-                // Wizard invité (guest.js) : allergies + rythme habituel.
-                'allergy_toggle'     => __('Cet enfant a une allergie alimentaire', 'periscolaire-registration'),
-                'allergy_placeholder' => __('Aliments à exclure des repas, réaction en cas d\'ingestion, conduite à tenir.', 'periscolaire-registration'),
-                'allergy_help'       => __("Strictement alimentaire. La mairie vous contactera si un PAI (projet d'accueil individualisé) doit être mis en place. Aucun menu différencié n'est proposé : l'enfant déjeune à la cantine avec son propre repas fourni par la famille.", 'periscolaire-registration'),
-                'allergy_consent'    => __('La mairie doit échanger avec nous au sujet de l’alimentation de cet enfant.', 'periscolaire-registration'),
             ),
         ));
 

@@ -538,23 +538,6 @@ class Psc_Mailer {
     /* ------------------------------------------------------------------ */
 
     /**
-     * Construit et envoie la commande fournisseur hebdomadaire (nombre de
-     * repas par classe et par jour). $data est le tableau retourné par
-     * Psc_Supplier_Orders::compute_counts(). Renvoie un tableau
-     * ('sent' => bool, 'subject' => string, 'html' => string) : le sujet
-     * et le corps sont renvoyés même en cas d'échec d'envoi, pour
-     * permettre à l'appelant de diagnostiquer sans reconstruire l'e-mail.
-     */
-    /**
-     * E-mail « Commande fournisseur » — rendu autonome (maquette Email
-     * Commande Fournisseur.dc.html) : carte blanche 600px, un seul tableau
-     * une ligne par jour de service, ventilation par régime sous un chapeau
-     * « Repas de midi », Total midi accentué, goûters détachés, total
-     * semaine, pied de mail configurable. Plus de bandeau, de blocs à fond
-     * blush ni de titre dupliquant l'objet : l'objet et le corps
-     * configurable portent l'intitulé.
-     */
-    /**
      * Envoie un sujet et un HTML déjà construits (commande fournisseur
      * enregistrée avant son envoi, cf. Psc_Supplier_Orders::deliver()).
      */
@@ -562,22 +545,16 @@ class Psc_Mailer {
         return (bool) self::send($to, $subject, $html);
     }
 
-    public static function send_supplier_order($supplier_email, $data) {
-        $built = self::build_supplier_order($data);
-        $sent  = self::send($supplier_email, $built['subject'], $built['html']);
-
-        return array(
-            'sent'    => (bool) $sent,
-            'subject' => $built['subject'],
-            'html'    => $built['html'],
-        );
-    }
-
     /**
      * Construit le sujet et le HTML de l'e-mail « Commande fournisseur »
      * SANS l'envoyer : utilisé à la fois par l'envoi et par l'aperçu
      * backoffice (le bouton « Envoyer au fournisseur » affiche d'abord
      * l'e-mail qui va partir).
+     *
+     * Rendu autonome (maquette Email Commande Fournisseur.dc.html) : carte
+     * blanche 600px, un seul tableau une ligne par jour de service,
+     * ventilation par régime sous un chapeau « Repas de midi », Total midi
+     * accentué, goûters détachés, total semaine, pied de mail configurable.
      */
     public static function build_supplier_order($data) {
         $site          = self::site_name();

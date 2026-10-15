@@ -59,14 +59,6 @@ class Psc_School_Calendar {
     }
 
     /**
-     * Fermeture MANUELLE posée par la mairie (source 'manual') : formation
-     * des enseignants, fermeture exceptionnelle… Toujours soustraite des
-     * jours d'école, même quand la mairie configure ses propres plages de
-     * vacances (une fermeture exceptionnelle n'est pas une vacation).
-     * Utilisée par Psc_School_Year::day_status() — cf. la règle 1 de
-     * psc_is_declared() : hors jour d'école, toujours false.
-     */
-    /**
      * Cache par requête des fermetures manuelles + préchargement en une
      * requête (preload_manual_closed). day_status() est appelé pour chaque
      * date de chaque résolution : une requête par date était le premier
@@ -102,6 +94,14 @@ class Psc_School_Calendar {
         }
     }
 
+    /**
+     * Fermeture MANUELLE posée par la mairie (source 'manual') : formation
+     * des enseignants, fermeture exceptionnelle… Toujours soustraite des
+     * jours d'école, même quand la mairie configure ses propres plages de
+     * vacances (une fermeture exceptionnelle n'est pas une vacation).
+     * Utilisée par Psc_School_Year::day_status() — cf. la règle 1 de
+     * psc_is_declared() : hors jour d'école, toujours false.
+     */
     public static function is_manually_closed($date_str) {
         if (!array_key_exists($date_str, self::$manual_cache)) {
             global $wpdb;
@@ -908,15 +908,6 @@ class Psc_School_Calendar {
      * jour entier — utilisée par le calendrier scolaire v2.
      * ------------------------------------------------------------------ */
 
-
-    public static function is_service_closed($date_str, $service) {
-        global $wpdb;
-        $t = psc_table('service_closures');
-        return (bool) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM $t WHERE jour_date = %s AND service = %s",
-            $date_str, $service
-        ));
-    }
 
     /** Codes des prestations fermées ce jour-là (ex. ['GM']). */
     public static function closed_services_for_date($date_str) {

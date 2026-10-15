@@ -450,43 +450,6 @@ class Psc_Planning {
     }
 
     /**
-     * Nombre de jours déclarés par mois pour une fratrie (frise de
-     * Planning - 2) : un (enfant, date) compte un jour dès qu'une prestation
-     * y est déclarée. Une requête groupée par mois — jamais onze.
-     * Retour : [ym => jours].
-     */
-    public static function month_counts($child_ids, $months) {
-        $child_ids = array_values(array_unique(array_map('intval', (array) $child_ids)));
-        $months = array_values(array_filter((array) $months, function ($m) {
-            return is_string($m) && preg_match('/^\d{4}-\d{2}$/', $m);
-        }));
-        if (!$child_ids || !$months) return array_fill_keys($months, 0);
-
-        $dates = array();
-        foreach ($months as $ym) {
-            foreach (Psc_School_Year::school_days_in_month($ym) as $d) {
-                $dates[$d] = $ym;
-            }
-        }
-        if (!$dates) return array_fill_keys($months, 0);
-
-        $map = self::declared_map($child_ids, array_keys($dates));
-        $counts = array_fill_keys($months, 0);
-        foreach ($child_ids as $cid) {
-            foreach ($dates as $date => $ym) {
-                $declared = false;
-                if (isset($map[$cid][$date])) {
-                    foreach ($map[$cid][$date] as $v) {
-                        if ($v) { $declared = true; break; }
-                    }
-                }
-                if ($declared) $counts[$ym]++;
-            }
-        }
-        return $counts;
-    }
-
-    /**
      * Estimation d'une journée, comme sur la facture : règle unique
      * (psc_billing_services), statut « sans repas » et tarifs EN VIGUEUR ce
      * jour-là (P1-16).

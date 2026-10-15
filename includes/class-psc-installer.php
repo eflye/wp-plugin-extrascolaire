@@ -549,14 +549,6 @@ class Psc_Installer {
         ));
     }
 
-    private static function index_exists($table, $index) {
-        global $wpdb;
-        return (bool) $wpdb->get_var($wpdb->prepare(
-            'SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND INDEX_NAME = %s',
-            $table, $index
-        ));
-    }
-
     /**
      * Liens entre tables, et ce que la base doit faire quand la ligne
      * référencée disparaît.
@@ -685,11 +677,6 @@ class Psc_Installer {
     }
 
     /**
-     * Restreint envois.statut aux états du cycle d'envoi (cf. Psc_Envois).
-     * CHECK plutôt qu'ENUM,
-     * que le mode SQL de WordPress remplacerait silencieusement par ''.
-     */
-    /**
      * Restreint la colonne statut d'une table à ses valeurs connues (cf.
      * ensure_envois_status_constraint(), même principe et même tolérance).
      *
@@ -719,6 +706,11 @@ class Psc_Installer {
         return array();
     }
 
+    /**
+     * Restreint envois.statut aux états du cycle d'envoi (cf. Psc_Envois).
+     * CHECK plutôt qu'ENUM,
+     * que le mode SQL de WordPress remplacerait silencieusement par ''.
+     */
     private static function ensure_envois_status_constraint() {
         global $wpdb;
 

@@ -479,17 +479,6 @@ class Psc_Admin extends Psc_Admin_Base {
     }
 
     /**
-     * Alerte si une contrainte de base (clé étrangère, CHECK) n'a pas pu
-     * être posée — ALTER TABLE refusé par l'hébergeur, donnée hors liste.
-     *
-     * Ces échecs étaient jusqu'ici silencieux : psc_db_version avançait,
-     * et la contrainte n'était retentée qu'à la prochaine montée de
-     * version. Psc_Installer::store_constraints_state() publie désormais
-     * l'état dans l'option psc_constraints_missing et retente à chaque
-     * écran admin ; cet avis ferme la boucle côté mairie, qui voit enfin
-     * pourquoi sa base ne garantit pas la cohérence qu'elle croit avoir.
-     */
-    /**
      * Tâches planifiées en retard de plus de six heures (P1-11, alerte de
      * panne) : WP-Cron ne tourne plus — typique d'un WordPress en
      * conteneur sans trafic ni appel vers lui-même. Purges RGPD, reprise
@@ -629,6 +618,17 @@ class Psc_Admin extends Psc_Admin_Base {
         <?php
     }
 
+    /**
+     * Alerte si une contrainte de base (clé étrangère, CHECK) n'a pas pu
+     * être posée — ALTER TABLE refusé par l'hébergeur, donnée hors liste.
+     *
+     * Ces échecs étaient jusqu'ici silencieux : psc_db_version avançait,
+     * et la contrainte n'était retentée qu'à la prochaine montée de
+     * version. Psc_Installer::store_constraints_state() publie désormais
+     * l'état dans l'option psc_constraints_missing et retente à chaque
+     * écran admin ; cet avis ferme la boucle côté mairie, qui voit enfin
+     * pourquoi sa base ne garantit pas la cohérence qu'elle croit avoir.
+     */
     public static function notice_db_constraints() {
         if (!current_user_can('psc_manage_config')) return;
 
