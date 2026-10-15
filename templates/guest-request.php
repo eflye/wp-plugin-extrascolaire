@@ -75,7 +75,6 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
             <input id="psc-req-adresse-search" class="psc-portal-field-underline" type="text" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="psc-address-listbox" aria-autocomplete="list" data-testid="address-search">
             <ul id="psc-address-listbox" class="psc-address-listbox" role="listbox" hidden></ul>
             <p class="psc-address-status" role="status"></p>
-            <p class="psc-address-attribution"></p>
           </div>
 
           <input id="psc-req-adresse" class="psc-portal-field-underline" type="text" name="req_adresse" maxlength="255" autocomplete="street-address" required>
