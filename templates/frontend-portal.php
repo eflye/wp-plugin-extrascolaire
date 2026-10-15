@@ -185,6 +185,15 @@
     <?php endif; ?>
 
     <?php
+    // Bascule de thème Encre / Clair : rendue dans le bandeau du thème
+    // (action montgeroult_header_actions). Repli ici, en haut de la colonne
+    // de contenu, quand le thème installé ne propose pas cet emplacement.
+    if (!did_action('montgeroult_header_actions') && Psc_Theme_Toggle::in_scope()) {
+        Psc_Theme_Toggle::render_button(true);
+    }
+    ?>
+
+    <?php
     // Bascule Espaces (maquette Family Portal v2, vue « Vue famille connectée ») :
     // l'espace courant n'est pas un lien ; l'autre espace, oui. S'affiche en haut
     // à droite de la colonne de contenu (cf. .psc-portal-switch dans portal.css).
