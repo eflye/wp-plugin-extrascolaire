@@ -167,6 +167,9 @@ WP_CLI::add_command('verify-migrations', function () {
         $assert("4.18.0 : $t.$c avec sa clé étrangère", $column_exists($t, $c) && $fk_exists($t, $c), true);
     }
 
+    // 4.20.0 : index du journal d'audit par enfant (PERF-12).
+    $assert('4.20.0 : index audit_log.enfant_horodatage', (bool) $wpdb->get_var("SHOW INDEX FROM " . psc_table('audit_log') . " WHERE Key_name = 'enfant_horodatage'"), true);
+
     // Seconde montée : rien ne se duplique.
     update_option('psc_db_version', '4.15.0');
     Psc_Installer::maybe_upgrade();

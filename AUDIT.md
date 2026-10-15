@@ -34,8 +34,8 @@ Les corrections ont été appliquées sur la branche `audit-fixes` par trois cor
 
 | Statut | Nombre | Constats |
 |---|---|---|
-| Corrigé | 43 | SEC-01, 02, 03, 07, 09, 10, 11 · RGPD-01 à 08, 12, 13, 14 · PERF-01 à 11 · PRA-01 à 12, 15, 18 |
-| Partiellement corrigé | 6 | SEC-06, RGPD-09, RGPD-10, PERF-12, PRA-14, PRA-17 |
+| Corrigé | 44 | SEC-01, 02, 03, 07, 09, 10, 11 · RGPD-01 à 08, 12, 13, 14 · PERF-01 à 12 · PRA-01 à 12, 15, 18 |
+| Partiellement corrigé | 5 | SEC-06, RGPD-09, RGPD-10, PRA-14, PRA-17 |
 | Risque accepté (décision) | 2 | SEC-04, SEC-08 |
 | Mis de côté (validation humaine) | 4 | SEC-05, RGPD-11, PRA-13, PRA-16 |
 
@@ -623,7 +623,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-envois.php` (aucune purge), `includes/class-psc-messages.php:216-222` (`cleanup_receipts`), `includes/class-psc-installer.php:1318-1347` (`audit_log`).
 - **Priorité :** Faible.
-- **Statut (branche `audit-fixes`) :** Partiellement corrigé — ef29e86, 79cdefa — purge des envois et marqueur des accusés ; index enfant_horodatage mis de côté (changement de schéma).
+- **Statut (branche `audit-fixes`) :** Corrigé — ef29e86, 79cdefa (purge des envois, marqueur des accusés) ; index `enfant_horodatage` ajouté au schéma 4.20.0 (validé le 15/10/2026).
 - **Explication :** `envois` n'est jamais purgée. `cleanup_receipts()` refait chaque jour toutes les années closes. Le filtre « enfant » de l'écran Journal parcourt toute la table.
 - **Correction :** ajouter `KEY enfant_horodatage (enfant_id, horodatage)` (DB_VERSION et dbDelta) et `update_option('psc_receipts_cleaned_until', $year->date_fin, false)`, et purger les `envois` de plus de 13 mois.
 
@@ -939,7 +939,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 | PERF-09 | Faible | Performance | Facturation : double résolution, PDF reconstruits | `class-psc-invoices.php:40-286` | Corrigé |
 | PERF-10 | Faible | Performance | Coût de `maybe_upgrade()` sur toutes les pages | `class-psc-installer.php:100-123` | Corrigé |
 | PERF-11 | Faible | Performance | Import ICS : 2 requêtes par jour | `class-psc-school-calendar.php:325-343` | Corrigé |
-| PERF-12 | Faible | Performance | Tables sans purge, index `enfant_id` manquant | `class-psc-installer.php:1318-1347` | Partiel |
+| PERF-12 | Faible | Performance | Tables sans purge, index `enfant_id` manquant | `class-psc-installer.php:1318-1347` | Corrigé |
 | PRA-11 | Faible | Pratiques | Intitulés du menu non stylés hors du plugin | `class-psc-admin.php:304-307` | Corrigé |
 | PRA-12 | Faible | Pratiques | URL du portail : cache d'absence de 24 h | `class-psc-mailer.php:24-49` | Corrigé |
 | PRA-13 | Faible | Pratiques | JS et CSS écrits dans les gabarits | `templates/*` | Mis de côté |

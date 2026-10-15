@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.19.0';
+    const DB_VERSION = '4.20.0';
     const ROLES_VERSION = '1.5.0';
 
     public static function activate() {
@@ -238,13 +238,19 @@ class Psc_Installer {
         delete_option('psc_migration_failed');
 
         if (class_exists('Psc_Audit')) {
-            Psc_Audit::log('systeme.montee_de_version', array(
-            'objet_type' => 'reglage',
-            'meta' => array('ancienne_version' => $current ?: null, 'nouvelle_version' => self::DB_VERSION),
-            /* translators: 1: version précédente du schéma, 2: nouvelle version. */
-            'resume' => sprintf(__('Schéma de la base mis à jour (%1$s → %2$s).', 'periscolaire-registration'), $current ?: '—', self::DB_VERSION),
-            'acteur' => array('type' => 'systeme', 'id' => null, 'libelle' => 'mise-a-jour-plugin', 'pour_le_compte_de' => null),
-            ));
+            // La montée tourne sur plugins_loaded, avant init : le résumé
+            // traduit attend init (sinon notice « translation loading
+            // triggered too early » depuis WordPress 6.7).
+            $log = function () use ($current) {
+                Psc_Audit::log('systeme.montee_de_version', array(
+                'objet_type' => 'reglage',
+                'meta' => array('ancienne_version' => $current ?: null, 'nouvelle_version' => self::DB_VERSION),
+                /* translators: 1: version précédente du schéma, 2: nouvelle version. */
+                'resume' => sprintf(__('Schéma de la base mis à jour (%1$s → %2$s).', 'periscolaire-registration'), $current ?: '—', self::DB_VERSION),
+                'acteur' => array('type' => 'systeme', 'id' => null, 'libelle' => 'mise-a-jour-plugin', 'pour_le_compte_de' => null),
+                ));
+            };
+            if (did_action('init')) $log(); else add_action('init', $log, 1);
         }
         return true;
     }
@@ -1376,6 +1382,7 @@ CREATE TABLE $t_audit_log (
             PRIMARY KEY  (id),
             KEY horodatage (horodatage),
             KEY famille_horodatage (famille_id, horodatage),
+            KEY enfant_horodatage (enfant_id, horodatage),
             KEY acteur (acteur_type, acteur_id, horodatage),
             KEY action_horodatage (action, horodatage),
             KEY categorie_horodatage (categorie, horodatage),
