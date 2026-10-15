@@ -97,8 +97,9 @@ add_action('plugins_loaded', function () {
     // Text Domain déclaré en en-tête : chargé ici pour que toutes les
     // chaînes enveloppées (__() / esc_html__()) soient traduisibles — les
     // fichiers .mo installés par WordPress atterrissent dans
-    // wp-content/languages/plugins/, le plugin n'en embarque pas lui-même.
-    load_plugin_textdomain('periscolaire-registration', false, dirname(plugin_basename(PSC_FILE)) . '/languages');
+    // wp-content/languages/plugins/, le plugin n'en embarque pas lui-même :
+    // aucun chemin relatif à passer (il visait un dossier /languages absent).
+    load_plugin_textdomain('periscolaire-registration');
 
     Psc_Installer::maybe_upgrade();
     Psc_Audit::init();
