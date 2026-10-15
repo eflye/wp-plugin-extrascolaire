@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.35.1
+Stable tag: 5.36.0
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,12 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.36.0 =
+* **Portail famille, thème Clair :** un bouton soleil/lune dans le bandeau bascule le portail entre le thème habituel (encre) et un thème clair sur fond crème. Le choix est mémorisé sur l'appareil (cookie et stockage du navigateur) et s'applique dès l'affichage de la page, sans clignotement. L'encre reste le thème par défaut ; l'écran des intervenants n'est pas concerné.
+* **Accessibilité :** le bouton est utilisable au clavier, annoncé « Thème clair, activé / désactivé » par les lecteurs d'écran, avec un contour de focus contrasté dans les deux thèmes. Sur téléphone, il se place sous « Accueil » sans agrandir le bandeau.
+* **Portail famille :** « Messages » ne reste plus surligné dans le menu après le passage à un autre onglet ; le sujet d'une conversation ouverte s'affiche de nouveau.
+* **Thème du site Montgeroult Familles 1.2.0 :** nouvel emplacement dans le bandeau pour le bouton de thème. À installer avec cette version ; sans lui, le bouton s'affiche en haut du contenu.
 
 = 5.35.1 =
 * **Formulaire d'inscription :** la mention de la Base Adresse Nationale sous le champ d'adresse est retirée. La recherche d'adresse fonctionne comme avant.
