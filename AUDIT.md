@@ -428,7 +428,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-admin-familles.php:100-113`, `includes/class-psc-school-years.php:195-210`.
 - **Priorité :** Faible.
-- **Statut (branche `audit-fixes`) :** Corrigé — décision du 15/10/2026 : attestation supprimée (fichier et colonnes `assurance_*`) dès la fin de son année scolaire, l'année active étant toujours conservée ; purge quotidienne, bin/verify-insurance-retention.php.
+- **Statut (branche `audit-fixes`) :** Corrigé — décision du 15/10/2026 : attestation conservée jusqu'au 30 septembre qui suit la fin de son année scolaire puis supprimée (fichier et colonnes `assurance_*`), l'année active étant toujours conservée ; purge quotidienne, bin/verify-insurance-retention.php.
 - **Explication :** une attestation ne sert que l'année concernée. Un enfant scolarisé 6 ans en accumule 6.
 - **Correction :** à l'archivage d'une année plus vieille d'un an, supprimer les fichiers `assurance_file_path` (`unlink`) et vider les colonnes `assurance_*`.
 

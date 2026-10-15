@@ -4,10 +4,11 @@
  * passées (RGPD-11). Même rôle que bin/verify-promotion-logic.php.
  *
  * Vérifie que Psc_Retention::purge_past_year_insurance() :
- *   - supprime le fichier et vide les colonnes assurance_* d'une
- *     inscription dont l'année scolaire est terminée ;
+ *   - conserve l'attestation jusqu'au 30 septembre qui suit la fin de son
+ *     année scolaire, et la supprime (fichier et colonnes assurance_*) à
+ *     partir du 1er octobre ;
  *   - conserve l'attestation d'une année pas encore terminée, et celle de
- *     l'année active même si sa date de fin est passée ;
+ *     l'année active même passé ce délai ;
  *   - conserve la ligne d'inscription elle-même ;
  *   - est comptée par la simulation (Psc_Retention::run()) et rejouable.
  *
@@ -15,7 +16,8 @@
  *   wp --require=bin/verify-insurance-retention.php verify-insurance-retention
  *
  * Années (1990, 2090) et enfant de test dédiés, supprimés avant et après ;
- * l'année active réelle n'est jamais modifiée.
+ * l'année active réelle n'est jamais modifiée. La date du jour est fixée en
+ * 1991 : aucune attestation réelle n'est jamais concernée.
  */
 
 if (!defined('WP_CLI') || !WP_CLI) {
@@ -80,6 +82,9 @@ WP_CLI::add_command('verify-insurance-retention', function () {
         return $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_cy WHERE id = %d", $id));
     };
 
+    $sept30 = strtotime('1991-09-30 12:00:00');
+    $oct1 = strtotime('1991-10-01 12:00:00');
+
     try {
         $wpdb->insert($t_par, array('email' => $email, 'nom' => 'VerifyInsurance', 'active' => 1, 'created_at' => current_time('mysql')));
         $pid = (int) $wpdb->insert_id;
@@ -105,12 +110,17 @@ WP_CLI::add_command('verify-insurance-retention', function () {
         $memo->setAccessible(true);
         $memo->setValue(null, $wpdb->get_row($wpdb->prepare("SELECT * FROM $t_years WHERE id = %d", $past)));
         $check((int) Psc_School_Years::active_id() === $past, 'simulation de l’année active impossible');
-        Psc_Retention::purge_past_year_insurance();
+        Psc_Retention::purge_past_year_insurance($oct1);
         $check(file_exists(psc_private_path($past_rel)) && $row($past_cy)->assurance_file_path !== null, 'année active : attestation supprimée');
         Psc_School_Years::flush_cache();
         $check((int) Psc_School_Years::active_id() === $active_before, 'année active réelle modifiée par le test');
 
-        $done = Psc_Retention::purge_past_year_insurance();
+        // Jusqu'au 30 septembre qui suit la fin de l'année : conservée.
+        $kept = Psc_Retention::purge_past_year_insurance($sept30);
+        $check($kept === 0 && file_exists(psc_private_path($past_rel)) && $row($past_cy)->assurance_file_path === $past_rel, '30 septembre : attestation déjà supprimée');
+
+        // À partir du 1er octobre : supprimée.
+        $done = Psc_Retention::purge_past_year_insurance($oct1);
         $after = $row($past_cy);
         $check($done >= 1, "purge : $done attestation(s) supprimée(s)");
         $check(!file_exists(psc_private_path($past_rel)), 'année terminée : fichier conservé');
@@ -118,7 +128,7 @@ WP_CLI::add_command('verify-insurance-retention', function () {
         $check($after && $after->statut === 'inscrit', 'année terminée : ligne d’inscription supprimée');
         $check(file_exists(psc_private_path($future_rel)) && $row($future_cy)->assurance_file_path === $future_rel, 'année non terminée : attestation supprimée');
 
-        $again = Psc_Retention::purge_past_year_insurance();
+        $again = Psc_Retention::purge_past_year_insurance($oct1);
         $check($row($past_cy)->assurance_file_path === null && file_exists(psc_private_path($future_rel)), 'rejouée : état modifié');
         unset($again);
     } finally {

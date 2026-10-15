@@ -72,7 +72,7 @@ class Psc_Retention {
                 $t_years = psc_table('school_years');
                 return (int) $wpdb->get_var($wpdb->prepare(
                     "SELECT COUNT(*) FROM $t_cy cy INNER JOIN $t_years y ON y.id = cy.school_year_id
-                     WHERE y.date_fin < %s AND y.id <> %d AND cy.assurance_file_path IS NOT NULL",
+                     WHERE " . self::insurance_expired_sql() . " AND y.id <> %d AND cy.assurance_file_path IS NOT NULL",
                     wp_date('Y-m-d', $now), (int) Psc_School_Years::active_id()
                 ));
             case 'invoices':
@@ -112,12 +112,22 @@ class Psc_Retention {
     }
 
     /**
+     * Condition SQL (alias y = school_years, placeholder %s = date du jour) :
+     * le 30 septembre de l'année civile où l'année scolaire se termine est
+     * passé (ou sa date de fin, si elle tombait plus tard).
+     */
+    private static function insurance_expired_sql() {
+        return "GREATEST(y.date_fin, CONCAT(YEAR(y.date_fin), '-09-30')) < %s";
+    }
+
+    /**
      * Attestations d'assurance des années scolaires terminées (RGPD-11,
      * décision du 15/10/2026) : une attestation ne sert que l'année qu'elle
-     * couvre. Supprimée du disque dès que son année est finie (date_fin
-     * passée), sauf pour l'année active tant que la mairie ne l'a pas
-     * remplacée. La ligne d'inscription est conservée, sans plus aucune
-     * trace du document.
+     * couvre. Supprimée du disque à partir du 1er octobre qui suit la fin
+     * de son année (date_fin), pour laisser à la mairie l'été et la rentrée
+     * pour traiter les cas de fin d'année ; jamais pour l'année active tant
+     * que la mairie ne l'a pas remplacée. La ligne d'inscription est
+     * conservée, sans plus aucune trace du document.
      *
      * @return int Nombre d'attestations supprimées.
      */
@@ -132,7 +142,7 @@ class Psc_Retention {
         $rows = $wpdb->get_results($wpdb->prepare(
             "SELECT cy.id, cy.assurance_file_path FROM $t_cy cy
              INNER JOIN $t_years y ON y.id = cy.school_year_id
-             WHERE y.date_fin < %s AND y.id <> %d AND cy.assurance_file_path IS NOT NULL
+             WHERE " . self::insurance_expired_sql() . " AND y.id <> %d AND cy.assurance_file_path IS NOT NULL
              ORDER BY cy.id LIMIT %d",
             $today, $active, max(1, (int) $limit)
         ));

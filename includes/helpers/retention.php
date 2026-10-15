@@ -70,7 +70,7 @@ function psc_retention_policies() {
         'private_files'       => array(
             'label' => __('Justificatifs d’assurance', 'periscolaire-registration'),
             'enabled' => true, 'days' => 1, 'hook' => 'psc_purge_departed_children',
-            'reason' => __('Supprimé dès la fin de son année scolaire (l’année active est toujours conservée) ; sinon avec la fiche enfant.', 'periscolaire-registration'),
+            'reason' => __('Supprimé à partir du 1er octobre qui suit la fin de son année scolaire (l’année active est toujours conservée) ; sinon avec la fiche enfant.', 'periscolaire-registration'),
         ),
         'invoices'            => class_exists('Psc_Retention') && Psc_Retention::invoice_retention_enabled()
             ? array(

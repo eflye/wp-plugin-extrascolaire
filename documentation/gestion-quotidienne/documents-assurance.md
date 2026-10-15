@@ -28,7 +28,7 @@ Connectez-vous à WordPress avec un rôle autorisé à gérer les familles. Dema
 6. Contrôlez ensuite l'état affiché dans la liste. Un justificatif manquant ou refusé bloque le planning pour l'enfant concerné jusqu'à la réception et l'acceptation d'un nouveau document.
 
 !!! note "Conservation"
-    Une attestation ne sert que l'année scolaire qu'elle couvre. Elle est supprimée automatiquement dès la fin de cette année scolaire. L'attestation de l'année active est toujours conservée, même si la date de fin est passée, tant que vous n'avez pas activé l'année suivante. Si vous avez besoin d'une attestation pour un sinistre, téléchargez-la avant la fin de l'année scolaire.
+    Une attestation ne sert que l'année scolaire qu'elle couvre. Elle reste disponible jusqu'au **30 septembre** qui suit la fin de cette année scolaire, pour traiter les cas de fin d'année, puis elle est supprimée automatiquement à partir du 1er octobre. L'attestation de l'année active est toujours conservée tant que vous n'avez pas activé l'année suivante. Si vous avez besoin d'une attestation au-delà, pour un sinistre par exemple, téléchargez-la avant le 30 septembre.
 
 ## Résultat attendu
 
