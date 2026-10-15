@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.35.0
+Stable tag: 5.35.1
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,9 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.35.1 =
+* **Formulaire d'inscription :** la mention de la Base Adresse Nationale sous le champ d'adresse est retirée. La recherche d'adresse fonctionne comme avant.
 
 = 5.35.0 =
 Corrections issues de l'audit de sécurité, RGPD, performance et qualité (AUDIT.md, statut de chaque constat).
