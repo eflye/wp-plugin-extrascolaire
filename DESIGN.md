@@ -113,7 +113,7 @@ Palette héritée du système précédent (les valeurs n'ont pas changé), mais 
 - **Filet** (`rgba(36,64,92,0.15)` / `0.1`) : bordures de carte, séparateurs de ligne.
 
 ### Named Rules
-**La règle du fond d'autorité.** Une zone qui fait autorité sur l'écran (un en-tête de fil, un bandeau de site) prend l'encre en fond plein, texte en blanc ou en bleu doux clair — jamais l'encre en simple filet sur fond clair quand la zone porte une décision ou un statut.
+**La règle du fond d'autorité.** Une zone qui fait autorité sur l'écran (un en-tête de fil, un bandeau de site) prend l'encre en fond plein, texte en blanc ou en bleu doux clair — jamais l'encre en simple filet sur fond clair quand la zone porte une décision ou un statut. En thème Clair, cette règle est restreinte au fil de conversation et au bandeau de consultation mairie (cf. « Thème Clair »).
 **La règle de l'abricot rare.** L'abricot ne colore qu'un élément sur lequel on peut agir. Un badge, un fond de carte informative ou un filet ne l'utilisent jamais.
 **La règle du liseré, pas de l'encadré.** Un encart informatif ou un message de la famille dans un fil ne porte jamais de bordure pleine autour d'un fond papier : un seul liseré encre à gauche (3–4px) suffit à le signaler, sur un fond blanc (bandeau de délai) ou papier froid (bulle famille) selon le poids de l'information.
 
@@ -174,6 +174,18 @@ Coins carrés partout (`border-radius: 0`), sans exception décorative. Les seul
 
 ### En-tête de fil de conversation (signature)
 Bandeau plein encre (`#24405C`) portant le sujet en blanc et les métadonnées en bleu très clair (`#C9D3DC`) — la seule zone du produit où l'encre couvre une surface entière plutôt qu'un simple texte ou filet. Le badge « Réponse reçue » s'y inverse (fond blanc, texte encre) pour rester lisible sur son propre fond.
+
+## Thème Clair
+
+Le portail famille propose un second rendu, **Clair**, que chaque famille active ou désactive avec le bouton soleil/lune placé en haut à droite du bandeau de site, à droite de « Accueil ». L'**Encre** reste le thème par défaut. Le choix de la famille est conservé (cookie `psc_theme` et `localStorage`) ; il ne suit pas `prefers-color-scheme`, car le Clair n'est pas un mode sombre inversé. L'écran intervenants et le bandeau de consultation mairie n'ont pas de bouton et restent en Encre.
+
+- **Mêmes jetons, autre répartition.** Le Clair n'introduit aucune couleur. Le fond de page passe au papier froid (`#EAEFF4`). Le bandeau de site, le pied de page, la barre latérale, les cartes et les encarts passent en blanc, séparés par un filet `rgba(36,64,92,.22)` ou `.15`.
+- **Hiérarchie allégée.** Le titre de page passe à 600, les sous-titres à 400 en bleu doux. Les capitales espacées sont ramenées à 0,12–0,14em en graisse 500 ou 600.
+- **Une seule action abricot, dans les deux thèmes.** Sur le tableau de bord, la carte d'accès rapide perd son aplat abricot. Son bouton principal devient alors l'action abricot de l'écran. Les boutons pleins encre secondaires (Modifier, Remplacer, Ajouter une personne) passent en contour.
+- **L'état ne change pas de signe.** Les cases cochées du planning restent en aplat abricot avec ✓, les jours verrouillés gardent leur cadenas, et l'étiquette « Urgent » passe d'un aplat à un contour.
+- **Implémentation.** L'attribut `data-psc-theme="light"` est posé sur `<html>` côté serveur, ce qui évite le flash au chargement. Toutes les règles du Clair vivent dans `assets/css/portal-light.css`, préfixées `html[data-psc-theme="light"]`. Le thème Encre ne dépend d'aucune de ces règles.
+
+**La règle du fond d'autorité, en Clair.** En thème Clair, seules deux zones gardent l'aplat encre : le bandeau du fil de conversation et le bandeau de consultation mairie. Le bandeau de site et la barre latérale deviennent blancs. Leur autorité passe alors par le texte encre et par le liseré actif de 3 px, plus par le fond.
 
 ## Do's and Don'ts
 
