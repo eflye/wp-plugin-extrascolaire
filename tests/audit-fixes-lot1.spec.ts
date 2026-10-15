@@ -32,7 +32,10 @@ test.describe('Audit — lot 1', () => {
     const cleanup = () => wpCliEval(`global $wpdb; $t = psc_table('parents');
       foreach (array('${TITULAIRE}', '${SECOND}', '${NOUVELLE}') as $e) {
         foreach ($wpdb->get_col($wpdb->prepare("SELECT id FROM $t WHERE email = %s OR second_parent_email = %s OR pending_email = %s", $e, $e, $e)) as $id) $wpdb->delete($t, array('id' => (int) $id));
-      } echo 'ok';`);
+      }
+      // Liens d'annulation (SEC-02) émis pour ce foyer de test.
+      foreach ($wpdb->get_col($wpdb->prepare("SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value LIKE %s", $wpdb->esc_like('_transient_psc_email_cancel_') . '%', '%' . $wpdb->esc_like('e2e-lot1-') . '%')) as $n) delete_transient(substr($n, 11));
+      echo 'ok';`);
 
     /**
      * Lien de connexion tel que l'envoie send_login_link() : caractère de

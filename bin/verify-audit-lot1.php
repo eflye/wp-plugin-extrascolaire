@@ -100,8 +100,44 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         if ($fid) Psc_Admin_Familles::delete_family($fid);
     };
     $purge_requests();
+
+    // Liens d'annulation (SEC-02) émis pour les foyers de test : transients
+    // à supprimer, leur valeur porte l'ancienne adresse de test.
+    $purge_transients = function () use ($wpdb) {
+        $names = $wpdb->get_col($wpdb->prepare(
+            "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value LIKE %s",
+            $wpdb->esc_like('_transient_psc_email_cancel_') . '%',
+            '%' . $wpdb->esc_like('verify-lot1-') . '%'
+        ));
+        foreach ($names as $name) delete_transient(substr($name, strlen('_transient_')));
+    };
+    $purge_transients();
+
+    // Registre des intervenants : un registre non vide désactive l'ancien
+    // code partagé (SEC-03). Les intervenants de test laissés par un run
+    // interrompu (erreur fatale, qui contourne finally) sont d'abord
+    // retirés, puis la valeur d'origine est sauvegardée et restaurée à
+    // l'identique en fin de run, y compris sur erreur fatale (shutdown).
+    $test_intervenants = array('Verif Court', 'Verif Long');
+    $leftover = get_option('psc_sidscm_intervenants', null);
+    if (is_array($leftover)) {
+        $clean = array_values(array_filter($leftover, function ($row) use ($test_intervenants) {
+            return !(is_array($row) && in_array($row['nom'] ?? '', $test_intervenants, true));
+        }));
+        if (count($clean) !== count($leftover)) {
+            if ($clean) update_option('psc_sidscm_intervenants', $clean); else delete_option('psc_sidscm_intervenants');
+        }
+    }
     $saved_auto = get_option('psc_auto_approve_requests', null);
     $saved_intervenants = get_option('psc_sidscm_intervenants', null);
+    $options_restored = false;
+    $restore_options = function () use (&$options_restored, $saved_intervenants, $saved_auto) {
+        if ($options_restored) return;
+        $options_restored = true;
+        if ($saved_intervenants === null) delete_option('psc_sidscm_intervenants'); else update_option('psc_sidscm_intervenants', $saved_intervenants);
+        if ($saved_auto === null) delete_option('psc_auto_approve_requests'); else update_option('psc_auto_approve_requests', $saved_auto);
+    };
+    register_shutdown_function($restore_options);
 
     $purge = function () use ($wpdb, $emails, $t_par) {
         foreach ($emails as $e) {
@@ -665,9 +701,16 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         $_GET = $_POST = $_REQUEST = array();
         $purge();
         $purge_requests();
-        if ($saved_intervenants === null) delete_option('psc_sidscm_intervenants'); else update_option('psc_sidscm_intervenants', $saved_intervenants);
-        if ($saved_auto === null) delete_option('psc_auto_approve_requests'); else update_option('psc_auto_approve_requests', $saved_auto);
+        $purge_transients();
+        $restore_options();
     }
+    $check(get_option('psc_sidscm_intervenants', null) === $saved_intervenants, 'nettoyage : registre des intervenants non restauré à l’identique');
+    // Valeur scalaire : le cache d'options peut rendre 0 pour '0'.
+    $check(($saved_auto === null) === (get_option('psc_auto_approve_requests', null) === null) && (string) get_option('psc_auto_approve_requests', '') === (string) $saved_auto, 'nettoyage : réglage de validation automatique non restauré');
+    $check((int) $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_value LIKE %s AND (option_name LIKE %s OR option_name = 'psc_sidscm_intervenants')",
+        '%' . $wpdb->esc_like('verify-lot1-') . '%', $wpdb->esc_like('_transient_') . '%'
+    )) === 0, 'nettoyage : transient de test restant');
 
     if ($failures) {
         foreach ($failures as $f) WP_CLI::warning($f);
