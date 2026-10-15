@@ -28,6 +28,28 @@ Les défauts sérieux se concentrent sur trois sujets :
 
 ---
 
+## Suivi des corrections (14-15/10/2026)
+
+Les corrections ont été appliquées sur la branche `audit-fixes` par trois correcteurs, avec un vérificateur qui a relu et validé chaque commit. Le plan, les lots et les arbitrages sont dans `FIXES-PLAN.md`.
+
+| Statut | Nombre | Constats |
+|---|---|---|
+| Corrigé | 40 | SEC-01, 02, 03, 07, 09, 10, 11 · RGPD-01 à 07, 13, 14 · PERF-01 à 11 · PRA-02 à 12, 15, 18 |
+| Partiellement corrigé | 6 | SEC-06, RGPD-09, RGPD-10, PERF-12, PRA-14, PRA-17 |
+| Mis de côté (validation humaine) | 9 | SEC-04, SEC-05, SEC-08, RGPD-08, RGPD-11, RGPD-12, PRA-01, PRA-13, PRA-16 |
+
+Contrôles de consolidation, le 15/10/2026 :
+- `php -l` en PHP 7.4 et 8.3 sur les 212 fichiers PHP : aucune erreur.
+- PHPStan niveau 3 : aucune erreur.
+- PHPCS (WordPress) : aucune régression de sécurité. Les nouveaux signalements de sécurité concernent des noms de table interpolés, alors que les valeurs passent bien par `prepare()`, et des lectures GET d'affichage passées par `absint()`.
+- Les 28 scripts `bin/verify-*` passent, dont les trois scripts par lot `verify-audit-lot1/2/3`, ajoutés à la CI. `verify-migrations.php` n'est pas lancé en local, car il détruit les données.
+- 1 396 tests unitaires : tous passent.
+- Playwright :
+  - 6 échecs, identiques à ceux de `main` avant les corrections : `audit.spec.ts` lignes 272 et 331, `family-isolation.spec.ts:148` et `parent-connu.spec.ts:54`. Ils viennent des données de test (assurance manquante, e-mail Mailpit).
+  - `messages.spec.ts:133`, qui échouait sur `main`, passe désormais.
+
+Chaque constat porte ci-dessous une ligne **Statut** avec ses commits, ou la raison de sa mise de côté. Les parties restantes des corrections partielles exigent un changement de schéma (AGENTS.md §3.1), une décision du DPO ou de la mairie, ou une refactorisation plus large.
+
 ## Sommaire
 
 1. [Sécurité applicative](#1-sécurité-applicative)
@@ -47,6 +69,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-requests.php:262-266`, `:472-478`. Exploitation ensuite par `maybe_verify()` (`:493-560`) et `approve_request()`.
 - **Priorité :** Élevée. Vérifié par le lead.
+- **Statut (branche `audit-fixes`) :** Corrigé — 922b759.
 - **Explication :**
   - `handle_submit()` est en `nopriv`, protégé par un simple nonce WordPress identique pour tous les visiteurs.
   - Si une demande existe pour l'e-mail saisi, en statut `unverified` **ou `pending`**, elle est **mise à jour** avec les données de l'attaquant. Elle repasse alors à `verified = 0` et `status = 'unverified'`, reçoit un nouveau `verify_hash` (le lien de la victime ne fonctionne plus) et perd ses justificatifs (`delete_pending_files`).
@@ -66,6 +89,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-frontend-profil.php:63-67`, `includes/class-psc-parents.php:335-370` et `:428-431`, `includes/class-psc-mailer.php:149-166`.
 - **Priorité :** Élevée. Vérifié par le lead.
+- **Statut (branche `audit-fixes`) :** Corrigé — 5382aea, 044917d, b12603d, d06a7ee, c36bd57, 0b207b1.
 - **Explication :**
   - Le titulaire et le second parent ouvrent la **même** session de foyer ; `Psc_Parents::current()` ne sait pas qui agit.
   - Depuis « Mon profil », le second parent remplace l'adresse de connexion du titulaire. La confirmation part uniquement vers la nouvelle adresse, et l'ancienne n'est jamais prévenue.
@@ -88,6 +112,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-sidscm.php:184-205` (`sanitize_intervenants`), `:214-241` (`authenticate`), `:255-264`. `includes/helpers/throttle.php:66-73`.
 - **Priorité :** Moyenne.
+- **Statut (branche `audit-fixes`) :** Corrigé — 62b73d0, 2ee0e10.
 - **Explication :**
   - (a) Le jeton de session dure 8 h et se renouvelle à chaque appel, mais il n'est jamais revérifié contre le registre. Un intervenant **révoqué** garde donc l'accès aux listes, allergies et téléphones, et peut falsifier des pointages.
   - (b) Aucune longueur minimale n'est imposée au code.
@@ -107,6 +132,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-parents.php:200-282`, `includes/class-psc-login-tokens.php:28-30` et `:60-74`, `includes/class-psc-mailer.php:874`.
 - **Priorité :** Moyenne.
+- **Statut (branche `audit-fixes`) :** Mis de côté — changement de la connexion de toutes les familles : décision produit.
 - **Explication :**
   - Le lien de connexion est rejouable pendant toute sa durée de vie (30 min, réglable jusqu'à 24 h).
   - Le jeton porté par les e-mails de notification ouvre une session pendant **72 h**.
@@ -123,6 +149,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `docker-compose.prod.yml:26-27` (`8087:8025`), `:40`, `:48-53`, `:58-60`.
 - **Priorité :** Moyenne, si ce fichier sert à une pré-production avec de vraies familles.
+- **Statut (branche `audit-fixes`) :** Mis de côté — fichier d'infrastructure de pré-production : à valider avec l'exploitant.
 - **Explication :**
   - Mailpit, sans authentification et publié sur toutes les interfaces, reçoit tous les liens magiques.
   - `psc-offline-updates.php`, monté avec le reste de `mu-plugins/`, coupe les mises à jour de sécurité de WordPress.
@@ -140,6 +167,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/helpers/audit.php:854-877`, `includes/class-psc-audit.php:182-219`.
 - **Priorité :** Faible (défense en profondeur ; l'attaque suppose un accès en écriture à la base).
+- **Statut (branche `audit-fixes`) :** Partiellement corrigé — 1fd3297 — verrou GET_LOCK ; signature HMAC mise de côté (nouvelle constante en production, chaîne v3).
 - **Explication :**
   - Les empreintes sont des SHA-256 sans secret. Elles ne couvrent ni `details`, ni `famille_id`, `enfant_id`, `ip` ou `resultat`.
   - La séquence lecture du dernier hash → insertion → mise à jour n'est pas verrouillée : sous concurrence, la chaîne bifurque et `verify_chain()` signale de fausses ruptures.
@@ -150,6 +178,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/helpers/crypto.php:187-197`, `includes/helpers/session.php:121-128`.
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Corrigé — 46421fe.
 - **Explication :** `wp_salt('psc_session')` et les autres « schemes » personnalisés retombent sur l'option `secret_key` stockée en base si `SECRET_KEY` n'est pas défini. Une fuite de sauvegarde suffit alors à forger un cookie de session de n'importe quel foyer.
 - **Correction :** signer avec une clé hors base (`PSC_SESSION_KEY`, ou dérivée de `psc_encryption_key()`), et vérifier sa présence dans l'écran Maintenance.
   ```php
@@ -160,6 +189,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-parents.php:211-282`, branché sur `init` pour toute URL.
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Mis de côté — même mécanisme que SEC-04 : décision produit.
 - **Explication :** une victime qui clique sur un lien valide de l'attaquant se retrouve connectée **à son foyer**, où elle peut saisir un IBAN ou des enfants.
 - **Correction :** même mécanisme que SEC-04, avec une page de confirmation POST qui affiche « Vous allez vous connecter à l'espace de … ».
 
@@ -167,6 +197,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-conversations-frontend.php:53`.
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Corrigé — 85d5f7a.
 - **Explication :** `mark_read($id, 'famille')` est appelé sans tester la consultation. La consultation, censée être en lecture seule, modifie donc l'état des messages, alors que `class-psc-messages-frontend.php:80` fait bien ce test.
 - **Correction :**
   ```php
@@ -177,6 +208,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-parents.php:335-370`, appelé depuis `includes/class-psc-frontend-profil.php:65`.
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Corrigé — 1468fd0.
 - **Explication :** une session famille peut faire envoyer sans limite, au nom de la mairie, des e-mails de confirmation vers des adresses arbitraires. Cela expose la réputation du domaine d'envoi.
 - **Correction :**
   ```php
@@ -187,6 +219,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-school-calendar.php:173-229`.
 - **Priorité :** Faible. L'action est réservée à `psc_manage_config`, et les redirections sont déjà revalidées.
+- **Statut (branche `audit-fixes`) :** Corrigé — 2d84ffd — épinglage effectif avec le transport cURL.
 - **Explication :** `validate_ics_url()` résout le nom, puis `wp_remote_get()` le résout une seconde fois. Un DNS à TTL nul peut répondre une IP publique, puis une IP interne.
 - **Correction :** épingler l'IP validée (`CURLOPT_RESOLVE` via `http_api_curl`) ou limiter les hôtes à une liste blanche (`data.education.gouv.fr`).
 
@@ -221,6 +254,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-retention.php:58-66` (« La fiche famille n'est pas touchée »), `:115-125` (`departed_sql`), `includes/class-psc-requests.php:57-81` (`cleanup`).
 - **Priorité :** Élevée. Vérifié par le lead.
+- **Statut (branche `audit-fixes`) :** Corrigé — db8015b, ec3104f.
 - **Explication :**
   - Une fois le dernier enfant purgé, la ligne `psc_parents` reste en base sans limite. Elle contient les coordonnées des deux parents, l'IBAN chiffré, le BIC et la RUM.
   - `cleanup()` ignore les demandes `pending` : une demande jamais traitée est conservée indéfiniment.
@@ -242,6 +276,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-conversations.php:400-409` (`delete_for_family`), `:415-431` (`purge_old`), `:612-641` (stockage).
 - **Priorité :** Élevée. Vérifié par le lead : aucun `unlink` ne vise `piece_jointe_path`.
+- **Statut (branche `audit-fixes`) :** Corrigé — eb58030.
 - **Explication :**
   - La purge à 395 j, la suppression d'une famille et l'effaceur RGPD suppriment les lignes, mais pas les fichiers (PDF et images, parfois des certificats médicaux).
   - Ces fichiers deviennent orphelins : impossibles à exporter ou à effacer ensuite.
@@ -264,6 +299,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-privacy.php:338-387` et `:401-410`, `includes/class-psc-admin-familles.php:192-198` (oubli reconnu en commentaire), `includes/class-psc-requests.php:1046` (`handle_reject`), `:967-978`.
 - **Priorité :** Élevée.
+- **Statut (branche `audit-fixes`) :** Corrigé — 66d966f, 27517b1.
 - **Explication :**
   - Une famille jamais validée obtient un export vide et un effacement « rien trouvé », alors que sa demande (enfants, adresse, IBAN chiffré, message) reste en base.
   - Pour une famille validée puis effacée, la demande approuvée reste 90 j avec `children_json`.
@@ -291,6 +327,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
   - `includes/class-psc-admin-familles.php:67-71` et `:83-87` ;
   - `includes/class-psc-audit.php:632-640` (`forget_family` garde `ip`).
 - **Priorité :** Élevée (priorité ajustée : « données » l'avait classé Critique ; la lecture du journal est réservée à `psc_view_audit`). Vérifié par le lead.
+- **Statut (branche `audit-fixes`) :** Corrigé — 6588bc5, a9f94d3, ba237d3.
 - **Explication :**
   - La purge automatique écrit le **prénom et le nom** de l'enfant au moment où elle efface sa fiche, et ce journal est conservé 365 j.
   - La suppression manuelle consigne nom, prénom et date de naissance au niveau critique, conservé 1095 j.
@@ -311,6 +348,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-privacy.php:132-213`, `:552`, `:586-591`.
 - **Priorité :** Moyenne.
+- **Statut (branche `audit-fixes`) :** Corrigé — d486d05.
 - **Explication :**
   - Absents de l'export : présences et heures, historique des personnes autorisées, demandes, consultations par la mairie, lignes d'audit, fichiers.
   - Le **contenu** des allergies et des messages, fournis par la famille elle-même, est remplacé par « omis ». Le droit d'accès (art. 15) porte pourtant sur ces contenus.
@@ -324,6 +362,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-sidscm.php:419-426`, `:549-559`, `:578-590` ; `assets/js/sidscm.js:277`, `:407`.
 - **Priorité :** Moyenne.
+- **Statut (branche `audit-fixes`) :** Corrigé — 1c2c9d7.
 - **Explication :**
   - `ajax_data` renvoie pour chaque enfant attendu, sur 9 semaines consultables, le **texte libre des allergies**, quel que soit l'onglet. Le JS ne l'affiche pourtant qu'en cantine.
   - Il renvoie aussi les téléphones des personnes autorisées pour toute la semaine.
@@ -339,6 +378,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `templates/admin-parents.php:89-90`, `includes/class-psc-admin-familles.php:480-510` et `:522`.
 - **Priorité :** Moyenne.
+- **Statut (branche `audit-fixes`) :** Corrigé — a6229d3, 7995a2a.
 - **Explication :** le formulaire d'édition pré-remplit l'IBAN déchiffré, et `psc_manage_families` suffit pour l'ouvrir. Partout ailleurs, l'IBAN est masqué (`admin-parents.php:178`, `admin-requests.php:96`, `portal-profil.php:112`).
 - **Correction :**
   ```php
@@ -353,6 +393,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-privacy.php:107` et `:383`, `includes/helpers/retention.php:15`, `includes/class-psc-invoices.php:496-554`.
 - **Priorité :** Moyenne.
+- **Statut (branche `audit-fixes`) :** Mis de côté — durée de conservation des factures : décision du DPO.
 - **Explication :** la décision de ne jamais réécrire une facture est respectée. Mais rien ne supprime les factures, leurs versions (`lines_json` avec les noms des enfants) ni les PDF au terme annoncé (10 ans).
 - **Correction :** purge annuelle désactivée par défaut, avec une durée validée par le DPO.
   ```php
@@ -364,6 +405,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-installer.php:1256`, `includes/class-psc-mailer.php:11`, `includes/class-psc-messages-frontend.php:98-124`.
 - **Priorité :** Moyenne. L'exploitabilité a été contestée et ramenée à Faible par « sécurité » : environ 190 bits, contenu collectif. La conformité reste en cause.
+- **Statut (branche `audit-fixes`) :** Partiellement corrigé — 3463198 — jeton retiré de l'URL ; stockage haché mis de côté (changement de schéma).
 - **Explication :** `message_destinataires.token` (CHAR 32) est stocké en clair et n'expire jamais. La page `?psc_msg=&t=` est rendue sans redirection, donc le jeton reste dans l'historique du navigateur. Cela contredit AGENTS §7 (jeton haché, durée courte).
 - **Correction :** stocker `hash_hmac('sha256', $token, wp_salt('psc_token'))`, rechercher par empreinte, et rediriger après lecture pour retirer le jeton de l'URL.
 
@@ -371,6 +413,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-installer.php:1003`, `includes/class-psc-requests.php:766-779`, `includes/class-psc-mailer.php:776-779`, `documentation/rgpd.md:59`.
 - **Priorité :** Moyenne.
+- **Statut (branche `audit-fixes`) :** Partiellement corrigé — a647988 — détail retiré de l'e-mail mairie ; chiffrement ou retrait de la colonne : décision du DPO.
 - **Explication :**
   - Le parcours ne collecte plus le détail médical. Pourtant `food_allergies` (TEXT en clair) reste peuplé pour les fiches anciennes, et peut être recopié par le rapprochement mairie.
   - La famille ne peut ni le voir, ni le corriger, ni l'effacer.
@@ -384,6 +427,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-admin-familles.php:100-113`, `includes/class-psc-school-years.php:195-210`.
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Mis de côté — suppression de documents d’assurance : décision de la mairie.
 - **Explication :** une attestation ne sert que l'année concernée. Un enfant scolarisé 6 ans en accumule 6.
 - **Correction :** à l'archivage d'une année plus vieille d'un an, supprimer les fichiers `assurance_file_path` (`unlink`) et vider les colonnes `assurance_*`.
 
@@ -391,6 +435,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/helpers/settings.php:90`, `includes/class-psc-mailer.php:819-837` et `:855-857`.
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Mis de côté — choix documenté par la mairie (rgpd.md).
 - **Explication :** l'option `psc_conversations_contenu_email` vaut 1 par défaut. Les copies dans les boîtes de réception échappent à la purge à 395 j et à l'effacement. Ce choix est documenté, mais il va à l'inverse de la protection par défaut.
 - **Correction :** `get_option('psc_conversations_contenu_email', 0)`.
 
@@ -398,6 +443,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-privacy.php:296-302` et `:373-377`, `includes/class-psc-admin-familles.php:200-204`.
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Corrigé — 504dfbc.
 - **Explication :** l'effaceur anonymise toujours la ligne parent, même quand il n'existe aucune facture, alors que la suppression manuelle la supprime dans ce cas. Le commentaire promet « le même reliquat ».
 - **Correction :** faire appeler `Psc_Admin_Familles::delete_family()` par `erase_household()`.
 
@@ -405,6 +451,7 @@ Il n'y a aucun endpoint REST : `register_rest_route` est absent du code. Tous le
 
 - **Fichier :** `includes/class-psc-retention.php:22-45` (`run()` sans appelant), `includes/helpers/retention.php`, `documentation/rgpd.md:36`.
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Corrigé — e8a2511, 583e56b, 7a22f31 — registre aligné sur les purges réelles, simulation seule.
 - **Explication :** `psc_retention_policies()` décrit des durées que rien n'applique. La documentation annonce `Psc_Retention::run()`, qui n'est jamais appelée. Le registre est décoratif : un réglage modifié n'a aucun effet.
 - **Correction :** brancher `run()` sur le cron `psc_purge_departed_children`, ou supprimer le registre et documenter les purges réelles.
 
@@ -420,6 +467,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-school-calendar.php:637-654` (et `close_day()` `:603-628`), appelé par `includes/class-psc-admin-school-years.php:347-355`.
 - **Priorité :** Élevée.
+- **Statut (branche `audit-fixes`) :** Corrigé — 4c065ad.
 - **Explication :**
   - Pour chaque jour, `close_day()` recalcule les familles touchées (environ 8 requêtes), écrit la fermeture, puis envoie un `wp_mail()` synchrone par famille.
   - 5 jours × 50 familles = environ 250 envois SMTP via le relais OVH, soit 2 à 8 minutes. C'est au-delà de `max_execution_time`.
@@ -442,6 +490,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-admin-invoices.php:226-260`, `includes/class-psc-menus.php:229-234`, `includes/class-psc-envois.php:101-108` et `:197-227`, `includes/class-psc-school-calendar.php:620-624` et `:768-778`.
 - **Priorité :** Moyenne (Élevée à partir d'environ 100 familles).
+- **Statut (branche `audit-fixes`) :** Corrigé — 876d210.
 - **Explication :**
   - Avec 60 familles et un envoi SMTP de 0,5 à 2 s (PDF joint), l'écran dure 30 à 120 s et finit souvent en erreur 504.
   - `Psc_Envois` reprend les envois laissés en plan, mais le bilan affiché est faux et la secrétaire relance.
@@ -462,6 +511,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-installer.php:118-124` (`has_pending_work()` repose sur `is_admin()`), `:108-115`, `:149-151`, `:573-583`.
 - **Priorité :** Moyenne.
+- **Statut (branche `audit-fixes`) :** Corrigé — bdfdc66.
 - **Explication :**
   - `is_admin()` est vrai sur `admin-ajax.php` et `admin-post.php`.
   - Chaque clic du planning, chaque pointage et chaque interrogation des notifications (toutes les 30 s par onglet) provoque donc 2 écritures dans `wp_options` (verrou), la vérification du répertoire privé et `store_constraints_state()` (mesuré : **10 requêtes, environ 3,4 ms**, dont `information_schema`).
@@ -478,6 +528,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-frontend.php:27`, `:58-61`, `:595`.
 - **Priorité :** Moyenne. Vérifié par le lead.
+- **Statut (branche `audit-fixes`) :** Corrigé — e33843d.
 - **Explication :** `do_shortcode` (priorité 11) rend le portail, puis le filtre du plugin (priorité 20) jette ce rendu et rappelle `shortcode()`. Mesure : 56 requêtes et 28 ms, puis 41 requêtes et 17 ms. Environ 40 % du coût d'une page est perdu.
 - **Correction :**
   ```php
@@ -493,6 +544,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-audit.php:596-668`.
 - **Priorité :** Moyenne.
+- **Statut (branche `audit-fixes`) :** Corrigé — 1987a3c.
 - **Explication :**
   - Réécrire un `resume` change l'empreinte de cette ligne et de **toutes les suivantes**, soit environ 40 000 lignes par an : autant d'`UPDATE` dans la requête HTTP.
   - Si le processus est interrompu, la chaîne est cassée et `verify_chain()` signale une rupture fictive.
@@ -502,6 +554,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-school-years.php:32-42` et `:278-316`, `includes/class-psc-frontend-inscriptions.php:186-193`, `templates/portal-planning-2.php:58-59`, `:98-102`, `:158`, `:354`, `templates/portal-enfants.php:24`.
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Corrigé — acd61e6.
 - **Explication :** sur un rendu de 41 requêtes, environ 25 sont redondantes : année active ×11, `child_school_years` ×8, `children_of` ×4, menus de la semaine ×4.
 - **Correction :**
   ```php
@@ -516,6 +569,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-requests.php:674-728`, appelé par `includes/class-psc-admin-requests.php:34` et `:760`.
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Corrigé — 2a9a3f1.
 - **Explication :** la fonction fait 1 requête, puis 2 par demande approuvée, jusqu'à 201 requêtes, alors que la jointure initiale fournit déjà `p.id`.
 - **Correction :** `SELECT r.*, p.id AS parent_id …`, puis charger les enfants en un seul `WHERE parent_id IN (…)` et les regrouper par parent.
 
@@ -523,6 +577,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `assets/js/psc-message-notifications.js:66-71`, `includes/class-psc-messages-frontend.php:49-71`, `includes/class-psc-messages.php:255-258`.
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Corrigé — 383d45f.
 - **Explication :** l'interrogation représente 120 requêtes admin-ajax par heure et par onglet. Chacune charge le `corps` LONGTEXT de **tous** les messages pour n'en garder que 10.
 - **Correction :**
   ```js
@@ -534,6 +589,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-invoices.php:40-100` (`generate_month`), `:106-286` (`generate_one`).
 - **Priorité :** Faible (Moyenne au-delà d'environ 150 familles).
+- **Statut (branche `audit-fixes`) :** Corrigé — 4591ee1.
 - **Explication :** `declared_map()` est calculé pour tous les enfants, puis recalculé par famille. Le PDF FPDF est reconstruit même quand l'instantané n'a pas changé. Pour 60 familles, cela représente environ 600 requêtes et 60 PDF.
 - **Correction :** passer la tranche `$declared` à `generate_one()`, puis :
   ```php
@@ -545,6 +601,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-installer.php:100-102`, `:122-123`, `:364` ; `includes/helpers/files.php:145-183`.
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Corrigé — ad73dd2.
 - **Explication :** à chaque page du site communal, même hors portail, `maybe_upgrade()` lit 2 options non autoloadées et fait environ 8 appels système (`stat`) pour `psc_ensure_private_dir()`.
 - **Correction :** passer `psc_private_dir_path` en autoload, regrouper l'état dans une option `psc_install_state` autoloadée, et appeler `psc_ensure_private_dir()` seulement au moment d'écrire un document.
 
@@ -552,6 +609,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-school-calendar.php:325-343`.
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Corrigé — d457d99.
 - **Explication :** l'import fait un `SELECT source` puis un upsert par jour, soit 1 000 à 3 000 requêtes.
 - **Correction :** une seule requête qui préserve la priorité des corrections manuelles (règle métier n°7), idéalement en `INSERT` multi-lignes par paquets de 200.
   ```sql
@@ -564,6 +622,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-envois.php` (aucune purge), `includes/class-psc-messages.php:216-222` (`cleanup_receipts`), `includes/class-psc-installer.php:1318-1347` (`audit_log`).
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Partiellement corrigé — ef29e86, 79cdefa — purge des envois et marqueur des accusés ; index enfant_horodatage mis de côté (changement de schéma).
 - **Explication :** `envois` n'est jamais purgée. `cleanup_receipts()` refait chaque jour toutes les années closes. Le filtre « enfant » de l'écran Journal parcourt toute la table.
 - **Correction :** ajouter `KEY enfant_horodatage (enfant_id, horodatage)` (DB_VERSION et dbDelta) et `update_option('psc_receipts_cleaned_until', $year->date_fin, false)`, et purger les `envois` de plus de 13 mois.
 
@@ -575,6 +634,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-installer.php:1084` (`UNIQUE KEY parent_mois (parent_id, mois)`), `includes/class-psc-invoices.php:58-140`, `includes/class-psc-installer.php:942-952`, `AGENTS.md` (non suivi par git).
 - **Priorité :** Élevée.
+- **Statut (branche `audit-fixes`) :** Mis de côté — décision de la mairie : facture par foyer ou migration de schéma.
 - **Explication :**
   - Le code produit **une facture par foyer et par mois**, alors qu'AGENTS §2.1 demande une facture par enfant.
   - Il n'existe pas de table de liaison `autorite_parentale` / `responsable_facturation` (§2.4) : un second parent est porté en colonnes.
@@ -593,6 +653,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/helpers/core.php:69-78` (`psc_required_capability`), `includes/class-psc-admin-base.php:19-25`.
 - **Priorité :** Élevée. Vérifié par le lead.
+- **Statut (branche `audit-fixes`) :** Corrigé — a0bfd2c, 2d03fbf.
 - **Explication :**
   - 16 actions ne contiennent aucun mot-clé reconnu et retombent sur `psc_manage_periscolaire`. C'est le cas de `psc_download_pain008` (export **des IBAN en clair**), `psc_payment_received`, `psc_download_general`, `psc_admin_update_registrations`, des jours d'école, des vacances et de la promotion d'année.
   - Un agent habilité au seul domaine voit l'écran, mais reçoit un 403 sur l'action.
@@ -616,6 +677,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `assets/js/guest.js:275-283`, `templates/guest-request.php:158`, `includes/class-psc-requests.php:356`.
 - **Priorité :** Élevée. Vérifié par le lead.
+- **Statut (branche `audit-fixes`) :** Corrigé — aa806c2.
 - **Explication :**
   - L'enfant 0 (rendu par PHP) porte la case `child_food_signal_0`, seule lue par le serveur.
   - Les lignes ajoutées en JS portent à la place une zone de texte `child_food_allergies_N` et une case de consentement, que le serveur ignore.
@@ -633,6 +695,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `templates/admin-conversation.php:32-41`, `includes/class-psc-conversations-frontend.php:18-19` et `:415`, `includes/class-psc-conversations.php:611-661`.
 - **Priorité :** Moyenne.
+- **Statut (branche `audit-fixes`) :** Corrigé — c5b1efc, e7d69f4.
 - **Explication :** une famille peut joindre un fichier, mais aucune route admin ne permet à la secrétaire de le télécharger. La fonctionnalité est livrée à moitié.
 - **Correction :**
   ```php
@@ -647,6 +710,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `templates/admin-messages-edit.php:8`, `includes/class-psc-messages-admin.php:129-131`, `templates/admin-messages-list.php:23` et `:25`.
 - **Priorité :** Moyenne.
+- **Statut (branche `audit-fixes`) :** Corrigé — bf94678.
 - **Explication :**
   - La secrétaire lit « test_sent » dans la notice, et « Envoye » ou « Ecole » dans la liste (`ucfirst` sans traduction ni accents).
   - `$_GET['psc_msg']` étant affiché tel quel, même échappé, un lien forgé peut faire afficher un texte arbitraire dans une notice officielle.
@@ -661,6 +725,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-admin-assurances.php:10`, `:16`, `:30` ; `templates/admin-assurances.php` (17 chaînes) ; `templates/portal-assurance-gate.php` ; `templates/admin-settings.php:215-222` ; `templates/admin-messages-edit.php:18-32` ; `templates/admin-messages-stats.php:3-6` ; `assets/js/psc-messages-admin.js:14-41`.
 - **Priorité :** Moyenne.
+- **Statut (branche `audit-fixes`) :** Corrigé — a553f2d, a0b13a0, e3d3cce, ca90e9e.
 - **Explication :** les modules assurances et messages, JS compris, sont écrits en dur. Par ailleurs, la table `admin-assurances.php:28` n'a ni `<caption>` ni `scope` (RGAA, AGENTS §5).
 - **Correction :**
   ```php
@@ -674,6 +739,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-frontend.php:461`, `:479-480` ; `includes/class-psc-invoices.php:867` et `:871` ; `includes/class-psc-mailer.php:295`, `:309`, `:560`, `:564` ; `includes/class-psc-admin-familles.php:70`, `:86`, `:213`.
 - **Priorité :** Moyenne.
+- **Statut (branche `audit-fixes`) :** Corrigé — b349539, aafab39, b07a991, 7bb2b06.
 - **Explication :**
   - 170 des 191 chaînes à marqueur n'ont pas de commentaire `translators`.
   - 42 chaînes ont plusieurs `%s` non numérotés.
@@ -691,6 +757,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-admin.php:172`, `:175`, `:178`, `:205` ; `includes/class-psc-conversations-admin.php:26` ; `includes/class-psc-messages-admin.php:31-32`.
 - **Priorité :** Moyenne.
+- **Statut (branche `audit-fixes`) :** Corrigé — 0d798d8.
 - **Explication :** des sous-pages sont enregistrées avec `menu_title = null`. WordPress génère quand même un `<a>` sans intitulé, atteignable au clavier (RGAA 6.2).
 - **Correction :**
   ```php
@@ -704,6 +771,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-frontend.php:608-613`, `includes/class-psc-sidscm.php:116-120`.
 - **Priorité :** Moyenne.
+- **Statut (branche `audit-fixes`) :** Corrigé — 74fafc8, a874df5, 294f4d4.
 - **Explication :** le shortcode s'exécute après l'envoi du `<head>`. Les en-têtes ne partent aujourd'hui que grâce au tampon de gabarit de WP ≥ 6.9. Sur une version antérieure (le plugin déclare 5.8), les pages famille partent sans `no-store`, sans aucune erreur.
 - **Correction :**
   ```php
@@ -720,6 +788,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-mailer.php:149-166`, `:293-319`, `:556-686`, `:695-717`, `:749-757` ; `includes/class-psc-invoices.php:865-890`.
 - **Priorité :** Moyenne.
+- **Statut (branche `audit-fixes`) :** Corrigé — a4d866b.
 - **Explication :**
   - AGENTS §8 demande que chaque notification soit un modèle éditable par la secrétaire. Ce n'est pas le cas pour une dizaine d'entre elles : fermeture, annulation de cantine, changement d'e-mail, activation SEPA, etc.
   - `Psc_Invoices::deliver()` reconstruit sa propre mise en page et l'en-tête `From:`, que l'on retrouve ainsi à 3 endroits.
@@ -729,6 +798,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-admin.php:155-196` et `:304-307`, `assets/css/admin.css:118` et `:162-177`.
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Corrigé — 788da11.
 - **Explication :** `admin.css` n'est chargé que sur les écrans `psc_`. Partout ailleurs, les 6 intitulés apparaissent comme des liens cliquables. `admin.css:118` vise aussi un slug supprimé.
 - **Correction :** `wp_add_inline_style('admin-menu', '#adminmenu .psc-menu-section{pointer-events:none;…}')` chargé sur tous les écrans d'administration.
 
@@ -736,6 +806,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-mailer.php:24-49`, `includes/class-psc-sidscm.php:59-84`.
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Corrigé — f61b5c9, 509f06f.
 - **Explication :**
   - `psc_form_page_id` n'est jamais écrite : on retombe toujours sur une recherche mise en cache 24 h, même quand elle n'a rien trouvé.
   - Une page publiée après coup laisse les liens magiques pointer vers l'accueil pendant un jour.
@@ -746,6 +817,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `templates/admin-inscriptions.php:120`, `admin-supplier-orders.php:118`, `portal-enfants.php:229`, `frontend-conversations.php:34`, `:125`, `:236`, `admin-email-templates.php:123` et `:186`, `admin-audit.php:288`, `admin-annees.php:375`, `admin-settings.php:544`, `admin-maintenance.php:57` ; `includes/class-psc-admin.php:389-404`.
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Mis de côté — refactorisation large sans couverture dédiée.
 - **Explication :** environ 230 lignes de JS ne sont ni versionnées, ni lintées, et sont incompatibles avec une CSP. Trois de ces blocs sont côté famille.
 - **Correction :** déplacer ce code dans `assets/js/*.js`, chargé conditionnellement, avec les données passées par `wp_localize_script()`.
 
@@ -753,6 +825,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-requests.php:57-80` ; `current_time('timestamp')` à 10 endroits, dont `includes/class-psc-impersonation.php:54`, `:90`, `:381`, `includes/class-psc-conversations.php:418`, `:475`, `:556`, `includes/class-psc-retention.php:70`.
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Partiellement corrigé — ef1133e, 68465a2, 1402526 — horloges unifiées ; impersonations.expires_at reste en heure du site (exception documentée).
 - **Explication :**
   - Les dates `created_at` sont en heure du site, mais comparées à `gmdate()` : la purge est décalée de 1 à 2 h.
   - `current_time('timestamp')` est déprécié.
@@ -767,6 +840,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-frontend-enfants.php:19` (`food_allergies_post`), `includes/class-psc-planning.php:458`, `includes/class-psc-school-year.php:167`, `includes/class-psc-school-calendar.php:684`, `includes/class-psc-installer.php:508`, `includes/class-psc-mailer.php:509`, `includes/helpers/services.php:115`, `includes/helpers/school-calendar.php:21` ; docblocks mal placés : `includes/class-psc-admin.php:408-418`, `includes/helpers/settings.php:83`, `includes/class-psc-mailer.php:500`.
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Corrigé — fc0afc8.
 - **Explication :** 9 fonctions n'ont aucun appelant, et 7 autres ne servent qu'à l'outillage `bin/` ou `tests/`. `Psc_Retention::run()` relève de RGPD-14.
 - **Correction :** supprimer ce code, déplacer les helpers de test dans `tests/`, et activer `checkUncalledPrivateCode` dans PHPStan.
 
@@ -778,6 +852,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
   - `includes/class-psc-frontend.php:595` (`shortcode`, 188) ;
   - `includes/class-psc-planning.php:911` (`toggle_pattern`, 163).
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Mis de côté — refactorisation large sans couverture dédiée.
 - **Explication :** ces fonctions sont difficiles à tester sans HTTP. `handle_submit` contient à lui seul 25 couples « redirection + exit ».
 - **Correction :**
   ```php
@@ -789,6 +864,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-admin-config.php:63-204`, en particulier `:185` et `:200`.
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Partiellement corrigé — c05dbad — progression validée, journal des seules options modifiées ; migration vers la Settings API mise de côté.
 - **Explication :**
   - 42 options sont écrites par `update_option()` sans `register_setting()`.
   - `psc_classe_progression` accepte n'importe quel texte.
@@ -803,6 +879,7 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 - **Fichier :** `includes/class-psc-frontend-inscriptions.php:91-99`, `includes/class-psc-frontend.php:627-632`, `includes/class-psc-school-year.php:482-498`.
 - **Priorité :** Faible.
+- **Statut (branche `audit-fixes`) :** Corrigé — 4c45e70.
 - **Explication :** le shortcode évite volontairement `ensure_default()` pendant une consultation par la mairie. Le point AJAX en lecture l'appelle pourtant, ce qui écrit en base pendant un simple affichage.
 - **Correction :**
   ```php
@@ -813,63 +890,63 @@ Contexte de mesure : MySQL 8.0, 35 enfants. Volume réel : une école rurale, qu
 
 ## 5. Tableau récapitulatif
 
-| # | Priorité | Périmètre | Constat | Fichier |
-|---|---|---|---|---|
-| SEC-01 | Élevée | Sécurité | Une requête anonyme écrase la demande d'un tiers, jusqu'à la prise de contrôle du foyer | `class-psc-requests.php:262-266, 472-478` |
-| SEC-02 | Élevée | Sécurité | Le second parent évince le titulaire en changeant l'e-mail de connexion | `class-psc-frontend-profil.php:63-67` |
-| RGPD-01 | Élevée | Données | Aucune conservation bornée pour les foyers, les demandes en attente et les enfants sans année | `class-psc-retention.php:58-66` |
-| RGPD-02 | Élevée | Données | Pièces jointes des échanges jamais supprimées | `class-psc-conversations.php:400-431` |
-| RGPD-03 | Élevée | Données | Effaceur et export ignorent `requests` et `message_destinataires` | `class-psc-privacy.php:338-410` |
-| RGPD-04 | Élevée | Données | Le journal d'audit garde noms, e-mails et IP malgré la purge ou l'effacement | `class-psc-retention.php:87-90` |
-| PERF-01 | Élevée | Performance | `close_range()` : e-mails synchrones jour par jour, fermeture partielle possible | `class-psc-school-calendar.php:637-654` |
-| PRA-01 | Élevée | Pratiques | AGENTS.md contredit le modèle en production (facture par foyer) | `class-psc-installer.php:1084` |
-| PRA-02 | Élevée | Pratiques | Capacité déduite par sous-chaîne ; pain008 (IBAN) hors habilitation | `helpers/core.php:69-78` |
-| PRA-03 | Élevée | Pratiques | Signalement alimentaire perdu pour les enfants 2 à 5 | `assets/js/guest.js:275-283` |
-| SEC-03 | Moyenne | Sécurité | SIDSCM : sessions non révoquées, codes faibles | `class-psc-sidscm.php:184-264` |
-| SEC-04 | Moyenne | Sécurité | Liens magiques réutilisables, jetons de 72 h | `class-psc-parents.php:200-282` |
-| SEC-05 | Moyenne | Sécurité | `docker-compose.prod.yml` : Mailpit exposé, mu-plugins de dev | `docker-compose.prod.yml:26-60` |
-| RGPD-05 | Moyenne | Données | Export RGPD incomplet | `class-psc-privacy.php:132-213` |
-| RGPD-06 | Moyenne | Données | SIDSCM : allergies et téléphones envoyés au-delà du besoin | `class-psc-sidscm.php:419-590` |
-| RGPD-07 | Moyenne | Données | IBAN en clair avec l'habilitation « Familles » | `templates/admin-parents.php:89-90` |
-| RGPD-08 | Moyenne | Données | Conservation des factures non bornée | `class-psc-privacy.php:107` |
-| RGPD-09 | Moyenne | Données | Jeton des diffusions en clair, sans expiration | `class-psc-messages-frontend.php:98-124` |
-| RGPD-10 | Moyenne | Données | Allergies héritées en clair, envoyées par e-mail | `class-psc-mailer.php:776-779` |
-| PERF-02 | Moyenne | Performance | Envois groupés synchrones (factures, menus, fermetures) | `class-psc-envois.php:101-227` |
-| PERF-03 | Moyenne | Performance | `maybe_upgrade()` sur chaque appel AJAX famille | `class-psc-installer.php:118-151` |
-| PERF-04 | Moyenne | Performance | Portail rendu deux fois | `class-psc-frontend.php:58-61` |
-| PERF-05 | Moyenne | Performance | `forget_family()` réécrit tout le journal | `class-psc-audit.php:596-668` |
-| PRA-04 | Moyenne | Pratiques | Pièces jointes invisibles côté mairie | `templates/admin-conversation.php:32-41` |
-| PRA-05 | Moyenne | Pratiques | Notices et statuts « Messages » bruts ; texte libre de l'URL affiché | `templates/admin-messages-edit.php:8` |
-| PRA-06 | Moyenne | Pratiques | Écrans assurances et messages non traduisibles | `templates/admin-assurances.php` |
-| PRA-07 | Moyenne | Pratiques | i18n : translators, pluriels, concaténations | `class-psc-frontend.php:461-480` |
-| PRA-08 | Moyenne | Pratiques | 7 liens vides dans le menu admin (RGAA) | `class-psc-admin.php:172-205` |
-| PRA-09 | Moyenne | Pratiques | `no-store` émis trop tard | `class-psc-frontend.php:608-613` |
-| PRA-10 | Moyenne | Pratiques | Notifications hors modèles éditables | `class-psc-mailer.php:149-757` |
-| SEC-06 | Faible | Sécurité | Chaîne d'audit sans clé et sans verrou | `helpers/audit.php:854-877` |
-| SEC-07 | Faible | Sécurité | Signature des sessions dérivable d'un secret en base | `helpers/crypto.php:187-197` |
-| SEC-08 | Faible | Sécurité | Login CSRF par lien magique | `class-psc-parents.php:211-282` |
-| SEC-09 | Faible | Sécurité | La consultation par la mairie marque les échanges lus | `class-psc-conversations-frontend.php:53` |
-| SEC-10 | Faible | Sécurité | Changement d'e-mail sans limite de débit | `class-psc-parents.php:335-370` |
-| SEC-11 | Faible | Sécurité | Import iCal : DNS rebinding | `class-psc-school-calendar.php:173-229` |
-| RGPD-11 | Faible | Données | Attestations des années passées conservées | `class-psc-admin-familles.php:100-113` |
-| RGPD-12 | Faible | Données | Contenu des échanges dans les e-mails par défaut | `helpers/settings.php:90` |
-| RGPD-13 | Faible | Données | Effaceur et suppression : reliquats différents | `class-psc-privacy.php:373-377` |
-| RGPD-14 | Faible | Données | Registre de conservation sans effet | `class-psc-retention.php:22-45` |
-| PERF-06 | Faible | Performance | Lectures répétées sans mémoïsation | `class-psc-school-years.php:32-42` |
-| PERF-07 | Faible | Performance | N+1 dans `allergies_to_reconcile()` | `class-psc-requests.php:674-728` |
-| PERF-08 | Faible | Performance | Interrogation toutes les 30 s même onglet masqué | `psc-message-notifications.js:66-71` |
-| PERF-09 | Faible | Performance | Facturation : double résolution, PDF reconstruits | `class-psc-invoices.php:40-286` |
-| PERF-10 | Faible | Performance | Coût de `maybe_upgrade()` sur toutes les pages | `class-psc-installer.php:100-123` |
-| PERF-11 | Faible | Performance | Import ICS : 2 requêtes par jour | `class-psc-school-calendar.php:325-343` |
-| PERF-12 | Faible | Performance | Tables sans purge, index `enfant_id` manquant | `class-psc-installer.php:1318-1347` |
-| PRA-11 | Faible | Pratiques | Intitulés du menu non stylés hors du plugin | `class-psc-admin.php:304-307` |
-| PRA-12 | Faible | Pratiques | URL du portail : cache d'absence de 24 h | `class-psc-mailer.php:24-49` |
-| PRA-13 | Faible | Pratiques | JS et CSS écrits dans les gabarits | `templates/*` |
-| PRA-14 | Faible | Pratiques | Horloges mélangées | `class-psc-requests.php:57-80` |
-| PRA-15 | Faible | Pratiques | Code mort et docblocks orphelins | `class-psc-frontend-enfants.php:19` |
-| PRA-16 | Faible | Pratiques | Fonctions trop longues | `class-psc-requests.php:224` |
-| PRA-17 | Faible | Pratiques | Réglages hors Settings API, journal trompeur | `class-psc-admin-config.php:63-204` |
-| PRA-18 | Faible | Pratiques | Consultation : le planning AJAX peut créer une année | `class-psc-frontend-inscriptions.php:91-99` |
+| # | Priorité | Périmètre | Constat | Fichier | Statut |
+|---|---|---|---|---|---|
+| SEC-01 | Élevée | Sécurité | Une requête anonyme écrase la demande d'un tiers, jusqu'à la prise de contrôle du foyer | `class-psc-requests.php:262-266, 472-478` | Corrigé |
+| SEC-02 | Élevée | Sécurité | Le second parent évince le titulaire en changeant l'e-mail de connexion | `class-psc-frontend-profil.php:63-67` | Corrigé |
+| RGPD-01 | Élevée | Données | Aucune conservation bornée pour les foyers, les demandes en attente et les enfants sans année | `class-psc-retention.php:58-66` | Corrigé |
+| RGPD-02 | Élevée | Données | Pièces jointes des échanges jamais supprimées | `class-psc-conversations.php:400-431` | Corrigé |
+| RGPD-03 | Élevée | Données | Effaceur et export ignorent `requests` et `message_destinataires` | `class-psc-privacy.php:338-410` | Corrigé |
+| RGPD-04 | Élevée | Données | Le journal d'audit garde noms, e-mails et IP malgré la purge ou l'effacement | `class-psc-retention.php:87-90` | Corrigé |
+| PERF-01 | Élevée | Performance | `close_range()` : e-mails synchrones jour par jour, fermeture partielle possible | `class-psc-school-calendar.php:637-654` | Corrigé |
+| PRA-01 | Élevée | Pratiques | AGENTS.md contredit le modèle en production (facture par foyer) | `class-psc-installer.php:1084` | Mis de côté |
+| PRA-02 | Élevée | Pratiques | Capacité déduite par sous-chaîne ; pain008 (IBAN) hors habilitation | `helpers/core.php:69-78` | Corrigé |
+| PRA-03 | Élevée | Pratiques | Signalement alimentaire perdu pour les enfants 2 à 5 | `assets/js/guest.js:275-283` | Corrigé |
+| SEC-03 | Moyenne | Sécurité | SIDSCM : sessions non révoquées, codes faibles | `class-psc-sidscm.php:184-264` | Corrigé |
+| SEC-04 | Moyenne | Sécurité | Liens magiques réutilisables, jetons de 72 h | `class-psc-parents.php:200-282` | Mis de côté |
+| SEC-05 | Moyenne | Sécurité | `docker-compose.prod.yml` : Mailpit exposé, mu-plugins de dev | `docker-compose.prod.yml:26-60` | Mis de côté |
+| RGPD-05 | Moyenne | Données | Export RGPD incomplet | `class-psc-privacy.php:132-213` | Corrigé |
+| RGPD-06 | Moyenne | Données | SIDSCM : allergies et téléphones envoyés au-delà du besoin | `class-psc-sidscm.php:419-590` | Corrigé |
+| RGPD-07 | Moyenne | Données | IBAN en clair avec l'habilitation « Familles » | `templates/admin-parents.php:89-90` | Corrigé |
+| RGPD-08 | Moyenne | Données | Conservation des factures non bornée | `class-psc-privacy.php:107` | Mis de côté |
+| RGPD-09 | Moyenne | Données | Jeton des diffusions en clair, sans expiration | `class-psc-messages-frontend.php:98-124` | Partiel |
+| RGPD-10 | Moyenne | Données | Allergies héritées en clair, envoyées par e-mail | `class-psc-mailer.php:776-779` | Partiel |
+| PERF-02 | Moyenne | Performance | Envois groupés synchrones (factures, menus, fermetures) | `class-psc-envois.php:101-227` | Corrigé |
+| PERF-03 | Moyenne | Performance | `maybe_upgrade()` sur chaque appel AJAX famille | `class-psc-installer.php:118-151` | Corrigé |
+| PERF-04 | Moyenne | Performance | Portail rendu deux fois | `class-psc-frontend.php:58-61` | Corrigé |
+| PERF-05 | Moyenne | Performance | `forget_family()` réécrit tout le journal | `class-psc-audit.php:596-668` | Corrigé |
+| PRA-04 | Moyenne | Pratiques | Pièces jointes invisibles côté mairie | `templates/admin-conversation.php:32-41` | Corrigé |
+| PRA-05 | Moyenne | Pratiques | Notices et statuts « Messages » bruts ; texte libre de l'URL affiché | `templates/admin-messages-edit.php:8` | Corrigé |
+| PRA-06 | Moyenne | Pratiques | Écrans assurances et messages non traduisibles | `templates/admin-assurances.php` | Corrigé |
+| PRA-07 | Moyenne | Pratiques | i18n : translators, pluriels, concaténations | `class-psc-frontend.php:461-480` | Corrigé |
+| PRA-08 | Moyenne | Pratiques | 7 liens vides dans le menu admin (RGAA) | `class-psc-admin.php:172-205` | Corrigé |
+| PRA-09 | Moyenne | Pratiques | `no-store` émis trop tard | `class-psc-frontend.php:608-613` | Corrigé |
+| PRA-10 | Moyenne | Pratiques | Notifications hors modèles éditables | `class-psc-mailer.php:149-757` | Corrigé |
+| SEC-06 | Faible | Sécurité | Chaîne d'audit sans clé et sans verrou | `helpers/audit.php:854-877` | Partiel |
+| SEC-07 | Faible | Sécurité | Signature des sessions dérivable d'un secret en base | `helpers/crypto.php:187-197` | Corrigé |
+| SEC-08 | Faible | Sécurité | Login CSRF par lien magique | `class-psc-parents.php:211-282` | Mis de côté |
+| SEC-09 | Faible | Sécurité | La consultation par la mairie marque les échanges lus | `class-psc-conversations-frontend.php:53` | Corrigé |
+| SEC-10 | Faible | Sécurité | Changement d'e-mail sans limite de débit | `class-psc-parents.php:335-370` | Corrigé |
+| SEC-11 | Faible | Sécurité | Import iCal : DNS rebinding | `class-psc-school-calendar.php:173-229` | Corrigé |
+| RGPD-11 | Faible | Données | Attestations des années passées conservées | `class-psc-admin-familles.php:100-113` | Mis de côté |
+| RGPD-12 | Faible | Données | Contenu des échanges dans les e-mails par défaut | `helpers/settings.php:90` | Mis de côté |
+| RGPD-13 | Faible | Données | Effaceur et suppression : reliquats différents | `class-psc-privacy.php:373-377` | Corrigé |
+| RGPD-14 | Faible | Données | Registre de conservation sans effet | `class-psc-retention.php:22-45` | Corrigé |
+| PERF-06 | Faible | Performance | Lectures répétées sans mémoïsation | `class-psc-school-years.php:32-42` | Corrigé |
+| PERF-07 | Faible | Performance | N+1 dans `allergies_to_reconcile()` | `class-psc-requests.php:674-728` | Corrigé |
+| PERF-08 | Faible | Performance | Interrogation toutes les 30 s même onglet masqué | `psc-message-notifications.js:66-71` | Corrigé |
+| PERF-09 | Faible | Performance | Facturation : double résolution, PDF reconstruits | `class-psc-invoices.php:40-286` | Corrigé |
+| PERF-10 | Faible | Performance | Coût de `maybe_upgrade()` sur toutes les pages | `class-psc-installer.php:100-123` | Corrigé |
+| PERF-11 | Faible | Performance | Import ICS : 2 requêtes par jour | `class-psc-school-calendar.php:325-343` | Corrigé |
+| PERF-12 | Faible | Performance | Tables sans purge, index `enfant_id` manquant | `class-psc-installer.php:1318-1347` | Partiel |
+| PRA-11 | Faible | Pratiques | Intitulés du menu non stylés hors du plugin | `class-psc-admin.php:304-307` | Corrigé |
+| PRA-12 | Faible | Pratiques | URL du portail : cache d'absence de 24 h | `class-psc-mailer.php:24-49` | Corrigé |
+| PRA-13 | Faible | Pratiques | JS et CSS écrits dans les gabarits | `templates/*` | Mis de côté |
+| PRA-14 | Faible | Pratiques | Horloges mélangées | `class-psc-requests.php:57-80` | Partiel |
+| PRA-15 | Faible | Pratiques | Code mort et docblocks orphelins | `class-psc-frontend-enfants.php:19` | Corrigé |
+| PRA-16 | Faible | Pratiques | Fonctions trop longues | `class-psc-requests.php:224` | Mis de côté |
+| PRA-17 | Faible | Pratiques | Réglages hors Settings API, journal trompeur | `class-psc-admin-config.php:63-204` | Partiel |
+| PRA-18 | Faible | Pratiques | Consultation : le planning AJAX peut créer une année | `class-psc-frontend-inscriptions.php:91-99` | Corrigé |
 
 ---
 

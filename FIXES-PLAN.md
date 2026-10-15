@@ -117,6 +117,8 @@ Fichiers :
 - `templates/guest-request.php`
 - `templates/partials/guest-child-row.php` (nouveau)
 - `templates/portal-profil.php`
+- `templates/frontend-portal.php` (ajouté par le lead pendant la phase 2, pour les notices de SEC-02)
+- `includes/helpers/impersonation.php` (ajouté par le lead pendant la phase 2, registre de consultation pour SEC-02 et PRA-04)
 - `tests/integration/capabilities-matrix.php`
 - `bin/verify-audit-lot1.php` (nouveau)
 - `tests/audit-fixes-lot1.spec.ts` (nouveau)
@@ -153,6 +155,8 @@ Fichiers :
 - `templates/admin-assurances.php`
 - `templates/portal-assurance-gate.php`
 - `documentation/rgpd.md`
+- `includes/class-psc-admin-audit.php` et `templates/admin-audit.php` (ajoutés par le lead pendant la phase 2, tâche PERF-05)
+- `tests/unit/retention-policy.php` et `tests/integration/p1-final-summary.php` (ajoutés par le lead pendant la phase 2, tâche RGPD-14)
 - `bin/verify-audit-lot2.php` (nouveau)
 - `tests/audit-fixes-lot2.spec.ts` (nouveau)
 
@@ -188,6 +192,9 @@ Fichiers :
 - `assets/css/admin.css`
 - `includes/class-psc-admin-config.php`
 - `templates/admin-settings.php`
+- `templates/admin-supplier-orders.php` et `templates/admin-supplier-settings.php` (ajoutés par le lead pendant la phase 2, tâche PRA-02/L3)
+- `templates/admin-menus.php` et `templates/admin-factures.php` (ajoutés par le lead pendant la phase 2, tâche PERF-02)
+- `bin/verify-envois.php` et `tests/envois.spec.ts` (rattachés après coup, tâche PERF-02 : passage des tests en mode asynchrone)
 - `bin/verify-audit-lot3.php` (nouveau)
 - `tests/audit-fixes-lot3.spec.ts` (nouveau)
 
@@ -210,74 +217,75 @@ L'ordre suit, dans chaque lot, la priorité Critique, puis Élevée, Moyenne, Fa
 
 | Ordre | ID | Prio | Fichiers | Dépend de | Commit | Validé |
 |---|---|---|---|---|---|---|
-| 1 | PRA-02 | Élevée | helpers/core.php, class-psc-admin-base.php, tests/integration/capabilities-matrix.php | — | | [ ] |
-| 2 | SEC-02 | Élevée | class-psc-parents.php, helpers/session.php, class-psc-frontend-profil.php, templates/portal-profil.php | fix-3 : avis à l'ancienne adresse | | [ ] |
-| 3 | SEC-01 | Élevée | class-psc-requests.php | — | | [ ] |
-| 4 | PRA-03 | Élevée | assets/js/guest.js, templates/guest-request.php, templates/partials/guest-child-row.php | — | | [ ] |
-| 5 | RGPD-04/L1 | Élevée | class-psc-requests.php, class-psc-parents.php, class-psc-frontend-profil.php (résumés sans e-mail, `famille_id` renseigné) | fix-2 : convention annoncée | | [ ] |
-| 6 | RGPD-03/L1 | Élevée | class-psc-requests.php (champs SEPA vidés au refus et à l'approbation) | — | | [ ] |
-| 7 | RGPD-01/L1 | Élevée | class-psc-requests.php (purge `pending` à 180 j) | — | | [ ] |
-| 8 | SEC-03 | Moyenne | class-psc-sidscm.php, assets/js/sidscm.js | — | | [ ] |
-| 9 | RGPD-06 | Moyenne | class-psc-sidscm.php | — | | [ ] |
-| 10 | PRA-09/L1 | Moyenne | class-psc-sidscm.php | fix-3 : `send_private_headers()` | | [ ] |
-| 11 | PRA-07/L1 | Moyenne | class-psc-sidscm.php (marqueurs numérotés, translators) | — | | [ ] |
-| 12 | SEC-07 | Faible | helpers/crypto.php, helpers/session.php | après SEC-02 | | [ ] |
-| 13 | SEC-10 | Faible | class-psc-parents.php | — | | [ ] |
-| 14 | PERF-07 | Faible | class-psc-requests.php, class-psc-admin-requests.php | — | | [ ] |
-| 15 | PRA-12/L1 | Faible | class-psc-sidscm.php | fix-3 : `psc_shortcode_page_id()` | | [ ] |
-| 16 | PRA-14/L1 | Faible | class-psc-requests.php, class-psc-impersonation.php | — | | [ ] |
-| 17 | PRA-18 | Faible | class-psc-frontend-inscriptions.php | — | | [ ] |
+| 1 | PRA-02 | Élevée | helpers/core.php, class-psc-admin-base.php, tests/integration/capabilities-matrix.php | — | a0bfd2c | [x] |
+| 2 | SEC-02 | Élevée | class-psc-parents.php, helpers/session.php, class-psc-frontend-profil.php, templates/portal-profil.php | fix-3 : avis à l'ancienne adresse | 5382aea, 044917d, b12603d, d06a7ee, c36bd57 | [x] |
+| 3 | SEC-01 | Élevée | class-psc-requests.php | — | 922b759 | [x] |
+| 4 | PRA-03 | Élevée | assets/js/guest.js, templates/guest-request.php, templates/partials/guest-child-row.php | — | aa806c2 | [x] |
+| 5 | RGPD-04/L1 | Élevée | class-psc-requests.php, class-psc-parents.php, class-psc-frontend-profil.php (résumés sans e-mail, `famille_id` renseigné) | fix-2 : convention annoncée | ba237d3 | [x] |
+| 6 | RGPD-03/L1 | Élevée | class-psc-requests.php (champs SEPA vidés au refus et à l'approbation) | — | 27517b1 | [x] |
+| 7 | RGPD-01/L1 | Élevée | class-psc-requests.php (purge `pending` à 180 j) | — | ec3104f | [x] |
+| 8 | SEC-03 | Moyenne | class-psc-sidscm.php, assets/js/sidscm.js | — | 62b73d0, 2ee0e10, 6f19bc1 | [x] |
+| 9 | RGPD-06 | Moyenne | class-psc-sidscm.php | — | 1c2c9d7 | [x] |
+| 10 | PRA-09/L1 | Moyenne | class-psc-sidscm.php | fix-3 : `send_private_headers()` | a874df5, 294f4d4 | [x] |
+| 11 | PRA-07/L1 | Moyenne | class-psc-sidscm.php (marqueurs numérotés, translators) | — | b349539 | [x] |
+| 12 | SEC-07 | Faible | helpers/crypto.php, helpers/session.php | après SEC-02 | 46421fe | [x] |
+| 13 | SEC-10 | Faible | class-psc-parents.php | — | 1468fd0 | [x] |
+| 14 | PERF-07 | Faible | class-psc-requests.php, class-psc-admin-requests.php | — | 2a9a3f1 | [x] |
+| 15 | PRA-12/L1 | Faible | class-psc-sidscm.php | fix-3 : `psc_shortcode_page_id()` | 509f06f | [x] |
+| 16 | PRA-14/L1 | Faible | class-psc-requests.php, class-psc-impersonation.php | — | ef1133e | [x] |
+| 17 | PRA-18 | Faible | class-psc-frontend-inscriptions.php | — | 4c45e70 | [x] |
 
 ### Lot 2 — fix-2
 
 | Ordre | ID | Prio | Fichiers | Dépend de | Commit | Validé |
 |---|---|---|---|---|---|---|
-| 1 | RGPD-04 | Élevée | class-psc-audit.php (`forget_family` : `ip` et `pour_le_compte_de` vidés, `forget_child`), class-psc-retention.php, class-psc-admin-familles.php (résumés sans identité) | — | | [ ] |
-| 2 | RGPD-02 | Élevée | class-psc-conversations.php | — | | [ ] |
-| 3 | RGPD-03 | Élevée | class-psc-privacy.php, class-psc-admin-familles.php (`requests` et `message_destinataires` couverts) | — | | [ ] |
-| 4 | RGPD-01 | Élevée | class-psc-retention.php (foyers sans enfant, enfants sans année) | — | | [ ] |
-| 5 | PERF-05 | Moyenne | class-psc-audit.php (plus de réécriture de `resume`, donc pas de rechaînage) | RGPD-04 | | [ ] |
-| 6 | RGPD-05 | Moyenne | class-psc-privacy.php | RGPD-03 | | [ ] |
-| 7 | RGPD-07 | Moyenne | templates/admin-parents.php, class-psc-admin-familles.php | — | | [ ] |
-| 8 | RGPD-09/L2 | Moyenne | class-psc-messages-frontend.php (jeton retiré de l'URL par redirection) | — | | [ ] |
-| 9 | PRA-04 | Moyenne | class-psc-conversations-admin.php, templates/admin-conversation.php, class-psc-conversations.php | — | | [ ] |
-| 10 | PRA-05 | Moyenne | templates/admin-messages-edit.php, templates/admin-messages-list.php, class-psc-messages-admin.php | — | | [ ] |
-| 11 | PRA-06 | Moyenne | class-psc-admin-assurances.php, templates/admin-assurances.php, templates/portal-assurance-gate.php, templates/admin-messages-*.php, assets/js/psc-messages-admin.js | fix-3 : PRA-06/L3 | | [ ] |
-| 12 | PRA-07/L2 | Moyenne | class-psc-admin-familles.php | — | | [ ] |
-| 13 | SEC-06 (verrou) | Faible | class-psc-audit.php | — | | [ ] |
-| 14 | SEC-09 | Faible | class-psc-conversations-frontend.php | — | | [ ] |
-| 15 | RGPD-13 | Faible | class-psc-privacy.php | RGPD-03 | | [ ] |
-| 16 | RGPD-14 | Faible | class-psc-retention.php, helpers/retention.php, documentation/rgpd.md | RGPD-01 | | [ ] |
-| 17 | PERF-08 | Faible | assets/js/psc-message-notifications.js, class-psc-messages-frontend.php, class-psc-messages.php | — | | [ ] |
-| 18 | PERF-12/L2 | Faible | class-psc-messages.php (marqueur `cleanup_receipts`) | — | | [ ] |
-| 19 | PRA-14/L2 | Faible | class-psc-conversations.php, class-psc-conversations-frontend.php, class-psc-retention.php | — | | [ ] |
+| 1 | RGPD-04 | Élevée | class-psc-audit.php (`forget_family` : `ip` et `pour_le_compte_de` vidés, `forget_child`), class-psc-retention.php, class-psc-admin-familles.php (résumés sans identité) | — | 6588bc5, a9f94d3, 9938736 | [x] |
+| 2 | RGPD-02 | Élevée | class-psc-conversations.php | — | eb58030 | [x] |
+| 3 | RGPD-03 | Élevée | class-psc-privacy.php, class-psc-admin-familles.php (`requests` et `message_destinataires` couverts) | — | 66d966f | [x] |
+| 4 | RGPD-01 | Élevée | class-psc-retention.php (foyers sans enfant, enfants sans année) | — | db8015b | [x] |
+| 5 | PERF-05 | Moyenne | class-psc-audit.php (plus de réécriture de `resume`, donc pas de rechaînage) | RGPD-04 | 1987a3c | [x] |
+| 6 | RGPD-05 | Moyenne | class-psc-privacy.php | RGPD-03 | d486d05 | [x] |
+| 7 | RGPD-07 | Moyenne | templates/admin-parents.php, class-psc-admin-familles.php | — | a6229d3, 7995a2a | [x] |
+| 8 | RGPD-09/L2 | Moyenne | class-psc-messages-frontend.php (jeton retiré de l'URL par redirection) | — | 3463198 | [x] |
+| 9 | PRA-04 | Moyenne | class-psc-conversations-admin.php, templates/admin-conversation.php, class-psc-conversations.php | — | c5b1efc, e7d69f4 | [x] |
+| 10 | PRA-05 | Moyenne | templates/admin-messages-edit.php, templates/admin-messages-list.php, class-psc-messages-admin.php | — | bf94678, de9abff | [x] |
+| 11 | PRA-06 | Moyenne | class-psc-admin-assurances.php, templates/admin-assurances.php, templates/portal-assurance-gate.php, templates/admin-messages-*.php, assets/js/psc-messages-admin.js | fix-3 : PRA-06/L3 | a553f2d, a0b13a0, e3d3cce | [x] |
+| 12 | PRA-07/L2 | Moyenne | class-psc-admin-familles.php | — | aafab39 | [x] |
+| 13 | SEC-06 (verrou) | Faible | class-psc-audit.php | — | 1fd3297 | [x] |
+| 14 | SEC-09 | Faible | class-psc-conversations-frontend.php | — | 85d5f7a | [x] |
+| 15 | RGPD-13 | Faible | class-psc-privacy.php | RGPD-03 | 504dfbc | [x] |
+| 16 | RGPD-14 | Faible | class-psc-retention.php, helpers/retention.php, documentation/rgpd.md | RGPD-01 | e8a2511, 583e56b, 7a22f31 | [x] |
+| 17 | PERF-08 | Faible | assets/js/psc-message-notifications.js, class-psc-messages-frontend.php, class-psc-messages.php | — | 383d45f | [x] |
+| 18 | PERF-12/L2 | Faible | class-psc-messages.php (marqueur `cleanup_receipts`) | — | ef29e86 | [x] |
+| 19 | PRA-14/L2 | Faible | class-psc-conversations.php, class-psc-conversations-frontend.php, class-psc-retention.php | — | 68465a2 | [x] |
 
 ### Lot 3 — fix-3
 
 | Ordre | ID | Prio | Fichiers | Dépend de | Commit | Validé |
 |---|---|---|---|---|---|---|
-| 1 | SEC-02/L3 | Élevée | class-psc-mailer.php, class-psc-email-templates.php (avis à l'ancienne adresse) | — (débloque fix-1) | | [ ] |
-| 2 | PRA-09 | Moyenne | class-psc-frontend.php (`send_private_headers()` sur `template_redirect`) | — (débloque fix-1) | | [ ] |
-| 3 | PRA-12 | Faible | class-psc-mailer.php, templates/admin-settings.php, class-psc-admin-config.php (`psc_shortcode_page_id`) | — (débloque fix-1) | | [ ] |
-| 4 | PERF-02 | Moyenne | class-psc-envois.php (réservation, puis lots par cron), class-psc-admin-invoices.php, class-psc-menus.php, class-psc-admin-cantine.php | — | | [ ] |
-| 5 | PERF-01 | Élevée | class-psc-school-calendar.php, class-psc-admin-school-years.php, class-psc-mailer.php, class-psc-email-templates.php (récapitulatif par famille) | PERF-02 (envoi asynchrone) | | [ ] |
-| 6 | PERF-03 | Moyenne | class-psc-installer.php | — | | [ ] |
-| 7 | PERF-04 | Moyenne | class-psc-frontend.php | — | | [ ] |
-| 8 | PRA-08 | Moyenne | class-psc-admin.php | — | | [ ] |
-| 9 | PRA-10 | Moyenne | class-psc-email-templates.php, class-psc-mailer.php, class-psc-invoices.php, templates/admin-email-templates.php | après SEC-02/L3 et PERF-01 | | [ ] |
-| 10 | RGPD-10/L3 | Moyenne | class-psc-mailer.php (badge au lieu du détail des allergies) | — | | [ ] |
-| 11 | PRA-07/L3 | Moyenne | class-psc-frontend.php, class-psc-invoices.php, class-psc-mailer.php, class-psc-installer.php | — | | [ ] |
-| 12 | PRA-06/L3 | Moyenne | templates/admin-settings.php (`:215-222`) | — | | [ ] |
-| 13 | SEC-11 | Faible | class-psc-school-calendar.php | — | | [ ] |
-| 14 | PERF-06 | Faible | class-psc-school-years.php, class-psc-menus.php, templates/portal-planning-2.php, templates/portal-enfants.php | — | | [ ] |
-| 15 | PERF-09 | Faible | class-psc-invoices.php (rappel : une facture **envoyée** n'est jamais recalculée) | — | | [ ] |
-| 16 | PERF-10 | Faible | class-psc-installer.php, helpers/files.php | PERF-03 | | [ ] |
-| 17 | PERF-11 | Faible | class-psc-school-calendar.php (corrections manuelles prioritaires, règle n°7) | — | | [ ] |
-| 18 | PERF-12/L3 | Faible | class-psc-envois.php (purge des envois de plus de 13 mois) | PERF-02 | | [ ] |
-| 19 | PRA-11 | Faible | class-psc-admin.php, assets/css/admin.css | — | | [ ] |
-| 20 | PRA-15 | Faible | class-psc-frontend-enfants.php, class-psc-planning.php, class-psc-school-year.php, class-psc-school-calendar.php, class-psc-installer.php, class-psc-mailer.php, helpers/services.php, helpers/school-calendar.php | — | | [ ] |
-| 21 | PRA-17 (partiel) | Faible | class-psc-admin-config.php | — | | [ ] |
-| 22 | PRA-14/L3 | Faible | class-psc-invoices.php, helpers/school-calendar.php | — | | [ ] |
+| 1 | SEC-02/L3 | Élevée | class-psc-mailer.php, class-psc-email-templates.php (avis à l'ancienne adresse) | — (débloque fix-1) | 0b207b1 | [x] |
+| 2 | PRA-09 | Moyenne | class-psc-frontend.php (`send_private_headers()` sur `template_redirect`) | — (débloque fix-1) | 74fafc8 | [x] |
+| 3 | PRA-12 | Faible | class-psc-mailer.php, templates/admin-settings.php, class-psc-admin-config.php (`psc_shortcode_page_id`) | — (débloque fix-1) | f61b5c9 | [x] |
+| 4 | PERF-02 | Moyenne | class-psc-envois.php (réservation, puis lots par cron), class-psc-admin-invoices.php, class-psc-menus.php, class-psc-admin-cantine.php | — | 876d210 | [x] |
+| 5 | PERF-01 | Élevée | class-psc-school-calendar.php, class-psc-admin-school-years.php, class-psc-mailer.php, class-psc-email-templates.php (récapitulatif par famille) | PERF-02 (envoi asynchrone) | 4c065ad | [x] |
+| 6 | PERF-03 | Moyenne | class-psc-installer.php | — | bdfdc66 | [x] |
+| 7 | PERF-04 | Moyenne | class-psc-frontend.php | — | e33843d | [x] |
+| 8 | PRA-08 | Moyenne | class-psc-admin.php | — | 0d798d8 | [x] |
+| 9 | PRA-10 | Moyenne | class-psc-email-templates.php, class-psc-mailer.php, class-psc-invoices.php, templates/admin-email-templates.php | après SEC-02/L3 et PERF-01 | a4d866b | [x] |
+| 10 | RGPD-10/L3 | Moyenne | class-psc-mailer.php (badge au lieu du détail des allergies) | — | a647988 | [x] |
+| 11 | PRA-07/L3 | Moyenne | class-psc-frontend.php, class-psc-invoices.php, class-psc-mailer.php, class-psc-installer.php | — | b07a991 | [x] |
+| 12 | PRA-06/L3 | Moyenne | templates/admin-settings.php (`:215-222`) | — | ca90e9e | [x] |
+| 13 | SEC-11 | Faible | class-psc-school-calendar.php | — | 2d84ffd | [x] |
+| 14 | PERF-06 | Faible | class-psc-school-years.php, class-psc-menus.php, templates/portal-planning-2.php, templates/portal-enfants.php | — | acd61e6 | [x] |
+| 15 | PERF-09 | Faible | class-psc-invoices.php (rappel : une facture **envoyée** n'est jamais recalculée) | — | 4591ee1 | [x] |
+| 16 | PERF-10 | Faible | class-psc-installer.php, helpers/files.php | PERF-03 | ad73dd2 | [x] |
+| 17 | PERF-11 | Faible | class-psc-school-calendar.php (corrections manuelles prioritaires, règle n°7) | — | d457d99 | [x] |
+| 18 | PERF-12/L3 | Faible | class-psc-envois.php (purge des envois de plus de 13 mois) | PERF-02 | 79cdefa | [x] |
+| 19 | PRA-11 | Faible | class-psc-admin.php, assets/css/admin.css | — | 788da11 | [x] |
+| 20 | PRA-15 | Faible | class-psc-frontend-enfants.php, class-psc-planning.php, class-psc-school-year.php, class-psc-school-calendar.php, class-psc-installer.php, class-psc-mailer.php, helpers/services.php, helpers/school-calendar.php | — | fc0afc8 | [x] |
+| 21 | PRA-17 (partiel) | Faible | class-psc-admin-config.php | — | c05dbad | [x] |
+| 22 | PRA-14/L3 | Faible | class-psc-invoices.php, helpers/school-calendar.php | — | 1402526 | [x] |
+| 23 | PRA-02/L3 | Faible | templates/admin-supplier-orders.php, templates/admin-supplier-settings.php (formulaire fournisseur masqué sans psc_manage_config ; ajout du lead) | PRA-02 | 2d03fbf | [x] |
 
 **Total :** 58 tâches (17 + 19 + 22).
 
