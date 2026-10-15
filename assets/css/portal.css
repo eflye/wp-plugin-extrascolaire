@@ -1123,11 +1123,6 @@ a.psc-portal-switch-link:focus-visible {
     cursor: pointer;
 }
 .psc-address-toggle:focus-visible { outline: 2px solid var(--psc-gold); outline-offset: 2px; }
-.psc-address-attribution {
-    margin: 4px 0 0;
-    font-size: 12px;
-    color: var(--psc-stone);
-}
 /* Les deux cases forment une seule cellule de la grille, sous un libellé
    « Régime alimentaire » identique à celui des champs voisins : isolées,
    elles n'indiquaient pas de quoi elles parlaient.

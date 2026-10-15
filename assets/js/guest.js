@@ -254,7 +254,6 @@
         var ville      = document.getElementById('psc-req-ville');
         if (!wrap || !search || !list || !toggle || !label || !adresse || !cp || !ville) return;
         var status     = wrap.querySelector('.psc-address-status');
-        var attribution = wrap.querySelector('.psc-address-attribution');
 
         var ADDRESS_MIN_CHARS  = 3;
         var ADDRESS_DEBOUNCE_MS = 250;
@@ -453,7 +452,6 @@
             if (isAuto) {
                 label.setAttribute('for', 'psc-req-adresse-search');
                 search.setAttribute('placeholder', t('address_search_placeholder'));
-                if (attribution) attribution.textContent = t('address_attribution');
                 toggle.textContent = t('address_toggle_manual');
             } else {
                 label.setAttribute('for', 'psc-req-adresse');
