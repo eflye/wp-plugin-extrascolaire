@@ -652,6 +652,23 @@ WP_CLI::add_command('verify-audit-lot3', function () {
         }
     };
 
+    /* PRA-17 (partiel) : progression des classes validée, journal limité aux options modifiées. */
+    $sections['PRA-17'] = function () use ($check) {
+        $classes = array_values(array_filter(array_keys(Psc_School_Years::classe_options()), 'strlen'));
+        if (count($classes) < 2) { $check(false, 'PRA-17 : moins de deux classes configurées'); return; }
+        $current = Psc_School_Years::classe_progression();
+        $a = $classes[0];
+        $b = $classes[1];
+        $out = Psc_Admin_Config::sanitize_progression(array('progression_' . $a => '<script>x</script>', 'progression_' . $b => 'sortie'));
+        $check($out[$a] === (isset($current[$a]) ? (string) $current[$a] : 'sortie'), 'PRA-17 : classe inconnue acceptée dans la progression');
+        $check($out[$b] === 'sortie', 'PRA-17 : « sortie » refusée');
+        $out = Psc_Admin_Config::sanitize_progression(array('progression_' . $a => $b));
+        $check($out[$a] === $b, 'PRA-17 : classe connue refusée');
+        $src = (string) file_get_contents(PSC_PATH . 'includes/class-psc-admin-config.php');
+        $check(strpos($src, "'champs' => array_keys(\$changed)") !== false && strpos($src, 'array_keys($_POST)') === false,
+            'PRA-17 : le journal liste encore tous les champs du formulaire');
+    };
+
     try {
         foreach ($sections as $name => $run) {
             $run();
