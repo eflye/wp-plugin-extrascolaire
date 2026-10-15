@@ -1,0 +1,108 @@
+{
+  "projectId": "bc313dd3-4f08-4bea-a5ea-36fb02ab76d4",
+  "shape": "package",
+  "pkg": "sidiscm-ds",
+  "globalName": "SidiscmDS",
+  "buildCmd": "cd .design-sync/kit && npm ci && npm run build",
+  "srcDir": "src",
+  "cssEntry": "dist/sidiscm.css",
+  "componentSrcMap": {
+    "PscRoot": "src/components/fondations/PscRoot.tsx",
+    "Icon": "src/components/fondations/Icon.tsx",
+    "Button": "src/components/actions/Button.tsx",
+    "Chip": "src/components/actions/Chip.tsx",
+    "ChipGroup": "src/components/actions/Chip.tsx",
+    "Eyebrow": "src/components/typographie/Typography.tsx",
+    "PageHeader": "src/components/typographie/Typography.tsx",
+    "SectionHeading": "src/components/typographie/Typography.tsx",
+    "Sidebar": "src/components/navigation/Navigation.tsx",
+    "PortalLayout": "src/components/navigation/Navigation.tsx",
+    "SpaceSwitch": "src/components/navigation/Navigation.tsx",
+    "Tabs": "src/components/navigation/Navigation.tsx",
+    "Stepper": "src/components/navigation/Navigation.tsx",
+    "AppHeader": "src/components/intervenants/Sidscm.tsx",
+    "DayPicker": "src/components/intervenants/Sidscm.tsx",
+    "ServiceTabs": "src/components/intervenants/Sidscm.tsx",
+    "AttendanceList": "src/components/intervenants/Sidscm.tsx",
+    "AccessCodeCard": "src/components/intervenants/Sidscm.tsx",
+    "StatCard": "src/components/donnees/DataDisplay.tsx",
+    "StatGrid": "src/components/donnees/DataDisplay.tsx",
+    "ChildCard": "src/components/donnees/DataDisplay.tsx",
+    "Pill": "src/components/donnees/DataDisplay.tsx",
+    "ConversationStatus": "src/components/donnees/DataDisplay.tsx",
+    "CategoryTag": "src/components/donnees/DataDisplay.tsx",
+    "DataTable": "src/components/donnees/DataDisplay.tsx",
+    "WeekMenu": "src/components/donnees/DataDisplay.tsx",
+    "Panel": "src/components/donnees/DataDisplay.tsx",
+    "ReservationCalendar": "src/components/planning/ReservationCalendar.tsx",
+    "ChildBlock": "src/components/planning/ReservationCalendar.tsx",
+    "ConversationList": "src/components/messagerie/Messaging.tsx",
+    "ConversationThread": "src/components/messagerie/Messaging.tsx",
+    "InfoRail": "src/components/messagerie/Messaging.tsx",
+    "TextField": "src/components/formulaires/Forms.tsx",
+    "FieldGrid": "src/components/formulaires/Forms.tsx",
+    "FileField": "src/components/formulaires/Forms.tsx",
+    "CheckLine": "src/components/formulaires/Forms.tsx",
+    "PaymentChoice": "src/components/formulaires/Forms.tsx",
+    "GuestCard": "src/components/formulaires/Forms.tsx",
+    "Notice": "src/components/retours/Feedback.tsx",
+    "ConfirmBox": "src/components/retours/Feedback.tsx",
+    "Modal": "src/components/retours/Feedback.tsx",
+    "ImpersonationBanner": "src/components/retours/Feedback.tsx"
+  },
+  "provider": {
+    "component": "PscRoot"
+  },
+  "overrides": {
+    "Modal": {
+      "cardMode": "single",
+      "viewport": "640x520"
+    },
+    "PortalLayout": {
+      "cardMode": "column",
+      "viewport": "1280x900"
+    },
+    "Sidebar": {
+      "cardMode": "single",
+      "viewport": "1280x640"
+    },
+    "AppHeader": {
+      "cardMode": "column"
+    },
+    "DayPicker": {
+      "cardMode": "column"
+    },
+    "ServiceTabs": {
+      "cardMode": "column"
+    },
+    "ImpersonationBanner": {
+      "cardMode": "column"
+    },
+    "AttendanceList": {
+      "cardMode": "column"
+    },
+    "DataTable": {
+      "cardMode": "column"
+    },
+    "WeekMenu": {
+      "cardMode": "column"
+    },
+    "ConversationList": {
+      "cardMode": "column"
+    },
+    "ConversationThread": {
+      "cardMode": "column"
+    },
+    "ReservationCalendar": {
+      "cardMode": "column"
+    },
+    "StatGrid": {
+      "cardMode": "column",
+      "viewport": "1280x480"
+    }
+  },
+  "readmeHeader": ".design-sync/conventions.md",
+  "guidelinesGlob": [
+    "../../DESIGN.md"
+  ]
+}
