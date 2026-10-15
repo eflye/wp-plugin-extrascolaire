@@ -15,6 +15,9 @@ class Psc_Messages_Admin extends Psc_Admin_Base {
         add_action('psc_send_message_emails', array('Psc_Messages', 'process_email_batch'));
         add_action('psc_send_scheduled_messages', array('Psc_Messages', 'send_scheduled'));
         add_action('psc_cleanup_message_receipts', array('Psc_Messages', 'cleanup_receipts'));
+        // Une mise à jour par zip ne rejoue pas l'activation : les tâches
+        // planifiées se reprogramment ici si elles ont disparu.
+        Psc_Messages::ensure_crons();
     }
 
     private static function guard_messages($nonce_action) {
@@ -38,6 +41,24 @@ class Psc_Messages_Admin extends Psc_Admin_Base {
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'countNonce' => wp_create_nonce('psc_message_count_targets'),
             'confirm' => __('Confirmer l’envoi de ce message ? Le ciblage sera figé et le message ne pourra plus être modifié.', 'periscolaire-registration'),
+            // Chaînes de l'écran d'édition (PRA-06) ; %d remplacé côté JS.
+            'i18n' => array(
+                /* translators: %d: nombre de caractères du titre */
+                'titleCount'          => __('%d / 80 caractères', 'periscolaire-registration'),
+                'titlePlaceholder'    => __('Titre du message', 'periscolaire-registration'),
+                /* translators: %d: nombre */
+                'families'            => array(__('%d famille', 'periscolaire-registration'), __('%d familles', 'periscolaire-registration')),
+                /* translators: %d: nombre */
+                'children'            => array(__('%d enfant concerné', 'periscolaire-registration'), __('%d enfants concernés', 'periscolaire-registration')),
+                /* translators: %d: nombre */
+                'sendTo'              => array(__('Envoyer à %d famille', 'periscolaire-registration'), __('Envoyer à %d familles', 'periscolaire-registration')),
+                'pickAttachment'      => __('Choisir une pièce jointe', 'periscolaire-registration'),
+                'tooLarge'            => __('Le fichier dépasse 5 Mo.', 'periscolaire-registration'),
+                'channelsPortal'      => __('Espace famille', 'periscolaire-registration'),
+                'channelsPortalEmail' => __('Espace famille + e-mail', 'periscolaire-registration'),
+                'withAttachment'      => __('avec pièce jointe', 'periscolaire-registration'),
+                'withoutAttachment'   => __('sans pièce jointe', 'periscolaire-registration'),
+            ),
         ));
     }
 
@@ -125,6 +146,50 @@ class Psc_Messages_Admin extends Psc_Admin_Base {
 
     private static function redirect_edit($id, $message) {
         wp_safe_redirect(add_query_arg(array('page' => 'psc_message_edit', 'id' => absint($id), 'psc_msg' => sanitize_key($message)), admin_url('admin.php'))); exit;
+    }
+
+    /** Libellés des statuts d'un message (PRA-05 : jamais le code brut). */
+    public static function status_labels() {
+        return array(
+            'brouillon' => __('Brouillon', 'periscolaire-registration'),
+            'programme' => __('Programmé', 'periscolaire-registration'),
+            'envoye'    => __('Envoyé', 'periscolaire-registration'),
+        );
+    }
+
+    /** Libellés des types de ciblage. */
+    public static function target_labels() {
+        return array(
+            'all'      => __('Toutes les familles', 'periscolaire-registration'),
+            'ecole'    => __('Une école', 'periscolaire-registration'),
+            'service'  => __('Un service', 'periscolaire-registration'),
+            'familles' => __('Familles précises', 'periscolaire-registration'),
+        );
+    }
+
+    /**
+     * Notices des écrans Messages, par code de retour (PRA-05) : un code
+     * inconnu n'affiche rien — jamais le texte de l'URL.
+     *
+     * @return array<string, array{0: string, 1: string}>
+     */
+    public static function notices() {
+        return array(
+            'saved'                     => array('success', __('Brouillon enregistré.', 'periscolaire-registration')),
+            'scheduled'                 => array('success', __('Message programmé.', 'periscolaire-registration')),
+            'sent'                      => array('success', __('Message envoyé.', 'periscolaire-registration')),
+            'deleted'                   => array('success', __('Message supprimé.', 'periscolaire-registration')),
+            'resent'                    => array('success', __('Relance envoyée aux familles qui n’ont pas lu le message.', 'periscolaire-registration')),
+            'test_sent'                 => array('success', __('Message de test envoyé à votre adresse.', 'periscolaire-registration')),
+            'test_failed'               => array('error', __('L’envoi du message de test a échoué.', 'periscolaire-registration')),
+            'duplicate'                 => array('warning', __('Ce formulaire a déjà été envoyé : aucun nouvel envoi n’a été fait.', 'periscolaire-registration')),
+            'psc_message_sent'          => array('error', __('Ce message a déjà été envoyé et ne peut plus être modifié.', 'periscolaire-registration')),
+            'psc_message_required'      => array('error', __('Le titre et le message sont obligatoires.', 'periscolaire-registration')),
+            'psc_message_schedule'      => array('error', __('Date de programmation invalide.', 'periscolaire-registration')),
+            'psc_message_attachment'    => array('error', __('La pièce jointe doit être un PDF, JPG ou PNG de 5 Mo maximum.', 'periscolaire-registration')),
+            'psc_message_db'            => array('error', __('Impossible d’enregistrer le message.', 'periscolaire-registration')),
+            'psc_message_missing'       => array('error', __('Message introuvable.', 'periscolaire-registration')),
+        );
     }
 
     public static function ajax_count_targets() {

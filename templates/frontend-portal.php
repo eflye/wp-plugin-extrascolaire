@@ -9,7 +9,7 @@
       <span><?php echo esc_html(sprintf(
           __('Vous consultez l’espace de la famille %1$s en lecture seule. Fin automatique à %2$s.', 'periscolaire-registration'),
           $parent->nom ?: $parent->email,
-          date_i18n('H:i', strtotime($psc_impersonation->expires_at))
+          wp_date('H:i', strtotime($psc_impersonation->expires_at . ' UTC'))
       )); ?></span>
     </div>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
@@ -142,6 +142,9 @@
         'email_taken'                  => array('err', __('Cette adresse e-mail est déjà utilisée par une autre famille.', 'periscolaire-registration')),
         'email_changed'                => array('ok',  __('Votre nouvelle adresse e-mail est confirmée : utilisez-la désormais pour vous connecter.', 'periscolaire-registration')),
         'email_change_cancelled'       => array('ok',  __("Changement d'adresse e-mail annulé.", 'periscolaire-registration')),
+        'email_change_forbidden'       => array('err', __("Seul le titulaire du compte peut modifier l'adresse de connexion, depuis une session ouverte avec cette adresse. Aucune modification n'a été enregistrée.", 'periscolaire-registration')),
+        'email_change_relogin'         => array('err', __("Pour modifier l'adresse de connexion, reconnectez-vous avec le lien envoyé à cette adresse. Aucune modification n'a été enregistrée.", 'periscolaire-registration')),
+        'email_change_rate'            => array('err', __("Trop de demandes de changement d'adresse. Réessayez demain.", 'periscolaire-registration')),
         'bad_email_token'              => array('err', __("Ce lien de confirmation n'est pas valide.", 'periscolaire-registration')),
         'expired_email_token'          => array('err', __('Ce lien de confirmation a expiré. Refaites une demande depuis votre profil.', 'periscolaire-registration')),
 

@@ -124,46 +124,10 @@ $psc_wizard_payment = $psc_wizard_ctx['payment_mode'];
 
 
       <div id="psc-children-list">
-        <div class="psc-wizard-child-row" data-index="0">
-          <div>
-            <label class="psc-portal-field-label screen-reader-text" for="psc-cp-0"><?php esc_html_e("Prénom de l'enfant 1", 'periscolaire-registration'); ?></label>
-            <input id="psc-cp-0" class="psc-portal-field-underline" type="text" name="child_prenom_0" placeholder="<?php esc_attr_e('Prénom', 'periscolaire-registration'); ?>" maxlength="190" required>
-          </div>
-          <div>
-            <label class="psc-portal-field-label screen-reader-text" for="psc-cn-0"><?php esc_html_e("Nom de l'enfant 1", 'periscolaire-registration'); ?></label>
-            <input id="psc-cn-0" class="psc-portal-field-underline" type="text" name="child_nom_0" placeholder="<?php esc_attr_e('Nom', 'periscolaire-registration'); ?>" maxlength="190" required>
-          </div>
-          <div>
-            <label class="psc-portal-field-label screen-reader-text" for="psc-cc-0"><?php esc_html_e("Classe de l'enfant 1", 'periscolaire-registration'); ?></label>
-            <select id="psc-cc-0" class="psc-portal-field-underline" name="child_classe_0" required>
-              <?php foreach (Psc_School_Years::classe_options() as $v => $l): ?>
-              <option value="<?php echo esc_attr($v); ?>"><?php echo esc_html($l); ?></option>
-              <?php endforeach; ?>
-            </select>
-          </div>
-          <div>
-            <label class="psc-portal-field-label" for="psc-cb-0"><?php esc_html_e("Date de naissance", 'periscolaire-registration'); ?></label>
-            <input id="psc-cb-0" class="psc-portal-field-underline" type="date" name="child_naissance_0" max="<?php echo esc_attr(psc_child_birthdate_max()); ?>" required>
-          </div>
-
-          <div class="psc-wizard-diet-cell">
-            <div class="psc-portal-field-label"><?php esc_html_e('Régime alimentaire', 'periscolaire-registration'); ?></div>
-            <div class="psc-wizard-diet-group">
-              <label class="psc-wizard-diet-check"><input type="checkbox" name="child_sans_porc_0" value="1"> <?php esc_html_e('Sans porc', 'periscolaire-registration'); ?></label>
-              <label class="psc-wizard-diet-check"><input type="checkbox" name="child_vegan_0" value="1"> <?php esc_html_e('Sans viande', 'periscolaire-registration'); ?></label>
-            </div>
-          </div>
-
-          <div class="psc-wizard-allergy-cell" style="grid-column: 1 / -1;">
-            <label class="psc-wizard-diet-check" style="font-weight:600;"><input type="checkbox" name="child_food_signal_0" value="1"> <?php esc_html_e("La mairie doit échanger avec nous au sujet de l’alimentation de cet enfant", 'periscolaire-registration'); ?></label>
-            <p class="psc-child-allergy-help" style="font-size:11px;color:#665F58;margin:6px 0 0;"><?php esc_html_e("Ne renseignez aucun détail médical ici. La mairie vous contactera oralement et décidera ensuite, si nécessaire, du statut « cantine sans repas ».", 'periscolaire-registration'); ?></p>
-          </div>
-
-
-
-          <button type="button" class="psc-wizard-remove-btn" aria-label="<?php esc_attr_e('Supprimer cet enfant', 'periscolaire-registration'); ?>" hidden><?php esc_html_e('Retirer', 'periscolaire-registration'); ?></button>
-        </div>
+        <?php $psc_child_idx = 0; $psc_child_num = 1; include PSC_PATH . 'templates/partials/guest-child-row.php'; ?>
       </div>
+      <?php // Modèle des enfants ajoutés en JS : même balisage, mêmes noms de champs (PRA-03). ?>
+      <template id="psc-child-row-tpl"><?php $psc_child_idx = '__IDX__'; $psc_child_num = '__NUM__'; include PSC_PATH . 'templates/partials/guest-child-row.php'; ?></template>
 
       <button type="button" id="psc-add-child" class="psc-wizard-add-btn" data-testid="add-child-button"><?php esc_html_e('+ Ajouter un enfant', 'periscolaire-registration'); ?></button>
 

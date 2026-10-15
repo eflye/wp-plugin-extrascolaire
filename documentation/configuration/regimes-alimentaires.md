@@ -25,7 +25,10 @@ Pour une modification côté famille, connectez-vous au portail avec le lien re�
     Dans le planning de la famille, la cantine de cet enfant apparaît alors en **Midi sans repas** : ce qui s'affiche est ce qui sera facturé, et la famille peut cocher ou décocher ces jours comme d'habitude.
 
     !!! note
-        Les descriptions d'allergie saisies avant cette évolution restent affichées en lecture seule sur la fiche enfant, pour ne pas perdre une information de sécurité déjà transmise. Elles ne sont plus modifiables depuis le portail, et leur durée de conservation relève de l'arbitrage du DPO.
+        Les descriptions d'allergie saisies avant cette évolution ont été supprimées à la mise à jour 4.20.0 du schéma : chaque enfant qui en avait une a reçu le signalement alimentaire, si bien qu'aucune information de sécurité n'est perdue. Le détail relève du PAI, hors du plugin.
+
+    !!! note
+        Règle de la mairie : un enfant allergique ne mange pas le repas de la cantine. Il est en « garderie cantine » et apporte son plat et son goûter. Le signalement de la famille ne suffit pas : c'est l'activation de **Cantine sans repas** à l'étape 5 qui retire l'enfant des commandes fournisseur (repas et goûter) et le fait facturer au tarif midi sans repas.
 
 ## Résultat attendu
 

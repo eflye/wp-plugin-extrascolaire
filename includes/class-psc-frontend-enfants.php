@@ -15,15 +15,6 @@ class Psc_Frontend_Enfants extends Psc_Frontend_Base {
         add_action('admin_post_psc_parent_add_child', array(__CLASS__, 'handle_parent_add_child'));
     }
 
-    /** Allergies alimentaires saisies (TEXT nullable, max 1000 car.) : null si vide. */
-    protected static function food_allergies_post($key) {
-        $raw = isset($_POST[$key]) ? wp_unslash($_POST[$key]) : '';
-        if (!is_string($raw)) return null;
-        $clean = sanitize_textarea_field($raw);
-        $clean = trim(mb_substr($clean, 0, 1000));
-        return $clean !== '' ? $clean : null;
-    }
-
     /**
      * Correction par le parent d'une faute de frappe sur l'état civil
      * (prénom / nom / date de naissance) d'un enfant déjà onboardé, et des

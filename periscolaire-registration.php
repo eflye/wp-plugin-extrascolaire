@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Périscolaire - Inscriptions
  * Description: Formulaire d'inscription en ligne aux services périscolaires (garderie matin, cantine, garderie soir, forfait) avec backoffice de centralisation pour la mairie. Remplace le fichier calendrier rempli à la main.
- * Version: 5.34.1
+ * Version: 5.35.0
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: Mairie
@@ -13,7 +13,7 @@
 // Empêche l'exécution directe du fichier via son URL.
 if (!defined('ABSPATH')) exit;
 
-define('PSC_VERSION', '5.34.1');
+define('PSC_VERSION', '5.35.0');
 define('PSC_PATH', plugin_dir_path(__FILE__));
 define('PSC_URL', plugin_dir_url(__FILE__));
 define('PSC_FILE', __FILE__);
@@ -91,25 +91,15 @@ register_activation_hook(__FILE__, function () {
     Psc_Envois::ensure_crons();
 });
 
-register_deactivation_hook(__FILE__, function () {
-    Psc_Requests::unschedule_cleanup();
-    wp_clear_scheduled_hook('psc_send_message_emails');
-    wp_clear_scheduled_hook('psc_send_scheduled_messages');
-    wp_clear_scheduled_hook('psc_cleanup_message_receipts');
-    wp_clear_scheduled_hook('psc_cleanup_impersonations');
-    wp_clear_scheduled_hook('psc_conversation_notify');
-    wp_clear_scheduled_hook('psc_purge_conversations');
-    wp_clear_scheduled_hook('psc_purge_audit_log');
-    wp_clear_scheduled_hook('psc_purge_departed_children');
-    wp_clear_scheduled_hook('psc_envois_reprise');
-});
+register_deactivation_hook(__FILE__, 'psc_unschedule_all_crons');
 
 add_action('plugins_loaded', function () {
     // Text Domain déclaré en en-tête : chargé ici pour que toutes les
     // chaînes enveloppées (__() / esc_html__()) soient traduisibles — les
     // fichiers .mo installés par WordPress atterrissent dans
-    // wp-content/languages/plugins/, le plugin n'en embarque pas lui-même.
-    load_plugin_textdomain('periscolaire-registration', false, dirname(plugin_basename(PSC_FILE)) . '/languages');
+    // wp-content/languages/plugins/, le plugin n'en embarque pas lui-même :
+    // aucun chemin relatif à passer (il visait un dossier /languages absent).
+    load_plugin_textdomain('periscolaire-registration');
 
     Psc_Installer::maybe_upgrade();
     Psc_Audit::init();

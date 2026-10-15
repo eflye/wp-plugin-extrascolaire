@@ -11,6 +11,19 @@ psc_admin_notice_map(array(
     'privacy_refused' => array('error', __('Réglages enregistrés, sauf un champ de la rubrique Confidentialité : une adresse e-mail ou l’adresse de la notice n’est pas valide. La valeur précédente est conservée.', 'periscolaire-registration')),
     'ics_url_refused' => array('error', __('Réglages enregistrés, sauf l’adresse du calendrier scolaire : elle doit être une adresse web publique (http ou https). L’adresse précédente est conservée.', 'periscolaire-registration')),
 ), $psc_msg);
+
+// Codes intervenants refusés au dernier enregistrement (SEC-03) : noms
+// conservés brièvement par Psc_Admin_Config::handle_save_settings().
+$psc_sidscm_rejected = get_transient('psc_sidscm_rejected_' . get_current_user_id());
+if (is_array($psc_sidscm_rejected) && $psc_sidscm_rejected) {
+    delete_transient('psc_sidscm_rejected_' . get_current_user_id());
+    psc_admin_notice(sprintf(
+        /* translators: 1: noms des intervenants concernés, 2: longueur minimale du code. */
+        _n('Code refusé pour %1$s : %2$d caractères minimum. L’ancien code est conservé ; un nouvel intervenant n’est pas créé.', 'Codes refusés pour %1$s : %2$d caractères minimum. Les anciens codes sont conservés ; un nouvel intervenant n’est pas créé.', count($psc_sidscm_rejected), 'periscolaire-registration'),
+        implode(', ', array_map('strval', $psc_sidscm_rejected)),
+        defined('Psc_Sidscm::MIN_CODE_LENGTH') ? (int) Psc_Sidscm::MIN_CODE_LENGTH : 8
+    ), 'error', true, 'sidscm-code-refused');
+}
 ?>
 
 <div class="psc-box" id="psc-tarifs">
@@ -90,6 +103,30 @@ psc_admin_notice_map(array(
 <?php wp_nonce_field('psc_save_settings'); ?>
 <input type="hidden" name="action" value="psc_save_settings">
 
+<h2><?php esc_html_e('Page de l\'espace famille', 'periscolaire-registration'); ?></h2>
+<table class="form-table">
+<tr>
+<th><label for="psc-form-page"><?php esc_html_e('Page « Espace famille »', 'periscolaire-registration'); ?></label></th>
+<td>
+  <?php
+  wp_dropdown_pages(array(
+      'name'              => 'form_page_id',
+      'id'                => 'psc-form-page',
+      'selected'          => (int) get_option('psc_form_page_id', 0),
+      'show_option_none'  => __('Détection automatique (page contenant [periscolaire_form])', 'periscolaire-registration'),
+      'option_none_value' => 0,
+  ));
+  ?>
+  <p class="description">
+    <?php
+    /* translators: %s: nom du shortcode, ex. [periscolaire_form] */
+    echo esc_html(sprintf(__('Page WordPress contenant le shortcode %s, vers laquelle pointent les liens envoyés aux familles (connexion, planning, messages). Laissez sur détection automatique si une seule page utilise ce shortcode.', 'periscolaire-registration'), '[periscolaire_form]'));
+    ?>
+  </p>
+</td>
+</tr>
+</table>
+
 <h2><?php esc_html_e('Délai de modification', 'periscolaire-registration'); ?></h2>
 <p><?php esc_html_e('Au-delà de ce délai avant le jour concerné, les familles ne peuvent plus modifier leur planning en ligne, y compris via le bouton "Annulation / signalement d\'absence" du tableau de bord. La mairie, elle, reste toujours en mesure de corriger depuis ce backoffice.', 'periscolaire-registration'); ?></p>
 <table class="form-table">
@@ -154,7 +191,7 @@ psc_admin_notice_map(array(
     <input id="psc-conversations-contenu" type="checkbox" name="conversations_contenu_email" value="1" data-testid="settings-conversations-contenu" <?php checked(psc_conversations_contenu_email()); ?>>
     <?php esc_html_e('Inclure le texte des messages dans les e-mails de notification des échanges (familles et mairie)', 'periscolaire-registration'); ?>
   </label>
-  <p class="description"><?php esc_html_e('Les pièces jointes ne sont jamais envoyées par e-mail : seul leur nom est indiqué. Décochez pour des échanges sensibles : l’e-mail annonce alors seulement un nouveau message.', 'periscolaire-registration'); ?></p>
+  <p class="description"><?php esc_html_e('Désactivé par défaut : l’e-mail annonce seulement un nouveau message. Coché, le texte est recopié dans les messageries, où il échappe aux purges et à l’effacement RGPD. Les pièces jointes ne sont jamais envoyées par e-mail : seul leur nom est indiqué.', 'periscolaire-registration'); ?></p>
 </td>
 </tr>
 <tr>
@@ -212,13 +249,13 @@ psc_admin_notice_map(array(
 </tr>
 </table>
 
-<h2>Assurances scolaires</h2>
-<table class="form-table"><tr><th><label for="psc-assurance-review">Validation des justificatifs</label></th><td>
-<select id="psc-assurance-review" name="assurance_review_mode">
-<option value="auto" <?php selected(!Psc_Assurances::manual_review()); ?>>Acceptation automatique après dépôt</option>
-<option value="manual" <?php selected(Psc_Assurances::manual_review()); ?>>Revue par la mairie avant accès au planning</option>
+<h2><?php esc_html_e('Assurances scolaires', 'periscolaire-registration'); ?></h2>
+<table class="form-table"><tr><th><label for="psc-assurance-review"><?php esc_html_e('Validation des justificatifs', 'periscolaire-registration'); ?></label></th><td>
+<select id="psc-assurance-review" name="assurance_review_mode" aria-describedby="psc-assurance-review-help">
+<option value="auto" <?php selected(!Psc_Assurances::manual_review()); ?>><?php esc_html_e('Acceptation automatique après dépôt', 'periscolaire-registration'); ?></option>
+<option value="manual" <?php selected(Psc_Assurances::manual_review()); ?>><?php esc_html_e('Revue par la mairie avant accès au planning', 'periscolaire-registration'); ?></option>
 </select>
-<p class="description">Le planning reste bloqué tant que les assurances des enfants actifs ne sont pas acceptées. Les documents déjà acceptés restent valables pour leur année scolaire. Un document refusé doit être remplacé.</p>
+<p class="description" id="psc-assurance-review-help"><?php esc_html_e('Le planning reste bloqué tant que les assurances des enfants actifs ne sont pas acceptées. Les documents déjà acceptés restent valables pour leur année scolaire. Un document refusé doit être remplacé.', 'periscolaire-registration'); ?></p>
 </td></tr></table>
 
 <h2><?php esc_html_e('Calendrier scolaire', 'periscolaire-registration'); ?></h2>
@@ -394,6 +431,21 @@ $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
 </td>
 </tr>
 <tr>
+<th scope="row"><?php esc_html_e('Conservation des factures', 'periscolaire-registration'); ?></th>
+<td>
+  <label for="psc-invoice-retention-enabled">
+    <input id="psc-invoice-retention-enabled" type="checkbox" name="invoice_retention_enabled" value="1" data-testid="settings-invoice-retention" aria-describedby="psc-invoice-retention-help" <?php checked(Psc_Retention::invoice_retention_enabled()); ?>>
+    <?php esc_html_e('Supprimer les factures arrivées au terme de leur conservation', 'periscolaire-registration'); ?>
+  </label>
+  <p>
+    <label for="psc-invoice-retention-years"><?php esc_html_e('Durée de conservation (années révolues)', 'periscolaire-registration'); ?></label>
+    <input id="psc-invoice-retention-years" type="number" name="invoice_retention_years" min="10" max="30" step="1" class="small-text"
+           value="<?php echo esc_attr(Psc_Retention::invoice_retention_years()); ?>" aria-describedby="psc-invoice-retention-help">
+  </p>
+  <p class="description" id="psc-invoice-retention-help"><?php esc_html_e('10 ans au minimum (pièces comptables). Une facture est supprimée en entier, versions et PDF compris, une fois ce nombre d’années révolu après la fin de son année de facturation ; elle n’est jamais modifiée avant. Désactivé : aucune facture n’est jamais supprimée.', 'periscolaire-registration'); ?></p>
+</td>
+</tr>
+<tr>
 <th scope="row"><?php esc_html_e('Aperçu', 'periscolaire-registration'); ?></th>
 <td>
   <div class="psc-privacy-preview" data-testid="privacy-preview" role="group" aria-label="<?php esc_attr_e('Aperçu de la notice telle que les familles la voient', 'periscolaire-registration'); ?>" style="max-width:640px;padding:12px 16px;background:#fff;border:1px solid #dcdcde;border-left:4px solid #24405C;">
@@ -518,18 +570,22 @@ $doc_rp_id = (int) get_option('psc_doc_reglement_prelevement_id', 0);
 <th scope="row"><?php esc_html_e('Identités intervenantes', 'periscolaire-registration'); ?></th>
 <td>
   <p class="description"><?php esc_html_e('Chaque intervenant dispose d’un identifiant et d’un code individuel. Laisser le code vide conserve le code existant ; décocher désactive l’accès. Dès qu’une identité est enregistrée, l’ancien code partagé n’est plus accepté.', 'periscolaire-registration'); ?></p>
+  <p class="description" id="psc-sidscm-code-min"><?php
+    /* translators: %d: longueur minimale d'un code intervenant. */
+    echo esc_html(sprintf(__('Code individuel : %d caractères minimum.', 'periscolaire-registration'), (int) (defined('Psc_Sidscm::MIN_CODE_LENGTH') ? Psc_Sidscm::MIN_CODE_LENGTH : 8)));
+  ?></p>
   <?php $psc_intervenants = class_exists('Psc_Sidscm') ? Psc_Sidscm::intervenants() : array(); foreach ($psc_intervenants as $i => $intervenant): ?>
     <p style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <input type="hidden" name="sidscm_intervenants[<?php echo (int) $i; ?>][id]" value="<?php echo esc_attr($intervenant['id']); ?>">
-      <input type="text" name="sidscm_intervenants[<?php echo (int) $i; ?>][nom]" value="<?php echo esc_attr($intervenant['nom']); ?>" placeholder="<?php esc_attr_e('Nom', 'periscolaire-registration'); ?>" maxlength="120">
-      <input type="password" name="sidscm_intervenants[<?php echo (int) $i; ?>][code]" value="" placeholder="<?php esc_attr_e('Nouveau code (facultatif)', 'periscolaire-registration'); ?>" autocomplete="new-password">
+      <input type="text" name="sidscm_intervenants[<?php echo (int) $i; ?>][nom]" value="<?php echo esc_attr($intervenant['nom']); ?>" placeholder="<?php esc_attr_e('Nom', 'periscolaire-registration'); ?>" aria-label="<?php esc_attr_e('Nom de l’intervenant', 'periscolaire-registration'); ?>" maxlength="120">
+      <input type="password" name="sidscm_intervenants[<?php echo (int) $i; ?>][code]" value="" placeholder="<?php esc_attr_e('Nouveau code (facultatif)', 'periscolaire-registration'); ?>" aria-label="<?php esc_attr_e('Nouveau code (facultatif)', 'periscolaire-registration'); ?>" aria-describedby="psc-sidscm-code-min" minlength="<?php echo (int) (defined('Psc_Sidscm::MIN_CODE_LENGTH') ? Psc_Sidscm::MIN_CODE_LENGTH : 8); ?>" autocomplete="new-password">
       <input type="date" name="sidscm_intervenants[<?php echo (int) $i; ?>][expires_at]" value="<?php echo esc_attr($intervenant['expires_at'] ?? ''); ?>" aria-label="<?php esc_attr_e('Expiration', 'periscolaire-registration'); ?>">
       <label><input type="checkbox" name="sidscm_intervenants[<?php echo (int) $i; ?>][active]" value="1" <?php checked(!empty($intervenant['active'])); ?>> <?php esc_html_e('Actif', 'periscolaire-registration'); ?></label>
     </p>
   <?php endforeach; $new_index = count($psc_intervenants); ?>
   <p style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-    <input type="text" name="sidscm_intervenants[<?php echo (int) $new_index; ?>][nom]" value="" placeholder="<?php esc_attr_e('Nouvel intervenant', 'periscolaire-registration'); ?>" maxlength="120">
-    <input type="password" name="sidscm_intervenants[<?php echo (int) $new_index; ?>][code]" value="" placeholder="<?php esc_attr_e('Code individuel', 'periscolaire-registration'); ?>" autocomplete="new-password">
+    <input type="text" name="sidscm_intervenants[<?php echo (int) $new_index; ?>][nom]" value="" placeholder="<?php esc_attr_e('Nouvel intervenant', 'periscolaire-registration'); ?>" aria-label="<?php esc_attr_e('Nom du nouvel intervenant', 'periscolaire-registration'); ?>" maxlength="120">
+    <input type="password" name="sidscm_intervenants[<?php echo (int) $new_index; ?>][code]" value="" placeholder="<?php esc_attr_e('Code individuel', 'periscolaire-registration'); ?>" aria-label="<?php esc_attr_e('Code individuel du nouvel intervenant', 'periscolaire-registration'); ?>" aria-describedby="psc-sidscm-code-min" minlength="<?php echo (int) (defined('Psc_Sidscm::MIN_CODE_LENGTH') ? Psc_Sidscm::MIN_CODE_LENGTH : 8); ?>" autocomplete="new-password">
     <input type="date" name="sidscm_intervenants[<?php echo (int) $new_index; ?>][expires_at]" value="" aria-label="<?php esc_attr_e('Expiration', 'periscolaire-registration'); ?>">
     <label><input type="checkbox" name="sidscm_intervenants[<?php echo (int) $new_index; ?>][active]" value="1" checked> <?php esc_html_e('Actif', 'periscolaire-registration'); ?></label>
   </p>

@@ -28,11 +28,13 @@ class Psc_Requests {
         add_action('admin_post_psc_approve_request', array(__CLASS__, 'handle_approve'));
         add_action('admin_post_psc_reject_request', array(__CLASS__, 'handle_reject'));
         add_action('admin_post_psc_delete_request', array(__CLASS__, 'handle_delete'));
-        add_action('admin_post_psc_reconcile_request_allergies', array(__CLASS__, 'handle_reconcile_allergies'));
 
         // Purge automatique des demandes anciennes (RGPD : on ne conserve
         // pas indéfiniment les données de familles jamais inscrites).
         add_action('psc_cleanup_requests', array(__CLASS__, 'cleanup'));
+        // Une mise à jour par zip ne rejoue pas l'activation : la purge se
+        // reprogramme ici si elle a disparu.
+        self::schedule_cleanup();
     }
 
     public static function schedule_cleanup() {
@@ -41,14 +43,17 @@ class Psc_Requests {
         }
     }
 
-    public static function unschedule_cleanup() {
-        $ts = wp_next_scheduled('psc_cleanup_requests');
-        if ($ts) wp_unschedule_event($ts, 'psc_cleanup_requests');
-    }
+    /** Durée de conservation d'une demande jamais traitée par la mairie (RGPD-01). */
+    const PENDING_RETENTION_DAYS = 180;
+    /** Durée de conservation d'une demande dont l'adresse n'a pas été confirmée. */
+    const UNVERIFIED_RETENTION_DAYS = 7;
+    /** Durée de conservation d'une demande validée ou refusée, après la décision. */
+    const DECIDED_RETENTION_DAYS = 90;
 
     /**
-     * Supprime les demandes non vérifiées de plus de 7 jours et les
-     * demandes traitées de plus de 90 jours — et, avec elles, tout
+     * Supprime les demandes non vérifiées de plus de 7 jours, les
+     * demandes traitées de plus de 90 jours et les demandes restées en
+     * attente de la mairie plus de 180 jours — et, avec elles, tout
      * justificatif d'assurance resté en zone d'attente (jamais promu si la
      * demande n'a jamais été approuvée).
      */
@@ -56,18 +61,30 @@ class Psc_Requests {
         global $wpdb;
         $t = psc_table('requests');
 
+        // created_at et decided_at sont écrits en heure du site
+        // (current_time('mysql')) : les seuils sont calculés dans la même
+        // horloge (PRA-14), sinon la purge se décalait de l'écart UTC.
+        $unverified_cutoff = wp_date('Y-m-d H:i:s', time() - self::UNVERIFIED_RETENTION_DAYS * DAY_IN_SECONDS);
+        $stale_cutoff      = wp_date('Y-m-d H:i:s', time() - self::DECIDED_RETENTION_DAYS * DAY_IN_SECONDS);
         $unverified_ids = $wpdb->get_col($wpdb->prepare(
             "SELECT id FROM $t WHERE status = 'unverified' AND created_at < %s",
-            gmdate('Y-m-d H:i:s', time() - 7 * DAY_IN_SECONDS)
+            $unverified_cutoff
         ));
         $stale_ids = $wpdb->get_col($wpdb->prepare(
             "SELECT id FROM $t WHERE status IN ('approved','rejected') AND decided_at < %s",
-            gmdate('Y-m-d H:i:s', time() - 90 * DAY_IN_SECONDS)
+            $stale_cutoff
+        ));
+        // Demande confirmée mais jamais traitée (RGPD-01) : elle n'est pas
+        // gardée indéfiniment.
+        $pending_cutoff = wp_date('Y-m-d H:i:s', time() - self::PENDING_RETENTION_DAYS * DAY_IN_SECONDS);
+        $pending_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM $t WHERE status = 'pending' AND created_at < %s",
+            $pending_cutoff
         ));
         // Les rattachements en échec sont repris avant la purge ; une zone
         // d'attente qui en garde encore survit à sa demande (P1-13).
         Psc_Assurances::retry_failed_promotions();
-        foreach (array_merge($unverified_ids, $stale_ids) as $id) {
+        foreach (array_merge($unverified_ids, $stale_ids, $pending_ids) as $id) {
             if (!Psc_Assurances::has_failed_promotions($id)) {
                 Psc_Assurances::delete_pending_files($id);
             }
@@ -75,18 +92,21 @@ class Psc_Requests {
 
         $wpdb->query($wpdb->prepare(
             "DELETE FROM $t WHERE status = 'unverified' AND created_at < %s",
-            gmdate('Y-m-d H:i:s', time() - 7 * DAY_IN_SECONDS)
+            $unverified_cutoff
         ));
         $wpdb->query($wpdb->prepare(
             "DELETE FROM $t WHERE status IN ('approved','rejected') AND decided_at < %s",
-            gmdate('Y-m-d H:i:s', time() - 90 * DAY_IN_SECONDS)
+            $stale_cutoff
         ));
+        foreach ($pending_ids as $id) {
+            $wpdb->delete($t, array('id' => (int) $id, 'status' => 'pending'), array('%d', '%s'));
+        }
 
-        $total = count($unverified_ids) + count($stale_ids);
+        $total = count($unverified_ids) + count($stale_ids) + count($pending_ids);
         if ($total > 0) {
             Psc_Audit::log('systeme.purge', array(
                 'objet_type' => 'demande',
-                'meta' => array('portee' => 'demandes', 'non_verifiees' => count($unverified_ids), 'traitees' => count($stale_ids)),
+                'meta' => array('portee' => 'demandes', 'non_verifiees' => count($unverified_ids), 'traitees' => count($stale_ids), 'en_attente' => count($pending_ids)),
                 'resume' => sprintf(__('%d demande(s) d’inscription purgée(s).', 'periscolaire-registration'), $total),
             ));
         }
@@ -156,21 +176,11 @@ class Psc_Requests {
                 'date_naissance'               => $naissance ?: '',
                 'sans_porc'                    => !empty($c['sans_porc']) ? 1 : 0,
                 'vegan'                        => !empty($c['vegan']) ? 1 : 0,
-                // Allergie alimentaire : information sanitaire déclarée à
-                // l'étape publique (handle_submit) et REVALIDÉE ici — le
-                // contenu stocké n'est jamais cru (même principe que les
-                // autres champs). Omettre cette clé faisait perdre
-                // l'allergie à chaque relecture de la demande : ni l'écran
-                // de validation mairie, ni l'approbation (fiche enfant,
-                // alerte PAI, listes intervenants) ne la voyaient plus.
-                'food_allergies'               => self::revalidate_allergies($c['food_allergies'] ?? ''),
-                'food_allergy_signal'          => !empty($c['food_allergy_signal']) ? 1 : 0,
-                // Consentement à la collecte de cette donnée de santé,
-                // horodaté à la déclaration (handle_submit) — jamais
-                // recalculé ici : une allergie sans date de consentement
-                // valide (l'un des deux manque) est traitée comme non
-                // consentie par approve_request().
-                'food_allergy_consent_at'      => isset($c['food_allergy_consent_at']) ? psc_valid_mysql_datetime($c['food_allergy_consent_at']) : null,
+                // Signalement alimentaire : seule information de santé du
+                // parcours (le texte libre d'allergies a été supprimé en
+                // 4.20.0, RGPD-10). Une ancienne demande qui portait encore
+                // un texte vaut signalement.
+                'food_allergy_signal'          => (!empty($c['food_allergy_signal']) || trim((string) ($c['food_allergies'] ?? '')) !== '') ? 1 : 0,
                 'assurance_rel_path'           => isset($c['assurance_rel_path']) ? sanitize_text_field($c['assurance_rel_path']) : '',
                 'assurance_original_filename'  => isset($c['assurance_original_filename']) ? sanitize_text_field($c['assurance_original_filename']) : '',
                 'personnes_autorisees'         => self::pickup_persons_of($c),
@@ -186,10 +196,6 @@ class Psc_Requests {
      * troncature à la longueur acceptée à l'inscription. Une valeur vide
      * reste vide (enfant sans allergie déclarée).
      */
-    protected static function revalidate_allergies($raw) {
-        $raw = is_string($raw) ? trim(sanitize_textarea_field($raw)) : '';
-        return $raw === '' ? '' : mb_substr($raw, 0, 1000);
-    }
 
     /**
      * Décode et revalide le sous-tableau personnes_autorisees d'un enfant
@@ -261,11 +267,19 @@ class Psc_Requests {
             exit;
         }
 
-        // Une demande déjà en cours ne doit pas être dupliquée.
+        // Une demande confirmée, en attente de la mairie, n'est JAMAIS
+        // modifiée depuis ce formulaire public (SEC-01) : n'importe qui
+        // connaissant l'adresse pourrait sinon la réécrire. Réponse
+        // identique, rien n'est changé ; pour corriger, la famille
+        // contacte la mairie.
         $t = psc_table('requests');
-        $existing = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $t WHERE email = %s AND status IN ('unverified','pending')", $email
+        $has_pending = (bool) $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $t WHERE email = %s AND status = 'pending' LIMIT 1", $email
         ));
+        if ($has_pending) {
+            wp_safe_redirect(add_query_arg('psc_msg', 'request_sent', $back));
+            exit;
+        }
 
         $nom       = psc_post('req_nom');
         $prenom    = psc_post('req_prenom');
@@ -364,9 +378,7 @@ class Psc_Requests {
                 'date_naissance'          => $cb ?: '',
                 'sans_porc'               => isset($_POST['child_sans_porc_' . $i]) ? 1 : 0,
                 'vegan'                   => isset($_POST['child_vegan_' . $i]) ? 1 : 0,
-                'food_allergies'          => null,
                 'food_allergy_signal'     => $food_signal,
-                'food_allergy_consent_at' => null,
                 'personnes_autorisees'    => array(),
             );
         }
@@ -469,16 +481,13 @@ class Psc_Requests {
             'created_at'                 => current_time('mysql'),
         );
 
-        if ($existing) {
-            $wpdb->update($t, $data, array('id' => $existing->id));
-            $request_id = $existing->id;
-        } else {
-            $wpdb->insert($t, $data);
-            $request_id = (int) $wpdb->insert_id;
-        }
-
-        // Nettoie les pièces d'une éventuelle ancienne demande resoumise.
-        Psc_Assurances::delete_pending_files($request_id);
+        // Toujours une nouvelle ligne (SEC-01) : une demande non confirmée
+        // de la même adresse n'est ni réécrite ni supprimée ici — son lien
+        // de confirmation reste valable. Les anciennes ne disparaissent
+        // qu'à la confirmation de l'une d'elles (maybe_verify()), c'est-à-
+        // dire une fois l'adresse prouvée.
+        $wpdb->insert($t, $data);
+        $request_id = (int) $wpdb->insert_id;
 
         // Prélèvement : le mandat SEPA est généré tout de suite (la RUM ne
         // dépend que de l'id de la demande, déjà connu) et joint à l'e-mail
@@ -549,6 +558,12 @@ class Psc_Requests {
             array('%d')
         );
 
+        // L'adresse est désormais prouvée : les autres demandes non
+        // confirmées de la même adresse (soumissions précédentes, ou d'un
+        // tiers qui la connaissait) sont remplacées par celle-ci, fichiers
+        // compris (SEC-01).
+        self::delete_superseded_unverified($req);
+
         // Validation automatique (Réglages) : la famille accède directement
         // à son espace, sans relecture par la mairie — mêmes écritures que
         // handle_approve(), déclenchées ici au lieu d'un clic mairie. On est
@@ -569,7 +584,9 @@ class Psc_Requests {
             if (!empty($children)) {
                 $result = self::approve_request($req, $children, false);
                 if (!is_wp_error($result)) {
-                    Psc_Parents::open_session($result);
+                    // La demande vient d'être confirmée depuis l'adresse du
+                    // titulaire : la session porte cette identité (SEC-02).
+                    Psc_Parents::open_session($result, (string) $req->email);
                     wp_safe_redirect(add_query_arg('psc_msg', 'welcome', $redirect));
                     exit;
                 }
@@ -580,6 +597,52 @@ class Psc_Requests {
 
         wp_safe_redirect(add_query_arg('psc_msg', 'verified', $redirect));
         exit;
+    }
+
+    /**
+     * Supprime les demandes non confirmées de la même adresse que $req,
+     * qui vient d'être confirmée, et leurs justificatifs en attente.
+     */
+    private static function delete_superseded_unverified($req) {
+        global $wpdb;
+        $t = psc_table('requests');
+        $ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM $t WHERE email = %s AND status = 'unverified' AND id <> %d",
+            strtolower((string) $req->email), (int) $req->id
+        ));
+        foreach ($ids as $id) {
+            Psc_Assurances::delete_pending_files((int) $id);
+            $wpdb->delete($t, array('id' => (int) $id), array('%d'));
+        }
+        if ($ids) {
+            Psc_Audit::log('demande.suppression', array(
+                'objet_type' => 'demande', 'objet_id' => (int) $req->id,
+                'meta' => array('supprimees' => count($ids)),
+                'resume' => sprintf(
+                    /* translators: 1: nombre de demandes supprimées, 2: identifiant de la demande confirmée */
+                    _n('%1$d demande non confirmée remplacée par la demande d’inscription #%2$d.', '%1$d demandes non confirmées remplacées par la demande d’inscription #%2$d.', count($ids), 'periscolaire-registration'),
+                    count($ids), (int) $req->id
+                ),
+            ));
+        }
+    }
+
+    /**
+     * Coordonnées bancaires d'une demande à effacer une fois la décision
+     * prise (RGPD-03) : reportées sur le compte famille à la validation,
+     * sans objet après un refus.
+     *
+     * @return array<string,null>
+     */
+    private static function cleared_sepa_fields() {
+        return array(
+            'sepa_iban'        => null,
+            'sepa_bic'         => null,
+            'sepa_titulaire'   => null,
+            'sepa_adresse'     => null,
+            'sepa_code_postal' => null,
+            'sepa_ville'       => null,
+        );
     }
 
     /* ---------------- Modération (backoffice) ---------------- */
@@ -627,13 +690,8 @@ class Psc_Requests {
                 // champ POST (ce formulaire n'en propose pas l'édition),
                 // toujours re-dérivé de la demande d'origine par index —
                 // sinon l'édition mairie des autres champs effacerait
-                // l'allergie déclarée par la famille.
-                'food_allergies'               => $req_children[$i]['food_allergies'] ?? '',
+                // le signalement déclaré par la famille.
                 'food_allergy_signal'          => !empty($req_children[$i]['food_allergy_signal']) ? 1 : 0,
-                // Même principe : le consentement va toujours de pair avec
-                // la donnée de santé qu'il couvre, jamais avec la relecture
-                // qu'en fait la mairie.
-                'food_allergy_consent_at'      => $req_children[$i]['food_allergy_consent_at'] ?? null,
                 'personnes_autorisees'         => $req_children[$i]['personnes_autorisees'] ?? array(),
             );
         }
@@ -650,146 +708,15 @@ class Psc_Requests {
         }
 
         Psc_Audit::log('demande.validation', array(
-            'objet_type' => 'demande', 'objet_id' => (int) $req->id,
+            'objet_type' => 'demande', 'objet_id' => (int) $req->id, 'famille_id' => (int) $result,
             'meta' => array('enfants' => count($children)),
-            'resume' => sprintf(__('Demande d’inscription de %s validée.', 'periscolaire-registration'), $req->email),
+            /* translators: 1: identifiant de la demande, 2: identifiant de la famille */
+            'resume' => sprintf(__('Demande d’inscription #%1$d validée (famille #%2$d).', 'periscolaire-registration'), (int) $req->id, (int) $result),
         ));
 
         Psc_Admin::redirect_public('psc_requests', 'approved');
     }
 
-    /**
-     * Rapprochement contrôlé des demandes APPROUVÉES encore conservées :
-     * avant le correctif du décodeur, les allergies déclarées dans
-     * children_json étaient perdues à la relecture — les enfants créés à
-     * l'approbation (manuelle ou automatique) ont pu sortir sans leur
-     * information sanitaire, sans alerte PAI ni mention sur les listes.
-     *
-     * Retourne les demandes approuvées dont au moins un enfant déclaré
-     * avec allergie correspond à une fiche enfant SANS allergie
-     * renseignée : appariement par famille (e-mail) puis par nom + prénom,
-     * jamais d'écrasement — une fiche qui porte déjà une allergie (saisie
-     * plus récente par la famille ou la mairie) est laissée telle quelle.
-     * Format : [ ['request' => WP_Post-like, 'children' => [
-     *            ['child_id'=>…, 'prenom'=>…, 'nom'=>…, 'allergies'=>…], … ]], … ]
-     */
-    public static function allergies_to_reconcile() {
-        global $wpdb;
-        $t_req  = psc_table('requests');
-        $t_par  = psc_table('parents');
-        $t_chil = psc_table('children');
-
-        $requests = $wpdb->get_results(
-            "SELECT r.* FROM $t_req r
-             INNER JOIN $t_par p ON p.email = r.email
-             WHERE r.status = 'approved'
-             ORDER BY r.decided_at DESC
-             LIMIT 100"
-        );
-        if (!$requests) return array();
-
-        $out = array();
-        foreach ($requests as $req) {
-            $parent_id = (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT id FROM $t_par WHERE email = %s", $req->email
-            ));
-            if (!$parent_id) continue;
-
-            $rows = $wpdb->get_results($wpdb->prepare(
-                "SELECT id, prenom, nom, food_allergies FROM $t_chil WHERE parent_id = %d ORDER BY id",
-                $parent_id
-            ));
-            if (!$rows) continue;
-
-            $fill = array();
-            foreach (self::children_of($req) as $declared) {
-                if (($declared['food_allergies'] ?? '') === '') continue;
-                foreach ($rows as $row) {
-                    // Appariement exact (collation insensible à la casse
-                    // et aux accents) ; une fiche portant déjà une allergie
-                    // n'est jamais touchée — la donnée la plus récente
-                    // reste maîtresse.
-                    if ($row->nom === $declared['nom'] && $row->prenom === $declared['prenom']) {
-                        if (trim((string) $row->food_allergies) === '') {
-                            $fill[] = array(
-                                'child_id'  => (int) $row->id,
-                                'prenom'    => $row->prenom,
-                                'nom'       => $row->nom,
-                                'allergies' => $declared['food_allergies'],
-                            );
-                        }
-                        break;
-                    }
-                }
-            }
-            if ($fill) {
-                $out[] = array('request' => $req, 'children' => $fill);
-            }
-        }
-        return $out;
-    }
-
-    /**
-     * Report effectif des allergies d'une demande approuvée sur les fiches
-     * enfants : complète UNIQUEMENT les fiches restées vides, envoie
-     * l'alerte PAI pour chaque enfant complété (elle n'est jamais partie :
-     * l'approbation d'origine n'a pas vu l'allergie), ne touche ni les
-     * fiches déjà renseignées ni les enfants sans correspondance.
-     */
-    public static function handle_reconcile_allergies() {
-        // Recopie des allergies : donnée de santé, en plus du dossier famille.
-        if (!current_user_can('psc_manage_families') || !current_user_can('psc_view_health')) {
-            wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
-        }
-        check_admin_referer('psc_reconcile_request_allergies');
-
-        global $wpdb;
-        $req = self::get(psc_post_int('id'));
-        if (!$req || $req->status !== 'approved') {
-            Psc_Admin::redirect_public('psc_requests', 'invalid');
-        }
-
-        $parent_row = $wpdb->get_row($wpdb->prepare(
-            'SELECT * FROM ' . psc_table('parents') . ' WHERE email = %s', $req->email
-        ));
-        if (!$parent_row) {
-            Psc_Admin::redirect_public('psc_requests', 'invalid');
-        }
-
-        // Recalcul du rapprochement au moment de l'écriture : l'état a pu
-        // changer depuis l'affichage (famille ou mairie entre-temps).
-        $filled = 0;
-        foreach (self::allergies_to_reconcile() as $item) {
-            if ((int) $item['request']->id !== (int) $req->id) continue;
-            foreach ($item['children'] as $f) {
-                // Re-vérifie la fiche au moment d'écrire : $wpdb->update ne
-                // sait pas exprimer « food_allergies IS NULL » dans son
-                // WHERE, et la famille a pu compléter la fiche entre-temps.
-                $current = $wpdb->get_var($wpdb->prepare(
-                    'SELECT food_allergies FROM ' . psc_table('children') . ' WHERE id = %d', $f['child_id']
-                ));
-                if (trim((string) $current) !== '') continue;
-                $updated = $wpdb->update(
-                    psc_table('children'),
-                    array('food_allergies' => $f['allergies']),
-                    array('id' => $f['child_id']),
-                    array('%s'),
-                    array('%d')
-                );
-                if (false === $updated) continue; // échec SQL : rien reporté
-                $filled++;
-                Psc_Mailer::notify_food_allergy($parent_row, $f['child_id'], $f['allergies'], null);
-            }
-        }
-
-        Psc_Audit::log('demande.allergies_reconciliees', array(
-            'objet_type' => 'demande', 'objet_id' => (int) $req->id, 'famille_id' => (int) $parent_row->id,
-            'meta' => array('enfants_completes' => $filled),
-            'resume' => sprintf(__('Rapprochement des allergies pour %s : %d fiche(s) complétée(s).', 'periscolaire-registration'), $req->email, $filled),
-        ));
-
-        Psc_Admin::redirect_public('psc_requests', $filled ? 'allergies_reconciled' : 'allergies_nothing');
-    }
 
     /**
      * Cœur de l'approbation d'une demande : crée ou retrouve la famille,
@@ -908,16 +835,9 @@ class Psc_Requests {
                 'date_naissance'          => !empty($c['date_naissance']) ? $c['date_naissance'] : null,
                 'sans_porc'               => !empty($c['sans_porc']) ? 1 : 0,
                 'vegan'                   => !empty($c['vegan']) ? 1 : 0,
-                'food_allergies'          => !empty($c['food_allergies']) ? $c['food_allergies'] : null,
                 'food_allergy_signal'     => !empty($c['food_allergy_signal']) ? 1 : 0,
-                // Peut rester NULL pour une demande déposée avant l'ajout
-                // de cette case de consentement dédiée : on ne supprime
-                // jamais rétroactivement une allergie déjà déclarée
-                // (information de sécurité pour l'enfant) faute d'un
-                // horodatage qui n'existait pas encore au dépôt.
-                'food_allergy_consent_at' => !empty($c['food_allergies']) ? ($c['food_allergy_consent_at'] ?? null) : null,
                 'created_at'              => current_time('mysql'),
-            ), array('%d', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%s'));
+            ), array('%d', '%s', '%s', '%s', '%d', '%d', '%d', '%s'));
             if (false === $inserted) {
                 return $rollback(__('Création de l\'enfant impossible.', 'periscolaire-registration'));
             }
@@ -965,17 +885,16 @@ class Psc_Requests {
         // famille : les conserver en double dans la demande ne sert plus à
         // rien et doublerait inutilement la surface d'exposition de l'IBAN.
         // La demande garde le mode de paiement et l'acceptation du règlement,
-        // qui documentent le consentement.
+        // qui documentent le consentement. Titulaire et adresse du compte
+        // suivent l'IBAN (RGPD-03) : ils sont sur le compte famille.
         $updated = $wpdb->update(
             psc_table('requests'),
-            array(
+            array_merge(array(
                 'status'     => 'approved',
                 'decided_at' => current_time('mysql'),
-                'sepa_iban'  => null,
-                'sepa_bic'   => null,
-            ),
+            ), self::cleared_sepa_fields()),
             array('id' => $req->id),
-            array('%s', '%s', '%s', '%s'),
+            array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s'),
             array('%d')
         );
         if (false === $updated) {
@@ -1045,8 +964,13 @@ class Psc_Requests {
         // Transition conditionnelle : si une validation est passée entre la
         // lecture ci-dessus et cette écriture, la demande n'est plus en
         // attente et le refus ne doit ni l'écraser ni prévenir la famille.
+        // Coordonnées bancaires effacées dans la même écriture (RGPD-03) :
+        // une demande refusée n'a plus aucune raison de garder un IBAN,
+        // même chiffré, pendant les 90 jours qui précèdent sa purge.
         $decided = $wpdb->query($wpdb->prepare(
-            'UPDATE ' . psc_table('requests') . " SET status = 'rejected', note = %s, decided_at = %s WHERE id = %d AND status = 'pending'",
+            'UPDATE ' . psc_table('requests') . " SET status = 'rejected', note = %s, decided_at = %s,
+                sepa_iban = NULL, sepa_bic = NULL, sepa_titulaire = NULL, sepa_adresse = NULL, sepa_code_postal = NULL, sepa_ville = NULL
+             WHERE id = %d AND status = 'pending'",
             mb_substr($note, 0, 1000), current_time('mysql'), $req->id
         ));
         if (!$decided) {
@@ -1059,7 +983,8 @@ class Psc_Requests {
 
         Psc_Audit::log('demande.refus', array(
             'objet_type' => 'demande', 'objet_id' => (int) $req->id,
-            'resume' => sprintf(__('Demande d’inscription de %s refusée.', 'periscolaire-registration'), $req->email),
+            /* translators: %d: identifiant de la demande */
+            'resume' => sprintf(__('Demande d’inscription #%d refusée.', 'periscolaire-registration'), (int) $req->id),
         ));
 
         Psc_Admin::redirect_public('psc_requests', 'rejected');
@@ -1089,7 +1014,11 @@ class Psc_Requests {
                 return;
             }
             if ($deleted) {
-                Psc_Audit::log('demande.suppression', array('objet_type' => 'demande', 'objet_id' => $id));
+                Psc_Audit::log('demande.suppression', array(
+                    'objet_type' => 'demande', 'objet_id' => $id,
+                    /* translators: %d: identifiant de la demande */
+                    'resume' => sprintf(__('Demande d’inscription #%d supprimée.', 'periscolaire-registration'), (int) $id),
+                ));
             }
         }
         Psc_Admin::redirect_public($from_families ? 'psc_parents' : 'psc_requests', $from_families ? 'request_deleted' : 'deleted');

@@ -23,36 +23,41 @@
 
 if (!defined('WP_UNINSTALL_PLUGIN')) exit;
 
-// Retire la capacité accordée par Psc_Installer::sync_roles() (pas de
-// donnée personnelle, aucun risque à le faire systématiquement — même
-// sans PSC_REMOVE_DATA_ON_UNINSTALL — pour ne pas laisser une capacité
-// orpheline sur les rôles une fois le plugin supprimé).
-$psc_role_caps = array('psc_manage_periscolaire', 'psc_impersonate_family', 'psc_manage_families', 'psc_manage_presence',
-    'psc_manage_billing', 'psc_manage_messages', 'psc_manage_config', 'psc_view_health', 'psc_view_audit');
-foreach (array('administrator', 'editor') as $role_name) {
-    $role = get_role($role_name);
-    if ($role) {
-        foreach ($psc_role_caps as $psc_cap) $role->remove_cap($psc_cap);
+// Retire les capacités du plugin (pas de donnée personnelle, aucun risque à
+// le faire systématiquement — même sans PSC_REMOVE_DATA_ON_UNINSTALL — pour
+// ne pas en laisser d'orphelines une fois le plugin supprimé). Découvertes
+// par préfixe, sur tous les rôles (Psc_Installer::sync_roles(), et rôles
+// d'autres extensions auxquels une ancienne version en accordait) et sur
+// les utilisateurs, qui reçoivent les habilitations individuellement
+// (Psc_Admin, écran des habilitations).
+foreach (wp_roles()->role_objects as $psc_role) {
+    foreach (array_keys((array) $psc_role->capabilities) as $psc_cap) {
+        if (strpos((string) $psc_cap, 'psc_') === 0) $psc_role->remove_cap($psc_cap);
     }
 }
-foreach (array('administrator', 'gestionnaire_periscolaire') as $role_name) {
-    $role = get_role($role_name);
-    if ($role) $role->remove_cap('psc_manage_messages');
+$psc_users = get_users(array(
+    'meta_key'     => $GLOBALS['wpdb']->get_blog_prefix() . 'capabilities',
+    'meta_value'   => '"psc_',
+    'meta_compare' => 'LIKE',
+));
+foreach ($psc_users as $psc_user) {
+    foreach (array_keys((array) $psc_user->caps) as $psc_cap) {
+        if (strpos((string) $psc_cap, 'psc_') === 0) $psc_user->remove_cap($psc_cap);
+    }
 }
 delete_option('psc_roles_version');
 
-// Tâche planifiée (purge RGPD des demandes) : retirée dans tous les cas,
-// sinon WordPress continuerait d'appeler un hook dont le code a disparu.
-// Normalement déjà fait à la désactivation, mais la répéter ici est sans
-// risque et couvre le cas d'une suppression de fichiers "à la main".
-wp_clear_scheduled_hook('psc_cleanup_requests');
-wp_clear_scheduled_hook('psc_send_message_emails');
-wp_clear_scheduled_hook('psc_send_scheduled_messages');
-wp_clear_scheduled_hook('psc_cleanup_message_receipts');
-wp_clear_scheduled_hook('psc_cleanup_impersonations');
-wp_clear_scheduled_hook('psc_conversation_notify');
-wp_clear_scheduled_hook('psc_purge_conversations');
-wp_clear_scheduled_hook('psc_purge_audit_log');
+// Tâches planifiées : retirées dans tous les cas, sinon WordPress
+// continuerait d'appeler des hooks dont le code a disparu. Normalement déjà
+// fait à la désactivation, mais le répéter ici est sans risque et couvre le
+// cas d'une suppression de fichiers "à la main". Découvertes par préfixe,
+// comme les tables plus bas (les helpers du plugin ne sont pas chargés ici) ;
+// wp_unschedule_hook() retire aussi les envois ponctuels porteurs d'arguments.
+foreach ((array) _get_cron_array() as $psc_events) {
+    foreach (array_keys((array) $psc_events) as $psc_hook) {
+        if (strpos((string) $psc_hook, 'psc_') === 0) wp_unschedule_hook($psc_hook);
+    }
+}
 
 if (!defined('PSC_REMOVE_DATA_ON_UNINSTALL') || !PSC_REMOVE_DATA_ON_UNINSTALL) {
     return;

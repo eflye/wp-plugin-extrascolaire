@@ -14,6 +14,60 @@ class Psc_School_Years {
 
     const TRANSIENT_PROMOTION = 'psc_pending_promotion';
 
+    /* ---------------- Mémoïsation des lectures (PERF-06) ---------------- */
+
+    /** Année active mémorisée pour la requête (false = pas encore lue). */
+    private static $active = false;
+
+    /** Inscriptions mémorisées : ["child:year" => ligne|null]. */
+    private static $enrollments = array();
+
+    /** Rappels à déclencher quand une table surveillée est modifiée. */
+    private static $watchers = array();
+
+    /** Vide les lectures mémorisées de cette classe. */
+    public static function flush_cache() {
+        self::$active = false;
+        self::$enrollments = array();
+    }
+
+    /**
+     * Invalide une mémoïsation dès qu'une requête d'écriture (INSERT,
+     * UPDATE, DELETE, REPLACE, ALTER, TRUNCATE) vise l'une des tables
+     * $tables, quel qu'en soit l'auteur : méthode du plugin, SQL direct
+     * d'un script, autre module. Le portail lit l'année active une dizaine
+     * de fois par rendu ; une écriture, elle, est rare.
+     *
+     * @param string[] $tables Noms complets ({$wpdb->prefix}psc_…).
+     * @param callable $flush
+     */
+    public static function on_table_write(array $tables, callable $flush) {
+        self::$watchers[] = array($tables, $flush);
+        static $hooked = false;
+        if ($hooked) return;
+        $hooked = true;
+        add_filter('query', function ($sql) {
+            if (!is_string($sql) || !preg_match('/^\s*(INSERT|UPDATE|DELETE|REPLACE|ALTER|TRUNCATE|DROP)\b/i', $sql)) return $sql;
+            foreach (self::$watchers as $w) {
+                foreach ($w[0] as $table) {
+                    if (stripos($sql, $table) !== false) {
+                        call_user_func($w[1]);
+                        break;
+                    }
+                }
+            }
+            return $sql;
+        }, 0);
+    }
+
+    /** Branche l'invalidation des lectures de cette classe (une fois). */
+    private static function watch() {
+        static $done = false;
+        if ($done) return;
+        $done = true;
+        self::on_table_write(array(psc_table('school_years'), psc_table('child_school_years')), array(__CLASS__, 'flush_cache'));
+    }
+
     /* ---------------- Lecture ---------------- */
 
     public static function all() {
@@ -31,9 +85,13 @@ class Psc_School_Years {
     /** Année scolaire active, ou null si aucune (installation neuve). */
     public static function active() {
         global $wpdb;
-        return $wpdb->get_row(
-            "SELECT * FROM " . psc_table('school_years') . " WHERE statut = 'active' ORDER BY id DESC LIMIT 1"
-        );
+        self::watch();
+        if (self::$active === false) {
+            self::$active = $wpdb->get_row(
+                "SELECT * FROM " . psc_table('school_years') . " WHERE statut = 'active' ORDER BY id DESC LIMIT 1"
+            );
+        }
+        return self::$active;
     }
 
     public static function active_id() {
@@ -281,10 +339,15 @@ class Psc_School_Years {
         $school_year_id = $school_year_id ? absint($school_year_id) : self::active_id();
         if (!$child_id || !$school_year_id) return null;
 
-        return $wpdb->get_row($wpdb->prepare(
-            'SELECT * FROM ' . psc_table('child_school_years') . ' WHERE child_id = %d AND school_year_id = %d',
-            $child_id, $school_year_id
-        ));
+        self::watch();
+        $key = $child_id . ':' . $school_year_id;
+        if (!array_key_exists($key, self::$enrollments)) {
+            self::$enrollments[$key] = $wpdb->get_row($wpdb->prepare(
+                'SELECT * FROM ' . psc_table('child_school_years') . ' WHERE child_id = %d AND school_year_id = %d',
+                $child_id, $school_year_id
+            ));
+        }
+        return self::$enrollments[$key];
     }
 
     /** Classe d'un enfant pour une année (année active par défaut), ou ''. */

@@ -6,7 +6,9 @@
 $psc_notices = array(
     'sent'                    => array('updated',  __('Commande envoyée au fournisseur.', 'periscolaire-registration')),
     'psc_invalid_week'        => array('error',    __('Date de semaine invalide.', 'periscolaire-registration')),
-    'psc_no_supplier_email'   => array('error',    __("Aucune adresse e-mail fournisseur n'est configurée. Renseignez-la dans l'onglet Réglages ci-dessus.", 'periscolaire-registration')),
+    'psc_no_supplier_email'   => array('error',    current_user_can('psc_manage_config')
+        ? __("Aucune adresse e-mail fournisseur n'est configurée. Renseignez-la dans l'onglet Réglages ci-dessus.", 'periscolaire-registration')
+        : __("Aucune adresse e-mail fournisseur n'est configurée. Demandez à une personne habilitée aux réglages de la renseigner (onglet Réglages ci-dessus).", 'periscolaire-registration')),
     'psc_mail_failed'         => array('error',    __("L'envoi du mail a échoué. La commande est enregistrée dans l'historique : relancez-la une fois la configuration e-mail vérifiée.", 'periscolaire-registration')),
     'psc_order_not_saved'     => array('error',    __('La commande n’a pas pu être enregistrée : rien n’a été envoyé au fournisseur.', 'periscolaire-registration')),
     'error'                   => array('error',    __('Une erreur est survenue.', 'periscolaire-registration')),

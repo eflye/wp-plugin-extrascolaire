@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.34.1
+Stable tag: 5.35.0
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,16 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.35.0 =
+Corrections issues de l'audit de sécurité, RGPD, performance et qualité (AUDIT.md, statut de chaque constat).
+
+* **Comptes famille :** une nouvelle demande d'inscription ne peut plus modifier une demande déjà en cours. Seul le titulaire peut changer l'adresse de connexion ; l'ancienne adresse est prévenue et peut annuler le changement. Toutes les familles devront se reconnecter une fois après la mise à jour.
+* **Habilitations :** chaque action de l'administration exige l'habilitation de son domaine (refus par défaut). L'export des prélèvements et l'IBAN sont réservés à « Facturation et prélèvements ».
+* **Allergies :** le texte libre des allergies est supprimé ; les fiches qui en portaient un reçoivent le signalement alimentaire. Après l'échange avec la famille, la mairie active « Cantine sans repas » : l'enfant n'est plus compté ni pour le repas ni pour le goûter, et il est facturé au tarif midi sans repas. L'annulation de la cantine d'une classe retire aussi son midi sans repas.
+* **Conservation des données :** purge des foyers sans enfant, des demandes en attente (180 jours), des pièces jointes des échanges et des attestations d'assurance (à partir du 1er octobre qui suit la fin de leur année). Purge des factures après 10 ans, désactivée par défaut (Réglages › Confidentialité). Journal d'audit sans noms ni e-mails.
+* **E-mails :** les envois groupés (factures, menus, fermetures) partent en arrière-plan ; WP-Cron doit tourner. Une fermeture de plusieurs jours donne un seul récapitulatif par famille. Le texte des échanges n'est plus recopié par défaut. Les liens des diffusions expirent après 90 jours.
+* **Schéma 4.20.0 :** suppression des colonnes du texte d'allergies et index du journal d'audit par enfant, appliqués automatiquement à la mise à jour.
 
 = 5.34.1 =
 * **Modèles d'e-mails :** enregistrer la page sans rien modifier ne fige plus les modèles de plusieurs lignes dans leur texte du moment. Ce défaut empêchait l'e-mail d'échange de la 5.34.0 de s'appliquer : il affichait encore « Aucun contenu n'est reproduit ici ». Les modèles figés dans un ancien texte par défaut reprennent d'eux-mêmes le texte actuel ; les vraies personnalisations sont conservées.

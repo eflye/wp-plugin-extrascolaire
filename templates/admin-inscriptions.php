@@ -67,8 +67,8 @@ psc_admin_notice_map(array(
 <?php foreach ($children as $child): ?>
 <div class="psc-box">
 <h2><?php echo esc_html($child->prenom . ' ' . $child->nom); ?><?php if (!empty($child->classe)): ?> <span class="psc-classe">(<?php echo esc_html($child->classe); ?>)</span><?php endif; ?>
-<?php if (psc_user_can_view_health() && trim((string) $child->food_allergies) !== ''): ?>
-<span style="color:#9E4A4A;font-weight:600;"><?php esc_html_e('· Allergies alimentaires :', 'periscolaire-registration'); ?> <?php echo esc_html($child->food_allergies); ?></span>
+<?php if (psc_user_can_view_health() && !empty($child->food_allergy_signal)): ?>
+<span style="color:#9E4A4A;font-weight:600;"><?php esc_html_e('· Signalement alimentaire : échange à prévoir', 'periscolaire-registration'); ?></span>
 <?php endif; ?>
 </h2>
 

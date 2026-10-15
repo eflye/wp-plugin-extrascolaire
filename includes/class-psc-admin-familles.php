@@ -67,7 +67,8 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         Psc_Audit::log('enfant.creation', array(
             'objet_type' => 'enfant', 'objet_id' => $child_id, 'famille_id' => $parent_id, 'enfant_id' => $child_id,
             'apres' => array('nom' => $nom, 'prenom' => $prenom, 'date_naissance' => $naissance ?: null, 'classe' => $classe),
-            'resume' => sprintf(__('Enfant %s %s ajouté par la mairie.', 'periscolaire-registration'), $prenom, $nom),
+            /* translators: %d: identifiant de l'enfant */
+            'resume' => sprintf(__('Enfant #%d ajouté par la mairie.', 'periscolaire-registration'), $child_id),
         ));
 
         self::redirect('psc_children', 'added');
@@ -78,12 +79,14 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         global $wpdb;
         $id = psc_post_int('id');
         if (!$id) self::redirect('psc_children', 'invalid');
-        $child = $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . psc_table('children') . ' WHERE id = %d', $id));
+        $parent_id = (int) $wpdb->get_var($wpdb->prepare('SELECT parent_id FROM ' . psc_table('children') . ' WHERE id = %d', $id));
         self::purge_child($id);
+        // Trace sans identité (RGPD-04) : la fiche vient d'être effacée,
+        // le journal ne doit pas en garder une copie (nom, date de naissance).
         Psc_Audit::log('enfant.suppression', array(
-            'objet_type' => 'enfant', 'objet_id' => $id, 'famille_id' => $child ? (int) $child->parent_id : null, 'enfant_id' => $id,
-            'avant' => $child ? array('nom' => $child->nom, 'prenom' => $child->prenom, 'date_naissance' => $child->date_naissance) : null,
-            'resume' => $child ? sprintf(__('Enfant %s %s supprimé.', 'periscolaire-registration'), $child->prenom, $child->nom) : null,
+            'objet_type' => 'enfant', 'objet_id' => $id, 'famille_id' => $parent_id ?: null, 'enfant_id' => $id,
+            /* translators: %d: identifiant de l'enfant */
+            'resume' => sprintf(__('Enfant #%d supprimé.', 'periscolaire-registration'), $id),
         ));
         self::redirect('psc_children', 'deleted');
     }
@@ -100,6 +103,10 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
     public static function purge_child($child_id) {
         global $wpdb;
         $t_cy = psc_table('child_school_years');
+
+        // Journal d'audit : identité de l'enfant retirée tant que sa fiche
+        // existe encore pour fournir les aiguilles (RGPD-04).
+        Psc_Audit::forget_child((int) $child_id);
 
         $paths = $wpdb->get_col($wpdb->prepare(
             "SELECT assurance_file_path FROM $t_cy WHERE child_id = %d AND assurance_file_path IS NOT NULL",
@@ -131,10 +138,9 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
 
     /**
      * Suppression d'une famille : purge chacun de ses enfants (cf.
-     * purge_child), ses échanges et ses traces d'impersonation. Les demandes
-     * d'inscription historiques (wp_psc_requests) ne référencent pas
-     * parent_id — elles documentent la candidature d'origine, pas le compte,
-     * et ne sont donc pas purgées ici.
+     * purge_child), ses échanges, ses traces d'impersonation, ses demandes
+     * d'inscription (retrouvées par adresse e-mail, elles ne référencent
+     * pas parent_id) et les accusés de lecture de ses diffusions.
      *
      * Les factures ne sont jamais détruites : ce sont des pièces comptables,
      * dont la conservation relève d'une obligation légale qui prime sur la
@@ -189,13 +195,13 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
 
         // Ne pas dépendre uniquement de la contrainte étrangère : certains
         // hébergeurs ne permettent pas sa création (état déjà surveillé).
-        // Constat hors périmètre (non corrigé ici) : cette méthode ne
-        // supprime pas non plus les lignes de psc_message_destinataires de
-        // la famille — un oubli antérieur aux conversations, laissé pour
-        // une correction dédiée.
         Psc_Impersonation::delete_for_family($id);
         Psc_Login_Tokens::forget_parent($id);
         Psc_Conversations::delete_for_family($id);
+        // Demandes d'inscription (titulaire et second parent) et accusés de
+        // lecture des diffusions : même reliquat que l'effaceur RGPD (RGPD-03).
+        Psc_Privacy::forget_requests(array($family_row->email, $family_row->second_parent_email));
+        Psc_Privacy::delete_message_receipts($id);
 
         if ($invoices > 0) {
             $wpdb->update($t_parent, Psc_Privacy::anonymized_parent_fields($id), array('id' => $id));
@@ -203,15 +209,16 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
             $wpdb->delete($t_parent, array('id' => $id), array('%d'));
         }
 
-        // Dernière trace avant disparition : avant complet en liste blanche
-        // (cf. psc_audit_field_policy()), pas seulement l'identifiant.
+        // Dernière trace avant disparition, sans identité (RGPD-04) : le
+        // détail serait de toute façon vidé par forget_family() ci-dessous.
         Psc_Audit::log('famille.suppression', array(
             'objet_type' => 'famille', 'objet_id' => $id, 'famille_id' => $id,
-            'avant' => (array) $family_row,
             'meta'   => array('factures_conservees' => $invoices),
             'resume' => $invoices > 0
-                ? sprintf(__('Famille %s (%s) supprimée ; %d facture(s) conservée(s) au titre de l’obligation comptable, fiche anonymisée.', 'periscolaire-registration'), trim($family_row->nom . ' ' . $family_row->prenom), $family_row->email, $invoices)
-                : sprintf(__('Famille %s (%s) supprimée.', 'periscolaire-registration'), trim($family_row->nom . ' ' . $family_row->prenom), $family_row->email),
+                /* translators: 1: identifiant de la famille, 2: nombre de factures conservées */
+                ? sprintf(_n('Famille #%1$d supprimée ; %2$d facture conservée au titre de l’obligation comptable, fiche anonymisée.', 'Famille #%1$d supprimée ; %2$d factures conservées au titre de l’obligation comptable, fiche anonymisée.', $invoices, 'periscolaire-registration'), $id, $invoices)
+                /* translators: %d: identifiant de la famille */
+                : sprintf(__('Famille #%d supprimée.', 'periscolaire-registration'), $id),
         ));
 
         // Droit à l'oubli : le journal garde la trace des actions passées
@@ -231,7 +238,11 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         if ($anonymized > 0) {
             Psc_Audit::log('audit.purge', array(
                 'meta'   => array('operation' => 'oubli_famille', 'famille_id' => $id, 'lignes_anonymisees' => $anonymized),
-                'resume' => sprintf(__('%d ligne(s) du journal d’audit anonymisée(s) suite à la suppression de la famille #%d.', 'periscolaire-registration'), $anonymized, $id),
+                'resume' => sprintf(
+                    /* translators: 1: nombre de lignes du journal, 2: identifiant de la famille */
+                    _n('%1$d ligne du journal d’audit anonymisée suite à la suppression de la famille #%2$d.', '%1$d lignes du journal d’audit anonymisées suite à la suppression de la famille #%2$d.', $anonymized, 'periscolaire-registration'),
+                    $anonymized, $id
+                ),
             ));
         }
 
@@ -279,7 +290,9 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
             'objet_type' => 'enfant', 'objet_id' => $child_id, 'enfant_id' => $child_id,
             'meta' => array('cantine_sans_repas' => $on ? 1 : 0, 'a_partir_du' => $from, 'periodes' => $result['apres']),
             'resume' => $on
+                /* translators: %s: date de début (jj/mm/aaaa) */
                 ? sprintf(__('Cantine sans repas à partir du %s.', 'periscolaire-registration'), date_i18n('d/m/Y', strtotime($from)))
+                /* translators: %s: date de début (jj/mm/aaaa) */
                 : sprintf(__('Repas rétablis à partir du %s.', 'periscolaire-registration'), date_i18n('d/m/Y', strtotime($from))),
         ));
 
@@ -315,6 +328,7 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         }
         Psc_Audit::log('reglage.version_reglement_consultee', array(
             'objet_type' => 'reglage', 'meta' => array('version' => (int) $version->id),
+            /* translators: %d: numéro de version du règlement */
             'resume' => sprintf(__('Version n° %d d’un règlement consultée.', 'periscolaire-registration'), (int) $version->id),
         ));
         include PSC_PATH . 'templates/admin-reglement-version.php';
@@ -455,8 +469,9 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
             'avant' => array('active' => (int) $parent->active), 'apres' => array('active' => $parent->active ? 0 : 1),
             'meta' => array('vers' => $parent->active ? 'inactif' : 'actif'),
             'resume' => sprintf(
-                $parent->active ? __('Famille %s désactivée.', 'periscolaire-registration') : __('Famille %s réactivée.', 'periscolaire-registration'),
-                trim($parent->nom . ' ' . $parent->prenom) ?: $parent->email
+                /* translators: %d: identifiant de la famille */
+                $parent->active ? __('Famille #%d désactivée.', 'periscolaire-registration') : __('Famille #%d réactivée.', 'periscolaire-registration'),
+                $id
             ),
         ));
         self::redirect('psc_parents', $parent->active ? 'deactivated' : 'reactivated');
@@ -488,26 +503,21 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
         // demande (déjà validée à la source) — la rejeter là rendrait des
         // demandes légitimes inapprovables. Facultatif : seules les valeurs
         // renseignées sont contrôlées.
-        foreach (array(psc_post('code_postal'), psc_post('sepa_code_postal')) as $psc_edit_cp) {
+        foreach (array(psc_post('code_postal'), current_user_can('psc_manage_billing') && empty($_POST['sepa_supprimer']) ? psc_post('sepa_code_postal') : '') as $psc_edit_cp) {
             if ($psc_edit_cp !== '' && !psc_valid_postcode($psc_edit_cp)) {
                 self::redirect('psc_parents', 'bad_code_postal');
             }
         }
 
-        $result = Psc_Parents::update($id, array(
+        $data = array(
             'nom'              => psc_post('nom'),
             'adresse'          => psc_post('adresse'),
             'code_postal'      => psc_post('code_postal'),
             'ville'            => psc_post('ville'),
             'payment_mode'     => psc_post('payment_mode'),
-            'sepa_titulaire'   => psc_post('sepa_titulaire'),
-            'sepa_adresse'     => psc_post('sepa_adresse'),
-            'sepa_code_postal' => psc_post('sepa_code_postal'),
-            'sepa_ville'       => psc_post('sepa_ville'),
-            'sepa_country'     => psc_post('sepa_country', 'FR'),
-            'sepa_iban'        => wp_unslash($_POST['sepa_iban'] ?? ''),
-            'sepa_bic'         => psc_post('sepa_bic'),
-        ));
+        );
+        $data = array_merge($data, self::bank_fields_from_request(current_user_can('psc_manage_billing')));
+        $result = Psc_Parents::update($id, $data);
         if (is_wp_error($result)) {
             wp_safe_redirect(add_query_arg(
                 array('page' => 'psc_parents', 'edit' => $id, 'psc_msg' => $result->get_error_code() === 'psc_bad_country' ? 'bad_country' : ($result->get_error_code() === 'psc_bad_iban' ? 'bad_iban' : 'bad_bic')),
@@ -516,6 +526,42 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
             exit;
         }
         self::redirect('psc_parents', 'updated');
+    }
+
+    /**
+     * Champs bancaires du formulaire d'édition d'une famille (RGPD-07) :
+     * rien sans l'habilitation « Facturation » ($can_billing). L'IBAN n'est
+     * jamais pré-rempli : un champ vide le laisse inchangé ; la case
+     * « Supprimer les coordonnées bancaires » vide IBAN, BIC, titulaire et
+     * adresse SEPA et repasse le foyer hors prélèvement. Le journal
+     * (famille.modification) n'en garde que l'IBAN masqué.
+     *
+     * @return array Champs à passer à Psc_Parents::update().
+     */
+    public static function bank_fields_from_request($can_billing) {
+        if (!$can_billing) return array();
+        if (!empty($_POST['sepa_supprimer'])) {
+            return array(
+                'payment_mode'     => 'autre',
+                'sepa_iban'        => '',
+                'sepa_bic'         => '',
+                'sepa_titulaire'   => '',
+                'sepa_adresse'     => '',
+                'sepa_code_postal' => '',
+                'sepa_ville'       => '',
+            );
+        }
+        $fields = array(
+            'sepa_titulaire'   => psc_post('sepa_titulaire'),
+            'sepa_adresse'     => psc_post('sepa_adresse'),
+            'sepa_code_postal' => psc_post('sepa_code_postal'),
+            'sepa_ville'       => psc_post('sepa_ville'),
+            'sepa_country'     => psc_post('sepa_country', 'FR'),
+            'sepa_bic'         => psc_post('sepa_bic'),
+        );
+        $new_iban = trim(sanitize_text_field(wp_unslash($_POST['sepa_iban'] ?? '')));
+        if ($new_iban !== '') $fields['sepa_iban'] = $new_iban;
+        return $fields;
     }
 
     public static function page_parents() {

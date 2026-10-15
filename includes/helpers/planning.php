@@ -279,16 +279,16 @@ function psc_day_slots(array $day) {
 
 /**
  * Repas fourni : un repas est commandé au fournisseur quand l'enfant
- * déjeune à la cantine. Le midi sans repas n'en a pas (la conversion
- * « cantine sans repas » l'a déjà écrit en MSR), ni l'enfant allergique,
- * dont la famille fournit le repas — il reste attendu et facturé.
+ * déjeune à la cantine. Le midi sans repas n'en a pas : un enfant allergique
+ * passe, après l'échange avec la mairie, au statut « cantine sans repas »,
+ * dont la conversion a déjà écrit son midi en MSR. Le signalement de la
+ * famille, à lui seul, ne change rien.
  *
- * @param array $day          {code => bool} de la journée.
- * @param bool  $food_allergy Allergie alimentaire déclarée.
+ * @param array $day {code => bool} de la journée.
  * @return bool
  */
-function psc_day_meal(array $day, $food_allergy = false) {
-    return !empty($day['CANT']) && !$food_allergy;
+function psc_day_meal(array $day) {
+    return !empty($day['CANT']);
 }
 
 /**

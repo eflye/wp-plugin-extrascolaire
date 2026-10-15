@@ -14,6 +14,20 @@ psc_admin_notice_map($psc_notices, $psc_msg);
 
 <div class="psc-box">
 <h2><?php esc_html_e('Fournisseur de repas', 'periscolaire-registration'); ?></h2>
+<?php if (!current_user_can('psc_manage_config')): ?>
+<?php /* L'enregistrement exige psc_manage_config (psc_save_supplier_settings) :
+         un agent « présences » voit l'adresse sans formulaire voué au refus. */ ?>
+<table class="form-table">
+<tr>
+<th scope="row"><?php esc_html_e('Adresse du fournisseur', 'periscolaire-registration'); ?></th>
+<td>
+  <?php $psc_supplier_email = (string) get_option('psc_supplier_email', ''); ?>
+  <p data-testid="supplier-email-readonly"><?php echo $psc_supplier_email !== '' ? esc_html($psc_supplier_email) : esc_html__('Non renseignée.', 'periscolaire-registration'); ?></p>
+  <p class="description"><?php esc_html_e('Seule une personne habilitée aux réglages peut modifier cette adresse.', 'periscolaire-registration'); ?></p>
+</td>
+</tr>
+</table>
+<?php else: ?>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
 <?php wp_nonce_field('psc_save_supplier_settings'); ?>
 <input type="hidden" name="action" value="psc_save_supplier_settings">
@@ -30,4 +44,5 @@ psc_admin_notice_map($psc_notices, $psc_msg);
 </table>
 <?php submit_button(__('Enregistrer', 'periscolaire-registration'), 'primary', 'submit', false); ?>
 </form>
+<?php endif; ?>
 </div>

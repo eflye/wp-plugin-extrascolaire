@@ -48,9 +48,11 @@ class Psc_Supplier_Orders {
      *   - régime « sans viande » (colonne vegan, libellé côté famille) →
      *     Végétarien — le vocabulaire du fournisseur s'applique à la
      *     génération ;
-     *   - food_allergies renseigné → compté dans AUCUNE colonne repas ni
-     *     goûter : l'enfant apporte les siens, mais reste sur les listes
-     *     de présence avec la mention « apporte son repas ».
+     *   - statut « cantine sans repas » (posé par la mairie après l'échange
+     *     sur l'alimentation) → compté dans AUCUNE colonne repas ni goûter :
+     *     l'enfant apporte les siens (« garderie cantine ») et reste sur les
+     *     listes de présence. Le signalement de la famille ne change rien
+     *     tant que la mairie n'a pas posé ce statut.
      *
      * Les trois régimes sont mutuellement exclusifs : chaque enfant inscrit
      * au déjeuner compte pour exactement un des trois, Total midi = somme
@@ -85,7 +87,7 @@ class Psc_Supplier_Orders {
 
         if (!empty($jours_dates)) {
             $children = $wpdb->get_results(
-                "SELECT c.id, c.sans_porc, c.vegan, c.food_allergies
+                "SELECT c.id, c.sans_porc, c.vegan
                  FROM $t_child c
                  JOIN $t_par p ON p.id = c.parent_id
                  WHERE p.active = 1 AND " . Psc_School_Years::inscrit_sql('c.id', Psc_School_Years::id_for_date($semaine))
@@ -93,13 +95,9 @@ class Psc_Supplier_Orders {
             if ($children) {
                 $child_ids = array_map(function ($c) { return (int) $c->id; }, $children);
                 $declared = Psc_Planning::declared_map($child_ids, array_values($jours_dates));
+                Psc_Sans_Repas::periods($child_ids); // préchargé : un seul aller-retour pour on()
 
                 foreach ($children as $child) {
-                    // Allergie alimentaire déclarée : l'enfant apporte son
-                    // repas ET son goûter fournis par la famille — compté
-                    // dans aucune colonne.
-                    if (trim((string) $child->food_allergies) !== '') continue;
-
                     // Les trois régimes sont mutuellement exclusifs. Sans
                     // viande (vegan) est la restriction la plus large : elle
                     // l'emporte si un jeu de données incohérent cumule les
@@ -114,6 +112,9 @@ class Psc_Supplier_Orders {
                             $rows[$jour][$kind]++;
                             $rows[$jour]['midi']++;
                         }
+                        // « Cantine sans repas » : ni repas (déjà converti en
+                        // MSR) ni goûter, apportés par la famille.
+                        if (Psc_Sans_Repas::on((int) $child->id, $date)) continue;
                         foreach (self::gouter_services() as $svc) {
                             if (!empty($day[$svc])) {
                                 $rows[$jour]['gouter']++;
@@ -242,10 +243,13 @@ class Psc_Supplier_Orders {
      * ------------------------------------------------------------------ */
 
     /**
-     * Enfants de la classe déclarés à la cantine pour un jour donné
-     * (source de vérité unique : psc_is_declared) — utilisé pour avertir
-     * l'admin avant annulation. ->forfait : l'enfant est au forfait ce
-     * jour-là (il garde ses garderies, facturées au tarif unitaire).
+     * Enfants de la classe attendus au midi pour un jour donné, à la cantine
+     * ou en midi sans repas (source de vérité unique : psc_is_declared) —
+     * utilisé pour avertir l'admin avant annulation. ->service : créneau du
+     * midi à retirer (CANT, ou MSR pour un enfant « cantine sans repas »,
+     * absent lui aussi le jour d'une sortie). ->forfait : l'enfant est au
+     * forfait ce jour-là (il garde ses garderies, facturées au tarif
+     * unitaire).
      */
     public static function cantine_registrations_for_class_day($date, $classe) {
         $date = psc_valid_date($date);
@@ -277,7 +281,13 @@ class Psc_Supplier_Orders {
             // Un enfant au forfait est concerné comme les autres : son
             // forfait couvre la cantine, qui est retirée ; la journée est
             // alors facturée garderies seules (psc_billing_services).
-            if (!Psc_Planning::is_declared((int) $child->child_id, $date, 'CANT')) continue;
+            if (Psc_Planning::is_declared((int) $child->child_id, $date, 'CANT')) {
+                $child->service = 'CANT';
+            } elseif (Psc_Planning::is_declared((int) $child->child_id, $date, psc_midi_sans_repas_code())) {
+                $child->service = psc_midi_sans_repas_code();
+            } else {
+                continue;
+            }
             $child->forfait = Psc_Planning::is_declared((int) $child->child_id, $date, psc_forfait_code());
             $out[] = $child;
         }
@@ -319,10 +329,11 @@ class Psc_Supplier_Orders {
             $by_family[$r->parent_id]['items'][] = $r;
         }
 
-        // Une exception de retrait par (enfant, date) : la résolution
-        // repasse à false, la facturation et les listes s'ajustent seules.
+        // Une exception de retrait par (enfant, date), sur le créneau du midi
+        // de l'enfant (cantine ou midi sans repas) : la résolution repasse à
+        // false, la facturation et les listes s'ajustent seules.
         foreach ($rows as $r) {
-            Psc_Planning::toggle_exception((int) $r->child_id, $date, 'CANT', false, true);
+            Psc_Planning::toggle_exception((int) $r->child_id, $date, $r->service, false, true);
         }
 
         $classe_labels = Psc_School_Years::classe_options();

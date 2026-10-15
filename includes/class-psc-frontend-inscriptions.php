@@ -89,7 +89,12 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
 
     /** Année scolaire configurée, ou erreur 403 (planning fermé). */
     protected static function ajax_year() {
-        Psc_School_Year::ensure_default();
+        // Une consultation par la mairie est en lecture seule : comme le
+        // shortcode, la lecture AJAX ne crée jamais l'année par défaut
+        // (PRA-18).
+        if (!Psc_Parents::is_impersonated()) {
+            Psc_School_Year::ensure_default();
+        }
         $year = Psc_School_Year::active();
         if (!$year) {
             wp_send_json_error(array('code' => 'closed'), 403);
@@ -626,7 +631,11 @@ class Psc_Frontend_Inscriptions extends Psc_Frontend_Base {
         Psc_Audit::log('planning.annulation', array(
             'objet_type' => 'planning', 'objet_id' => $child_id, 'famille_id' => (int) $parent->id, 'enfant_id' => $child_id,
             'meta' => array('jours' => count($cancelled_by_date), 'dates' => array_keys($cancelled_by_date)),
-            'resume' => sprintf(__('Absence signalée pour %s sur %d jour(s).', 'periscolaire-registration'), trim($child->prenom . ' ' . $child->nom), count($cancelled_by_date)),
+            'resume' => sprintf(
+                /* translators: 1: identifiant de l'enfant, 2: nombre de jours */
+                _n('Absence signalée pour l’enfant #%1$d sur %2$d jour.', 'Absence signalée pour l’enfant #%1$d sur %2$d jours.', count($cancelled_by_date), 'periscolaire-registration'),
+                (int) $child_id, count($cancelled_by_date)
+            ),
         ));
 
         self::parent_form_redirect('absence_cancelled');

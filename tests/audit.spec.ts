@@ -320,7 +320,12 @@ test.describe('Journal d’audit', () => {
     const success = latestAuditRow('famille.connexion', `AND famille_id=${familyId}`);
     expect(success?.resultat).toBe('succes');
     expect(success?.acteur_type).toBe('famille');
-    expect((success?.acteur_libelle as string) ?? '').toContain(EMAIL_LOGIN);
+    // Journal sans donnée d'identité (RGPD-04, SEC-02/L2) : l'acteur est
+    // désigné par l'identifiant du foyer et le rôle de connexion, jamais
+    // par son adresse e-mail.
+    const libelle = (success?.acteur_libelle as string) ?? '';
+    expect(libelle).toContain(`Famille #${familyId}`);
+    expect(libelle).not.toContain(EMAIL_LOGIN);
   });
 
   test('planning : une bascule en bloc de plusieurs jours ne produit qu’une seule ligne d’audit', async ({ page }) => {

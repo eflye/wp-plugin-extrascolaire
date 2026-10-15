@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.19.0';
+    const DB_VERSION = '4.20.0';
     const ROLES_VERSION = '1.5.0';
 
     public static function activate() {
@@ -71,6 +71,7 @@ class Psc_Installer {
      */
     const STEPS = array(
         '4.17.0' => 'migrate_4_17_0',
+        '4.20.0' => 'migrate_4_20_0',
     );
 
     /**
@@ -94,11 +95,11 @@ class Psc_Installer {
      */
     public static function maybe_upgrade() {
         // Chemin courant, sans écriture : rien à migrer ni à déménager. Le
-        // répertoire privé doit tout de même exister (et porter ses
-        // garde-fous) à chaque chargement, même si un administrateur l'a
-        // supprimé à la main ou si l'hébergeur a réinitialisé le disque.
+        // répertoire privé et ses garde-fous sont (re)posés au premier accès
+        // à un document (psc_private_path()) et à chaque écran de la mairie
+        // (run_upgrade()) — plus à chaque page publique du site (PERF-10).
+        // Les options lues ici sont chargées d'office (autoload).
         if (!self::has_pending_work()) {
-            psc_ensure_private_dir();
             return;
         }
 
@@ -115,8 +116,28 @@ class Psc_Installer {
         }
     }
 
+    /**
+     * Écran d'administration consulté par la mairie : seul contexte où le
+     * chemin complet (contraintes, répertoire privé, reprise immédiate
+     * d'une montée en échec) est rejoué à chaque chargement.
+     *
+     * is_admin() seul est vrai aussi sur admin-ajax.php (planning,
+     * pointage, notifications des familles toutes les 30 s) et sur
+     * admin-post.php (formulaires du portail famille) : ces requêtes
+     * payaient une dizaine de requêtes dont information_schema. Exclus :
+     * AJAX, cron, et tout visiteur sans la capacité du backoffice — une
+     * action admin-post de la mairie (ex. « Relancer la mise à jour » de
+     * l'écran Maintenance) garde le chemin complet.
+     */
+    protected static function is_admin_screen() {
+        if (!is_admin() || wp_doing_ajax() || wp_doing_cron()) {
+            return false;
+        }
+        return function_exists('current_user_can') && current_user_can(psc_manage_cap());
+    }
+
     protected static function has_pending_work() {
-        return is_admin()
+        return self::is_admin_screen()
             || get_option('psc_db_version') !== self::DB_VERSION
             || get_option('psc_roles_version') !== self::ROLES_VERSION
             || get_option('psc_storage_move_failed')
@@ -137,16 +158,20 @@ class Psc_Installer {
 
         psc_ensure_private_dir();
         self::sync_private_dir();
+        // Lue à chaque chargement (has_pending_work()) : présente et chargée
+        // d'office même quand le déménagement n'est pas vérifié (root).
+        $move_failed = get_option('psc_storage_move_failed', array());
+        self::ensure_autoloaded('psc_storage_move_failed', is_array($move_failed) ? $move_failed : array());
 
         // Hors bloc de version également : les contraintes sont idempotentes
         // et bon marché quand tout est en place (trois SELECT). Un ALTER
         // refusé par l'hébergeur est donc retenté à chaque écran admin —
         // plus besoin d'attendre la prochaine montée de version pour que la
         // pose se rejoue — et l'état publié alimente l'alerte admin
-        // (Psc_Admin::notice_db_constraints). Hors admin : la mairie
-        // n'écrit pas, et le coût des requêtes sur information_schema ne
-        // doit pas peser sur le portail public.
-        if (is_admin()) {
+        // (Psc_Admin::notice_db_constraints). Hors écran de la mairie
+        // (portail, admin-ajax, admin-post des familles, cron) : le coût des
+        // requêtes sur information_schema ne doit pas peser sur ces appels.
+        if (self::is_admin_screen()) {
             self::store_constraints_state();
         }
     }
@@ -158,7 +183,7 @@ class Psc_Installer {
      */
     protected static function may_retry_migration() {
         $failed = get_option('psc_migration_failed');
-        return !is_array($failed) || is_admin() || (time() - (int) ($failed['ts'] ?? 0)) >= self::RETRY_DELAY;
+        return !is_array($failed) || self::is_admin_screen() || (time() - (int) ($failed['ts'] ?? 0)) >= self::RETRY_DELAY;
     }
 
     protected static function run_migrations($current) {
@@ -214,12 +239,19 @@ class Psc_Installer {
         delete_option('psc_migration_failed');
 
         if (class_exists('Psc_Audit')) {
-            Psc_Audit::log('systeme.montee_de_version', array(
-            'objet_type' => 'reglage',
-            'meta' => array('ancienne_version' => $current ?: null, 'nouvelle_version' => self::DB_VERSION),
-            'resume' => sprintf(__('Schéma de la base mis à jour (%s → %s).', 'periscolaire-registration'), $current ?: '—', self::DB_VERSION),
-            'acteur' => array('type' => 'systeme', 'id' => null, 'libelle' => 'mise-a-jour-plugin', 'pour_le_compte_de' => null),
-            ));
+            // La montée tourne sur plugins_loaded, avant init : le résumé
+            // traduit attend init (sinon notice « translation loading
+            // triggered too early » depuis WordPress 6.7).
+            $log = function () use ($current) {
+                Psc_Audit::log('systeme.montee_de_version', array(
+                'objet_type' => 'reglage',
+                'meta' => array('ancienne_version' => $current ?: null, 'nouvelle_version' => self::DB_VERSION),
+                /* translators: 1: version précédente du schéma, 2: nouvelle version. */
+                'resume' => sprintf(__('Schéma de la base mis à jour (%1$s → %2$s).', 'periscolaire-registration'), $current ?: '—', self::DB_VERSION),
+                'acteur' => array('type' => 'systeme', 'id' => null, 'libelle' => 'mise-a-jour-plugin', 'pour_le_compte_de' => null),
+                ));
+            };
+            if (did_action('init')) $log(); else add_action('init', $log, 1);
         }
         return true;
     }
@@ -276,6 +308,7 @@ class Psc_Installer {
             Psc_Audit::log('systeme.montee_de_version_echec', array(
                 'objet_type' => 'reglage',
                 'meta'       => array('etape' => $step, 'depuis' => (string) $from, 'requete' => trim($kind . ' ' . $table)),
+                /* translators: %s: version de l'étape de migration */
                 'resume'     => sprintf(__('Mise à jour du schéma arrêtée à l’étape %s ; elle reprendra à cette étape.', 'periscolaire-registration'), $step),
                 'acteur'     => array('type' => 'systeme', 'id' => null, 'libelle' => 'mise-a-jour-plugin', 'pour_le_compte_de' => null),
             ));
@@ -350,6 +383,9 @@ class Psc_Installer {
 
         if ($known === $current) {
             self::storage_move_result('private_dir', true);
+            // Lu à chaque chargement (has_pending_work()) : l'option doit
+            // être chargée d'office, sans requête dédiée (PERF-10).
+            self::ensure_autoloaded('psc_private_dir_path', $current);
             return;
         }
 
@@ -361,8 +397,20 @@ class Psc_Installer {
         }
 
         if (is_dir($current)) {
-            update_option('psc_private_dir_path', $current, false);
+            update_option('psc_private_dir_path', $current, true);
+            self::ensure_autoloaded('psc_private_dir_path', $current);
         }
+    }
+
+    /**
+     * Garantit qu'une option lue à chaque chargement est chargée d'office
+     * (une option créée avec autoload « non » coûte une requête par page).
+     */
+    private static function ensure_autoloaded($name, $value) {
+        $all = wp_load_alloptions();
+        if (is_array($all) && array_key_exists($name, $all)) return;
+        delete_option($name);
+        add_option($name, $value, '', 'yes');
     }
 
     /**
@@ -381,16 +429,19 @@ class Psc_Installer {
         $failed = get_option('psc_storage_move_failed');
         $failed = is_array($failed) ? $failed : array();
         if ($ok) {
-            if (!isset($failed[$source])) return;
+            if (!isset($failed[$source])) {
+                // Option absente : get_option() la cherche en base à chaque
+                // page. Un tableau vide chargé d'office l'évite (PERF-10).
+                self::ensure_autoloaded('psc_storage_move_failed', $failed);
+                return;
+            }
             unset($failed[$source]);
         } else {
             $failed[$source] = array('depuis' => $from, 'vers' => $to, 'restants' => self::count_files($from), 'ts' => time());
         }
-        if ($failed) {
-            update_option('psc_storage_move_failed', $failed, false);
-        } else {
-            delete_option('psc_storage_move_failed');
-        }
+        // Toujours présente et chargée d'office : tableau vide = aucun échec.
+        update_option('psc_storage_move_failed', $failed, true);
+        self::ensure_autoloaded('psc_storage_move_failed', $failed);
     }
 
     protected static function count_files($dir) {
@@ -497,19 +548,56 @@ class Psc_Installer {
         return true;
     }
 
+    /**
+     * 4.20.0 (RGPD-10) — fin du texte libre des allergies, donnée de santé
+     * que le parcours ne collecte plus. Avant de supprimer la colonne, tout
+     * enfant dont le texte était renseigné reçoit le signalement alimentaire,
+     * qui l'exclut des repas de la cantine (règle de la mairie) : aucun
+     * enfant allergique ne perd son exclusion. Le texte est aussi retiré des
+     * demandes d'inscription encore en base, avec la date de consentement
+     * à sa collecte (colonne food_allergy_consent_at supprimée). Idempotente.
+     */
+    private static function migrate_4_20_0() {
+        global $wpdb;
+        $t_child = psc_table('children');
+        $t_req = psc_table('requests');
+
+        if (self::column_exists($t_child, 'food_allergies')) {
+            $done = $wpdb->query("UPDATE $t_child SET food_allergy_signal = 1 WHERE TRIM(COALESCE(food_allergies, '')) <> ''");
+            if ($done === false) return false;
+            if (false === $wpdb->query("ALTER TABLE $t_child DROP COLUMN food_allergies")) return false;
+        }
+        // Consentement à la collecte du texte d'allergies : sans objet une
+        // fois le texte supprimé.
+        if (self::column_exists($t_child, 'food_allergy_consent_at')) {
+            if (false === $wpdb->query("ALTER TABLE $t_child DROP COLUMN food_allergy_consent_at")) return false;
+        }
+
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, children_json FROM $t_req WHERE children_json LIKE %s OR children_json LIKE %s",
+            '%' . $wpdb->esc_like('"food_allergies"') . '%',
+            '%' . $wpdb->esc_like('"food_allergy_consent_at"') . '%'
+        ));
+        foreach ((array) $rows as $row) {
+            $children = json_decode((string) $row->children_json, true);
+            if (!is_array($children)) continue;
+            foreach ($children as &$c) {
+                if (!is_array($c)) continue;
+                if (trim((string) ($c['food_allergies'] ?? '')) !== '') $c['food_allergy_signal'] = 1;
+                unset($c['food_allergies'], $c['food_allergy_consent_at']);
+            }
+            unset($c);
+            $done = $wpdb->update($t_req, array('children_json' => wp_json_encode($children)), array('id' => (int) $row->id));
+            if ($done === false) return false;
+        }
+        return true;
+    }
+
     private static function column_exists($table, $column) {
         global $wpdb;
         return (bool) $wpdb->get_var($wpdb->prepare(
             'SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = %s',
             $table, $column
-        ));
-    }
-
-    private static function index_exists($table, $index) {
-        global $wpdb;
-        return (bool) $wpdb->get_var($wpdb->prepare(
-            'SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND INDEX_NAME = %s',
-            $table, $index
         ));
     }
 
@@ -641,11 +729,6 @@ class Psc_Installer {
     }
 
     /**
-     * Restreint envois.statut aux états du cycle d'envoi (cf. Psc_Envois).
-     * CHECK plutôt qu'ENUM,
-     * que le mode SQL de WordPress remplacerait silencieusement par ''.
-     */
-    /**
      * Restreint la colonne statut d'une table à ses valeurs connues (cf.
      * ensure_envois_status_constraint(), même principe et même tolérance).
      *
@@ -675,6 +758,11 @@ class Psc_Installer {
         return array();
     }
 
+    /**
+     * Restreint envois.statut aux états du cycle d'envoi (cf. Psc_Envois).
+     * CHECK plutôt qu'ENUM,
+     * que le mode SQL de WordPress remplacerait silencieusement par ''.
+     */
     private static function ensure_envois_status_constraint() {
         global $wpdb;
 
@@ -901,6 +989,10 @@ class Psc_Installer {
         // l'enfant : migrate_4_17_0() le convertit en période datée puis
         // supprime la colonne.
         $child_sans_repas_legacy = self::upgrade_before('4.17.0') ? "cantine_sans_repas TINYINT(1) NOT NULL DEFAULT 0,\n            " : '';
+        // Avant 4.20.0, l'enfant portait un texte libre d'allergies :
+        // migrate_4_20_0() le convertit en signalement puis supprime la colonne.
+        $child_allergies_legacy = self::upgrade_before('4.20.0') ? "food_allergies TEXT NULL,\n            " : '';
+        $child_consent_legacy = self::upgrade_before('4.20.0') ? "food_allergy_consent_at DATETIME NULL,\n            " : '';
 
         $sql = "CREATE TABLE $t_years (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -1000,10 +1092,8 @@ CREATE TABLE $t_child (
             date_naissance DATE NULL,
             sans_porc TINYINT(1) NOT NULL DEFAULT 0,
             vegan TINYINT(1) NOT NULL DEFAULT 0,
-            {$child_sans_repas_legacy}food_allergies TEXT NULL,
-            food_allergy_signal TINYINT(1) NOT NULL DEFAULT 0,
-            food_allergy_consent_at DATETIME NULL,
-            created_at DATETIME NOT NULL,
+            {$child_sans_repas_legacy}{$child_allergies_legacy}food_allergy_signal TINYINT(1) NOT NULL DEFAULT 0,
+            {$child_consent_legacy}created_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
             KEY parent_id (parent_id)
         ) $charset_collate;
@@ -1340,6 +1430,7 @@ CREATE TABLE $t_audit_log (
             PRIMARY KEY  (id),
             KEY horodatage (horodatage),
             KEY famille_horodatage (famille_id, horodatage),
+            KEY enfant_horodatage (enfant_id, horodatage),
             KEY acteur (acteur_type, acteur_id, horodatage),
             KEY action_horodatage (action, horodatage),
             KEY categorie_horodatage (categorie, horodatage),

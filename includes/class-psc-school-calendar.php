@@ -59,14 +59,6 @@ class Psc_School_Calendar {
     }
 
     /**
-     * Fermeture MANUELLE posée par la mairie (source 'manual') : formation
-     * des enseignants, fermeture exceptionnelle… Toujours soustraite des
-     * jours d'école, même quand la mairie configure ses propres plages de
-     * vacances (une fermeture exceptionnelle n'est pas une vacation).
-     * Utilisée par Psc_School_Year::day_status() — cf. la règle 1 de
-     * psc_is_declared() : hors jour d'école, toujours false.
-     */
-    /**
      * Cache par requête des fermetures manuelles + préchargement en une
      * requête (preload_manual_closed). day_status() est appelé pour chaque
      * date de chaque résolution : une requête par date était le premier
@@ -102,6 +94,14 @@ class Psc_School_Calendar {
         }
     }
 
+    /**
+     * Fermeture MANUELLE posée par la mairie (source 'manual') : formation
+     * des enseignants, fermeture exceptionnelle… Toujours soustraite des
+     * jours d'école, même quand la mairie configure ses propres plages de
+     * vacances (une fermeture exceptionnelle n'est pas une vacation).
+     * Utilisée par Psc_School_Year::day_status() — cf. la règle 1 de
+     * psc_is_declared() : hors jour d'école, toujours false.
+     */
     public static function is_manually_closed($date_str) {
         if (!array_key_exists($date_str, self::$manual_cache)) {
             global $wpdb;
@@ -122,7 +122,11 @@ class Psc_School_Calendar {
      * cache que is_closed() ; les lectures suivantes n'interrogent plus la base.
      */
     public static function preload_closed($dates) {
-        $dates = array_values(array_unique(array_filter((array) $dates)));
+        // Seules les dates absentes du cache sont lues : un second
+        // préchargement du même mois ne coûte plus de requête.
+        $dates = array_values(array_filter(array_unique(array_filter((array) $dates)), function ($d) {
+            return !isset(self::$closed_cache[$d]);
+        }));
         if (!$dates) return;
         global $wpdb;
         $t = psc_table('school_calendar');
@@ -203,7 +207,30 @@ class Psc_School_Calendar {
                 return new WP_Error('psc_ics_url', __('Adresse de calendrier refusée : elle désigne un réseau interne.', 'periscolaire-registration'));
             }
         }
+        self::$validated_ips[$host] = array_values($ips);
         return true;
+    }
+
+    /** Adresses publiques retenues par la dernière validation, par hôte. */
+    private static $validated_ips = array();
+
+    /**
+     * Entrée CURLOPT_RESOLVE (« hôte:port:adresse ») qui épingle l'hôte de
+     * $url sur une adresse validée par validate_ics_url() : la connexion
+     * part vers l'adresse vérifiée, sans seconde résolution DNS (fenêtre
+     * de DNS rebinding, SEC-11). null si l'hôte est une adresse IP ou n'a
+     * pas été validé.
+     */
+    public static function curl_resolve_entry($url) {
+        $parts = wp_parse_url((string) $url);
+        if (!$parts || empty($parts['host'])) return null;
+        $host = strtolower(trim($parts['host'], '[]'));
+        if (filter_var($host, FILTER_VALIDATE_IP) || empty(self::$validated_ips[$host])) return null;
+        $ips = self::$validated_ips[$host];
+        $v4 = array_values(array_filter($ips, function ($ip) { return (bool) filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4); }));
+        $ip = $v4 ? $v4[0] : '[' . $ips[0] . ']';
+        $port = isset($parts['port']) ? (int) $parts['port'] : (strtolower((string) ($parts['scheme'] ?? '')) === 'https' ? 443 : 80);
+        return $host . ':' . $port . ':' . $ip;
     }
 
     /**
@@ -221,12 +248,27 @@ class Psc_School_Calendar {
             $safe = self::validate_ics_url($url);
             if (is_wp_error($safe)) return $safe;
 
-            $response = wp_remote_get($url, array(
-                'timeout'             => 20,
-                'redirection'         => 0,
-                'limit_response_size' => self::ICS_MAX_BYTES + 1,
-                'reject_unsafe_urls'  => true,
-            ));
+            // Épinglage de l'adresse validée (SEC-11) : cURL se connecte à
+            // l'IP contrôlée ci-dessus au lieu de résoudre l'hôte une seconde
+            // fois. Transport cURL de WordPress uniquement (le seul utilisé
+            // quand l'extension est présente) ; l'hôte TLS reste vérifié.
+            $resolve = self::curl_resolve_entry($url);
+            $pin = function ($handle) use ($resolve) {
+                if ($resolve !== null && defined('CURLOPT_RESOLVE')) {
+                    curl_setopt($handle, CURLOPT_RESOLVE, array($resolve));
+                }
+            };
+            add_action('http_api_curl', $pin, 10, 1);
+            try {
+                $response = wp_remote_get($url, array(
+                    'timeout'             => 20,
+                    'redirection'         => 0,
+                    'limit_response_size' => self::ICS_MAX_BYTES + 1,
+                    'reject_unsafe_urls'  => true,
+                ));
+            } finally {
+                remove_action('http_api_curl', $pin, 10);
+            }
             if (is_wp_error($response)) {
                 return $response;
             }
@@ -322,23 +364,51 @@ class Psc_School_Calendar {
         $count = 0;
         $now   = current_time('mysql');
 
-        $wpdb->query('START TRANSACTION');
-        foreach ($closed_days as $date => $label) {
-            $existing_source = $wpdb->get_var($wpdb->prepare("SELECT source FROM $t WHERE jour_date = %s", $date));
-            if ($existing_source === 'manual') continue; // ne jamais écraser une correction manuelle
+        // Corrections manuelles de la période, lues en UNE requête : elles
+        // priment toujours sur l'import (règle métier n°7) et ne sont pas
+        // comptées. Puis upsert multi-lignes par paquets (PERF-11), avec la
+        // même garde dans ON DUPLICATE KEY UPDATE au cas où une correction
+        // serait posée entre-temps.
+        $dates = array_keys($closed_days);
+        $manual = array();
+        if ($dates) {
+            foreach ((array) $wpdb->get_col($wpdb->prepare(
+                "SELECT jour_date FROM $t WHERE source = 'manual' AND jour_date BETWEEN %s AND %s",
+                min($dates), max($dates)
+            )) as $d) {
+                $manual[(string) $d] = true;
+            }
+        }
 
+        $wpdb->query('START TRANSACTION');
+        $rows = array();
+        foreach ($closed_days as $date => $label) {
+            if (isset($manual[$date])) continue; // ne jamais écraser une correction manuelle
+            $rows[] = array($date, mb_substr($label, 0, 191));
+        }
+        foreach (array_chunk($rows, 200) as $chunk) {
+            $values = array();
+            $args = array();
+            foreach ($chunk as $row) {
+                $values[] = "(%s, %s, 1, 'import', %s, %s)";
+                array_push($args, $row[0], $row[1], $now, $now);
+            }
             $written = $wpdb->query($wpdb->prepare(
                 "INSERT INTO $t (jour_date, label, is_closed, source, created_at, updated_at)
-                 VALUES (%s, %s, 1, 'import', %s, %s)
-                 ON DUPLICATE KEY UPDATE label = VALUES(label), is_closed = 1, source = 'import', updated_at = VALUES(updated_at)",
-                $date, mb_substr($label, 0, 191), $now, $now
+                 VALUES " . implode(', ', $values) . "
+                 ON DUPLICATE KEY UPDATE
+                    label      = IF(source = 'manual', label, VALUES(label)),
+                    is_closed  = IF(source = 'manual', is_closed, 1),
+                    updated_at = IF(source = 'manual', updated_at, VALUES(updated_at)),
+                    source     = IF(source = 'manual', 'manual', 'import')",
+                $args
             ));
             if (false === $written) {
                 $wpdb->query('ROLLBACK');
                 self::flush_closed_cache();
                 return new WP_Error('psc_ics_db', __('Enregistrement du calendrier impossible : rien n’a été modifié.', 'periscolaire-registration'));
             }
-            $count++;
+            $count += count($chunk);
         }
         $wpdb->query('COMMIT');
 
@@ -593,46 +663,29 @@ class Psc_School_Calendar {
     }
 
     /**
-     * Ferme manuellement un jour : marque le jour dans le calendrier
-     * scolaire et notifie les familles qui avaient une déclaration
-     * effective ce jour-là. Le planning étant calculé (rythme + exceptions),
-     * il n'y a plus rien à supprimer en base : psc_is_declared() retourne
-     * false pour un jour fermé, la facturation et les listes s'ajustent
-     * d'elles-mêmes.
+     * Ferme manuellement un jour : même chemin que close_range() sur une
+     * plage d'un jour (récapitulatif par famille envoyé hors requête).
+     * Le planning étant calculé (rythme + exceptions), il n'y a rien à
+     * supprimer en base : psc_is_declared() retourne false pour un jour
+     * fermé, la facturation et les listes s'ajustent d'elles-mêmes.
+     *
+     * @return array|WP_Error Familles concernées (cf. affected_families()).
      */
     public static function close_day($date_str, $label) {
-        $date_str = psc_valid_date($date_str);
-        if (!$date_str) return new WP_Error('invalid_date', __('Date invalide.', 'periscolaire-registration'));
-        $label = $label !== '' ? sanitize_text_field($label) : 'Fermeture exceptionnelle';
-
-        $affected = self::affected_families($date_str);
-
-        global $wpdb;
-        $t   = psc_table('school_calendar');
-        $now = current_time('mysql');
-        $wpdb->query($wpdb->prepare(
-            "INSERT INTO $t (jour_date, label, is_closed, source, created_at, updated_at)
-             VALUES (%s, %s, 1, 'manual', %s, %s)
-             ON DUPLICATE KEY UPDATE label = VALUES(label), is_closed = 1, source = 'manual', updated_at = VALUES(updated_at)",
-            $date_str, $label, $now, $now
-        ));
-
-        if (!empty($affected['families'])) {
-            foreach ($affected['families'] as $fam) {
-                Psc_Mailer::send_day_closed($fam, $date_str, $label);
-            }
-        }
-
-        self::flush_closed_cache();
-        Psc_School_Year::flush_cache();
-        return $affected;
+        $result = self::close_range($date_str, $date_str, $label);
+        return is_wp_error($result) ? $result : $result['affected'];
     }
 
     /**
      * Ferme manuellement une plage de dates (vacances scolaires, fermeture
-     * exceptionnelle...), en appliquant close_day() jour par jour : chaque
-     * jour est marqué fermé dans le calendrier scolaire et les familles
-     * qui avaient une déclaration effective sont notifiées par e-mail.
+     * exceptionnelle...) :
+     *  1. les familles concernées sont calculées UNE fois, avant fermeture ;
+     *  2. tous les jours sont marqués fermés en une transaction (requêtes
+     *     groupées) : une interruption ne laisse pas de jours facturables ;
+     *  3. chaque famille reçoit UN récapitulatif (modèle « day_closed »),
+     *     envoyé par Psc_Envois hors de la requête (type « fermeture »).
+     *
+     * @return array|WP_Error ['days' => int, 'affected' => array, 'bilan' => array|null]
      */
     public static function close_range($date_debut, $date_fin, $label) {
         $date_debut = psc_valid_date($date_debut);
@@ -640,18 +693,193 @@ class Psc_School_Calendar {
         if (!$date_debut || !$date_fin || strtotime($date_fin) < strtotime($date_debut)) {
             return new WP_Error('invalid_date', __('Dates invalides.', 'periscolaire-registration'));
         }
+        $label = $label !== '' ? sanitize_text_field($label) : 'Fermeture exceptionnelle';
 
         $start = new DateTime($date_debut);
         $end   = new DateTime($date_fin);
         $end->modify('+1 day');
-        $period = new DatePeriod($start, new DateInterval('P1D'), $end);
-
-        $count = 0;
-        foreach ($period as $d) {
-            if (++$count > psc_max_school_days()) break;
-            self::close_day($d->format('Y-m-d'), $label);
+        $days = array();
+        foreach (new DatePeriod($start, new DateInterval('P1D'), $end) as $d) {
+            if (count($days) >= psc_max_school_days()) break;
+            $days[] = $d->format('Y-m-d');
         }
-        return $count;
+        $date_fin = end($days);
+
+        $affected = self::affected_families_range($date_debut, $date_fin);
+
+        global $wpdb;
+        $t   = psc_table('school_calendar');
+        $now = current_time('mysql');
+        $wpdb->query('START TRANSACTION');
+        foreach (array_chunk($days, 200) as $chunk) {
+            $rows = array();
+            $args = array();
+            foreach ($chunk as $day) {
+                $rows[] = "(%s, %s, 1, 'manual', %s, %s)";
+                array_push($args, $day, $label, $now, $now);
+            }
+            $ok = $wpdb->query($wpdb->prepare(
+                "INSERT INTO $t (jour_date, label, is_closed, source, created_at, updated_at) VALUES " . implode(', ', $rows) . "
+                 ON DUPLICATE KEY UPDATE label = VALUES(label), is_closed = 1, source = 'manual', updated_at = VALUES(updated_at)",
+                $args
+            ));
+            if ($ok === false) {
+                $wpdb->query('ROLLBACK');
+                return new WP_Error('db_error', __('La fermeture n’a pas pu être enregistrée : aucun jour n’a été fermé.', 'periscolaire-registration'));
+            }
+        }
+        $wpdb->query('COMMIT');
+
+        self::flush_closed_cache();
+        Psc_School_Year::flush_cache();
+
+        $bilan = null;
+        if (!empty($affected['families'])) {
+            $items = array();
+            foreach ($affected['families'] as $pid => $fam) {
+                foreach ($fam['items'] as $item) {
+                    $items[(int) $pid][] = array((int) $item->child_id, (string) $item->jour_date, (string) $item->service);
+                }
+            }
+            $closure_id = self::store_closure(array(
+                'kind' => 'jour', 'debut' => $date_debut, 'fin' => $date_fin, 'label' => $label, 'items' => $items,
+            ));
+            if ($closure_id) {
+                $bilan = Psc_Envois::lancer('fermeture', $closure_id, Psc_Envois::lot(), array_keys($items));
+            }
+        }
+
+        return array('days' => count($days), 'affected' => $affected, 'bilan' => $bilan);
+    }
+
+    /* ------------------------------------------------------------------
+     * Fermetures en attente de notification : ce qu'il faut annoncer à
+     * chaque famille est figé AVANT la fermeture (ensuite, les jours
+     * fermés ne sont plus déclarés). Stocké en option non chargée
+     * d'office, identifiants seulement (enfant, jour, prestation) : les
+     * noms et l'adresse sont relus à l'envoi. Conservé FERMETURE_TTL pour
+     * permettre la relance des échecs, puis purgé.
+     * ------------------------------------------------------------------ */
+
+    const FERMETURE_TTL = 60 * DAY_IN_SECONDS;
+
+    /** Enregistre une fermeture à notifier ; renvoie son identifiant (0 en cas d'échec). */
+    private static function store_closure(array $data) {
+        global $wpdb;
+        self::prune_closures();
+        // Compteur atomique : deux fermetures simultanées n'obtiennent
+        // jamais le même identifiant.
+        $wpdb->query($wpdb->prepare(
+            "INSERT INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, '1', 'no')
+             ON DUPLICATE KEY UPDATE option_value = LAST_INSERT_ID(option_value + 1)",
+            'psc_fermeture_seq'
+        ));
+        $id = (int) $wpdb->rows_affected === 1 ? 1 : (int) $wpdb->insert_id;
+        wp_cache_delete('psc_fermeture_seq', 'options');
+        if ($id < 1) return 0;
+        $data['created'] = time();
+        return add_option('psc_fermeture_' . $id, $data, '', 'no') ? $id : 0;
+    }
+
+    /** Fermeture à notifier, ou null si inconnue ou purgée. */
+    public static function get_closure($id) {
+        $data = get_option('psc_fermeture_' . (int) $id, null);
+        return is_array($data) ? $data : null;
+    }
+
+    /** Purge des fermetures notifiées depuis plus de FERMETURE_TTL. */
+    private static function prune_closures() {
+        global $wpdb;
+        $names = $wpdb->get_col($wpdb->prepare(
+            "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_name <> %s",
+            $wpdb->esc_like('psc_fermeture_') . '%', 'psc_fermeture_seq'
+        ));
+        foreach ((array) $names as $name) {
+            $data = get_option($name, null);
+            if (!is_array($data) || empty($data['created']) || (int) $data['created'] < time() - self::FERMETURE_TTL) {
+                delete_option($name);
+            }
+        }
+    }
+
+    /**
+     * Destinataire et lignes d'une famille, relus au moment de l'envoi :
+     * array('email', 'nom', 'items' => objets child_id, child_prenom,
+     * child_nom, jour_date, service, remaining) — même forme que
+     * families_for(). Un enfant supprimé depuis est ignoré.
+     */
+    private static function family_payload($famille_id, array $rows) {
+        global $wpdb;
+        $parent = Psc_Parents::get_by_id($famille_id);
+        if (!$parent) return new WP_Error('famille_inactive', 'Famille inactive ou supprimée');
+        if (!is_email($parent->email)) return new WP_Error('adresse_invalide', 'Adresse invalide');
+
+        $ids = array_values(array_unique(array_map(function ($r) { return (int) $r[0]; }, $rows)));
+        $ph  = implode(',', array_fill(0, count($ids), '%d'));
+        $children = array();
+        foreach ((array) $wpdb->get_results($wpdb->prepare(
+            'SELECT id, nom, prenom FROM ' . psc_table('children') . " WHERE parent_id = %d AND id IN ($ph)",
+            array_merge(array((int) $famille_id), $ids)
+        )) as $c) {
+            $children[(int) $c->id] = $c;
+        }
+        $items = array();
+        foreach ($rows as $r) {
+            if (!isset($children[(int) $r[0]])) continue;
+            $items[] = (object) array(
+                'child_id'     => (int) $r[0],
+                'child_nom'    => $children[(int) $r[0]]->nom,
+                'child_prenom' => $children[(int) $r[0]]->prenom,
+                'jour_date'    => $r[1],
+                'service'      => $r[2],
+                'remaining'    => isset($r[3]) ? (array) $r[3] : array(),
+            );
+        }
+        if (!$items) return new WP_Error('aucun_enfant', 'Plus aucun enfant concerné');
+        return array('email' => $parent->email, 'nom' => $parent->nom, 'items' => $items);
+    }
+
+    /** Lignes d'une famille dans une fermeture stockée, ou WP_Error. */
+    private static function closure_rows($closure_id, $famille_id, $kind, $group) {
+        $c = self::get_closure($closure_id);
+        if (!$c || ($c['kind'] ?? '') !== $kind) return new WP_Error('fermeture_introuvable', 'Fermeture introuvable');
+        if (empty($c[$group][(int) $famille_id])) return new WP_Error('famille_hors_fermeture', 'Famille non concernée');
+        return array($c, $c[$group][(int) $famille_id]);
+    }
+
+    /** Expéditeur Psc_Envois « fermeture » : récapitulatif d'une plage fermée. */
+    public static function deliver_closure($closure_id, $famille_id) {
+        $found = self::closure_rows($closure_id, $famille_id, 'jour', 'items');
+        if (is_wp_error($found)) return $found;
+        list($c, $rows) = $found;
+        $fam = self::family_payload((int) $famille_id, $rows);
+        if (is_wp_error($fam)) return $fam;
+        return Psc_Mailer::send_closure_recap($fam, $c['debut'], $c['fin'], $c['label']) ? true : new WP_Error('mail_refuse', 'Envoi refusé');
+    }
+
+    /** Expéditeur Psc_Envois « fermeture_service » : prestation fermée, hors forfait. */
+    public static function deliver_service_closure($closure_id, $famille_id) {
+        $found = self::closure_rows($closure_id, $famille_id, 'service', 'direct');
+        if (is_wp_error($found)) return $found;
+        list($c, $rows) = $found;
+        $fam = self::family_payload((int) $famille_id, $rows);
+        if (is_wp_error($fam)) return $fam;
+        return Psc_Mailer::send_service_closed($fam, $c['date'], self::service_label($c['service']), $c['label']) ? true : new WP_Error('mail_refuse', 'Envoi refusé');
+    }
+
+    /** Expéditeur Psc_Envois « forfait_declasse » : forfait journée incomplet. */
+    public static function deliver_forfait_downgrade($closure_id, $famille_id) {
+        $found = self::closure_rows($closure_id, $famille_id, 'service', 'forf');
+        if (is_wp_error($found)) return $found;
+        list($c, $rows) = $found;
+        $fam = self::family_payload((int) $famille_id, $rows);
+        if (is_wp_error($fam)) return $fam;
+        return Psc_Mailer::send_forfait_downgraded($fam, $c['date'], self::service_label($c['service'])) ? true : new WP_Error('mail_refuse', 'Envoi refusé');
+    }
+
+    private static function service_label($code) {
+        $services = psc_services();
+        return isset($services[$code]) ? $services[$code]['label'] : $code;
     }
 
     /** Réouvre un jour (annule une fermeture, import ou manuelle). */
@@ -680,15 +908,6 @@ class Psc_School_Calendar {
      * jour entier — utilisée par le calendrier scolaire v2.
      * ------------------------------------------------------------------ */
 
-
-    public static function is_service_closed($date_str, $service) {
-        global $wpdb;
-        $t = psc_table('service_closures');
-        return (bool) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM $t WHERE jour_date = %s AND service = %s",
-            $date_str, $service
-        ));
-    }
 
     /** Codes des prestations fermées ce jour-là (ex. ['GM']). */
     public static function closed_services_for_date($date_str) {
@@ -760,18 +979,26 @@ class Psc_School_Calendar {
             $date_str, $service, $label, $now, $now
         ));
 
-        $services      = psc_services();
-        $service_label = isset($services[$service]) ? $services[$service]['label'] : $service;
-
-        if (!empty($affected['direct']['families'])) {
-            foreach ($affected['direct']['families'] as $fam) {
-                Psc_Mailer::send_service_closed($fam, $date_str, $service_label, $label);
+        // Notifications figées avant tout envoi, puis confiées à
+        // Psc_Envois (hors requête, reprise et relance comprises).
+        $groups = array();
+        foreach (array('direct' => 'fermeture_service', 'forf' => 'forfait_declasse') as $group => $type) {
+            foreach ((array) $affected[$group]['families'] as $pid => $fam) {
+                foreach ($fam['items'] as $item) {
+                    $row = array((int) $item->child_id, (string) $item->jour_date, (string) $item->service);
+                    if ($group === 'forf') $row[] = array_values((array) ($item->remaining ?? array()));
+                    $groups[$group][(int) $pid][] = $row;
+                }
             }
         }
-
-        if (!empty($affected['forf']['families'])) {
-            foreach ($affected['forf']['families'] as $fam) {
-                Psc_Mailer::send_forfait_downgraded($fam, $date_str, $service_label);
+        if ($groups) {
+            $closure_id = self::store_closure(array(
+                'kind' => 'service', 'date' => $date_str, 'service' => $service, 'label' => $label,
+                'direct' => $groups['direct'] ?? array(), 'forf' => $groups['forf'] ?? array(),
+            ));
+            if ($closure_id) {
+                if (!empty($groups['direct'])) Psc_Envois::lancer('fermeture_service', $closure_id, Psc_Envois::lot(), array_keys($groups['direct']));
+                if (!empty($groups['forf'])) Psc_Envois::lancer('forfait_declasse', $closure_id, Psc_Envois::lot(), array_keys($groups['forf']));
             }
         }
 

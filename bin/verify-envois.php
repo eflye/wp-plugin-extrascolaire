@@ -113,6 +113,13 @@ WP_CLI::add_command('verify-envois', function () {
         $wpdb->insert($t_child, array('parent_id' => $pids[$email], 'nom' => 'VerifyEnvois', 'prenom' => 'Enfant' . $i, 'created_at' => current_time('mysql')));
         Psc_School_Years::enroll((int) $wpdb->insert_id, $year_id, 'CP');
     }
+    // Envoi asynchrone (PERF-02) : lancer() n'envoie en ligne que les
+    // premiers destinataires, la tâche psc_envois_lot fait le reste. On la
+    // joue ici jusqu'à épuisement, comme le ferait WP-Cron.
+    $drain = function ($type, $lot) {
+        while (Psc_Envois::traiter_lot($type, $lot) > 0) {}
+        wp_clear_scheduled_hook('psc_envois_lot', array($type, $lot));
+    };
     $row_statut = function ($type, $objet_id, $pid, $lot) use ($wpdb, $t_env) {
         return $wpdb->get_var($wpdb->prepare("SELECT statut FROM $t_env WHERE objet_type = %s AND objet_id = %d AND famille_id = %d AND lot = %s", $type, $objet_id, $pid, $lot));
     };
@@ -125,7 +132,9 @@ WP_CLI::add_command('verify-envois', function () {
 
         // 1. Échec partiel : la 2e famille est refusée.
         $refuse = array($e2);
-        $bilan = Psc_Menus::send($menu, 'verif-menu-a');
+        Psc_Menus::send($menu, 'verif-menu-a');
+        $drain('menu', 'verif-menu-a');
+        $bilan = Psc_Envois::bilan('menu', (int) $menu->id, 'verif-menu-a');
         $check($row_statut('menu', $menu->id, $pids[$e1], 'verif-menu-a') === 'accepte', 'menu : famille 1 non acceptée');
         $check($row_statut('menu', $menu->id, $pids[$e2], 'verif-menu-a') === 'echec', 'menu : échec de la famille 2 non enregistré');
         $check($bilan[Psc_Envois::ECHEC] >= 1 && $bilan[Psc_Envois::ACCEPTE] === $bilan['total'] - $bilan[Psc_Envois::ECHEC], 'menu : bilan inexact ' . wp_json_encode($bilan));
@@ -134,19 +143,24 @@ WP_CLI::add_command('verify-envois', function () {
         // 2. Double soumission du même formulaire : aucun renvoi.
         $before = $count($e1);
         Psc_Menus::send($menu, 'verif-menu-a');
+        $drain('menu', 'verif-menu-a');
         $check($count($e1) === $before, 'menu : double soumission renvoyée à une famille déjà servie');
 
         // 3. Relance : seuls les échecs repartent, puis le menu est envoyé.
         $refuse = array();
         $before1 = $count($e1);
-        $bilan = Psc_Menus::relancer($menu);
+        Psc_Menus::relancer($menu);
+        $drain('menu', 'verif-menu-a');
+        $bilan = Psc_Envois::bilan('menu', (int) $menu->id, 'verif-menu-a');
         $check($count($e1) === $before1 && $count($e2) === 1, 'menu : la relance a renvoyé autre chose que les échecs');
         $check($bilan[Psc_Envois::ECHEC] === 0 && $bilan[Psc_Envois::ACCEPTE] === $bilan['total'], 'menu : relance incomplète ' . wp_json_encode($bilan));
         $check((bool) $wpdb->get_var($wpdb->prepare("SELECT sent_at FROM $t_menu WHERE id = %d", $menu->id)), 'menu : non marqué envoyé après relance complète');
 
         // 4. Coupure totale : aucun succès annoncé.
         $coupure = true;
-        $bilan = Psc_Menus::send($menu, 'verif-menu-b');
+        Psc_Menus::send($menu, 'verif-menu-b');
+        $drain('menu', 'verif-menu-b');
+        $bilan = Psc_Envois::bilan('menu', (int) $menu->id, 'verif-menu-b');
         $coupure = false;
         $check($bilan[Psc_Envois::ACCEPTE] === 0 && $bilan[Psc_Envois::ECHEC] === $bilan['total'], 'menu : coupure SMTP, succès annoncé ' . wp_json_encode($bilan));
 

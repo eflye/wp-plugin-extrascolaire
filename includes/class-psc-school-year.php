@@ -163,11 +163,6 @@ class Psc_School_Year {
         return $ranges;
     }
 
-    /** La mairie a-t-elle configuré ses propres plages de vacances ? */
-    protected static function has_custom_vacations($year_key = null) {
-        return !empty(self::vacation_ranges($year_key));
-    }
-
     /** Un jour est-il en vacances (plages configurées, sinon calendrier importé) ? */
     public static function is_vacation($date) {
         $ranges = self::vacation_ranges(self::year_key_for_date($date));

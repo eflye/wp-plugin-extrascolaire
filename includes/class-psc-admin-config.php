@@ -63,6 +63,20 @@ class Psc_Admin_Config extends Psc_Admin_Base {
     public static function handle_save_settings() {
         self::guard('psc_save_settings');
 
+        // Options réellement modifiées par cet enregistrement (noms seuls,
+        // jamais les valeurs) : le journal ne liste plus tous les champs du
+        // formulaire comme « modifiés » (PRA-17).
+        $changed = array();
+        $track = function ($name, $old = null, $new = null) use (&$changed) {
+            if (strpos((string) $name, 'psc_') !== 0) return;
+            if (func_num_args() >= 3 && $old === $new) return;
+            $changed[(string) $name] = true;
+        };
+        $on_update = function ($name, $old, $new) use ($track) { $track($name, $old, $new); };
+        $on_add = function ($name) use ($track) { $track($name); };
+        add_action('updated_option', $on_update, 10, 3);
+        add_action('added_option', $on_add, 10, 1);
+
         // Valider les coordonnées avant toute sauvegarde des réglages.
         $org_iban_raw = wp_unslash($_POST['org_iban'] ?? '');
         $org_bic_raw = wp_unslash($_POST['org_bic'] ?? '');
@@ -98,8 +112,16 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         if (class_exists('Psc_Sidscm')) {
             $rows = isset($_POST['sidscm_intervenants']) && is_array($_POST['sidscm_intervenants']) ? wp_unslash($_POST['sidscm_intervenants']) : array();
             update_option('psc_sidscm_intervenants', Psc_Sidscm::sanitize_intervenants($rows));
+            // Codes refusés (trop courts, SEC-03) : noms gardés le temps de
+            // l'affichage suivant, pour cet utilisateur seulement — jamais
+            // dans l'URL.
+            $rejected = method_exists('Psc_Sidscm', 'rejected_codes') ? Psc_Sidscm::rejected_codes() : array();
+            if ($rejected) {
+                set_transient('psc_sidscm_rejected_' . get_current_user_id(), array_values($rejected), 5 * MINUTE_IN_SECONDS);
+            }
         }
         update_option('psc_sidscm_page_id', psc_post_int('sidscm_page_id', 0));
+        update_option('psc_form_page_id', psc_post_int('form_page_id', 0));
 
         $mairie_mail = isset($_POST['mairie_email']) ? sanitize_email(wp_unslash($_POST['mairie_email'])) : '';
         update_option('psc_mairie_email', is_email($mairie_mail) ? $mairie_mail : '');
@@ -108,6 +130,10 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         update_option('psc_conversations_email', is_email($conversations_mail) ? $conversations_mail : '');
 
         update_option('psc_conversations_contenu_email', isset($_POST['conversations_contenu_email']) ? 1 : 0);
+
+        // Conservation des factures (RGPD-08) : 10 ans révolus au minimum.
+        update_option('psc_invoice_retention_enabled', isset($_POST['invoice_retention_enabled']) ? 1 : 0, false);
+        update_option('psc_invoice_retention_years', max(10, min(30, psc_post_int('invoice_retention_years', 10))), false);
 
         $conv_delai = psc_post_int('conversations_delai_heures', 48);
         update_option('psc_conversations_delai_heures', max(1, min(240, $conv_delai)));
@@ -179,12 +205,7 @@ class Psc_Admin_Config extends Psc_Admin_Base {
 
         // Table de correspondance des classes (passage d'année) : un select
         // par classe existante vers sa classe suivante, ou "sortie".
-        $progression = array();
-        foreach (array_keys(Psc_School_Years::classe_options()) as $code) {
-            if ($code === '') continue;
-            $next = isset($_POST['progression_' . $code]) ? sanitize_text_field(wp_unslash($_POST['progression_' . $code])) : 'sortie';
-            $progression[$code] = $next;
-        }
+        $progression = self::sanitize_progression(wp_unslash($_POST));
         update_option('psc_classe_progression', $progression);
 
         $reins_debut = psc_valid_date(psc_post('reinscription_debut'));
@@ -192,15 +213,42 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         update_option('psc_reinscription_debut', $reins_debut ?: '');
         update_option('psc_reinscription_fin', $reins_fin ?: '');
 
-        // La liste des clés modifiées (noms de champs, jamais leur valeur —
+        // La liste des options modifiées (noms, jamais leur valeur —
         // certaines portent des coordonnées bancaires ou un code d'accès)
         // suffit à documenter QUOI a changé sans y exposer de secret.
+        remove_action('updated_option', $on_update, 10);
+        remove_action('added_option', $on_add, 10);
         Psc_Audit::log('reglage.modification', array(
             'objet_type' => 'reglage',
-            'meta' => array('champs' => array_values(array_diff(array_keys($_POST), array('action', '_wpnonce', '_wp_http_referer')))),
+            'meta' => array('champs' => array_keys($changed)),
         ));
 
         self::redirect('psc_settings', $ics_refused ? 'ics_url_refused' : ($privacy_refused ? 'privacy_refused' : 'saved'));
+    }
+
+    /**
+     * Table de passage d'année reçue du formulaire (champs progression_{code}) :
+     * seule une classe connue ou « sortie » est acceptée ; une valeur
+     * inconnue (formulaire forgé) conserve la correspondance en place, un
+     * champ absent vaut « sortie » (comportement historique).
+     *
+     * @param array $input Données du formulaire, déjà déséchappées.
+     * @return array [code => classe suivante | 'sortie']
+     */
+    public static function sanitize_progression(array $input) {
+        $progression = array();
+        $classes = array_keys(Psc_School_Years::classe_options());
+        $current = Psc_School_Years::classe_progression();
+        foreach ($classes as $code) {
+            if ($code === '') continue;
+            $next = isset($input['progression_' . $code]) && is_string($input['progression_' . $code])
+                ? sanitize_text_field($input['progression_' . $code]) : 'sortie';
+            if ($next !== 'sortie' && ($next === '' || !in_array($next, $classes, true))) {
+                $next = isset($current[$code]) ? (string) $current[$code] : 'sortie';
+            }
+            $progression[$code] = $next;
+        }
+        return $progression;
     }
 
     public static function page_settings() {

@@ -7,13 +7,13 @@ class Psc_Admin_Assurances {
     }
 
     public static function handle_review() {
-        if (!current_user_can('psc_manage_families')) wp_die('Accès refusé.', '', array('response' => 403));
+        if (!current_user_can('psc_manage_families')) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         $child_id = psc_post_int('child_id');
         $year_id = psc_post_int('school_year_id');
         check_admin_referer('psc_review_assurance_' . $child_id . '_' . $year_id);
         $status = psc_post('decision');
         $note = sanitize_textarea_field(wp_unslash($_POST['review_note'] ?? ''));
-        if ($status === 'rejected' && trim($note) === '') wp_die('Précisez le motif du refus pour la famille.');
+        if ($status === 'rejected' && trim($note) === '') wp_die(esc_html__('Précisez le motif du refus pour la famille.', 'periscolaire-registration'), '', array('response' => 400, 'back_link' => true));
         $ok = Psc_Assurances::review($child_id, $year_id, psc_post('revision'), $status, $note);
         if ($ok) {
             Psc_Audit::log('assurance.validation', array(
@@ -27,7 +27,7 @@ class Psc_Admin_Assurances {
     }
 
     public static function page() {
-        if (!current_user_can('psc_manage_families')) wp_die('Accès refusé.', '', array('response' => 403));
+        if (!current_user_can('psc_manage_families')) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
         global $wpdb;
         $year_id = Psc_School_Years::active_id();
         $children_table = psc_table('children');

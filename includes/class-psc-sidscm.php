@@ -23,7 +23,13 @@ if (!defined('ABSPATH')) exit;
 class Psc_Sidscm {
 
     const SESSION_TTL = 28800;
+    /** Longueur minimale d'un code individuel créé ou modifié (SEC-03). */
+    const MIN_CODE_LENGTH = 8;
+    /** Codes erronés tolérés par heure pour un même intervenant (SEC-03). */
+    const BAD_CODES_PER_ID = 10;
     private static $request_actor = null;
+    /** @var string[] Noms des intervenants dont le nouveau code a été refusé au dernier enregistrement. */
+    private static $rejected_codes = array();
 
 
     public static function init() {
@@ -36,6 +42,10 @@ class Psc_Sidscm {
         // du thème n'a pas sa place ici, ni au tout premier écran de code.
         add_filter('the_content', array(__CLASS__, 'hide_page_chrome'), 20);
         add_filter('body_class', array(__CLASS__, 'add_body_class'));
+        // En-têtes privés émis avant tout rendu (PRA-09) : depuis le
+        // shortcode, ils partaient trop tard sur un WordPress sans tampon
+        // de gabarit.
+        add_action('template_redirect', array(__CLASS__, 'private_headers'));
 
         add_action('wp_ajax_nopriv_psc_sidscm_unlock', array(__CLASS__, 'ajax_unlock'));
         add_action('wp_ajax_psc_sidscm_unlock', array(__CLASS__, 'ajax_unlock'));
@@ -52,35 +62,15 @@ class Psc_Sidscm {
     /**
      * ID de la page "Accès intervenants" — d'abord la page choisie en
      * Réglages (psc_sidscm_page_id), sinon la première page publiée
-     * portant le shortcode [periscolaire_sidscm] (même stratégie de
-     * repli que Psc_Mailer::form_page_url() pour la page famille). 0 si
-     * rien n'est configuré ni détectable.
+     * portant le shortcode [periscolaire_sidscm] (même helper que
+     * Psc_Mailer::form_page_url() pour la page famille). 0 si rien n'est
+     * configuré ni détectable.
      */
     public static function page_id() {
-        $id = (int) get_option('psc_sidscm_page_id', 0);
-        if ($id && get_post_status($id) === 'publish') {
-            return $id;
-        }
-
-        $found = get_transient('psc_sidscm_page_lookup');
-        if ($found === false) {
-            $found = 0;
-            $pages = get_posts(array(
-                'post_type'   => 'page',
-                'post_status' => 'publish',
-                'numberposts' => 50,
-                's'           => 'periscolaire_sidscm',
-            ));
-            foreach ($pages as $p) {
-                if (has_shortcode($p->post_content, 'periscolaire_sidscm')) {
-                    $found = $p->ID;
-                    break;
-                }
-            }
-            set_transient('psc_sidscm_page_lookup', $found, DAY_IN_SECONDS);
-        }
-
-        return (int) $found;
+        // Recherche commune avec la page du portail (PRA-12) : option des
+        // Réglages, sinon détection mise en cache et invalidée à chaque
+        // enregistrement de page.
+        return psc_shortcode_page_id('periscolaire_sidscm', 'psc_sidscm_page_id');
     }
 
     /** URL de la page "Accès intervenants", ou l'accueil du site si introuvable. */
@@ -93,6 +83,13 @@ class Psc_Sidscm {
         if (!is_singular()) return false;
         $post = get_post();
         return $post && has_shortcode($post->post_content, 'periscolaire_sidscm');
+    }
+
+    /** template_redirect : en-têtes privés sur la page de l'écran intervenants. */
+    public static function private_headers() {
+        if (self::page_has_shortcode()) {
+            Psc_Frontend::send_private_headers();
+        }
     }
 
     public static function hide_page_chrome($content) {
@@ -111,13 +108,10 @@ class Psc_Sidscm {
         // Listes nominatives + allergies + coordonnées de tiers : mêmes
         // en-têtes anti-intermédiaires que le portail famille (cf.
         // Psc_Frontend::shortcode()), et le code d'accès passe dans le
-        // rendu initial.
-        if (!headers_sent()) {
-            header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0', true);
-            header('Pragma: no-cache', true);
-            header('Expires: Wed, 11 Jan 1984 05:00:00 GMT', true);
-        }
-        nocache_headers();
+        // rendu initial. Émis normalement sur template_redirect
+        // (private_headers()) ; ici, filet pour un shortcode placé hors
+        // d'une page singulière (sans effet si les en-têtes sont partis).
+        Psc_Frontend::send_private_headers();
 
         ob_start();
         include PSC_PATH . 'templates/sidscm.php';
@@ -149,16 +143,22 @@ class Psc_Sidscm {
             // traduits côté serveur, codes et attributs techniques restent bruts.
             'i18n'     => array(
                 'empty_day'     => __('Aucun enfant attendu ce jour pour ce service.', 'periscolaire-registration'),
-                'present_count' => __('%s / %s présents', 'periscolaire-registration'),
+                // Pluriel choisi côté navigateur (le nombre n'est connu
+                // qu'au pointage) : les deux formes de _n() sont transmises,
+                // calculées pour 1 et pour 2.
+                /* translators: 1: nombre d'enfants pointés présents, 2: nombre d'enfants attendus */
+                'present_count'      => _n('%1$s / %2$s présent', '%1$s / %2$s présents', 2, 'periscolaire-registration'),
+                /* translators: 1: nombre d'enfants pointés présents, 2: nombre d'enfants attendus */
+                'present_count_one'  => _n('%1$s / %2$s présent', '%1$s / %2$s présents', 1, 'periscolaire-registration'),
                 'authorised'    => __('Autorisés', 'periscolaire-registration'),
                 'arrival'       => __('Arrivée', 'periscolaire-registration'),
                 'departure'     => __('Départ', 'periscolaire-registration'),
                 'no_authorised' => __('Aucune personne autorisée renseignée.', 'periscolaire-registration'),
+                'authorised_current_week' => __('Personnes autorisées consultables uniquement pour la semaine en cours.', 'periscolaire-registration'),
                 'choose_week' => __('Semaine à consulter', 'periscolaire-registration'),
                 'load_error' => __('Chargement impossible. Réessayez.', 'periscolaire-registration'),
                 'week'          => __('semaine', 'periscolaire-registration'),
                 'child'         => __('Enfant', 'periscolaire-registration'),
-                'brings_meal'   => __('Apporte son repas — à ne pas compter dans les couverts', 'periscolaire-registration'),
                 'no_meal'       => __('Midi sans repas — à ne pas compter dans les couverts', 'periscolaire-registration'),
             ),
         ));
@@ -181,8 +181,37 @@ class Psc_Sidscm {
         })));
     }
 
+    /**
+     * Intervenant du registre actif à ce jour (ni désactivé, ni révoqué,
+     * ni expiré), ou null.
+     *
+     * @return array|null
+     */
+    public static function find_active_intervenant($id) {
+        $id = (string) $id;
+        if ($id === '') return null;
+        foreach (self::intervenants() as $row) {
+            if ((string) $row['id'] !== $id) continue;
+            if (empty($row['active']) || !empty($row['revoked_at']) || (($row['expires_at'] ?? '') !== '' && $row['expires_at'] < current_time('Y-m-d'))) return null;
+            return $row;
+        }
+        return null;
+    }
+
+    /**
+     * Noms des intervenants dont le nouveau code a été refusé par le
+     * dernier appel à sanitize_intervenants() (trop court) : l'écran des
+     * réglages les signale. Un intervenant existant garde alors son code.
+     *
+     * @return string[]
+     */
+    public static function rejected_codes() {
+        return self::$rejected_codes;
+    }
+
     public static function sanitize_intervenants($raw) {
         $out = array();
+        self::$rejected_codes = array();
         foreach (is_array($raw) ? $raw : array() as $row) {
             if (!is_array($row)) continue;
             $nom = sanitize_text_field($row['nom'] ?? '');
@@ -192,6 +221,14 @@ class Psc_Sidscm {
             if ($id === '') $id = sanitize_key(substr(md5($nom . wp_generate_uuid4()), 0, 12));
             $old = null;
             foreach (self::intervenants() as $candidate) if ((string) $candidate['id'] === $id) { $old = $candidate; break; }
+            // Un code créé ou modifié doit compter au moins MIN_CODE_LENGTH
+            // caractères (SEC-03) ; les codes déjà enregistrés restent
+            // valables. Refusé : l'ancien code est conservé (nouvel
+            // intervenant : il n'est pas créé) et l'écran le signale.
+            if ($code !== '' && mb_strlen($code) < self::MIN_CODE_LENGTH) {
+                self::$rejected_codes[] = mb_substr($nom, 0, 120);
+                $code = '';
+            }
             $hash = $code !== '' ? wp_hash_password($code) : (!empty($old['code_hash']) ? $old['code_hash'] : '');
             if ($hash === '') continue;
             $out[] = array(
@@ -217,12 +254,25 @@ class Psc_Sidscm {
             // configurée, comme le code lui-même (cf. ci-dessous). Exiger
             // un id refusait toute requête après le déverrouillage.
             $legacy_ok = is_array($actor) && array_key_exists('id', $actor) && $actor['id'] === null && !self::intervenants();
-            if (is_array($actor) && !empty($actor['nom']) && (!empty($actor['id']) || $legacy_ok)) { set_transient(self::session_key($token), $actor, self::SESSION_TTL); self::$request_actor = $actor; return $actor; }
+            // Le registre est revérifié à chaque appel (SEC-03) : un
+            // intervenant révoqué, désactivé ou expiré perd sa session
+            // tout de suite, pas au bout de 8 h.
+            $row = is_array($actor) && !empty($actor['id']) ? self::find_active_intervenant($actor['id']) : null;
+            if (is_array($actor) && !empty($actor['nom']) && ($row || $legacy_ok)) {
+                if ($row) $actor['nom'] = (string) $row['nom'];
+                set_transient(self::session_key($token), $actor, self::SESSION_TTL);
+                self::$request_actor = $actor;
+                return $actor;
+            }
+            if ($actor !== false) delete_transient(self::session_key($token));
         }
         $rows = self::intervenants();
         foreach ($rows as $row) {
             if (empty($row['active']) || !empty($row['revoked_at']) || ($row['expires_at'] !== '' && $row['expires_at'] < current_time('Y-m-d'))) continue;
-            if ($id !== '' && (string) $row['id'] !== $id) continue;
+            // L'intervenant est désigné (SEC-03) : un code n'est jamais
+            // essayé contre tout le registre. L'écran de déverrouillage
+            // transmet toujours l'identifiant choisi.
+            if ($id === '' || (string) $row['id'] !== $id) continue;
             if (!empty($row['code_hash']) && wp_check_password($code, $row['code_hash'])) {
                 $actor = array('id' => (string) $row['id'], 'nom' => (string) $row['nom']);
                 self::$request_actor = $actor;
@@ -275,13 +325,26 @@ class Psc_Sidscm {
      * rafale de pointage ne peut pas s'y faire bloquer.
      */
     protected static function require_code() {
-        $actor = self::authenticate((string) psc_post('session_token'), sanitize_key((string) psc_post('intervenant_id')), (string) psc_post('code'));
+        $id = sanitize_key((string) psc_post('intervenant_id'));
+        $actor = self::authenticate((string) psc_post('session_token'), $id, (string) psc_post('code'));
         if ($actor) return $actor;
 
-        if (!psc_rate_limit_by_ip('sidscm_bad_', 20, HOUR_IN_SECONDS)) {
+        if (!self::count_bad_code($id)) {
             wp_send_json_error(array('code' => 'rate'), 429);
         }
         wp_send_json_error(array('code' => 'auth'), 403);
+    }
+
+    /**
+     * Compte un échec d'authentification : 20 par heure et par IP, et en
+     * plus 10 par heure et par intervenant visé (SEC-03), pour qu'un
+     * attaquant changeant d'adresse IP ne puisse pas éprouver un même
+     * code indéfiniment. Faux si une limite est atteinte.
+     */
+    private static function count_bad_code($id) {
+        $ok_ip = psc_rate_limit_by_ip('sidscm_bad_', 20, HOUR_IN_SECONDS);
+        $ok_id = $id === '' || psc_rate_limit('sidscm_bad_id_' . $id, self::BAD_CODES_PER_ID, HOUR_IN_SECONDS);
+        return $ok_ip && $ok_id;
     }
 
     /* ---------------- Cohérence jour/service ---------------- */
@@ -326,6 +389,50 @@ class Psc_Sidscm {
         return Psc_Planning::is_declared($child_id, $date, $service);
     }
 
+    /**
+     * Écrit un pointage (ligne enfant × jour × service) en une seule
+     * requête : INSERT … ON DUPLICATE KEY UPDATE sur la clé unique
+     * child_date_service. Un « lire puis insérer » laissait deux appels
+     * simultanés (double appui) se marcher dessus, et la réponse annonçait
+     * un succès même quand l'écriture avait échoué. Seules les colonnes
+     * de $values (plus pointed_at) sont écrites : une heure d'arrivée ne
+     * touche jamais `present`, et inversement. Répond en erreur, sans
+     * revenir, si l'écriture échoue.
+     *
+     * @param array $values colonne => valeur ; null écrit NULL.
+     */
+    private static function save_attendance($child_id, $date, $service, array $values) {
+        global $wpdb;
+        $t_att = psc_table('attendance');
+        $values['pointed_at'] = current_time('mysql');
+        $row = array('child_id' => (int) $child_id, 'jour_date' => $date, 'service' => $service) + $values;
+
+        $placeholders = array();
+        $args = array();
+        foreach ($row as $value) {
+            if ($value === null) {
+                $placeholders[] = 'NULL';
+                continue;
+            }
+            $placeholders[] = is_int($value) ? '%d' : '%s';
+            $args[] = $value;
+        }
+        $updates = array();
+        foreach (array_keys($values) as $column) {
+            $updates[] = "$column = VALUES($column)";
+        }
+
+        $ok = $wpdb->query($wpdb->prepare(
+            "INSERT INTO $t_att (" . implode(', ', array_keys($row)) . ')
+             VALUES (' . implode(', ', $placeholders) . ')
+             ON DUPLICATE KEY UPDATE ' . implode(', ', $updates),
+            $args
+        ));
+        if ($ok === false) {
+            wp_send_json_error(array('code' => 'save'), 500);
+        }
+    }
+
     public static function ajax_unlock() {
         check_ajax_referer('psc_sidscm_front', 'nonce');
 
@@ -333,12 +440,18 @@ class Psc_Sidscm {
             wp_send_json_error(array('code' => 'rate'), 429);
         }
 
-        $actor = self::authenticate('', sanitize_key((string) psc_post('intervenant_id')), (string) psc_post('code'));
+        $id = sanitize_key((string) psc_post('intervenant_id'));
+        // Intervenant verrouillé par trop d'échecs : refusé avant même de
+        // tester le code (sinon le bon code finirait par passer).
+        if ($id !== '' && psc_rate_limit_reached('sidscm_bad_id_' . $id, self::BAD_CODES_PER_ID)) {
+            wp_send_json_error(array('code' => 'rate'), 429);
+        }
+        $actor = self::authenticate('', $id, (string) psc_post('code'));
         if (!$actor) {
             // Les échecs de déverrouillage comptent aussi dans le seau
             // partagé des mauvais codes (cf. require_code()) : 20 essais
-            // ratés par heure et par IP, sur l'ensemble des endpoints.
-            if (!psc_rate_limit_by_ip('sidscm_bad_', 20, HOUR_IN_SECONDS)) {
+            // ratés par heure et par IP, 10 par intervenant visé.
+            if (!self::count_bad_code($id)) {
                 wp_send_json_error(array('code' => 'rate'), 429);
             }
             Psc_Audit::log('intervenant.deverrouillage', array('resultat' => 'refus', 'resume' => __('Code d’accès intervenants invalide.', 'periscolaire-registration')));
@@ -376,7 +489,8 @@ class Psc_Sidscm {
         $weeks = array();
         for ($offset = 0; $offset <= 8; $offset++) {
             $start = date('Y-m-d', strtotime($current_week . ' +' . $offset . ' weeks'));
-            $weeks[$start] = sprintf(__('Semaine du %s au %s', 'periscolaire-registration'), date_i18n('d/m/Y', strtotime($start)), date_i18n('d/m/Y', strtotime($start . ' +4 days')));
+            /* translators: 1: date du lundi, 2: date du vendredi (jj/mm/aaaa) */
+            $weeks[$start] = sprintf(__('Semaine du %1$s au %2$s', 'periscolaire-registration'), date_i18n('d/m/Y', strtotime($start)), date_i18n('d/m/Y', strtotime($start . ' +4 days')));
         }
         $monday = psc_post('week') ?: $current_week;
         if (!isset($weeks[$monday])) wp_send_json_error(array('code' => 'invalid_week'), 400);
@@ -401,7 +515,9 @@ class Psc_Sidscm {
             wp_send_json_success($out);
         }
 
-        $week = self::week_children($open_days);
+        // Personnes autorisées (noms, téléphones de tiers) : seulement pour
+        // la semaine en cours, la seule où un départ se contrôle (RGPD-06).
+        $week = self::week_children($open_days, $monday === $current_week);
         $out['children']   = $week['children'];
         $out['attendance'] = $week['attendance'] ?: new stdClass();
         $out['arrivals']   = $week['arrivals'] ?: new stdClass();
@@ -416,10 +532,17 @@ class Psc_Sidscm {
      * (bin/verify-query-budget.php). Nombre de requêtes indépendant du
      * nombre d'enfants.
      *
+     * Minimisation (RGPD-06) : le texte des allergies et la mention « apporte
+     * son repas » ne partent que pour un enfant attendu au créneau du midi
+     * cette semaine ; les personnes autorisées que pour un enfant attendu
+     * en garderie du soir, et seulement si $with_authorized (semaine en
+     * cours).
+     *
      * @param array $open_days [jour => date]
+     * @param bool  $with_authorized Joindre les personnes autorisées.
      * @return array ['children', 'attendance', 'arrivals', 'departures']
      */
-    public static function week_children(array $open_days) {
+    public static function week_children(array $open_days, $with_authorized = true) {
         global $wpdb;
         $empty = array('children' => array(), 'attendance' => array(), 'arrivals' => array(), 'departures' => array());
         if (!$open_days) return $empty;
@@ -500,9 +623,18 @@ class Psc_Sidscm {
             // Personnes autorisées : seulement pour un enfant attendu en
             // garderie du soir (sidscm.js n'affiche ce bloc que sur cet
             // onglet) ; lues en lot après la boucle.
-            if (!empty($per_service['GS'])) $needs_authorized[] = (int) $c->id;
+            if ($with_authorized && !empty($per_service['GS'])) $needs_authorized[] = (int) $c->id;
 
-            $allergies = trim((string) $c->food_allergies);
+            // Donnée de santé : transmise seulement si l'enfant déjeune
+            // (cantine ou midi sans repas) cette semaine — un intervenant
+            // de garderie n'en a pas l'usage (RGPD-06).
+            $at_lunch = !empty($per_service['CANT']) || !empty($per_service['MSR']);
+            // Plus de texte d'allergies (RGPD-10) : le signalement suffit,
+            // le détail relève du PAI. Un enfant qui apporte son repas est en
+            // « cantine sans repas » : il figure au midi comme MSR.
+            $allergies = ($at_lunch && !empty($c->food_allergy_signal))
+                ? __('Signalement alimentaire : voir la mairie (PAI)', 'periscolaire-registration')
+                : '';
 
             $out_children[] = array(
                 'id'         => (int) $c->id,
@@ -513,10 +645,6 @@ class Psc_Sidscm {
                 // Allergie alimentaire : usage critique de la liste cantine,
                 // en priorité et lisible sans déplier (#9E4A4A, cf. sidscm.js).
                 'allergies'  => $allergies !== '' ? $allergies : null,
-                // L'enfant apporte son repas fourni par la famille :
-                // l'encadrant ne doit pas le compter dans les couverts
-                // (aucun menu différencié n'est proposé).
-                'brings_meal' => $allergies !== '',
                 'GM'         => $per_service['GM'],
                 // Liste cantine : un enfant « midi sans repas » est présent
                 // sur le créneau du midi — il y figure ; la liste MSR (jours
@@ -576,31 +704,7 @@ class Psc_Sidscm {
         // jour/service, cf. require_day_service()).
         self::require_day_service($child_id, $date, $service);
 
-        global $wpdb;
-        $t_att = psc_table('attendance');
-        $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $t_att WHERE child_id = %d AND jour_date = %s AND service = %s",
-            $child_id, $date, $service
-        ));
-
-        $now = current_time('mysql');
-        if ($existing) {
-            $wpdb->update(
-                $t_att,
-                array('present' => $present, 'pointed_at' => $now),
-                array('id' => $existing),
-                array('%d', '%s'),
-                array('%d')
-            );
-        } else {
-            $wpdb->insert($t_att, array(
-                'child_id'   => $child_id,
-                'jour_date'  => $date,
-                'service'    => $service,
-                'present'    => $present,
-                'pointed_at' => $now,
-            ), array('%d', '%s', '%s', '%d', '%s'));
-        }
+        self::save_attendance($child_id, $date, $service, array('present' => $present));
 
         Psc_Audit::log('presence.pointage', array(
             'objet_type' => 'presence', 'objet_id' => $child_id, 'enfant_id' => $child_id,
@@ -628,32 +732,7 @@ class Psc_Sidscm {
         }
         self::require_day_service($child_id, $date, 'GM');
 
-        global $wpdb;
-        $t_att = psc_table('attendance');
-        $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $t_att WHERE child_id = %d AND jour_date = %s AND service = 'GM'",
-            $child_id, $date
-        ));
-        $now = current_time('mysql');
-        $arrival_time = $time !== '' ? $time . ':00' : null;
-
-        if ($existing) {
-            $wpdb->update(
-                $t_att,
-                array('arrival_time' => $arrival_time, 'pointed_at' => $now),
-                array('id' => $existing),
-                array('%s', '%s'),
-                array('%d')
-            );
-        } else {
-            $wpdb->insert($t_att, array(
-                'child_id'    => $child_id,
-                'jour_date'   => $date,
-                'service'     => 'GM',
-                'arrival_time'=> $arrival_time,
-                'pointed_at'  => $now,
-            ), array('%d', '%s', '%s', '%s', '%s'));
-        }
+        self::save_attendance($child_id, $date, 'GM', array('arrival_time' => $time !== '' ? $time . ':00' : null));
 
         Psc_Audit::log('presence.pointage', array(
             'objet_type' => 'presence', 'objet_id' => $child_id, 'enfant_id' => $child_id,
@@ -696,36 +775,10 @@ class Psc_Sidscm {
         // refusé (cohérence jour/service, cf. require_day_service()).
         self::require_day_service($child_id, $date, 'GS');
 
-        global $wpdb;
-        $t_att = psc_table('attendance');
-        $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $t_att WHERE child_id = %d AND jour_date = %s AND service = 'GS'",
-            $child_id, $date
-        ));
-
-        $now = current_time('mysql');
-        $departure_time = $time !== '' ? $time . ':00' : null;
-
-        if ($existing) {
-            $wpdb->update(
-                $t_att,
-                array('departure_time' => $departure_time, 'pointed_at' => $now),
-                array('id' => $existing),
-                array('%s', '%s'),
-                array('%d')
-            );
-        } else {
-            // Aucune ligne encore : la présence garde sa valeur par
-            // défaut (colonne `present` DEFAULT 1), seule l'heure de
-            // départ est réellement renseignée par cette action.
-            $wpdb->insert($t_att, array(
-                'child_id'       => $child_id,
-                'jour_date'      => $date,
-                'service'        => 'GS',
-                'departure_time' => $departure_time,
-                'pointed_at'     => $now,
-            ), array('%d', '%s', '%s', '%s', '%s'));
-        }
+        // Aucune ligne encore : la présence garde sa valeur par défaut
+        // (colonne `present` DEFAULT 1), seule l'heure de départ est
+        // réellement renseignée par cette action.
+        self::save_attendance($child_id, $date, 'GS', array('departure_time' => $time !== '' ? $time . ':00' : null));
 
         Psc_Audit::log('presence.pointage', array(
             'objet_type' => 'presence', 'objet_id' => $child_id, 'enfant_id' => $child_id,

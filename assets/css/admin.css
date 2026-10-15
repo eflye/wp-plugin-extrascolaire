@@ -109,18 +109,8 @@
 .psc-dash-todo a { text-decoration: none; }
 .psc-dash-todo a:hover { text-decoration: underline; }
 
-/* ---- Regroupement visuel du sous-menu (8 blocs) ---- */
-#adminmenu .wp-submenu a[href*="page=psc_menus"],
-#adminmenu .wp-submenu a[href*="page=psc_requests"],
-#adminmenu .wp-submenu a[href*="page=psc_parents"],
-#adminmenu .wp-submenu a[href*="page=psc_factures"],
-#adminmenu .wp-submenu a[href*="page=psc_email_templates"],
-#adminmenu .wp-submenu a[href*="page=psc_school_years"],
-#adminmenu .wp-submenu a[href*="page=psc_settings"] {
-    border-top: 1px solid rgba(240, 246, 252, .15);
-    margin-top: 6px;
-    padding-top: 8px;
-}
+/* Regroupement visuel et intitulés de section du sous-menu : chargés sur
+   tous les écrans d'administration par Psc_Admin::menu_styles() (PRA-11). */
 
 /* Popin « Confirmer l'envoi » de la commande fournisseur : l'e-mail qui
    partira est rendu dans une iframe (le rendu autonome est auto-contenu,
@@ -156,22 +146,3 @@
 .psc-assurance-preview { width: 100%; height: 720px; border: 1px solid #c3c4c7; background: #fff; }
 @media (max-width: 900px) { .psc-assurance-review { grid-template-columns: 1fr; } }
 
-/* Intitulés de section du sous-menu Périscolaire (réorganisation du menu,
-   §3) : entrées de sous-menu non cliquables, rendues purement par CSS —
-   WordPress n'a pas de troisième niveau de menu natif. */
-#adminmenu .psc-menu-section {
-    display: block;
-    padding: 10px 0 3px;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .14em;
-    text-transform: uppercase;
-    color: #8c8f94;
-    cursor: default;
-    pointer-events: none;
-}
-/* La ligne de sous-menu entière ne réagit plus au survol. */
-#adminmenu li a:has(.psc-menu-section) {
-    cursor: default;
-    background: none !important;
-}

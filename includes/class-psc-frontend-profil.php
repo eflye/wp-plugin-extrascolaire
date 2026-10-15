@@ -34,6 +34,19 @@ class Psc_Frontend_Profil extends Psc_Frontend_Base {
         $parent = self::authed_parent('psc_parent_update_profile');
         if (!$parent) self::parent_form_redirect('auth');
 
+        // L'adresse de connexion du titulaire ne se change que depuis une
+        // session ouverte par cette adresse (SEC-02) : le second parent ne
+        // peut pas évincer le titulaire, et une session sans identité de
+        // connexion (cookie antérieur) doit d'abord se reconnecter. Contrôle
+        // fait avant toute écriture : rien n'est enregistré en cas de refus.
+        $new_email = strtolower(sanitize_email(psc_post('profil_email')));
+        $email_changes = $new_email && $new_email !== strtolower((string) $parent->email);
+        if ($email_changes) {
+            $role = Psc_Parents::session_login_role();
+            if ($role === '') self::parent_form_redirect('email_change_relogin');
+            if ($role !== 'titulaire') self::parent_form_redirect('email_change_forbidden');
+        }
+
         // Formats contrôlés ici et pas dans Psc_Parents::update() : la
         // même méthode écrit les coordonnées depuis l'approbation d'une
         // demande (données déjà validées à la source) — la rejeter là
@@ -60,10 +73,9 @@ class Psc_Frontend_Profil extends Psc_Frontend_Base {
         ));
         if (is_wp_error($result)) self::parent_form_redirect('profil_error');
 
-        $new_email = strtolower(sanitize_email(psc_post('profil_email')));
-        if ($new_email && $new_email !== $parent->email) {
+        if ($email_changes) {
             $r = Psc_Parents::request_email_change($parent->id, $new_email);
-            if (is_wp_error($r)) self::parent_form_redirect('email_taken');
+            if (is_wp_error($r)) self::parent_form_redirect($r->get_error_code() === 'psc_rate' ? 'email_change_rate' : 'email_taken');
             self::parent_form_redirect('profil_updated_email_pending');
         }
 
@@ -133,7 +145,8 @@ class Psc_Frontend_Profil extends Psc_Frontend_Base {
         Psc_Audit::log('sepa.mandat_active', array(
             'objet_type' => 'famille', 'objet_id' => (int) $parent->id, 'famille_id' => (int) $parent->id,
             'apres' => array('payment_mode' => 'prelevement', 'sepa_iban' => $iban),
-            'resume' => sprintf(__('Prélèvement SEPA activé pour %s.', 'periscolaire-registration'), $parent->email),
+            /* translators: %d: identifiant de la famille */
+            'resume' => sprintf(__('Prélèvement SEPA activé pour la famille #%d.', 'periscolaire-registration'), (int) $parent->id),
         ));
 
         Psc_Mailer::send_sepa_enabled($parent, $mandate ? array($mandate) : array());
@@ -200,9 +213,12 @@ class Psc_Frontend_Profil extends Psc_Frontend_Base {
         // Changement d'identité d'accès : la personne retirée peut détenir
         // une session ouverte ou le lien commun encore valable — elles
         // meurent immédiatement (et durablement), pas « jusqu'à 12 h ».
+        $role = Psc_Parents::session_login_role();
         Psc_Parents::revoke_access((int) $parent->id);
-        // Renouveler uniquement la session qui vient d’effectuer le retrait.
-        Psc_Parents::open_session((int) $parent->id);
+        // Renouveler uniquement la session qui vient d’effectuer le retrait,
+        // avec la même identité de connexion (SEC-02). Un second parent qui
+        // se retire lui-même garde une session sans identité.
+        Psc_Parents::open_session((int) $parent->id, $role === 'titulaire' ? (string) $parent->email : '');
 
         self::parent_form_redirect('second_parent_removed');
     }

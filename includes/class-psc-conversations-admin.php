@@ -9,8 +9,12 @@ class Psc_Conversations_Admin extends Psc_Admin_Base {
         add_action('admin_post_psc_conversation_close', array(__CLASS__, 'handle_close'));
         add_action('admin_post_psc_conversation_reopen', array(__CLASS__, 'handle_reopen'));
         add_action('admin_post_psc_conversation_create', array(__CLASS__, 'handle_create'));
+        add_action('admin_post_psc_download_conversation_attachment', array(__CLASS__, 'handle_download_attachment'));
         add_action('psc_conversation_notify', array('Psc_Conversations', 'notify'), 10, 2);
         add_action('psc_purge_conversations', array('Psc_Conversations', 'handle_purge_cron'));
+        // Une mise à jour par zip ne rejoue pas l'activation : la purge RGPD
+        // se reprogramme ici si elle a disparu.
+        Psc_Conversations::ensure_crons();
     }
 
     private static function guard_conversations($nonce_action) {
@@ -49,6 +53,43 @@ class Psc_Conversations_Admin extends Psc_Admin_Base {
         $messages = Psc_Conversations::messages($id);
         Psc_Conversations::mark_read($id, 'mairie');
         include PSC_PATH . 'templates/admin-conversation.php';
+    }
+
+    /** URL signée de téléchargement d'une pièce jointe, côté mairie (PRA-04). */
+    public static function attachment_url($message_id) {
+        $message_id = (int) $message_id;
+        return wp_nonce_url(
+            add_query_arg(array('action' => 'psc_download_conversation_attachment', 'message_id' => $message_id), admin_url('admin-post.php')),
+            'psc_download_conversation_attachment_' . $message_id
+        );
+    }
+
+    /**
+     * Téléchargement par la mairie d'une pièce jointe d'échange (PRA-04) :
+     * habilitation « Messages », nonce propre au message, fichier servi
+     * depuis le répertoire privé par Psc_Conversations::stream_attachment().
+     */
+    public static function handle_download_attachment() {
+        if (!current_user_can('psc_manage_messages')) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+        $message_id = isset($_GET['message_id']) ? absint($_GET['message_id']) : 0;
+        check_admin_referer('psc_download_conversation_attachment_' . $message_id);
+
+        global $wpdb;
+        $message = $wpdb->get_row($wpdb->prepare(
+            'SELECT m.id, m.conversation_id, m.piece_jointe_path, m.piece_jointe_nom, c.family_id FROM ' . psc_table('conversation_messages') . ' m
+             INNER JOIN ' . psc_table('conversations') . ' c ON c.id = m.conversation_id WHERE m.id = %d',
+            $message_id
+        ));
+        if (!$message || empty($message->piece_jointe_path)) {
+            wp_die(esc_html__('Fichier introuvable.', 'periscolaire-registration'), '', array('response' => 404));
+        }
+        Psc_Audit::log('conversation.piece_jointe_telechargement', array(
+            'objet_type' => 'conversation', 'objet_id' => (int) $message->conversation_id, 'famille_id' => (int) $message->family_id,
+            'meta'       => array('message_id' => (int) $message->id),
+            /* translators: %d: identifiant de l'échange */
+            'resume'     => sprintf(__('Pièce jointe de l’échange #%d téléchargée par la mairie.', 'periscolaire-registration'), (int) $message->conversation_id),
+        ));
+        Psc_Conversations::stream_attachment($message->piece_jointe_path, $message->piece_jointe_nom);
     }
 
     public static function handle_reply() {

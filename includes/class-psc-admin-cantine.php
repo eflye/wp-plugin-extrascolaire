@@ -67,7 +67,7 @@ class Psc_Admin_Cantine extends Psc_Admin_Base {
         if (!$menu) self::redirect('psc_menus', 'invalid');
 
         $bilan = Psc_Menus::send($menu, psc_post('lot'));
-        self::redirect_to_menu($menu->semaine_debut, self::menu_bilan_msg($bilan));
+        self::redirect_to_menu($menu->semaine_debut, self::menu_bilan_msg($bilan), $bilan);
     }
 
     public static function handle_retry_menu() {
@@ -77,13 +77,17 @@ class Psc_Admin_Cantine extends Psc_Admin_Base {
         if (!$menu) self::redirect('psc_menus', 'invalid');
 
         $bilan = Psc_Menus::relancer($menu);
-        self::redirect_to_menu($menu->semaine_debut, self::menu_bilan_msg($bilan));
+        self::redirect_to_menu($menu->semaine_debut, self::menu_bilan_msg($bilan), $bilan);
     }
 
-    /** Message fidèle au bilan : jamais « envoyé » s'il reste un échec. */
+    /**
+     * Message fidèle au bilan : jamais « envoyé » s'il reste un échec ou un
+     * envoi en cours (traité en arrière-plan par psc_envois_lot).
+     */
     private static function menu_bilan_msg($bilan) {
         if ($bilan['total'] === 0) return 'sent_zero';
-        if ($bilan[Psc_Envois::ECHEC] > 0 || $bilan[Psc_Envois::A_ENVOYER] > 0) return 'sent_partial';
+        if ($bilan[Psc_Envois::A_ENVOYER] > 0) return 'sent_queued';
+        if ($bilan[Psc_Envois::ECHEC] > 0) return 'sent_partial';
         return 'sent';
     }
 
@@ -94,9 +98,11 @@ class Psc_Admin_Cantine extends Psc_Admin_Base {
         self::redirect('psc_menus', 'deleted');
     }
 
-    private static function redirect_to_menu($semaine, $msg) {
+    private static function redirect_to_menu($semaine, $msg, $bilan = null) {
+        $args = array('page' => 'psc_menus', 'semaine_debut' => $semaine, 'psc_msg' => $msg);
+        if ($bilan) $args['psc_n'] = (int) $bilan[Psc_Envois::A_ENVOYER];
         wp_safe_redirect(add_query_arg(
-            array('page' => 'psc_menus', 'semaine_debut' => $semaine, 'psc_msg' => $msg),
+            $args,
             admin_url('admin.php')
         ));
         exit;
@@ -121,6 +127,7 @@ class Psc_Admin_Cantine extends Psc_Admin_Base {
         $recent  = Psc_Menus::recent(12);
         $menu_bilans = Psc_Envois::bilans('menu', wp_list_pluck((array) $recent, 'id'));
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
+        $psc_n   = psc_get_int('psc_n');
 
         include PSC_PATH . 'templates/admin-menus.php';
     }

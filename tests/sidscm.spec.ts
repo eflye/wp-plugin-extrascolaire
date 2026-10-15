@@ -19,7 +19,8 @@
  * est attendu via expect.poll sur la base plutôt que sur le DOM.
  *
  * Appels consommés par run : un seul mauvais code, quelques chargements,
- * trois pointages, une arrivée, un départ et deux requêtes forgées refusées ;
+ * trois pointages, une arrivée, un départ, deux requêtes forgées refusées
+ * et quatre pointages simultanés ;
  * le scénario reste très en dessous des limites de débit de l'écran.
  */
 
@@ -314,6 +315,46 @@ test('cohérence jour/service — pointage forgé refusé, aucune ligne créée'
   const respNotExpected = await forgedToggle(data.enfant_b_id, data.first_date, 'GM');
   expect(await errorBody(respNotExpected)).toEqual({ success: false, data: { code: 'not_expected' } });
   expect(attendanceRow(data.enfant_b_id, data.first_date, 'GM')).toBeNull();
+});
+
+test('pointages simultanés (double appui) — tous enregistrés, une seule ligne', async ({ page, request }) => {
+  const data = seed();
+  await unlock(page, data);
+
+  const nonce = await page.evaluate(
+    () => (window as unknown as { PSC_SIDSCM?: { nonce?: string } }).PSC_SIDSCM?.nonce
+  );
+  expect(nonce).toBeTruthy();
+
+  // Aucune ligne au départ (seed) : des appels parallèles sur le même
+  // enfant × jour × service se disputent la création de la ligne. Chacun
+  // doit répondre succès et la base n'en garder qu'une (écriture atomique
+  // de Psc_Sidscm::save_attendance()).
+  const ajaxUrl = `${new URL(data.page_url).origin}/wp-admin/admin-ajax.php`;
+  const responses = await Promise.all(
+    Array.from({ length: 4 }, () =>
+      request.post(ajaxUrl, {
+        form: {
+          action: 'psc_sidscm_toggle',
+          code: data.access_code,
+          nonce: nonce as string,
+          child_id: String(data.enfant_a_id),
+          jour_date: data.first_date,
+          service: 'GM',
+          present: '0',
+        },
+      })
+    )
+  );
+  for (const resp of responses) {
+    expect(await resp.json()).toEqual({ success: true });
+  }
+  expect(attendanceCount(data.enfant_a_id, data.first_date, 'GM')).toBe(1);
+  expect(attendanceRow(data.enfant_a_id, data.first_date, 'GM')).toEqual({
+    present: 0,
+    arrival_time: null,
+    departure_time: null,
+  });
 });
 
 });

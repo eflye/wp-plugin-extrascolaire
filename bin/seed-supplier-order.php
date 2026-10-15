@@ -24,8 +24,9 @@
  *
  * Quatre enfants couvrant la ventilation de l'e-mail : standard, sans
  * porc, végétarien (libellé famille « sans viande »), et un enfant
- * allergique (apporte son repas ET son goûter — compté dans aucune
- * colonne). Une inscription Garderie Matin volontairement mêlée vérifie
+ * allergique passé par la mairie en « cantine sans repas » (apporte son
+ * repas ET son goûter — compté dans aucune colonne). Le signalement seul
+ * d'une famille (Aline) ne change rien au comptage. Une inscription Garderie Matin volontairement mêlée vérifie
  * que le calcul ne compte bien QUE la cantine (et le goûter GS), pas les
  * autres prestations.
  */
@@ -78,15 +79,15 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
         'parent_nom'      => 'E2E',
         // Quatre profils qui couvrent toute la ventilation de l'e-mail :
         // standard, sans porc, végétarien (libellé famille « sans viande »),
-        // et un enfant allergique (apporte son repas ET son goûter — compté
-        // dans aucune colonne). Baptiste porte en plus le flag mairie
-        // « cantine sans repas » : sa cantine du jeudi vaut midi sans repas,
-        // elle n'entre dans aucune colonne (son goûter reste compté).
+        // et un enfant allergique. Le flag mairie « cantine sans repas »
+        // (Baptiste, Théo) retire le repas ET le goûter : l'enfant apporte
+        // les siens. Le signalement de la famille seul (Aline, Théo) ne
+        // change rien tant que la mairie n'a pas posé ce flag.
         'enfants'         => array(
-            array('prenom' => 'Aline',    'nom' => 'Test', 'classe' => 'CP',  'sans_porc' => 0, 'vegan' => 0, 'allergies' => '', 'csr' => 0),
-            array('prenom' => 'Baptiste', 'nom' => 'Test', 'classe' => 'CE2', 'sans_porc' => 1, 'vegan' => 0, 'allergies' => '', 'csr' => 1),
-            array('prenom' => 'Chloé',    'nom' => 'Test', 'classe' => 'CP',  'sans_porc' => 0, 'vegan' => 1, 'allergies' => '', 'csr' => 0),
-            array('prenom' => 'Théo',     'nom' => 'Test', 'classe' => 'CE2', 'sans_porc' => 0, 'vegan' => 0, 'allergies' => 'Arachides — réaction allergique grave, conduit à contacter le 15', 'csr' => 0),
+            array('prenom' => 'Aline',    'nom' => 'Test', 'classe' => 'CP',  'sans_porc' => 0, 'vegan' => 0, 'signal' => 1, 'csr' => 0),
+            array('prenom' => 'Baptiste', 'nom' => 'Test', 'classe' => 'CE2', 'sans_porc' => 1, 'vegan' => 0, 'signal' => 0, 'csr' => 1),
+            array('prenom' => 'Chloé',    'nom' => 'Test', 'classe' => 'CP',  'sans_porc' => 0, 'vegan' => 1, 'signal' => 0, 'csr' => 0),
+            array('prenom' => 'Théo',     'nom' => 'Test', 'classe' => 'CE2', 'sans_porc' => 0, 'vegan' => 0, 'signal' => 1, 'csr' => 1),
         ),
     );
 
@@ -178,9 +179,9 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
             'prenom'         => $c['prenom'],
             'sans_porc'      => (int) $c['sans_porc'],
             'vegan'          => (int) $c['vegan'],
-            'food_allergies' => $c['allergies'] !== '' ? $c['allergies'] : null,
+            'food_allergy_signal' => (int) $c['signal'],
             'created_at'     => current_time('mysql'),
-        ), array('%d', '%s', '%s', '%d', '%d', '%s', '%s'));
+        ), array('%d', '%s', '%s', '%d', '%d', '%d', '%s'));
         $child_id = (int) $wpdb->insert_id;
         $child_ids[] = $child_id;
         // Statut « cantine sans repas » daté (P1-16) : en vigueur depuis
@@ -204,9 +205,9 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     // verrou — la résolution psc_is_declared est la même que celle de la
     // commande) :
     //   Aline    (standard)     : CANT lun + mar, GM lun (hors total), GS lun (goûter)
-    //   Baptiste (sans porc)    : CANT jeu (flag mairie → midi sans repas), GS jeu (goûter)
+    //   Baptiste (sans porc)    : CANT jeu, GS jeu (flag mairie : ni repas ni goûter)
     //   Chloé    (végétarien)   : CANT mar, MSR jeu (midi sans repas, jamais compté)
-    //   Théo     (allergique)   : CANT lun, GS lun — compté nulle part
+    //   Théo     (allergique)   : CANT lun, GS lun (flag mairie : compté nulle part)
     $regs = array(
         array($aline_id,    $jours['lundi'],  'CANT'),
         array($aline_id,    $jours['lundi'],  'GM'),
@@ -230,15 +231,15 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     // Attendus calculés depuis les jours réellement ouverts de la semaine
     // (un jour férié disparaît de la liste) et les déclarations ci-dessus :
     //   Aline (standard)  : CANT lun + mar, GM lun (hors comptage), GS lun (goûter)
-    //   Baptiste (sans porc) : CANT jeu (flag mairie « cantine sans repas »
-    //                          → midi sans repas, non compté), GS jeu (goûter)
+    //   Baptiste (sans porc) : CANT jeu, GS jeu — flag mairie « cantine sans
+    //                          repas » : ni repas ni goûter
     //   Chloé (végétarienne) : CANT mar ; MSR jeu (midi sans repas) — jamais compté
-    //   Théo (allergique)    : CANT lun, GS lun — compté dans aucune colonne
+    //   Théo (allergique)    : CANT lun, GS lun — flag mairie : compté nulle part
     $kind_by_child = array(
         $aline_id    => 'standard',
         $baptiste_id => 'sans_porc',
         $chloe_id    => 'vegetarien',
-        // $theo_id : allergique, volontairement absent de la ventilation
+        $theo_id     => 'standard',
     );
     $expected_rows = array();
     foreach ($jours as $jour => $date) {
@@ -247,12 +248,9 @@ WP_CLI::add_command('seed-supplier-order', function ($args, $assoc_args) {
     foreach ($regs as list($child_id, $date, $service)) {
         $jour = array_search($date, $jours, true);
         if ($jour === false) continue;
-        // L'enfant allergique n'entre dans AUCUNE colonne (ni repas ni goûter).
-        if (!isset($kind_by_child[$child_id])) continue;
-        // Enfant flagué « cantine sans repas » (conversion à la résolution) :
-        // sa cantine vaut midi sans repas — aucune colonne repas, le goûter
-        // reste compté.
-        if ($service === 'CANT' && in_array($child_id, $csr_ids, true)) continue;
+        // Enfant flagué « cantine sans repas » par la mairie : sa cantine
+        // vaut midi sans repas et il apporte son goûter — aucune colonne.
+        if (in_array($child_id, $csr_ids, true)) continue;
         if ($service === 'CANT') {
             $expected_rows[$jour][$kind_by_child[$child_id]]++;
             $expected_rows[$jour]['midi']++;

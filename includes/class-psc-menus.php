@@ -110,11 +110,23 @@ class Psc_Menus {
         return $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . psc_table('menus') . ' WHERE id = %d', $id));
     }
 
+    /** Menus déjà lus dans la requête, par lundi (PERF-06). */
+    private static $by_week = array();
+
     public static function get_by_week($monday) {
         global $wpdb;
         $monday = psc_valid_date($monday);
         if (!$monday) return null;
-        return $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . psc_table('menus') . ' WHERE semaine_debut = %s', $monday));
+        static $watched = false;
+        if (!$watched) {
+            $watched = true;
+            // Toute écriture sur la table des menus vide la mémoïsation.
+            Psc_School_Years::on_table_write(array(psc_table('menus')), function () { self::$by_week = array(); });
+        }
+        if (!array_key_exists($monday, self::$by_week)) {
+            self::$by_week[$monday] = $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . psc_table('menus') . ' WHERE semaine_debut = %s', $monday));
+        }
+        return self::$by_week[$monday];
     }
 
     public static function recent($limit = 12) {

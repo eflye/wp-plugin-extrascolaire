@@ -20,6 +20,16 @@ class Psc_Frontend extends Psc_Frontend_Base {
         add_shortcode('periscolaire_form', array(__CLASS__, 'shortcode'));
         add_action('wp_enqueue_scripts', array(__CLASS__, 'assets'));
 
+        // En-têtes anti-cache émis avant tout octet de sortie : le callback
+        // du shortcode s'exécute après l'envoi du <head>, trop tard sans le
+        // tampon de gabarit des versions récentes de WordPress.
+        add_action('template_redirect', array(__CLASS__, 'portal_private_headers'));
+
+        // Détection des pages à shortcode (psc_shortcode_page_id) : tout
+        // enregistrement de page — y compris par l'éditeur de blocs, en
+        // REST — vide le cache, pour que les liens suivent sans délai.
+        add_action('save_post_page', 'psc_shortcode_page_id_flush');
+
         // Une fois connectée, la famille n'a plus besoin du texte de
         // présentation rédigé autour du shortcode dans l'éditeur (utile
         // uniquement avant connexion, pour donner envie/expliquer) : le
@@ -160,21 +170,11 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 'remove'            => __('Retirer', 'periscolaire-registration'),
                 'sending'           => __('Envoi en cours...', 'periscolaire-registration'),
                 'summary_sent'      => __('Récapitulatif envoyé.', 'periscolaire-registration'),
-                'firstname'         => __('Prénom', 'periscolaire-registration'),
-                'lastname'          => __('Nom', 'periscolaire-registration'),
                 'phone'             => __('Téléphone', 'periscolaire-registration'),
-                'child_firstname'   => __('Prénom de l’enfant %s', 'periscolaire-registration'),
-                'child_lastname'    => __('Nom de l’enfant %s', 'periscolaire-registration'),
-                'child_class'       => __('Classe de l’enfant %s', 'periscolaire-registration'),
-                'child_birthdate'   => __('Date de naissance', 'periscolaire-registration'),
                 'insurance_unreadable' => __('Ce fichier est vide ou inaccessible. Enregistrez le PDF dans les fichiers de votre appareil, puis sélectionnez-le à nouveau.', 'periscolaire-registration'),
                 'insurance'         => __('Justificatif d’assurance scolaire (PDF)', 'periscolaire-registration'),
-                'diet'              => __('Régime alimentaire', 'periscolaire-registration'),
-                'diet_pork'         => __('Sans porc', 'periscolaire-registration'),
-                'diet_meat'         => __('Sans viande', 'periscolaire-registration'),
                 'pickup_title'      => __('Personnes autorisées à récupérer cet enfant en fin de garderie du soir (facultatif)', 'periscolaire-registration'),
                 'pickup_add'        => __('+ Ajouter une personne autorisée', 'periscolaire-registration'),
-                'child_remove'      => __('Supprimer cet enfant', 'periscolaire-registration'),
                 'pickup_firstname'  => __('Prénom de la personne autorisée', 'periscolaire-registration'),
                 'pickup_lastname'   => __('Nom de la personne autorisée', 'periscolaire-registration'),
                 'pickup_phone'      => __('Téléphone de la personne autorisée', 'periscolaire-registration'),
@@ -198,7 +198,6 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 // Messages natifs de validation (attributs pattern/max/title).
                 'phone_pattern_title'   => __('Format attendu : 06 12 34 56 78 ou +33 6 12 34 56 78.', 'periscolaire-registration'),
                 'postcode_pattern_title' => __('Format attendu : 5 chiffres.', 'periscolaire-registration'),
-                'child_birthdate_max'   => psc_child_birthdate_max(),
                 // Écran Planning - 2 (planning-2.js) : libellés d'état et
                 // confirmations côté client.
                 'day_0'          => __('Dimanche', 'periscolaire-registration'),
@@ -226,19 +225,18 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 'exc_state_remove'  => __('Retiré ce jour-là', 'periscolaire-registration'),
                 'exc_state_none'    => __('Non déclaré', 'periscolaire-registration'),
                 'exc_state_locked'  => __('Verrouillé (délai de modification dépassé)', 'periscolaire-registration'),
+                /* translators: %s: nombre d'exceptions du mois (inséré par planning-2.js). */
                 'exc_reset_link'    => __('%s exception(s) ce mois-ci — revenir au rythme', 'periscolaire-registration'),
                 'exc_reset_confirm' => __("Retirer toutes les exceptions de ce mois-ci et revenir au rythme habituel ? Les jours déjà verrouillés ne sont pas touchés.", 'periscolaire-registration'),
+                /* translators: %s: nombre d'exceptions retirées (inséré par planning-2.js). */
                 'exc_reset_done'    => __('%s exception(s) retirée(s) : ce mois-ci suit de nouveau le rythme habituel.', 'periscolaire-registration'),
                 'apply_siblings_confirm' => __("Appliquer ce rythme à toute la fratrie ? Le rythme habituel des autres enfants sera remplacé (leurs exceptions personnelles sont conservées).", 'periscolaire-registration'),
                 'apply_siblings_done'    => __('Rythme appliqué à toute la fratrie.', 'periscolaire-registration'),
                 'apply_siblings_empty'   => __('Cochez d\'abord au moins une case du rythme habituel.', 'periscolaire-registration'),
+                /* translators: 1: nombre de jours du mois, 2: montant en euros. */
                 'recap_month'       => __('Mois : %1$s jour(s) · %2$s €', 'periscolaire-registration'),
+                /* translators: 1: nombre de jours de l'année, 2: montant en euros. */
                 'recap_year'        => __('Année : %1$s jour(s) · %2$s €', 'periscolaire-registration'),
-                // Wizard invité (guest.js) : allergies + rythme habituel.
-                'allergy_toggle'     => __('Cet enfant a une allergie alimentaire', 'periscolaire-registration'),
-                'allergy_placeholder' => __('Aliments à exclure des repas, réaction en cas d\'ingestion, conduite à tenir.', 'periscolaire-registration'),
-                'allergy_help'       => __("Strictement alimentaire. La mairie vous contactera si un PAI (projet d'accueil individualisé) doit être mis en place. Aucun menu différencié n'est proposé : l'enfant déjeune à la cantine avec son propre repas fourni par la famille.", 'periscolaire-registration'),
-                'allergy_consent'    => __('La mairie doit échanger avec nous au sujet de l’alimentation de cet enfant.', 'periscolaire-registration'),
             ),
         ));
 
@@ -393,6 +391,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
             'profil_sepa_enabled', 'profil_sepa_reglement_required', 'profil_sepa_missing',
             'profil_sepa_bad_iban', 'profil_sepa_bad_bic', 'profil_sepa_bad_postcode', 'profil_sepa_error',
             'email_taken', 'email_changed', 'email_change_cancelled',
+            'email_change_forbidden', 'email_change_relogin', 'email_change_rate',
             'bad_email_token', 'expired_email_token',
             'second_parent_updated', 'second_parent_removed',
             'second_parent_bad_email', 'second_parent_bad_phone', 'second_parent_email_taken',
@@ -448,8 +447,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
             if ((int) $child->vegan) $diet_bits[] = __('Sans viande', 'periscolaire-registration');
             $meta = Psc_School_Years::classe_for($child->id);
             if ($diet_bits) $meta .= ($meta !== '' ? ' · ' : '') . implode(', ', $diet_bits);
-            $allergies = trim((string) $child->food_allergies);
-            if ($allergies !== '') {
+            if (!empty($child->food_allergy_signal)) {
                 $meta .= ($meta !== '' ? ' · ' : '') . __('Allergies alimentaires', 'periscolaire-registration');
             }
             if ($meta === '') $meta = '—';
@@ -458,8 +456,9 @@ class Psc_Frontend extends Psc_Frontend_Base {
                 'name'    => trim($child->prenom . ' ' . $child->nom),
                 'meta'    => $meta,
                 'summary' => sprintf(
-                    __('%d jour%s déclaré%s · %s €', 'periscolaire-registration'),
-                    $child_days, $child_days > 1 ? 's' : '', $child_days > 1 ? 's' : '',
+                    /* translators: 1: nombre de jours déclarés, 2: montant en euros. */
+                    _n('%1$d jour déclaré · %2$s €', '%1$d jours déclarés · %2$s €', $child_days, 'periscolaire-registration'),
+                    $child_days,
                     number_format_i18n($child_amount, 2)
                 ),
             );
@@ -476,8 +475,10 @@ class Psc_Frontend extends Psc_Frontend_Base {
         $current_week = psc_week_start(current_time('Y-m-d'));
 
         return array(
-            'title'          => $parent->nom !== '' ? __('Famille ', 'periscolaire-registration') . $parent->nom : __('Bienvenue', 'periscolaire-registration'),
-            'days_label'     => $days_count . ($days_count > 1 ? ' ' . __('jours', 'periscolaire-registration') : ' ' . __('jour', 'periscolaire-registration')),
+            /* translators: %s: nom de famille */
+            'title'          => $parent->nom !== '' ? sprintf(__('Famille %s', 'periscolaire-registration'), $parent->nom) : __('Bienvenue', 'periscolaire-registration'),
+            /* translators: %d: nombre de jours */
+            'days_label'     => sprintf(_n('%d jour', '%d jours', $days_count, 'periscolaire-registration'), $days_count),
             'amount_label'   => number_format_i18n($amount, 2),
             'next_invoice'   => $next_invoice,
             'menu'           => Psc_Frontend_Menus::menu_days_for_week($current_week),
@@ -592,26 +593,81 @@ class Psc_Frontend extends Psc_Frontend_Base {
 
     /* ---------------- Affichage ---------------- */
 
-    public static function shortcode($atts) {
-        // AUCUN intermédiaire ne doit conserver ces pages : le portail
-        // authentifie un visiteur hors comptes WordPress (cookie
-        // psc_session) et des URL portant des jetons (liens de connexion)
-        // traversent le rendu invité. Un cache partagé — extension de
-        // cache WordPress, CDN, proxy d'hébergeur — qui traiterait ce
-        // cookie comme un marqueur anonyme pourrait servir le HTML d'une
-        // famille à une autre. `no-store` interdit aussi la conservation
-        // par le navigateur (retour arrière, instantanés de session) ;
-        // `private` interdit la mise en cache partagée même si un cache
-        // ignorait no-store. Émis au point d'entrée du rendu, avant tout
-        // octet de sortie — et toujours, vue connectée comme vue invité :
-        // le wizard public porte aussi des acceptations (SEPA, règlement).
-        if (!headers_sent()) {
-            header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0', true);
-            header('Pragma: no-cache', true);
-            header('Expires: Wed, 11 Jan 1984 05:00:00 GMT', true);
+    /**
+     * En-têtes interdisant toute conservation de la page.
+     *
+     * AUCUN intermédiaire ne doit conserver ces pages : le portail
+     * authentifie un visiteur hors comptes WordPress (cookie psc_session)
+     * et des URL portant des jetons (liens de connexion) traversent le
+     * rendu invité. Un cache partagé — extension de cache WordPress, CDN,
+     * proxy d'hébergeur — qui traiterait ce cookie comme un marqueur
+     * anonyme pourrait servir le HTML d'une famille à une autre.
+     * `no-store` interdit aussi la conservation par le navigateur (retour
+     * arrière, instantanés de session) ; `private` interdit la mise en
+     * cache partagée même si un cache ignorait no-store.
+     *
+     * Partagée avec l'écran intervenants (Psc_Sidscm). À appeler sur
+     * `template_redirect`, avant tout octet de sortie ; sans effet si les
+     * en-têtes sont déjà partis.
+     */
+    public static function send_private_headers() {
+        if (headers_sent()) {
+            return;
         }
+        header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0', true);
+        header('Pragma: no-cache', true);
+        header('Expires: Wed, 11 Jan 1984 05:00:00 GMT', true);
         nocache_headers();
+    }
 
+    /**
+     * template_redirect : en-têtes privés sur toute page portant le
+     * portail — vue connectée comme vue invité : le wizard public porte
+     * aussi des acceptations (SEPA, règlement).
+     */
+    public static function portal_private_headers() {
+        if (!is_singular()) {
+            return;
+        }
+        $post = get_post();
+        if ($post && has_shortcode($post->post_content, 'periscolaire_form')) {
+            self::send_private_headers();
+        }
+    }
+
+    /** Rendus du portail déjà produits dans la requête, par contexte. */
+    private static $rendered = array();
+
+    /**
+     * Shortcode [periscolaire_form].
+     *
+     * Le portail connecté est demandé deux fois par page : par do_shortcode
+     * (the_content, priorité 11), puis par hide_page_chrome_when_connected()
+     * (priorité 20), qui remplace la page par le seul portail. Le rendu est
+     * donc mémorisé pour la requête : le second appel ne refait ni les
+     * requêtes ni le gabarit. La clé couvre ce dont dépend le rendu
+     * (famille, consultation par la mairie, paramètres d'URL).
+     */
+    public static function shortcode($atts) {
+        // Filet de sécurité (shortcode rendu hors d'une page singulière,
+        // ex. bloc de widget) : sans effet si template_redirect les a déjà
+        // émis ou si la sortie a commencé.
+        self::send_private_headers();
+
+        $parent = Psc_Parents::current();
+        $key = md5((string) wp_json_encode(array(
+            $parent ? (int) $parent->id : 0,
+            Psc_Parents::is_impersonated(),
+            wp_unslash($_GET), // phpcs:ignore WordPress.Security.NonceVerification -- clé de cache, aucune action
+        )));
+        if (!isset(self::$rendered[$key])) {
+            self::$rendered[$key] = self::render();
+        }
+        return self::$rendered[$key];
+    }
+
+    /** Rendu du portail (invité ou connecté), cf. shortcode(). */
+    private static function render() {
         ob_start();
 
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';

@@ -44,7 +44,20 @@
       </div>
       <div>
         <label class="psc-portal-field-label" for="psc-profil-email"><?php esc_html_e('Adresse e-mail', 'periscolaire-registration'); ?></label>
-        <input id="psc-profil-email" type="email" name="profil_email" value="<?php echo esc_attr($parent->email); ?>" maxlength="191" required class="psc-portal-field-underline">
+        <?php
+        // SEC-02 : seule une session ouverte par l'adresse du titulaire peut
+        // la changer (contrôle côté serveur dans Psc_Frontend_Profil).
+        $psc_login_role = Psc_Parents::session_login_role();
+        $psc_email_locked = $psc_login_role !== 'titulaire';
+        ?>
+        <input id="psc-profil-email" type="email" name="profil_email" value="<?php echo esc_attr($parent->email); ?>" maxlength="191" required class="psc-portal-field-underline"<?php echo $psc_email_locked ? ' readonly aria-describedby="psc-profil-email-help"' : ''; ?> data-testid="profil-email">
+        <?php if ($psc_email_locked): ?>
+        <p id="psc-profil-email-help" class="psc-portal-field-help" style="font-size:12px;color:#665F58;margin:6px 0 0;" data-testid="profil-email-locked">
+          <?php echo $psc_login_role === 'second'
+              ? esc_html__('Adresse de connexion du titulaire : seul le titulaire peut la modifier, depuis une session ouverte avec cette adresse.', 'periscolaire-registration')
+              : esc_html__('Pour modifier l’adresse de connexion, reconnectez-vous avec le lien envoyé à cette adresse.', 'periscolaire-registration'); ?>
+        </p>
+        <?php endif; ?>
       </div>
     </div>
 

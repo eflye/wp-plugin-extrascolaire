@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 /**
  * Suivi des envois d'e-mails par destinataire : menus de la semaine,
- * factures, commandes fournisseur.
+ * factures, commandes fournisseur, notifications de fermeture.
  *
  * Chaque envoi unitaire (un objet, un destinataire, un lot) est RÉSERVÉ
  * en base avant le moindre mail, sous une clé d'idempotence unique. Un
@@ -15,6 +15,13 @@ if (!defined('ABSPATH')) exit;
  * serveur d'envoi (wp_mail() a rendu vrai), pas délivré : savoir si le
  * message est arrivé demanderait de traiter les retours de la messagerie,
  * hors du plugin.
+ *
+ * Envoi asynchrone : lancer() réserve tout le lot, n'envoie en ligne que
+ * les premiers envois (inline_max), puis confie le reste à la tâche
+ * ponctuelle psc_envois_lot, qui traite le lot par paquets de LOT_TAILLE
+ * et se reprogramme tant qu'il reste des envois jamais tentés. L'écran
+ * affiche alors « N envois en cours » au lieu d'attendre le serveur
+ * d'envoi (modèle de Psc_Messages::send()).
  *
  * Reprise : une ligne restée a_envoyer (coupure, délai dépassé, requête
  * interrompue) est reprise par la tâche planifiée psc_envois_reprise. Un
@@ -34,8 +41,18 @@ class Psc_Envois {
     /** Délai après lequel une ligne a_envoyer est considérée abandonnée. */
     const REPRISE_APRES = 600;
 
+    /** Durée de conservation du suivi des envois (PERF-12) : 13 mois. */
+    const CONSERVATION_MOIS = 13;
+
+    /** Envois traités par passage de la tâche psc_envois_lot. */
+    const LOT_TAILLE = 50;
+
+    /** Envois traités dans la requête qui lance le lot. */
+    const INLINE_MAX = 5;
+
     public static function init() {
         add_action('psc_envois_reprise', array(__CLASS__, 'reprendre'));
+        add_action('psc_envois_lot', array(__CLASS__, 'cron_lot'), 10, 2);
         // Un menu n'est « envoyé » que lorsque tout son lot est accepté, y
         // compris quand la fin du lot est reprise par la tâche planifiée.
         add_action('psc_envoi_accepte', function ($type, $objet_id, $famille_id, $lot) {
@@ -73,30 +90,125 @@ class Psc_Envois {
     }
 
     /**
-     * Réserve les envois d'un lot et envoie tout ce qui reste à envoyer.
+     * Réserve les envois d'un lot, envoie au plus $inline_max d'entre eux
+     * dans la requête courante et confie le reste à la tâche ponctuelle
+     * psc_envois_lot (cf. traiter_lot()).
      *
-     * @param string     $type        'menu' | 'facture' | 'commande_fournisseur'
+     * @param string     $type        'menu' | 'facture' | 'commande_fournisseur' | 'fermeture'
      * @param int        $objet_id
      * @param string     $lot         cf. lot()
      * @param array|null $famille_ids Destinataires ; null = un seul envoi sans foyer (fournisseur).
-     * @return array Bilan du lot, cf. bilan().
+     * @param int|null   $inline_max  Envois tentés tout de suite (null = INLINE_MAX, 0 = aucun).
+     * @return array Bilan du lot, cf. bilan() : a_envoyer > 0 = envois en cours.
      */
-    public static function lancer($type, $objet_id, $lot, $famille_ids = null) {
+    public static function lancer($type, $objet_id, $lot, $famille_ids = null, $inline_max = null) {
         $objet_id = (int) $objet_id;
+        $inline_max = $inline_max === null ? self::INLINE_MAX : max(0, (int) $inline_max);
         $targets = $famille_ids === null ? array(null) : array_values(array_unique(array_map('intval', (array) $famille_ids)));
         foreach ($targets as $famille_id) {
             self::reserver($type, $objet_id, $lot, $famille_id);
         }
-        self::traiter($type, $objet_id, $lot, array(self::A_ENVOYER));
-        return self::bilan($type, $objet_id, $lot);
+        if ($inline_max > 0) {
+            self::traiter($type, $objet_id, $lot, array(self::A_ENVOYER), $inline_max);
+        }
+        $bilan = self::bilan($type, $objet_id, $lot);
+        if ($bilan[self::A_ENVOYER] > 0) {
+            self::planifier($type, $lot);
+        }
+        return $bilan;
     }
 
-    /** Relance les seuls échecs du dernier lot d'un objet. */
+    /**
+     * Programme le traitement asynchrone d'un lot (une seule tâche en
+     * attente par type et lot).
+     */
+    public static function planifier($type, $lot, $delai = 5) {
+        $args = array((string) $type, (string) $lot);
+        if (!wp_next_scheduled('psc_envois_lot', $args)) {
+            wp_schedule_single_event(time() + max(0, (int) $delai), 'psc_envois_lot', $args);
+        }
+    }
+
+    /** Point d'entrée de la tâche ponctuelle psc_envois_lot. */
+    public static function cron_lot($type, $lot) {
+        self::traiter_lot((string) $type, (string) $lot);
+    }
+
+    /**
+     * Tâche psc_envois_lot : traite un paquet d'envois jamais tentés du lot
+     * (tous objets confondus — un envoi groupé de factures partage un même
+     * lot), puis se reprogramme s'il en reste. Une ligne déjà tentée et
+     * restée a_envoyer (processus interrompu) relève de reprendre() : elle
+     * n'est pas rejouée en boucle ici.
+     *
+     * Appelée aussi en ligne, avec une petite $limite, par un envoi groupé
+     * qui a réservé ses envois sans les tenter (lancer(..., 0)).
+     *
+     * @param string   $type
+     * @param string   $lot
+     * @param int|null $limite Envois tentés par passage (null = LOT_TAILLE).
+     * @return int Nombre d'envois tentés.
+     */
+    public static function traiter_lot($type, $lot, $limite = null) {
+        global $wpdb;
+        $t = psc_table('envois');
+        $lot = self::lot($lot);
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $t WHERE objet_type = %s AND lot = %s AND statut = %s AND tentatives = 0 ORDER BY id LIMIT %d",
+            (string) $type, $lot, self::A_ENVOYER, $limite === null ? self::LOT_TAILLE : max(1, (int) $limite)
+        ));
+        foreach ((array) $rows as $row) {
+            self::tenter($row);
+        }
+        $reste = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $t WHERE objet_type = %s AND lot = %s AND statut = %s AND tentatives = 0",
+            (string) $type, $lot, self::A_ENVOYER
+        ));
+        if ($reste > 0) {
+            // L'événement courant est déjà retiré de la file : on peut reprogrammer.
+            self::planifier($type, $lot, 5);
+        }
+        return count((array) $rows);
+    }
+
+    /**
+     * Bilan d'un lot tous objets confondus (envoi groupé de factures) :
+     * ['lot', 'total', 'accepte', 'echec', 'a_envoyer'].
+     */
+    public static function bilan_lot($type, $lot) {
+        global $wpdb;
+        $rows = $wpdb->get_results($wpdb->prepare(
+            'SELECT statut, COUNT(*) AS n FROM ' . psc_table('envois') . ' WHERE objet_type = %s AND lot = %s GROUP BY statut',
+            (string) $type, (string) $lot
+        ));
+        $bilan = array('lot' => (string) $lot, 'total' => 0, self::ACCEPTE => 0, self::ECHEC => 0, self::A_ENVOYER => 0);
+        foreach ((array) $rows as $r) {
+            $bilan[$r->statut] = (int) $r->n;
+            $bilan['total'] += (int) $r->n;
+        }
+        return $bilan;
+    }
+
+    /**
+     * Relance les seuls échecs du dernier lot d'un objet : les premiers en
+     * ligne, le reste par la tâche psc_envois_lot.
+     */
     public static function relancer_echecs($type, $objet_id) {
+        global $wpdb;
         $lot = self::dernier_lot($type, $objet_id);
         if ($lot === null) return self::bilan_vide();
-        self::traiter($type, (int) $objet_id, $lot, array(self::ECHEC));
-        return self::bilan($type, (int) $objet_id, $lot);
+        $debut = gmdate('Y-m-d H:i:s');
+        self::traiter($type, (int) $objet_id, $lot, array(self::ECHEC), self::INLINE_MAX);
+        // Échecs non tentés ci-dessus remis en file, comme jamais tentés :
+        // la tâche psc_envois_lot les reprend. Ceux qui viennent d'échouer
+        // à nouveau restent en échec.
+        $wpdb->query($wpdb->prepare(
+            'UPDATE ' . psc_table('envois') . ' SET statut = %s, tentatives = 0, updated_at = %s WHERE objet_type = %s AND objet_id = %d AND lot = %s AND statut = %s AND updated_at < %s',
+            self::A_ENVOYER, gmdate('Y-m-d H:i:s'), $type, (int) $objet_id, $lot, self::ECHEC, $debut
+        ));
+        $bilan = self::bilan($type, (int) $objet_id, $lot);
+        if ($bilan[self::A_ENVOYER] > 0) self::planifier($type, $lot);
+        return $bilan;
     }
 
     /**
@@ -159,7 +271,36 @@ class Psc_Envois {
         foreach ((array) $rows as $row) {
             self::tenter($row);
         }
+        self::purger();
         return count((array) $rows);
+    }
+
+    /**
+     * Purge le suivi des envois de plus de CONSERVATION_MOIS mois (la table
+     * grossissait sans fin). Au plus une fois par jour, depuis la tâche de
+     * reprise, par paquets : seuls des codes et des identifiants y sont
+     * conservés, le statut d'envoi des objets (factures, menus) vit dans
+     * leurs propres tables.
+     *
+     * @param bool $force Ignore le délai d'une journée (tests).
+     * @return int Lignes supprimées.
+     */
+    public static function purger($force = false) {
+        global $wpdb;
+        $last = (int) get_option('psc_envois_purge_at', 0);
+        if (!$force && $last > time() - DAY_IN_SECONDS) return 0;
+        update_option('psc_envois_purge_at', time(), false);
+
+        $seuil = gmdate('Y-m-d H:i:s', strtotime('-' . self::CONSERVATION_MOIS . ' months', time()));
+        $total = 0;
+        do {
+            $n = (int) $wpdb->query($wpdb->prepare(
+                'DELETE FROM ' . psc_table('envois') . ' WHERE created_at < %s LIMIT 1000',
+                $seuil
+            ));
+            $total += max(0, $n);
+        } while ($n === 1000);
+        return $total;
     }
 
     /** Cause du dernier échec d'un lot (code, jamais une adresse), ou null. */
@@ -211,13 +352,16 @@ class Psc_Envois {
         ));
     }
 
-    private static function traiter($type, $objet_id, $lot, array $statuts) {
+    private static function traiter($type, $objet_id, $lot, array $statuts, $limit = 0) {
         global $wpdb;
         $ph = implode(',', array_fill(0, count($statuts), '%s'));
-        $rows = $wpdb->get_results($wpdb->prepare(
-            'SELECT * FROM ' . psc_table('envois') . " WHERE objet_type = %s AND objet_id = %d AND lot = %s AND statut IN ($ph) ORDER BY id",
-            array_merge(array($type, (int) $objet_id, $lot), $statuts)
-        ));
+        $sql = 'SELECT * FROM ' . psc_table('envois') . " WHERE objet_type = %s AND objet_id = %d AND lot = %s AND statut IN ($ph) ORDER BY id";
+        $args = array_merge(array($type, (int) $objet_id, $lot), $statuts);
+        if ($limit > 0) {
+            $sql .= ' LIMIT %d';
+            $args[] = (int) $limit;
+        }
+        $rows = $wpdb->get_results($wpdb->prepare($sql, $args));
         foreach ((array) $rows as $row) {
             self::tenter($row);
         }
@@ -269,6 +413,9 @@ class Psc_Envois {
             'menu'                 => array('Psc_Menus', 'deliver'),
             'facture'              => array('Psc_Invoices', 'deliver'),
             'commande_fournisseur' => array('Psc_Supplier_Orders', 'deliver'),
+            'fermeture'            => array('Psc_School_Calendar', 'deliver_closure'),
+            'fermeture_service'    => array('Psc_School_Calendar', 'deliver_service_closure'),
+            'forfait_declasse'     => array('Psc_School_Calendar', 'deliver_forfait_downgrade'),
         );
         $senders = apply_filters('psc_envoi_senders', $senders);
         return isset($senders[$type]) && is_callable($senders[$type]) ? $senders[$type] : null;

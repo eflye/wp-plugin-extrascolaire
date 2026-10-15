@@ -21,7 +21,35 @@ $psc_notices = array(
     'invalid'     => array('error', __('Paramètre invalide.', 'periscolaire-registration')),
 );
 psc_admin_notice_map($psc_notices, $psc_msg);
+if ($psc_msg === 'sent_all_queued'):
+    // Envoi groupé confié à la tâche psc_envois_lot : bilan provisoire,
+    // annoncé aux technologies d'assistance (role="status").
 ?>
+<div class="notice notice-info is-dismissible" role="status" aria-live="polite" data-testid="notice-sent-all-queued"><p>
+<?php
+echo esc_html(sprintf(
+    /* translators: %d: nombre de factures dont l'envoi est en cours. */
+    _n('%d envoi de facture en cours.', '%d envois de factures en cours.', $psc_n, 'periscolaire-registration'),
+    $psc_n
+));
+if ($psc_ok > 0) {
+    echo ' ' . esc_html(sprintf(
+        /* translators: %d: nombre de factures déjà acceptées par le serveur d'envoi. */
+        _n('%d déjà envoyée.', '%d déjà envoyées.', $psc_ok, 'periscolaire-registration'),
+        $psc_ok
+    ));
+}
+if ($psc_ko > 0) {
+    echo ' ' . esc_html(sprintf(
+        /* translators: %d: nombre d'envois en échec. */
+        _n('%d échec.', '%d échecs.', $psc_ko, 'periscolaire-registration'),
+        $psc_ko
+    ));
+}
+echo ' ' . esc_html__('Les envois se poursuivent en arrière-plan : rechargez la page dans quelques minutes pour voir l’état de chaque facture.', 'periscolaire-registration');
+?>
+</p></div>
+<?php endif; ?>
 
 <?php if (empty($all_months)): ?>
 <p><?php esc_html_e('Aucune inscription enregistrée. Les factures seront disponibles dès que des familles auront des inscriptions.', 'periscolaire-registration'); ?></p>
@@ -149,6 +177,8 @@ psc_admin_notice_map($psc_notices, $psc_msg);
         <?php $inv_bilan = $invoice_bilans[(int) $inv->id] ?? null; ?>
         <?php if ($inv_bilan && $inv_bilan[Psc_Envois::ECHEC] > 0): ?>
             <br><span style="color:#B32D2E" data-testid="facture-echec-<?php echo esc_attr($inv->id); ?>"><?php esc_html_e('Échec du dernier envoi', 'periscolaire-registration'); ?></span>
+        <?php elseif (!$inv->sent_at && $inv_bilan && $inv_bilan[Psc_Envois::A_ENVOYER] > 0): ?>
+            <br><span data-testid="facture-en-cours-<?php echo esc_attr($inv->id); ?>"><?php esc_html_e('Envoi en cours', 'periscolaire-registration'); ?></span>
         <?php endif; ?>
         <?php if ((int) ($inv->version ?? 1) > 1): ?>
             <br><span style="color:#9E4A4A" title="<?php esc_attr_e('Le calcul a changé après l’envoi : la version précédente est archivée et reste téléchargeable.', 'periscolaire-registration'); ?>">

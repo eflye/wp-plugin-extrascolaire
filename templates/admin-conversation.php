@@ -37,6 +37,18 @@
               <time datetime="<?php echo esc_attr(mysql2date('c', $m->created_at)); ?>"><?php echo esc_html(date_i18n('d/m/Y H:i', strtotime($m->created_at))); ?></time>
             </header>
             <p><?php echo nl2br(esc_html($m->corps)); ?></p>
+            <?php if (!empty($m->piece_jointe_path)): ?>
+              <p class="psc-conversation-attachment">
+                <a href="<?php echo esc_url(Psc_Conversations_Admin::attachment_url((int) $m->id)); ?>" data-testid="conversation-attachment-<?php echo (int) $m->id; ?>">
+                  <?php echo esc_html(sprintf(
+                      /* translators: 1: nom du fichier, 2: taille lisible */
+                      __('Pièce jointe : %1$s (%2$s)', 'periscolaire-registration'),
+                      $m->piece_jointe_nom ?: __('document', 'periscolaire-registration'),
+                      size_format((int) $m->piece_jointe_taille)
+                  )); ?>
+                </a>
+              </p>
+            <?php endif; ?>
           </article>
         </li>
       <?php endforeach; ?>

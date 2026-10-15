@@ -29,7 +29,6 @@ const CONTAINER_WP_CLI = '/usr/local/bin/wp-cli.phar';
 const FOOD_SIGNAL = true;
 // Texte libre d'avant le signalement alimentaire : seules les demandes
 // anciennes en portent encore, et le rapprochement doit toujours les reporter.
-const LEGACY_ALLERGIES = 'Arachides — PAI requis (E2E)';
 
 function wpCli(args: string[]): string {
   return execFileSync(
@@ -109,10 +108,6 @@ async function submitRequest(page: Page, email: string, prenom: string, allergie
   await page.locator('input[name="reglement_accepted"]').check();
   await page.getByTestId('wizard-submit').click();
   await expect(page.getByTestId('notice-request_sent')).toBeVisible();
-}
-
-function childAllergies(email: string, prenom: string): string {
-  return wpCliEval(`global $wpdb; $p=$wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}psc_parents WHERE email=%s", '${email}')); echo (string)$wpdb->get_var($wpdb->prepare("SELECT IFNULL(food_allergies,'') FROM {$wpdb->prefix}psc_children WHERE parent_id=%d AND prenom=%s", $p, '${prenom}'));`).split('\n').filter(Boolean).pop() ?? '';
 }
 
 async function verifyLink(email: string, page: Page) {
@@ -362,56 +357,5 @@ test.describe('P0-01 — signalement alimentaire et approbation des demandes', (
     // des jetons : un cache partagé ne doit jamais stocker ce rendu.
     const resp = await request.get(readFormPageUrl());
     expect((resp.headers()['cache-control'] ?? '')).toContain('no-store');
-  });
-
-  test('rapprochement contrôlé : les demandes déjà approuvées complètent les fiches vides', async ({ page }) => {
-    const email = `demande-rap-proch.e2e+${Date.now()}@example.test`;
-
-    // Simule l'état d'avant correctif : demande approuvée dont la fiche
-    // enfant (créée sans allergie) existe, children_json intact.
-    wpCliEval(
-      `global $wpdb;
-       $wpdb->query('START TRANSACTION');
-       $wpdb->insert($wpdb->prefix.'psc_parents', array('email' => '${email}', 'nom' => 'Rapproch', 'active' => 1, 'created_at' => current_time('mysql')), array('%s','%s','%d','%s'));
-       $pid = (int) $wpdb->insert_id;
-       $wpdb->insert($wpdb->prefix.'psc_children', array('parent_id' => $pid, 'nom' => 'Rapproch', 'prenom' => 'Mila', 'created_at' => current_time('mysql')), array('%d','%s','%s','%s','%s'));
-       $cid = (int) $wpdb->insert_id;
-       $json = json_encode(array(array('nom' => 'Rapproch', 'prenom' => 'Mila', 'classe' => 'CP', 'date_naissance' => '2020-03-01', 'sans_porc' => 0, 'vegan' => 0, 'food_allergies' => '${LEGACY_ALLERGIES}', 'personnes_autorisees' => array())));
-       $wpdb->insert($wpdb->prefix.'psc_requests', array('email' => '${email}', 'children_json' => $json, 'status' => 'approved', 'verified' => 1, 'decided_at' => current_time('mysql'), 'created_at' => current_time('mysql')), array('%s','%s','%s','%d','%s','%s'));
-       $wpdb->query('COMMIT');
-       echo (string) $cid;`
-    );
-
-    await loginAsAdmin(page);
-    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_requests`);
-
-    // La section de rapprochement liste la demande et l'enfant concerné.
-    // (L'e-mail apparaît aussi dans l'historique « Traitées » et dans les
-    // autres blocs de rapprochement : on cible le bloc qui porte le
-    // bouton de report ET l'e-mail de CE test.)
-    const gapSection = page.locator('.psc-box').filter({ hasText: 'Allergies non reportées' });
-    const reportButton = page.locator('button:has-text("Reporter les allergies sur les fiches")');
-    const gapBlock = gapSection
-      .locator('div')
-      .filter({ has: reportButton })
-      .filter({ hasText: email })
-      .last();
-    await expect(gapBlock).toBeVisible();
-    await expect(gapBlock).toContainText('Arachides');
-    await gapBlock.locator('button:has-text("Reporter les allergies sur les fiches")').click();
-    // Notice admin sans testid sur cet écran : texte du bandeau.
-    await expect(page.locator('.notice-success:has-text("Allergies reportées")')).toBeVisible();
-
-    // La fiche est complétée, l'alerte PAI partie ; un second passage
-    // n'a plus rien à faire (idempotent).
-    expect(childAllergies(email, 'Mila')).toContain('Arachides');
-    await findLatestMessage(mairieEmail(), 'Échange à prévoir sur l’alimentation');
-    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_requests`);
-    await expect(
-      page
-        .locator('.psc-box')
-        .filter({ hasText: 'Allergies non reportées' })
-        .filter({ hasText: email })
-    ).toHaveCount(0);
   });
 });

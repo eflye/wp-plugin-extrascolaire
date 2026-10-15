@@ -50,7 +50,9 @@ class Psc_Conversations_Frontend extends Psc_Frontend_Base {
                 }
                 $messages = Psc_Conversations::messages($requested);
                 self::prepare_thread($selected, $messages, $children_map);
-                Psc_Conversations::mark_read($requested, 'famille');
+                // Une consultation par la mairie est en lecture seule : elle
+                // ne marque jamais l'échange lu pour la famille (SEC-09).
+                if (!Psc_Parents::is_impersonated()) Psc_Conversations::mark_read($requested, 'famille');
                 $reply_draft_key = 'psc_conv_reply_draft_' . $family_id . '_' . $requested;
                 $reply_draft = get_transient($reply_draft_key);
                 if ($reply_draft) delete_transient($reply_draft_key);
@@ -228,19 +230,22 @@ class Psc_Conversations_Frontend extends Psc_Frontend_Base {
 
     /** Date relative courte : « aujourd'hui, 16 h 12 » / « hier, 16 h 12 » / « 11 sept., 20 h 33 » (+ année si différente). */
     private static function relative_date($mysql_datetime) {
-        $ts = strtotime((string) $mysql_datetime);
-        if (!$ts) return '';
-        $now = current_time('timestamp');
-        $time = date_i18n('H \h i', $ts);
-        $date_str = date_i18n('Y-m-d', $ts);
-        if ($date_str === date_i18n('Y-m-d', $now)) {
+        $mysql_datetime = (string) $mysql_datetime;
+        if (!strtotime($mysql_datetime)) return '';
+        // Date en heure du site (current_time('mysql')) comparée à « aujourd'hui »
+        // dans la même horloge, sans current_time('timestamp') (PRA-14).
+        $time = mysql2date('H \h i', $mysql_datetime);
+        $date_str = mysql2date('Y-m-d', $mysql_datetime, false);
+        if ($date_str === wp_date('Y-m-d')) {
+            /* translators: %s: heure */
             return sprintf(__('aujourd’hui, %s', 'periscolaire-registration'), $time);
         }
-        if ($date_str === date_i18n('Y-m-d', $now - DAY_IN_SECONDS)) {
+        if ($date_str === wp_date('Y-m-d', time() - DAY_IN_SECONDS)) {
+            /* translators: %s: heure */
             return sprintf(__('hier, %s', 'periscolaire-registration'), $time);
         }
-        $same_year = date_i18n('Y', $ts) === date_i18n('Y', $now);
-        return ($same_year ? date_i18n('j M', $ts) : date_i18n('j M Y', $ts)) . ', ' . $time;
+        $same_year = mysql2date('Y', $mysql_datetime, false) === wp_date('Y');
+        return mysql2date($same_year ? 'j M' : 'j M Y', $mysql_datetime) . ', ' . $time;
     }
 
     /** Aperçu sur une ligne : espaces normalisés, coupé à $chars (texte brut, cf. Psc_Conversations::sanitize_body()). */

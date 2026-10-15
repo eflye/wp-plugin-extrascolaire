@@ -93,6 +93,7 @@ WP_CLI::add_command('verify-migrations', function () {
     $create->setAccessible(true);
     $create->invoke(null);
     $assert('4.15.0 : colonne children.cantine_sans_repas présente', $column_exists('children', 'cantine_sans_repas'), true);
+    $assert('4.15.0 : colonne children.food_allergies présente', $column_exists('children', 'food_allergies'), true);
 
     // Données d'époque : grille dans l'ancienne option, un enfant signalé,
     // des lignes de journal chaînées en v1.
@@ -100,10 +101,14 @@ WP_CLI::add_command('verify-migrations', function () {
     $wpdb->insert(psc_table('school_years'), array('year_key' => '2026-2027', 'date_debut' => '2026-09-01', 'date_fin' => '2027-07-03', 'statut' => 'active', 'created_at' => current_time('mysql')));
     $wpdb->insert(psc_table('parents'), array('email' => 'verif-migrations@example.invalid', 'nom' => 'Migration', 'active' => 1, 'created_at' => current_time('mysql')));
     $parent_id = (int) $wpdb->insert_id;
-    $wpdb->insert(psc_table('children'), array('parent_id' => $parent_id, 'nom' => 'Migration', 'prenom' => 'Sans', 'cantine_sans_repas' => 1, 'created_at' => current_time('mysql')));
+    $wpdb->insert(psc_table('children'), array('parent_id' => $parent_id, 'nom' => 'Migration', 'prenom' => 'Sans', 'cantine_sans_repas' => 1, 'food_allergies' => 'Arachide (test de migration)', 'created_at' => current_time('mysql')));
     $flagged = (int) $wpdb->insert_id;
     $wpdb->insert(psc_table('children'), array('parent_id' => $parent_id, 'nom' => 'Migration', 'prenom' => 'Avec', 'cantine_sans_repas' => 0, 'created_at' => current_time('mysql')));
     $unflagged = (int) $wpdb->insert_id;
+    // Demande d'époque portant encore le texte libre d'allergies (4.20.0).
+    $wpdb->insert(psc_table('requests'), array('email' => 'verif-migrations-demande@example.invalid', 'status' => 'pending', 'created_at' => current_time('mysql'),
+        'children_json' => wp_json_encode(array(array('nom' => 'Migration', 'prenom' => 'Demande', 'food_allergies' => 'Gluten (test)', 'food_allergy_consent_at' => '2026-01-01 10:00:00'), array('nom' => 'Migration', 'prenom' => 'Vide', 'food_allergies' => '')))));
+    $legacy_request = (int) $wpdb->insert_id;
     foreach (array('A', 'B', 'C') as $l) Psc_Audit::log('menu.enregistrement', array('objet_type' => 'menu', 'resume' => 'Migration ' . $l));
     $audit_before = (int) $wpdb->get_var('SELECT COUNT(*) FROM ' . psc_table('audit_log'));
 
@@ -166,6 +171,18 @@ WP_CLI::add_command('verify-migrations', function () {
     foreach (array(array('parents', 'reglement_version_id'), array('parents', 'sepa_reglement_version_id'), array('requests', 'reglement_version_id'), array('child_school_years', 'reglement_version_id')) as list($t, $c)) {
         $assert("4.18.0 : $t.$c avec sa clé étrangère", $column_exists($t, $c) && $fk_exists($t, $c), true);
     }
+
+    // 4.20.0 : texte libre des allergies supprimé, converti en signalement (RGPD-10).
+    $assert('4.20.0 : colonne children.food_allergies supprimée', $column_exists('children', 'food_allergies'), false);
+    $assert('4.20.0 : colonne children.food_allergy_consent_at supprimée', $column_exists('children', 'food_allergy_consent_at'), false);
+    $assert('4.20.0 : enfant avec texte d’allergie signalé', (int) $wpdb->get_var($wpdb->prepare('SELECT food_allergy_signal FROM ' . psc_table('children') . ' WHERE id = %d', $flagged)), 1);
+    $assert('4.20.0 : enfant sans texte non signalé', (int) $wpdb->get_var($wpdb->prepare('SELECT food_allergy_signal FROM ' . psc_table('children') . ' WHERE id = %d', $unflagged)), 0);
+    $req_children = json_decode((string) $wpdb->get_var($wpdb->prepare('SELECT children_json FROM ' . psc_table('requests') . ' WHERE id = %d', $legacy_request)), true);
+    $assert('4.20.0 : texte et consentement retirés des demandes', strpos(wp_json_encode($req_children), 'food_allergies') === false && strpos(wp_json_encode($req_children), 'consent') === false, true);
+    $assert('4.20.0 : demande avec texte → signalement', array((int) ($req_children[0]['food_allergy_signal'] ?? 0), (int) ($req_children[1]['food_allergy_signal'] ?? 0)), array(1, 0));
+
+    // 4.20.0 : index du journal d'audit par enfant (PERF-12).
+    $assert('4.20.0 : index audit_log.enfant_horodatage', (bool) $wpdb->get_var("SHOW INDEX FROM " . psc_table('audit_log') . " WHERE Key_name = 'enfant_horodatage'"), true);
 
     // Seconde montée : rien ne se duplique.
     update_option('psc_db_version', '4.15.0');

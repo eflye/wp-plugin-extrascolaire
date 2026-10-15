@@ -213,11 +213,22 @@ class Psc_Messages {
     }
 
     /** Efface les traces de lecture un an après la fin de leur année scolaire. */
+    /**
+     * Efface les accusés de lecture des années closes depuis plus d'un an.
+     * Marqueur psc_receipts_cleaned_until (PERF-12) : une année déjà
+     * traitée n'est plus reparcourue chaque jour.
+     */
     public static function cleanup_receipts() {
         global $wpdb;
-        $years = $wpdb->get_results($wpdb->prepare('SELECT date_debut,date_fin FROM ' . psc_table('school_years') . ' WHERE date_fin < %s', gmdate('Y-m-d', strtotime('-1 year'))));
+        $done_until = (string) get_option('psc_receipts_cleaned_until', '');
+        $years = $wpdb->get_results($wpdb->prepare(
+            'SELECT date_debut,date_fin FROM ' . psc_table('school_years') . ' WHERE date_fin < %s AND date_fin > %s ORDER BY date_fin ASC',
+            gmdate('Y-m-d', strtotime('-1 year')), $done_until !== '' ? $done_until : '0000-00-00'
+        ));
         foreach ($years as $year) {
-            $wpdb->query($wpdb->prepare('UPDATE ' . psc_table('message_destinataires') . ' d INNER JOIN ' . psc_table('messages') . ' m ON m.id=d.message_id SET d.vu_le=NULL,d.vu_canal=NULL,d.accuse_le=NULL WHERE m.date_envoi BETWEEN %s AND %s', $year->date_debut . ' 00:00:00', $year->date_fin . ' 23:59:59'));
+            $ok = $wpdb->query($wpdb->prepare('UPDATE ' . psc_table('message_destinataires') . ' d INNER JOIN ' . psc_table('messages') . ' m ON m.id=d.message_id SET d.vu_le=NULL,d.vu_canal=NULL,d.accuse_le=NULL WHERE m.date_envoi BETWEEN %s AND %s', $year->date_debut . ' 00:00:00', $year->date_fin . ' 23:59:59'));
+            if ($ok === false) break; // reprise au prochain passage
+            update_option('psc_receipts_cleaned_until', $year->date_fin, false);
         }
     }
 
@@ -257,9 +268,53 @@ class Psc_Messages {
         return $wpdb->get_results($wpdb->prepare('SELECT m.*,d.vu_le,d.vu_canal,d.accuse_le,d.email_statut,d.token FROM ' . psc_table('message_destinataires') . ' d INNER JOIN ' . psc_table('messages') . " m ON m.id=d.message_id WHERE d.family_id=%d AND m.statut='envoye' ORDER BY m.epingle DESC,m.date_envoi DESC", $family_id));
     }
 
+    /**
+     * Messages envoyés à une famille sur le canal « notification navigateur »
+     * (PERF-08) : colonnes légères seulement (corps tronqué à 400
+     * caractères), non lus d'abord si $unread_only, au plus $limit.
+     *
+     * @return object[] id, titre, extrait, vu_le
+     */
+    public static function push_for_family($family_id, $unread_only = false, $limit = 10) {
+        global $wpdb;
+        $rows = $wpdb->get_results($wpdb->prepare(
+            'SELECT m.id, m.titre, LEFT(m.corps, 400) AS extrait, m.canaux, d.vu_le FROM ' . psc_table('message_destinataires') . ' d INNER JOIN ' . psc_table('messages') . " m ON m.id=d.message_id
+             WHERE d.family_id=%d AND m.statut='envoye'" . ($unread_only ? ' AND d.vu_le IS NULL' : '') . ' ORDER BY m.date_envoi DESC',
+            $family_id
+        ));
+        $out = array();
+        foreach ($rows as $row) {
+            $channels = json_decode((string) $row->canaux, true);
+            if (empty($channels['push'])) continue;
+            unset($row->canaux);
+            $out[] = $row;
+            if ($limit > 0 && count($out) >= $limit) break;
+        }
+        return $out;
+    }
+
+    /** Durée de validité du lien d'un e-mail de diffusion, en jours (RGPD-09). */
+    public static function link_ttl_days() {
+        return max(1, (int) apply_filters('psc_message_link_ttl_days', 90));
+    }
+
+    /**
+     * Destinataire désigné par le lien d'un e-mail de diffusion. Le lien
+     * n'ouvre qu'un message envoyé depuis moins de link_ttl_days() jours
+     * (RGPD-09) : au-delà, il ne mène plus qu'au portail, où la famille
+     * retrouve le message une fois connectée. Le jeton reste stocké en
+     * clair (décision du 15/10/2026) : il n'ouvre aucune session et ne
+     * permet que d'afficher ce message et de le marquer vu.
+     */
     public static function recipient($message_id, $token) {
         global $wpdb;
-        return $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . psc_table('message_destinataires') . ' WHERE message_id=%d AND token=%s', $message_id, $token));
+        // date_envoi est en heure du site (current_time('mysql')).
+        $cutoff = wp_date('Y-m-d H:i:s', time() - self::link_ttl_days() * DAY_IN_SECONDS);
+        return $wpdb->get_row($wpdb->prepare(
+            'SELECT d.* FROM ' . psc_table('message_destinataires') . ' d INNER JOIN ' . psc_table('messages') . " m ON m.id = d.message_id
+             WHERE d.message_id = %d AND d.token = %s AND m.statut = 'envoye' AND m.date_envoi >= %s",
+            $message_id, $token, $cutoff
+        ));
     }
 
     public static function resend_unread($message_id) {

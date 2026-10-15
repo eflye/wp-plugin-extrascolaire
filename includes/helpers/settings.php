@@ -80,16 +80,17 @@ function psc_conversations_email() {
     return $mail;
 }
 
-/** Délai de réponse annoncé aux familles sur l'écran « Mes échanges » (Réglages > Notifications des échanges familles). */
 /**
  * Le texte des messages figure-t-il dans les e-mails de notification des
- * échanges (famille et mairie) ? Activé par défaut ; la mairie peut revenir
- * à un e-mail sans contenu (Réglages › Notifications).
+ * échanges (famille et mairie) ? Désactivé par défaut (RGPD-12, protection
+ * des données dès la conception) : une copie dans une messagerie échappe aux
+ * purges et à l'effacement. La mairie peut l'activer (Réglages › Notifications).
  */
 function psc_conversations_contenu_email() {
-    return (bool) get_option('psc_conversations_contenu_email', 1);
+    return (bool) get_option('psc_conversations_contenu_email', 0);
 }
 
+/** Délai de réponse annoncé aux familles sur l'écran « Mes échanges » (Réglages > Notifications des échanges familles). */
 function psc_conversations_delai_heures() {
     return max(1, (int) get_option('psc_conversations_delai_heures', 48));
 }
@@ -172,4 +173,81 @@ function psc_record_legacy_usage($key) {
         'last_seen'  => $now,
     );
     update_option('psc_legacy_usage_counts', $counts, false);
+}
+
+/**
+ * Pages qui portent les shortcodes publics du plugin, et option de
+ * Réglages qui permet de les désigner explicitement.
+ */
+function psc_shortcode_pages() {
+    return array(
+        'periscolaire_form'   => 'psc_form_page_id',
+        'periscolaire_sidscm' => 'psc_sidscm_page_id',
+    );
+}
+
+/**
+ * ID de la page publiée qui porte $shortcode : d'abord la page choisie en
+ * Réglages ($option), sinon la première page publiée portant le shortcode.
+ * 0 si rien n'est configuré ni détectable.
+ *
+ * La détection est mise en cache (transient) : 24 h quand une page est
+ * trouvée — et revalidée à chaque lecture (toujours publiée, porte
+ * toujours le shortcode) —, 5 min seulement quand rien n'est trouvé, pour
+ * qu'une page publiée après coup soit prise en compte. Tout enregistrement
+ * de page vide le cache (psc_shortcode_page_id_flush, sur save_post_page).
+ *
+ * @param string $shortcode Nom du shortcode, ex. 'periscolaire_form'.
+ * @param string $option    Option contenant l'ID choisi en Réglages.
+ * @return int
+ */
+function psc_shortcode_page_id($shortcode, $option) {
+    $shortcode = sanitize_key($shortcode);
+    $id = (int) get_option($option, 0);
+    if ($id && get_post_status($id) === 'publish') {
+        return $id;
+    }
+
+    $key   = 'psc_page_lookup_' . $shortcode;
+    $found = get_transient($key);
+    if ($found !== false) {
+        $found = (int) $found;
+        if ($found === 0) {
+            return 0;
+        }
+        $post = get_post($found);
+        if ($post && $post->post_status === 'publish' && has_shortcode($post->post_content, $shortcode)) {
+            return $found;
+        }
+    }
+
+    $found = 0;
+    $pages = get_posts(array(
+        'post_type'   => 'page',
+        'post_status' => 'publish',
+        'numberposts' => 50,
+        's'           => $shortcode,
+    ));
+    foreach ($pages as $p) {
+        if (has_shortcode($p->post_content, $shortcode)) {
+            $found = (int) $p->ID;
+            break;
+        }
+    }
+    set_transient($key, $found, $found ? DAY_IN_SECONDS : 5 * MINUTE_IN_SECONDS);
+    return $found;
+}
+
+/**
+ * Vide le cache de détection des pages à shortcode. Branché sur
+ * save_post_page (Psc_Frontend::init) : publier, dépublier ou modifier une
+ * page met les liens à jour immédiatement.
+ */
+function psc_shortcode_page_id_flush() {
+    foreach (array_keys(psc_shortcode_pages()) as $shortcode) {
+        delete_transient('psc_page_lookup_' . $shortcode);
+    }
+    // Clés d'avant la mutualisation (expirent d'elles-mêmes sous 24 h).
+    delete_transient('psc_form_page_lookup');
+    delete_transient('psc_sidscm_page_lookup');
 }

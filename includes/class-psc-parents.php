@@ -17,6 +17,18 @@ if (!defined('ABSPATH')) exit;
  */
 class Psc_Parents {
 
+    /** @var object|null|false Foyer courant mémorisé pour la requête (false : pas encore résolu). */
+    private static $current_cache = false;
+
+    /**
+     * Oublie le foyer courant mémorisé : la session vient de changer dans
+     * la requête (ouverture, fermeture) ou un script de vérification en
+     * enchaîne plusieurs.
+     */
+    public static function reset_current_cache() {
+        self::$current_cache = false;
+    }
+
     public static function init() {
         add_action('init', array(__CLASS__, 'maybe_consume_token'), 5);
         add_action('init', array(__CLASS__, 'maybe_consume_email_change'), 5);
@@ -26,6 +38,11 @@ class Psc_Parents {
         add_action('admin_post_psc_logout', array(__CLASS__, 'handle_logout'));
         add_action('admin_post_nopriv_psc_cancel_email_change', array(__CLASS__, 'handle_cancel_email_change'));
         add_action('admin_post_psc_cancel_email_change', array(__CLASS__, 'handle_cancel_email_change'));
+        // Lien d'annulation de l'avis envoyé à l'ancienne adresse (SEC-02) :
+        // une page de confirmation en GET, l'annulation en POST.
+        add_action('init', array(__CLASS__, 'maybe_show_email_cancel_page'), 5);
+        add_action('admin_post_nopriv_psc_cancel_email_change_link', array(__CLASS__, 'handle_cancel_email_change_link'));
+        add_action('admin_post_psc_cancel_email_change_link', array(__CLASS__, 'handle_cancel_email_change_link'));
     }
 
     /* ---------------- Accès aux données ---------------- */
@@ -125,8 +142,14 @@ class Psc_Parents {
         // lien recevrait le mail... dans la boîte du titulaire.
         $to_email = strtolower(sanitize_email($email));
 
-        // Jeton aléatoire cryptographiquement sûr, stocké haché.
-        $token = bin2hex(random_bytes(32));
+        // Jeton aléatoire cryptographiquement sûr, stocké haché. Un
+        // caractère de tête dit à quelle adresse il a été envoyé
+        // (1 : titulaire, 2 : second parent) : le haché couvrant tout le
+        // jeton, le modifier le rend invalide. La session ouverte sait
+        // ainsi qui agit (SEC-02, cf. session_login_role()). 65 caractères
+        // hexadécimaux : un jeton antérieur (64) se reconnaît à sa longueur.
+        $role_prefix = strcasecmp($to_email, (string) $parent->email) === 0 ? '1' : '2';
+        $token = $role_prefix . bin2hex(random_bytes(32));
         $wpdb->update(
             psc_table('parents'),
             array(
@@ -151,7 +174,11 @@ class Psc_Parents {
         Psc_Audit::log('famille.lien_envoye', array(
             'objet_type' => 'famille', 'objet_id' => $parent->id, 'famille_id' => $parent->id,
             'resultat' => $sent ? 'succes' : 'erreur',
-            'resume' => sprintf(__('Lien de connexion envoyé à %s.', 'periscolaire-registration'), $to_email),
+            'resume' => $role_prefix === '1'
+                /* translators: %d: identifiant de la famille */
+                ? sprintf(__('Lien de connexion envoyé au titulaire de la famille #%d.', 'periscolaire-registration'), (int) $parent->id)
+                /* translators: %d: identifiant de la famille */
+                : sprintf(__('Lien de connexion envoyé au second parent de la famille #%d.', 'periscolaire-registration'), (int) $parent->id),
         ));
         return $sent;
     }
@@ -181,7 +208,7 @@ class Psc_Parents {
                 'objet_type' => 'famille', 'objet_id' => $parent ? $parent->id : null,
                 'famille_id' => $parent ? $parent->id : null,
                 'resultat' => 'refus',
-                'resume' => sprintf(__('Demande de lien de connexion bloquée par la limite de débit (%s).', 'periscolaire-registration'), $email),
+                'resume' => __('Demande de lien de connexion bloquée par la limite de débit.', 'periscolaire-registration'),
             ));
         }
 
@@ -238,7 +265,7 @@ class Psc_Parents {
         if (strtotime($parent->token_expires . ' UTC') < time()) {
             Psc_Audit::log('famille.connexion_echouee', array(
                 'objet_type' => 'famille', 'objet_id' => $parent->id, 'famille_id' => $parent->id, 'resultat' => 'refus',
-                'resume' => sprintf(__('Tentative de connexion avec un jeton expiré (%s).', 'periscolaire-registration'), $parent->email),
+                'resume' => __('Tentative de connexion avec un jeton expiré.', 'periscolaire-registration'),
             ));
             wp_safe_redirect(add_query_arg('psc_msg', 'expired_token', $redirect));
             exit;
@@ -249,7 +276,7 @@ class Psc_Parents {
         if (!hash_equals($parent->token_hash, psc_hash_token($token))) {
             Psc_Audit::log('famille.connexion_echouee', array(
                 'objet_type' => 'famille', 'objet_id' => $parent->id, 'famille_id' => $parent->id, 'resultat' => 'refus',
-                'resume' => sprintf(__('Tentative de connexion avec un jeton invalide (%s).', 'periscolaire-registration'), $parent->email),
+                'resume' => __('Tentative de connexion avec un jeton invalide.', 'periscolaire-registration'),
             ));
             wp_safe_redirect(add_query_arg('psc_msg', 'bad_token', $redirect));
             exit;
@@ -265,15 +292,22 @@ class Psc_Parents {
             array('%d')
         );
 
-        self::open_session($parent->id);
+        // Adresse de connexion déduite du caractère de tête du jeton
+        // (vérifié plus haut par son haché) ; jeton antérieur de 64
+        // caractères : session sans identité de connexion.
+        $prefix = strlen($token) === 65 ? substr($token, 0, 1) : '';
+        $login_email = $prefix === '1' ? (string) $parent->email : ($prefix === '2' ? (string) $parent->second_parent_email : '');
+        self::open_session($parent->id, $login_email);
 
         // L'acteur est forcé : la session vient tout juste d'être ouverte,
         // et la résolution automatique lirait un cookie posé par setcookie()
         // mais pas encore reflété dans $_COOKIE pour cette même requête.
-        $libelle = trim((string) $parent->nom) !== '' ? sprintf('%s (%s)', $parent->nom, $parent->email) : $parent->email;
+        // Libellé sans nom ni e-mail (RGPD-04) : identifiant et rôle.
+        $libelle = self::actor_label((int) $parent->id, $prefix === '1' ? 'titulaire' : ($prefix === '2' ? 'second' : ''));
         Psc_Audit::log('famille.connexion', array(
             'objet_type' => 'famille', 'objet_id' => $parent->id, 'famille_id' => $parent->id,
-            'resume' => sprintf(__('Connexion de %s.', 'periscolaire-registration'), $libelle),
+            /* translators: %s: libellé de l'acteur, ex. « Famille #12 (titulaire) » */
+            'resume' => sprintf(__('Connexion : %s.', 'periscolaire-registration'), $libelle),
             'acteur' => array('type' => 'famille', 'id' => (int) $parent->id, 'libelle' => $libelle, 'pour_le_compte_de' => null),
         ));
 
@@ -309,12 +343,14 @@ class Psc_Parents {
 
         $parent = self::get_by_id((int) $row->parent_id);
         $wpdb->update(psc_table('parents'), array('last_login' => current_time('mysql')), array('id' => $parent->id), array('%s'), array('%d'));
-        self::open_session($parent->id);
+        self::open_session($parent->id, (string) $row->email);
 
-        $libelle = trim((string) $parent->nom) !== '' ? sprintf('%s (%s)', $parent->nom, $row->email) : $row->email;
+        $row_email = strtolower((string) $row->email);
+        $libelle = self::actor_label((int) $parent->id, $row_email === strtolower((string) $parent->email) ? 'titulaire' : ($row_email !== '' && $row_email === strtolower((string) $parent->second_parent_email) ? 'second' : ''));
         Psc_Audit::log('famille.connexion', array(
             'objet_type' => 'famille', 'objet_id' => $parent->id, 'famille_id' => $parent->id,
-            'resume' => sprintf(__('Connexion de %s depuis une notification d’échange.', 'periscolaire-registration'), $libelle),
+            /* translators: %s: libellé de l'acteur, ex. « Famille #12 (titulaire) » */
+            'resume' => sprintf(__('Connexion depuis une notification d’échange : %s.', 'periscolaire-registration'), $libelle),
             'acteur' => array('type' => 'famille', 'id' => (int) $parent->id, 'libelle' => $libelle, 'pour_le_compte_de' => null),
         ));
 
@@ -341,6 +377,13 @@ class Psc_Parents {
         if (self::get_by_email($new_email)) {
             return new WP_Error('psc_email_taken', __('Cette adresse est déjà utilisée par une autre famille.', 'periscolaire-registration'));
         }
+        // Chaque demande envoie deux e-mails au nom de la mairie, dont un
+        // vers une adresse saisie librement : 3 demandes par jour et par
+        // foyer (SEC-10), contrôlées après la validation pour qu'une faute
+        // de frappe ne consomme pas le quota.
+        if (!psc_rate_limit('email_change_' . (int) $parent_id, 3, DAY_IN_SECONDS)) {
+            return new WP_Error('psc_rate', __('Trop de demandes de changement d’adresse. Réessayez demain.', 'periscolaire-registration'));
+        }
 
         $token = bin2hex(random_bytes(32));
         $wpdb->update(
@@ -362,11 +405,184 @@ class Psc_Parents {
         );
 
         Psc_Mailer::send_email_change_confirmation($parent, $new_email, $url);
+
+        // L'ancienne adresse est prévenue, avec un lien d'annulation à usage
+        // unique (SEC-02) : un changement fait depuis une session volée ne
+        // passe plus inaperçu. Le lien reste valable après la confirmation
+        // (il rétablit alors l'ancienne adresse), d'où une durée plus longue
+        // que celle de la confirmation.
+        if ($parent && is_email($parent->email)) {
+            $cancel = bin2hex(random_bytes(32));
+            set_transient(self::email_cancel_key($cancel), array(
+                'parent_id' => (int) $parent_id,
+                'old'       => strtolower((string) $parent->email),
+                'new_hash'  => psc_hash_token($new_email),
+            ), psc_email_confirmation_ttl() + WEEK_IN_SECONDS);
+            $cancel_url = add_query_arg('psc_email_cancel', $cancel, Psc_Mailer::form_page_url());
+            Psc_Mailer::send_email_change_notice_old($parent->email, $new_email, $cancel_url);
+        }
+
         Psc_Audit::log('famille.email_change_demande', array(
             'objet_type' => 'famille', 'objet_id' => $parent_id, 'famille_id' => $parent_id,
-            'resume' => __('Changement d’adresse e-mail demandé (confirmation envoyée à la nouvelle adresse).', 'periscolaire-registration'),
+            'resume' => __('Changement d’adresse e-mail demandé (confirmation envoyée à la nouvelle adresse, avis à l’ancienne).', 'periscolaire-registration'),
         ));
         return true;
+    }
+
+    /**
+     * Clé du transient d'un lien d'annulation : dérivée de l'empreinte du
+     * jeton, jamais du jeton en clair.
+     */
+    private static function email_cancel_key($token) {
+        return 'psc_email_cancel_' . substr(psc_hash_token('email_cancel|' . (string) $token), 0, 40);
+    }
+
+    /**
+     * Lien de l'avis à l'ancienne adresse : n'annule rien en GET (les
+     * passerelles de sécurité des messageries suivent les liens), affiche
+     * une page de confirmation dont le bouton envoie l'annulation en POST.
+     */
+    public static function maybe_show_email_cancel_page() {
+        if (empty($_GET['psc_email_cancel']) || (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] !== 'GET')) {
+            return;
+        }
+        $token = sanitize_text_field(wp_unslash($_GET['psc_email_cancel']));
+        $title = __('Annuler le changement d’adresse e-mail', 'periscolaire-registration');
+
+        if (!preg_match('/\A[a-f0-9]{64}\z/', $token) || get_transient(self::email_cancel_key($token)) === false) {
+            self::email_cancel_page($title, '<p>' . esc_html__('Ce lien d’annulation n’est pas valide, a expiré ou a déjà été utilisé. Si vous n’êtes pas à l’origine d’un changement d’adresse, contactez la mairie.', 'periscolaire-registration') . '</p>');
+        }
+
+        $form = '<p>' . esc_html__('Une demande de changement de l’adresse de connexion de votre espace famille a été faite. Si vous n’en êtes pas à l’origine, annulez-la : votre adresse actuelle restera (ou redeviendra) l’adresse de connexion, et toutes les sessions ouvertes seront fermées.', 'periscolaire-registration') . '</p>'
+            . '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">'
+            . wp_nonce_field('psc_cancel_email_change_link', '_wpnonce', true, false)
+            . '<input type="hidden" name="action" value="psc_cancel_email_change_link">'
+            . '<input type="hidden" name="psc_email_cancel" value="' . esc_attr($token) . '">'
+            . '<p><button type="submit" class="button button-primary" data-testid="email-cancel-confirm">' . esc_html__('Annuler le changement d’adresse', 'periscolaire-registration') . '</button></p>'
+            . '</form>';
+        self::email_cancel_page($title, $form);
+    }
+
+    /**
+     * Annulation demandée depuis le lien de l'avis à l'ancienne adresse.
+     * Le jeton est à usage unique. Changement encore en attente : il est
+     * abandonné. Déjà confirmé : l'ancienne adresse est rétablie si elle
+     * est libre, et toutes les sessions du foyer sont révoquées.
+     */
+    public static function handle_cancel_email_change_link() {
+        check_admin_referer('psc_cancel_email_change_link');
+        $title = __('Annuler le changement d’adresse e-mail', 'periscolaire-registration');
+        $back  = '<p><a href="' . esc_url(Psc_Mailer::form_page_url()) . '">' . esc_html__('Aller à l’espace famille', 'periscolaire-registration') . '</a></p>';
+
+        if (!psc_rate_limit_by_ip('email_cancel_', 20, HOUR_IN_SECONDS)) {
+            self::email_cancel_page($title, '<p>' . esc_html__('Trop de tentatives. Réessayez plus tard.', 'periscolaire-registration') . '</p>', 429);
+        }
+
+        $token = isset($_POST['psc_email_cancel']) ? sanitize_text_field(wp_unslash($_POST['psc_email_cancel'])) : '';
+        $key   = self::email_cancel_key($token);
+        $data  = preg_match('/\A[a-f0-9]{64}\z/', $token) ? get_transient($key) : false;
+        if (!is_array($data) || empty($data['parent_id'])) {
+            self::email_cancel_page($title, '<p>' . esc_html__('Ce lien d’annulation n’est pas valide, a expiré ou a déjà été utilisé. Si vous n’êtes pas à l’origine d’un changement d’adresse, contactez la mairie.', 'periscolaire-registration') . '</p>' . $back);
+        }
+        delete_transient($key); // usage unique
+
+        global $wpdb;
+        $parent = self::get_by_id((int) $data['parent_id']);
+        if (!$parent) {
+            self::email_cancel_page($title, '<p>' . esc_html__('Ce compte n’est plus actif. Contactez la mairie.', 'periscolaire-registration') . '</p>');
+        }
+        $new_hash = (string) $data['new_hash'];
+        $pending  = !empty($parent->pending_email) && hash_equals($new_hash, psc_hash_token(strtolower((string) $parent->pending_email)));
+        $switched = hash_equals($new_hash, psc_hash_token(strtolower((string) $parent->email)));
+
+        if ($switched) {
+            $old = (string) $data['old'];
+            if (!self::identity_lock()) {
+                set_transient($key, $data, psc_email_confirmation_ttl());
+                self::email_cancel_page($title, '<p>' . esc_html__('Annulation momentanément impossible, merci de réessayer.', 'periscolaire-registration') . '</p>', 503);
+            }
+            $restored = !self::email_in_use($old, (int) $parent->id) && false !== $wpdb->update(
+                psc_table('parents'),
+                array('email' => $old, 'pending_email' => null, 'pending_email_token_hash' => null, 'pending_email_token_expires' => null),
+                array('id' => (int) $parent->id),
+                array('%s', '%s', '%s', '%s'),
+                array('%d')
+            );
+            self::identity_unlock();
+            // Sessions et liens fermés dans tous les cas : quelqu'un a
+            // changé l'adresse sans l'accord de son titulaire.
+            self::revoke_access((int) $parent->id);
+            Psc_Audit::log('famille.email_change_restaure', array(
+                'objet_type' => 'famille', 'objet_id' => (int) $parent->id, 'famille_id' => (int) $parent->id,
+                'resultat' => $restored ? 'succes' : 'erreur',
+                'acteur' => array('type' => 'famille', 'id' => (int) $parent->id, 'libelle' => self::actor_label((int) $parent->id, 'ancienne'), 'pour_le_compte_de' => null),
+                'resume' => $restored
+                    /* translators: %d: identifiant de la famille */
+                    ? sprintf(__('Changement d’adresse e-mail de la famille #%d annulé depuis l’ancienne adresse : ancienne adresse rétablie, sessions révoquées.', 'periscolaire-registration'), (int) $parent->id)
+                    /* translators: %d: identifiant de la famille */
+                    : sprintf(__('Changement d’adresse e-mail de la famille #%d contesté depuis l’ancienne adresse : rétablissement impossible (adresse déjà utilisée), sessions révoquées.', 'periscolaire-registration'), (int) $parent->id),
+            ));
+            if (!$restored) {
+                self::email_cancel_page($title, '<p>' . esc_html__('Le changement d’adresse avait déjà été confirmé et votre ancienne adresse ne peut pas être rétablie automatiquement. Les sessions ouvertes ont été fermées. Contactez la mairie pour retrouver l’accès à votre espace.', 'periscolaire-registration') . '</p>');
+            }
+            self::email_cancel_page($title, '<p>' . esc_html__('Le changement d’adresse a été annulé : votre ancienne adresse est de nouveau l’adresse de connexion. Toutes les sessions ouvertes ont été fermées ; reconnectez-vous en demandant un lien. Si vous n’êtes pas à l’origine de ce changement, prévenez la mairie.', 'periscolaire-registration') . '</p>' . $back);
+        }
+
+        if ($pending) {
+            $wpdb->update(
+                psc_table('parents'),
+                array('pending_email' => null, 'pending_email_token_hash' => null, 'pending_email_token_expires' => null),
+                array('id' => (int) $parent->id),
+                array('%s', '%s', '%s'),
+                array('%d')
+            );
+            Psc_Audit::log('famille.email_change_annule', array(
+                'objet_type' => 'famille', 'objet_id' => (int) $parent->id, 'famille_id' => (int) $parent->id,
+                'acteur' => array('type' => 'famille', 'id' => (int) $parent->id, 'libelle' => self::actor_label((int) $parent->id, 'ancienne'), 'pour_le_compte_de' => null),
+                /* translators: %d: identifiant de la famille */
+                'resume' => sprintf(__('Changement d’adresse e-mail de la famille #%d annulé depuis l’ancienne adresse.', 'periscolaire-registration'), (int) $parent->id),
+            ));
+            self::email_cancel_page($title, '<p>' . esc_html__('La demande de changement d’adresse a été annulée : votre adresse actuelle reste l’adresse de connexion. Si vous n’êtes pas à l’origine de cette demande, prévenez la mairie.', 'periscolaire-registration') . '</p>' . $back);
+        }
+
+        self::email_cancel_page($title, '<p>' . esc_html__('Aucun changement d’adresse n’est en cours : il a déjà été annulé ou remplacé par une autre demande.', 'periscolaire-registration') . '</p>' . $back);
+    }
+
+    /**
+     * Libellé d'acteur famille pour le journal, sans nom ni e-mail
+     * (RGPD-04) : « Famille #12 (titulaire) », « (second parent) »,
+     * « (ancienne adresse) », ou « Famille #12 » si le rôle est inconnu.
+     */
+    private static function actor_label($parent_id, $role) {
+        switch ($role) {
+            case 'titulaire':
+                /* translators: %d: identifiant de la famille */
+                return sprintf(__('Famille #%d (titulaire)', 'periscolaire-registration'), (int) $parent_id);
+            case 'second':
+                /* translators: %d: identifiant de la famille */
+                return sprintf(__('Famille #%d (second parent)', 'periscolaire-registration'), (int) $parent_id);
+            case 'ancienne':
+                /* translators: %d: identifiant de la famille */
+                return sprintf(__('Famille #%d (ancienne adresse)', 'periscolaire-registration'), (int) $parent_id);
+        }
+        /* translators: %d: identifiant de la famille */
+        return sprintf(__('Famille #%d', 'periscolaire-registration'), (int) $parent_id);
+    }
+
+    /** Page autonome (sans thème) du parcours d'annulation ; termine la requête. */
+    private static function email_cancel_page($title, $html, $status = 200) {
+        nocache_headers();
+        if (!headers_sent()) header('Referrer-Policy: no-referrer');
+        wp_die(
+            '<h1>' . esc_html($title) . '</h1>' . wp_kses($html, array(
+                'p' => array(), 'a' => array('href' => array()),
+                'form' => array('method' => array(), 'action' => array()),
+                'input' => array('type' => array(), 'name' => array(), 'value' => array(), 'id' => array()),
+                'button' => array('type' => array(), 'class' => array(), 'data-testid' => array()),
+            )),
+            esc_html($title),
+            array('response' => (int) $status)
+        );
     }
 
     /**
@@ -476,7 +692,7 @@ class Psc_Parents {
      * la session tout de suite après une validation automatique de
      * demande, sans faire attendre un second e-mail au parent.
      */
-    public static function open_session($parent_id) {
+    public static function open_session($parent_id, $login_email = '') {
         $expires = time() + psc_session_ttl();
         // Identifiant propre à cette session : c'est lui qui permet de la
         // révoquer isolément à la déconnexion. Sans lui, il faudrait
@@ -489,7 +705,10 @@ class Psc_Parents {
         // du titulaire) incrémente ce compteur et rend ce cookie mort,
         // quelle que soit la copie qui en subsiste (cf. psc_bump_session_epoch()).
         $epoch   = psc_session_epoch($parent_id);
-        $payload = $parent_id . '|' . $expires . '|' . $sid . '|' . $epoch;
+        // Empreinte de l'adresse qui ouvre la session (titulaire ou second
+        // parent, SEC-02) ; vide si l'appelant ne la connaît pas.
+        $login   = psc_session_login_fingerprint($login_email);
+        $payload = $parent_id . '|' . $expires . '|' . $sid . '|' . $epoch . '|' . $login;
         $value   = $payload . '|' . psc_sign($payload);
 
         setcookie(
@@ -505,6 +724,7 @@ class Psc_Parents {
             )
         );
         $_COOKIE[psc_session_cookie_name()] = $value;
+        self::reset_current_cache();
     }
 
     public static function close_session() {
@@ -529,6 +749,7 @@ class Psc_Parents {
             )
         );
         unset($_COOKIE[psc_session_cookie_name()]);
+        self::reset_current_cache();
     }
 
     /**
@@ -538,9 +759,13 @@ class Psc_Parents {
      * la mairie perd immédiatement l'accès).
      */
     public static function current() {
-        static $cache = false;
-        if ($cache !== false) return $cache;
+        if (self::$current_cache !== false) return self::$current_cache;
+        self::$current_cache = self::resolve_current();
+        return self::$current_cache;
+    }
 
+    /** Corps de current(), sans mémorisation. */
+    private static function resolve_current() {
         // La consultation mairie est une identité séparée et prioritaire :
         // ne jamais lire le cookie famille tant qu'elle est active. Un agent
         // peut ainsi dépanner un foyer depuis un navigateur où sa propre
@@ -548,15 +773,14 @@ class Psc_Parents {
         if (class_exists('Psc_Impersonation')) {
             $impersonation = Psc_Impersonation::active();
             if ($impersonation) {
-                $cache = self::get_by_id((int) $impersonation->family_id);
-                if (!$cache) {
+                $family = self::get_by_id((int) $impersonation->family_id);
+                if (!$family) {
                     Psc_Impersonation::end((int) $impersonation->id, 'revoquee');
                 }
-                return $cache;
+                return $family;
             }
         }
 
-        $cache = null;
         $session = self::read_session_cookie();
         if (!$session) return null;
         if (psc_session_is_revoked($session['sid'])) return null;
@@ -567,8 +791,33 @@ class Psc_Parents {
         // individuelle (cf. psc_bump_session_epoch()).
         if ($session['epoch'] !== psc_session_epoch($session['parent_id'])) return null;
 
-        $cache = self::get_by_id($session['parent_id']);
-        return $cache;
+        return self::get_by_id($session['parent_id']);
+    }
+
+    /**
+     * Qui a ouvert la session famille courante (SEC-02) : 'titulaire'
+     * (adresse `email` du foyer), 'second' (`second_parent_email`) ou ''
+     * — pas de session, consultation par la mairie, cookie antérieur sans
+     * identité, ou adresse de connexion qui n'est plus celle du foyer.
+     * Recalculé à chaque appel à partir des adresses actuelles.
+     *
+     * @return string
+     */
+    public static function session_login_role() {
+        if (self::is_impersonated()) return '';
+        $parent = self::current();
+        $session = self::read_session_cookie();
+        if (!$parent || !$session || $session['login'] === '' || (int) $session['parent_id'] !== (int) $parent->id) {
+            return '';
+        }
+        if (hash_equals(psc_session_login_fingerprint($parent->email), $session['login'])) {
+            return 'titulaire';
+        }
+        $second = trim((string) $parent->second_parent_email);
+        if ($second !== '' && hash_equals(psc_session_login_fingerprint($second), $session['login'])) {
+            return 'second';
+        }
+        return '';
     }
 
     /** Vrai lorsque le foyer courant est consulté par un agent de la mairie. */
@@ -615,7 +864,7 @@ class Psc_Parents {
      * familles à la mise à jour, pour une fenêtre qui se referme seule en
      * moins de douze heures. Ils ne sont simplement pas révocables.
      *
-     * @return array{parent_id:string,expires:int,sid:string,epoch:int}|null
+     * @return array{parent_id:string,expires:int,sid:string,epoch:int,login:string}|null
      */
     protected static function read_session_cookie() {
         $name = psc_session_cookie_name();
@@ -624,8 +873,16 @@ class Psc_Parents {
         $raw   = sanitize_text_field(wp_unslash($_COOKIE[$name]));
         $parts = explode('|', $raw);
 
-        if (count($parts) === 5) {
-            // Format courant : pid|expires|sid|epoch|signature.
+        $login = '';
+        if (count($parts) === 6) {
+            // Format courant : pid|expires|sid|epoch|login|signature, où
+            // login est l'empreinte de l'adresse de connexion (SEC-02).
+            list($pid, $expires, $sid, $epoch, $login, $sig) = $parts;
+            $payload = $pid . '|' . $expires . '|' . $sid . '|' . $epoch . '|' . $login;
+        } elseif (count($parts) === 5) {
+            // Cookies antérieurs à l'identité de connexion : valides, mais
+            // sans identité (session_login_role() vaut '') — il faut se
+            // reconnecter pour changer l'adresse de connexion.
             list($pid, $expires, $sid, $epoch, $sig) = $parts;
             $payload = $pid . '|' . $expires . '|' . $sid . '|' . $epoch;
         } elseif (count($parts) === 4) {
@@ -653,6 +910,7 @@ class Psc_Parents {
             'expires'   => (int) $expires,
             'sid'       => $sid,
             'epoch'     => (int) $epoch,
+            'login'     => (string) $login,
         );
     }
 
@@ -767,7 +1025,8 @@ class Psc_Parents {
                 'second_parent_nom' => $data['second_parent_nom'], 'second_parent_prenom' => $data['second_parent_prenom'],
                 'second_parent_email' => $data['second_parent_email'], 'second_parent_telephone' => $data['second_parent_telephone'],
             ),
-            'resume' => sprintf(__('Famille %s (%s) créée.', 'periscolaire-registration'), trim($data['nom'] . ' ' . $data['prenom']), $email),
+            /* translators: %d: identifiant de la famille */
+            'resume' => sprintf(__('Famille #%d créée.', 'periscolaire-registration'), $new_id),
         ));
 
         return $new_id;

@@ -87,6 +87,21 @@ function psc_bump_session_epoch($parent_id) {
     if (class_exists('Psc_Login_Tokens')) Psc_Login_Tokens::forget_parent($parent_id);
 }
 
+/**
+ * Empreinte de l'adresse qui a ouvert une session famille (SEC-02).
+ *
+ * Titulaire et second parent partagent la session du foyer : le cookie
+ * porte donc l'empreinte de l'adresse de connexion, jamais l'adresse
+ * elle-même (le cookie ne contient aucune donnée personnelle). La
+ * comparaison avec les adresses actuelles du foyer dit qui agit, cf.
+ * Psc_Parents::session_login_role(). Chaîne vide si aucune adresse.
+ */
+function psc_session_login_fingerprint($email) {
+    $email = strtolower(trim((string) $email));
+    if ($email === '') return '';
+    return substr(psc_sign('login|' . $email), 0, 20);
+}
+
 /** Durée de validité d'un lien de connexion envoyé par e-mail (réglable, Réglages > Demandes d'inscription). */
 function psc_login_link_ttl() {
     $minutes = (int) get_option('psc_login_link_ttl_minutes', 30);
@@ -129,7 +144,8 @@ function psc_parent_nonce($action, $parent_id, $tick_offset = 0) {
     return substr(hash_hmac(
         'sha256',
         $tick . '|' . $action . '|' . (int) $parent_id,
-        wp_salt('psc_parent_nonce')
+        // Même clé hors base que la signature des sessions (SEC-07).
+        psc_session_signing_key() . '|psc_parent_nonce'
     ), 0, 24);
 }
 

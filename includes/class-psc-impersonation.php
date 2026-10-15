@@ -51,7 +51,9 @@ class Psc_Impersonation {
         if (!$family_id) return array();
 
         global $wpdb;
-        $cutoff = gmdate('Y-m-d H:i:s', strtotime('-' . $months . ' months', current_time('timestamp')));
+        // started_at est en heure du site (current_time('mysql')) : seuil
+        // dans la même horloge (PRA-14).
+        $cutoff = wp_date('Y-m-d H:i:s', strtotime('-' . $months . ' months'));
         return $wpdb->get_results($wpdb->prepare(
             'SELECT started_at, motif_type FROM ' . psc_table('impersonations') . ' WHERE family_id = %d AND started_at >= %s ORDER BY started_at DESC',
             $family_id,
@@ -79,15 +81,15 @@ class Psc_Impersonation {
     public static function cleanup() {
         global $wpdb;
         $table = psc_table('impersonations');
-        $now = current_time('mysql');
+        // ended_at en heure du site, expires_at en UTC (AGENTS §4.1).
         $closed = $wpdb->query($wpdb->prepare(
             "UPDATE $table SET ended_at = %s, ended_reason = 'expiration' WHERE ended_at IS NULL AND expires_at <= %s",
-            $now,
-            $now
+            current_time('mysql'),
+            gmdate('Y-m-d H:i:s')
         ));
 
         $retention_days = max(1, (int) apply_filters('psc_impersonation_retention_days', 365));
-        $cutoff = gmdate('Y-m-d H:i:s', current_time('timestamp') - $retention_days * DAY_IN_SECONDS);
+        $cutoff = wp_date('Y-m-d H:i:s', time() - $retention_days * DAY_IN_SECONDS); // heure du site, comme started_at
         $deleted = $wpdb->query($wpdb->prepare(
             "DELETE FROM $table WHERE started_at < %s",
             $cutoff
@@ -266,9 +268,10 @@ class Psc_Impersonation {
             $cookie['id']
         ));
 
-        $now_mysql = current_time('mysql');
+        // expires_at est en UTC (AGENTS §4.1) : comparé à gmdate().
+        $now_utc = gmdate('Y-m-d H:i:s');
         $expired = $cookie['expires'] <= time()
-            || ($row && $row->expires_at <= $now_mysql);
+            || ($row && $row->expires_at <= $now_utc);
         if ($expired) {
             if ($row && !$row->ended_at) self::end((int) $row->id, 'expiration');
             self::discard_cookie($cache_negative);
@@ -282,7 +285,7 @@ class Psc_Impersonation {
             && hash_equals((string) $cookie['session_hash'], self::session_hash())
             && $row
             && !$row->ended_at
-            && $row->expires_at > $now_mysql
+            && $row->expires_at > $now_utc
             && (int) $row->wp_user_id === $cookie['wp_user_id']
             && (int) $row->family_id === $cookie['family_id']
             && Psc_Parents::get_by_id($cookie['family_id']);
@@ -378,7 +381,9 @@ class Psc_Impersonation {
             'motif_type'  => $motif_type,
             'motif_detail'=> $motif_detail,
             'started_at'  => current_time('mysql'),
-            'expires_at'  => gmdate('Y-m-d H:i:s', current_time('timestamp') + $ttl),
+            // Échéance en UTC (AGENTS §4.1), comparée à gmdate() ; affichée
+            // au fuseau du site. Le cookie porte sa propre échéance time().
+            'expires_at'  => gmdate('Y-m-d H:i:s', $expires),
             'ip'          => psc_client_ip() ?: null,
         ), array('%d', '%d', '%s', '%s', '%s', '%s', '%s'));
         if (!$inserted) self::confirmation_error($family_id, 'impersonation_failed');

@@ -3,11 +3,16 @@
 
     // Chaînes traduites côté serveur (PSC_SIDSCM.i18n, cf. Psc_Sidscm::assets())
     // : t('cle', args…) remplace les %s dans l'ordre des arguments.
+    // Marqueurs numérotés (%1$s, %2$s : l'ordre peut changer d'une langue
+    // à l'autre) ou simples (%s, remplacés dans l'ordre).
     function t(key) {
         var s = PSC_SIDSCM.i18n[key] || '';
-        for (var i = 1; i < arguments.length; i++) {
-            s = s.replace('%s', arguments[i]);
-        }
+        var args = Array.prototype.slice.call(arguments, 1);
+        s = s.replace(/%(\d+)\$s/g, function (m, n) {
+            var v = args[parseInt(n, 10) - 1];
+            return v === undefined ? m : String(v);
+        });
+        args.forEach(function (v) { s = s.replace('%s', String(v)); });
         return s;
     }
     // Fournie par le serveur (psc_unit_services()) : une seule source pour
@@ -73,7 +78,16 @@
             intervenant_id: state.intervenantId
         };
         Object.keys(params || {}).forEach(function (k) { all[k] = params[k]; });
-        return window.PscAjax.data(PSC_SIDSCM.ajax_url, all);
+        return window.PscAjax.data(PSC_SIDSCM.ajax_url, all).catch(function (err) {
+            // Session refusée par le serveur (intervenant révoqué, désactivé
+            // ou expiré, session échue) : retour immédiat à l'écran de code,
+            // la liste affichée n'est plus à jour ni autorisée.
+            var code = err && err.data && err.data.data ? err.data.data.code : '';
+            if (code === 'auth' && action !== 'psc_sidscm_unlock' && state.sessionToken) {
+                lock();
+            }
+            throw err;
+        });
     }
 
     /* ---------------- Déverrouillage ---------------- */
@@ -242,6 +256,12 @@
      * + tiers ajoutés côté famille) — la gestion reste dans "Mon profil".
      */
     function renderAuthPanel(c) {
+        // Les personnes autorisées ne sont transmises que pour la semaine
+        // en cours (minimisation, RGPD-06) : ailleurs, on le dit plutôt
+        // que d'annoncer une liste vide.
+        if (state.week !== state.currentWeek) {
+            return '<div class="psc-sidscm-auth-panel" data-testid="sidscm-auth-panel-' + c.id + '"><div class="psc-sidscm-auth-empty">' + t('authorised_current_week') + '</div></div>';
+        }
         var persons = c.authorized || [];
         var personsHtml = persons.length
             ? persons.map(function (p) {
@@ -277,14 +297,9 @@
             var allergyHtml = (svc === 'CANT' && c.allergies)
                 ? '<span class="psc-sidscm-row-allergy">' + escapeHtml(c.allergies) + '</span>'
                 : '';
-            // L'enfant apporte son repas fourni par la famille (aucun menu
-            // différencié) : l'encadrant ne doit pas le compter dans les
-            // couverts.
-            var bringsMealHtml = (svc === 'CANT' && c.brings_meal)
-                ? '<span class="psc-sidscm-row-brings-meal">' + t('brings_meal') + '</span>'
-                : '';
-            // « Midi sans repas » : l'enfant est présent sur le créneau mais
-            // n'y déjeune pas — même consigne d'affichage que le repas apporté.
+            // « Midi sans repas » (statut « cantine sans repas » posé par la
+            // mairie, allergie comprise) : l'enfant est présent sur le
+            // créneau mais n'y déjeune pas — à ne pas compter dans les couverts.
             var noMealHtml = (svc === 'CANT' && (c.MSR || []).indexOf(day) !== -1)
                 ? '<span class="psc-sidscm-row-brings-meal">' + t('no_meal') + '</span>'
                 : '';
@@ -318,7 +333,7 @@
                 (present ? ' checked' : '') + ' data-testid="sidscm-check-' + c.id + '">' +
                 '<span class="psc-sidscm-row-name">' + escapeHtml(c.prenom) + ' ' + escapeHtml(c.nom) + '</span>' +
                 '<span class="psc-sidscm-row-classe">' + escapeHtml(c.classe || '') + '</span>' +
-                '</label>' + allergyHtml + bringsMealHtml + noMealHtml + dietHtml + arrivalHtml + departureHtml + authToggleHtml +
+                '</label>' + allergyHtml + noMealHtml + dietHtml + arrivalHtml + departureHtml + authToggleHtml +
                 '</div>' + (expanded ? renderAuthPanel(c) : '');
         }).join('');
 
@@ -330,7 +345,7 @@
             '<div class="psc-sidscm-panel" data-testid="sidscm-day-panel">' +
             '<div class="psc-sidscm-panel-head">' +
             '<div class="psc-sidscm-panel-title">' + escapeHtml(svcLabel(svc)) + ' — ' + escapeHtml(capitalize(day)) + '</div>' +
-            '<div class="psc-sidscm-panel-count" role="status" aria-live="polite" data-testid="sidscm-present-count">' + t('present_count', presentCount, rows.length) + '</div>' +
+            '<div class="psc-sidscm-panel-count" role="status" aria-live="polite" data-testid="sidscm-present-count">' + t(presentCount > 1 ? 'present_count' : 'present_count_one', presentCount, rows.length) + '</div>' +
             '</div>' + rowsHtml + emptyHtml +
             '</div>';
 
@@ -407,9 +422,6 @@
             var allergyHtml = (svc === 'CANT' && c.allergies)
                 ? '<span class="psc-sidscm-row-allergy">' + escapeHtml(c.allergies) + '</span>'
                 : '';
-            var bringsMealHtml = (svc === 'CANT' && c.brings_meal)
-                ? '<span class="psc-sidscm-row-brings-meal">' + t('brings_meal') + '</span>'
-                : '';
             var noMealWeekHtml = (svc === 'CANT' && (c.MSR || []).length)
                 ? '<span class="psc-sidscm-row-brings-meal">' + t('no_meal') + '</span>'
                 : '';
@@ -418,7 +430,7 @@
                 : '';
             return '<tr><td class="psc-sidscm-table-child-cell">' + escapeHtml(c.prenom) + ' ' + escapeHtml(c.nom) +
                 ' <span class="psc-sidscm-table-child-classe">(' + escapeHtml(c.classe || '') + ')</span>' +
-                allergyHtml + bringsMealHtml + noMealWeekHtml + dietWeekHtml +
+                allergyHtml + noMealWeekHtml + dietWeekHtml +
                 authWeekBtn(c) + '</td>' +
                 marksHtml + '</tr>';
         }).join('');
