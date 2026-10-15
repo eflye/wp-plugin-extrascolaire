@@ -1108,7 +1108,8 @@ class Psc_Invoices {
         if ((int) $version > 1) $invoice_num .= '-R' . (int) $version;
         $month_label  = self::month_label($mois);
         $nom_famille  = trim(($parent->nom ?? '') ?: $parent->email);
-        $date_fr      = self::french_full_date((int) current_time('timestamp'));
+        // Horodatage réel : french_full_date() applique lui-même le fuseau du site.
+        $date_fr      = self::french_full_date(time());
         $city_date    = $org_city ? self::enc(sprintf(
             /* translators: 1: ville de la mairie, 2: date en toutes lettres. */
             __('%1$s, le %2$s', 'periscolaire-registration'), $org_city, $date_fr)) : self::enc($date_fr);

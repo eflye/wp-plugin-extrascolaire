@@ -69,10 +69,14 @@ function psc_next_open_week($from_date) {
  * Année de rentrée en cours (ex : 2026 du 1er septembre 2026 au 31 août
  * 2027). Sert de repère pour dater les documents (assurance, dossiers)
  * quand aucune année scolaire n'est explicitement fournie.
+ *
+ * @param int|null $timestamp Horodatage Unix (UTC) ; maintenant par défaut.
  */
 function psc_rentree_year($timestamp = null) {
-    $ts = $timestamp ?: current_time('timestamp');
-    $month = (int) date('n', $ts);
-    $year  = (int) date('Y', $ts);
+    // Horodatage Unix réel (UTC), lu au fuseau du site par wp_date() :
+    // current_time('timestamp') est déprécié et décalé (AGENTS §4.1).
+    $ts = $timestamp ? (int) $timestamp : time();
+    $month = (int) wp_date('n', $ts);
+    $year  = (int) wp_date('Y', $ts);
     return $month >= 9 ? $year : $year - 1;
 }

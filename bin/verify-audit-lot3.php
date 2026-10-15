@@ -669,6 +669,35 @@ WP_CLI::add_command('verify-audit-lot3', function () {
             'PRA-17 : le journal liste encore tous les champs du formulaire');
     };
 
+    /* PRA-14/L3 : horloges cohérentes (plus de current_time('timestamp')). */
+    $sections['PRA-14/L3'] = function () use ($check) {
+        $tz = get_option('timezone_string');
+        $off = get_option('gmt_offset');
+        update_option('timezone_string', 'Europe/Paris');
+        try {
+            // 31 août 2026 23:30 à Paris = 21:30 UTC : encore l'année 2025-2026.
+            $ts = (new DateTime('2026-08-31 23:30:00', new DateTimeZone('Europe/Paris')))->getTimestamp();
+            $check(psc_rentree_year($ts) === 2025, 'PRA-14 : rentrée calculée hors fuseau du site (31/08 23:30)');
+            // 1er septembre 00:30 à Paris = 31 août 22:30 UTC : déjà 2026-2027.
+            $ts = (new DateTime('2026-09-01 00:30:00', new DateTimeZone('Europe/Paris')))->getTimestamp();
+            $check(psc_rentree_year($ts) === 2026, 'PRA-14 : rentrée calculée hors fuseau du site (01/09 00:30)');
+            $m = new ReflectionMethod('Psc_Invoices', 'french_full_date');
+            $m->setAccessible(true);
+            $check(strpos((string) $m->invoke(null, $ts), '1 septembre 2026') === 0, 'PRA-14 : date de facture décalée (' . $m->invoke(null, $ts) . ')');
+            foreach (array('includes/class-psc-invoices.php', 'includes/helpers/school-calendar.php') as $f) {
+                $code = '';
+                foreach (token_get_all((string) file_get_contents(PSC_PATH . $f)) as $tok) {
+                    if (is_array($tok) && in_array($tok[0], array(T_COMMENT, T_DOC_COMMENT), true)) continue;
+                    $code .= is_array($tok) ? $tok[1] : $tok;
+                }
+                $check(strpos($code, "current_time('timestamp')") === false, "PRA-14 : current_time('timestamp') encore utilisé dans $f");
+            }
+        } finally {
+            update_option('timezone_string', $tz);
+            update_option('gmt_offset', $off);
+        }
+    };
+
     try {
         foreach ($sections as $name => $run) {
             $run();
