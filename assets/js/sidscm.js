@@ -36,6 +36,10 @@
         arrivals: {},   // "childId|date|GM" => "HH:MM"
         departures: {}, // "childId|date|GS" => "HH:MM"
         authExpanded: {}, // childId => bool, replié par défaut, survit aux re-rendus (checkbox, départ...)
+        // Contact d'urgence : numéros des parents chargés à la demande
+        // (journalisés côté serveur), gardés en mémoire jusqu'au verrouillage.
+        contactsExpanded: {}, // childId => bool
+        contacts: {},         // childId => { status: 'loading'|'ok'|'error', list: [...] }
     };
 
     var els = {};
@@ -120,6 +124,9 @@
         state.code = '';
         state.sessionToken = '';
         state.intervenantId = '';
+        // Numéros des parents : jamais conservés au-delà de la session.
+        state.contacts = {};
+        state.contactsExpanded = {};
         els.codeInput.value = '';
         showLock();
     }
@@ -275,6 +282,57 @@
         return '<div class="psc-sidscm-auth-panel" data-testid="sidscm-auth-panel-' + c.id + '">' + personsHtml + '</div>';
     }
 
+    /**
+     * Contact d'urgence (tous services, semaine en cours) : rôle, nom et
+     * numéros cliquables des parents. Chargés au premier dépliage.
+     */
+    function renderContactsPanel(c) {
+        var entry = state.contacts[c.id];
+        var body;
+        if (!entry || entry.status === 'loading') {
+            body = '<div class="psc-sidscm-auth-empty">' + t('emergency_loading') + '</div>';
+        } else if (entry.status === 'error') {
+            body = '<div class="psc-sidscm-auth-empty" role="alert">' + t('load_error') + '</div>';
+        } else if (!entry.list.length) {
+            body = '<div class="psc-sidscm-auth-empty">' + t('emergency_none') + '</div>';
+        } else {
+            body = '<ul class="psc-sidscm-contacts-list">' + entry.list.map(function (p) {
+                var name = (p.prenom + ' ' + p.nom).trim();
+                var phones = p.phones.length
+                    ? p.phones.map(function (ph) {
+                        return '<a class="psc-sidscm-contact-tel" href="tel:' + escapeHtml(ph.tel) + '"' +
+                            ' aria-label="' + escapeHtml(t('emergency_call', ph.label, name) + ' : ' + ph.number) + '">' +
+                            '<span class="psc-sidscm-contact-tel-label">' + escapeHtml(ph.label) + '</span> ' +
+                            '<span class="psc-sidscm-contact-tel-number">' + escapeHtml(ph.number) + '</span></a>';
+                    }).join('')
+                    : '<span class="psc-sidscm-contact-none">' + t('emergency_no_phone') + '</span>';
+                return '<li class="psc-sidscm-auth-person psc-sidscm-contact">' +
+                    '<span class="psc-sidscm-auth-badge">' + escapeHtml(p.role) + '</span>' +
+                    '<span class="psc-sidscm-auth-name">' + escapeHtml(name) + '</span>' +
+                    '<span class="psc-sidscm-contact-phones">' + phones + '</span>' +
+                    '</li>';
+            }).join('') + '</ul>';
+        }
+        return '<div class="psc-sidscm-auth-panel psc-sidscm-contacts-panel" id="psc-sidscm-contacts-' + c.id + '"' +
+            ' role="region" aria-live="polite" aria-label="' + escapeHtml(t('emergency_for', c.prenom + ' ' + c.nom)) + '"' +
+            ' data-testid="sidscm-contacts-panel-' + c.id + '">' + body + '</div>';
+    }
+
+    function loadContacts(childId) {
+        state.contacts[childId] = { status: 'loading', list: [] };
+        return ajax('psc_sidscm_contacts', { child_id: childId }).then(function (data) {
+            state.contacts[childId] = { status: 'ok', list: data.contacts || [] };
+        }).catch(function () {
+            // Nouvel essai au prochain dépliage.
+            state.contacts[childId] = { status: 'error', list: [] };
+        });
+    }
+
+    function focusContactsToggle(childId) {
+        var btn = els.content.querySelector('[data-testid="sidscm-contacts-toggle-' + childId + '"]');
+        if (btn) btn.focus();
+    }
+
     function renderDayView() {
         var svc = state.activeService;
         var day = state.activeDay;
@@ -327,14 +385,23 @@
                     '" data-child-id="' + c.id + '" data-testid="sidscm-auth-toggle-' + c.id + '" aria-expanded="' + (expanded ? 'true' : 'false') + '">' +
                     '<span class="psc-sidscm-auth-toggle-icon">' + (expanded ? '−' : '+') + '</span> ' + t('authorised') + '</button>'
                 : '';
+            // Contact d'urgence : sur tous les services, la vue Jour portant
+            // toujours sur la semaine en cours.
+            var contactsOpen = !!state.contactsExpanded[c.id];
+            var contactsToggleHtml = state.week === state.currentWeek
+                ? '<button type="button" class="psc-sidscm-auth-toggle psc-sidscm-contacts-toggle' + (contactsOpen ? ' is-expanded' : '') +
+                    '" data-child-id="' + c.id + '" data-testid="sidscm-contacts-toggle-' + c.id + '"' +
+                    ' aria-expanded="' + (contactsOpen ? 'true' : 'false') + '" aria-controls="psc-sidscm-contacts-' + c.id + '">' +
+                    '<span class="psc-sidscm-auth-toggle-icon" aria-hidden="true">☎</span> ' + t('emergency') + '</button>'
+                : '';
             return '<div class="psc-sidscm-row" data-testid="sidscm-row-' + c.id + '">' +
                 '<label class="psc-sidscm-row-label">' +
                 '<input type="checkbox" class="psc-sidscm-row-check" data-child-id="' + c.id + '"' +
                 (present ? ' checked' : '') + ' data-testid="sidscm-check-' + c.id + '">' +
                 '<span class="psc-sidscm-row-name">' + escapeHtml(c.prenom) + ' ' + escapeHtml(c.nom) + '</span>' +
                 '<span class="psc-sidscm-row-classe">' + escapeHtml(c.classe || '') + '</span>' +
-                '</label>' + allergyHtml + noMealHtml + dietHtml + arrivalHtml + departureHtml + authToggleHtml +
-                '</div>' + (expanded ? renderAuthPanel(c) : '');
+                '</label>' + allergyHtml + noMealHtml + dietHtml + arrivalHtml + departureHtml + authToggleHtml + contactsToggleHtml +
+                '</div>' + (contactsOpen ? renderContactsPanel(c) : '') + (expanded ? renderAuthPanel(c) : '');
         }).join('');
 
         var emptyHtml = rows.length === 0
@@ -381,7 +448,23 @@
 
         // Plusieurs lignes peuvent être dépliées en même temps (comparer
         // avant un départ groupé) : chaque bouton ne replie que sa ligne.
-        els.content.querySelectorAll('.psc-sidscm-auth-toggle').forEach(function (btn) {
+        els.content.querySelectorAll('.psc-sidscm-contacts-toggle').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var childId = btn.dataset.childId;
+                state.contactsExpanded[childId] = !state.contactsExpanded[childId];
+                var entry = state.contacts[childId];
+                var needsLoad = state.contactsExpanded[childId] && (!entry || entry.status === 'error');
+                if (needsLoad) {
+                    loadContacts(childId).then(function () {
+                        if (state.viewMode === 'day') { renderDayView(); focusContactsToggle(childId); }
+                    });
+                }
+                renderDayView();
+                focusContactsToggle(childId);
+            });
+        });
+
+        els.content.querySelectorAll('.psc-sidscm-auth-toggle:not(.psc-sidscm-contacts-toggle)').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 var childId = btn.dataset.childId;
                 state.authExpanded[childId] = !state.authExpanded[childId];
