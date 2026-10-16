@@ -157,6 +157,10 @@ function psc_audit_action_registry() {
         'psc_sidscm_toggle' => array(
             'action' => 'presence.pointage', 'categorie' => 'presences', 'objet' => 'presence', 'niveau' => 'normal',
         ),
+        // « Tous présents » : un geste, une seule ligne de journal pour le lot.
+        'psc_sidscm_all_present' => array(
+            'action' => 'presence.pointage_groupe', 'categorie' => 'presences', 'objet' => 'presence', 'niveau' => 'normal',
+        ),
         'psc_sidscm_arrival' => array(
             'action' => 'presence.pointage', 'categorie' => 'presences', 'objet' => 'presence', 'niveau' => 'normal',
         ),

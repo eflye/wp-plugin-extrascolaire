@@ -50,6 +50,8 @@ body.psc-sidscm-active main.site-main .entry-content {
     --psc-rule: rgba(36, 64, 92, 0.22);
     --psc-rule-light: rgba(36, 64, 92, 0.15);
     --psc-rule-lighter: rgba(36, 64, 92, 0.1);
+    /* La spec demandait --psc-gold, mais il ne fait qu'environ 2,6:1 sur blanc (sous le minimum RGAA) : valeur reprise du focus du thème Clair (5,37:1 sur blanc). */
+    --psc-sidscm-focus: #9A5B2E;
 
     font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     color: var(--psc-ink);
@@ -462,6 +464,253 @@ body.psc-sidscm-active main.site-main .entry-content {
 .psc-sidscm-table-child-classe { color: var(--psc-stone); font-weight: 400; font-size: 12px; }
 .psc-sidscm-mark { font-size: 15px; font-weight: 700; color: var(--psc-forest); }
 .psc-sidscm-mark.is-absent { font-size: 13px; color: var(--psc-line-light); }
+
+/* ---- Pointage Présent / Absent (vue Jour) ----
+   Trois états par enfant (à pointer / présent / absent), deux boutons
+   explicites par ligne. L'état est toujours porté par un libellé texte
+   (boutons, compteurs), jamais par la seule couleur. */
+
+.psc-sidscm-at-list { background: #fff; border: 1px solid var(--psc-rule-light); }
+/* Déjà encadrée par le panneau : pas de double bordure. */
+.psc-sidscm-panel > .psc-sidscm-at-list { border: 0; }
+
+.psc-sidscm-at-hd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    padding: 18px 26px;
+    background: var(--psc-paper);
+    border-bottom: 1px solid var(--psc-rule-light);
+}
+.psc-sidscm-at-title { margin: 0; font-size: 19px; font-weight: 700; color: var(--psc-forest); }
+.psc-sidscm-at-help { margin: 4px 0 0; font-size: 13.5px; color: var(--psc-moss); }
+.psc-sidscm-at-help b { color: var(--psc-forest); font-weight: 600; }
+
+/* Compteurs : chiffre en gras + libellé en capitales. */
+.psc-sidscm-at-sum { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.psc-sidscm-at-count { display: flex; gap: 6px; flex-wrap: wrap; }
+.psc-sidscm-at-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    padding: 7px 11px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border: 1px solid var(--psc-rule);
+    color: var(--psc-moss);
+    background: #fff;
+}
+.psc-sidscm-at-chip b { font-size: 16px; letter-spacing: 0; color: var(--psc-ink); font-weight: 800; }
+.psc-sidscm-at-chip--p { border-color: var(--psc-forest); color: var(--psc-forest); }
+.psc-sidscm-at-chip--p b { color: var(--psc-forest); }
+.psc-sidscm-at-chip--a { border-color: var(--psc-error); color: var(--psc-error); }
+.psc-sidscm-at-chip--a b { color: var(--psc-error); }
+.psc-sidscm-at-chip--t { background: var(--psc-cream); }
+/* « 0 à pointer » : la maquette pose une opacité de 0,55, qui ferait
+   tomber le texte à 2,2:1. On atténue le cadre (fond du bandeau, filet
+   léger) en gardant le texte à 4,7:1. */
+.psc-sidscm-at-chip--t.is-zero { background: transparent; border-color: var(--psc-rule-light); }
+.psc-sidscm-at-chip--t.is-zero b { color: var(--psc-moss); }
+
+.psc-sidscm-at-all {
+    min-height: 44px;
+    padding: 0 16px;
+    border: 1px solid var(--psc-forest);
+    border-radius: 0;
+    background: #fff;
+    color: var(--psc-forest);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+.psc-sidscm-at-all:hover:not(:disabled) { background: var(--psc-cream); }
+.psc-sidscm-at-all:disabled { opacity: 0.4; cursor: default; }
+
+/* Barre de progression décorative (aria-hidden) : présents puis absents. */
+.psc-sidscm-at-bar { display: flex; height: 4px; background: var(--psc-rule-lighter); }
+.psc-sidscm-at-bar i { display: block; height: 100%; }
+.psc-sidscm-at-bar-p { background: var(--psc-forest); }
+.psc-sidscm-at-bar-a { background: var(--psc-error); }
+
+/* Échec d'enregistrement (role="alert") : texte sur fond blanc, pas
+   d'icône colorée seule. */
+.psc-sidscm-at-notice {
+    padding: 12px 26px;
+    background: #fff;
+    color: var(--psc-error);
+    border-bottom: 1px solid var(--psc-error);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.45;
+}
+.psc-sidscm-at-notice[hidden],
+.psc-sidscm-at-done[hidden] { display: none; }
+
+/* Lignes enfant : is-todo (blanc), is-present (blanc), is-absent (crème, nom estompé).
+   Retour à la ligne autorisé dès le format tablette (768 px) : avec
+   l'heure et les deux boutons de contact, la ligne déborderait ; les
+   boutons Présent / Absent passent alors dessous, calés à droite. */
+.psc-sidscm-at-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 20px;
+    min-height: 56px;
+    padding: 14px 26px;
+    border-bottom: 1px solid var(--psc-rule-lighter);
+    background: #fff;
+}
+.psc-sidscm-at-row:last-child { border-bottom: none; }
+.psc-sidscm-at-row.is-absent { background: var(--psc-cream); }
+.psc-sidscm-at-who {
+    /* Base de 220 px : en tablette, le nom garde sa largeur et ce sont
+       les boutons qui passent à la ligne. */
+    flex: 1 1 220px;
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.psc-sidscm-at-name { font-size: 18px; font-weight: 600; color: var(--psc-ink); }
+.psc-sidscm-at-row.is-absent .psc-sidscm-at-name { color: var(--psc-stone); }
+.psc-sidscm-at-cls { font-size: 13px; font-weight: 600; color: var(--psc-stone); letter-spacing: 0.04em; }
+.psc-sidscm-at-badge {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1px solid var(--psc-rule);
+    color: var(--psc-forest);
+    padding: 3px 7px;
+    white-space: nowrap;
+}
+
+/* Heure d'arrivée / de départ (GM, GS) : champ si présent, sinon espace
+   réservé de même largeur pour garder les boutons alignés. */
+.psc-sidscm-at-time {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--psc-moss);
+    white-space: nowrap;
+}
+.psc-sidscm-at-time input {
+    box-sizing: border-box;
+    width: 112px;
+    height: 44px;
+    padding: 0 10px;
+    border: 1px solid var(--psc-rule);
+    border-radius: 0;
+    background: #fff;
+    color: var(--psc-ink);
+    font-family: inherit;
+    font-size: 15px;
+}
+.psc-sidscm-at-time-ph { width: 180px; flex-shrink: 0; }
+
+/* Boutons Présent / Absent. Taille fixe : la bordure de 2 px de
+   l'état Absent est compensée par le padding. */
+.psc-sidscm-at-seg { display: flex; gap: 6px; flex-shrink: 0; margin-left: auto; }
+.psc-sidscm-at-seg button {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 128px;
+    min-height: 48px;
+    margin: 0;
+    padding: 0 16px;
+    border: 1px solid var(--psc-rule);
+    border-radius: 0;
+    background: #fff;
+    color: var(--psc-forest);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+.psc-sidscm-at-seg button:hover { border-color: var(--psc-forest); }
+.psc-sidscm-at-seg button.is-on-p {
+    background: var(--psc-forest);
+    border-color: var(--psc-forest);
+    color: #fff;
+}
+.psc-sidscm-at-seg button.is-on-a {
+    padding: 0 15px;
+    background: #fff;
+    border: 2px solid var(--psc-error);
+    color: var(--psc-error);
+}
+.psc-sidscm-at-seg svg { flex-shrink: 0; }
+
+/* Pied : affiché quand plus aucun enfant n'est à pointer. */
+.psc-sidscm-at-done {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 26px;
+    border-top: 1px solid var(--psc-rule-light);
+    background: #fff;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--psc-forest);
+}
+.psc-sidscm-at-done svg { flex-shrink: 0; }
+
+/* Panneaux dépliés sous une ligne de pointage : plus de case à cocher,
+   on aligne sur le nom. */
+.psc-sidscm-at-list .psc-sidscm-auth-panel { padding: 12px 26px 16px; }
+
+/* ✓ « pointage terminé » dans l'onglet de service. */
+.psc-sidscm-svc-done { display: inline-flex; align-items: center; color: var(--psc-forest); }
+.psc-sidscm-svc-btn.is-active .psc-sidscm-svc-done { color: #fff; }
+
+/* « Contact d'urgence » et « Autorisés » restent ensemble : sans ce
+   groupe, l'un passait seul à la ligne en tablette quand l'heure s'affiche. */
+.psc-sidscm-at-tools { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+/* Focus clavier : 3 px, ≥ 3:1 sur blanc, crème et bandeau. Préfixé par
+   .psc-sidscm pour l'emporter sur la règle générale `.psc-sidscm button:focus`
+   (or 2 px), de même spécificité sinon. */
+.psc-sidscm .psc-sidscm-at-seg button:focus-visible,
+.psc-sidscm .psc-sidscm-at-all:focus-visible,
+.psc-sidscm .psc-sidscm-at-time input:focus-visible,
+.psc-sidscm .psc-sidscm-svc-done:focus-visible {
+    outline: 3px solid var(--psc-sidscm-focus);
+    outline-offset: 2px;
+}
+
+/* Tablette : les lignes passent déjà à la ligne, l'espace réservé de
+   l'heure n'aligne plus rien et repousserait les boutons. */
+@media (max-width: 1024px) {
+    .psc-sidscm-at-time-ph { display: none; }
+}
+
+@media (max-width: 760px) {
+    .psc-sidscm-at-hd { padding: 16px; }
+    /* Nom et badges sur leur propre largeur ; heure et boutons « Contact
+       d'urgence » / « Autorisés » ensuite ; Présent / Absent en pleine largeur. */
+    .psc-sidscm-at-row { flex-wrap: wrap; gap: 12px 16px; padding: 14px 16px; }
+    .psc-sidscm-at-who { flex: 1 1 auto; }
+    .psc-sidscm-at-seg { width: 100%; }
+    .psc-sidscm-at-seg button { flex: 1; min-width: 0; }
+    .psc-sidscm-at-notice,
+    .psc-sidscm-at-done { padding-left: 16px; padding-right: 16px; }
+    .psc-sidscm-at-list .psc-sidscm-auth-panel { padding-left: 16px; padding-right: 16px; }
+}
 
 @media (max-width: 640px) {
     .psc-sidscm-header,

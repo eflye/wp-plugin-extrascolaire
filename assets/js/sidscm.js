@@ -32,7 +32,7 @@
         days: {},      // jour => date (Y-m-d), ordre lundi/mardi/jeudi/vendredi
         services: {},  // code => { label, price }
         children: [],  // { id, prenom, nom, classe, diet, GM: [jours], CANT: [jours], GS: [jours] }
-        attendance: {}, // "childId|date|service" => 0|1
+        attendance: {}, // "childId|date|service" => 1 (présent) | 0 (absent) ; clé absente = à pointer
         arrivals: {},   // "childId|date|GM" => "HH:MM"
         departures: {}, // "childId|date|GS" => "HH:MM"
         authExpanded: {}, // childId => bool, replié par défaut, survit aux re-rendus (checkbox, départ...)
@@ -40,6 +40,8 @@
         // (journalisés côté serveur), gardés en mémoire jusqu'au verrouillage.
         contactsExpanded: {}, // childId => bool
         contacts: {},         // childId => { status: 'loading'|'ok'|'error', list: [...] }
+        notice: '',           // message d'échec d'enregistrement affiché en vue Jour
+        noticeFresh: false,
     };
 
     var els = {};
@@ -127,6 +129,8 @@
         // Numéros des parents : jamais conservés au-delà de la session.
         state.contacts = {};
         state.contactsExpanded = {};
+        state.notice = '';
+        state.noticeFresh = false;
         els.codeInput.value = '';
         showLock();
     }
@@ -158,32 +162,180 @@
         });
     }
 
-    function toggleAttendance(childId, date, service, present) {
-        // Optimiste : l'affichage a déjà changé (case cochée/décochée), on
-        // persiste ensuite sans bloquer l'interface — un échec réseau ne
-        // doit jamais empêcher l'intervenant de continuer son pointage.
-        ajax('psc_sidscm_toggle', {
-            child_id: childId,
-            jour_date: date,
-            service: service,
-            present: present ? '1' : '0',
-        }).catch(function () { /* pointage local conservé malgré l'échec réseau */ });
+    /* ---------------- Pointage (présent / absent / à pointer) ---------------- */
+
+    // Seuls la Garderie matin (arrivée) et la Garderie soir (départ) sont
+    // horodatées ; la cantine ne porte jamais d'heure.
+    var TIME_FIELDS = {
+        GM: { map: 'arrivals', label: 'arrival', testid: 'sidscm-arrival-', action: 'psc_sidscm_arrival', param: 'arrival_time' },
+        GS: { map: 'departures', label: 'departure', testid: 'sidscm-departure-', action: 'psc_sidscm_departure', param: 'departure_time' },
+    };
+
+    // Dernier appel lancé par ligne (enfant × jour × service) : seule la
+    // réponse du plus récent peut rétablir l'état — deux appuis rapprochés
+    // ne se marchent pas dessus.
+    var pending = {};
+    // Pointage en cours par ligne : une heure saisie juste après l'appui
+    // sur Présent attend qu'il soit enregistré (le serveur refuse une
+    // heure pour un enfant pas encore présent).
+    var inflight = {};
+
+    function nowHM() {
+        var d = new Date();
+        return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
     }
 
-    function setDeparture(childId, date, time) {
-        ajax('psc_sidscm_departure', {
-            child_id: childId,
-            jour_date: date,
-            departure_time: time,
-        }).catch(function () { /* valeur locale conservée malgré l'échec réseau */ });
+    function childName(childId) {
+        var c = state.children.filter(function (x) { return String(x.id) === String(childId); })[0];
+        return c ? (c.prenom + ' ' + c.nom).trim() : '';
     }
 
-    function setArrival(childId, date, time) {
-        ajax('psc_sidscm_arrival', {
-            child_id: childId,
-            jour_date: date,
-            arrival_time: time,
-        }).catch(function () { /* valeur locale conservée malgré l'échec réseau */ });
+    /** "present" | "absent" | "todo" — clé absente de attendance = à pointer. */
+    function attendanceState(key) {
+        if (!Object.prototype.hasOwnProperty.call(state.attendance, key)) return 'todo';
+        return state.attendance[key] ? 'present' : 'absent';
+    }
+
+    // Notice d'échec : conservée jusqu'au prochain enregistrement réussi.
+    // `fresh` distingue un nouvel échec (annoncé par role="alert") d'un
+    // simple re-rendu de la vue (texte déjà affiché, pas de nouvelle annonce).
+    function raiseNotice(message) {
+        state.notice = message;
+        state.noticeFresh = true;
+    }
+
+    function clearNotice() {
+        if (!state.notice) return;
+        state.notice = '';
+        state.noticeFresh = false;
+        var el = els.content.querySelector('.psc-sidscm-at-notice');
+        if (el) { el.textContent = ''; el.hidden = true; }
+    }
+
+    /** Cible de focus : "#id" ou valeur de data-testid. Rend true si le focus y est. */
+    function focusTarget(target) {
+        var el = els.app.querySelector(target.charAt(0) === '#' ? target : '[data-testid="' + target + '"]');
+        if (!el) return false;
+        el.focus();
+        return document.activeElement === el;
+    }
+
+    /**
+     * Re-rend la vue Jour (et les onglets, pour le ✓) sans perdre le
+     * focus clavier : il revient sur le contrôle qui l'avait (recréé par
+     * innerHTML), sinon sur `fallback` (le bouton actionné), sinon sur
+     * `last` (titre de la liste).
+     */
+    function rerenderDay(fallback, last) {
+        if (state.viewMode !== 'day') return;
+        var active = document.activeElement;
+        var keep = active && els.app.contains(active)
+            ? (active.getAttribute('data-testid') || (active.id ? '#' + active.id : ''))
+            : '';
+        renderServices();
+        renderDayView();
+        [keep, fallback, last].some(function (target) { return target && focusTarget(target); });
+    }
+
+    /**
+     * Toucher Présent ou Absent ; toucher le bouton déjà actif annule le
+     * pointage. Optimiste : l'affichage change aussitôt, puis l'état et
+     * l'heure précédents reviennent si l'enregistrement échoue.
+     */
+    function setAttendance(childId, date, svc, target, testid) {
+        var key = childId + '|' + date + '|' + svc;
+        var field = TIME_FIELDS[svc];
+        var times = field ? state[field.map] : null;
+        var hadKey = Object.prototype.hasOwnProperty.call(state.attendance, key);
+        var prevValue = state.attendance[key];
+        var prevTime = times ? (times[key] || '') : '';
+        var current = attendanceState(key);
+        var next = current === target ? 'none' : target;
+
+        if (next === 'present') {
+            state.attendance[key] = 1;
+            if (times && !times[key]) times[key] = nowHM();
+        } else if (next === 'absent') {
+            state.attendance[key] = 0;
+            if (times) times[key] = '';
+        } else {
+            delete state.attendance[key];
+            if (times) times[key] = '';
+        }
+        rerenderDay(testid);
+
+        var params = { child_id: childId, jour_date: date, service: svc, state: next };
+        if (next === 'present' && times && times[key]) params.time = times[key];
+        var seq = (pending[key] || 0) + 1;
+        pending[key] = seq;
+
+        var request = ajax('psc_sidscm_toggle', params);
+        inflight[key] = request.catch(function () {});
+        request.then(function (data) {
+            if (pending[key] !== seq) return;
+            clearNotice();
+            // Heure conservée côté serveur (présent sans heure envoyée) :
+            // l'affichage reprend celle qui fait foi. Jamais quand une heure
+            // a été envoyée : l'intervenant a pu la corriger depuis.
+            if (times && next === 'present' && !params.time && data && data.time && data.time !== times[key]) {
+                times[key] = data.time;
+                var input = state.viewMode === 'day' && state.days[state.activeDay] === date && state.activeService === svc
+                    ? els.content.querySelector('[data-testid="' + field.testid + childId + '"]')
+                    : null;
+                if (input) input.value = data.time;
+            }
+        }).catch(function () {
+            if (pending[key] !== seq) return;
+            if (hadKey) state.attendance[key] = prevValue; else delete state.attendance[key];
+            if (times) times[key] = prevTime;
+            raiseNotice(t('save_error', childName(childId)));
+            rerenderDay(testid);
+        });
+    }
+
+    /** Heure d'arrivée (GM) ou de départ (GS) d'un enfant présent ; vide = effacée. */
+    function setTime(childId, date, svc, value, previous) {
+        var field = TIME_FIELDS[svc];
+        var key = childId + '|' + date + '|' + svc;
+        state[field.map][key] = value;
+        var params = { child_id: childId, jour_date: date };
+        params[field.param] = value;
+        (inflight[key] || Promise.resolve()).then(function () {
+            return ajax(field.action, params);
+        }).then(function () {
+            clearNotice();
+        }).catch(function () {
+            if (state[field.map][key] !== value) return; // modifiée depuis : rien à rétablir
+            state[field.map][key] = previous;
+            raiseNotice(t('time_error', childName(childId)));
+            rerenderDay(field.testid + childId);
+        });
+    }
+
+    /**
+     * « Tous présents » : pas d'optimisme ici — la liste ne change qu'avec
+     * la réponse du serveur, qui ne marque que les enfants à pointer
+     * (jamais un absent) et renvoie leurs identifiants.
+     */
+    function markAllPresent(date, svc, btn) {
+        var field = TIME_FIELDS[svc];
+        var params = { jour_date: date, service: svc };
+        if (field) params.time = nowHM();
+        btn.disabled = true;
+        btn.setAttribute('aria-busy', 'true');
+        ajax('psc_sidscm_all_present', params).then(function (data) {
+            clearNotice();
+            (data && data.updated || []).forEach(function (id) {
+                var key = id + '|' + date + '|' + svc;
+                state.attendance[key] = 1;
+                if (field && data.time && !state[field.map][key]) state[field.map][key] = data.time;
+            });
+            // Bouton désactivé une fois la liste complète : le focus va au titre.
+            rerenderDay('sidscm-all-present', '#psc-sidscm-at-title');
+        }).catch(function () {
+            raiseNotice(t('all_error'));
+            rerenderDay('sidscm-all-present');
+        });
     }
 
     /* ---------------- Rendu ---------------- */
@@ -236,13 +388,26 @@
         });
     }
 
+    /** Vue Jour : le service a au moins un enfant attendu et plus personne à pointer. */
+    function serviceDone(svc) {
+        var day = state.activeDay;
+        var date = state.days[day];
+        var expected = state.children.filter(function (c) { return (c[svc] || []).indexOf(day) !== -1; });
+        return expected.length > 0 && expected.every(function (c) {
+            return attendanceState(c.id + '|' + date + '|' + svc) !== 'todo';
+        });
+    }
+
     function renderServices() {
         els.services.innerHTML = SERVICE_ORDER.map(function (code) {
             var active = code === state.activeService;
+            var doneHtml = state.viewMode === 'day' && serviceDone(code)
+                ? ' <span class="psc-sidscm-svc-done" role="img" aria-label="' + escapeHtml(t('service_done')) + '">' + iconCheck(16) + '</span>'
+                : '';
             return '<button type="button" class="psc-sidscm-svc-btn' + (active ? ' is-active' : '') +
                 '" data-svc="' + code + '" data-testid="sidscm-svc-' + code + '">' +
                 escapeHtml(svcLabel(code)) +
-                ' <span class="psc-sidscm-svc-count">' + countExpected(code) + '</span></button>';
+                ' <span class="psc-sidscm-svc-count">' + countExpected(code) + '</span>' + doneHtml + '</button>';
         }).join('');
         els.services.querySelectorAll('button').forEach(function (btn) {
             btn.addEventListener('click', function () {
@@ -333,25 +498,47 @@
         if (btn) btn.focus();
     }
 
+    function iconCheck(size) {
+        return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true" focusable="false"><path d="M4.5 12.5l5 5 10-11"/></svg>';
+    }
+
+    function iconCross(size) {
+        return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+    }
+
+    /** Libellé pluriel (formes de _n() transmises pour 1 et pour 2) ; `n` peut être déjà balisé. */
+    function countLabel(key, count, n) {
+        return t(count > 1 ? key : key + '_one', n === undefined ? count : n);
+    }
+
+    /** Pastille de compteur : nombre en gras, libellé traduit échappé. */
+    function chipHtml(mod, key, count) {
+        var MARK = '\u0001';
+        var label = escapeHtml(countLabel(key, count, MARK)).replace(MARK, '<b>' + count + '</b>');
+        return '<span class="psc-sidscm-at-chip psc-sidscm-at-chip--' + mod + (mod === 't' && !count ? ' is-zero' : '') + '">' + label + '</span>';
+    }
+
     function renderDayView() {
         var svc = state.activeService;
         var day = state.activeDay;
         var date = state.days[day];
+        var field = TIME_FIELDS[svc];
 
         var rows = sortChildren(state.children.filter(function (c) {
             return (c[svc] || []).indexOf(day) !== -1;
         }));
 
-        var presentCount = 0;
+        var counts = { present: 0, absent: 0, todo: 0 };
         var rowsHtml = rows.map(function (c) {
             var key = c.id + '|' + date + '|' + svc;
-            var present = Object.prototype.hasOwnProperty.call(state.attendance, key) ? !!state.attendance[key] : true;
-            if (present) presentCount++;
+            var st = attendanceState(key);
+            counts[st]++;
+            var name = (c.prenom + ' ' + c.nom).trim();
             var dietHtml = (svc === 'CANT' && c.diet)
-                ? '<span class="psc-sidscm-row-diet" data-testid="sidscm-diet-' + c.id + '">' + escapeHtml(c.diet) + '</span>'
+                ? '<span class="psc-sidscm-at-badge" data-testid="sidscm-diet-' + c.id + '">' + escapeHtml(c.diet) + '</span>'
                 : '';
             // Allergie alimentaire : usage critique de la liste cantine —
-            // en priorité sur la ligne, en #9E4A4A, lisible sans déplier.
+            // en priorité sur la ligne, lisible sans déplier.
             var allergyHtml = (svc === 'CANT' && c.allergies)
                 ? '<span class="psc-sidscm-row-allergy">' + escapeHtml(c.allergies) + '</span>'
                 : '';
@@ -361,19 +548,16 @@
             var noMealHtml = (svc === 'CANT' && (c.MSR || []).indexOf(day) !== -1)
                 ? '<span class="psc-sidscm-row-brings-meal">' + t('no_meal') + '</span>'
                 : '';
-            var arrivalHtml = '';
-            if (svc === 'GM') {
-                var arrivalVal = state.arrivals[key] || '';
-                arrivalHtml = '<label class="psc-sidscm-row-arrival">' + t('arrival') +
-                    '<input type="time" class="psc-sidscm-row-arrival-input" data-child-id="' + c.id + '"' +
-                    ' value="' + escapeHtml(arrivalVal) + '" data-testid="sidscm-arrival-' + c.id + '"></label>';
-            }
-            var departureHtml = '';
-            if (svc === 'GS') {
-                var departureVal = state.departures[key] || '';
-                departureHtml = '<label class="psc-sidscm-row-departure">' + t('departure') +
-                    '<input type="time" class="psc-sidscm-row-departure-input" data-child-id="' + c.id + '"' +
-                    ' value="' + escapeHtml(departureVal) + '" data-testid="sidscm-departure-' + c.id + '"></label>';
+            // Heure (arrivée GM, départ GS) : saisissable seulement pour un
+            // enfant présent ; sinon l'espace reste réservé, la ligne ne
+            // saute pas d'une mise en page à l'autre.
+            var timeHtml = '';
+            if (field) {
+                timeHtml = st === 'present'
+                    ? '<label class="psc-sidscm-at-time">' + escapeHtml(t(field.label)) +
+                        ' <input type="time" data-child-id="' + c.id + '" value="' + escapeHtml(state[field.map][key] || '') + '"' +
+                        ' data-testid="' + field.testid + c.id + '"></label>'
+                    : '<span class="psc-sidscm-at-time-ph" aria-hidden="true"></span>';
             }
             // Personnes autorisées : uniquement pertinent pour la Garderie
             // soir (seul service avec un vrai départ à contrôler) — masqué
@@ -383,7 +567,7 @@
             var authToggleHtml = svc === 'GS'
                 ? '<button type="button" class="psc-sidscm-auth-toggle' + (expanded ? ' is-expanded' : '') +
                     '" data-child-id="' + c.id + '" data-testid="sidscm-auth-toggle-' + c.id + '" aria-expanded="' + (expanded ? 'true' : 'false') + '">' +
-                    '<span class="psc-sidscm-auth-toggle-icon">' + (expanded ? '−' : '+') + '</span> ' + t('authorised') + '</button>'
+                    '<span class="psc-sidscm-auth-toggle-icon" aria-hidden="true">' + (expanded ? '−' : '+') + '</span> ' + t('authorised') + '</button>'
                 : '';
             // Contact d'urgence : sur tous les services, la vue Jour portant
             // toujours sur la semaine en cours.
@@ -394,56 +578,93 @@
                     ' aria-expanded="' + (contactsOpen ? 'true' : 'false') + '" aria-controls="psc-sidscm-contacts-' + c.id + '">' +
                     '<span class="psc-sidscm-auth-toggle-icon" aria-hidden="true">☎</span> ' + t('emergency') + '</button>'
                 : '';
-            return '<div class="psc-sidscm-row" data-testid="sidscm-row-' + c.id + '">' +
-                '<label class="psc-sidscm-row-label">' +
-                '<input type="checkbox" class="psc-sidscm-row-check" data-child-id="' + c.id + '"' +
-                (present ? ' checked' : '') + ' data-testid="sidscm-check-' + c.id + '">' +
-                '<span class="psc-sidscm-row-name">' + escapeHtml(c.prenom) + ' ' + escapeHtml(c.nom) + '</span>' +
-                '<span class="psc-sidscm-row-classe">' + escapeHtml(c.classe || '') + '</span>' +
-                '</label>' + allergyHtml + noMealHtml + dietHtml + arrivalHtml + departureHtml + authToggleHtml + contactsToggleHtml +
+            // Présent / Absent : état porté par aria-pressed, l'icône et le
+            // texte (jamais par la seule couleur). Toucher le bouton actif
+            // annule le pointage.
+            var segHtml = '<div class="psc-sidscm-at-seg" role="group" aria-label="' + escapeHtml(t('presence_of', name)) + '">' +
+                '<button type="button"' + (st === 'present' ? ' class="is-on-p"' : '') + ' aria-pressed="' + (st === 'present') + '"' +
+                ' data-child-id="' + c.id + '" data-state="present" data-testid="sidscm-present-' + c.id + '">' + iconCheck(20) + escapeHtml(t('present')) + '</button>' +
+                '<button type="button"' + (st === 'absent' ? ' class="is-on-a"' : '') + ' aria-pressed="' + (st === 'absent') + '"' +
+                ' data-child-id="' + c.id + '" data-state="absent" data-testid="sidscm-absent-' + c.id + '">' + iconCross(20) + escapeHtml(t('absent')) + '</button>' +
+                '</div>';
+            return '<div class="psc-sidscm-at-row is-' + st + '" data-testid="sidscm-row-' + c.id + '">' +
+                '<div class="psc-sidscm-at-who">' +
+                '<span class="psc-sidscm-at-name">' + escapeHtml(name) + '</span>' +
+                '<span class="psc-sidscm-at-cls">' + escapeHtml(c.classe || '') + '</span>' +
+                dietHtml + allergyHtml + noMealHtml +
+                '</div>' + timeHtml +
+                ((contactsToggleHtml || authToggleHtml) ? '<span class="psc-sidscm-at-tools">' + contactsToggleHtml + authToggleHtml + '</span>' : '') +
+                segHtml +
                 '</div>' + (contactsOpen ? renderContactsPanel(c) : '') + (expanded ? renderAuthPanel(c) : '');
         }).join('');
 
-        var emptyHtml = rows.length === 0
+        var total = rows.length;
+        var emptyHtml = total === 0
             ? '<div class="psc-sidscm-empty" data-testid="sidscm-empty">' + t('empty_day') + '</div>'
             : '';
+        var pct = function (n) { return total ? Math.round(n / total * 1000) / 10 : 0; };
+        var help = escapeHtml(t('day_help', '\u0001', '\u0002'))
+            .replace('\u0001', '<b>' + escapeHtml(t('present')) + '</b>')
+            .replace('\u0002', '<b>' + escapeHtml(t('absent')) + '</b>');
+        var doneHtml = total > 0 && counts.todo === 0
+            ? '<div class="psc-sidscm-at-done" data-testid="sidscm-done">' + iconCheck(18) +
+                escapeHtml(t('day_done', countLabel('count_present', counts.present), countLabel('count_absent', counts.absent))) + '</div>'
+            : '';
+        // Nouvel échec : la notice est insérée vide puis remplie, pour que
+        // role="alert" l'annonce ; un simple re-rendu la remet telle quelle.
+        var noticeStatic = state.notice && !state.noticeFresh;
 
         els.content.innerHTML =
-            '<div class="psc-sidscm-panel" data-testid="sidscm-day-panel">' +
-            '<div class="psc-sidscm-panel-head">' +
-            '<div class="psc-sidscm-panel-title">' + escapeHtml(svcLabel(svc)) + ' — ' + escapeHtml(capitalize(day)) + '</div>' +
-            '<div class="psc-sidscm-panel-count" role="status" aria-live="polite" data-testid="sidscm-present-count">' + t(presentCount > 1 ? 'present_count' : 'present_count_one', presentCount, rows.length) + '</div>' +
-            '</div>' + rowsHtml + emptyHtml +
-            '</div>';
+            '<section class="psc-sidscm-at-list" aria-labelledby="psc-sidscm-at-title" data-testid="sidscm-day-panel">' +
+            '<div class="psc-sidscm-at-hd">' +
+            '<div>' +
+            '<h2 class="psc-sidscm-at-title" id="psc-sidscm-at-title" tabindex="-1">' + escapeHtml(svcLabel(svc)) + ' — ' + escapeHtml(capitalize(day)) + '</h2>' +
+            '<p class="psc-sidscm-at-help">' + help + '</p>' +
+            '</div>' +
+            '<div class="psc-sidscm-at-sum">' +
+            '<div class="psc-sidscm-at-count" aria-live="polite" data-testid="sidscm-present-count">' +
+            chipHtml('p', 'count_present', counts.present) + ' ' +
+            chipHtml('a', 'count_absent', counts.absent) + ' ' +
+            chipHtml('t', 'count_todo', counts.todo) +
+            '</div>' +
+            '<button type="button" class="psc-sidscm-at-all" data-testid="sidscm-all-present"' + (counts.todo ? '' : ' disabled') + '>' + escapeHtml(t('all_present')) + '</button>' +
+            '</div>' +
+            '</div>' +
+            '<div class="psc-sidscm-at-bar" aria-hidden="true">' +
+            '<i class="psc-sidscm-at-bar-p" style="width:' + pct(counts.present) + '%"></i>' +
+            '<i class="psc-sidscm-at-bar-a" style="width:' + pct(counts.absent) + '%"></i>' +
+            '</div>' +
+            '<div class="psc-sidscm-at-notice" role="alert" data-testid="sidscm-save-error"' + (noticeStatic ? '' : ' hidden') + '>' +
+            (noticeStatic ? escapeHtml(state.notice) : '') + '</div>' +
+            rowsHtml + emptyHtml + doneHtml +
+            '</section>';
 
-        els.content.querySelectorAll('.psc-sidscm-row-check').forEach(function (cb) {
-            cb.addEventListener('change', function () {
-                var childId = cb.dataset.childId;
-                var key = childId + '|' + date + '|' + svc;
-                state.attendance[key] = cb.checked ? 1 : 0;
-                toggleAttendance(childId, date, svc, cb.checked);
-                renderDayView(); // recalcule le compteur "X / Y présents"
+        if (state.notice && state.noticeFresh) {
+            var notice = els.content.querySelector('.psc-sidscm-at-notice');
+            notice.hidden = false;
+            notice.textContent = state.notice;
+            state.noticeFresh = false;
+        }
+
+        els.content.querySelectorAll('.psc-sidscm-at-seg button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                setAttendance(btn.dataset.childId, date, svc, btn.dataset.state, btn.dataset.testid);
             });
         });
 
-        // Départ (Garderie soir uniquement) : pas de recalcul de compteur,
-        // pas besoin de re-rendre toute la vue à chaque frappe/changement.
-        els.content.querySelectorAll('.psc-sidscm-row-departure-input').forEach(function (input) {
+        // Heure : pas de recalcul de compteur, pas besoin de re-rendre toute
+        // la vue à chaque changement.
+        els.content.querySelectorAll('.psc-sidscm-at-time input').forEach(function (input) {
             input.addEventListener('change', function () {
                 var childId = input.dataset.childId;
                 var key = childId + '|' + date + '|' + svc;
-                state.departures[key] = input.value;
-                setDeparture(childId, date, input.value);
+                setTime(childId, date, svc, input.value, state[field.map][key] || '');
             });
         });
 
-        els.content.querySelectorAll('.psc-sidscm-row-arrival-input').forEach(function (input) {
-            input.addEventListener('change', function () {
-                var childId = input.dataset.childId;
-                var key = childId + '|' + date + '|' + svc;
-                state.arrivals[key] = input.value;
-                setArrival(childId, date, input.value);
-            });
+        var allBtn = els.content.querySelector('.psc-sidscm-at-all');
+        allBtn.addEventListener('click', function () {
+            markAllPresent(date, svc, allBtn);
         });
 
         // Plusieurs lignes peuvent être dépliées en même temps (comparer
@@ -455,9 +676,10 @@
                 var entry = state.contacts[childId];
                 var needsLoad = state.contactsExpanded[childId] && (!entry || entry.status === 'error');
                 if (needsLoad) {
-                    loadContacts(childId).then(function () {
-                        if (state.viewMode === 'day') { renderDayView(); focusContactsToggle(childId); }
-                    });
+                    // Réponse tardive : re-rendu qui garde le focus là où
+                    // l'intervenant l'a mis entre-temps (il pointe peut-être
+                    // déjà un autre enfant), jamais ramené de force ici.
+                    loadContacts(childId).then(function () { rerenderDay(); });
                 }
                 renderDayView();
                 focusContactsToggle(childId);
@@ -469,6 +691,7 @@
                 var childId = btn.dataset.childId;
                 state.authExpanded[childId] = !state.authExpanded[childId];
                 renderDayView();
+                focusTarget('sidscm-auth-toggle-' + childId);
             });
         });
     }

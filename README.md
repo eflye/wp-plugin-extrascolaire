@@ -60,7 +60,7 @@ Le menu de la cantine peut aussi être publié sur la page d’accueil du servic
 
 Un écran dédié, protégé par code et adapté au mobile, affiche les enfants attendus en garderie ou à la cantine. Les agents peuvent :
 
-- pointer les présents et les absents ;
+- pointer chaque enfant présent ou absent (il reste « à pointer » tant que rien n’est touché), ou toute la liste d’un geste avec « Tous présents » ;
 - renseigner les heures d’arrivée et de départ ;
 - consulter les régimes, allergies et repas apportés ;
 - vérifier les personnes autorisées à récupérer un enfant ;

@@ -24,6 +24,7 @@ function psc_impersonation_action_policy() {
         'psc_sidscm_unlock'                      => 'hors_portail',
         'psc_sidscm_data'                        => 'hors_portail',
         'psc_sidscm_toggle'                      => 'hors_portail',
+        'psc_sidscm_all_present'                 => 'hors_portail',
         'psc_sidscm_arrival'                     => 'hors_portail',
         'psc_sidscm_departure'                   => 'hors_portail',
         'psc_sidscm_contacts'                    => 'hors_portail',

@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.21.0';
+    const DB_VERSION = '4.22.0';
     const ROLES_VERSION = '1.5.0';
 
     public static function activate() {
@@ -72,6 +72,7 @@ class Psc_Installer {
     const STEPS = array(
         '4.17.0' => 'migrate_4_17_0',
         '4.20.0' => 'migrate_4_20_0',
+        '4.22.0' => 'migrate_4_22_0',
     );
 
     /**
@@ -591,6 +592,26 @@ class Psc_Installer {
             if ($done === false) return false;
         }
         return true;
+    }
+
+    /**
+     * 4.22.0 — pointage à trois états sur l'écran intervenants : la colonne
+     * attendance.present devient nullable, NULL signifiant « à pointer »
+     * (1 présent, 0 absent). dbDelta() ne modifie ni la nullité ni un
+     * défaut sans guillemets d'une colonne existante : l'ALTER est donc
+     * explicite. Aucune donnée n'est transformée — une ligne d'époque à 1
+     * reste présente, à 0 reste absente. Idempotente : sans effet une fois
+     * la colonne nullable.
+     */
+    private static function migrate_4_22_0() {
+        global $wpdb;
+        $t_att = psc_table('attendance');
+        $nullable = $wpdb->get_var($wpdb->prepare(
+            'SELECT IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = %s',
+            $t_att, 'present'
+        ));
+        if ($nullable === null || $nullable === 'YES') return true;
+        return false !== $wpdb->query("ALTER TABLE $t_att MODIFY present TINYINT(1) NULL DEFAULT NULL");
     }
 
     private static function column_exists($table, $column) {
@@ -1292,7 +1313,7 @@ CREATE TABLE $t_att (
             child_id BIGINT UNSIGNED NOT NULL,
             jour_date DATE NOT NULL,
             service VARCHAR(10) NOT NULL,
-            present TINYINT(1) NOT NULL DEFAULT 1,
+            present TINYINT(1) NULL DEFAULT NULL,
             arrival_time TIME NULL,
             departure_time TIME NULL,
             pointed_at DATETIME NOT NULL,
