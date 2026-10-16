@@ -57,6 +57,8 @@ class Psc_Sidscm {
         add_action('wp_ajax_psc_sidscm_arrival', array(__CLASS__, 'ajax_set_arrival'));
         add_action('wp_ajax_nopriv_psc_sidscm_departure', array(__CLASS__, 'ajax_set_departure'));
         add_action('wp_ajax_psc_sidscm_departure', array(__CLASS__, 'ajax_set_departure'));
+        add_action('wp_ajax_nopriv_psc_sidscm_contacts', array(__CLASS__, 'ajax_contacts'));
+        add_action('wp_ajax_psc_sidscm_contacts', array(__CLASS__, 'ajax_contacts'));
     }
 
     /**
@@ -160,6 +162,14 @@ class Psc_Sidscm {
                 'week'          => __('semaine', 'periscolaire-registration'),
                 'child'         => __('Enfant', 'periscolaire-registration'),
                 'no_meal'       => __('Midi sans repas — à ne pas compter dans les couverts', 'periscolaire-registration'),
+                'emergency'          => __('Contact d’urgence', 'periscolaire-registration'),
+                /* translators: %s: prénom et nom de l'enfant */
+                'emergency_for'      => __('Contact d’urgence des parents de %s', 'periscolaire-registration'),
+                'emergency_loading'  => __('Chargement des numéros…', 'periscolaire-registration'),
+                'emergency_none'     => __('Aucun numéro renseigné : contactez la mairie.', 'periscolaire-registration'),
+                'emergency_no_phone' => __('aucun numéro', 'periscolaire-registration'),
+                /* translators: 1: libellé du numéro (Mobile, Fixe…), 2: prénom et nom du parent */
+                'emergency_call'     => __('Appeler %2$s (%1$s)', 'periscolaire-registration'),
             ),
         ));
     }
@@ -676,6 +686,96 @@ class Psc_Sidscm {
 
 
         return array('children' => $out_children, 'attendance' => $attendance, 'arrivals' => $arrivals, 'departures' => $departures);
+    }
+
+    /* ---------------- Contact d'urgence ---------------- */
+
+    /**
+     * Numéros des parents d'un enfant, sur demande de l'intervenant
+     * (décisions du 16/10/2026) : jamais dans la liste du jour, chargés au
+     * clic sur « Contact d'urgence » et journalisés (quel intervenant, quel
+     * enfant). Parents uniquement — titulaire (mobile et fixe) et second
+     * parent —, chacun avec son nom et son rôle ; les tiers restent dans
+     * « Personnes autorisées » (garderie du soir).
+     *
+     * Minimisation (RGPD-06) : seulement pour un enfant attendu à au moins
+     * un service un jour ouvert de la semaine en cours.
+     */
+    public static function ajax_contacts() {
+        check_ajax_referer('psc_sidscm_front', 'nonce');
+        // Consultation ponctuelle : 60/heure couvre largement une urgence
+        // ou une journée chargée, sans permettre d'aspirer l'annuaire.
+        if (!psc_rate_limit_by_ip('sidscm_contacts_', 60, HOUR_IN_SECONDS)) {
+            wp_send_json_error(array('code' => 'rate'), 429);
+        }
+        self::require_code();
+
+        $child_id = psc_post_int('child_id');
+        if (!$child_id) wp_send_json_error(array('code' => 'invalid'), 400);
+        if (!self::expected_this_week($child_id)) {
+            wp_send_json_error(array('code' => 'not_expected'), 400);
+        }
+
+        global $wpdb;
+        $parent_id = (int) $wpdb->get_var($wpdb->prepare('SELECT parent_id FROM ' . psc_table('children') . ' WHERE id = %d', $child_id));
+        $parent = $parent_id ? Psc_Parents::get_by_id($parent_id) : null;
+        $contacts = $parent ? self::emergency_contacts($parent) : array();
+
+        Psc_Audit::log('intervenant.contacts_consultes', array(
+            'objet_type' => 'enfant', 'objet_id' => $child_id, 'enfant_id' => $child_id,
+            'famille_id' => $parent_id ?: null,
+            'resume' => __('Contacts d’urgence des parents consultés depuis l’écran intervenants.', 'periscolaire-registration'),
+        ));
+
+        nocache_headers();
+        wp_send_json_success(array('child_id' => $child_id, 'contacts' => $contacts));
+    }
+
+    /** L'enfant est-il attendu à au moins un service cette semaine (jours ouverts) ? */
+    protected static function expected_this_week($child_id) {
+        $dates = array_values(psc_open_days(psc_week_start(current_time('Y-m-d'))));
+        if (!$dates) return false;
+        $declared = Psc_Planning::declared_map(array((int) $child_id), $dates);
+        foreach ((array) ($declared[(int) $child_id] ?? array()) as $services) {
+            if (array_filter((array) $services)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Parents joignables : rôle, nom et numéros (libellé, affichage, cible
+     * tel:). Une personne sans aucun numéro reste listée (« aucun numéro »)
+     * pour que l'intervenant sache qu'il faut passer par la mairie.
+     *
+     * @return array<int, array{role: string, prenom: string, nom: string, phones: array<int, array{label: string, number: string, tel: string}>}>
+     */
+    public static function emergency_contacts($parent) {
+        $phone = function ($label, $number) {
+            $number = trim((string) $number);
+            if ($number === '') return null;
+            $tel = preg_replace('/[^0-9+]/', '', $number);
+            return array('label' => $label, 'number' => $number, 'tel' => $tel);
+        };
+        $contacts = array(array(
+            'role'   => __('Titulaire', 'periscolaire-registration'),
+            'prenom' => (string) $parent->prenom,
+            'nom'    => (string) $parent->nom,
+            'phones' => array_values(array_filter(array(
+                $phone(__('Mobile', 'periscolaire-registration'), $parent->telephone_mobile),
+                $phone(__('Fixe', 'periscolaire-registration'), $parent->telephone_fixe),
+            ))),
+        ));
+        if (trim((string) $parent->second_parent_prenom) !== '' || trim((string) $parent->second_parent_nom) !== '' || trim((string) $parent->second_parent_telephone) !== '') {
+            $contacts[] = array(
+                'role'   => __('Second parent', 'periscolaire-registration'),
+                'prenom' => (string) $parent->second_parent_prenom,
+                'nom'    => (string) $parent->second_parent_nom,
+                'phones' => array_values(array_filter(array(
+                    $phone(__('Téléphone', 'periscolaire-registration'), $parent->second_parent_telephone),
+                ))),
+            );
+        }
+        return $contacts;
     }
 
     /* ---------------- Pointage de présence ---------------- */

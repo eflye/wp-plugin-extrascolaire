@@ -161,7 +161,8 @@ body.psc-sidscm-active main.site-main .entry-content {
     font-weight: 700;
     margin-bottom: 10px;
 }
-.psc-sidscm-eyebrow--dark { color: var(--psc-gold); margin-bottom: 4px; }
+/* Abricot éclairci : 5,09:1 sur le bandeau bleu nuit (le --psc-gold n’y fait que 4,06:1). */
+.psc-sidscm-eyebrow--dark { color: #EBA27C; margin-bottom: 4px; }
 .psc-sidscm-lock-title {
     font-family: 'Public Sans', Helvetica, Arial, sans-serif;
     font-weight: 700;
@@ -411,6 +412,25 @@ body.psc-sidscm-active main.site-main .entry-content {
 .psc-sidscm-auth-tel { color: var(--psc-moss); }
 .psc-sidscm-auth-empty { color: var(--psc-stone); font-size: 13px; }
 
+/* Contact d'urgence : numéros des parents, cliquables (tel:). */
+.psc-sidscm-contacts-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.psc-sidscm-contact { flex-wrap: wrap; }
+.psc-sidscm-contact-phones { display: inline-flex; flex-wrap: wrap; gap: 8px 16px; }
+.psc-sidscm-contact-tel {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    color: var(--psc-forest);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-decoration: none;
+}
+.psc-sidscm-contact-tel-number { text-decoration: underline; text-underline-offset: 2px; }
+.psc-sidscm-contact-tel:focus-visible { outline: 2px solid var(--psc-forest); outline-offset: 2px; }
+.psc-sidscm-contact-tel-label { color: var(--psc-stone); font-weight: 500; font-size: 12px; }
+.psc-sidscm-contact-none { color: var(--psc-stone); font-size: 13px; }
+
 .psc-sidscm-empty {
     padding: 32px 20px;
     text-align: center;
@@ -449,6 +469,9 @@ body.psc-sidscm-active main.site-main .entry-content {
     .psc-sidscm-services { padding-left: 16px; padding-right: 16px; }
     .psc-sidscm-content { padding-left: 16px; padding-right: 16px; }
     .psc-sidscm-lock-inner { padding-left: 20px; padding-right: 20px; }
+    /* Deux boutons possibles (personnes autorisées, contact d'urgence) : ils passent sous le nom. */
+    .psc-sidscm-row { flex-wrap: wrap; }
+    .psc-sidscm-auth-panel { padding-left: 20px; }
 }
 
 /* Colonnes quotidiennes lisibles pour chaque service en vue semaine. */

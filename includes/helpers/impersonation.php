@@ -26,6 +26,7 @@ function psc_impersonation_action_policy() {
         'psc_sidscm_toggle'                      => 'hors_portail',
         'psc_sidscm_arrival'                     => 'hors_portail',
         'psc_sidscm_departure'                   => 'hors_portail',
+        'psc_sidscm_contacts'                    => 'hors_portail',
 
         // Lien reçu par l'ANCIENNE adresse lors d'un changement d'e-mail
         // (SEC-02) : jeton à usage unique, sans session famille ; ne relève
