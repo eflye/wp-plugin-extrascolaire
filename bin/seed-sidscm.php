@@ -23,8 +23,9 @@
  *     exclut déjà vacances, fériés et fermetures.
  *
  * Aucune ligne de pointage (wp_psc_attendance) n'est créée ici : les
- * enfants sont « présents par défaut » tant qu'ils n'ont jamais été
- * pointés explicitement — c'est le contrat même du scénario.
+ * enfants sont « à pointer » (ni présents ni absents) tant que
+ * l'intervenant ne les a pas pointés — pointage à trois états depuis le
+ * schéma 4.22.0, plus de présence par défaut.
  */
 
 if (!defined('WP_CLI') || !WP_CLI) {
