@@ -13,7 +13,9 @@
  *  - menus : échec partiel → bilan exact, menu non marqué envoyé ; double
  *    soumission du même formulaire → aucun renvoi ; relance → seuls les
  *    échecs repartent ; coupure totale → aucun succès ; envoi interrompu
- *    → repris par la tâche planifiée, qui complète le lot ;
+ *    → repris par la tâche planifiée, qui complète le lot ; famille
+ *    désinscrite des menus par e-mail → hors du lot, jamais servie, et le
+ *    menu est marqué envoyé une fois les familles abonnées servies ;
  *  - factures : double soumission → un seul mail ; renvoi volontaire →
  *    nouveau mail ; PDF manquant → échec « no_file » ; datation de l'envoi
  *    en échec → pas de renvoi en double ;
@@ -174,6 +176,19 @@ WP_CLI::add_command('verify-envois', function () {
         $check($count($e3) === $before3 + 1, 'reprise : envoi interrompu non repris');
         $check(Psc_Envois::bilan('menu', (int) $menu->id, 'verif-menu-b')[Psc_Envois::A_ENVOYER] === 0, 'reprise : envois restés en attente');
         $check((bool) $wpdb->get_var($wpdb->prepare("SELECT sent_at FROM $t_menu WHERE id = %d", $menu->id)), 'reprise : menu non marqué envoyé une fois le lot complet');
+
+        // 5 bis. Famille désinscrite des menus par e-mail : hors du lot,
+        // et un envoi déjà en file pour elle n'est pas distribué.
+        $wpdb->update($t_parent, array('menu_emails' => 0), array('id' => $pids[$e2]));
+        $wpdb->update($t_menu, array('sent_at' => null), array('id' => (int) $menu->id));
+        $before2 = $count($e2);
+        Psc_Menus::send($menu, 'verif-menu-c');
+        $drain('menu', 'verif-menu-c');
+        $check($row_statut('menu', $menu->id, $pids[$e2], 'verif-menu-c') === null, 'désinscription : famille désinscrite incluse dans le lot');
+        $check($row_statut('menu', $menu->id, $pids[$e1], 'verif-menu-c') === 'accepte', 'désinscription : famille abonnée non servie');
+        $check(is_wp_error(Psc_Menus::deliver((int) $menu->id, $pids[$e2])) && $count($e2) === $before2, 'désinscription : envoi distribué à une famille désinscrite');
+        $check((bool) $wpdb->get_var($wpdb->prepare("SELECT sent_at FROM $t_menu WHERE id = %d", $menu->id)), 'désinscription : menu non marqué envoyé alors que tous les abonnés sont servis');
+        $wpdb->update($t_parent, array('menu_emails' => 1), array('id' => $pids[$e2]));
 
         // ---------------- Factures ----------------
         require_once PSC_PATH . 'includes/fpdf/fpdf.php';

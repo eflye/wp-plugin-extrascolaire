@@ -47,11 +47,11 @@ class Psc_Mailer {
     /**
      * Envoi HTML avec repli texte brut dans les en-têtes.
      */
-    protected static function send($to, $subject, $html, $attachments = array()) {
-        $headers = array(
+    protected static function send($to, $subject, $html, $attachments = array(), $extra_headers = array()) {
+        $headers = array_merge(array(
             'Content-Type: text/html; charset=UTF-8',
             'From: ' . self::site_name() . ' <' . get_option('admin_email') . '>',
-        );
+        ), $extra_headers);
         return wp_mail($to, $subject, $html, $headers, $attachments);
     }
 
@@ -530,7 +530,17 @@ class Psc_Mailer {
             $body .= '<p style="color:#8B8279;font-size:14px;font-style:italic;">' . __('Menu non encore renseigné pour cette semaine.', 'periscolaire-registration') . '</p>';
         }
 
-        return self::send($parent->email, $subject, self::layout($body, $subject));
+        // Désinscription en un clic (RFC 8058) pour les messageries qui la
+        // proposent, et lien visible en pied de message pour les autres.
+        $unsubscribe = Psc_Menus::unsubscribe_url($parent);
+        $body .= '<p style="color:#665F58;font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.5;margin:24px 0 0;">'
+            . esc_html__('Vous recevez ce menu parce que votre enfant est inscrit au service périscolaire. Il reste consultable à tout moment dans l’onglet « Menu » de votre espace famille.', 'periscolaire-registration')
+            . ' <a href="' . esc_url($unsubscribe) . '" style="color:#24405C;">' . esc_html__('Ne plus recevoir les menus par e-mail', 'periscolaire-registration') . '</a></p>';
+
+        return self::send($parent->email, $subject, self::layout($body, $subject), array(), array(
+            'List-Unsubscribe: <' . esc_url_raw($unsubscribe) . '>',
+            'List-Unsubscribe-Post: List-Unsubscribe=One-Click',
+        ));
     }
 
     /* ------------------------------------------------------------------ */
