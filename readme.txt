@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.37.0
+Stable tag: 5.38.0
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,15 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.38.0 =
+Schéma de base 4.22.0 (mise à jour automatique à l'installation : la présence pointée accepte l'état « à pointer » ; les pointages existants sont conservés).
+
+* **Écran intervenants, pointage Présent / Absent :** chaque enfant part « à pointer » et l'intervenant le marque Présent ou Absent avec deux gros boutons (toucher à nouveau le bouton actif annule). Les enfants ne sont plus présents par défaut.
+* **Heures :** en garderie du matin et du soir, l'heure d'arrivée ou de départ se remplit à l'heure courante au passage en Présent et reste modifiable ; elle n'existe pas pour la cantine et s'efface si l'enfant est marqué absent.
+* **Suivi de la liste :** compteurs présents / absents / à pointer, barre de progression, bouton « Tous présents » (qui ne touche jamais les absents), coche « pointage terminé » sur l'onglet et en bas de liste. Si un enregistrement échoue, la ligne revient à son état précédent et un message l'indique.
+* **Accessibilité :** boutons de 48 px de haut, état indiqué par une icône et un texte, contour de focus contrasté, utilisation complète au clavier.
+* La facturation et les exports ne lisent pas le pointage : ils restent inchangés.
 
 = 5.37.0 =
 Schéma de base 4.21.0 (une colonne ajoutée, mise à jour automatique à l'installation).
