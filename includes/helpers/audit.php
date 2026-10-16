@@ -160,6 +160,10 @@ function psc_audit_action_registry() {
         'psc_sidscm_departure' => array(
             'action' => 'presence.pointage', 'categorie' => 'presences', 'objet' => 'presence', 'niveau' => 'normal',
         ),
+        // Numéros des parents affichés sur demande (contact d'urgence) : accès tracé.
+        'psc_sidscm_contacts' => array(
+            'action' => 'intervenant.contacts_consultes', 'categorie' => 'donnees_famille', 'objet' => 'enfant', 'niveau' => 'normal',
+        ),
 
         /* ---------------- Familles / enfants — admin ---------------- */
         'psc_add_child' => array(
