@@ -20,11 +20,13 @@
  *
  * Appels consommés par run : un seul mauvais code, quelques chargements,
  * trois pointages, une arrivée, un départ, deux requêtes forgées refusées
- * et quatre pointages simultanés ;
+ * quatre pointages simultanés, une consultation de contact d'urgence et
+ * deux demandes de contacts refusées ;
  * le scénario reste très en dessous des limites de débit de l'écran.
  */
 
 import { test, expect, type Page } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 import { execFileSync } from 'node:child_process';
 
 const ENGINE = process.env.PSC_CONTAINER_ENGINE ?? 'podman';
@@ -355,6 +357,67 @@ test('pointages simultanés (double appui) — tous enregistrés, une seule lign
     arrival_time: null,
     departure_time: null,
   });
+});
+
+test('contact d’urgence — numéros des parents sur demande, sur chaque service, journalisés', async ({ page, request }) => {
+  const data = seed();
+  // Numéros du foyer de la seed (titulaire mobile + fixe, second parent).
+  const parentId = Number(wpCliEval(
+    `global $wpdb; $t = psc_table('parents');
+     $id = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM $t WHERE email = %s", 'sidscm.e2e@example.test'));
+     $wpdb->update($t, array('prenom' => 'Claire', 'telephone_mobile' => '06 12 34 56 78', 'telephone_fixe' => '01 30 00 00 00',
+       'second_parent_prenom' => 'Paul', 'second_parent_nom' => 'SidscmTest', 'second_parent_telephone' => '+33 7 11 22 33 44'), array('id' => $id));
+     echo $id;`
+  ));
+  const consultations = () => Number(wpCliEval(
+    `global $wpdb; echo (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM " . psc_table('audit_log') . " WHERE action = 'intervenant.contacts_consultes' AND resultat = 'succes' AND acteur_type = 'intervenant' AND enfant_id = %d AND famille_id = %d", ${data.enfant_a_id}, ${parentId}));`
+  ));
+  const before = consultations();
+
+  // Le fixe du titulaire ne part qu'à la demande : la liste du jour n'en
+  // porte aucun (les « Personnes autorisées » de la garderie du soir ne
+  // reprennent qu'un numéro par parent, le mobile).
+  const dataResponse = page.waitForResponse((r) => r.url().includes('admin-ajax.php') && (r.request().postData() ?? '').includes('psc_sidscm_data'));
+  await unlock(page, data);
+  expect(await (await dataResponse).text()).not.toContain('01 30 00 00 00');
+
+  await page.getByTestId(`sidscm-day-${data.first_jour}`).click();
+  for (const svc of ['GM', 'CANT', 'GS']) {
+    await page.getByTestId(`sidscm-svc-${svc}`).click();
+    await expect(page.getByTestId(`sidscm-contacts-toggle-${data.enfant_a_id}`), svc).toBeVisible();
+  }
+
+  await page.getByTestId('sidscm-svc-CANT').click();
+  const toggle = () => page.getByTestId(`sidscm-contacts-toggle-${data.enfant_a_id}`);
+  await expect(toggle()).toHaveAttribute('aria-expanded', 'false');
+  await toggle().focus();
+  await page.keyboard.press('Enter');
+  const panel = page.getByTestId(`sidscm-contacts-panel-${data.enfant_a_id}`);
+  await expect(panel).toContainText('Titulaire');
+  await expect(panel).toContainText('Claire SidscmTest');
+  await expect(panel).toContainText('Second parent');
+  await expect(panel).toContainText('Paul SidscmTest');
+  await expect(toggle()).toHaveAttribute('aria-expanded', 'true');
+  await expect(toggle()).toBeFocused();
+  expect(await panel.locator('a[href^="tel:"]').evaluateAll((as) => as.map((a) => a.getAttribute('href'))))
+    .toEqual(['tel:0612345678', 'tel:0130000000', 'tel:+33711223344']);
+  await expect(panel.getByRole('link', { name: /Appeler Claire SidscmTest \(Mobile\)/ })).toBeVisible();
+
+  const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).exclude('#wpadminbar').analyze();
+  expect(axe.violations.map((v) => `${v.id} : ${v.nodes.map((n) => n.target.join(' ')).join(' | ')}`)).toEqual([]);
+
+  // Consultation journalisée : quel intervenant, quel enfant, quelle famille.
+  await expect.poll(consultations, { intervals: [500], timeout: 10_000 }).toBe(before + 1);
+
+  // Droits : sans code valide, ou pour un enfant non attendu cette semaine, rien n'est renvoyé.
+  const nonce = await page.evaluate(() => (window as unknown as { PSC_SIDSCM: { nonce: string } }).PSC_SIDSCM.nonce);
+  const ajaxUrl = `${new URL(data.page_url).origin}/wp-admin/admin-ajax.php`;
+  const ask = (form: Record<string, string>) => request.post(ajaxUrl, { form: { action: 'psc_sidscm_contacts', nonce, ...form } });
+  const noCode = await ask({ code: '', child_id: String(data.enfant_a_id) });
+  expect(noCode.status()).toBe(403);
+  expect(await noCode.text()).not.toContain('06 12');
+  const notExpected = await ask({ code: data.access_code, child_id: '999999999' });
+  expect(await notExpected.json()).toEqual({ success: false, data: { code: 'not_expected' } });
 });
 
 });
