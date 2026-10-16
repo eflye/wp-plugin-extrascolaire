@@ -79,6 +79,9 @@ function psc_audit_action_registry() {
         'psc_parent_remove_second_parent' => array(
             'action' => 'famille.second_parent_retire', 'categorie' => 'donnees_famille', 'objet' => 'famille', 'niveau' => 'normal',
         ),
+        'psc_parent_update_email_prefs' => array(
+            'action' => 'famille.modification', 'categorie' => 'donnees_famille', 'objet' => 'famille', 'niveau' => 'normal',
+        ),
         // État d'affichage pur (message d'accueil vu/pas vu) : aucune donnée métier.
         'psc_parent_dismiss_onboarding' => array('niveau' => 'ignore'),
         'psc_parent_reinscription' => array(
