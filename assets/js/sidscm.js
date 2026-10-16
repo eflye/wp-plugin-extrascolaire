@@ -592,7 +592,9 @@
                 '<span class="psc-sidscm-at-name">' + escapeHtml(name) + '</span>' +
                 '<span class="psc-sidscm-at-cls">' + escapeHtml(c.classe || '') + '</span>' +
                 dietHtml + allergyHtml + noMealHtml +
-                '</div>' + timeHtml + contactsToggleHtml + authToggleHtml + segHtml +
+                '</div>' + timeHtml +
+                ((contactsToggleHtml || authToggleHtml) ? '<span class="psc-sidscm-at-tools">' + contactsToggleHtml + authToggleHtml + '</span>' : '') +
+                segHtml +
                 '</div>' + (contactsOpen ? renderContactsPanel(c) : '') + (expanded ? renderAuthPanel(c) : '');
         }).join('');
 
@@ -674,9 +676,10 @@
                 var entry = state.contacts[childId];
                 var needsLoad = state.contactsExpanded[childId] && (!entry || entry.status === 'error');
                 if (needsLoad) {
-                    loadContacts(childId).then(function () {
-                        if (state.viewMode === 'day') { renderDayView(); focusContactsToggle(childId); }
-                    });
+                    // Réponse tardive : re-rendu qui garde le focus là où
+                    // l'intervenant l'a mis entre-temps (il pointe peut-être
+                    // déjà un autre enfant), jamais ramené de force ici.
+                    loadContacts(childId).then(function () { rerenderDay(); });
                 }
                 renderDayView();
                 focusContactsToggle(childId);

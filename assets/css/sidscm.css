@@ -678,11 +678,17 @@ body.psc-sidscm-active main.site-main .entry-content {
 .psc-sidscm-svc-done { display: inline-flex; align-items: center; color: var(--psc-forest); }
 .psc-sidscm-svc-btn.is-active .psc-sidscm-svc-done { color: #fff; }
 
-/* Focus clavier : 3 px, ≥ 3:1 sur blanc, crème et bandeau. */
-.psc-sidscm-at-seg button:focus-visible,
-.psc-sidscm-at-all:focus-visible,
-.psc-sidscm-at-time input:focus-visible,
-.psc-sidscm-svc-done:focus-visible {
+/* « Contact d'urgence » et « Autorisés » restent ensemble : sans ce
+   groupe, l'un passait seul à la ligne en tablette quand l'heure s'affiche. */
+.psc-sidscm-at-tools { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+/* Focus clavier : 3 px, ≥ 3:1 sur blanc, crème et bandeau. Préfixé par
+   .psc-sidscm pour l'emporter sur la règle générale `.psc-sidscm button:focus`
+   (or 2 px), de même spécificité sinon. */
+.psc-sidscm .psc-sidscm-at-seg button:focus-visible,
+.psc-sidscm .psc-sidscm-at-all:focus-visible,
+.psc-sidscm .psc-sidscm-at-time input:focus-visible,
+.psc-sidscm .psc-sidscm-svc-done:focus-visible {
     outline: 3px solid var(--psc-sidscm-focus);
     outline-offset: 2px;
 }
