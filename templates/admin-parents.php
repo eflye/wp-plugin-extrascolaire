@@ -69,6 +69,10 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
     <label><input type="radio" name="payment_mode" value="autre" <?php checked(($edit_parent->payment_mode ?? 'autre') !== 'prelevement'); ?>> <?php esc_html_e('Chèque ou espèces', 'periscolaire-registration'); ?></label><br>
     <label><input type="radio" name="payment_mode" value="prelevement" <?php checked(($edit_parent->payment_mode ?? 'autre') === 'prelevement'); ?>> <?php esc_html_e('Prélèvement automatique (SEPA)', 'periscolaire-registration'); ?></label>
 </td></tr>
+<tr><th scope="row"><?php esc_html_e('Menus de la cantine', 'periscolaire-registration'); ?></th>
+<td><input type="checkbox" id="psc-edit-menu-emails" name="menu_emails" value="1" aria-describedby="psc-edit-menu-emails-help" data-testid="edit-parent-menu-emails" <?php checked((int) ($edit_parent->menu_emails ?? 1), 1); ?>>
+<label for="psc-edit-menu-emails"><?php esc_html_e('Envoyer le menu par e-mail à cette famille', 'periscolaire-registration'); ?></label>
+<p class="description" id="psc-edit-menu-emails-help"><?php esc_html_e('La famille peut aussi changer ce choix depuis « Mon profil » ou le lien en bas de chaque e-mail de menu.', 'periscolaire-registration'); ?></p></td></tr>
 <?php
 // IBAN jamais pré-rempli en clair (RGPD-07) ; données bancaires modifiables
 // avec la seule habilitation « Facturation et prélèvements ».
