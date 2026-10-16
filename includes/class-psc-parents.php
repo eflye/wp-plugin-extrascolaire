@@ -1032,24 +1032,31 @@ class Psc_Parents {
         return $new_id;
     }
 
-    public static function update($parent_id, $data) {
+    /**
+     * @param int        $parent_id
+     * @param array      $data
+     * @param array|null $acteur Acteur imposé au journal (cf. Psc_Audit::log()),
+     *                           pour une écriture faite hors session (lien de
+     *                           désinscription des menus) ; null = détecté.
+     */
+    public static function update($parent_id, $data, $acteur = null) {
         // L'adresse du second parent est une identité de connexion :
         // vérification et écriture sous le verrou d'identité.
         if (!array_key_exists('second_parent_email', (array) $data)) {
-            return self::write_update($parent_id, $data);
+            return self::write_update($parent_id, $data, $acteur);
         }
         if (!self::identity_lock()) {
             return new WP_Error('psc_identity_busy', __('Enregistrement momentanément impossible, merci de réessayer.', 'periscolaire-registration'));
         }
         try {
-            return self::write_update($parent_id, $data);
+            return self::write_update($parent_id, $data, $acteur);
         } finally {
             self::identity_unlock();
         }
     }
 
     /** Corps de update() ; sous le verrou d'identité quand l'adresse du second parent change. */
-    private static function write_update($parent_id, $data) {
+    private static function write_update($parent_id, $data, $acteur = null) {
         global $wpdb;
         $parent_id = absint($parent_id);
         if (!$parent_id) return false;
@@ -1085,6 +1092,10 @@ class Psc_Parents {
         if (array_key_exists('payment_mode', $data)) {
             $set['payment_mode'] = ($data['payment_mode'] === 'prelevement') ? 'prelevement' : 'autre';
             $formats[] = '%s';
+        }
+        if (array_key_exists('menu_emails', $data)) {
+            $set['menu_emails'] = $data['menu_emails'] ? 1 : 0;
+            $formats[] = '%d';
         }
         if (array_key_exists('sepa_iban', $data)) {
             $has_iban = $data['sepa_iban'] !== '' && $data['sepa_iban'] !== null;
@@ -1175,7 +1186,7 @@ class Psc_Parents {
             }
             Psc_Audit::log('famille.modification', array(
                 'objet_type' => 'famille', 'objet_id' => $parent_id, 'famille_id' => $parent_id,
-                'avant' => $avant, 'apres' => $apres,
+                'avant' => $avant, 'apres' => $apres, 'acteur' => $acteur,
             ));
         }
 

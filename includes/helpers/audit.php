@@ -625,7 +625,7 @@ function psc_audit_field_policy() {
                 'email', 'nom', 'prenom', 'telephone_mobile', 'telephone_fixe',
                 'adresse', 'code_postal', 'ville', 'active', 'payment_mode',
                 'second_parent_nom', 'second_parent_prenom', 'second_parent_email',
-                'second_parent_telephone',
+                'second_parent_telephone', 'menu_emails',
             ),
             'masques' => array('sepa_iban'),
             'exclus'  => array(
