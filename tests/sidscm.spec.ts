@@ -1,28 +1,30 @@
 /**
- * Espace intervenants (SIDSCM) — déverrouillage, pointage aller/retour,
- * re-pointage, heure de départ.
+ * Espace intervenants (SIDSCM) — déverrouillage, pointage à trois états
+ * (à pointer / présent / absent), heures d'arrivée et de départ, « Tous
+ * présents », échec d'enregistrement, contacts d'urgence.
  *
- * Le contrat de l'écran : les enfants attendus sont PRÉSENTS par défaut
- * (toute ligne wp_psc_attendance absente vaut present=1) — le décochage
- * est l'action à fort enjeu, c'est elle que ce scénario verrouille en
- * premier. La seed dédiée (bin/seed-sidscm.php) crée justement la
- * famille et les inscriptions SANS aucune ligne de pointage.
+ * Le contrat de l'écran : un enfant attendu part « à pointer » (aucune
+ * ligne wp_psc_attendance, ou present NULL) ; l'intervenant touche
+ * Présent ou Absent, et toucher le bouton déjà actif annule le pointage.
+ * La seed dédiée (bin/seed-sidscm.php) crée la famille et les
+ * inscriptions SANS aucune ligne de pointage.
  *
  * Chaque pointage est vérifié par l'état réel de la base (wpCliEval),
- * pas par le compteur "X / Y présents" : le site de CI porte les
- * inscriptions des autres seeds, ce compteur n'y est pas déterministe.
+ * pas par les compteurs : le site de CI porte les inscriptions des autres
+ * seeds, ces compteurs n'y sont pas déterministes.
  *
- * Le toggle est en "optimistic UI" : la vue est intégralement re-rendue
- * après le clic (innerHTML), les éléments changent donc d'identité à
- * chaque interaction — les sélecteurs sont systématiquement relus après
- * chaque action (jamais de référence conservée), et l'aller/retour AJAX
- * est attendu via expect.poll sur la base plutôt que sur le DOM.
+ * Le pointage est en "optimistic UI" : la vue est intégralement re-rendue
+ * après chaque appui (innerHTML), les éléments changent donc d'identité —
+ * les sélecteurs sont relus après chaque action (jamais de référence
+ * conservée), et l'aller/retour AJAX est attendu via expect.poll sur la
+ * base plutôt que sur le DOM.
  *
  * Appels consommés par run : un seul mauvais code, quelques chargements,
- * trois pointages, une arrivée, un départ, deux requêtes forgées refusées
- * quatre pointages simultanés, une consultation de contact d'urgence et
- * deux demandes de contacts refusées ;
- * le scénario reste très en dessous des limites de débit de l'écran.
+ * une vingtaine de pointages, deux « tous présents », quelques heures,
+ * quatre requêtes forgées refusées, quatre pointages simultanés, une
+ * consultation de contact d'urgence et deux demandes de contacts
+ * refusées ; le scénario reste très en dessous des limites de débit de
+ * l'écran.
  */
 
 import { test, expect, type Page } from '@playwright/test';
@@ -89,12 +91,12 @@ function wpCliEval(php: string): string {
   ).trim();
 }
 
-/** Ligne de pointage (enfant × jour × service) ou null si absente. */
+/** Ligne de pointage (enfant × jour × service) ou null si absente ; present NULL = à pointer. */
 function attendanceRow(
   childId: number,
   date: string,
   service: string
-): { present: number; arrival_time: string | null; departure_time: string | null } | null {
+): { present: number | null; arrival_time: string | null; departure_time: string | null } | null {
   const out = wpCliEval(
     `global $wpdb;
      $row = $wpdb->get_row($wpdb->prepare(
@@ -103,7 +105,7 @@ function attendanceRow(
        ${childId}, '${date}', '${service}'
      ));
      echo wp_json_encode($row
-       ? array('present' => (int) $row->present, 'arrival_time' => $row->arrival_time, 'departure_time' => $row->departure_time)
+       ? array('present' => $row->present === null ? null : (int) $row->present, 'arrival_time' => $row->arrival_time, 'departure_time' => $row->departure_time)
        : null);`
   );
   return JSON.parse(out);
@@ -131,6 +133,15 @@ async function unlock(page: Page, data: SeedResult): Promise<void> {
   await expect(page.getByTestId('sidscm-app')).toBeVisible();
 }
 
+/** Déverrouille puis épingle le premier jour ouvert (date de toutes les vérifications) et un service. */
+async function openDay(page: Page, data: SeedResult, service: 'GM' | 'CANT' | 'GS'): Promise<void> {
+  await unlock(page, data);
+  await page.getByTestId(`sidscm-day-${data.first_jour}`).click();
+  await page.getByTestId(`sidscm-svc-${service}`).click();
+}
+
+const POLL = { intervals: [1_000], timeout: 15_000 };
+
 test.describe.serial('Espace intervenants (SIDSCM)', () => {
 
 test('déverrouillage — mauvais code refusé, bon code ouvre la feuille de pointage', async ({ page }) => {
@@ -155,80 +166,203 @@ test('déverrouillage — mauvais code refusé, bon code ouvre la feuille de poi
   await expect(page.getByTestId('sidscm-lock')).toBeHidden();
 });
 
-test('pointage GM — décoché repasse absent, recoché revient présent, re-pointage sans doublon', async ({ page }) => {
+test('pointage GM — à pointer par défaut, Présent puis annulation au second appui, sans doublon', async ({ page }) => {
   const data = seed();
-  await unlock(page, data);
+  await openDay(page, data, 'GM');
 
-  // Vue "jour" par défaut, onglet Garderie matin par défaut ; on clique
-  // explicitement le premier jour ouvert de la semaine pour épingler la
-  // date de toutes les vérifications suivantes (data.first_date).
-  await page.getByTestId(`sidscm-day-${data.first_jour}`).click();
+  const row = () => page.getByTestId(`sidscm-row-${data.enfant_a_id}`);
+  const present = () => page.getByTestId(`sidscm-present-${data.enfant_a_id}`);
+  const absent = () => page.getByTestId(`sidscm-absent-${data.enfant_a_id}`);
 
-  // Nina est inscrite GM + CANT + GS tous les jours ouverts : sa case est
-  // cochée sans qu'aucune ligne de pointage n'existe (présent par défaut).
-  await expect(page.getByTestId(`sidscm-check-${data.enfant_a_id}`)).toBeChecked();
+  // Nina est inscrite GM + CANT + GS tous les jours ouverts : elle part
+  // « à pointer », sans aucune ligne de pointage ni heure saisissable.
+  await expect(row()).toHaveClass(/\bis-todo\b/);
+  await expect(present()).toHaveAttribute('aria-pressed', 'false');
+  await expect(absent()).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByTestId(`sidscm-arrival-${data.enfant_a_id}`)).toHaveCount(0);
+  await expect(row().getByRole('group', { name: 'Présence de Nina SidscmTest' })).toBeVisible();
+  expect(attendanceRow(data.enfant_a_id, data.first_date, 'GM')).toBeNull();
   // Marco n'est pas inscrit en Garderie matin : pas de ligne sur l'onglet GM.
   await expect(page.getByTestId(`sidscm-row-${data.enfant_b_id}`)).toBeHidden();
 
-  // Décochage : la vue est re-rendue après le clic (innerHTML), le
-  // sélecteur est donc relu à chaque action, et l'aller/retour AJAX est
-  // attendu sur la base — pas sur le DOM détaché.
-  await page.getByTestId(`sidscm-check-${data.enfant_a_id}`).click();
-  await expect
-    .poll(() => attendanceRow(data.enfant_a_id, data.first_date, 'GM'), { intervals: [1_000], timeout: 15_000 })
-    .toEqual({ present: 0, arrival_time: null, departure_time: null });
+  // Présent : l'heure d'arrivée est préremplie avec l'heure courante et
+  // envoyée avec le pointage ; le focus revient sur le bouton re-rendu.
+  await present().click();
+  await expect(row()).toHaveClass(/\bis-present\b/);
+  await expect(present()).toHaveAttribute('aria-pressed', 'true');
+  await expect(present()).toBeFocused();
+  const arrival = page.getByTestId(`sidscm-arrival-${data.enfant_a_id}`);
+  await expect(arrival).toHaveValue(/^\d{2}:\d{2}$/);
+  const prefilled = await arrival.inputValue();
+  await expect.poll(() => attendanceRow(data.enfant_a_id, data.first_date, 'GM'), POLL)
+    .toEqual({ present: 1, arrival_time: `${prefilled}:00`, departure_time: null });
 
-  // Recochage : retour à présent=1.
-  await page.getByTestId(`sidscm-check-${data.enfant_a_id}`).click();
-  await expect
-    .poll(() => attendanceRow(data.enfant_a_id, data.first_date, 'GM'), { intervals: [1_000], timeout: 15_000 })
-    .toEqual({ present: 1, arrival_time: null, departure_time: null });
+  // Second appui sur Présent : annulation, l'enfant revient à pointer
+  // (present et heure à NULL, la ligne reste).
+  await present().click();
+  await expect(row()).toHaveClass(/\bis-todo\b/);
+  await expect(present()).toHaveAttribute('aria-pressed', 'false');
+  await expect(present()).toBeFocused();
+  await expect(page.getByTestId(`sidscm-arrival-${data.enfant_a_id}`)).toHaveCount(0);
+  await expect.poll(() => attendanceRow(data.enfant_a_id, data.first_date, 'GM'), POLL)
+    .toEqual({ present: null, arrival_time: null, departure_time: null });
 
   // Re-pointage : le cycle complet laisse exactement UNE ligne
   // (upsert enfant × jour × service, jamais un doublon).
-  await page.getByTestId(`sidscm-check-${data.enfant_a_id}`).click();
-  await expect
-    .poll(() => attendanceRow(data.enfant_a_id, data.first_date, 'GM'), { intervals: [1_000], timeout: 15_000 })
+  await absent().click();
+  await expect.poll(() => attendanceRow(data.enfant_a_id, data.first_date, 'GM'), POLL)
     .toEqual({ present: 0, arrival_time: null, departure_time: null });
   expect(attendanceCount(data.enfant_a_id, data.first_date, 'GM')).toBe(1);
 });
 
-test('départ GS — l\'heure de départ crée la ligne sans toucher au pointage de présence', async ({ page }) => {
+test('absent GS — passer de Présent à Absent efface l\'heure de départ', async ({ page }) => {
   const data = seed();
-  await unlock(page, data);
+  await openDay(page, data, 'GS');
 
-  await page.getByTestId(`sidscm-day-${data.first_jour}`).click();
-  await page.getByTestId('sidscm-svc-GS').click();
-
-  // Nina et Marco sont tous deux inscrits en Garderie soir ce jour.
   await expect(page.getByTestId(`sidscm-row-${data.enfant_a_id}`)).toBeVisible();
   await expect(page.getByTestId(`sidscm-row-${data.enfant_b_id}`)).toBeVisible();
 
-  // Aucun pointage préalable : saisir une heure de départ part d'une
-  // ligne inexistante — c'est le cas d'école "le départ crée la ligne".
-  expect(attendanceRow(data.enfant_b_id, data.first_date, 'GS')).toBeNull();
-
+  await page.getByTestId(`sidscm-present-${data.enfant_b_id}`).click();
+  await expect(page.getByTestId(`sidscm-departure-${data.enfant_b_id}`)).toHaveValue(/^\d{2}:\d{2}$/);
   await page.getByTestId(`sidscm-departure-${data.enfant_b_id}`).fill('17:05');
-
-  // La ligne créée porte l'heure (format TIME MySQL HH:MM:SS) et la
-  // présence garde sa valeur par défaut (1) : le départ n'écrase jamais
-  // un pointage — cf. Psc_Sidscm::ajax_set_departure(), l'insert omet
-  // volontairement la colonne present.
-  await expect
-    .poll(() => attendanceRow(data.enfant_b_id, data.first_date, 'GS'), { intervals: [1_000], timeout: 15_000 })
+  await expect.poll(() => attendanceRow(data.enfant_b_id, data.first_date, 'GS'), POLL)
     .toEqual({ present: 1, arrival_time: null, departure_time: '17:05:00' });
+
+  await page.getByTestId(`sidscm-absent-${data.enfant_b_id}`).click();
+  await expect(page.getByTestId(`sidscm-row-${data.enfant_b_id}`)).toHaveClass(/\bis-absent\b/);
+  await expect(page.getByTestId(`sidscm-absent-${data.enfant_b_id}`)).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId(`sidscm-departure-${data.enfant_b_id}`)).toHaveCount(0);
+  await expect.poll(() => attendanceRow(data.enfant_b_id, data.first_date, 'GS'), POLL)
+    .toEqual({ present: 0, arrival_time: null, departure_time: null });
 });
 
-test('arrivée GM — l\'heure est enregistrée sans toucher au pointage de présence', async ({ page }) => {
+test('arrivée GM — heure préremplie, modifiée, conservée au rechargement', async ({ page }) => {
   const data = seed();
-  await unlock(page, data);
-  await page.getByTestId(`sidscm-day-${data.first_jour}`).click();
+  await openDay(page, data, 'GM');
 
-  expect(attendanceRow(data.enfant_a_id, data.first_date, 'GM')).toBeNull();
+  await page.getByTestId(`sidscm-present-${data.enfant_a_id}`).click();
+  await expect(page.getByTestId(`sidscm-arrival-${data.enfant_a_id}`)).toHaveValue(/^\d{2}:\d{2}$/);
+  // Le pointage (avec l'heure préremplie) est enregistré avant la modification.
+  await expect.poll(() => attendanceRow(data.enfant_a_id, data.first_date, 'GM')?.present ?? null, POLL).toBe(1);
   await page.getByTestId(`sidscm-arrival-${data.enfant_a_id}`).fill('07:42');
-  await expect
-    .poll(() => attendanceRow(data.enfant_a_id, data.first_date, 'GM'), { intervals: [1_000], timeout: 15_000 })
+  await expect.poll(() => attendanceRow(data.enfant_a_id, data.first_date, 'GM'), POLL)
     .toEqual({ present: 1, arrival_time: '07:42:00', departure_time: null });
+
+  // Rechargement : nouvelle authentification, l'état vient du serveur.
+  await openDay(page, data, 'GM');
+  await expect(page.getByTestId(`sidscm-row-${data.enfant_a_id}`)).toHaveClass(/\bis-present\b/);
+  await expect(page.getByTestId(`sidscm-arrival-${data.enfant_a_id}`)).toHaveValue('07:42');
+});
+
+test('tous présents — un absent déjà marqué reste absent ; ✓ sur l\'onglet et pointage terminé', async ({ page }) => {
+  const data = seed();
+  await openDay(page, data, 'GS');
+
+  await expect(page.getByTestId('sidscm-done')).toHaveCount(0);
+  await expect(page.locator('[data-testid="sidscm-svc-GS"] .psc-sidscm-svc-done')).toHaveCount(0);
+
+  await page.getByTestId(`sidscm-absent-${data.enfant_b_id}`).click();
+  await expect.poll(() => attendanceRow(data.enfant_b_id, data.first_date, 'GS'), POLL)
+    .toEqual({ present: 0, arrival_time: null, departure_time: null });
+
+  // « Tous présents » ne marque que les enfants à pointer (Nina), avec
+  // l'heure courante ; Marco, pointé absent, n'est jamais modifié.
+  await expect(page.getByTestId('sidscm-all-present')).toBeEnabled();
+  await page.getByTestId('sidscm-all-present').click();
+  await expect(page.getByTestId(`sidscm-row-${data.enfant_a_id}`)).toHaveClass(/\bis-present\b/);
+  await expect(page.getByTestId(`sidscm-departure-${data.enfant_a_id}`)).toHaveValue(/^\d{2}:\d{2}$/);
+  await expect(page.getByTestId(`sidscm-row-${data.enfant_b_id}`)).toHaveClass(/\bis-absent\b/);
+  const nina = attendanceRow(data.enfant_a_id, data.first_date, 'GS');
+  expect(nina?.present).toBe(1);
+  expect(nina?.departure_time).toMatch(/^\d{2}:\d{2}:00$/);
+  expect(attendanceRow(data.enfant_b_id, data.first_date, 'GS')).toEqual({ present: 0, arrival_time: null, departure_time: null });
+
+  // Plus personne à pointer : bouton désactivé, ✓ sur l'onglet, pied.
+  await expect(page.getByTestId('sidscm-all-present')).toBeDisabled();
+  await expect(page.locator('[data-testid="sidscm-svc-GS"] .psc-sidscm-svc-done')).toHaveAttribute('aria-label', 'pointage terminé');
+  await expect(page.getByTestId('sidscm-svc-GS')).toHaveAccessibleName(/pointage terminé/);
+  await expect(page.getByTestId('sidscm-done')).toContainText(/Pointage terminé : \d+ présents?, \d+ absents?\./);
+  await expect(page.getByTestId('sidscm-present-count')).toContainText('0 à pointer');
+  // Nina reste à pointer en Garderie matin : pas de ✓ sur cet onglet.
+  await expect(page.locator('[data-testid="sidscm-svc-GM"] .psc-sidscm-svc-done')).toHaveCount(0);
+});
+
+test('échec d\'enregistrement — l\'état revient, la notice s\'affiche puis disparaît au succès suivant', async ({ page }) => {
+  const data = seed();
+  await openDay(page, data, 'GM');
+
+  const failing = (action: string) => page.route('**/admin-ajax.php', async (route) => {
+    if ((route.request().postData() ?? '').includes(`action=${action}`)) {
+      await route.fulfill({ status: 500, contentType: 'text/html', body: 'Erreur serveur simulée' });
+      return;
+    }
+    await route.continue();
+  });
+
+  await failing('psc_sidscm_toggle');
+  await page.getByTestId(`sidscm-present-${data.enfant_a_id}`).click();
+  const notice = page.getByTestId('sidscm-save-error');
+  await expect(notice).toBeVisible();
+  await expect(notice).toHaveAttribute('role', 'alert');
+  await expect(notice).toContainText('Nina SidscmTest');
+  await expect(page.getByTestId(`sidscm-row-${data.enfant_a_id}`)).toHaveClass(/\bis-todo\b/);
+  await expect(page.getByTestId(`sidscm-present-${data.enfant_a_id}`)).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByTestId(`sidscm-arrival-${data.enfant_a_id}`)).toHaveCount(0);
+  expect(attendanceRow(data.enfant_a_id, data.first_date, 'GM')).toBeNull();
+
+  // « Tous présents » en échec : rien ne change.
+  await page.unroute('**/admin-ajax.php');
+  await failing('psc_sidscm_all_present');
+  await page.getByTestId('sidscm-all-present').click();
+  await expect(notice).toBeVisible();
+  await expect(page.getByTestId('sidscm-all-present')).toBeEnabled();
+  await expect(page.getByTestId(`sidscm-row-${data.enfant_a_id}`)).toHaveClass(/\bis-todo\b/);
+  expect(attendanceRow(data.enfant_a_id, data.first_date, 'GM')).toBeNull();
+
+  // Retour du réseau : le pointage passe et la notice disparaît.
+  await page.unroute('**/admin-ajax.php');
+  await page.getByTestId(`sidscm-present-${data.enfant_a_id}`).click();
+  await expect.poll(() => attendanceRow(data.enfant_a_id, data.first_date, 'GM')?.present ?? null, POLL).toBe(1);
+  await expect(notice).toBeHidden();
+});
+
+test('accessibilité — vue Jour sans violation axe avec des lignes à pointer, présentes et absentes', async ({ page }) => {
+  const data = seed();
+  // Troisième enfant du foyer de test, attendu en Garderie soir le premier
+  // jour ouvert : la liste porte ainsi les trois états à la fois. Purgé à
+  // la fin du test (et, à défaut, par la seed suivante, qui supprime tous
+  // les enfants de ce foyer).
+  const thirdId = Number(wpCliEval(
+    `global $wpdb;
+     $parent_id = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM " . psc_table('parents') . " WHERE email = %s", 'sidscm.e2e@example.test'));
+     $wpdb->insert(psc_table('children'), array('parent_id' => $parent_id, 'nom' => 'SidscmTest', 'prenom' => 'Lou', 'created_at' => current_time('mysql')));
+     $id = (int) $wpdb->insert_id;
+     Psc_School_Years::enroll($id, Psc_School_Years::id_for_date('${data.first_date}'), 'CP');
+     Psc_Planning::toggle_exception($id, '${data.first_date}', 'GS', true, true);
+     Psc_Planning::flush_cache();
+     echo $id;`
+  ));
+  expect(thirdId).toBeGreaterThan(0);
+  try {
+    await openDay(page, data, 'GS');
+    await page.getByTestId(`sidscm-present-${data.enfant_a_id}`).click();
+    await page.getByTestId(`sidscm-absent-${data.enfant_b_id}`).click();
+    await expect(page.getByTestId(`sidscm-row-${data.enfant_a_id}`)).toHaveClass(/\bis-present\b/);
+    await expect(page.getByTestId(`sidscm-row-${data.enfant_b_id}`)).toHaveClass(/\bis-absent\b/);
+    await expect(page.getByTestId(`sidscm-row-${thirdId}`)).toHaveClass(/\bis-todo\b/);
+    await expect.poll(() => attendanceRow(data.enfant_b_id, data.first_date, 'GS')?.present ?? null, POLL).toBe(0);
+
+    const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).exclude('#wpadminbar').analyze();
+    expect(axe.violations.map((v) => `${v.id} : ${v.nodes.map((n) => n.target.join(' ')).join(' | ')}`)).toEqual([]);
+  } finally {
+    wpCliEval(
+      `global $wpdb;
+       $wpdb->delete(psc_table('attendance'), array('child_id' => ${thirdId}), array('%d'));
+       Psc_Planning::delete_for_child(${thirdId});
+       Psc_School_Years::unenroll(${thirdId}, Psc_School_Years::id_for_date('${data.first_date}'));
+       $wpdb->delete(psc_table('children'), array('id' => ${thirdId}), array('%d'));`
+    );
+  }
 });
 
 test('cantine — chaque enfant affiche son régime alimentaire en jour et semaine', async ({ page }) => {
@@ -239,6 +373,13 @@ test('cantine — chaque enfant affiche son régime alimentaire en jour et semai
 
   await expect(page.getByTestId(`sidscm-diet-${data.enfant_a_id}`)).toHaveText('Sans porc');
   await expect(page.getByTestId(`sidscm-diet-${data.enfant_b_id}`)).toHaveText('Standard');
+
+  // Cantine : jamais d'heure, même pour un enfant pointé présent.
+  await page.getByTestId(`sidscm-present-${data.enfant_a_id}`).click();
+  await expect(page.getByTestId(`sidscm-row-${data.enfant_a_id}`)).toHaveClass(/\bis-present\b/);
+  await expect(page.getByTestId(`sidscm-row-${data.enfant_a_id}`).locator('input[type="time"]')).toHaveCount(0);
+  await expect.poll(() => attendanceRow(data.enfant_a_id, data.first_date, 'CANT'), POLL)
+    .toEqual({ present: 1, arrival_time: null, departure_time: null });
 
   await page.getByTestId('sidscm-mode-week').click();
   await expect(page.getByTestId(`sidscm-diet-${data.enfant_a_id}`)).toHaveText('Sans porc');
@@ -272,7 +413,7 @@ test('semaines : navigation future et dates distinctes pour chaque service', asy
   await expect(select).toHaveCount(0);
 });
 
-test('cohérence jour/service — pointage forgé refusé, aucune ligne créée', async ({ page, request }) => {
+test('cohérence jour/service — pointage et heures forgés refusés, aucune ligne créée', async ({ page, request }) => {
   const data = seed();
   await unlock(page, data);
 
@@ -295,7 +436,7 @@ test('cohérence jour/service — pointage forgé refusé, aucune ligne créée'
         child_id: String(childId),
         jour_date: date,
         service,
-        present: '0',
+        state: 'absent',
       },
     });
   const errorBody = async (resp: Awaited<ReturnType<typeof forgedToggle>>) =>
@@ -317,6 +458,21 @@ test('cohérence jour/service — pointage forgé refusé, aucune ligne créée'
   const respNotExpected = await forgedToggle(data.enfant_b_id, data.first_date, 'GM');
   expect(await errorBody(respNotExpected)).toEqual({ success: false, data: { code: 'not_expected' } });
   expect(attendanceRow(data.enfant_b_id, data.first_date, 'GM')).toBeNull();
+
+  // Heure d'arrivée ou de départ pour un enfant à pointer : refusée
+  // (not_present), aucune ligne n'est créée pour une heure seule.
+  const forgedTime = (action: string, param: string, childId: number, time: string) =>
+    request.post(ajaxUrl, {
+      form: { action, code: data.access_code, nonce: nonce as string, child_id: String(childId), jour_date: data.first_date, [param]: time },
+    });
+  const respDeparture = await forgedTime('psc_sidscm_departure', 'departure_time', data.enfant_b_id, '17:05');
+  expect(respDeparture.status()).toBe(400);
+  expect(await errorBody(respDeparture)).toEqual({ success: false, data: { code: 'not_present' } });
+  expect(attendanceRow(data.enfant_b_id, data.first_date, 'GS')).toBeNull();
+  const respArrival = await forgedTime('psc_sidscm_arrival', 'arrival_time', data.enfant_a_id, '07:42');
+  expect(respArrival.status()).toBe(400);
+  expect(await errorBody(respArrival)).toEqual({ success: false, data: { code: 'not_present' } });
+  expect(attendanceRow(data.enfant_a_id, data.first_date, 'GM')).toBeNull();
 });
 
 test('pointages simultanés (double appui) — tous enregistrés, une seule ligne', async ({ page, request }) => {
@@ -343,13 +499,13 @@ test('pointages simultanés (double appui) — tous enregistrés, une seule lign
           child_id: String(data.enfant_a_id),
           jour_date: data.first_date,
           service: 'GM',
-          present: '0',
+          state: 'absent',
         },
       })
     )
   );
   for (const resp of responses) {
-    expect(await resp.json()).toEqual({ success: true });
+    expect(await resp.json()).toEqual({ success: true, data: { state: 'absent', time: null } });
   }
   expect(attendanceCount(data.enfant_a_id, data.first_date, 'GM')).toBe(1);
   expect(attendanceRow(data.enfant_a_id, data.first_date, 'GM')).toEqual({
