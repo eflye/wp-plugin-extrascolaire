@@ -128,6 +128,8 @@ class Psc_Admin_Cantine extends Psc_Admin_Base {
         $menu_bilans = Psc_Envois::bilans('menu', wp_list_pluck((array) $recent, 'id'));
         $psc_msg = isset($_GET['psc_msg']) ? sanitize_key(wp_unslash($_GET['psc_msg'])) : '';
         $psc_n   = psc_get_int('psc_n');
+        $psc_menu_recipients = count(Psc_Menus::recipients());
+        $psc_menu_opted_out  = Psc_Menus::opted_out_count();
 
         include PSC_PATH . 'templates/admin-menus.php';
     }

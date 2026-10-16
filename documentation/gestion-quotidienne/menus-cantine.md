@@ -17,10 +17,13 @@ Connectez-vous avec un rôle autorisé à gérer la cantine. Préparez les plats
    ![Formulaire de saisie d'un menu avec un plat par jour, l'aperçu des labels qualité et le champ Origine de la viande](../assets/screenshots/menus-cantine-saisie.png)
 
 4. Cliquez sur **Enregistrer le menu** pour une nouvelle semaine, ou sur **Enregistrer les modifications** pour un menu existant. L'enregistrement reste un brouillon : il n'envoie aucun e-mail.
-5. Dans **Menus enregistrés**, vérifiez que les jours sont renseignés et que la colonne **Envoi** indique **Non envoyé**. Cliquez sur **Envoyer aux familles**, puis confirmez l'envoi à toutes les familles actives.
+5. Dans **Menus enregistrés**, vérifiez que les jours sont renseignés et que la colonne **Envoi** indique **Non envoyé**. Cliquez sur **Envoyer aux familles**, puis confirmez l'envoi. Il part aux familles actives qui ont un enfant inscrit, sauf celles qui ont choisi de ne pas recevoir le menu par e-mail : au-dessus de la liste, la page indique combien de familles le recevront et combien l'ont refusé.
 6. Contrôlez la colonne **Envoi**. Le menu n'est marqué envoyé (✔ et date) que si **toutes** les familles l'ont reçu. Si certains e-mails ont échoué, la ligne affiche le bilan du dernier envoi, par exemple « 42/45 accepté(s), 3 échec(s), 0 en attente ».
 7. En cas d'échec, vérifiez la messagerie du site, puis cliquez sur **Relancer les échecs**. Seules les familles qui n'ont pas reçu le menu sont relancées : les autres ne le reçoivent pas une seconde fois.
 8. Pour corriger un menu déjà enregistré, cliquez sur **Modifier**, enregistrez les modifications, puis utilisez **Renvoyer** si un nouvel e-mail doit partir. **Renvoyer** envoie volontairement une nouvelle fois à toutes les familles ; un double clic, lui, n'envoie rien en double.
+
+   !!! note
+       Une famille choisit de recevoir ou non le menu par e-mail depuis **Mon profil**, ou en cliquant sur **Ne plus recevoir les menus par e-mail** en bas de l'e-mail. Si elle vous le demande, modifiez ce choix dans sa fiche (**Périscolaire › Familles**, **Modifier**, case **Menus de la cantine**). Elle garde l'accès au menu dans l'onglet **Menu** de son espace.
 
    !!! note
        « Accepté » signifie que l'e-mail a été confié au serveur d'envoi, pas qu'il est arrivé dans la boîte de la famille. Les envois restés en attente (coupure de la messagerie) sont repris automatiquement, cf. [Tâches planifiées](../installation/taches-planifiees.md).

@@ -55,6 +55,7 @@ function psc_impersonation_action_policy() {
         'psc_parent_enable_sepa'                 => 'ecriture',
         'psc_parent_update_second_parent'        => 'ecriture',
         'psc_parent_remove_second_parent'        => 'ecriture',
+        'psc_parent_update_email_prefs'          => 'ecriture',
         'psc_parent_dismiss_onboarding'           => 'ecriture',
         'psc_parent_reinscription'               => 'ecriture',
         'psc_parent_update_child_identity'       => 'ecriture',

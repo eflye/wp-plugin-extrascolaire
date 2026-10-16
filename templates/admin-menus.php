@@ -6,7 +6,7 @@
 $psc_notices = array(
     'saved'     => array('updated',  __('Menu enregistré.', 'periscolaire-registration')),
     'sent'      => array('updated',  __('Menu envoyé aux familles.', 'periscolaire-registration')),
-    'sent_zero' => array('warning',  __("Aucune famille active à notifier (vérifiez qu'il y a des enfants actifs).", 'periscolaire-registration')),
+    'sent_zero' => array('warning',  __("Aucune famille à notifier : vérifiez qu'il y a des enfants actifs, et que toutes les familles n'ont pas choisi de ne plus recevoir le menu par e-mail.", 'periscolaire-registration')),
     'sent_partial' => array('error', __('Le menu n’a pas pu être envoyé à toutes les familles : consultez le bilan dans la liste et relancez les échecs.', 'periscolaire-registration')),
     'deleted'   => array('updated',  __('Menu supprimé.', 'periscolaire-registration')),
     'invalid'   => array('error',    __('Paramètre invalide.', 'periscolaire-registration')),
@@ -83,6 +83,20 @@ echo ' ' . esc_html__('Les envois se poursuivent en arrière-plan : le menu sera
 
 <div class="psc-box">
 <h2><?php esc_html_e('Menus enregistrés', 'periscolaire-registration'); ?></h2>
+<p data-testid="menu-recipients-summary"><?php
+echo esc_html(sprintf(
+    /* translators: %d: nombre de familles qui recevront le menu par e-mail. */
+    _n('Un envoi part à %d famille.', 'Un envoi part à %d familles.', $psc_menu_recipients, 'periscolaire-registration'),
+    $psc_menu_recipients
+));
+if ($psc_menu_opted_out > 0) {
+    echo ' ' . esc_html(sprintf(
+        /* translators: %d: nombre de familles qui ont choisi de ne pas recevoir le menu par e-mail. */
+        _n('%d famille a choisi de ne pas recevoir le menu par e-mail (« Mon profil » ou lien de désinscription) ; il reste consultable dans son espace.', '%d familles ont choisi de ne pas recevoir le menu par e-mail (« Mon profil » ou lien de désinscription) ; il reste consultable dans leur espace.', $psc_menu_opted_out, 'periscolaire-registration'),
+        $psc_menu_opted_out
+    ));
+}
+?></p>
 <table class="widefat striped">
 <thead>
 <tr>
@@ -135,7 +149,7 @@ echo ' ' . esc_html__('Les envois se poursuivent en arrière-plan : le menu sera
             <input type="hidden" name="lot" value="<?php echo esc_attr(wp_generate_uuid4()); ?>">
             <?php wp_nonce_field('psc_send_menu'); ?>
             <button type="submit" class="button button-small <?php echo $m->sent_at ? '' : 'button-primary'; ?>"
-                    onclick="return confirm('<?php echo esc_js(__('Envoyer ce menu à toutes les familles actives ?', 'periscolaire-registration')); ?>');">
+                    onclick="return confirm('<?php echo esc_js(__('Envoyer ce menu aux familles qui le reçoivent par e-mail ?', 'periscolaire-registration')); ?>');">
                 &#9993; <?php echo $m->sent_at ? esc_html__('Renvoyer', 'periscolaire-registration') : esc_html__('Envoyer aux familles', 'periscolaire-registration'); ?>
             </button>
         </form>

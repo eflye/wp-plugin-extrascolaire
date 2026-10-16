@@ -789,6 +789,7 @@ class Psc_Privacy {
             array('name' => __('Second parent — e-mail', 'periscolaire-registration'), 'value' => (string) $parent->second_parent_email),
             array('name' => __('Second parent — téléphone', 'periscolaire-registration'), 'value' => (string) $parent->second_parent_telephone),
             array('name' => __('Mode de paiement', 'periscolaire-registration'), 'value' => (string) $parent->payment_mode),
+            array('name' => __('Reçoit le menu de la cantine par e-mail', 'periscolaire-registration'), 'value' => (int) ($parent->menu_emails ?? 1) === 1 ? __('oui', 'periscolaire-registration') : __('non', 'periscolaire-registration')),
             array('name' => __('Règlement intérieur accepté le', 'periscolaire-registration'), 'value' => (string) $parent->reglement_accepted_at),
             array('name' => __('Version du règlement intérieur acceptée', 'periscolaire-registration'), 'value' => $parent->reglement_accepted_at ? Psc_Document_Versions::label($parent->reglement_version_id ?? null) : ''),
             array('name' => __('Compte actif', 'periscolaire-registration'), 'value' => $parent->active ? __('oui', 'periscolaire-registration') : __('non', 'periscolaire-registration')),

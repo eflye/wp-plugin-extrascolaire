@@ -20,6 +20,9 @@ class Psc_Frontend_Profil extends Psc_Frontend_Base {
         add_action('admin_post_nopriv_psc_parent_remove_second_parent', array(__CLASS__, 'handle_parent_remove_second_parent'));
         add_action('admin_post_psc_parent_remove_second_parent', array(__CLASS__, 'handle_parent_remove_second_parent'));
 
+        add_action('admin_post_nopriv_psc_parent_update_email_prefs', array(__CLASS__, 'handle_parent_update_email_prefs'));
+        add_action('admin_post_psc_parent_update_email_prefs', array(__CLASS__, 'handle_parent_update_email_prefs'));
+
         add_action('admin_post_nopriv_psc_parent_dismiss_onboarding', array(__CLASS__, 'handle_parent_dismiss_onboarding'));
         add_action('admin_post_psc_parent_dismiss_onboarding', array(__CLASS__, 'handle_parent_dismiss_onboarding'));
     }
@@ -80,6 +83,21 @@ class Psc_Frontend_Profil extends Psc_Frontend_Base {
         }
 
         self::parent_form_redirect('profil_updated');
+    }
+
+    /**
+     * Choix de recevoir le menu de la cantine par e-mail, depuis « Mon
+     * profil ». Réglage du foyer : titulaire et second parent peuvent le
+     * modifier, comme les coordonnées (décision du 16/10/2026).
+     */
+    public static function handle_parent_update_email_prefs() {
+        $parent = self::authed_parent('psc_parent_update_email_prefs');
+        if (!$parent) self::parent_form_redirect('auth');
+
+        $result = Psc_Parents::update($parent->id, array('menu_emails' => !empty($_POST['menu_emails']) ? 1 : 0));
+        if ($result === false || is_wp_error($result)) self::parent_form_redirect('email_prefs_error');
+
+        self::parent_form_redirect('email_prefs_updated');
     }
 
     /** Active le prélèvement depuis « Mon profil » avec les contrôles de l'inscription initiale. */

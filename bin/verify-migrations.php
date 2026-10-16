@@ -94,6 +94,9 @@ WP_CLI::add_command('verify-migrations', function () {
     $create->invoke(null);
     $assert('4.15.0 : colonne children.cantine_sans_repas présente', $column_exists('children', 'cantine_sans_repas'), true);
     $assert('4.15.0 : colonne children.food_allergies présente', $column_exists('children', 'food_allergies'), true);
+    // Colonne ajoutée en 4.21.0 sans être conditionnée : on la retire pour
+    // que la montée l'ajoute réellement sous une famille existante.
+    $wpdb->query('ALTER TABLE ' . psc_table('parents') . ' DROP COLUMN menu_emails');
 
     // Données d'époque : grille dans l'ancienne option, un enfant signalé,
     // des lignes de journal chaînées en v1.
@@ -183,6 +186,9 @@ WP_CLI::add_command('verify-migrations', function () {
 
     // 4.20.0 : index du journal d'audit par enfant (PERF-12).
     $assert('4.20.0 : index audit_log.enfant_horodatage', (bool) $wpdb->get_var("SHOW INDEX FROM " . psc_table('audit_log') . " WHERE Key_name = 'enfant_horodatage'"), true);
+
+    // 4.21.0 : choix de recevoir le menu par e-mail, acquis aux familles existantes.
+    $assert('4.21.0 : famille existante abonnée aux menus', (int) $wpdb->get_var($wpdb->prepare('SELECT menu_emails FROM ' . psc_table('parents') . ' WHERE id = %d', $parent_id)), 1);
 
     // Seconde montée : rien ne se duplique.
     update_option('psc_db_version', '4.15.0');

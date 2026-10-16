@@ -209,9 +209,12 @@ class Psc_Menus {
 
     /**
      * Familles concernées par l'envoi : parents actifs ayant au moins un
-     * enfant actif. Les préférences sans_porc/vegan ne filtrent RIEN ici :
-     * le menu envoyé est le même pour tout le monde, ces informations
-     * servent la cuisine (visible côté admin > Enfants), pas ce message.
+     * enfant actif, sauf celles qui ont choisi de ne plus recevoir le menu
+     * par e-mail (menu_emails = 0, depuis « Mon profil », la fiche famille
+     * ou le lien de désinscription de l'e-mail). Les préférences
+     * sans_porc/vegan ne filtrent RIEN ici : le menu envoyé est le même
+     * pour tout le monde, ces informations servent la cuisine (visible
+     * côté admin > Enfants), pas ce message.
      */
     public static function recipients() {
         global $wpdb;
@@ -220,8 +223,68 @@ class Psc_Menus {
         return $wpdb->get_results(
             "SELECT DISTINCT p.* FROM $t_parent p
              INNER JOIN $t_child c ON c.parent_id = p.id
-             WHERE p.active = 1 AND " . Psc_School_Years::inscrit_ouvert_sql('c.id')
+             WHERE p.active = 1 AND p.menu_emails = 1 AND " . Psc_School_Years::inscrit_ouvert_sql('c.id')
         );
+    }
+
+    /**
+     * Familles concernées par le menu qui ont choisi de ne pas le recevoir
+     * par e-mail : affiché à côté du bouton d'envoi, pour que la mairie
+     * comprenne l'écart avec le nombre de familles inscrites.
+     */
+    public static function opted_out_count() {
+        global $wpdb;
+        $t_parent = psc_table('parents');
+        $t_child  = psc_table('children');
+        return (int) $wpdb->get_var(
+            "SELECT COUNT(DISTINCT p.id) FROM $t_parent p
+             INNER JOIN $t_child c ON c.parent_id = p.id
+             WHERE p.active = 1 AND p.menu_emails = 0 AND " . Psc_School_Years::inscrit_ouvert_sql('c.id')
+        );
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Lien de désinscription des e-mails de menu                           */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Jeton du lien « Ne plus recevoir ces menus » : signature HMAC de la
+     * famille et de son adresse, rien n'est stocké. Il n'ouvre aucune
+     * session et ne permet que de couper l'envoi des menus ; il cesse de
+     * valoir quand l'adresse du titulaire change (ou à la rotation de la
+     * clé de signature). Sans date d'expiration, comme tout lien de
+     * désinscription : un e-mail ancien doit rester désinscriptible.
+     */
+    public static function unsubscribe_token($parent) {
+        return substr(psc_sign('menu_unsubscribe|' . (int) ($parent->id ?? 0) . '|' . strtolower((string) ($parent->email ?? ''))), 0, 40);
+    }
+
+    public static function unsubscribe_url($parent) {
+        return add_query_arg(array(
+            'psc_menu_unsub' => (int) ($parent->id ?? 0),
+            't'              => self::unsubscribe_token($parent),
+        ), home_url('/'));
+    }
+
+    /** Famille active désignée par un lien de désinscription valide, sinon null. */
+    public static function parent_from_unsubscribe($parent_id, $token) {
+        $parent = Psc_Parents::get_by_id(absint($parent_id));
+        if (!$parent || !is_string($token) || $token === '') return null;
+        return hash_equals(self::unsubscribe_token($parent), $token) ? $parent : null;
+    }
+
+    /**
+     * Coupe l'envoi des menus depuis le lien de l'e-mail. Journalisé au nom
+     * de la famille (aucune session n'est ouverte : l'acteur est imposé).
+     */
+    public static function unsubscribe($parent) {
+        if ((int) ($parent->menu_emails ?? 1) === 0) return true;
+        $result = Psc_Parents::update((int) $parent->id, array('menu_emails' => 0), array(
+            'type' => 'famille', 'id' => (int) $parent->id, 'pour_le_compte_de' => null,
+            /* translators: %d: identifiant de la famille */
+            'libelle' => sprintf(__('Famille #%d (lien de désinscription des menus)', 'periscolaire-registration'), (int) $parent->id),
+        ));
+        return $result !== false && !is_wp_error($result);
     }
 
     /**
@@ -271,6 +334,9 @@ class Psc_Menus {
         $parent = Psc_Parents::get_by_id($famille_id);
         if (!$parent) return new WP_Error('famille_inactive', 'Famille inactive ou supprimée');
         if (!is_email($parent->email)) return new WP_Error('adresse_invalide', 'Adresse invalide');
+        // Désinscription survenue entre le lancement du lot et cet envoi :
+        // le choix de la famille l'emporte (échec explicite, jamais d'envoi).
+        if ((int) ($parent->menu_emails ?? 1) === 0) return new WP_Error('famille_desinscrite', 'Famille désinscrite des menus par e-mail');
         return Psc_Mailer::send_weekly_menu($parent, $menu) ? true : new WP_Error('mail_refuse', 'Envoi refusé');
     }
 }

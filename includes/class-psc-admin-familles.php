@@ -515,6 +515,7 @@ class Psc_Admin_Familles extends Psc_Admin_Base {
             'code_postal'      => psc_post('code_postal'),
             'ville'            => psc_post('ville'),
             'payment_mode'     => psc_post('payment_mode'),
+            'menu_emails'      => !empty($_POST['menu_emails']) ? 1 : 0,
         );
         $data = array_merge($data, self::bank_fields_from_request(current_user_can('psc_manage_billing')));
         $result = Psc_Parents::update($id, $data);

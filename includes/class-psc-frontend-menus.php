@@ -13,6 +13,67 @@ class Psc_Frontend_Menus extends Psc_Frontend_Base {
     public static function init() {
         add_action('wp_ajax_nopriv_psc_menu_week', array(__CLASS__, 'ajax_menu_week'));
         add_action('wp_ajax_psc_menu_week', array(__CLASS__, 'ajax_menu_week'));
+        add_action('init', array(__CLASS__, 'maybe_handle_unsubscribe'), 5);
+    }
+
+    /**
+     * Lien « Ne plus recevoir les menus par e-mail » (?psc_menu_unsub=ID&t=JETON).
+     *
+     * GET n'écrit rien (les passerelles de sécurité des messageries suivent
+     * les liens) : il affiche une page de confirmation dont le bouton renvoie
+     * en POST vers la même adresse. Un POST valide désinscrit : c'est aussi
+     * la désinscription en un clic des messageries (RFC 8058, en-tête
+     * List-Unsubscribe-Post), qui ne peut pas porter de nonce — le jeton
+     * signé fait office d'autorisation (cf. Psc_Menus::unsubscribe_token()).
+     */
+    public static function maybe_handle_unsubscribe() {
+        if (!isset($_GET['psc_menu_unsub'])) return;
+        $title = __('Menus de la cantine par e-mail', 'periscolaire-registration');
+        $portal = '<p><a href="' . esc_url(add_query_arg('psc_tab', 'profil', Psc_Mailer::form_page_url())) . '">' . esc_html__('Aller à « Mon profil » dans l’espace famille', 'periscolaire-registration') . '</a></p>';
+
+        if (!psc_rate_limit_by_ip('menu_unsub_', 30, HOUR_IN_SECONDS)) {
+            self::unsubscribe_page($title, '<p>' . esc_html__('Trop de tentatives. Réessayez plus tard.', 'periscolaire-registration') . '</p>', 429);
+        }
+
+        $token  = isset($_GET['t']) ? sanitize_text_field(wp_unslash($_GET['t'])) : '';
+        $parent = Psc_Menus::parent_from_unsubscribe(absint($_GET['psc_menu_unsub']), $token);
+        if (!$parent) {
+            self::unsubscribe_page($title, '<p>' . esc_html__('Ce lien de désinscription n’est plus valable (l’adresse e-mail du compte a peut-être changé). Vous pouvez choisir de recevoir ou non les menus depuis « Mon profil » dans votre espace famille.', 'periscolaire-registration') . '</p>' . $portal, 404);
+        }
+
+        $method = isset($_SERVER['REQUEST_METHOD']) ? strtoupper((string) $_SERVER['REQUEST_METHOD']) : 'GET';
+        if ($method === 'POST') {
+            if (!Psc_Menus::unsubscribe($parent)) {
+                self::unsubscribe_page($title, '<p>' . esc_html__('L’enregistrement a échoué. Merci de réessayer dans quelques instants.', 'periscolaire-registration') . '</p>', 500);
+            }
+            self::unsubscribe_page($title, '<p role="status" data-testid="menu-unsub-done">' . esc_html__('C’est noté : vous ne recevrez plus le menu de la cantine par e-mail. Il reste consultable dans l’onglet « Menu » de votre espace famille, et vous pouvez réactiver l’envoi à tout moment depuis « Mon profil ».', 'periscolaire-registration') . '</p>' . $portal);
+        }
+
+        if ((int) ($parent->menu_emails ?? 1) === 0) {
+            self::unsubscribe_page($title, '<p data-testid="menu-unsub-already">' . esc_html__('Vous ne recevez déjà plus le menu de la cantine par e-mail. Vous pouvez réactiver l’envoi depuis « Mon profil » dans votre espace famille.', 'periscolaire-registration') . '</p>' . $portal);
+        }
+
+        $action = add_query_arg(array('psc_menu_unsub' => (int) $parent->id, 't' => $token), home_url('/'));
+        $form = '<p>' . esc_html__('Vous ne recevrez plus le menu de la cantine par e-mail chaque semaine. Il restera consultable dans l’onglet « Menu » de votre espace famille.', 'periscolaire-registration') . '</p>'
+            . '<form method="post" action="' . esc_url($action) . '">'
+            . '<p><button type="submit" class="button button-primary" data-testid="menu-unsub-confirm">' . esc_html__('Ne plus recevoir les menus par e-mail', 'periscolaire-registration') . '</button></p>'
+            . '</form>';
+        self::unsubscribe_page($title, $form);
+    }
+
+    /** Page autonome, sans cache ni Referer (le jeton est dans l'URL). */
+    private static function unsubscribe_page($title, $html, $status = 200) {
+        nocache_headers();
+        if (!headers_sent()) header('Referrer-Policy: no-referrer');
+        wp_die(
+            '<h1>' . esc_html($title) . '</h1>' . wp_kses($html, array(
+                'p' => array('role' => array(), 'data-testid' => array()), 'a' => array('href' => array()),
+                'form' => array('method' => array(), 'action' => array()),
+                'button' => array('type' => array(), 'class' => array(), 'data-testid' => array()),
+            )),
+            esc_html($title),
+            array('response' => (int) $status)
+        );
     }
 
     /**
