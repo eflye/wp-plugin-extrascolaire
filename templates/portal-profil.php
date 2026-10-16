@@ -210,6 +210,20 @@
   <?php endif; ?>
 </div>
 
+<div class="psc-portal-panel" data-testid="profil-email-prefs-panel">
+  <div class="psc-portal-panel-title" id="psc-email-prefs-title"><?php esc_html_e('E-mails', 'periscolaire-registration'); ?></div>
+  <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" aria-labelledby="psc-email-prefs-title" data-testid="profil-email-prefs-form">
+    <?php wp_nonce_field('psc_parent_update_email_prefs'); psc_parent_nonce_field('psc_parent_update_email_prefs'); ?>
+    <input type="hidden" name="action" value="psc_parent_update_email_prefs">
+    <label class="psc-wizard-check-line">
+      <input type="checkbox" name="menu_emails" value="1" aria-describedby="psc-menu-emails-help" data-testid="profil-menu-emails"<?php checked((int) ($parent->menu_emails ?? 1), 1); ?>>
+      <?php esc_html_e('Recevoir le menu de la cantine par e-mail quand la mairie le publie', 'periscolaire-registration'); ?>
+    </label>
+    <p id="psc-menu-emails-help" class="psc-portal-field-help" style="font-size:12px;color:#665F58;margin:6px 0 0;"><?php esc_html_e('Envoyé à l’adresse de connexion du titulaire. Le menu reste consultable à tout moment dans l’onglet « Menu ».', 'periscolaire-registration'); ?></p>
+    <p style="margin-top:16px;"><button type="submit" class="psc-portal-btn-gold" data-testid="profil-email-prefs-submit"><?php esc_html_e('Enregistrer', 'periscolaire-registration'); ?></button></p>
+  </form>
+</div>
+
 <div class="psc-portal-panel">
   <div class="psc-portal-panel-title"><?php esc_html_e('Second parent (facultatif)', 'periscolaire-registration'); ?></div>
   <?php $psc_has_second_parent = trim((string) $parent->second_parent_prenom) !== '' || trim((string) $parent->second_parent_nom) !== ''; ?>

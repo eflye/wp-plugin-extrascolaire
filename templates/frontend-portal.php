@@ -158,6 +158,9 @@
         'pickup_removed' => array('ok',  __('Personne retirée de la liste des personnes autorisées.', 'periscolaire-registration')),
         'pickup_invalid' => array('err', __("Nom, prénom et téléphone sont obligatoires, le numéro de téléphone doit être valide, et l'enfant doit être le vôtre.", 'periscolaire-registration')),
 
+        'email_prefs_updated' => array('ok',  __('Préférences d’e-mail enregistrées.', 'periscolaire-registration')),
+        'email_prefs_error'   => array('err', __('Vos préférences d’e-mail n’ont pas pu être enregistrées. Merci de réessayer.', 'periscolaire-registration')),
+
         'second_parent_updated'     => array('ok',  __('Second parent enregistré.', 'periscolaire-registration')),
         'second_parent_removed'     => array('ok',  __('Second parent retiré.', 'periscolaire-registration')),
         'second_parent_bad_email'   => array('err', __("L'adresse e-mail du second parent n'est pas valide.", 'periscolaire-registration')),
@@ -169,7 +172,7 @@
     );
     // Confirmations : popin auto-masquée (cf. assets/js/frontend.js).
     // Erreurs à corriger : bandeau classique, le temps de lire et d'agir.
-    $psc_toast_messages = array('welcome', 'child_updated', 'child_added', 'absence_cancelled', 'profil_updated', 'profil_sepa_enabled', 'assurance_uploaded', 'household_pickup_added', 'pickup_updated', 'pickup_removed');
+    $psc_toast_messages = array('welcome', 'child_updated', 'child_added', 'absence_cancelled', 'profil_updated', 'profil_sepa_enabled', 'assurance_uploaded', 'household_pickup_added', 'pickup_updated', 'pickup_removed', 'email_prefs_updated');
     if (!empty($psc_msg) && isset($psc_notices[$psc_msg])):
         list($type, $text) = $psc_notices[$psc_msg];
         $is_toast = in_array($psc_msg, $psc_toast_messages, true);

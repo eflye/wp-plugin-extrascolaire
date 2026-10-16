@@ -393,6 +393,7 @@ class Psc_Frontend extends Psc_Frontend_Base {
             'email_change_forbidden', 'email_change_relogin', 'email_change_rate',
             'bad_email_token', 'expired_email_token',
             'second_parent_updated', 'second_parent_removed',
+            'email_prefs_updated', 'email_prefs_error',
             'second_parent_bad_email', 'second_parent_bad_phone', 'second_parent_email_taken',
         ), true)) {
             $tab = 'profil';
