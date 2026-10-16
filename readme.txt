@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.36.0
+Stable tag: 5.37.0
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,13 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.37.0 =
+Schéma de base 4.21.0 (une colonne ajoutée, mise à jour automatique à l'installation).
+
+* **Menus de la cantine par e-mail :** chaque famille choisit de recevoir ou non le menu par e-mail, depuis « Mon profil » (titulaire ou second parent) ou par le lien « Ne plus recevoir les menus par e-mail » en bas de chaque menu, sans connexion. Toutes les familles restent abonnées par défaut ; la secrétaire peut aussi changer ce choix dans la fiche famille, et la page Menus indique combien de familles recevront l'envoi. Le menu reste consultable dans l'onglet « Menu » du portail.
+* **Écran intervenants, contact d'urgence :** sur chaque ligne d'enfant attendu cette semaine (garderie matin, cantine, garderie soir), un bouton affiche à la demande le nom, le rôle et les numéros des parents, cliquables pour appeler. Chaque consultation est inscrite au journal d'audit.
+* **Accessibilité :** contraste du sur-titre du bandeau de l'écran intervenants renforcé.
 
 = 5.36.0 =
 * **Portail famille, thème Clair :** un bouton soleil/lune dans le bandeau bascule le portail entre le thème habituel (encre) et un thème clair sur fond crème. Le choix est mémorisé sur l'appareil (cookie et stockage du navigateur) et s'applique dès l'affichage de la page, sans clignotement. L'encre reste le thème par défaut ; l'écran des intervenants n'est pas concerné.
