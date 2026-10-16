@@ -2,7 +2,7 @@
 
 ## Objectif
 
-Tenir à jour vos coordonnées, le second parent et votre mode de paiement.
+Tenir à jour vos coordonnées, le second parent, votre mode de paiement et les e-mails que vous recevez.
 
 ## Coordonnées
 
@@ -17,6 +17,12 @@ Dans **Second parent (facultatif)**, cliquez sur **+ Ajouter un second parent**,
 
 - Si vous réglez par **Chèque ou espèces**, vous pouvez activer le **Prélèvement automatique** depuis cette page. Il est gratuit et prélevé le 5 du mois suivant ; renseignez le titulaire et l'IBAN, puis acceptez le règlement du prélèvement : c'est le même texte qu'à l'inscription, et la mairie conserve la version que vous avez approuvée.
 - Pour modifier vos coordonnées bancaires ou mettre fin au prélèvement, contactez la mairie.
+
+## Menus de la cantine par e-mail
+
+Par défaut, la mairie vous envoie par e-mail le menu de la cantine chaque fois qu'elle le publie, à l'adresse de connexion du titulaire. Pour ne plus le recevoir, décochez **Recevoir le menu de la cantine par e-mail quand la mairie le publie** dans le bloc **E-mails**, puis cliquez sur **Enregistrer**. Recochez la case pour le recevoir à nouveau. Le titulaire comme le second parent peuvent modifier ce choix, qui vaut pour tout le foyer.
+
+Vous pouvez aussi cliquer sur **Ne plus recevoir les menus par e-mail**, en bas de chaque e-mail de menu, puis confirmer : aucune connexion n'est nécessaire. Dans tous les cas, le menu reste consultable dans l'onglet **Menu** de votre espace.
 
 ## Consultations de votre espace par la mairie
 
