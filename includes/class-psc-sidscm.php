@@ -152,10 +152,33 @@ class Psc_Sidscm {
                 // Pluriel choisi côté navigateur (le nombre n'est connu
                 // qu'au pointage) : les deux formes de _n() sont transmises,
                 // calculées pour 1 et pour 2.
-                /* translators: 1: nombre d'enfants pointés présents, 2: nombre d'enfants attendus */
-                'present_count'      => _n('%1$s / %2$s présent', '%1$s / %2$s présents', 2, 'periscolaire-registration'),
-                /* translators: 1: nombre d'enfants pointés présents, 2: nombre d'enfants attendus */
-                'present_count_one'  => _n('%1$s / %2$s présent', '%1$s / %2$s présents', 1, 'periscolaire-registration'),
+                /* translators: %s: nombre d'enfants pointés présents */
+                'count_present'      => _n('%s présent', '%s présents', 2, 'periscolaire-registration'),
+                /* translators: %s: nombre d'enfants pointés présents */
+                'count_present_one'  => _n('%s présent', '%s présents', 1, 'periscolaire-registration'),
+                /* translators: %s: nombre d'enfants pointés absents */
+                'count_absent'       => _n('%s absent', '%s absents', 2, 'periscolaire-registration'),
+                /* translators: %s: nombre d'enfants pointés absents */
+                'count_absent_one'   => _n('%s absent', '%s absents', 1, 'periscolaire-registration'),
+                /* translators: %s: nombre d'enfants restant à pointer */
+                'count_todo'         => _n('%s à pointer', '%s à pointer', 2, 'periscolaire-registration'),
+                /* translators: %s: nombre d'enfants restant à pointer */
+                'count_todo_one'     => _n('%s à pointer', '%s à pointer', 1, 'periscolaire-registration'),
+                /* translators: 1: libellé du bouton Présent, 2: libellé du bouton Absent */
+                'day_help'      => __('Pour chaque enfant, touchez %1$s ou %2$s.', 'periscolaire-registration'),
+                'present'       => __('Présent', 'periscolaire-registration'),
+                'absent'        => __('Absent', 'periscolaire-registration'),
+                /* translators: %s: prénom et nom de l'enfant */
+                'presence_of'   => __('Présence de %s', 'periscolaire-registration'),
+                'all_present'   => __('Tous présents', 'periscolaire-registration'),
+                'service_done'  => __('pointage terminé', 'periscolaire-registration'),
+                /* translators: 1: nombre de présents (« 2 présents »), 2: nombre d'absents (« 0 absent ») */
+                'day_done'      => __('Pointage terminé : %1$s, %2$s.', 'periscolaire-registration'),
+                /* translators: %s: prénom et nom de l'enfant */
+                'save_error'    => __('Enregistrement impossible : le pointage de %s n’a pas été modifié. Vérifiez la connexion et réessayez.', 'periscolaire-registration'),
+                /* translators: %s: prénom et nom de l'enfant */
+                'time_error'    => __('Enregistrement impossible : l’heure de %s n’a pas été modifiée. Vérifiez la connexion et réessayez.', 'periscolaire-registration'),
+                'all_error'     => __('Enregistrement impossible : la liste n’a pas été modifiée. Vérifiez la connexion et réessayez.', 'periscolaire-registration'),
                 'authorised'    => __('Autorisés', 'periscolaire-registration'),
                 'arrival'       => __('Arrivée', 'periscolaire-registration'),
                 'departure'     => __('Départ', 'periscolaire-registration'),
