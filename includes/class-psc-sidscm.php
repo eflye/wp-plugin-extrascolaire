@@ -55,6 +55,8 @@ class Psc_Sidscm {
         add_action('wp_ajax_psc_sidscm_data', array(__CLASS__, 'ajax_data'));
         add_action('wp_ajax_nopriv_psc_sidscm_toggle', array(__CLASS__, 'ajax_toggle'));
         add_action('wp_ajax_psc_sidscm_toggle', array(__CLASS__, 'ajax_toggle'));
+        add_action('wp_ajax_nopriv_psc_sidscm_all_present', array(__CLASS__, 'ajax_all_present'));
+        add_action('wp_ajax_psc_sidscm_all_present', array(__CLASS__, 'ajax_all_present'));
         add_action('wp_ajax_nopriv_psc_sidscm_arrival', array(__CLASS__, 'ajax_set_arrival'));
         add_action('wp_ajax_psc_sidscm_arrival', array(__CLASS__, 'ajax_set_arrival'));
         add_action('wp_ajax_nopriv_psc_sidscm_departure', array(__CLASS__, 'ajax_set_departure'));
@@ -853,7 +855,8 @@ class Psc_Sidscm {
      */
     public static function ajax_toggle() {
         check_ajax_referer('psc_sidscm_front', 'nonce');
-        // Pointage en rafale (une requête par enfant) : 300/heure laisse toute la marge au pointage complet
+        // Pointage en rafale (une requête par enfant, hors « tous
+        // présents ») : 300/heure laisse toute la marge au pointage complet
         // d'une cantine, corrections comprises.
         if (!psc_rate_limit_by_ip('sidscm_toggle_', 300, HOUR_IN_SECONDS)) {
             wp_send_json_error(array('code' => 'rate'), 429);
@@ -916,6 +919,134 @@ class Psc_Sidscm {
         ));
 
         wp_send_json_success(array('state' => $state, 'time' => $saved_time));
+    }
+
+    /* ---------------- « Tous présents » ---------------- */
+
+    /**
+     * Marque présents, en un geste, les enfants attendus ce jour à ce
+     * service qui restent à pointer (aucune ligne ou present NULL) ; un
+     * enfant déjà pointé — absent compris — n'est jamais modifié. Si `time`
+     * (HH:MM) est fourni sur GM/GS, il devient l'heure des enfants ainsi
+     * marqués qui n'en ont pas encore. Réponse : les identifiants marqués
+     * et l'heure appliquée.
+     */
+    public static function ajax_all_present() {
+        check_ajax_referer('psc_sidscm_front', 'nonce');
+        // Un geste par liste (jour × service), pas par enfant : 60/heure
+        // couvre tous les onglets d'une journée, recommencés plusieurs fois.
+        if (!psc_rate_limit_by_ip('sidscm_all_present_', 60, HOUR_IN_SECONDS)) {
+            wp_send_json_error(array('code' => 'rate'), 429);
+        }
+        self::require_code();
+
+        $date    = psc_valid_date(psc_post('jour_date'));
+        $service = psc_post('service');
+        $time    = psc_post('time');
+        if (!$date || !in_array($service, psc_unit_services(), true)) {
+            wp_send_json_error(array('code' => 'invalid'), 400);
+        }
+        if (self::time_column($service) === null) $time = '';
+        if ($time !== '' && !self::valid_time($time)) {
+            wp_send_json_error(array('code' => 'invalid'), 400);
+        }
+        self::require_open_day($date);
+
+        $updated = self::mark_all_present($date, $service, $time);
+        if ($updated === null) {
+            wp_send_json_error(array('code' => 'save'), 500);
+        }
+
+        $meta = array('date' => $date, 'service' => $service, 'nombre' => count($updated));
+        if ($time !== '') $meta['time'] = $time;
+        Psc_Audit::log('presence.pointage_groupe', array(
+            'objet_type' => 'presence',
+            'meta' => $meta,
+        ));
+
+        wp_send_json_success(array('updated' => $updated, 'time' => $time !== '' ? $time : null));
+    }
+
+    /**
+     * Cœur de ajax_all_present(), extrait pour être vérifié sans requête
+     * HTTP. Candidats : les enfants que l'écran liste (inscrits à l'année
+     * du jour) et attendus à ce service — même règle que
+     * require_day_service(), cantine comprise pour un « midi sans repas ».
+     * Nombre de requêtes indépendant du nombre d'enfants : une lecture des
+     * pointages existants, une écriture groupée, une relecture.
+     *
+     * L'écriture est gardée dans la requête elle-même (ON DUPLICATE KEY
+     * UPDATE … IF(present IS NULL, …)) : un enfant pointé absent entre la
+     * lecture et l'écriture ne repasse pas présent.
+     *
+     * @param string $time HH:MM ou '' (aucune heure à poser).
+     * @return int[]|null Identifiants marqués présents ; null si l'écriture échoue.
+     */
+    public static function mark_all_present($date, $service, $time = '') {
+        global $wpdb;
+        $t_child = psc_table('children');
+        $t_att = psc_table('attendance');
+        $column = self::time_column($service);
+        if ($column === null) $time = '';
+
+        $year_id = Psc_School_Years::id_for_date($date);
+        $child_ids = array_map('intval', (array) $wpdb->get_col("SELECT c.id FROM $t_child c WHERE " . Psc_School_Years::inscrit_sql('c.id', $year_id)));
+        if (!$child_ids) return array();
+
+        $declared = Psc_Planning::declared_map($child_ids, array($date));
+        $msr = psc_midi_sans_repas_code();
+        $expected = array();
+        foreach ($child_ids as $cid) {
+            $day = $declared[$cid][$date] ?? array();
+            if (!empty($day[$service]) || ($service === 'CANT' && !empty($day[$msr]))) $expected[] = $cid;
+        }
+        if (!$expected) return array();
+
+        $ph_child = implode(',', array_fill(0, count($expected), '%d'));
+        $pointed = $wpdb->get_col($wpdb->prepare(
+            "SELECT child_id FROM $t_att WHERE child_id IN ($ph_child) AND jour_date = %s AND service = %s AND present IS NOT NULL",
+            array_merge($expected, array($date, $service))
+        ));
+        $candidates = array_values(array_diff($expected, array_map('intval', (array) $pointed)));
+        if (!$candidates) return array();
+
+        $now = current_time('mysql');
+        $with_time = $time !== '';
+        $rows = array();
+        $args = array();
+        foreach ($candidates as $cid) {
+            $rows[] = $with_time ? '(%d, %s, %s, 1, %s, %s)' : '(%d, %s, %s, 1, %s)';
+            $args[] = $cid;
+            $args[] = $date;
+            $args[] = $service;
+            if ($with_time) $args[] = $time . ':00';
+            $args[] = $now;
+        }
+        // Ordre voulu : MySQL applique les affectations de gauche à droite,
+        // chacune voyant les colonnes déjà réécrites. `present` vient donc
+        // en dernier, pour que les gardes précédentes lisent son ancienne
+        // valeur.
+        $updates = array('pointed_at = IF(present IS NULL, VALUES(pointed_at), pointed_at)');
+        if ($with_time) $updates[] = "$column = IF(present IS NULL AND $column IS NULL, VALUES($column), $column)";
+        $updates[] = 'present = IF(present IS NULL, 1, present)';
+
+        $ok = $wpdb->query($wpdb->prepare(
+            "INSERT INTO $t_att (child_id, jour_date, service, present, " . ($with_time ? "$column, " : '') . 'pointed_at)
+             VALUES ' . implode(', ', $rows) . '
+             ON DUPLICATE KEY UPDATE ' . implode(', ', $updates),
+            $args
+        ));
+        if ($ok === false) return null;
+
+        // Relecture : seuls les candidats effectivement présents sont
+        // annoncés (un absent pointé entre-temps est resté absent).
+        $ph_cand = implode(',', array_fill(0, count($candidates), '%d'));
+        $present = $wpdb->get_col($wpdb->prepare(
+            "SELECT child_id FROM $t_att WHERE child_id IN ($ph_cand) AND jour_date = %s AND service = %s AND present = 1",
+            array_merge($candidates, array($date, $service))
+        ));
+        $present = array_map('intval', (array) $present);
+        return array_values(array_intersect($candidates, $present));
     }
 
     /* ---------------- Heure d'arrivée (Garderie matin) ---------------- */
