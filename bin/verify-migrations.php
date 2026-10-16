@@ -22,6 +22,8 @@
  *    par défaut), enfant « cantine sans repas » converti en période, ancienne
  *    colonne et ancienne option supprimées ;
  *  - 4.18.0 : table des versions de règlements et colonnes d'acceptation ;
+ *  - 4.22.0 : attendance.present nullable (NULL = à pointer), les pointages
+ *    d'époque gardent leur valeur ;
  *  - clés étrangères posées, aucune contrainte manquante ;
  *  - une seconde montée ne duplique rien.
  *
@@ -97,6 +99,10 @@ WP_CLI::add_command('verify-migrations', function () {
     // Colonne ajoutée en 4.21.0 sans être conditionnée : on la retire pour
     // que la montée l'ajoute réellement sous une famille existante.
     $wpdb->query('ALTER TABLE ' . psc_table('parents') . ' DROP COLUMN menu_emails');
+    // Avant 4.22.0, present était NOT NULL DEFAULT 1 (présent par défaut) :
+    // create_tables() décrit déjà le schéma cible, on remet la colonne
+    // d'époque pour que la montée la convertisse réellement.
+    $wpdb->query('ALTER TABLE ' . psc_table('attendance') . ' MODIFY present TINYINT(1) NOT NULL DEFAULT 1');
 
     // Données d'époque : grille dans l'ancienne option, un enfant signalé,
     // des lignes de journal chaînées en v1.
@@ -108,6 +114,9 @@ WP_CLI::add_command('verify-migrations', function () {
     $flagged = (int) $wpdb->insert_id;
     $wpdb->insert(psc_table('children'), array('parent_id' => $parent_id, 'nom' => 'Migration', 'prenom' => 'Avec', 'cantine_sans_repas' => 0, 'created_at' => current_time('mysql')));
     $unflagged = (int) $wpdb->insert_id;
+    // Pointages d'époque (4.22.0) : un présent, un absent.
+    $wpdb->insert(psc_table('attendance'), array('child_id' => $flagged, 'jour_date' => '2026-09-07', 'service' => 'GM', 'present' => 1, 'pointed_at' => current_time('mysql')));
+    $wpdb->insert(psc_table('attendance'), array('child_id' => $flagged, 'jour_date' => '2026-09-07', 'service' => 'CANT', 'present' => 0, 'pointed_at' => current_time('mysql')));
     // Demande d'époque portant encore le texte libre d'allergies (4.20.0).
     $wpdb->insert(psc_table('requests'), array('email' => 'verif-migrations-demande@example.invalid', 'status' => 'pending', 'created_at' => current_time('mysql'),
         'children_json' => wp_json_encode(array(array('nom' => 'Migration', 'prenom' => 'Demande', 'food_allergies' => 'Gluten (test)', 'food_allergy_consent_at' => '2026-01-01 10:00:00'), array('nom' => 'Migration', 'prenom' => 'Vide', 'food_allergies' => '')))));
@@ -189,6 +198,20 @@ WP_CLI::add_command('verify-migrations', function () {
 
     // 4.21.0 : choix de recevoir le menu par e-mail, acquis aux familles existantes.
     $assert('4.21.0 : famille existante abonnée aux menus', (int) $wpdb->get_var($wpdb->prepare('SELECT menu_emails FROM ' . psc_table('parents') . ' WHERE id = %d', $parent_id)), 1);
+
+    // 4.22.0 : pointage à trois états, NULL = à pointer.
+    $present_col = $wpdb->get_row($wpdb->prepare(
+        'SELECT IS_NULLABLE, COLUMN_DEFAULT FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = %s',
+        psc_table('attendance'), 'present'
+    ));
+    $assert('4.22.0 : attendance.present nullable', $present_col ? $present_col->IS_NULLABLE : null, 'YES');
+    // Selon le moteur, un défaut NULL se lit NULL (MySQL) ou 'NULL' (MariaDB).
+    $assert('4.22.0 : attendance.present sans défaut (NULL)', $present_col && in_array($present_col->COLUMN_DEFAULT, array(null, 'NULL'), true), true);
+    $legacy_att = $wpdb->get_results($wpdb->prepare('SELECT service, present FROM ' . psc_table('attendance') . ' WHERE child_id = %d ORDER BY service', $flagged), OBJECT_K);
+    $assert('4.22.0 : pointage d’époque présent conservé', isset($legacy_att['GM']) ? $legacy_att['GM']->present : null, '1');
+    $assert('4.22.0 : pointage d’époque absent conservé', isset($legacy_att['CANT']) ? $legacy_att['CANT']->present : null, '0');
+    $wpdb->insert(psc_table('attendance'), array('child_id' => $flagged, 'jour_date' => '2026-09-08', 'service' => 'GS', 'pointed_at' => current_time('mysql')));
+    $assert('4.22.0 : nouvelle ligne sans present = à pointer (NULL)', $wpdb->get_var($wpdb->prepare('SELECT present FROM ' . psc_table('attendance') . " WHERE child_id = %d AND service = 'GS'", $flagged)), null);
 
     // Seconde montée : rien ne se duplique.
     update_option('psc_db_version', '4.15.0');

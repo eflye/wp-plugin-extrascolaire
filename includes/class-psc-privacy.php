@@ -318,7 +318,8 @@ class Psc_Privacy {
             $fields[] = array(
                 /* translators: 1: date, 2: code du service */
                 'name'  => sprintf(__('Pointage du %1$s (%2$s)', 'periscolaire-registration'), $row->jour_date, $row->service),
-                'value' => trim(($row->present ? __('présent', 'periscolaire-registration') : __('absent', 'periscolaire-registration'))
+                // present NULL = ligne ouverte mais jamais pointée (schéma 4.22.0).
+                'value' => trim(($row->present === null ? __('à pointer', 'periscolaire-registration') : ((int) $row->present === 1 ? __('présent', 'periscolaire-registration') : __('absent', 'periscolaire-registration')))
                     /* translators: %s: heure d'arrivée */
                     . ($row->arrival_time ? ' · ' . sprintf(__('arrivée %s', 'periscolaire-registration'), $row->arrival_time) : '')
                     /* translators: %s: heure de départ */

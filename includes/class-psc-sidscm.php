@@ -583,7 +583,12 @@ class Psc_Sidscm {
         $departures = array();
         foreach ($att_rows as $a) {
             $key = $a->child_id . '|' . $a->jour_date . '|' . $a->service;
-            $attendance[$key] = (int) $a->present;
+            // present NULL = « à pointer » (schéma 4.22.0) : la clé reste
+            // absente de la carte, seuls les présents (1) et absents (0)
+            // pointés y figurent.
+            if ($a->present !== null) {
+                $attendance[$key] = (int) $a->present;
+            }
             if ($a->arrival_time) {
                 $arrivals[$key] = substr($a->arrival_time, 0, 5);
             }
