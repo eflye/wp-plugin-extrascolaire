@@ -66,7 +66,7 @@ Dans **Périscolaire › Maintenance**, confirmez d'abord la sauvegarde (étape 
     wp psc chiffrement statut
     ```
 
-    Le message **Toutes les valeurs lisibles sont chiffrées avec la clé hors de la base** confirme la fin de l'opération. Ouvrez ensuite **Périscolaire › Familles** : pour une famille en prélèvement, l'IBAN masqué s'affiche sous **Prélèvement** (un IBAN illisible laisserait un champ vide). Vérifiez aussi l'IBAN du créancier dans **Réglages**.
+    Le message **Toutes les valeurs lisibles sont chiffrées avec la clé hors de la base** confirme la fin de l'opération. Ouvrez ensuite **Périscolaire › Fiches familles** : pour une famille en prélèvement, l'IBAN masqué s'affiche sous **Prélèvement** (un IBAN illisible laisserait un champ vide). Vérifiez aussi l'IBAN du créancier dans **Réglages**.
 
 6. Faites une nouvelle sauvegarde de la base. Les sauvegardes antérieures restent lisibles avec l'ancienne clé, que la base contient : protégez-les ou supprimez-les selon votre politique de conservation.
 

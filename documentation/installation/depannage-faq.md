@@ -31,7 +31,7 @@ L'hébergement a refusé une modification de schéma, ou des données existantes
 
 ## L'alerte signale « Unicité de l'e-mail du second parent » : que faire ?
 
-Plusieurs foyers partagent la même adresse de second parent. Or cette adresse sert au second parent à se connecter, elle doit donc désigner un seul foyer. Ouvrez **Périscolaire › Familles**, retrouvez les foyers concernés et corrigez ou retirez l'adresse en double. L'alerte disparaît d'elle-même à l'ouverture suivante du backoffice.
+Plusieurs foyers partagent la même adresse de second parent. Or cette adresse sert au second parent à se connecter, elle doit donc désigner un seul foyer. Ouvrez **Périscolaire › Fiches familles**, retrouvez les foyers concernés et corrigez ou retirez l'adresse en double. L'alerte disparaît d'elle-même à l'ouverture suivante du backoffice.
 
 ## Un agent ne voit plus le menu Périscolaire, ou seulement une partie
 

@@ -149,20 +149,20 @@ test.describe('Messages aux familles', () => {
     const labels = entries.map((e) => e.label);
 
     expect(slugs).toEqual([
-      'psc-section-a-traiter', 'psc_dashboard', 'psc_requests', 'psc_conversations',
-      'psc-section-cantine', 'psc_menus', 'psc_supplier_orders', 'psc_inscriptions',
-      'psc-section-familles', 'psc_parents', 'psc_children', 'psc_assurances',
+      'psc_dashboard',
+      'psc-section-cantine', 'psc_inscriptions', 'psc_menus', 'psc_supplier_orders',
+      'psc-section-communication', 'psc_conversations', 'psc_messages', 'psc_email_templates',
       'psc-section-facturation', 'psc_factures', 'psc_comptes_familles',
-      'psc-section-communication', 'psc_messages',
-      'psc-section-configuration', 'psc_school_calendar_v2', 'psc_email_templates', 'psc_settings', 'psc_maintenance', 'psc_audit',
+      'psc-section-familles', 'psc_requests', 'psc_parents', 'psc_children', 'psc_assurances',
+      'psc-section-configuration', 'psc_school_calendar_v2', 'psc_settings', 'psc_maintenance', 'psc_audit',
     ]);
     expect(labels).toEqual([
-      'À traiter', 'Tableau de bord', "Demandes d'inscription", 'Échanges familles',
-      'Cantine & garderie', 'Menus', 'Commande fournisseur', 'Présences déclarées',
-      'Familles', 'Familles', 'Enfants', 'Assurances scolaires',
+      'Tableau de bord',
+      'Cantine & garderie', 'Présences déclarées', 'Menus', 'Commande fournisseur',
+      'Communication', 'Échanges familles', 'Messages aux familles', "Modèles d'e-mails",
       'Facturation', 'Factures', 'État des comptes',
-      'Communication', 'Messages aux familles',
-      'Configuration', 'Année scolaire', "Modèles d'e-mails", 'Réglages', 'Maintenance', "Journal d'audit",
+      'Familles', "Demandes d'inscription", 'Fiches familles', 'Enfants', 'Assurances scolaires',
+      'Administration', 'Année scolaire', 'Réglages', 'Maintenance', "Journal d'audit",
     ]);
   });
 
