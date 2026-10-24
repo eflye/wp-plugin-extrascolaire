@@ -23,7 +23,7 @@ Connectez-vous avec un rôle autorisé à gérer la cantine. Préparez les plats
 8. Pour corriger un menu déjà enregistré, cliquez sur **Modifier**, enregistrez les modifications, puis utilisez **Renvoyer** si un nouvel e-mail doit partir. **Renvoyer** envoie volontairement une nouvelle fois à toutes les familles ; un double clic, lui, n'envoie rien en double.
 
    !!! note
-       Une famille choisit de recevoir ou non le menu par e-mail depuis **Mon profil**, ou en cliquant sur **Ne plus recevoir les menus par e-mail** en bas de l'e-mail. Si elle vous le demande, modifiez ce choix dans sa fiche (**Périscolaire › Familles**, **Modifier**, case **Menus de la cantine**). Elle garde l'accès au menu dans l'onglet **Menu** de son espace.
+       Une famille choisit de recevoir ou non le menu par e-mail depuis **Mon profil**, ou en cliquant sur **Ne plus recevoir les menus par e-mail** en bas de l'e-mail. Si elle vous le demande, modifiez ce choix dans sa fiche (**Périscolaire › Fiches familles**, **Modifier**, case **Menus de la cantine**). Elle garde l'accès au menu dans l'onglet **Menu** de son espace.
 
    !!! note
        « Accepté » signifie que l'e-mail a été confié au serveur d'envoi, pas qu'il est arrivé dans la boîte de la famille. Les envois restés en attente (coupure de la messagerie) sont repris automatiquement, cf. [Tâches planifiées](../installation/taches-planifiees.md).
