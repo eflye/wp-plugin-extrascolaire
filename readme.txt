@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.38.0
+Stable tag: 5.38.1
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,9 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.38.1 =
+* **Menu d'administration Périscolaire réorganisé par domaine,** du plus fréquent au plus rare : Tableau de bord, Cantine & garderie, Communication (échanges, messages aux familles et modèles d'e-mails réunis), Facturation, Familles, Administration (année scolaire, réglages, maintenance, journal d'audit). La section « À traiter » disparaît (son ancien lien mène au tableau de bord) et l'entrée « Familles » devient « Fiches familles ». Les adresses des écrans et les habilitations ne changent pas.
 
 = 5.38.0 =
 Schéma de base 4.22.0 (mise à jour automatique à l'installation : la présence pointée accepte l'état « à pointer » ; les pointages existants sont conservés).
