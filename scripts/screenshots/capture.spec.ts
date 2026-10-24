@@ -91,17 +91,16 @@ test.describe.serial('Captures de la documentation administrateur', () => {
     await capture(page, 'dashboard-a-faire.png');
   });
 
-  test('menu Périscolaire — six sections', async ({ page }) => {
+  test('menu Périscolaire — cinq sections par domaine', async ({ page }) => {
     await openAdmin(page, 'admin.php?page=psc_dashboard');
     const menu = page.locator('#toplevel_page_psc_dashboard');
     await frame(page, menu);
     for (const label of [
-      'À traiter',
       'Cantine & garderie',
-      'Familles',
-      'Facturation',
       'Communication',
-      'Configuration',
+      'Facturation',
+      'Familles',
+      'Administration',
     ]) {
       await expect(menu.locator('.psc-menu-section', { hasText: label })).toBeVisible();
     }

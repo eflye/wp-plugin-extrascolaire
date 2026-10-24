@@ -22,7 +22,7 @@ Connectez-vous à WordPress avec un rôle autorisé à gérer le périscolaire. 
 
 5. Si **Aucune année scolaire configurée — définissez dates, vacances et fériés pour ouvrir le planning** apparaît, créez et configurez l'année scolaire. Si **L'année scolaire se termine dans … jour(s) — préparez la suivante** (ou **L'année scolaire est terminée — configurez la suivante**) apparaît, préparez la prochaine année avant la rentrée.
 
-   ![Sections du menu Périscolaire regroupant les écrans de configuration, de gestion quotidienne et de facturation](assets/screenshots/menu-periscolaire-sections.png)
+   ![Menu Périscolaire : Tableau de bord, puis les sections Cantine & garderie, Communication, Facturation, Familles et Administration](assets/screenshots/menu-periscolaire-sections.png)
 
 6. Poursuivez avec [Configuration](configuration/annee-scolaire.md) pour la première mise en service, puis utilisez [Gestion au quotidien](gestion-quotidienne/tableau-de-bord.md) pour le suivi courant. Ces pages détaillent chaque écran sans reprendre cette check-list.
 
