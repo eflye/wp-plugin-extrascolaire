@@ -59,11 +59,12 @@ class Psc_Installer {
     }
 
     /**
-     * Étapes de migration, dans l'ordre. Chacune est idempotente et
-     * n'est franchie (psc_db_version portée à son numéro) qu'une fois
-     * terminée sans erreur SQL : une montée interrompue — processus tué,
-     * ALTER refusé, délai dépassé — reprend à l'étape en échec, sans
-     * rejouer celles déjà franchies.
+     * Étapes de migration, dans l'ordre ; le corps de chacune vit dans
+     * includes/migrations/X-Y-Z.php (cf. run_migration()). Chacune est
+     * idempotente et n'est franchie (psc_db_version portée à son numéro)
+     * qu'une fois terminée sans erreur SQL : une montée interrompue —
+     * processus tué, ALTER refusé, délai dépassé — reprend à l'étape en
+     * échec, sans rejouer celles déjà franchies.
      *
      * Les étapes antérieures au schéma 4.15.0 (version 5.28.0, mise en place
      * de la clé de chiffrement externe) ont été retirées le 26/09/2026 :
@@ -457,164 +458,45 @@ class Psc_Installer {
     }
 
     /**
-     * Chaînage v2 du journal d'audit (4.16.0, P1-11) : l'empreinte du
-     * contenu de chaque ligne est gardée à part, pour qu'une ligne expirée
-     * puisse être vidée par la purge sans casser la chaîne.
+     * Migrations de schéma : un fichier par version dans
+     * includes/migrations/ (X-Y-Z.php, classe Psc_Migration_X_Y_Z::run()),
+     * chargé ici seulement — pendant une activation ou une montée, jamais
+     * à chaque requête. Les points d'entrée ci-dessous gardent leur nom :
+     * activate(), run_step(), STEPS et les scripts bin/verify-*.php
+     * (ReflectionMethod) les désignent.
      *
-     *  1. Seuil : premier id chaîné en v2 = id suivant la dernière ligne ;
-     *     les lignes antérieures gardent leur chaînage v1, jamais réécrit.
-     *  2. Empreinte de contenu des lignes v1, calculée en SQL par lots —
-     *     même formule que psc_audit_content_hash().
-     *
-     * Idempotente : le seuil n'est posé qu'une fois, le calcul ne vise que
-     * les lignes antérieures qui n'ont pas encore d'empreinte de contenu.
+     * @return bool Résultat de la migration (false : étape en échec).
      */
+    private static function run_migration($version) {
+        $class = 'Psc_Migration_' . str_replace('.', '_', $version);
+        if (!class_exists($class, false)) {
+            require_once PSC_PATH . 'includes/migrations/' . str_replace('.', '-', $version) . '.php';
+        }
+        return call_user_func(array($class, 'run'));
+    }
+
+    /** 4.16.0 (P1-11) — chaînage v2 du journal d'audit ; rejouée à chaque passe. */
     private static function ensure_audit_chain_v2() {
-        global $wpdb;
-        $table = psc_table('audit_log');
-        $seuil = (int) get_option('psc_audit_chain_v2_from', 0);
-        if ($seuil <= 0) {
-            $seuil = (int) $wpdb->get_var("SELECT COALESCE(MAX(id), 0) + 1 FROM $table");
-            if ($wpdb->last_error) return false;
-            update_option('psc_audit_chain_v2_from', $seuil, false);
-        }
-        do {
-            $done = $wpdb->query($wpdb->prepare(
-                "UPDATE $table SET empreinte_contenu = SHA2(CONCAT(
-                    DATE_FORMAT(horodatage, '%%Y-%%m-%%d %%H:%%i:%%s'), '|', action, '|',
-                    acteur_type, ':', COALESCE(acteur_id, 0), '|',
-                    COALESCE(objet_type, ''), ':', COALESCE(objet_id, 0), '|', resume), 256)
-                 WHERE id < %d AND empreinte_contenu IS NULL AND purgee_le IS NULL
-                 LIMIT 5000",
-                $seuil
-            ));
-            if ($done === false) return false;
-        } while ($done === 5000);
-        return true;
+        return self::run_migration('4.16.0');
     }
 
-    /**
-     * 4.17.0 (P1-16) — tarifs et statut « cantine sans repas » datés.
-     *
-     *  1. La grille en vigueur (option psc_service_prices, sinon les tarifs
-     *     par défaut) devient la première ligne de chaque code de
-     *     psc_tarifs, à compter de la première rentrée connue : les
-     *     factures déjà calculées retrouvent exactement leurs prix.
-     *  2. Chaque enfant flagué devient une période sans terme, depuis la
-     *     même date ; puis la colonne children.cantine_sans_repas est
-     *     supprimée.
-     *
-     * Idempotente et rejouée à chaque passe de schéma (installation neuve
-     * comprise) : un code qui a déjà un tarif n'en reçoit pas d'autre, une
-     * période n'est créée que pour un enfant qui n'en a aucune.
-     */
+    /** 4.17.0 (P1-16) — tarifs et statut « cantine sans repas » datés ; rejouée à chaque passe. */
     private static function migrate_4_17_0() {
-        global $wpdb;
-        $t_tarifs = psc_table('tarifs');
-        $t_sr = psc_table('sans_repas');
-        $t_child = psc_table('children');
-        $t_years = psc_table('school_years');
-        $now = current_time('mysql');
-
-        $debut = (string) $wpdb->get_var("SELECT MIN(date_debut) FROM $t_years");
-        if (!psc_valid_date($debut)) $debut = psc_rentree_year() . '-09-01';
-
-        $prices = psc_default_service_prices();
-        foreach ((array) get_option('psc_service_prices', array()) as $code => $price) {
-            if (isset($prices[$code])) $prices[$code] = max(0, (float) $price);
-        }
-        // Seules les prestations sans aucun tarif reçoivent leur première
-        // ligne : une grille déjà datée n'est jamais complétée dans le passé.
-        $known = (array) $wpdb->get_col("SELECT DISTINCT code FROM $t_tarifs");
-        foreach ($prices as $code => $price) {
-            if (in_array($code, $known, true)) continue;
-            $done = $wpdb->insert($t_tarifs, array(
-                'code' => $code, 'prix_centimes' => (int) round($price * 100), 'debut' => $debut, 'fin' => null, 'created_at' => $now, 'created_by' => null,
-            ));
-            if ($done === false) return false;
-        }
-
-        if (self::column_exists($t_child, 'cantine_sans_repas')) {
-            $done = $wpdb->query($wpdb->prepare(
-                "INSERT INTO $t_sr (child_id, debut, fin, created_at, created_by)
-                 SELECT c.id, %s, NULL, %s, NULL FROM $t_child c
-                 WHERE c.cantine_sans_repas = 1 AND NOT EXISTS (SELECT 1 FROM $t_sr s WHERE s.child_id = c.id)",
-                $debut, $now
-            ));
-            if ($done === false) return false;
-            if (false === $wpdb->query("ALTER TABLE $t_child DROP COLUMN cantine_sans_repas")) return false;
-        }
-        delete_option('psc_service_prices');
-        if (class_exists('Psc_Tarifs')) Psc_Tarifs::flush_cache();
-        return true;
+        return self::run_migration('4.17.0');
     }
 
-    /**
-     * 4.20.0 (RGPD-10) — fin du texte libre des allergies, donnée de santé
-     * que le parcours ne collecte plus. Avant de supprimer la colonne, tout
-     * enfant dont le texte était renseigné reçoit le signalement alimentaire,
-     * qui l'exclut des repas de la cantine (règle de la mairie) : aucun
-     * enfant allergique ne perd son exclusion. Le texte est aussi retiré des
-     * demandes d'inscription encore en base, avec la date de consentement
-     * à sa collecte (colonne food_allergy_consent_at supprimée). Idempotente.
-     */
+    /** 4.20.0 (RGPD-10) — fin du texte libre des allergies, converti en signalement. */
     private static function migrate_4_20_0() {
-        global $wpdb;
-        $t_child = psc_table('children');
-        $t_req = psc_table('requests');
-
-        if (self::column_exists($t_child, 'food_allergies')) {
-            $done = $wpdb->query("UPDATE $t_child SET food_allergy_signal = 1 WHERE TRIM(COALESCE(food_allergies, '')) <> ''");
-            if ($done === false) return false;
-            if (false === $wpdb->query("ALTER TABLE $t_child DROP COLUMN food_allergies")) return false;
-        }
-        // Consentement à la collecte du texte d'allergies : sans objet une
-        // fois le texte supprimé.
-        if (self::column_exists($t_child, 'food_allergy_consent_at')) {
-            if (false === $wpdb->query("ALTER TABLE $t_child DROP COLUMN food_allergy_consent_at")) return false;
-        }
-
-        $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT id, children_json FROM $t_req WHERE children_json LIKE %s OR children_json LIKE %s",
-            '%' . $wpdb->esc_like('"food_allergies"') . '%',
-            '%' . $wpdb->esc_like('"food_allergy_consent_at"') . '%'
-        ));
-        foreach ((array) $rows as $row) {
-            $children = json_decode((string) $row->children_json, true);
-            if (!is_array($children)) continue;
-            foreach ($children as &$c) {
-                if (!is_array($c)) continue;
-                if (trim((string) ($c['food_allergies'] ?? '')) !== '') $c['food_allergy_signal'] = 1;
-                unset($c['food_allergies'], $c['food_allergy_consent_at']);
-            }
-            unset($c);
-            $done = $wpdb->update($t_req, array('children_json' => wp_json_encode($children)), array('id' => (int) $row->id));
-            if ($done === false) return false;
-        }
-        return true;
+        return self::run_migration('4.20.0');
     }
 
-    /**
-     * 4.22.0 — pointage à trois états sur l'écran intervenants : la colonne
-     * attendance.present devient nullable, NULL signifiant « à pointer »
-     * (1 présent, 0 absent). dbDelta() ne modifie ni la nullité ni un
-     * défaut sans guillemets d'une colonne existante : l'ALTER est donc
-     * explicite. Aucune donnée n'est transformée — une ligne d'époque à 1
-     * reste présente, à 0 reste absente. Idempotente : sans effet une fois
-     * la colonne nullable.
-     */
+    /** 4.22.0 — pointage à trois états : attendance.present nullable. */
     private static function migrate_4_22_0() {
-        global $wpdb;
-        $t_att = psc_table('attendance');
-        $nullable = $wpdb->get_var($wpdb->prepare(
-            'SELECT IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = %s',
-            $t_att, 'present'
-        ));
-        if ($nullable === null || $nullable === 'YES') return true;
-        return false !== $wpdb->query("ALTER TABLE $t_att MODIFY present TINYINT(1) NULL DEFAULT NULL");
+        return self::run_migration('4.22.0');
     }
 
-    private static function column_exists($table, $column) {
+    /** Sonde information_schema, partagée avec les fichiers de migration. */
+    public static function column_exists($table, $column) {
         global $wpdb;
         return (bool) $wpdb->get_var($wpdb->prepare(
             'SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = %s',
