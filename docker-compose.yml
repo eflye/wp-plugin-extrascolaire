@@ -16,8 +16,9 @@ services:
     restart: unless-stopped
     ports:
       # Loopback : Mailpit (sans authentification) n'est joignable que
-      # depuis ce poste, pas depuis le réseau local.
-      - "127.0.0.1:8025:8025"
+      # depuis ce poste, pas depuis le réseau local. Le port hôte est
+      # paramétrable pour la stack de test (bin/test-stack.sh : 8026).
+      - "127.0.0.1:${PSC_MAILPIT_PORT:-8025}:8025"
 
   wordpress:
     image: wordpress:latest
@@ -26,7 +27,9 @@ services:
       - db
     ports:
       # Loopback : le site de développement n'est joignable que depuis ce poste.
-      - "127.0.0.1:8080:80"
+      # Le port hôte est paramétrable pour la stack de test (bin/test-stack.sh :
+      # 8081), montée depuis ce même fichier sous un autre nom de projet.
+      - "127.0.0.1:${PSC_WP_PORT:-8080}:80"
     environment:
       WORDPRESS_DB_HOST: db:3306
       WORDPRESS_DB_NAME: wordpress
