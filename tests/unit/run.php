@@ -579,6 +579,46 @@ require __DIR__ . '/../../includes/helpers/audit.php';
 require __DIR__ . '/audit-redaction.php';
 
 /* ---------------------------------------------------------------- */
+/* templates/*.php — tableaux RGAA (critères 5.4, 5.6, 5.7)           */
+/* ---------------------------------------------------------------- */
+
+// Contrôle statique, sans WordPress : chaque tableau de données porte une
+// légende (<caption>) en premier enfant, et chaque <th> déclare son scope.
+// Les form-table (mise en page des formulaires WP admin) sont dispensées
+// de légende, comme dans le cœur de WordPress ; leurs <th> restent
+// scope="row". axe ne vérifie ni l'un ni l'autre : seul ce test le fait.
+$psc_templates = glob(__DIR__ . '/../../templates/*.php');
+$assert('templates : au moins un gabarit trouvé', count($psc_templates) > 0, true);
+foreach ($psc_templates as $psc_tpl) {
+    // Les blocs PHP sont neutralisés (en conservant leurs sauts de ligne) :
+    // la fin d'un bloc dans un attribut fermerait sinon la balise <table
+    // trop tôt.
+    $psc_html = (string) preg_replace_callback('/<\\?php.*?\\?>/s', function ($m) {
+        return str_repeat("\n", substr_count($m[0], "\n"));
+    }, (string) file_get_contents($psc_tpl));
+    $psc_name = basename($psc_tpl);
+    if (preg_match_all('/<table\b([^>]*)>/', $psc_html, $psc_tables, PREG_OFFSET_CAPTURE)) {
+        foreach ($psc_tables[0] as $psc_i => $psc_open) {
+            if (strpos($psc_tables[1][$psc_i][0], 'form-table') !== false) continue;
+            $psc_after = substr($psc_html, $psc_open[1] + strlen($psc_open[0]), 400);
+            $psc_line  = substr_count($psc_html, "\n", 0, $psc_open[1]) + 1;
+            $assert(
+                "$psc_name:$psc_line : <caption> en premier enfant du tableau",
+                (bool) preg_match('/^\s*<caption\b/', $psc_after),
+                true
+            );
+        }
+    }
+    if (preg_match_all('/<th\b[^>]*>/', $psc_html, $psc_ths, PREG_OFFSET_CAPTURE)) {
+        foreach ($psc_ths[0] as $psc_th) {
+            if (strpos($psc_th[0], 'scope=') !== false) continue;
+            $psc_line = substr_count($psc_html, "\n", 0, $psc_th[1]) + 1;
+            $assert("$psc_name:$psc_line : <th> avec scope", $psc_th[0], '<th scope="…">');
+        }
+    }
+}
+
+/* ---------------------------------------------------------------- */
 
 if ($failures) {
     foreach ($failures as $f) {
