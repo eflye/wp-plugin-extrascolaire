@@ -12,8 +12,12 @@
 # appartient à l'hôte, le conteneur n'y écrit pas. Les chaînes des
 # scripts passent par wp_localize_script() côté PHP, donc tout est
 # couvert. La date de génération (POT-Creation-Date) change à chaque
-# exécution, et Project-Id-Version suit la version de l'extension : la
-# comparaison ignore ces deux en-têtes.
+# exécution, Project-Id-Version suit la version de l'extension, et les
+# références « #: fichier:ligne » bougent dès qu'une ligne est déplacée :
+# la comparaison ignore ces trois éléments, et ne réagit donc qu'aux
+# chaînes elles-mêmes (ajout, retrait, modification, commentaire
+# « translators: »). Le catalogue versionné garde ses références, mises
+# à jour à chaque régénération.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -33,7 +37,7 @@ generate() {
     "$ENGINE" exec "$CONTAINER" cat /tmp/psc-make-pot.pot > "$1"
 }
 
-strip_date() { grep -vE '^"(POT-Creation-Date|Project-Id-Version):' "$1"; }
+strip_date() { grep -vE '^"(POT-Creation-Date|Project-Id-Version):|^#: ' "$1"; }
 
 cd "$ROOT"
 mkdir -p languages
