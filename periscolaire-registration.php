@@ -97,10 +97,11 @@ register_deactivation_hook(__FILE__, 'psc_unschedule_all_crons');
 add_action('plugins_loaded', function () {
     // Text Domain déclaré en en-tête : chargé ici pour que toutes les
     // chaînes enveloppées (__() / esc_html__()) soient traduisibles — les
-    // fichiers .mo installés par WordPress atterrissent dans
-    // wp-content/languages/plugins/, le plugin n'en embarque pas lui-même :
-    // aucun chemin relatif à passer (il visait un dossier /languages absent).
-    load_plugin_textdomain('periscolaire-registration');
+    // fichiers .mo sont cherchés d'abord dans wp-content/languages/plugins/
+    // (emplacement WordPress), puis dans languages/ de l'extension — qui
+    // n'embarque que le catalogue source languages/*.pot (bin/make-pot.sh,
+    // tenu à jour par la CI) ; une traduction compilée peut y être déposée.
+    load_plugin_textdomain('periscolaire-registration', false, dirname(plugin_basename(PSC_FILE)) . '/languages');
 
     Psc_Installer::maybe_upgrade();
     Psc_Audit::init();

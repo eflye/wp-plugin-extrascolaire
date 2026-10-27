@@ -71,6 +71,7 @@ jobs:
           cp -R includes build/periscolaire-registration/
           cp -R templates build/periscolaire-registration/
           cp -R assets build/periscolaire-registration/
+          cp -R languages build/periscolaire-registration/
           find build -name ".DS_Store" -delete
 
       # La liste des fichiers copiés ci-dessus est tenue à la main : un

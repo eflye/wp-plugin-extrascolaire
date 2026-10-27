@@ -105,6 +105,14 @@ jobs:
           docker cp .cache/wp-cli.phar "$PSC_WP_CONTAINER:/usr/local/bin/wp-cli.phar"
           docker exec "$PSC_WP_CONTAINER" chmod +x /usr/local/bin/wp-cli.phar
 
+      # Le catalogue de traduction versionné (languages/*.pot) doit refléter
+      # les chaînes du code : régénéré ici et comparé, date de génération
+      # exclue. Sans WordPress chargé : seul WP-CLI est nécessaire.
+      - name: Catalogue de traduction à jour
+        env:
+          PSC_CONTAINER_ENGINE: docker
+        run: bash bin/make-pot.sh --check
+
       - name: Installe le site et active l'extension
         run: |
           # Sous www-data, l'utilisateur du serveur web, et non root :

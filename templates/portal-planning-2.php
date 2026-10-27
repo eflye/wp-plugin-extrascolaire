@@ -179,12 +179,12 @@ $psc_active_blocked = Psc_Assurances::status($psc_active_doc) !== 'approved';
     <?php /* c. Étape 1 — rythme habituel (panneau gauche) */ ?>
     <div class="psc-planning-panel" data-testid="panel-rythme">
       <div class="psc-panel-step psc-panel-step--gold"><?php esc_html_e('Étape 1 — toute l\'année', 'periscolaire-registration'); ?></div>
-      <div class="psc-panel-title"><?php echo esc_html(sprintf(__('Rythme habituel — %s', 'periscolaire-registration'), $psc_active_name)); ?></div>
+      <div class="psc-panel-title"><?php /* translators: %s : prénom de l'enfant */ echo esc_html(sprintf(__('Rythme habituel — %s', 'periscolaire-registration'), $psc_active_name)); ?></div>
       <p class="psc-panel-sub">
-        <?php echo esc_html(sprintf(__('S\'applique à chaque semaine d\'école jusqu\'en %s, vacances exclues.', 'periscolaire-registration'), $psc_year ? date_i18n('F Y', strtotime($psc_year->date_end)) : '')); ?>
+        <?php /* translators: %s : mois et année de fin de l'année scolaire */ echo esc_html(sprintf(__('S\'applique à chaque semaine d\'école jusqu\'en %s, vacances exclues.', 'periscolaire-registration'), $psc_year ? date_i18n('F Y', strtotime($psc_year->date_end)) : '')); ?>
       </p>
       <table class="psc-pattern-grid" data-testid="pattern-grid" data-child="<?php echo esc_attr($psc_active_child_id); ?>">
-      <caption class="screen-reader-text"><?php echo esc_html(sprintf(__('Rythme habituel de %s, par jour de la semaine et par prestation', 'periscolaire-registration'), $psc_active_name)); ?></caption>
+      <caption class="screen-reader-text"><?php /* translators: %s : prénom de l'enfant */ echo esc_html(sprintf(__('Rythme habituel de %s, par jour de la semaine et par prestation', 'periscolaire-registration'), $psc_active_name)); ?></caption>
         <thead>
           <tr>
             <th scope="col"><?php esc_html_e('Jour', 'periscolaire-registration'); ?></th>
@@ -234,7 +234,7 @@ $psc_active_blocked = Psc_Assurances::status($psc_active_doc) !== 'approved';
         <div>
           <div class="psc-panel-step psc-panel-step--gold"><?php esc_html_e('Étape 2 — Ajuster le planning', 'periscolaire-registration'); ?></div>
           <div class="psc-panel-title psc-exc-month" data-exc-month><?php echo esc_html($psc_month_label); ?></div>
-          <p class="psc-portal-intro-sub"><?php esc_html_e('Ajustez votre planning jusqu’à', 'periscolaire-registration'); ?> <strong><?php echo esc_html(sprintf(__('%s heures avant le jour concerné', 'periscolaire-registration'), psc_lock_hours())); ?></strong>. <?php esc_html_e('Ensuite, contactez la mairie.', 'periscolaire-registration'); ?></p>
+          <p class="psc-portal-intro-sub"><?php esc_html_e('Ajustez votre planning jusqu’à', 'periscolaire-registration'); ?> <strong><?php /* translators: %s : nombre d'heures du délai de modification */ echo esc_html(sprintf(__('%s heures avant le jour concerné', 'periscolaire-registration'), psc_lock_hours())); ?></strong>. <?php esc_html_e('Ensuite, contactez la mairie.', 'periscolaire-registration'); ?></p>
         </div>
         <div class="psc-month-nav">
           <button type="button" class="psc-month-nav-btn psc-exc-prev" data-testid="exc-prev" aria-label="<?php esc_attr_e('Mois précédent', 'periscolaire-registration'); ?>"<?php disabled($psc_prev_month === null); ?>>←</button>
@@ -344,7 +344,7 @@ $psc_active_blocked = Psc_Assurances::status($psc_active_doc) !== 'approved';
   <?php /* e. Récapitulatif fratrie */ ?>
   <div class="psc-sibling-recap" data-testid="sibling-recap">
     <div class="psc-sibling-recap-head">
-      <div class="psc-sibling-recap-title"><?php echo esc_html(sprintf(__('Récapitulatif de la fratrie — %s', 'periscolaire-registration'), $psc_month_label)); ?></div>
+      <div class="psc-sibling-recap-title"><?php /* translators: %s : libellé du mois */ echo esc_html(sprintf(__('Récapitulatif de la fratrie — %s', 'periscolaire-registration'), $psc_month_label)); ?></div>
       <div class="psc-sibling-recap-total" data-recap-family-month><?php echo esc_html(number_format_i18n((float) $psc_year_summary['months'][$psc_month_key]['amount'], 2)); ?> €</div>
     </div>
     <div class="psc-sibling-cards">
