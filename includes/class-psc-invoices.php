@@ -1101,7 +1101,7 @@ class Psc_Invoices {
         $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
 
         list($year, $month_num) = explode('-', $mois);
-        $invoice_num  = substr($year, 2) . '-' . $month_num . '-' . str_pad($invoice_id, 3, '0', STR_PAD_LEFT);
+        $invoice_num  = substr($year, 2) . '-' . $month_num . '-' . str_pad((string) $invoice_id, 3, '0', STR_PAD_LEFT);
         // Une rectification porte un numéro distinct : deux documents de
         // montants différents ne doivent jamais circuler sous la même
         // référence, ni chez la famille ni à la comptabilité.

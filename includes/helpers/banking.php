@@ -113,10 +113,10 @@ function psc_read_iban($record) {
  * afin qu'un même formulaire ait toujours la même RUM.
  */
 function psc_sepa_mandate_ref($request_id) {
-    return 'RUM' . str_pad((int) $request_id, 8, '0', STR_PAD_LEFT);
+    return 'RUM' . str_pad((string) (int) $request_id, 8, '0', STR_PAD_LEFT);
 }
 
 /** Référence distincte pour un mandat créé depuis le profil d'un foyer. */
 function psc_parent_sepa_mandate_ref($parent_id) {
-    return 'RUMP' . str_pad((int) $parent_id, 8, '0', STR_PAD_LEFT);
+    return 'RUMP' . str_pad((string) (int) $parent_id, 8, '0', STR_PAD_LEFT);
 }
