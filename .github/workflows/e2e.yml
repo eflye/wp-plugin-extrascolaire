@@ -213,7 +213,7 @@ jobs:
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-email-templates.php verify-email-templates
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-crons.php verify-crons
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-sessions-demandes.php verify-sessions-demandes
-          wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-audit-lot2.php verify-audit-lot2
+          wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-rgpd.php verify-rgpd
           wp --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-audit-lot3.php verify-audit-lot3
           # Gel des factures émises face aux tarifs et statuts datés (P1-16).
           wp eval-file /var/www/html/wp-content/plugins/periscolaire-registration/tests/integration/invoice-snapshot.php

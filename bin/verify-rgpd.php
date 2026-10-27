@@ -1,23 +1,48 @@
 <?php
 /**
- * Script de vérification autonome des corrections du lot 2 de l'audit
- * (données, RGPD, journal d'audit, échanges, messages).
+ * Script de vérification autonome — RGPD : droit à l'oubli dans le journal
+ * d'audit, effacement et export des données d'une famille, purges de
+ * conservation, suppression des coordonnées bancaires ; plus le verrou de
+ * chaînage du journal et deux lectures légères des messages.
+ *
+ * Origine : audit du 14/10/2026, lot 2 (ex-bin/verify-audit-lot2.php).
+ * Les références RGPD-*, SEC-*, PERF-* renvoient à AUDIT.md.
+ *
+ * Vérifie :
+ *  - RGPD-04 : forget_child() et forget_family() neutralisent les lignes
+ *    nominatives du journal sans casser la chaîne ; delete_family() n'y
+ *    écrit aucune identité ;
+ *  - PERF-05 : les lignes anonymisées sont acceptées et décomptées par la
+ *    vérification de chaîne, toute autre réécriture reste une rupture ;
+ *  - RGPD-02 : pièces jointes des échanges supprimées avec la famille,
+ *    orphelins anciens balayés ;
+ *  - RGPD-03 : demandes et accusés de lecture exportés puis effacés ;
+ *  - RGPD-01 : purge des foyers sans enfant et des enfants sans année ;
+ *  - RGPD-05 : export complet (présences, signalement alimentaire,
+ *    messages) et portée du second parent ;
+ *  - RGPD-07 : suppression explicite de l'IBAN réservée à l'habilitation
+ *    Facturation ;
+ *  - SEC-06 : verrou de chaînage sous écritures concurrentes ;
+ *  - RGPD-13 : l'effaceur RGPD laisse le même reliquat que la suppression
+ *    manuelle ;
+ *  - PERF-08 : notifications push légères (extrait, non lus) ;
+ *  - PERF-12/L2 : marqueur des accusés de lecture nettoyés.
  *
  * Chaque section crée ses propres données (famille, enfant, lignes de
- * journal marquées « VerifyLot2 »), vérifie, puis les supprime. Les
+ * journal marquées « VerifyRgpd »), vérifie, puis les supprime. Les
  * lignes de journal écrites pendant le script (id > id de départ) sont
  * supprimées à la fin et l'empreinte de tête restaurée, comme
  * bin/verify-audit-retention.php.
  *
  * Usage :
- *   wp --require=bin/verify-audit-lot2.php verify-audit-lot2
+ *   wp --require=bin/verify-rgpd.php verify-rgpd
  */
 
 if (!defined('WP_CLI') || !WP_CLI) {
     return;
 }
 
-WP_CLI::add_command('verify-audit-lot2', function () {
+WP_CLI::add_command('verify-rgpd', function () {
 
     if (!class_exists('Psc_Audit') || !function_exists('psc_audit_expected_hashes')) {
         WP_CLI::error('Le plugin periscolaire-registration ne semble pas actif sur ce site.');
@@ -29,7 +54,7 @@ WP_CLI::add_command('verify-audit-lot2', function () {
     $t_child = psc_table('children');
     $start_id = (int) $wpdb->get_var("SELECT COALESCE(MAX(id), 0) FROM $t_audit");
     $saved_hash = get_option('psc_audit_last_hash', '');
-    $tag = 'verifylot2' . wp_generate_password(6, false, false);
+    $tag = 'verifrgpd' . wp_generate_password(6, false, false);
 
     $failures = array();
     $checks = 0;
@@ -198,18 +223,18 @@ WP_CLI::add_command('verify-audit-lot2', function () {
         $family_ids[] = $fam_c;
         $now_mysql = current_time('mysql');
         $wpdb->insert(psc_table('conversations'), array(
-            'family_id' => $fam_c, 'sujet' => 'VerifyLot2', 'initiee_par' => 'famille',
+            'family_id' => $fam_c, 'sujet' => 'VerifyRgpd', 'initiee_par' => 'famille',
             'dernier_message_at' => $now_mysql, 'dernier_auteur' => 'famille', 'created_at' => $now_mysql, 'updated_at' => $now_mysql,
         ));
         $conv_id = (int) $wpdb->insert_id;
-        $rel_dir = 'conversations/verify-lot2-' . $tag;
+        $rel_dir = 'conversations/verify-rgpd-' . $tag;
         wp_mkdir_p(psc_private_path($rel_dir));
         $attached = $rel_dir . '/piece.pdf';
         $orphan = $rel_dir . '/orphelin.pdf';
         $recent_orphan = $rel_dir . '/recent.pdf';
         foreach (array($attached, $orphan, $recent_orphan) as $rel) file_put_contents(psc_private_path($rel), '%PDF-1.4 verify');
         $wpdb->insert(psc_table('conversation_messages'), array(
-            'conversation_id' => $conv_id, 'auteur_type' => 'famille', 'corps' => 'VerifyLot2',
+            'conversation_id' => $conv_id, 'auteur_type' => 'famille', 'corps' => 'VerifyRgpd',
             'piece_jointe_path' => $attached, 'piece_jointe_nom' => 'piece.pdf', 'piece_jointe_taille' => 15, 'created_at' => $now_mysql,
         ));
         Psc_Conversations::delete_for_family($fam_c);
@@ -297,7 +322,7 @@ WP_CLI::add_command('verify-audit-lot2', function () {
         $wpdb->insert(psc_table('attendance'), array('child_id' => $child_h, 'jour_date' => '1990-03-05', 'service' => 'GM', 'present' => 1, 'arrival_time' => '07:45:00', 'pointed_at' => '1990-03-05 07:45:00'));
         $now_mysql = current_time('mysql');
         $wpdb->insert(psc_table('conversations'), array(
-            'family_id' => $fam_h, 'sujet' => 'VerifyLot2', 'initiee_par' => 'famille',
+            'family_id' => $fam_h, 'sujet' => 'VerifyRgpd', 'initiee_par' => 'famille',
             'dernier_message_at' => $now_mysql, 'dernier_auteur' => 'famille', 'created_at' => $now_mysql, 'updated_at' => $now_mysql,
         ));
         $conv_h = (int) $wpdb->insert_id;
@@ -352,14 +377,14 @@ WP_CLI::add_command('verify-audit-lot2', function () {
         // chacun en même temps ; la chaîne doit rester sans rupture.
         $php = escapeshellarg(PHP_BINARY);
         $cli = escapeshellarg(isset($GLOBALS['argv'][0]) ? realpath($GLOBALS['argv'][0]) : '/usr/local/bin/wp-cli.phar');
-        $code = escapeshellarg("for (\$i = 0; \$i < 15; \$i++) Psc_Audit::log('menu.enregistrement', array('resume' => 'VerifyLot2 concurrence'));");
+        $code = escapeshellarg("for (\$i = 0; \$i < 15; \$i++) Psc_Audit::log('menu.enregistrement', array('resume' => 'VerifyRgpd concurrence'));");
         $cmd = "$php $cli --allow-root --path=" . escapeshellarg(ABSPATH) . " eval $code";
         $procs = array();
         for ($p = 0; $p < 4; $p++) {
             $procs[] = proc_open($cmd, array(1 => array('file', '/dev/null', 'w'), 2 => array('file', '/dev/null', 'w')), $pipes);
         }
         foreach ($procs as $proc) if (is_resource($proc)) proc_close($proc);
-        $concurrent = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_audit WHERE id > %d AND resume = %s", $start_id, 'VerifyLot2 concurrence'));
+        $concurrent = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_audit WHERE id > %d AND resume = %s", $start_id, 'VerifyRgpd concurrence'));
         $check($concurrent === 60, "SEC-06 : $concurrent ligne(s) concurrente(s) écrite(s) au lieu de 60");
         $check($verify() === null, 'SEC-06 : rupture de chaîne après écritures concurrentes');
 
@@ -368,7 +393,7 @@ WP_CLI::add_command('verify-audit-lot2', function () {
         $other->get_var("SELECT GET_LOCK('psc_audit_chain', 5)");
         $timeouts = (int) get_option('psc_audit_lock_timeouts', 0);
         $before_count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_audit WHERE id > %d", $start_id));
-        Psc_Audit::log('menu.enregistrement', array('resume' => 'VerifyLot2 verrou occupé'));
+        Psc_Audit::log('menu.enregistrement', array('resume' => 'VerifyRgpd verrou occupé'));
         $other->get_var("SELECT RELEASE_LOCK('psc_audit_chain')");
         $check((int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t_audit WHERE id > %d", $start_id)) === $before_count + 1, 'SEC-06 : ligne perdue quand le verrou est occupé');
         $check((int) get_option('psc_audit_lock_timeouts', 0) === $timeouts + 1, 'SEC-06 : délai de verrou non compté');
@@ -389,7 +414,7 @@ WP_CLI::add_command('verify-audit-lot2', function () {
         $family_ids[] = $fam_k;
         $mk_msg = function ($push, $corps) use ($wpdb, $fam_k) {
             $now = current_time('mysql');
-            $wpdb->insert(psc_table('messages'), array('titre' => 'VerifyLot2 push', 'corps' => $corps, 'statut' => 'envoye', 'canaux' => wp_json_encode(array('portail' => true, 'push' => $push)), 'date_envoi' => $now, 'auteur_id' => 1, 'created_at' => $now, 'updated_at' => $now));
+            $wpdb->insert(psc_table('messages'), array('titre' => 'VerifyRgpd push', 'corps' => $corps, 'statut' => 'envoye', 'canaux' => wp_json_encode(array('portail' => true, 'push' => $push)), 'date_envoi' => $now, 'auteur_id' => 1, 'created_at' => $now, 'updated_at' => $now));
             $id = (int) $wpdb->insert_id;
             $wpdb->insert(psc_table('message_destinataires'), array('message_id' => $id, 'family_id' => $fam_k, 'token' => wp_generate_password(32, false, false)));
             return $id;
@@ -438,5 +463,5 @@ WP_CLI::add_command('verify-audit-lot2', function () {
         foreach ($failures as $f) WP_CLI::warning($f);
         WP_CLI::error(count($failures) . " vérification(s) en échec sur $checks.");
     }
-    WP_CLI::success("Corrections du lot 2 : $checks vérifications.");
+    WP_CLI::success("RGPD et journal d'audit : $checks vérifications.");
 });
