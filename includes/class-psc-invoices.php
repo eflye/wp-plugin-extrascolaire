@@ -1174,17 +1174,7 @@ class Psc_Invoices {
     private static function build_pdf($parent, $mois, $children, $grid, $services, $path, $invoice_id, $version = 1) {
         require_once PSC_PATH . 'includes/fpdf/fpdf.php';
 
-        // Billing settings
-        $org_intro   = get_option('psc_billing_org_intro',   '');
-        $org_name    = get_option('psc_billing_org_name',    get_bloginfo('name'));
-        $org_address = get_option('psc_billing_org_address', '');
-        $org_phone   = get_option('psc_billing_org_phone',   '');
-        $org_fax     = get_option('psc_billing_org_fax',     '');
-        $org_email   = get_option('psc_billing_org_email',   '');
-        $org_city    = get_option('psc_billing_org_city',    '');
-        $footer_text = get_option('psc_billing_footer',      '');
-        $logo_left_id  = (int) get_option('psc_billing_logo_left_id',  0);
-        $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
+        $org = self::pdf_org_settings();
 
         list($year, $month_num) = explode('-', $mois);
         $invoice_num  = substr($year, 2) . '-' . $month_num . '-' . str_pad((string) $invoice_id, 3, '0', STR_PAD_LEFT);
@@ -1193,12 +1183,11 @@ class Psc_Invoices {
         // référence, ni chez la famille ni à la comptabilité.
         if ((int) $version > 1) $invoice_num .= '-R' . (int) $version;
         $month_label  = self::month_label($mois);
-        $nom_famille  = trim(($parent->nom ?? '') ?: $parent->email);
         // Horodatage réel : french_full_date() applique lui-même le fuseau du site.
         $date_fr      = self::french_full_date(time());
-        $city_date    = $org_city ? self::enc(sprintf(
+        $city_date    = $org['city'] ? self::enc(sprintf(
             /* translators: 1: ville de la mairie, 2: date en toutes lettres. */
-            __('%1$s, le %2$s', 'periscolaire-registration'), $org_city, $date_fr)) : self::enc($date_fr);
+            __('%1$s, le %2$s', 'periscolaire-registration'), $org['city'], $date_fr)) : self::enc($date_fr);
 
         // Margins: left=20, right=20 → usable = 170mm
         $ml = 20;
@@ -1210,7 +1199,44 @@ class Psc_Invoices {
         $pdf->SetAutoPageBreak(true, 20);
         $pdf->AddPage();
 
-        // ---- HEADER: logos (optional) + texte centré ----
+        self::pdf_header($pdf, $org, $ml, $mr, $pw);
+        self::pdf_address_block($pdf, $parent, $city_date, $ml, $pw);
+        self::pdf_reference($pdf, $invoice_num, $month_label, $ml, $pw);
+        self::pdf_table($pdf, $children, $grid, $services, $ml);
+        self::pdf_footer($pdf, $parent, $org['footer']);
+
+        $pdf->Output('F', $path);
+        return true;
+    }
+
+    /**
+     * Réglages de l'en-tête et du pied des factures (Périscolaire › Réglages).
+     *
+     * @return array<string, mixed>
+     */
+    private static function pdf_org_settings() {
+        return array(
+            'intro'         => get_option('psc_billing_org_intro',   ''),
+            'name'          => get_option('psc_billing_org_name',    get_bloginfo('name')),
+            'address'       => get_option('psc_billing_org_address', ''),
+            'phone'         => get_option('psc_billing_org_phone',   ''),
+            'fax'           => get_option('psc_billing_org_fax',     ''),
+            'email'         => get_option('psc_billing_org_email',   ''),
+            'city'          => get_option('psc_billing_org_city',    ''),
+            'footer'        => get_option('psc_billing_footer',      ''),
+            'logo_left_id'  => (int) get_option('psc_billing_logo_left_id',  0),
+            'logo_right_id' => (int) get_option('psc_billing_logo_right_id', 0),
+        );
+    }
+
+    /**
+     * En-tête : logos (facultatifs, bornés en largeur ET en hauteur) de
+     * part et d'autre du bloc centré (intro, nom, adresse, téléphone,
+     * e-mail), puis séparateur horizontal.
+     *
+     * @param FPDF $pdf
+     */
+    private static function pdf_header($pdf, array $org, $ml, $mr, $pw) {
         // Les logos sont BORNÉS en largeur ET en hauteur (proportions
         // conservées) : un blason portrait dessiné à largeur seule
         // débordait de l'en-tête et recouvrait le bloc d'adresse de la
@@ -1218,8 +1244,8 @@ class Psc_Invoices {
         $valid_exts   = array('JPG', 'JPEG', 'PNG', 'GIF');
         $logo_w       = 35; // largeur du slot de texte réservé de part et d'autre
         $logo_max_h   = 25; // hauteur maximale dessinée — jamais sous le séparateur
-        $logo_l_path  = $logo_left_id  ? get_attached_file($logo_left_id)  : '';
-        $logo_r_path  = $logo_right_id ? get_attached_file($logo_right_id) : '';
+        $logo_l_path  = $org['logo_left_id']  ? get_attached_file($org['logo_left_id'])  : '';
+        $logo_r_path  = $org['logo_right_id'] ? get_attached_file($org['logo_right_id']) : '';
         $has_logo_l   = $logo_l_path && file_exists($logo_l_path)
                         && in_array(strtoupper(pathinfo($logo_l_path, PATHINFO_EXTENSION)), $valid_exts, true);
         $has_logo_r   = $logo_r_path && file_exists($logo_r_path)
@@ -1242,30 +1268,30 @@ class Psc_Invoices {
         }
 
         $pdf->SetXY($txt_x, $y_hdr);
-        if ($org_intro) {
+        if ($org['intro']) {
             $pdf->SetFont('Helvetica', '', 10);
-            $pdf->MultiCell($txt_w, 5, self::enc($org_intro), 0, 'C');
+            $pdf->MultiCell($txt_w, 5, self::enc($org['intro']), 0, 'C');
             $pdf->SetX($txt_x);
         }
         $pdf->SetFont('Helvetica', 'B', 13);
-        $pdf->MultiCell($txt_w, 6, self::enc($org_name), 0, 'C');
+        $pdf->MultiCell($txt_w, 6, self::enc($org['name']), 0, 'C');
         $pdf->SetFont('Helvetica', '', 9);
-        if ($org_address) {
+        if ($org['address']) {
             $pdf->SetX($txt_x);
-            $pdf->MultiCell($txt_w, 4, self::enc($org_address), 0, 'C');
+            $pdf->MultiCell($txt_w, 4, self::enc($org['address']), 0, 'C');
         }
-        if ($org_phone || $org_fax) {
+        if ($org['phone'] || $org['fax']) {
             $tel_line = '';
             /* translators: %s: numéro de téléphone */
-            if ($org_phone) $tel_line = sprintf(__('Tél : %s', 'periscolaire-registration'), $org_phone);
+            if ($org['phone']) $tel_line = sprintf(__('Tél : %s', 'periscolaire-registration'), $org['phone']);
             /* translators: %s: numéro de télécopie */
-            if ($org_fax)   $tel_line .= ($tel_line ? ' – ' : '') . sprintf(__('Télécopie : %s', 'periscolaire-registration'), $org_fax);
+            if ($org['fax'])   $tel_line .= ($tel_line ? ' – ' : '') . sprintf(__('Télécopie : %s', 'periscolaire-registration'), $org['fax']);
             $pdf->SetX($txt_x);
             $pdf->MultiCell($txt_w, 4, self::enc($tel_line), 0, 'C');
         }
-        if ($org_email) {
+        if ($org['email']) {
             $pdf->SetX($txt_x);
-            $pdf->MultiCell($txt_w, 4, self::enc($org_email), 0, 'C');
+            $pdf->MultiCell($txt_w, 4, self::enc($org['email']), 0, 'C');
         }
 
         $pdf->SetY(max($pdf->GetY(), $y_hdr + $logo_drawn_h) + 4);
@@ -1275,8 +1301,16 @@ class Psc_Invoices {
         $pdf->SetLineWidth(0.3);
         $pdf->Line($ml, $pdf->GetY(), 210 - $mr, $pdf->GetY());
         $pdf->Ln(8);
+    }
 
-        // ---- BLOC ADRESSE : famille (gauche) | ville + date (droite) ----
+    /**
+     * Bloc adresse : famille (gauche) | ville + date (droite, sur la ligne
+     * du nom).
+     *
+     * @param FPDF $pdf
+     */
+    private static function pdf_address_block($pdf, $parent, $city_date, $ml, $pw) {
+        $nom_famille = trim(($parent->nom ?? '') ?: $parent->email);
         $y_addr = $pdf->GetY();
         $pdf->SetFont('Helvetica', '', 10);
         $pdf->SetXY($ml, $y_addr);
@@ -1299,8 +1333,15 @@ class Psc_Invoices {
         $pdf->Cell($pw, 5, $city_date, 0, 0, 'R');
 
         $pdf->SetY($y_addr + 20);
+    }
 
-        // ---- RÉFÉRENCE FACTURE ----
+    /**
+     * Référence de la facture (numéro en rouge, comme le PDF de référence)
+     * et mois des prestations.
+     *
+     * @param FPDF $pdf
+     */
+    private static function pdf_reference($pdf, $invoice_num, $month_label, $ml, $pw) {
         $pdf->SetFont('Helvetica', 'B', 10);
         $pdf->SetTextColor(0, 0, 0);
         // "FACTURE N°" en noir, numéro en rouge (comme le PDF de référence)
@@ -1316,9 +1357,16 @@ class Psc_Invoices {
         $pdf->SetFont('Helvetica', 'B', 10);
         $pdf->Cell($pw, 5, self::enc($month_label), 0, 1, 'L');
         $pdf->Ln(5);
+    }
 
-        // ---- TABLEAU ----
-        // Colonnes : nom (large) | tarif par prestation | nombre de prestations | total
+    /**
+     * Tableau des prestations : par type de prestation réellement dû, une
+     * ligne de tarif puis une ligne par enfant ; ligne de total en bas.
+     * Colonnes : nom (large) | tarif par prestation | nombre | total.
+     *
+     * @param FPDF $pdf
+     */
+    private static function pdf_table($pdf, $children, $grid, $services, $ml) {
         $cw = array(91, 28, 28, 23); // somme = 170
 
         // En-tête bi-ligne avec bordures manuelles
@@ -1383,16 +1431,20 @@ class Psc_Invoices {
         $pdf->Cell($cw[0] + $cw[1], $row_h, '',                              1, 0, 'C', true);
         $pdf->Cell($cw[2],           $row_h, __('TOTAL', 'periscolaire-registration'),   1, 0, 'R', true);
         $pdf->Cell($cw[3],           $row_h, self::price_cell($grand_total / 100),  1, 1, 'R', true);
+    }
 
-        // ---- PIED DE PAGE ----
+    /**
+     * Pied de page : mention de prélèvement, pour les familles en
+     * prélèvement SEPA seulement.
+     *
+     * @param FPDF $pdf
+     */
+    private static function pdf_footer($pdf, $parent, $footer_text) {
         if ($footer_text && ($parent->payment_mode ?? 'autre') === 'prelevement') {
             $pdf->Ln(10);
             $pdf->SetFont('Helvetica', 'B', 10);
             $pdf->SetTextColor(0, 0, 0);
             $pdf->Write(5, self::enc($footer_text));
         }
-
-        $pdf->Output('F', $path);
-        return true;
     }
 }
