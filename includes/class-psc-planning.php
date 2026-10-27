@@ -707,38 +707,9 @@ class Psc_Planning {
     public static function toggle_exception($child_id, $date, $service_code, $on, $ignore_lock = false) {
         $child_id = (int) $child_id;
         $date = psc_valid_date($date);
-        if (!$child_id || !$date || !psc_is_valid_service($service_code)) {
-            return array('status' => 'invalid');
-        }
-
-        if ($on && self::service_restricted_for_child($child_id, $service_code, $date)) {
-            return array('status' => 'invalid');
-        }
-
-        // Règle 1 du modèle : hors jour d'école, toujours false — une
-        // exception sur un jour fermé n'a pas de sens, on refuse l'écriture.
-        if (Psc_School_Year::day_status($date) !== 'school') {
-            return array('status' => 'day_closed');
-        }
-
-        // Verrou 48 h côté serveur : désactiver la case dans le navigateur
-        // ne suffit pas, un utilisateur peut rejouer la requête.
-        if (!$ignore_lock && psc_is_locked($date)) {
-            return array('status' => 'locked');
-        }
-
-        // Prestation fermée ce jour-là : la résolution l'ignorerait (règle 1),
-        // l'ajout laisserait donc une ligne sans effet, qui reprendrait vie à
-        // la réouverture. Le retrait reste permis — il ne fait que nettoyer.
-        if ($on) {
-            $open = self::open_map(array($date));
-            $open = $open[$date];
-            $closed = $service_code === psc_forfait_code()
-                ? !$open['forf_open']
-                : (isset($open['services'][$service_code]) && !$open['services'][$service_code]);
-            if ($closed) {
-                return array('status' => 'service_closed');
-            }
+        $refusal = self::exception_refusal($child_id, $date, $service_code, $on, $ignore_lock);
+        if ($refusal !== null) {
+            return array('status' => $refusal);
         }
 
         // Les lectures qui fondent la décision se font sous le verrou.
@@ -762,49 +733,9 @@ class Psc_Planning {
         $t_exc = psc_table('exception');
         $msr   = psc_midi_sans_repas_code();
 
-        if ($service_code === $msr && self::cantine_sans_repas_on($child_id, $date)) {
-            // Enfant « cantine sans repas » : son midi se résout à travers
-            // psc_cantine_sans_repas_convert(), où une ancienne exception
-            // d'AJOUT de cantine l'emporte sur tout retrait du midi. Elle est
-            // retirée quand la famille retire son midi : la cantine de cet
-            // enfant n'est plus lue qu'à travers la conversion.
-            if (!$on && array_key_exists('CANT', $day_exceptions) && $day_exceptions['CANT']) {
-                if (false === $wpdb->delete($t_exc,
-                    array('child_id' => $child_id, 'jour_date' => $date, 'service_code' => 'CANT'),
-                    array('%d', '%s', '%s')
-                )) {
-                    return self::abort_write();
-                }
-                unset($day_exceptions['CANT']);
-            }
-            // Base = état du midi SANS l'exception MSR du jour, calculé par
-            // la même conversion que la facturation.
-            $without = $day_exceptions;
-            unset($without[$msr]);
-            list($conv_pats, $conv_exc) = psc_cantine_sans_repas_convert($pats, $without);
-            $base = psc_resolve_declaration(
-                false,
-                !empty($conv_pats[$msr]),
-                array_key_exists($msr, $conv_exc) ? (bool) $conv_exc[$msr] : null,
-                !empty($conv_pats[$forf]),
-                $forf_exception,
-                true, true, true,
-                self::midi_slot($msr, $conv_pats, $conv_exc, true)
-            );
-            $decision = ((bool) $on === $base) ? 'delete' : 'upsert';
-        } else {
-            $decision = psc_exception_write_decision(
-                $service_code === $forf,
-                !empty($pats[$service_code]),
-                !empty($pats[$forf]),
-                (bool) $on,
-                array(
-                    'request'      => $service_code,
-                    'cant_pattern' => !empty($pats['CANT']),
-                    'msr_pattern'  => !empty($pats[$msr]),
-                ),
-                $forf_exception
-            );
+        $decision = self::exception_decision($child_id, $date, $service_code, (bool) $on, $pats, $day_exceptions, $forf_exception);
+        if ($decision === false) {
+            return self::abort_write();
         }
 
         if ($decision === 'delete') {
@@ -846,6 +777,119 @@ class Psc_Planning {
         }
         self::flush_cache();
         return array('status' => $status, 'declared' => (bool) $on);
+    }
+
+    /**
+     * Refus d'une exception AVANT toute prise de verrou : triplet
+     * invalide, prestation interdite à l'enfant, jour fermé, jour
+     * verrouillé (sauf mairie), prestation fermée ce jour-là pour un
+     * ajout. Retourne le statut de refus, ou null si l'écriture peut
+     * être tentée. $child_id et $date sont déjà normalisés.
+     *
+     * @return string|null
+     */
+    private static function exception_refusal($child_id, $date, $service_code, $on, $ignore_lock) {
+        if (!$child_id || !$date || !psc_is_valid_service($service_code)) {
+            return 'invalid';
+        }
+
+        if ($on && self::service_restricted_for_child($child_id, $service_code, $date)) {
+            return 'invalid';
+        }
+
+        // Règle 1 du modèle : hors jour d'école, toujours false — une
+        // exception sur un jour fermé n'a pas de sens, on refuse l'écriture.
+        if (Psc_School_Year::day_status($date) !== 'school') {
+            return 'day_closed';
+        }
+
+        // Verrou 48 h côté serveur : désactiver la case dans le navigateur
+        // ne suffit pas, un utilisateur peut rejouer la requête.
+        if (!$ignore_lock && psc_is_locked($date)) {
+            return 'locked';
+        }
+
+        // Prestation fermée ce jour-là : la résolution l'ignorerait (règle 1),
+        // l'ajout laisserait donc une ligne sans effet, qui reprendrait vie à
+        // la réouverture. Le retrait reste permis — il ne fait que nettoyer.
+        if ($on) {
+            $open = self::open_map(array($date));
+            $open = $open[$date];
+            $closed = $service_code === psc_forfait_code()
+                ? !$open['forf_open']
+                : (isset($open['services'][$service_code]) && !$open['services'][$service_code]);
+            if ($closed) {
+                return 'service_closed';
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Décision d'écriture d'une exception, sous le verrou : « delete »
+     * (l'exception serait du bruit) ou « upsert ». Pour un enfant
+     * « cantine sans repas » dont on touche le midi, une ancienne
+     * exception d'ajout de cantine est retirée au passage : faux si ce
+     * retrait échoue (l'appelant annule la transaction).
+     *
+     * @param array<string, bool>      $pats           Rythme du jour de semaine.
+     * @param array<string, int|bool>  $day_exceptions Exceptions du jour.
+     * @param bool|null                $forf_exception Exception forfait du jour.
+     * @return string|false
+     */
+    private static function exception_decision($child_id, $date, $service_code, $on, array $pats, array $day_exceptions, $forf_exception) {
+        global $wpdb;
+        $t_exc = psc_table('exception');
+        $msr   = psc_midi_sans_repas_code();
+        $forf  = psc_forfait_code();
+
+        if ($service_code === $msr && self::cantine_sans_repas_on($child_id, $date)) {
+            // Enfant « cantine sans repas » : son midi se résout à travers
+            // psc_cantine_sans_repas_convert(), où une ancienne exception
+            // d'AJOUT de cantine l'emporte sur tout retrait du midi. Elle est
+            // retirée quand la famille retire son midi : la cantine de cet
+            // enfant n'est plus lue qu'à travers la conversion.
+            if (!$on && array_key_exists('CANT', $day_exceptions) && $day_exceptions['CANT']) {
+                if (false === $wpdb->delete($t_exc,
+                    array('child_id' => $child_id, 'jour_date' => $date, 'service_code' => 'CANT'),
+                    array('%d', '%s', '%s')
+                )) {
+                    return false;
+                }
+                unset($day_exceptions['CANT']);
+            }
+            // Base = état du midi SANS l'exception MSR du jour, calculé par
+            // la même conversion que la facturation.
+            $without = $day_exceptions;
+            unset($without[$msr]);
+            list($conv_pats, $conv_exc) = psc_cantine_sans_repas_convert($pats, $without);
+            $base = psc_resolve_declaration(
+                false,
+                !empty($conv_pats[$msr]),
+                array_key_exists($msr, $conv_exc) ? (bool) $conv_exc[$msr] : null,
+                !empty($conv_pats[$forf]),
+                $forf_exception,
+                true, true, true,
+                self::midi_slot($msr, $conv_pats, $conv_exc, true)
+            );
+            $decision = ((bool) $on === $base) ? 'delete' : 'upsert';
+        } else {
+            $decision = psc_exception_write_decision(
+                $service_code === $forf,
+                !empty($pats[$service_code]),
+                !empty($pats[$forf]),
+                (bool) $on,
+                array(
+                    'request'      => $service_code,
+                    'cant_pattern' => !empty($pats['CANT']),
+                    'msr_pattern'  => !empty($pats[$msr]),
+                ),
+                $forf_exception
+            );
+        }
+
+        return $decision;
     }
 
     /**
@@ -958,6 +1002,38 @@ class Psc_Planning {
         $pats_after     = isset($patterns_after[$child_id][$year_key][$weekday]) ? $patterns_after[$child_id][$year_key][$weekday] : array();
         $exceptions     = self::load_exceptions(array($child_id), $days);
 
+        $frozen_purged = self::freeze_locked_and_purge($child_id, $days, $pats_after, $exceptions, $before);
+        if ($frozen_purged === false) {
+            return self::abort_write();
+        }
+        list($frozen, $purged) = $frozen_purged;
+
+        if (false === $wpdb->query('COMMIT')) {
+            return self::abort_write();
+        }
+        self::flush_cache();
+        return array('status' => 'ok', 'frozen' => $frozen, 'purged' => $purged);
+    }
+
+    /**
+     * Après un changement de rythme (étape 3 de toggle_pattern) : pour
+     * chaque jour du jour de semaine, purge les exceptions devenues du
+     * bruit (valeur égale au rythme) et fige en exception l'état d'avant
+     * des jours verrouillés que le nouveau rythme aurait modifiés.
+     * Retourne array(figés, purgés), ou faux si une écriture échoue
+     * (l'appelant annule la transaction).
+     *
+     * @param string[] $days       Jours d'école concernés.
+     * @param array    $pats_after Rythme du jour de semaine après écriture.
+     * @param array    $exceptions Exceptions de l'enfant sur ces jours.
+     * @param array    $before     État effectif avant le changement, par jour.
+     * @return array{0: int, 1: int}|false
+     */
+    private static function freeze_locked_and_purge($child_id, array $days, array $pats_after, array $exceptions, array $before) {
+        global $wpdb;
+        $t_exc = psc_table('exception');
+        $forf  = psc_forfait_code();
+
         $frozen = 0;
         $purged = 0;
         foreach ($days as $day) {
@@ -1002,7 +1078,7 @@ class Psc_Planning {
                             array('child_id' => $child_id, 'jour_date' => $day, 'service_code' => $svc),
                             array('%d', '%s', '%s')
                         )) {
-                            return self::abort_write();
+                            return false;
                         }
                         $purged++;
                     }
@@ -1020,7 +1096,7 @@ class Psc_Planning {
                              ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
                             $child_id, $day, $svc, $was ? 1 : 0, current_time('mysql')
                         ))) {
-                            return self::abort_write();
+                            return false;
                         }
                         $frozen++;
                     }
@@ -1028,11 +1104,7 @@ class Psc_Planning {
             }
         }
 
-        if (false === $wpdb->query('COMMIT')) {
-            return self::abort_write();
-        }
-        self::flush_cache();
-        return array('status' => 'ok', 'frozen' => $frozen, 'purged' => $purged);
+        return array($frozen, $purged);
     }
 
     /**
