@@ -1,8 +1,14 @@
 /**
- * Corrections d'audit — lot 1 (accès, sessions, demandes, intervenants).
- * Les assertions de logique pure vivent dans bin/verify-audit-lot1.php ;
+ * Sessions des familles, demandes d'inscription et accès intervenants :
+ * identité de connexion (seul le titulaire change l'adresse, lien
+ * d'annulation), signalement alimentaire du formulaire de demande,
+ * en-têtes de cache de l'écran intervenants.
+ *
+ * Les assertions de logique pure vivent dans bin/verify-sessions-demandes.php ;
  * ici, ce qui demande une vraie requête HTTP ou un écran, avec les
  * contrôles de droits.
+ *
+ * Origine : audit du 14/10/2026, lot 1 (ex-tests/audit-fixes-lot1.spec.ts).
  */
 
 import { test, expect, type Page } from '@playwright/test';
@@ -21,11 +27,11 @@ function wpCliEval(php: string): string {
   ).trim().split('\n').pop() ?? '';
 }
 
-test.describe('Audit — lot 1', () => {
+test.describe('Sessions et demandes', () => {
   test.describe('SEC-02 : seul le titulaire change l\'adresse de connexion', () => {
-    const TITULAIRE = 'e2e-lot1-titulaire@example.test';
-    const SECOND = 'e2e-lot1-second@example.test';
-    const NOUVELLE = 'e2e-lot1-nouvelle@example.test';
+    const TITULAIRE = 'e2e-sessions-titulaire@example.test';
+    const SECOND = 'e2e-sessions-second@example.test';
+    const NOUVELLE = 'e2e-sessions-nouvelle@example.test';
     let familyId = 0;
 
     const cleanup = () => wpCliEval(`global $wpdb; $t = psc_table('parents');
@@ -33,7 +39,7 @@ test.describe('Audit — lot 1', () => {
         foreach ($wpdb->get_col($wpdb->prepare("SELECT id FROM $t WHERE email = %s OR second_parent_email = %s OR pending_email = %s", $e, $e, $e)) as $id) $wpdb->delete($t, array('id' => (int) $id));
       }
       // Liens d'annulation (SEC-02) émis pour ce foyer de test.
-      foreach ($wpdb->get_col($wpdb->prepare("SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value LIKE %s", $wpdb->esc_like('_transient_psc_email_cancel_') . '%', '%' . $wpdb->esc_like('e2e-lot1-') . '%')) as $n) delete_transient(substr($n, 11));
+      foreach ($wpdb->get_col($wpdb->prepare("SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value LIKE %s", $wpdb->esc_like('_transient_psc_email_cancel_') . '%', '%' . $wpdb->esc_like('e2e-sessions-') . '%')) as $n) delete_transient(substr($n, 11));
       echo 'ok';`);
 
     /**
@@ -48,7 +54,7 @@ test.describe('Audit — lot 1', () => {
 
     test.beforeAll(() => {
       cleanup();
-      familyId = Number(wpCliEval(`$id = Psc_Parents::create('${TITULAIRE}', 'Lot1', array('second_parent_email' => '${SECOND}', 'second_parent_prenom' => 'Second', 'onboarding_seen_at' => current_time('mysql'))); echo is_wp_error($id) ? 0 : (int) $id;`));
+      familyId = Number(wpCliEval(`$id = Psc_Parents::create('${TITULAIRE}', 'Sessions', array('second_parent_email' => '${SECOND}', 'second_parent_prenom' => 'Second', 'onboarding_seen_at' => current_time('mysql'))); echo is_wp_error($id) ? 0 : (int) $id;`));
       expect(familyId).toBeGreaterThan(0);
     });
     test.afterAll(() => { cleanup(); });
@@ -110,7 +116,7 @@ test.describe('Audit — lot 1', () => {
     });
   });
   test('PRA-03 : le signalement alimentaire de l\'enfant 2 atteint la demande', async ({ page }) => {
-    const EMAIL = 'e2e-lot1-pra03@example.test';
+    const EMAIL = 'e2e-sessions-pra03@example.test';
     const t = "psc_table('requests')";
     const cleanup = () => wpCliEval(`global $wpdb; foreach ($wpdb->get_col($wpdb->prepare('SELECT id FROM ' . ${t} . ' WHERE email = %s', '${EMAIL}')) as $id) { Psc_Assurances::delete_pending_files((int) $id); $wpdb->delete(${t}, array('id' => (int) $id)); } echo 'ok';`);
     cleanup();
@@ -118,7 +124,7 @@ test.describe('Audit — lot 1', () => {
       await page.goto(readFormPageUrl());
       await page.locator('#psc-req-email').fill(EMAIL);
       await page.locator('#psc-req-prenom').fill('Famille');
-      await page.locator('#psc-req-nom').fill('Lot1');
+      await page.locator('#psc-req-nom').fill('Sessions');
       await page.locator('#psc-req-tel').fill('06 12 34 56 78');
       await page.getByTestId('address-toggle').click();
       await page.locator('#psc-req-adresse').fill('1 rue de la Mairie');
@@ -127,7 +133,7 @@ test.describe('Audit — lot 1', () => {
       await page.getByTestId('wizard-next').click();
 
       await page.locator('#psc-cp-0').fill('Aine');
-      await page.locator('#psc-cn-0').fill('Lot1');
+      await page.locator('#psc-cn-0').fill('Sessions');
       await page.locator('#psc-cc-0').selectOption({ label: 'CP' });
       await page.locator('#psc-cb-0').fill('2019-03-01');
       await page.getByTestId('add-child-button').click();
@@ -135,7 +141,7 @@ test.describe('Audit — lot 1', () => {
       await expect(page.getByLabel('Prénom de l’enfant 2')).toBeFocused();
       await expect(page.locator('textarea[name^="child_food_allergies_"]')).toHaveCount(0);
       await page.locator('#psc-cp-1').fill('Cadet');
-      await page.locator('#psc-cn-1').fill('Lot1');
+      await page.locator('#psc-cn-1').fill('Sessions');
       await page.locator('#psc-cc-1').selectOption({ label: 'CP' });
       await page.locator('#psc-cb-1').fill('2019-09-01');
       await page.getByTestId('child-food-signal-1').check();
