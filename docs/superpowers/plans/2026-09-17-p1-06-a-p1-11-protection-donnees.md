@@ -150,14 +150,14 @@ Les validations DPO, mairie et hébergeur restent ouvertes indépendamment de ce
 - Modify: `TODO.md`
 - Modify: `readme.txt`
 - Modify: `documentation/rgpd.md`
-- Create: `tests/integration/p1-data-protection-summary.php`
+- Create: `tests/integration/data-protection-probe.php`
 
 - [x] **Step 1: Write a summary probe** that executes the complete fictional lifecycle: allergy declaration/change, privacy export, erasure with retained invoice, retention simulation/execution, audit verification.
 - [x] **Step 2: Run the full verification set**: PHP lint, unit tests, integration probes, `npm run docs:a11y`, and `mkdocs build --strict`.
 - [x] **Step 3: Document manual gates** in `documentation/rgpd.md`: DPO legal basis and durations, PAI circuit, AIPD, private storage test, backup/key restoration and cron monitoring.
 - [x] **Step 4: Update `TODO.md`** only for criteria demonstrated by tests; leave DPO/server acceptance explicitly open and link each completed item to its test/commit.
 - [x] **Step 5: Update the changelog** with technical safeguards and the remaining manual validations; do not claim RGPD compliance.
-- [x] **Step 6: Commit** with `git add TODO.md readme.txt documentation/rgpd.md tests/integration/p1-data-protection-summary.php && git commit -m "docs: consigne les preuves et validations restantes P1"`.
+- [x] **Step 6: Commit** with `git add TODO.md readme.txt documentation/rgpd.md tests/integration/data-protection-probe.php && git commit -m "docs: consigne les preuves et validations restantes P1"`.
 
 ### Task 6: Accès intervenants individuels et habilitations WordPress (P1-01/P1-02)
 
@@ -222,14 +222,14 @@ Les validations DPO, mairie et hébergeur restent ouvertes indépendamment de ce
 
 ### Task 9: Dossier de preuves P1 et synchronisation du suivi (P1-10/P1-18)
 
-**Statut (24/09/2026) : terminé, non committé** — `tests/integration/p1-final-summary.php` produit le relevé (17 contrats techniques tenus, 10 décisions manuelles listées nominativement) sans rien écrire ; les décisions manuelles sont documentées dans `documentation/rgpd.md` (« Ce que le plugin ne décide pas ») et la recette d'hébergement dans `documentation/installation/fiche-recette-p1.md`.
+**Statut (24/09/2026) : terminé, non committé** — `tests/integration/data-protection-contracts.php` produit le relevé (17 contrats techniques tenus, 10 décisions manuelles listées nominativement) sans rien écrire ; les décisions manuelles sont documentées dans `documentation/rgpd.md` (« Ce que le plugin ne décide pas ») et la recette d'hébergement dans `documentation/installation/fiche-recette-p1.md`.
 
 **Files:**
 - Modify: `TODO.md`
 - Modify: `documentation/rgpd.md`
 - Modify: `documentation/installation/installation-activation.md`
 - Create: `documentation/installation/fiche-recette-p1.md`
-- Test: `tests/integration/p1-final-summary.php`
+- Test: `tests/integration/data-protection-contracts.php`
 
 - [x] **Step 1: Écrire la sonde finale** non destructive des contrats automatisés.
 - [x] **Step 2: Documenter les décisions manuelles** : registre, AIPD, contrats, base légale, durées, PAI, stockage, sauvegardes, restauration et responsables.
@@ -265,7 +265,7 @@ for file in $(find includes templates -name '*.php' -print); do
   podman exec -w /var/www/html/wp-content/plugins/periscolaire-registration plugin-extrascolaire-wordpress-1 php -l "$file" || exit 1
 done
 podman exec -w /var/www/html/wp-content/plugins/periscolaire-registration plugin-extrascolaire-wordpress-1 php tests/unit/run.php
-podman exec -w /var/www/html plugin-extrascolaire-wordpress-1 php /usr/local/bin/wp-cli.phar --path=/var/www/html eval-file wp-content/plugins/periscolaire-registration/tests/integration/p1-data-protection-summary.php --allow-root
+podman exec -w /var/www/html plugin-extrascolaire-wordpress-1 php /usr/local/bin/wp-cli.phar --path=/var/www/html eval-file wp-content/plugins/periscolaire-registration/tests/integration/data-protection-probe.php --allow-root
 PATH="$PWD/.venv-docs/bin:$PATH" npm run docs:a11y
 git diff --check
 ```

@@ -1,5 +1,14 @@
 <?php
-/** Sonde non destructive des contrats techniques P1-06 à P1-11. */
+/**
+ * wp eval-file tests/integration/data-protection-probe.php
+ *
+ * Sonde non destructive de la protection des données : réglages de
+ * confidentialité normalisés, notice sans consentement global, rapport de
+ * rétention structuré et simulation sans suppression, actions RGPD
+ * classées dans le registre d'audit (contrats techniques P1-06 à P1-11).
+ *
+ * Origine : audit du 14/10/2026, suivi P1 (sonde résumée).
+ */
 if (!defined('ABSPATH')) exit('WordPress requis\n');
 
 $failures = array();
@@ -22,4 +31,4 @@ if ($failures) {
     foreach ($failures as $failure) echo "FAIL : $failure\n";
     exit(1);
 }
-echo "P1 protection des données : OK (sonde non destructive)\n";
+echo "Protection des données : OK (sonde non destructive)\n";

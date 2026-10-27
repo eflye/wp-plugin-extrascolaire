@@ -1,9 +1,13 @@
 <?php
 /**
- * Script de vérification autonome des corrections d'audit du lot 1
- * (accès, sessions, demandes, intervenants), en conditions WP-CLI réelles.
- * Les e-mails sont interceptés (pre_wp_mail), les redirections et wp_die()
- * sont capturés pour lire la réponse sans terminer le processus.
+ * Script de vérification autonome — sessions des familles (identité de
+ * connexion, changement d'adresse, signature), demandes d'inscription et
+ * accès des intervenants, en conditions WP-CLI réelles. Les e-mails sont
+ * interceptés (pre_wp_mail), les redirections et wp_die() sont capturés
+ * pour lire la réponse sans terminer le processus.
+ *
+ * Origine : audit du 14/10/2026, lot 1.
+ * Les références SEC-*, RGPD-*, PERF-*, PRA-* renvoient à AUDIT.md.
  *
  * Vérifie :
  *  - SEC-02 : identité de connexion de la session (titulaire, second
@@ -43,7 +47,7 @@
  *    contiennent ni e-mail ni nom (résumé et libellé d'acteur).
  *
  * Usage :
- *   wp --require=bin/verify-audit-lot1.php verify-audit-lot1
+ *   wp --require=bin/verify-sessions-demandes.php verify-sessions-demandes
  *
  * Crée puis supprime ses propres foyers (adresses @example.invalid). Les
  * lignes du journal d'audit, chaîné et en ajout seul, restent.
@@ -53,8 +57,8 @@ if (!defined('WP_CLI') || !WP_CLI) {
     return;
 }
 
-if (!class_exists('Psc_Verify_Lot1_Stop')) {
-    class Psc_Verify_Lot1_Stop extends Exception {
+if (!class_exists('Psc_Verify_Sessions_Demandes_Stop')) {
+    class Psc_Verify_Sessions_Demandes_Stop extends Exception {
         public $kind;
         public $status;
         public function __construct($kind, $message, $status = 0) {
@@ -65,7 +69,7 @@ if (!class_exists('Psc_Verify_Lot1_Stop')) {
     }
 }
 
-WP_CLI::add_command('verify-audit-lot1', function () {
+WP_CLI::add_command('verify-sessions-demandes', function () {
 
     if (!class_exists('Psc_Parents')) {
         WP_CLI::error('Le plugin periscolaire-registration ne semble pas actif sur ce site.');
@@ -74,18 +78,18 @@ WP_CLI::add_command('verify-audit-lot1', function () {
     global $wpdb;
     $t_par = psc_table('parents');
     $emails = array(
-        'titulaire' => 'verify-lot1-titulaire@example.invalid',
-        'second'    => 'verify-lot1-second@example.invalid',
-        'nouvelle'  => 'verify-lot1-nouvelle@example.invalid',
-        'autre'     => 'verify-lot1-autre@example.invalid',
-        'occupant'  => 'verify-lot1-occupant@example.invalid',
-        'demande'   => 'verify-lot1-demande@example.invalid',
-        'sepa_refus' => 'verify-lot1-sepa-refus@example.invalid',
-        'sepa_ok'    => 'verify-lot1-sepa-ok@example.invalid',
-        'sidscm'     => 'verify-lot1-sidscm@example.invalid',
-        'perf1'      => 'verify-lot1-perf1@example.invalid',
-        'perf2'      => 'verify-lot1-perf2@example.invalid',
-        'perf3'      => 'verify-lot1-perf3@example.invalid',
+        'titulaire' => 'verify-sessions-titulaire@example.invalid',
+        'second'    => 'verify-sessions-second@example.invalid',
+        'nouvelle'  => 'verify-sessions-nouvelle@example.invalid',
+        'autre'     => 'verify-sessions-autre@example.invalid',
+        'occupant'  => 'verify-sessions-occupant@example.invalid',
+        'demande'   => 'verify-sessions-demande@example.invalid',
+        'sepa_refus' => 'verify-sessions-sepa-refus@example.invalid',
+        'sepa_ok'    => 'verify-sessions-sepa-ok@example.invalid',
+        'sidscm'     => 'verify-sessions-sidscm@example.invalid',
+        'perf1'      => 'verify-sessions-perf1@example.invalid',
+        'perf2'      => 'verify-sessions-perf2@example.invalid',
+        'perf3'      => 'verify-sessions-perf3@example.invalid',
     );
     $t_req = psc_table('requests');
     $purge_requests = function () use ($wpdb, $emails, $t_req) {
@@ -107,7 +111,7 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         $names = $wpdb->get_col($wpdb->prepare(
             "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value LIKE %s",
             $wpdb->esc_like('_transient_psc_email_cancel_') . '%',
-            '%' . $wpdb->esc_like('verify-lot1-') . '%'
+            '%' . $wpdb->esc_like('verify-sessions-') . '%'
         ));
         foreach ($names as $name) delete_transient(substr($name, strlen('_transient_')));
     };
@@ -163,11 +167,11 @@ WP_CLI::add_command('verify-audit-lot1', function () {
 
     $mails = array();
     $capture_mail = function ($null, $atts) use (&$mails) { $mails[] = $atts; return true; };
-    $redirect = function ($location) { throw new Psc_Verify_Lot1_Stop('redirect', $location, 302); };
+    $redirect = function ($location) { throw new Psc_Verify_Sessions_Demandes_Stop('redirect', $location, 302); };
     $die_handler = function () {
         return function ($message, $title = '', $args = array()) {
             $status = is_array($args) && isset($args['response']) ? (int) $args['response'] : 500;
-            throw new Psc_Verify_Lot1_Stop('die', is_scalar($message) ? (string) $message : '', $status);
+            throw new Psc_Verify_Sessions_Demandes_Stop('die', is_scalar($message) ? (string) $message : '', $status);
         };
     };
     add_filter('pre_wp_mail', $capture_mail, 10, 2);
@@ -185,7 +189,7 @@ WP_CLI::add_command('verify-audit-lot1', function () {
             $fn();
             ob_end_clean();
             return array('kind' => 'return', 'value' => '', 'status' => 0);
-        } catch (Psc_Verify_Lot1_Stop $stop) {
+        } catch (Psc_Verify_Sessions_Demandes_Stop $stop) {
             ob_end_clean();
             return array('kind' => $stop->kind, 'value' => $stop->getMessage(), 'status' => $stop->status);
         }
@@ -210,7 +214,7 @@ WP_CLI::add_command('verify-audit-lot1', function () {
             'action'      => 'psc_parent_update_profile',
             '_wpnonce'    => wp_create_nonce('psc_parent_update_profile'),
             'psc_nonce'   => psc_parent_nonce('psc_parent_update_profile', $pid),
-            'profil_nom'  => 'Lot1',
+            'profil_nom'  => 'Verifsessions',
             'profil_prenom' => 'Verification',
             'profil_email'  => $email,
         );
@@ -417,10 +421,10 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         $open_days = psc_open_days(psc_week_start(current_time('Y-m-d')));
         $year_id = $open_days ? Psc_School_Years::id_for_date(reset($open_days)) : 0;
         if ($open_days && $year_id) {
-            $sid_family = Psc_Parents::create($emails['sidscm'], 'Lot1', array('second_parent_prenom' => 'Second', 'second_parent_nom' => 'Lot1', 'second_parent_telephone' => '0612345678'));
+            $sid_family = Psc_Parents::create($emails['sidscm'], 'Verifsessions', array('second_parent_prenom' => 'Second', 'second_parent_nom' => 'Verifsessions', 'second_parent_telephone' => '0612345678'));
             $t_child = psc_table('children');
             $mk = function ($prenom) use ($wpdb, $t_child, $sid_family) {
-                $wpdb->insert($t_child, array('parent_id' => $sid_family, 'nom' => 'Lot1', 'prenom' => $prenom, 'food_allergy_signal' => 1, 'created_at' => current_time('mysql')));
+                $wpdb->insert($t_child, array('parent_id' => $sid_family, 'nom' => 'Verifsessions', 'prenom' => $prenom, 'food_allergy_signal' => 1, 'created_at' => current_time('mysql')));
                 return (int) $wpdb->insert_id;
             };
             $garderie = $mk('Garderie');
@@ -452,7 +456,7 @@ WP_CLI::add_command('verify-audit-lot1', function () {
             WP_CLI::log('RGPD-06 : semaine sans jour ouvert, vérification sautée.');
         }
 
-        $pid = Psc_Parents::create($emails['titulaire'], 'Lot1', array('second_parent_email' => $emails['second']));
+        $pid = Psc_Parents::create($emails['titulaire'], 'Verifsessions', array('second_parent_email' => $emails['second']));
         $check(is_int($pid) && $pid > 0, 'SEC-02 données : foyer non créé');
         $occupant = Psc_Parents::create($emails['occupant'], 'Occupant');
         if (!is_int($pid) || !is_int($occupant)) throw new RuntimeException('données de test');
@@ -573,7 +577,7 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         $use_session($pid, $current_email);
         $db_cookie = $_COOKIE[psc_session_cookie_name()];
         $db_nonce = psc_parent_nonce('psc_parent_update_profile', $pid);
-        $outside = function ($secrets) { return array('constante' => 'verify-lot1-cle-hors-base-0123456789') + $secrets; };
+        $outside = function ($secrets) { return array('constante' => 'verify-sessions-cle-hors-base-0123456789') + $secrets; };
         add_filter('psc_encryption_secrets', $outside);
         $check(psc_encryption_key_outside_db() && psc_session_signing_key() !== wp_salt('psc_session'), 'SEC-07 : clé hors base non utilisée pour signer');
         $set_cookie($db_cookie);
@@ -651,7 +655,7 @@ WP_CLI::add_command('verify-audit-lot1', function () {
         foreach ($rows as $row) {
             foreach (array('resume', 'acteur_libelle') as $col) {
                 $val = (string) $row->$col;
-                $check(strpos($val, '@') === false && stripos($val, 'Lot1') === false && stripos($val, 'Verification') === false,
+                $check(strpos($val, '@') === false && stripos($val, 'Verifsessions') === false && stripos($val, 'Verification') === false,
                     "RGPD-04/L1 : donnée d'identité dans $col de {$row->action}");
             }
         }
@@ -677,7 +681,7 @@ WP_CLI::add_command('verify-audit-lot1', function () {
     $check(($saved_auto === null) === (get_option('psc_auto_approve_requests', null) === null) && (string) get_option('psc_auto_approve_requests', '') === (string) $saved_auto, 'nettoyage : réglage de validation automatique non restauré');
     $check((int) $wpdb->get_var($wpdb->prepare(
         "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_value LIKE %s AND (option_name LIKE %s OR option_name = 'psc_sidscm_intervenants')",
-        '%' . $wpdb->esc_like('verify-lot1-') . '%', $wpdb->esc_like('_transient_') . '%'
+        '%' . $wpdb->esc_like('verify-sessions-') . '%', $wpdb->esc_like('_transient_') . '%'
     )) === 0, 'nettoyage : transient de test restant');
 
     if ($failures) {
