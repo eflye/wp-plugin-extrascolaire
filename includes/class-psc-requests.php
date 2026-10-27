@@ -229,33 +229,114 @@ class Psc_Requests {
 
     /* ---------------- Soumission publique ---------------- */
 
+    /**
+     * Soumission du formulaire public, en quatre temps : acceptations
+     * silencieuses (champ piège, limitation de débit, famille connue,
+     * demande déjà en attente), lecture et validation des champs
+     * (coordonnées, second parent, enfants, règlement, paiement),
+     * construction de l'enregistrement, puis persistance, e-mail de
+     * confirmation et redirection.
+     *
+     * L'ordre des contrôles est celui des messages affichés : le premier
+     * défaut rencontré décide du message (psc_msg), chaque méthode de
+     * validation renvoyant un WP_Error dont le code est ce message.
+     */
     public static function handle_submit() {
         check_admin_referer('psc_submit_request');
 
-        global $wpdb;
         $back = Psc_Mailer::form_page_url();
 
         // Champ piège : invisible pour un humain, souvent rempli par les
         // robots. S'il est rempli, on simule un succès sans rien créer.
         if (!empty($_POST['psc_website'])) {
-            wp_safe_redirect(add_query_arg('psc_msg', 'request_sent', $back));
-            exit;
+            self::submit_redirect('request_sent', $back);
         }
 
-        $email = isset($_POST['req_email']) ? sanitize_email(wp_unslash($_POST['req_email'])) : '';
-        if (!is_email($email)) {
-            wp_safe_redirect(add_query_arg('psc_msg', 'bad_email', $back));
-            exit;
+        $email = self::submit_email();
+        if ($email === null) {
+            self::submit_redirect('bad_email', $back);
         }
-        $email = strtolower($email);
+
+        if (self::submit_silently_accepted($email)) {
+            self::submit_redirect('request_sent', $back);
+        }
+
+        $contact = self::submit_contact();
+        if (is_wp_error($contact)) {
+            self::submit_redirect($contact->get_error_code(), $back);
+        }
+
+        $second_parent = self::submit_second_parent();
+        if (is_wp_error($second_parent)) {
+            self::submit_redirect($second_parent->get_error_code(), $back);
+        }
+
+        $children = self::submit_children();
+        if (is_wp_error($children)) {
+            self::submit_redirect($children->get_error_code(), $back);
+        }
+
+        // Règlement intérieur : acceptation obligatoire pour toute demande.
+        if (empty($_POST['reglement_accepted'])) {
+            self::submit_redirect('reglement_required', $back);
+        }
+
+        $payment = self::submit_payment();
+        if (is_wp_error($payment)) {
+            self::submit_redirect($payment->get_error_code(), $back);
+        }
+
+        $token = bin2hex(random_bytes(32));
+        $data = self::submit_record($email, $contact, $second_parent, $children, $payment, $token);
+        if (is_wp_error($data)) {
+            self::submit_redirect($data->get_error_code(), $back);
+        }
+
+        self::submit_store_and_notify($data, $payment, $token);
+
+        self::submit_redirect('request_sent', $back);
+    }
+
+    /**
+     * Retour au formulaire avec le message demandé, puis arrêt de la
+     * requête : issue de chaque contrôle de handle_submit().
+     *
+     * @return never
+     */
+    private static function submit_redirect($code, $back) {
+        wp_safe_redirect(add_query_arg('psc_msg', $code, $back));
+        exit;
+    }
+
+    /**
+     * Adresse du demandeur, assainie et en minuscules.
+     *
+     * @return string|null Null si l'adresse est absente ou invalide.
+     */
+    private static function submit_email() {
+        $email = isset($_POST['req_email']) ? sanitize_email(wp_unslash($_POST['req_email'])) : '';
+        if (!is_email($email)) return null;
+        return strtolower($email);
+    }
+
+    /**
+     * Cas où la demande est acceptée en apparence (« request_sent ») sans
+     * rien créer, réponse identique à un succès pour ne rien révéler à un
+     * tiers : limitation de débit atteinte, famille déjà enregistrée (qui
+     * reçoit directement son lien de connexion), demande confirmée déjà
+     * en attente de la mairie.
+     *
+     * @return bool Vrai : répondre « envoyé » sans créer de demande.
+     */
+    private static function submit_silently_accepted($email) {
+        global $wpdb;
 
         // Limitation stricte : ce formulaire est public.
         $ok_ip = psc_rate_limit_by_ip('req_ip_', 5, HOUR_IN_SECONDS);
         $ok_mail = psc_rate_limit('req_mail_' . $email, 3, DAY_IN_SECONDS);
         if (!$ok_ip || !$ok_mail) {
             // Réponse identique : ne pas révéler que la limite est atteinte.
-            wp_safe_redirect(add_query_arg('psc_msg', 'request_sent', $back));
-            exit;
+            return true;
         }
 
         // Si la famille est déjà enregistrée, on ne crée pas de demande :
@@ -263,8 +344,7 @@ class Psc_Requests {
         // affiché reste le même, pour ne rien révéler à un tiers.
         if (Psc_Parents::get_by_email($email)) {
             Psc_Parents::send_login_link($email);
-            wp_safe_redirect(add_query_arg('psc_msg', 'request_sent', $back));
-            exit;
+            return true;
         }
 
         // Une demande confirmée, en attente de la mairie, n'est JAMAIS
@@ -273,14 +353,20 @@ class Psc_Requests {
         // identique, rien n'est changé ; pour corriger, la famille
         // contacte la mairie.
         $t = psc_table('requests');
-        $has_pending = (bool) $wpdb->get_var($wpdb->prepare(
+        return (bool) $wpdb->get_var($wpdb->prepare(
             "SELECT id FROM $t WHERE email = %s AND status = 'pending' LIMIT 1", $email
         ));
-        if ($has_pending) {
-            wp_safe_redirect(add_query_arg('psc_msg', 'request_sent', $back));
-            exit;
-        }
+    }
 
+    /**
+     * Coordonnées du demandeur (étape 1) : le "required" HTML5 empêche
+     * déjà de passer à l'étape suivante côté client, mais reste
+     * contournable (POST direct) — on revalide donc côté serveur, formats
+     * compris (téléphone français, code postal à 5 chiffres).
+     *
+     * @return array|WP_Error Champs assainis, ou 'coordonnees_incomplete'.
+     */
+    private static function submit_contact() {
         $nom       = psc_post('req_nom');
         $prenom    = psc_post('req_prenom');
         $telephone = psc_post('req_telephone');
@@ -290,62 +376,83 @@ class Psc_Requests {
         $message   = isset($_POST['req_message'])
             ? sanitize_textarea_field(wp_unslash($_POST['req_message'])) : '';
 
-        // Coordonnées (étape 1) : le "required" HTML5 empêche déjà de
-        // passer à l'étape suivante côté client, mais reste contournable
-        // (POST direct) — on revalide donc côté serveur, formats compris
-        // (téléphone français, code postal à 5 chiffres).
         if ($nom === '' || $prenom === '' || $telephone === '' || $adresse === '' || $code_postal === '' || $ville === '') {
-            wp_safe_redirect(add_query_arg('psc_msg', 'coordonnees_incomplete', $back));
-            exit;
+            return new WP_Error('coordonnees_incomplete');
         }
         if (!psc_valid_phone($telephone) || !psc_valid_postcode($code_postal)) {
-            wp_safe_redirect(add_query_arg('psc_msg', 'coordonnees_incomplete', $back));
-            exit;
+            return new WP_Error('coordonnees_incomplete');
         }
 
-        // Second parent (facultatif) : chaque champ reste indépendamment
-        // optionnel — contrairement aux personnes autorisées ci-dessous,
-        // aucune règle de "tout ou rien" n'est exigée. Seul un format
-        // invalide (e-mail/téléphone), s'il est renseigné, fait échouer la
-        // soumission plutôt que d'enregistrer une donnée invalide.
-        $second_parent_prenom = psc_post('second_parent_prenom');
-        $second_parent_nom    = psc_post('second_parent_nom');
+        return array(
+            'nom'         => $nom,
+            'prenom'      => $prenom,
+            'telephone'   => $telephone,
+            'adresse'     => $adresse,
+            'code_postal' => $code_postal,
+            'ville'       => $ville,
+            'message'     => $message,
+        );
+    }
 
-        $second_parent_email = '';
-        $second_parent_email_raw = psc_post('second_parent_email');
-        if ($second_parent_email_raw !== '') {
-            if (!is_email($second_parent_email_raw)) {
-                wp_safe_redirect(add_query_arg('psc_msg', 'second_parent_bad_email', $back));
-                exit;
+    /**
+     * Second parent (facultatif) : chaque champ reste indépendamment
+     * optionnel — contrairement aux personnes autorisées, aucune règle de
+     * "tout ou rien" n'est exigée. Seul un format invalide
+     * (e-mail/téléphone), s'il est renseigné, fait échouer la soumission
+     * plutôt que d'enregistrer une donnée invalide.
+     *
+     * @return array|WP_Error 'second_parent_bad_email',
+     *                        'second_parent_email_taken' ou 'second_parent_bad_phone'.
+     */
+    private static function submit_second_parent() {
+        $prenom = psc_post('second_parent_prenom');
+        $nom    = psc_post('second_parent_nom');
+
+        $email = '';
+        $email_raw = psc_post('second_parent_email');
+        if ($email_raw !== '') {
+            if (!is_email($email_raw)) {
+                return new WP_Error('second_parent_bad_email');
             }
-            $second_parent_email = strtolower(sanitize_email($second_parent_email_raw));
+            $email = strtolower(sanitize_email($email_raw));
             // Le second parent se connectera avec cette adresse (cf.
             // Psc_Parents::get_by_email()) : elle doit être libre, sinon
             // pointerait vers deux foyers différents selon qui se connecte.
-            if (Psc_Parents::get_by_email($second_parent_email)) {
-                wp_safe_redirect(add_query_arg('psc_msg', 'second_parent_email_taken', $back));
-                exit;
+            if (Psc_Parents::get_by_email($email)) {
+                return new WP_Error('second_parent_email_taken');
             }
         }
 
-        $second_parent_telephone = '';
-        $second_parent_tel_raw = psc_post('second_parent_telephone');
-        if ($second_parent_tel_raw !== '') {
-            $second_parent_telephone = psc_valid_phone($second_parent_tel_raw);
-            if (!$second_parent_telephone) {
-                wp_safe_redirect(add_query_arg('psc_msg', 'second_parent_bad_phone', $back));
-                exit;
+        $telephone = '';
+        $tel_raw = psc_post('second_parent_telephone');
+        if ($tel_raw !== '') {
+            $telephone = psc_valid_phone($tel_raw);
+            if (!$telephone) {
+                return new WP_Error('second_parent_bad_phone');
             }
         }
 
-        // Enfants déclarés. Tous les champs (prénom, nom, classe,
-        // date de naissance) sont obligatoires pour chaque enfant
-        // réellement nommé : contrairement à une ligne entièrement vide
-        // (ligne inutilisée, simplement ignorée — cf. le "+ Ajouter un
-        // enfant" qui laisse des lignes en trop), un enfant explicitement
-        // nommé mais incomplet fait échouer TOUTE la soumission — le
-        // disparaître silencieusement de la demande serait trompeur pour le
-        // parent qui a rempli sa ligne.
+        return array(
+            'prenom'    => $prenom,
+            'nom'       => $nom,
+            'email'     => $email,
+            'telephone' => $telephone,
+        );
+    }
+
+    /**
+     * Enfants déclarés. Tous les champs (prénom, nom, classe, date de
+     * naissance) sont obligatoires pour chaque enfant réellement nommé :
+     * contrairement à une ligne entièrement vide (ligne inutilisée,
+     * simplement ignorée — cf. le "+ Ajouter un enfant" qui laisse des
+     * lignes en trop), un enfant explicitement nommé mais incomplet fait
+     * échouer TOUTE la soumission — le disparaître silencieusement de la
+     * demande serait trompeur pour le parent qui a rempli sa ligne.
+     *
+     * @return array|WP_Error Enfants (forme de children_json), ou
+     *                        'child_incomplete', 'child_bad_birthdate', 'need_child'.
+     */
+    private static function submit_children() {
         $children = array();
         for ($i = 0; $i < self::MAX_CHILDREN; $i++) {
             $cn = psc_post('child_nom_' . $i);
@@ -355,15 +462,13 @@ class Psc_Requests {
             $cb = psc_valid_date($cb_raw);
             if ($cn === '' && $cp === '' && $cc === '' && $cb_raw === '') continue;
             if ($cn === '' || $cp === '' || $cc === '' || !$cb) {
-                wp_safe_redirect(add_query_arg('psc_msg', 'child_incomplete', $back));
-                exit;
+                return new WP_Error('child_incomplete');
             }
             // Date bien formée mais incohérente (dans le futur, moins de
             // 3 ans au 1er septembre de l'année en cours) : message dédié,
             // distinct du simple champ manquant ci-dessus.
             if (!psc_valid_child_birthdate($cb)) {
-                wp_safe_redirect(add_query_arg('psc_msg', 'child_bad_birthdate', $back));
-                exit;
+                return new WP_Error('child_bad_birthdate');
             }
 
             // Signalement minimal : aucun détail médical n'est collecté.
@@ -384,80 +489,90 @@ class Psc_Requests {
         }
 
         if (empty($children)) {
-            wp_safe_redirect(add_query_arg('psc_msg', 'need_child', $back));
-            exit;
+            return new WP_Error('need_child');
+        }
+        return $children;
+    }
+
+    /**
+     * Mode de paiement : si prélèvement, le mandat SEPA et le règlement
+     * dédié sont obligatoires eux aussi.
+     *
+     * @return array|WP_Error Clés mode, sepa_reglement_accepted_at,
+     *                        titulaire, adresse, code_postal, ville, iban, bic ;
+     *                        ou 'sepa_reglement_required', 'sepa_missing',
+     *                        'bad_iban', 'bad_bic', 'bad_code_postal'.
+     */
+    private static function submit_payment() {
+        $payment = array(
+            'mode'                       => (isset($_POST['payment_mode']) && $_POST['payment_mode'] === 'prelevement')
+                ? 'prelevement' : 'autre',
+            'sepa_reglement_accepted_at' => null,
+            'titulaire'                  => '',
+            'adresse'                    => '',
+            'code_postal'                => '',
+            'ville'                      => '',
+            'iban'                       => null,
+            'bic'                        => null,
+        );
+        if ($payment['mode'] !== 'prelevement') {
+            return $payment;
         }
 
-        // Règlement intérieur : acceptation obligatoire pour toute demande.
-        if (empty($_POST['reglement_accepted'])) {
-            wp_safe_redirect(add_query_arg('psc_msg', 'reglement_required', $back));
-            exit;
+        if (empty($_POST['sepa_reglement_accepted'])) {
+            return new WP_Error('sepa_reglement_required');
         }
 
-        // Mode de paiement : si prélèvement, le mandat SEPA et le règlement
-        // dédié sont obligatoires eux aussi.
-        $payment_mode = (isset($_POST['payment_mode']) && $_POST['payment_mode'] === 'prelevement')
-            ? 'prelevement' : 'autre';
-
-        $sepa_reglement_accepted_at = null;
-        $sepa_titulaire = $sepa_adresse = $sepa_code_postal = $sepa_ville = '';
-        $sepa_iban = $sepa_bic = null;
-
-        if ($payment_mode === 'prelevement') {
-            if (empty($_POST['sepa_reglement_accepted'])) {
-                wp_safe_redirect(add_query_arg('psc_msg', 'sepa_reglement_required', $back));
-                exit;
-            }
-
-            $sepa_titulaire   = psc_post('sepa_titulaire');
-            $sepa_adresse     = psc_post('sepa_adresse');
-            $sepa_code_postal = psc_post('sepa_code_postal');
-            $sepa_ville       = psc_post('sepa_ville');
-            if ($sepa_titulaire === '') {
-                wp_safe_redirect(add_query_arg('psc_msg', 'sepa_missing', $back));
-                exit;
-            }
-
-            $sepa_iban = psc_valid_iban(wp_unslash($_POST['sepa_iban'] ?? ''));
-            if (!$sepa_iban) {
-                wp_safe_redirect(add_query_arg('psc_msg', 'bad_iban', $back));
-                exit;
-            }
-            $sepa_bic = psc_valid_bic(psc_post('sepa_bic'));
-            if (!$sepa_bic) {
-                wp_safe_redirect(add_query_arg('psc_msg', 'bad_bic', $back));
-                exit;
-            }
-
-            // Facultatif mais contrôlé s'il est renseigné : même convention
-            // que le téléphone du second parent ci-dessus.
-            if ($sepa_code_postal !== '' && !psc_valid_postcode($sepa_code_postal)) {
-                wp_safe_redirect(add_query_arg('psc_msg', 'bad_code_postal', $back));
-                exit;
-            }
-
-            $sepa_reglement_accepted_at = current_time('mysql');
+        $payment['titulaire']   = psc_post('sepa_titulaire');
+        $payment['adresse']     = psc_post('sepa_adresse');
+        $payment['code_postal'] = psc_post('sepa_code_postal');
+        $payment['ville']       = psc_post('sepa_ville');
+        if ($payment['titulaire'] === '') {
+            return new WP_Error('sepa_missing');
         }
 
-        $token = bin2hex(random_bytes(32));
+        $payment['iban'] = psc_valid_iban(wp_unslash($_POST['sepa_iban'] ?? ''));
+        if (!$payment['iban']) {
+            return new WP_Error('bad_iban');
+        }
+        $payment['bic'] = psc_valid_bic(psc_post('sepa_bic'));
+        if (!$payment['bic']) {
+            return new WP_Error('bad_bic');
+        }
+
+        // Facultatif mais contrôlé s'il est renseigné : même convention
+        // que le téléphone du second parent.
+        if ($payment['code_postal'] !== '' && !psc_valid_postcode($payment['code_postal'])) {
+            return new WP_Error('bad_code_postal');
+        }
+
+        $payment['sepa_reglement_accepted_at'] = current_time('mysql');
+        return $payment;
+    }
+
+    /**
+     * Ligne à insérer dans psc_requests, à partir des champs validés.
+     *
+     * @return array|WP_Error 'crypto_unavailable' si l'IBAN ne peut pas être chiffré.
+     */
+    private static function submit_record($email, array $contact, array $second_parent, array $children, array $payment, $token) {
         // Chiffrement AVANT insertion : sans primitive disponible (ou en
         // cas d'échec), la demande est refusée avec un message lisible
         // plutôt que d'enregistrer l'IBAN en clair (cf. psc_encrypt()).
-        $sepa_iban_enc = psc_encrypt($sepa_iban);
+        $sepa_iban_enc = psc_encrypt($payment['iban']);
         if (is_wp_error($sepa_iban_enc)) {
-            wp_safe_redirect(add_query_arg('psc_msg', 'crypto_unavailable', $back));
-            exit;
+            return new WP_Error('crypto_unavailable');
         }
-        $data = array(
+        return array(
             'email'                      => $email,
-            'nom'                        => mb_substr($nom, 0, 190),
-            'prenom'                     => mb_substr($prenom, 0, 190),
-            'telephone'                  => mb_substr($telephone, 0, 40),
-            'adresse'                    => mb_substr($adresse, 0, 255),
-            'code_postal'                => mb_substr($code_postal, 0, 10),
-            'ville'                      => mb_substr($ville, 0, 100),
+            'nom'                        => mb_substr($contact['nom'], 0, 190),
+            'prenom'                     => mb_substr($contact['prenom'], 0, 190),
+            'telephone'                  => mb_substr($contact['telephone'], 0, 40),
+            'adresse'                    => mb_substr($contact['adresse'], 0, 255),
+            'code_postal'                => mb_substr($contact['code_postal'], 0, 10),
+            'ville'                      => mb_substr($contact['ville'], 0, 100),
             'children_json'              => wp_json_encode($children),
-            'message'                    => mb_substr($message, 0, 1000),
+            'message'                    => mb_substr($contact['message'], 0, 1000),
             'verify_hash'                => psc_hash_token($token),
             'verify_expires'             => gmdate('Y-m-d H:i:s', time() + psc_email_confirmation_ttl()),
             'verified'                   => 0,
@@ -465,28 +580,36 @@ class Psc_Requests {
             'reglement_accepted_at'      => current_time('mysql'),
             // Versions des règlements affichés au moment de cocher (P2-14).
             'reglement_version_id'       => Psc_Document_Versions::current_id('reglement_interieur'),
-            'payment_mode'               => $payment_mode,
-            'sepa_reglement_accepted_at' => $sepa_reglement_accepted_at,
-            'sepa_reglement_version_id'  => $sepa_reglement_accepted_at ? Psc_Document_Versions::current_id('reglement_prelevement') : null,
+            'payment_mode'               => $payment['mode'],
+            'sepa_reglement_accepted_at' => $payment['sepa_reglement_accepted_at'],
+            'sepa_reglement_version_id'  => $payment['sepa_reglement_accepted_at'] ? Psc_Document_Versions::current_id('reglement_prelevement') : null,
             'sepa_iban'                  => $sepa_iban_enc,
-            'sepa_bic'                   => $sepa_bic,
-            'sepa_titulaire'             => mb_substr($sepa_titulaire, 0, 190) ?: null,
-            'sepa_adresse'               => mb_substr($sepa_adresse, 0, 255) ?: null,
-            'sepa_code_postal'           => mb_substr($sepa_code_postal, 0, 10) ?: null,
-            'sepa_ville'                 => mb_substr($sepa_ville, 0, 100) ?: null,
-            'second_parent_prenom'       => mb_substr($second_parent_prenom, 0, 190) ?: null,
-            'second_parent_nom'          => mb_substr($second_parent_nom, 0, 190) ?: null,
-            'second_parent_email'        => $second_parent_email ?: null,
-            'second_parent_telephone'    => $second_parent_telephone ?: null,
+            'sepa_bic'                   => $payment['bic'],
+            'sepa_titulaire'             => mb_substr($payment['titulaire'], 0, 190) ?: null,
+            'sepa_adresse'               => mb_substr($payment['adresse'], 0, 255) ?: null,
+            'sepa_code_postal'           => mb_substr($payment['code_postal'], 0, 10) ?: null,
+            'sepa_ville'                 => mb_substr($payment['ville'], 0, 100) ?: null,
+            'second_parent_prenom'       => mb_substr($second_parent['prenom'], 0, 190) ?: null,
+            'second_parent_nom'          => mb_substr($second_parent['nom'], 0, 190) ?: null,
+            'second_parent_email'        => $second_parent['email'] ?: null,
+            'second_parent_telephone'    => $second_parent['telephone'] ?: null,
             'created_at'                 => current_time('mysql'),
         );
+    }
+
+    /**
+     * Insère la demande, puis envoie l'e-mail de confirmation — avec le
+     * mandat SEPA en pièce jointe pour un prélèvement.
+     */
+    private static function submit_store_and_notify(array $data, array $payment, $token) {
+        global $wpdb;
 
         // Toujours une nouvelle ligne (SEC-01) : une demande non confirmée
         // de la même adresse n'est ni réécrite ni supprimée ici — son lien
         // de confirmation reste valable. Les anciennes ne disparaissent
         // qu'à la confirmation de l'une d'elles (maybe_verify()), c'est-à-
         // dire une fois l'adresse prouvée.
-        $wpdb->insert($t, $data);
+        $wpdb->insert(psc_table('requests'), $data);
         $request_id = (int) $wpdb->insert_id;
 
         // Prélèvement : le mandat SEPA est généré tout de suite (la RUM ne
@@ -495,14 +618,14 @@ class Psc_Requests {
         // IBAN en clair. Un échec de génération ne doit jamais bloquer
         // l'inscription : l'e-mail part alors simplement sans pièce jointe.
         $mandate_attachments = array();
-        if ($payment_mode === 'prelevement') {
+        if ($payment['mode'] === 'prelevement') {
             $tmp = Psc_Sepa_Mandate::build_temp_pdf(psc_sepa_mandate_ref($request_id), array(
-                'titulaire'   => $sepa_titulaire,
-                'adresse'     => $sepa_adresse,
-                'code_postal' => $sepa_code_postal,
-                'ville'       => $sepa_ville,
-                'iban'        => $sepa_iban,
-                'bic'         => $sepa_bic,
+                'titulaire'   => $payment['titulaire'],
+                'adresse'     => $payment['adresse'],
+                'code_postal' => $payment['code_postal'],
+                'ville'       => $payment['ville'],
+                'iban'        => $payment['iban'],
+                'bic'         => $payment['bic'],
             ));
             if ($tmp) $mandate_attachments[] = $tmp;
         }
@@ -511,12 +634,9 @@ class Psc_Requests {
             array('psc_req' => $request_id, 'psc_vtoken' => $token),
             Psc_Mailer::form_page_url()
         );
-        Psc_Mailer::send_request_verification($email, $url, $mandate_attachments);
+        Psc_Mailer::send_request_verification($data['email'], $url, $mandate_attachments);
 
         foreach ($mandate_attachments as $f) { @unlink($f); }
-
-        wp_safe_redirect(add_query_arg('psc_msg', 'request_sent', $back));
-        exit;
     }
 
     /* ---------------- Vérification de l'adresse ---------------- */
