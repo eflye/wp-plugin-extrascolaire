@@ -34,8 +34,8 @@ Un seul planning annuel par enfant (rythme récurrent + exceptions ponctuelles) 
 - Pas de paiement en ligne : aucune transmission d'ordre bancaire, seulement génération de factures PDF et préparation de fichiers de prélèvement SEPA `pain.008` ; l'acceptation du règlement intérieur se fait par case à cocher horodatée (pas une signature électronique qualifiée).
 - Plugin WordPress classique : PHP 7.4+/WordPress 5.8+, sans framework JS ni build en production (jQuery disponible) ; nécessite HTTPS et un transport d'e-mails fiable, `ZipArchive` (export ODS) et DOM/libxml (export `pain.008`) en production.
 - Sécurité/vie privée déjà en place : jetons de connexion hachés, sessions révocables, mode « consultation mairie » journalisé et limité à 30 minutes (lecture seule stricte, écritures refusées serveur), IBAN chiffré au repos, documents (assurances, factures) hors médiathèque publique, limitation de tentatives sur les formulaires publics, journal d'audit unifié.
-- Conformité RGPD : les mécanismes techniques ne suffisent pas seuls (registre de traitements, durées de conservation, information des familles restent à la charge de la collectivité et de son DPO) — cf. TODO.md.
-- **Accessibilité : cible confirmée = RGAA** (obligation légale pour un service public en ligne français). Un audit RGAA complet n'a pas encore été réalisé ; des attributs ARIA et corrections ponctuelles existent déjà, mais focus/clavier, contraste, zoom et libellés dynamiques restent à vérifier systématiquement (cf. TODO.md, chantier P2-15).
+- Conformité RGPD : les mécanismes techniques ne suffisent pas seuls (registre de traitements, durées de conservation, information des familles restent à la charge de la collectivité et de son DPO) — cf. `docs/feuille-de-route.md` (audit du 06/09/2026 archivé dans `docs/audits/`).
+- **Accessibilité : cible confirmée = RGAA** (obligation légale pour un service public en ligne français). Un audit RGAA complet n'a pas encore été réalisé ; des attributs ARIA et corrections ponctuelles existent déjà, mais focus/clavier, contraste, zoom et libellés dynamiques restent à vérifier systématiquement (cf. `docs/feuille-de-route.md`, chantier P2-15).
 - Le design système existant (Fraunces pour les titres, Work Sans pour l'interface, Cormorant Garamond italique pour les sous-titres d'écran ; palette bleu encre `#24405C`, bleu doux `#4E6C8D`, abricot `#E08A5F`, crème `#FAF6F1`, blush `#F5E7DC`, rouge alerte `#9E4A4A`) est déjà en place sur l'ensemble du portail famille et doit être respecté par tout nouvel écran, pas réinventé.
 
 ## Brand Commitments
@@ -48,7 +48,7 @@ Un seul planning annuel par enfant (rythme récurrent + exceptions ponctuelles) 
 
 - Captures d'écran réelles dans `docs/images/` : `planning-famille.png` (planning annuel espace famille), `tableau-de-bord-mairie.png` (tableau de bord mairie), `pointage-intervenants.png` (pointage mobile intervenants).
 - `README.md` documente le parcours complet (installation, sécurité, limites connues) et sert de source de vérité produit.
-- `TODO.md` et `docs/refactoring-safety-net.md` recensent les chantiers ouverts (accessibilité, RGPD, migrations) — à ne pas présenter comme déjà résolus.
+- `docs/feuille-de-route.md` et `docs/refactoring-safety-net.md` recensent les chantiers ouverts (accessibilité, RGPD, migrations) — à ne pas présenter comme déjà résolus.
 - Aucun témoignage, chiffre d'usage ou étude de cas réel à ce jour : ne pas en inventer pour cette collectivité tant que le service n'est pas en production.
 
 ## Product Principles
@@ -61,4 +61,4 @@ Un seul planning annuel par enfant (rythme récurrent + exceptions ponctuelles) 
 
 ## Accessibility & Inclusion
 
-Cible confirmée : **RGAA**. Aucun audit RGAA complet n'a encore été mené ; c'est un chantier ouvert et documenté (TODO.md, P2-15 : ordre du focus, pièges clavier, annonce des états, libellés actualisés, contrastes, zoom, erreurs rattachées aux champs). Les parcours essentiels (inscription, correction de planning) doivent rester réalisables sans souris, au clavier et avec lecteur d'écran.
+Cible confirmée : **RGAA**. Aucun audit RGAA complet n'a encore été mené ; c'est un chantier ouvert et documenté (`docs/feuille-de-route.md`, P2-15 : ordre du focus, pièges clavier, annonce des états, libellés actualisés, contrastes, zoom, erreurs rattachées aux champs). Les parcours essentiels (inscription, correction de planning) doivent rester réalisables sans souris, au clavier et avec lecteur d'écran.

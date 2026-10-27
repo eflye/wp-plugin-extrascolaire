@@ -138,6 +138,7 @@ Le plugin ne propose pas de paiement en ligne. Il génère les factures et prép
 - [Inventaire du schéma de données](docs/schema-inventory-2026-09-10.md) (état au 10/09/2026 ; schéma actuel : 4.18.0)
 - [Contrats d’une journée : présence, repas, facturation](docs/contrats-planning.md)
 - [Filet de sécurité du refactoring](docs/refactoring-safety-net.md)
+- [Feuille de route : ce qui reste ouvert](docs/feuille-de-route.md) (seule liste vivante) et [audits archivés](docs/audits/) (états figés)
 
 <details>
 <summary>Développer et tester localement</summary>

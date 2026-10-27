@@ -51,6 +51,7 @@ Pour toute fonctionnalité qui touche aux données :
 - Reformule le besoin et liste ce qui sera livré avant de commencer.
 - Signale toute ambiguïté fonctionnelle sous forme de question fermée, avec ta recommandation.
 - Limite les modifications au périmètre validé ; note les améliorations annexes dans une section « Pistes » du compte rendu.
+- Ce qui reste ouvert se tient dans `docs/feuille-de-route.md` (seule liste vivante) ; les audits de `docs/audits/` sont figés et ne se réécrivent pas.
 
 ### 3.3 Commits atomiques
 - Un commit = une unité cohérente (schéma, logique métier, UI admin, UI parent, tests, docs).

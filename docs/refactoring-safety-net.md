@@ -1,7 +1,7 @@
 # Filet de sécurité du refactoring
 
 Ce document fixe les contrôles obligatoires avant chaque étape du
-`REFACTORING_PLAN.md`. Une étape ne doit pas être fusionnée si l'un de ces
+[plan de refactoring](audits/2026-09-10-plan-de-refactoring.md) (archivé ; ce qui reste ouvert est dans la [feuille de route](feuille-de-route.md)). Une étape ne doit pas être fusionnée si l'un de ces
 contrôles échoue.
 
 ## Portes de qualité
