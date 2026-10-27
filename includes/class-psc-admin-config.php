@@ -60,12 +60,52 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         exit;
     }
 
+    /**
+     * Enregistrement des réglages : chaque groupe de champs est lu,
+     * assaini et écrit par une méthode dédiée, dans l'ordre historique du
+     * formulaire (l'ordre des options modifiées est celui consigné au
+     * journal). Les coordonnées du créancier sont validées AVANT toute
+     * écriture : une erreur n'a modifié aucun réglage.
+     */
     public static function handle_save_settings() {
         self::guard('psc_save_settings');
 
-        // Options réellement modifiées par cet enregistrement (noms seuls,
-        // jamais les valeurs) : le journal ne liste plus tous les champs du
-        // formulaire comme « modifiés » (PRA-17).
+        list($changed_options, $untrack) = self::track_changed_options();
+
+        $creditor = self::read_creditor();
+
+        self::save_delays_and_switches();
+        self::save_link_lifetimes();
+        self::save_sidscm();
+        self::save_contacts();
+        $privacy_refused = self::save_privacy();
+        $ics_refused     = self::save_calendar_url();
+        self::save_billing($creditor);
+        self::save_documents();
+        self::save_school_year();
+
+        // La liste des options modifiées (noms, jamais leur valeur —
+        // certaines portent des coordonnées bancaires ou un code d'accès)
+        // suffit à documenter QUOI a changé sans y exposer de secret.
+        $untrack();
+        Psc_Audit::log('reglage.modification', array(
+            'objet_type' => 'reglage',
+            'meta' => array('champs' => array_keys($changed_options())),
+        ));
+
+        self::redirect('psc_settings', $ics_refused ? 'ics_url_refused' : ($privacy_refused ? 'privacy_refused' : 'saved'));
+    }
+
+    /**
+     * Options réellement modifiées par cet enregistrement (noms seuls,
+     * jamais les valeurs) : le journal ne liste plus tous les champs du
+     * formulaire comme « modifiés » (PRA-17). Retourne une fonction qui
+     * livre les noms accumulés au fil des écritures et celle qui retire
+     * les écouteurs.
+     *
+     * @return array{0: callable(): array<string, true>, 1: callable(): void}
+     */
+    private static function track_changed_options() {
         $changed = array();
         $track = function ($name, $old = null, $new = null) use (&$changed) {
             if (strpos((string) $name, 'psc_') !== 0) return;
@@ -76,8 +116,22 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         $on_add = function ($name) use ($track) { $track($name); };
         add_action('updated_option', $on_update, 10, 3);
         add_action('added_option', $on_add, 10, 1);
+        $untrack = function () use ($on_update, $on_add) {
+            remove_action('updated_option', $on_update, 10);
+            remove_action('added_option', $on_add, 10);
+        };
+        $changed_options = function () use (&$changed) { return $changed; };
+        return array($changed_options, $untrack);
+    }
 
-        // Valider les coordonnées avant toute sauvegarde des réglages.
+    /**
+     * Coordonnées du créancier (IBAN, BIC, ICS), validées avant toute
+     * sauvegarde ; wp_die() si l'une est invalide ou si le chiffrement
+     * échoue — aucun réglage n'a alors été modifié.
+     *
+     * @return array{ics: string, iban_encrypted: string|null, bic: string}
+     */
+    private static function read_creditor() {
         $org_iban_raw = wp_unslash($_POST['org_iban'] ?? '');
         $org_bic_raw = wp_unslash($_POST['org_bic'] ?? '');
         $org_ics_raw = wp_unslash($_POST['org_ics'] ?? '');
@@ -90,6 +144,11 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         $org_iban_encrypted = psc_encrypt($org_iban === '' ? null : $org_iban);
         if (is_wp_error($org_iban_encrypted)) wp_die(esc_html($org_iban_encrypted->get_error_message()), '', array('response' => 500, 'back_link' => true));
 
+        return array('ics' => $org_ics, 'iban_encrypted' => $org_iban_encrypted, 'bic' => $org_bic);
+    }
+
+    /** Délai de prévenance (borné) et interrupteurs généraux. */
+    private static function save_delays_and_switches() {
         // Délai de prévenance, borné pour éviter une valeur absurde.
         $hours = psc_post_int('lock_hours', 48);
         update_option('psc_lock_hours', max(0, min(720, $hours)));
@@ -98,15 +157,22 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         update_option('psc_impersonation_visible_famille', isset($_POST['impersonation_visible_famille']) ? 1 : 0);
         update_option('psc_auto_approve_requests', isset($_POST['auto_approve_requests']) ? 1 : 0);
         update_option('psc_assurance_review_mode', psc_post('assurance_review_mode') === 'manual' ? 'manual' : 'auto');
+    }
 
-        // Durées de validité des liens envoyés par e-mail, bornées pour
-        // éviter une valeur absurde (lien de connexion : entre 5 min et
-        // 24h ; lien de confirmation : entre 1 et 30 jours).
+    /**
+     * Durées de validité des liens envoyés par e-mail, bornées pour
+     * éviter une valeur absurde (lien de connexion : entre 5 min et
+     * 24h ; lien de confirmation : entre 1 et 30 jours).
+     */
+    private static function save_link_lifetimes() {
         $login_ttl_minutes = psc_post_int('login_link_ttl_minutes', 30);
         update_option('psc_login_link_ttl_minutes', max(5, min(1440, $login_ttl_minutes)));
         $email_ttl_days = psc_post_int('email_confirmation_ttl_days', 3);
         update_option('psc_email_confirmation_ttl_days', max(1, min(30, $email_ttl_days)));
+    }
 
+    /** Écran des intervenants : code partagé, intervenants nommés, page. */
+    private static function save_sidscm() {
         $sidscm_code = isset($_POST['sidscm_access_code']) ? sanitize_text_field(wp_unslash($_POST['sidscm_access_code'])) : '';
         update_option('psc_sidscm_access_code', mb_substr(trim($sidscm_code), 0, 40));
         if (class_exists('Psc_Sidscm')) {
@@ -122,7 +188,10 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         }
         update_option('psc_sidscm_page_id', psc_post_int('sidscm_page_id', 0));
         update_option('psc_form_page_id', psc_post_int('form_page_id', 0));
+    }
 
+    /** Adresses de la mairie, échanges, conservation des factures, délai et téléphone d'urgence. */
+    private static function save_contacts() {
         $mairie_mail = isset($_POST['mairie_email']) ? sanitize_email(wp_unslash($_POST['mairie_email'])) : '';
         update_option('psc_mairie_email', is_email($mairie_mail) ? $mairie_mail : '');
 
@@ -144,9 +213,15 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         // (réorganisation du menu, §6) — cf.
         // Psc_Admin_Cantine::handle_save_supplier_settings(), qui seul
         // écrit désormais cette option.
+    }
 
-        // Confidentialité : notice des familles (cf. Psc_Privacy). Une valeur
-        // invalide n'écrase pas la précédente et l'écran le signale.
+    /**
+     * Confidentialité : notice des familles (cf. Psc_Privacy). Une valeur
+     * invalide n'écrase pas la précédente et l'écran le signale.
+     *
+     * @return bool Vrai si au moins une valeur a été refusée.
+     */
+    private static function save_privacy() {
         $privacy_refused = false;
         $municipality = isset($_POST['privacy_municipality']) ? sanitize_text_field(wp_unslash($_POST['privacy_municipality'])) : '';
         update_option('psc_privacy_municipality', mb_substr(trim($municipality), 0, 190));
@@ -167,18 +242,31 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         } else {
             update_option('psc_privacy_policy_url', $policy_url);
         }
+        return $privacy_refused;
+    }
 
-        // Adresse du calendrier : refusée (et l'ancienne conservée) si elle
-        // n'est pas une adresse web publique — cf. validate_ics_url().
+    /**
+     * Adresse du calendrier : refusée (et l'ancienne conservée) si elle
+     * n'est pas une adresse web publique — cf. validate_ics_url().
+     *
+     * @return bool Vrai si l'adresse a été refusée.
+     */
+    private static function save_calendar_url() {
         $ics_url = isset($_POST['school_calendar_ics_url']) ? esc_url_raw(wp_unslash($_POST['school_calendar_ics_url'])) : '';
-        $ics_refused = false;
         if ($ics_url === '' || !is_wp_error(Psc_School_Calendar::validate_ics_url($ics_url))) {
             update_option('psc_school_calendar_ics_url', $ics_url);
-        } else {
-            $ics_refused = true;
+            return false;
         }
+        return true;
+    }
 
-        // Billing / invoice settings
+    /**
+     * En-tête et pied des factures, coordonnées du créancier (déjà
+     * validées par read_creditor()), logos.
+     *
+     * @param array{ics: string, iban_encrypted: string|null, bic: string} $creditor
+     */
+    private static function save_billing(array $creditor) {
         $billing_fields = array(
             'psc_billing_org_intro'   => 'sanitize_text_field',
             'psc_billing_org_name'    => 'sanitize_text_field',
@@ -194,15 +282,21 @@ class Psc_Admin_Config extends Psc_Admin_Base {
             $val = isset($_POST[$post_key]) ? call_user_func($sanitizer, wp_unslash($_POST[$post_key])) : '';
             update_option($option, $val);
         }
-        update_option('psc_billing_org_ics', $org_ics);
-        update_option('psc_billing_org_iban', $org_iban_encrypted, false);
-        update_option('psc_billing_org_bic', $org_bic, false);
+        update_option('psc_billing_org_ics', $creditor['ics']);
+        update_option('psc_billing_org_iban', $creditor['iban_encrypted'], false);
+        update_option('psc_billing_org_bic', $creditor['bic'], false);
         update_option('psc_billing_logo_left_id',  absint(isset($_POST['logo_left_id'])  ? $_POST['logo_left_id']  : 0));
         update_option('psc_billing_logo_right_id', absint(isset($_POST['logo_right_id']) ? $_POST['logo_right_id'] : 0));
+    }
 
+    /** Documents PDF remis aux familles (règlements). */
+    private static function save_documents() {
         update_option('psc_doc_reglement_interieur_id',   absint(isset($_POST['doc_reglement_interieur_id'])   ? $_POST['doc_reglement_interieur_id']   : 0));
         update_option('psc_doc_reglement_prelevement_id', absint(isset($_POST['doc_reglement_prelevement_id']) ? $_POST['doc_reglement_prelevement_id'] : 0));
+    }
 
+    /** Table de passage d'année et fenêtre de réinscription. */
+    private static function save_school_year() {
         // Table de correspondance des classes (passage d'année) : un select
         // par classe existante vers sa classe suivante, ou "sortie".
         $progression = self::sanitize_progression(wp_unslash($_POST));
@@ -212,18 +306,6 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         $reins_fin   = psc_valid_date(psc_post('reinscription_fin'));
         update_option('psc_reinscription_debut', $reins_debut ?: '');
         update_option('psc_reinscription_fin', $reins_fin ?: '');
-
-        // La liste des options modifiées (noms, jamais leur valeur —
-        // certaines portent des coordonnées bancaires ou un code d'accès)
-        // suffit à documenter QUOI a changé sans y exposer de secret.
-        remove_action('updated_option', $on_update, 10);
-        remove_action('added_option', $on_add, 10);
-        Psc_Audit::log('reglage.modification', array(
-            'objet_type' => 'reglage',
-            'meta' => array('champs' => array_keys($changed)),
-        ));
-
-        self::redirect('psc_settings', $ics_refused ? 'ics_url_refused' : ($privacy_refused ? 'privacy_refused' : 'saved'));
     }
 
     /**
