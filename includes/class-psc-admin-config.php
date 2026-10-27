@@ -88,9 +88,10 @@ class Psc_Admin_Config extends Psc_Admin_Base {
         // certaines portent des coordonnées bancaires ou un code d'accès)
         // suffit à documenter QUOI a changé sans y exposer de secret.
         $untrack();
+        $changed = $changed_options();
         Psc_Audit::log('reglage.modification', array(
             'objet_type' => 'reglage',
-            'meta' => array('champs' => array_keys($changed_options())),
+            'meta' => array('champs' => array_keys($changed)),
         ));
 
         self::redirect('psc_settings', $ics_refused ? 'ics_url_refused' : ($privacy_refused ? 'privacy_refused' : 'saved'));
