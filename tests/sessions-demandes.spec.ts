@@ -8,7 +8,7 @@
  * ici, ce qui demande une vraie requête HTTP ou un écran, avec les
  * contrôles de droits.
  *
- * Origine : audit du 14/10/2026, lot 1 (ex-tests/audit-fixes-lot1.spec.ts).
+ * Origine : audit du 14/10/2026, lot 1.
  */
 
 import { test, expect, type Page } from '@playwright/test';

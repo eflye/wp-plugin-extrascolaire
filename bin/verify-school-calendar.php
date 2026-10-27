@@ -6,9 +6,9 @@
  * réelles. Aucun e-mail ne part (pre_wp_mail), aucune requête réseau
  * (pre_http_request). Chaque section crée puis supprime ses données.
  *
- * Origine : audit du 14/10/2026, lot 3 (ex-bin/verify-audit-lot3.php,
- * scindé par domaine avec verify-notifications.php et
- * verify-performance.php). Les références renvoient à AUDIT.md. L'import
+ * Origine : audit du 14/10/2026, lot 3 (script scindé par domaine avec
+ * verify-notifications.php et verify-performance.php). Les références
+ * renvoient à AUDIT.md. L'import
  * ICS lui-même (réseau interne, réponses aberrantes) est couvert par
  * bin/verify-ics-import.php.
  *

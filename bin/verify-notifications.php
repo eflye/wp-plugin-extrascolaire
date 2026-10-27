@@ -5,9 +5,9 @@
  * conditions WP-CLI réelles. Aucun e-mail ne part (pre_wp_mail). Une
  * section par constat ; chaque section crée puis supprime ses données.
  *
- * Origine : audit du 14/10/2026, lot 3 (ex-bin/verify-audit-lot3.php,
- * scindé par domaine avec verify-school-calendar.php et
- * verify-performance.php). Les références renvoient à AUDIT.md.
+ * Origine : audit du 14/10/2026, lot 3 (script scindé par domaine avec
+ * verify-school-calendar.php et verify-performance.php). Les références
+ * renvoient à AUDIT.md.
  *
  * Vérifie :
  *  - SEC-02/L3 : avis à l'ancienne adresse lors d'un changement, modèle

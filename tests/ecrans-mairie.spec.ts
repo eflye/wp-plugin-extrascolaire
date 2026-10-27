@@ -8,7 +8,7 @@
  * bin/verify-school-calendar.php et bin/verify-performance.php ; ici, ce
  * qui demande une vraie requête HTTP ou un écran.
  *
- * Origine : audit du 14/10/2026, lot 3 (ex-tests/audit-fixes-lot3.spec.ts).
+ * Origine : audit du 14/10/2026, lot 3.
  */
 
 import { test, expect, type Page } from '@playwright/test';

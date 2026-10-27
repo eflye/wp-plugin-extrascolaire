@@ -6,7 +6,7 @@
  * interceptés (pre_wp_mail), les redirections et wp_die() sont capturés
  * pour lire la réponse sans terminer le processus.
  *
- * Origine : audit du 14/10/2026, lot 1 (ex-bin/verify-audit-lot1.php).
+ * Origine : audit du 14/10/2026, lot 1.
  * Les références SEC-*, RGPD-*, PERF-*, PRA-* renvoient à AUDIT.md.
  *
  * Vérifie :

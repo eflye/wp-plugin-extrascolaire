@@ -11,9 +11,8 @@
  * WordPress. Les diffusions elles-mêmes sont couvertes par
  * tests/messages.spec.ts, les échanges par tests/conversations.spec.ts.
  *
- * Origine : audit du 14/10/2026, lot 2 (ex-tests/audit-fixes-lot2.spec.ts,
- * scindé par domaine). Données créées et supprimées par la spec (préfixe
- * « messages-e2e »).
+ * Origine : audit du 14/10/2026, lot 2 (spec scindée par domaine). Données
+ * créées et supprimées par la spec (préfixe « messages-e2e »).
  */
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';

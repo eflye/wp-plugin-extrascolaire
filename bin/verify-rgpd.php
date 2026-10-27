@@ -5,7 +5,7 @@
  * conservation, suppression des coordonnées bancaires ; plus le verrou de
  * chaînage du journal et deux lectures légères des messages.
  *
- * Origine : audit du 14/10/2026, lot 2 (ex-bin/verify-audit-lot2.php).
+ * Origine : audit du 14/10/2026, lot 2.
  * Les références RGPD-*, SEC-*, PERF-* renvoient à AUDIT.md.
  *
  * Vérifie :

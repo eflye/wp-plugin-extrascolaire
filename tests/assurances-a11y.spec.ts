@@ -3,8 +3,8 @@
  * et en-têtes de colonnes, aucune violation axe. Le parcours de dépôt et
  * de revue est couvert par tests/assurance-review.spec.ts.
  *
- * Origine : audit du 14/10/2026, lot 2 (ex-tests/audit-fixes-lot2.spec.ts,
- * scindé par domaine). Compte créé et supprimé par la spec.
+ * Origine : audit du 14/10/2026, lot 2 (spec scindée par domaine). Compte
+ * créé et supprimé par la spec.
  */
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';

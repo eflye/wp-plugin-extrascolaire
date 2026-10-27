@@ -8,9 +8,9 @@
  * e-mail ne part (pre_wp_mail). Chaque section crée puis supprime ses
  * données.
  *
- * Origine : audit du 14/10/2026, lot 3 (ex-bin/verify-audit-lot3.php,
- * scindé par domaine avec verify-notifications.php et
- * verify-school-calendar.php). Les références renvoient à AUDIT.md.
+ * Origine : audit du 14/10/2026, lot 3 (script scindé par domaine avec
+ * verify-notifications.php et verify-school-calendar.php). Les références
+ * renvoient à AUDIT.md.
  *
  * Vérifie :
  *  - PRA-12 : détection commune des pages à shortcode, cache invalidé à

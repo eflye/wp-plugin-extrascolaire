@@ -8,9 +8,8 @@
  * l'écran d'édition d'une famille et les contrôles d'habilitation servis
  * par WordPress.
  *
- * Origine : audit du 14/10/2026, lot 2 (ex-tests/audit-fixes-lot2.spec.ts,
- * scindé par domaine). Données créées et supprimées par la spec (préfixe
- * « iban-e2e »).
+ * Origine : audit du 14/10/2026, lot 2 (spec scindée par domaine). Données
+ * créées et supprimées par la spec (préfixe « iban-e2e »).
  */
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
