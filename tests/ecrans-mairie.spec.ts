@@ -1,8 +1,14 @@
 /**
- * Corrections d'audit — lot 3 (envois, calendrier, facturation,
- * performance, administration). Les assertions de logique pure vivent
- * dans bin/verify-audit-lot3.php ; ici, ce qui demande une vraie requête
- * HTTP ou un écran.
+ * Écrans de la mairie (WP Admin) : réglages fournisseur selon
+ * l'habilitation, annonce des envois en cours (role=status), menu sans
+ * lien vide et écran d'origine surligné, intitulés de section stylés ;
+ * plus les en-têtes de cache du portail famille (no-store/private).
+ *
+ * Les assertions de logique pure vivent dans bin/verify-notifications.php,
+ * bin/verify-school-calendar.php et bin/verify-performance.php ; ici, ce
+ * qui demande une vraie requête HTTP ou un écran.
+ *
+ * Origine : audit du 14/10/2026, lot 3 (ex-tests/audit-fixes-lot3.spec.ts).
  */
 
 import { test, expect, type Page } from '@playwright/test';
@@ -12,8 +18,8 @@ import { readFormPageUrl } from '../playwright/seed-result';
 import { APP_BASE, ENGINE, CONTAINER } from '../helpers/env';
 
 const CONTAINER_WP_CLI = '/usr/local/bin/wp-cli.phar';
-const AGENT_LOGIN = 'psc-e2e-lot3-presence';
-const AGENT_PASSWORD = 'Lot3-Presence-E2E-2026';
+const AGENT_LOGIN = 'psc-e2e-ecrans-presence';
+const AGENT_PASSWORD = 'Ecrans-Presence-E2E-2026';
 
 function wpCliEval(php: string): string {
   return execFileSync(
@@ -23,7 +29,7 @@ function wpCliEval(php: string): string {
   ).trim();
 }
 
-test.describe('Audit — lot 3', () => {
+test.describe('Écrans de la mairie', () => {
   test('PRA-09 : le portail part avec no-store/private, émis avant le rendu', async ({ request }) => {
     expect(wpCliEval(
       "echo has_action('template_redirect', array('Psc_Frontend', 'portal_private_headers')) !== false ? 'ok' : 'absent';"
