@@ -12,6 +12,7 @@ La suite `tests/a11y-parcours.spec.ts` tourne dans l'intégration continue. Une 
 - **Zoom à 400 %** : chaque page est affichée sur 320 pixels de large, et aucune ne doit défiler horizontalement (critère 1.4.10).
 - **Clavier seul** : corriger le planning d'un enfant en n'utilisant que le clavier. On atteint l'onglet de l'enfant et une case avec Tab, on les active avec Entrée et Espace, puis l'écriture est vérifiée en base. On demande aussi un lien de connexion au clavier.
 - **Écrans de la mairie** : les écrans d'envoi (menus, factures, commande fournisseur) et les réglages ont leur propre contrôle axe.
+- **Tableaux** (critères RGAA 5.4, 5.6 et 5.7, que axe ne vérifie pas) : un contrôle statique des gabarits (`tests/unit/run.php`) exige une légende `<caption>` sur chaque tableau de données et un attribut `scope` sur chaque cellule d'en-tête, côté familles comme côté mairie.
 
 ## Contrôle du 24/09/2026 : corrections apportées
 
