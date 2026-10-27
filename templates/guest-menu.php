@@ -15,6 +15,7 @@
 
 <?php if ($psc_guest_menu['has_content']): ?>
 <table class="psc-guest-menu-table">
+<caption class="screen-reader-text"><?php esc_html_e('Menu de la cantine, par jour', 'periscolaire-registration'); ?></caption>
   <?php foreach ($psc_guest_menu['days'] as $d): ?>
   <tr>
     <th scope="row"><?php echo esc_html($d['day']); ?></th>

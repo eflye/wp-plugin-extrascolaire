@@ -59,7 +59,7 @@ echo ' ' . esc_html__('Les envois se poursuivent en arrière-plan : le menu sera
 <table class="form-table">
 <?php foreach (Psc_Menus::jour_labels() as $key => $label): if (!isset($open_days[$key])) continue; ?>
 <tr>
-    <th><label for="psc-menu-<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?> <span class="description">(<?php echo esc_html(date_i18n('d/m', strtotime($open_days[$key]))); ?>)</span></label></th>
+    <th scope="row"><label for="psc-menu-<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?> <span class="description">(<?php echo esc_html(date_i18n('d/m', strtotime($open_days[$key]))); ?>)</span></label></th>
     <td>
         <textarea id="psc-menu-<?php echo esc_attr($key); ?>" name="<?php echo esc_attr($key); ?>" rows="3" class="large-text" data-menu-input maxlength="2000"><?php
             echo esc_textarea($editing ? $editing->$key : '');
@@ -69,7 +69,7 @@ echo ' ' . esc_html__('Les envois se poursuivent en arrière-plan : le menu sera
 </tr>
 <?php endforeach; ?>
 <tr>
-    <th><label for="psc-menu-origine-viande"><?php esc_html_e('Origine de la viande', 'periscolaire-registration'); ?></label></th>
+    <th scope="row"><label for="psc-menu-origine-viande"><?php esc_html_e('Origine de la viande', 'periscolaire-registration'); ?></label></th>
     <td>
         <textarea id="psc-menu-origine-viande" name="origine_viande" rows="4" class="large-text" maxlength="2000"><?php echo esc_textarea($editing && isset($editing->origine_viande) ? $editing->origine_viande : Psc_Menus::default_meat_origin()); ?></textarea>
         <p class="description"><?php esc_html_e('Mention affichée sous le menu de cette semaine et dans son e-mail. Laissez vide pour ne pas l’afficher.', 'periscolaire-registration'); ?></p>
@@ -98,12 +98,13 @@ if ($psc_menu_opted_out > 0) {
 }
 ?></p>
 <table class="widefat striped">
+<caption class="screen-reader-text"><?php esc_html_e('Menus enregistrés', 'periscolaire-registration'); ?></caption>
 <thead>
 <tr>
-    <th><?php esc_html_e('Semaine du', 'periscolaire-registration'); ?></th>
-    <th><?php esc_html_e('Aperçu', 'periscolaire-registration'); ?></th>
-    <th><?php esc_html_e('Envoi', 'periscolaire-registration'); ?></th>
-    <th><?php esc_html_e('Actions', 'periscolaire-registration'); ?></th>
+    <th scope="col"><?php esc_html_e('Semaine du', 'periscolaire-registration'); ?></th>
+    <th scope="col"><?php esc_html_e('Aperçu', 'periscolaire-registration'); ?></th>
+    <th scope="col"><?php esc_html_e('Envoi', 'periscolaire-registration'); ?></th>
+    <th scope="col"><?php esc_html_e('Actions', 'periscolaire-registration'); ?></th>
 </tr>
 </thead>
 <tbody>

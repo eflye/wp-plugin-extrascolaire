@@ -710,7 +710,11 @@ a.psc-portal-switch-link:focus-visible {
     font-weight: 600;
     white-space: nowrap;
 }
-.psc-portal-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* position: relative — un texte masqué (.screen-reader-text, en
+   position absolue) placé dans une cellule d'un tableau plus large que
+   l'écran se positionnerait sinon par rapport à la page, hors du
+   conteneur, et élargirait la page de la largeur du tableau. */
+.psc-portal-table-scroll { position: relative; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .psc-portal-calendar {
     border-collapse: collapse;
     width: 100%;

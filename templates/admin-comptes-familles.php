@@ -8,11 +8,12 @@
 <?php else: ?>
 <p><strong><?php esc_html_e('Total dû à ce jour :', 'periscolaire-registration'); ?> <?php echo esc_html(number_format(array_sum(array_column($accounts, 'due')) / 100, 2, ',', ' ')); ?> €</strong></p>
 <table class="widefat striped">
+<caption class="screen-reader-text"><?php esc_html_e('État des comptes des familles', 'periscolaire-registration'); ?></caption>
 <thead><tr>
-<th><?php esc_html_e('Famille', 'periscolaire-registration'); ?></th>
-<th><?php esc_html_e('Factures payées et non payées', 'periscolaire-registration'); ?></th>
-<th style="text-align:right"><?php esc_html_e('Total payé', 'periscolaire-registration'); ?></th>
-<th style="text-align:right"><?php esc_html_e('Somme due à ce jour', 'periscolaire-registration'); ?></th>
+<th scope="col"><?php esc_html_e('Famille', 'periscolaire-registration'); ?></th>
+<th scope="col"><?php esc_html_e('Factures payées et non payées', 'periscolaire-registration'); ?></th>
+<th scope="col" style="text-align:right"><?php esc_html_e('Total payé', 'periscolaire-registration'); ?></th>
+<th scope="col" style="text-align:right"><?php esc_html_e('Somme due à ce jour', 'periscolaire-registration'); ?></th>
 </tr></thead>
 <tbody>
 <?php foreach ($accounts as $account): ?>

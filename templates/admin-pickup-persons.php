@@ -14,7 +14,8 @@
 <p><em><?php esc_html_e('Aucune personne autorisée déclarée pour le moment.', 'periscolaire-registration'); ?></em></p>
 <?php else: ?>
 <table class="widefat striped">
-<thead><tr><th><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Téléphone', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Lien', 'periscolaire-registration'); ?></th></tr></thead>
+<caption class="screen-reader-text"><?php esc_html_e('Personnes autorisées — liste courante', 'periscolaire-registration'); ?></caption>
+<thead><tr><th scope="col"><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Téléphone', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Lien', 'periscolaire-registration'); ?></th></tr></thead>
 <tbody>
 <?php foreach ($pickup_parent_rows as $pr): ?>
 <tr>
@@ -44,7 +45,8 @@
 <p><em><?php esc_html_e('Aucun historique pour le moment.', 'periscolaire-registration'); ?></em></p>
 <?php else: ?>
 <table class="widefat striped">
-<thead><tr><th><?php esc_html_e('Date', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Action', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Personne', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Détail', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Auteur', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Source', 'periscolaire-registration'); ?></th></tr></thead>
+<caption class="screen-reader-text"><?php esc_html_e('Historique des personnes autorisées', 'periscolaire-registration'); ?></caption>
+<thead><tr><th scope="col"><?php esc_html_e('Date', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Action', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Personne', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Détail', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Auteur', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Source', 'periscolaire-registration'); ?></th></tr></thead>
 <tbody>
 <?php
 $psc_action_labels = array('ajout' => __('Ajout', 'periscolaire-registration'), 'modification' => __('Modification', 'periscolaire-registration'), 'retrait' => __('Retrait', 'periscolaire-registration'));

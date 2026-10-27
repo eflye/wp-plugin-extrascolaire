@@ -33,7 +33,7 @@ psc_admin_notice_map($psc_notices, $psc_msg);
 <input type="hidden" name="action" value="psc_save_supplier_settings">
 <table class="form-table">
 <tr>
-<th><label for="psc-supplier-mail"><?php esc_html_e('Adresse du fournisseur', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-supplier-mail"><?php esc_html_e('Adresse du fournisseur', 'periscolaire-registration'); ?></label></th>
 <td>
   <input id="psc-supplier-mail" type="email" name="supplier_email" class="regular-text"
          value="<?php echo esc_attr(get_option('psc_supplier_email', '')); ?>"

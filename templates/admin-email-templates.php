@@ -60,7 +60,7 @@ psc_admin_notice_map(array(
 
         <table class="form-table" style="margin:0;">
             <tr>
-                <th style="width:120px;padding:8px 0;"><label for="tpl_<?php echo esc_attr($key); ?>_subject"><?php esc_html_e('Sujet', 'periscolaire-registration'); ?></label></th>
+                <th scope="row" style="width:120px;padding:8px 0;"><label for="tpl_<?php echo esc_attr($key); ?>_subject"><?php esc_html_e('Sujet', 'periscolaire-registration'); ?></label></th>
                 <td style="padding:8px 0;">
                     <input type="text"
                            id="tpl_<?php echo esc_attr($key); ?>_subject"
@@ -70,7 +70,7 @@ psc_admin_notice_map(array(
                 </td>
             </tr>
             <tr>
-                <th style="padding:8px 0;vertical-align:top;"><label for="tpl_<?php echo esc_attr($key); ?>_body"><?php esc_html_e('Corps', 'periscolaire-registration'); ?></label></th>
+                <th scope="row" style="padding:8px 0;vertical-align:top;"><label for="tpl_<?php echo esc_attr($key); ?>_body"><?php esc_html_e('Corps', 'periscolaire-registration'); ?></label></th>
                 <td style="padding:8px 0;">
                     <textarea id="tpl_<?php echo esc_attr($key); ?>_body"
                               name="templates[<?php echo esc_attr($key); ?>][body]"
@@ -90,7 +90,7 @@ psc_admin_notice_map(array(
             </tr>
             <?php if (!empty($tpl['has_footer'])): ?>
             <tr>
-                <th style="padding:8px 0;vertical-align:top;"><label for="tpl_<?php echo esc_attr($key); ?>_footer"><?php esc_html_e('Pied de mail', 'periscolaire-registration'); ?></label></th>
+                <th scope="row" style="padding:8px 0;vertical-align:top;"><label for="tpl_<?php echo esc_attr($key); ?>_footer"><?php esc_html_e('Pied de mail', 'periscolaire-registration'); ?></label></th>
                 <td style="padding:8px 0;">
                     <textarea id="tpl_<?php echo esc_attr($key); ?>_footer"
                               name="templates[<?php echo esc_attr($key); ?>][footer]"

@@ -150,15 +150,16 @@ echo ' ' . esc_html__('Les envois se poursuivent en arrière-plan : rechargez la
 </p>
 
 <table class="widefat striped psc-recap">
+<caption class="screen-reader-text"><?php esc_html_e('Factures du mois sélectionné, par famille', 'periscolaire-registration'); ?></caption>
 <thead>
 <tr>
-    <th><?php esc_html_e('Famille', 'periscolaire-registration'); ?></th>
-    <th><?php esc_html_e('Email', 'periscolaire-registration'); ?></th>
-    <th style="text-align:right"><?php esc_html_e('Total', 'periscolaire-registration'); ?></th>
-    <th><?php esc_html_e('Générée le', 'periscolaire-registration'); ?></th>
-    <th><?php esc_html_e('Envoyée le', 'periscolaire-registration'); ?></th>
-    <th><?php esc_html_e('Paiement', 'periscolaire-registration'); ?></th>
-    <th><?php esc_html_e('Actions', 'periscolaire-registration'); ?></th>
+    <th scope="col"><?php esc_html_e('Famille', 'periscolaire-registration'); ?></th>
+    <th scope="col"><?php esc_html_e('Email', 'periscolaire-registration'); ?></th>
+    <th scope="col" style="text-align:right"><?php esc_html_e('Total', 'periscolaire-registration'); ?></th>
+    <th scope="col"><?php esc_html_e('Générée le', 'periscolaire-registration'); ?></th>
+    <th scope="col"><?php esc_html_e('Envoyée le', 'periscolaire-registration'); ?></th>
+    <th scope="col"><?php esc_html_e('Paiement', 'periscolaire-registration'); ?></th>
+    <th scope="col"><?php esc_html_e('Actions', 'periscolaire-registration'); ?></th>
 </tr>
 </thead>
 <tbody>
@@ -226,11 +227,11 @@ echo ' ' . esc_html__('Les envois se poursuivent en arrière-plan : rechargez la
 </tbody>
 <tfoot>
 <tr>
-    <th colspan="2"><?php esc_html_e('Total du mois', 'periscolaire-registration'); ?></th>
-    <th style="text-align:right">
+    <th scope="row" colspan="2"><?php esc_html_e('Total du mois', 'periscolaire-registration'); ?></th>
+    <td style="text-align:right">
         <?php echo esc_html(number_format(array_sum(array_column($invoices, 'total')), 2, ',', ' ')); ?> €
-    </th>
-    <th colspan="4"></th>
+    </td>
+    <td colspan="4"></td>
 </tr>
 </tfoot>
 </table>
