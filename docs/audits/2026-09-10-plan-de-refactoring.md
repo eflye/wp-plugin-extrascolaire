@@ -1,5 +1,7 @@
 # Plan de refactoring
 
+> **Document archivé, état figé au 26/09/2026.** Ce qui reste ouvert est suivi dans [la feuille de route](../feuille-de-route.md). Les chantiers P1/P3 cités renvoient à [2026-09-06-audit-protection-des-donnees.md](2026-09-06-audit-protection-des-donnees.md) (ancien `TODO.md`).
+
 ## 1. Résumé
 
 Le projet est un plugin WordPress 5.8+ en PHP 7.4+, organisé par domaines mais encore concentré dans plusieurs classes volumineuses. Le chemin de démarrage et les hooks sont explicites ; aucun fichier PHP applicatif manifestement orphelin n'a été trouvé. Les principaux gains rapides sont l'extraction de requêtes et d'agrégations dupliquées, puis la décomposition de deux méthodes de plus de 200 lignes. Le schéma courant compte 17 tables, avec des index globalement cohérents pour le planning, mais les recherches sur le second parent et le nettoyage périodique des demandes ne sont pas correctement couvertes. Les clés étrangères sont ajoutées après `dbDelta`, mais plusieurs relations historiques et d'audit restent sans contrainte. Les tables legacy ne doivent pas être supprimées sans inventaire en production et période d'observation. ESLint et le test bancaire navigateur passent ; PHPStan, le lint PHP, les tests PHP/WordPress et les E2E complets n'ont pas pu être exécutés faute de runtime PHP local et d'une instance WordPress vérifiée.

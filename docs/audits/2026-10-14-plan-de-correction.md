@@ -1,5 +1,7 @@
 # Plan de correction — constats d'AUDIT.md
 
+> **Document archivé, état figé au 15/10/2026.** Ce qui reste ouvert est suivi dans [la feuille de route](../feuille-de-route.md). Les constats auxquels ce plan renvoie sont dans [2026-10-14-audit.md](2026-10-14-audit.md).
+
 **Branche :** `audit-fixes`, créée depuis `fix/cycle-de-vie-crons`.
 
 **Équipe :**
