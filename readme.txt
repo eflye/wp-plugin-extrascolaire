@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.39.0
+Stable tag: 5.39.1
 License: GPLv2 or later
 
 == Description ==
@@ -351,6 +351,11 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.39.1 =
+Aucun changement de schéma de base, aucun changement visible.
+
+* **Sous le capot :** cinq traitements longs (enregistrement des réglages, écriture du planning, génération et mise en page des factures) découpés en étapes nommées, à comportement strictement identique — factures PDF vérifiées octet pour octet avant et après. Le contrôle du catalogue de traduction ne réagit plus aux simples déplacements de code.
 
 = 5.39.0 =
 Aucun changement de schéma de base.
