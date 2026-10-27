@@ -53,6 +53,10 @@ Le fichier est vérifié sur son contenu : il doit s'agir d'un vrai PDF, JPEG ou
 
 Elle doit être une adresse web publique (`http` ou `https`). Une adresse qui désigne le serveur lui-même ou un réseau interne est refusée, et l'adresse précédente est conservée. Laissez le champ vide pour utiliser l'adresse officielle du ministère.
 
+## Une correction faite dans « Présences déclarées » n'apparaît ni dans le planning ni sur la facture
+
+Avant la version 5.39.0, la correction manuelle de la mairie (cocher ou décocher une prestation, puis **Enregistrer et notifier la famille**) n'était jamais enregistrée, sans message d'erreur. Mettez l'extension à jour, puis refaites les corrections concernées, cf. [Notes de mise à jour](notes-mise-a-jour.md). Depuis la 5.39.0, la correction s'applique et se relit aussitôt à l'écran.
+
 ## Le passage d'année affiche « rien n'a été modifié »
 
 Une écriture a échoué et le passage a été entièrement annulé : aucun enfant n'est à moitié promu. Réglez la cause (base de données, hébergement), puis confirmez de nouveau depuis le récapitulatif, qui est resté disponible.
