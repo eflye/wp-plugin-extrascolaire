@@ -70,7 +70,10 @@ npm run test:local -- tests/invoices.spec.ts   # un seul fichier
 npm run verify:local migrations                # bin/verify-migrations.php, sans risque
 bin/test-stack.sh wp option get psc_db_version # WP-CLI sous www-data
 npm run test:local:down    # détruit conteneurs et volumes
+bin/test-stack.sh reset    # base neuve (down puis up) : à faire avant une suite complète
 ```
+
+Les scénarios supposent une base neuve, comme en CI : certains laissent des traces (passage d'année, factures du mois déjà générées) qui font échouer le passage suivant. Un seul fichier peut se rejouer sans `reset` ; la suite complète, non.
 
 `up` reproduit les étapes d'installation de `.github/workflows/e2e.yml` (même utilisateur `www-data`, `WP_ENVIRONMENT_TYPE local`, thème, extension, page d'accueil). Pour viser la stack depuis un autre outil, `bin/test-stack.sh env` affiche les quatre variables lues par `helpers/env.ts` : `PSC_CONTAINER_ENGINE`, `PSC_WP_CONTAINER`, `PSC_APP_BASE`, `PSC_MAILPIT_API`. Sans elles, scénarios et `globalSetup` visent la stack de travail et la CI.
 
