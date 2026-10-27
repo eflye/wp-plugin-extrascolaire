@@ -130,12 +130,13 @@ admin, e-mail). Le terminer normalement.
 ## 7. Activer et configurer le plugin
 
 1. **Extensions** → activer **Périscolaire — Inscriptions**.
-2. **Périscolaire > Années scolaires** → créer et activer l'année, puis
-   vérifier les dates, vacances, jours fériés et le délai de modification.
-3. **Périscolaire > Calendrier scolaire en cours** → « Charger le calendrier
-   officiel » (si le conteneur a bien un accès sortant vers Internet —
-   sinon, utiliser le bouton d'upload manuel d'un fichier `.ics` sur la
-   même page).
+2. **Périscolaire > Année scolaire** (section **Administration**) → créer
+   et activer l'année, puis vérifier les dates, vacances, jours fériés et
+   le délai de modification.
+3. Même écran, onglet **Historique** → « Charger le calendrier officiel »
+   (si le conteneur a bien un accès sortant vers Internet — sinon,
+   utiliser le bouton d'import manuel d'un fichier `.ics` sur le même
+   onglet).
 4. **Périscolaire > Réglages** → renseigner les informations de
    facturation (dont l'identifiant créancier SEPA si pertinent pour le
    test).
@@ -166,8 +167,9 @@ Deux façons de procéder, au choix :
 
 - **Auto-inscription** : donner l'URL du site aux 2 testeurs, ils
   remplissent le formulaire « Première inscription ? » ; la demande
-  apparaît dans **Périscolaire > Demandes**, à valider manuellement.
-- **Création directe** : **Périscolaire > Familles** → ajouter directement
+  apparaît dans **Périscolaire > Demandes d'inscription**, à valider
+  manuellement.
+- **Création directe** : **Périscolaire > Fiches familles** → ajouter directement
   une famille et ses enfants, sans passer par le formulaire public.
 
 ---
@@ -247,8 +249,8 @@ statut sain (« healthy »/« Up »).
 
 **Le calendrier scolaire officiel ne se télécharge pas** — le conteneur
 n'a pas d'accès sortant vers Internet (pare-feu, proxy...) ; utiliser le
-bouton d'upload manuel d'un fichier `.ics` sur **Périscolaire > Calendrier
-scolaire en cours** (voir README).
+bouton d'import manuel d'un fichier `.ics` sur **Périscolaire > Année
+scolaire**, onglet **Historique** (voir README).
 
 **Un e-mail attendu n'apparaît pas dans Mailpit** — vérifier que la
 variable `MAILPIT_ENABLED` est bien à `"true"` pour le service

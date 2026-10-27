@@ -4,7 +4,7 @@
 
 Écrivez les pages publiées dans `documentation/`. MkDocs publie uniquement ce dossier.
 
-Ne créez pas de page dans `docs/` : ce dossier conserve la documentation développeur historique. Le dossier `docs-plan/` contient le plan de publication ; il ne fait pas partie du site publié.
+Ne créez pas de page dans `docs/` : ce dossier conserve les notes développeur (environnement local, contrats du planning, export SEPA), la feuille de route et les audits archivés ; il ne fait pas partie du site publié.
 
 ## Prévisualiser en local
 
@@ -27,7 +27,7 @@ Appliquez ces règles à chaque page :
 4. Utilisez `!!! tip` pour une astuce et `!!! warning` avant une action peu réversible.
 5. Utilisez des données fictives, des liens explicites et un texte alternatif descriptif pour chaque image.
 
-Ajoutez un lien vers le [glossaire](glossaire.md) à la première occurrence d'un terme métier. La page doit suivre la structure définie dans le plan de publication : objectif, prérequis, étapes, résultat attendu et liens internes pour aller plus loin.
+Ajoutez un lien vers le [glossaire](glossaire.md) à la première occurrence d'un terme métier. La page suit la structure des pages existantes : objectif, prérequis (« Avant de commencer »), étapes, résultat attendu et liens internes pour aller plus loin. Les chemins du back office reprennent les libellés du menu **Périscolaire** tels qu'ils s'affichent (par exemple **Périscolaire › Fiches familles**, **Périscolaire › Présences déclarées**).
 
 ## Régénérer les captures d'écran
 
