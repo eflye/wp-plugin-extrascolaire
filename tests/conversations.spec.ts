@@ -196,6 +196,10 @@ test.describe('Échanges familles ↔ mairie', () => {
     await page.locator('#psc-conversation-sujet').fill('Sujet privé A');
     await page.locator('#psc-conversation-corps').fill('Contenu privé de la famille A.');
     await page.getByRole('button', { name: 'Envoyer' }).click();
+    // La redirection vers la conversation créée doit être terminée avant de
+    // lire l'URL ou de recharger : sinon page.url() est encore l'ancienne
+    // adresse et page.reload() tombe sur « Not attached to an active page ».
+    await page.waitForURL(/conversation_id=\d+/);
     const conversationIdA = Number(new URL(page.url()).searchParams.get('conversation_id'));
     expect(conversationIdA).toBeGreaterThan(0);
 
@@ -283,6 +287,10 @@ test.describe('Échanges familles ↔ mairie', () => {
     await page.locator('#psc-conversation-sujet').fill('Sujet a cloturer');
     await page.locator('#psc-conversation-corps').fill('<script>alert(1)</script>');
     await page.getByRole('button', { name: 'Envoyer' }).click();
+    // La redirection vers la conversation créée doit être terminée avant de
+    // lire l'URL ou de recharger : sinon page.url() est encore l'ancienne
+    // adresse et page.reload() tombe sur « Not attached to an active page ».
+    await page.waitForURL(/conversation_id=\d+/);
     const conversationId = Number(new URL(page.url()).searchParams.get('conversation_id'));
 
     const dialogs: string[] = [];
