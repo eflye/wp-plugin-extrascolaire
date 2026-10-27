@@ -73,7 +73,7 @@ test.describe('Sessions et demandes', () => {
       await expect(email).toHaveAttribute('aria-describedby', 'psc-profil-email-help');
 
       const axe = await new AxeBuilder({ page }).include('[data-testid="portal-section-profil"]').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
-      expect(axe.violations.map((v) => `${v.id} : ${v.nodes.length}`)).toEqual([]);
+      expect(axe.violations.map((v) => `${v.id} : ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join(' | ')}`)).toEqual([]);
 
       // Contrôle serveur : le verrou de l'écran retiré, la demande est refusée.
       await email.evaluate((el) => el.removeAttribute('readonly'));
@@ -147,7 +147,7 @@ test.describe('Sessions et demandes', () => {
       await page.getByTestId('child-food-signal-1').check();
 
       const axe = await new AxeBuilder({ page }).include('[data-testid="wizard-step-1"]').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
-      expect(axe.violations.map((v) => `${v.id} : ${v.nodes.length}`)).toEqual([]);
+      expect(axe.violations.map((v) => `${v.id} : ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join(' | ')}`)).toEqual([]);
 
       await page.getByTestId('wizard-next').click();
       await page.getByTestId('wizard-next').click();

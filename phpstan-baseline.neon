@@ -1,0 +1,175 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to function is_array\(\) with list\<mixed\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/class-psc-admin-audit.php
+
+		-
+			message: '#^Call to function method_exists\(\) with ZipArchive and ''setCompressionIndex'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/class-psc-admin-audit.php
+
+		-
+			message: '#^Call to function method_exists\(\) with ''Psc_Sidscm'' and ''rejected_codes'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/class-psc-admin-config.php
+
+		-
+			message: '#^Parameter \#3 \$menu_title of function add_submenu_page expects string, null given\.$#'
+			identifier: argument.type
+			count: 4
+			path: includes/class-psc-admin.php
+
+		-
+			message: '#^Call to function method_exists\(\) with ''Psc_Impersonation'' and ''active'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/class-psc-audit.php
+
+		-
+			message: '#^Call to function method_exists\(\) with ''Psc_Parents'' and ''session_login_role'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/class-psc-audit.php
+
+		-
+			message: '#^Call to function method_exists\(\) with ''Psc_Sidscm'' and ''current_intervenant'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/class-psc-audit.php
+
+		-
+			message: '#^Call to function method_exists\(\) with ''Psc_Sidscm'' and ''is_authenticated…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/class-psc-audit.php
+
+		-
+			message: '#^Offset ''niveau'' on array\{action\?\: string, categorie\?\: string, objet\?\: string, niveau\: string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: includes/class-psc-audit.php
+
+		-
+			message: '#^Parameter \#3 \$menu_title of function add_submenu_page expects string, null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-psc-conversations-admin.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 1
+			path: includes/class-psc-frontend.php
+
+		-
+			message: '#^Ternary operator condition is always true\.$#'
+			identifier: ternary.alwaysTrue
+			count: 1
+			path: includes/class-psc-impersonation.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/class-psc-installer.php
+
+		-
+			message: '#^Negated boolean expression is always false\.$#'
+			identifier: booleanNot.alwaysFalse
+			count: 1
+			path: includes/class-psc-installer.php
+
+		-
+			message: '#^Parameter \#4 \$autoload of function add_option expects bool\|null, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-psc-installer.php
+
+		-
+			message: '#^Static method Psc_Installer\:\:migrate_4_20_0\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: includes/class-psc-installer.php
+
+		-
+			message: '#^Static method Psc_Installer\:\:migrate_4_22_0\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: includes/class-psc-installer.php
+
+		-
+			message: '#^Call to function method_exists\(\) with ZipArchive and ''setCompressionIndex'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/class-psc-invoices.php
+
+		-
+			message: '#^Method Psc_Invoices\:\:build_pdf\(\) never returns WP_Error so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: includes/class-psc-invoices.php
+
+		-
+			message: '#^Parameter \#3 \$menu_title of function add_submenu_page expects string, null given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/class-psc-messages-admin.php
+
+		-
+			message: '#^Ternary operator condition is always true\.$#'
+			identifier: ternary.alwaysTrue
+			count: 1
+			path: includes/class-psc-messages-frontend.php
+
+		-
+			message: '#^Ternary operator condition is always true\.$#'
+			identifier: ternary.alwaysTrue
+			count: 2
+			path: includes/class-psc-parents.php
+
+		-
+			message: '#^Left side of && is always true\.$#'
+			identifier: booleanAnd.leftAlwaysTrue
+			count: 2
+			path: includes/class-psc-pickup-persons.php
+
+		-
+			message: '#^Ternary operator condition is always true\.$#'
+			identifier: ternary.alwaysTrue
+			count: 1
+			path: includes/class-psc-requests.php
+
+		-
+			message: '#^Parameter \#4 \$autoload of function add_option expects bool\|null, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-psc-school-calendar.php
+
+		-
+			message: '#^Parameter \#1 \$array \(array\{0\?\: array\{label\: mixed, number\: non\-empty\-string, tel\: string\|null\}\}\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: includes/class-psc-sidscm.php
+
+		-
+			message: '#^Offset ''niveau'' on array\{action\: non\-falsy\-string, categorie\?\: string, objet\?\: string, niveau\: string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 2
+			path: includes/helpers/audit.php
+
+		-
+			message: '#^Offset 0\|1\|2\|3\|4\|5\|6 on array\{string, string, string, string, string, string, string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 2
+			path: includes/helpers/dates.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/helpers/files.php

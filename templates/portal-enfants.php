@@ -49,7 +49,7 @@
         <?php endif; ?>
       </td>
       <td class="psc-portal-row-save">
-        <button type="button" class="psc-portal-btn-sm" data-child-edit-trigger data-child-id="<?php echo esc_attr($c->id); ?>" aria-label="<?php esc_attr_e('Corriger le prénom, le nom ou la date de naissance de', 'periscolaire-registration'); ?> <?php echo esc_attr($c->prenom); ?>"><?php esc_html_e('Modifier', 'periscolaire-registration'); ?></button>
+        <button type="button" class="psc-portal-btn-sm" data-child-edit-trigger data-child-id="<?php echo esc_attr($c->id); ?>"><?php esc_html_e('Modifier', 'periscolaire-registration'); ?><span class="screen-reader-text"> — <?php esc_html_e('le prénom, le nom ou la date de naissance de', 'periscolaire-registration'); ?> <?php echo esc_html($c->prenom); ?></span></button>
       </td>
     </tr>
   <?php endforeach; ?>
@@ -140,7 +140,7 @@ if ($psc_active_year) {
           </span>
         </td>
         <td>
-          <button type="button" class="psc-portal-btn-sm" data-assurance-upload-trigger data-child-id="<?php echo esc_attr($c->id); ?>" aria-label="<?php echo esc_attr(($psc_a ? __('Remplacer le justificatif d\'assurance de', 'periscolaire-registration') : __('Ajouter le justificatif d\'assurance de', 'periscolaire-registration')) . ' ' . $c->prenom); ?>"><?php echo esc_html($psc_a ? __('Remplacer', 'periscolaire-registration') : __('Uploader', 'periscolaire-registration')); ?></button>
+          <button type="button" class="psc-portal-btn-sm" data-assurance-upload-trigger data-child-id="<?php echo esc_attr($c->id); ?>"><?php echo esc_html($psc_a ? __('Remplacer', 'periscolaire-registration') : __('Uploader', 'periscolaire-registration')); ?><span class="screen-reader-text"> — <?php esc_html_e('le justificatif d\'assurance de', 'periscolaire-registration'); ?> <?php echo esc_html($c->prenom); ?></span></button>
         </td>
       </tr>
     <?php endforeach; ?>

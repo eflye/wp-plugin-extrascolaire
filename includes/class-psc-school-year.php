@@ -34,7 +34,6 @@ class Psc_School_Year {
 
     /** Cache par requête : état d'un jour, plages de vacances, fériés. */
     private static $day_cache = array();
-    private static $vacation_cache = array();
     private static $holiday_cache = array();
 
     /**
@@ -334,7 +333,6 @@ class Psc_School_Year {
 
     public static function flush_cache() {
         self::$day_cache = array();
-        self::$vacation_cache = array();
         self::$vacation_decoded = array();
         self::$holiday_cache = array();
         self::$all_cache = null;

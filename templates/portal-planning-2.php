@@ -141,9 +141,9 @@ $psc_active_blocked = Psc_Assurances::status($psc_active_doc) !== 'approved';
          href="<?php echo esc_url(add_query_arg(array('psc_tab' => 'cantine2', 'psc_mois' => $m['key']), $psc_nav_base)); ?>"
          data-month="<?php echo esc_attr($m['key']); ?>"
          data-count="<?php echo esc_attr($count); ?>"
-         data-testid="frieze-<?php echo esc_attr($m['key']); ?>"
-         aria-label="<?php echo esc_attr($m['label'] . ' — ' . $count . ' ' . _n('jour déclaré', 'jours déclarés', $count, 'periscolaire-registration')); ?>">
-        <?php echo esc_html($m['short']); ?><span class="psc-frieze-count"><?php echo esc_html($count); ?> j</span>
+         data-testid="frieze-<?php echo esc_attr($m['key']); ?>">
+        <?php // Nom accessible = texte visible puis complément masqué (WCAG 2.5.3) ; planning-2.js met le complément à jour. ?>
+        <?php echo esc_html($m['short']); ?> <span class="psc-frieze-count"><?php echo esc_html($count); ?> j</span><span class="screen-reader-text psc-frieze-sr"> — <?php echo esc_html($m['label'] . ', ' . $count . ' ' . _n('jour déclaré', 'jours déclarés', $count, 'periscolaire-registration')); ?></span>
       </a>
       <?php endforeach; ?>
     </div>

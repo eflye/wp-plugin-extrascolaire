@@ -38,7 +38,7 @@ test('échecs d’écriture des justificatifs : message explicite, sans confirma
     await expect(page.getByTestId('notice-child_added')).toHaveCount(0);
 
     const axe = await new AxeBuilder({ page }).include('.psc-portal-main').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
-    expect(axe.violations.map((v) => `${v.id} : ${v.nodes.length}`)).toEqual([]);
+    expect(axe.violations.map((v) => `${v.id} : ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join(' | ')}`)).toEqual([]);
   }
   await family.close();
 });

@@ -17,8 +17,8 @@ if (!defined('ABSPATH')) exit;
  * famille. Le ratio vient des pixels réels de l'image (getimagesize) —
  * seule leur PROPORTION compte, jamais leur définition.
  *
- * @param string $w_px  Largeur en pixels de l'image source.
- * @param string $h_px  Hauteur en pixels de l'image source.
+ * @param int    $w_px  Largeur en pixels de l'image source.
+ * @param int    $h_px  Hauteur en pixels de l'image source.
  * @param float  $max_w Largeur maximale de la boîte, en mm.
  * @param float  $max_h Hauteur maximale de la boîte, en mm.
  * @return array{0:float,1:float} [largeur, hauteur] en mm.
