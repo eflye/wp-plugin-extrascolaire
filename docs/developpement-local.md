@@ -90,7 +90,7 @@ Les deux stacks tournent en même temps ; la stack de test peut rester arrêtée
 | `npm run test:local` | Parcours de bout en bout et axe, profil `test`, sur la stack de test. |
 | `npx playwright test` | Idem sur la stack de travail (projets `test` et `demo`). **Écrase la base locale.** |
 | `npm run lint:js` | ESLint sur `assets/js` |
-| `podman exec -w /var/www/html/wp-content/plugins/periscolaire-registration plugin-extrascolaire-wordpress-1 php vendor/bin/phpstan analyse --memory-limit=2G` | PHPStan niveau 3 |
+| `podman exec -w /var/www/html/wp-content/plugins/periscolaire-registration plugin-extrascolaire-wordpress-1 php vendor/bin/phpstan analyse --memory-limit=2G` | PHPStan niveau 5 ; les constats antérieurs au passage au niveau 5 sont figés dans `phpstan-baseline.neon` (à réduire au fil des chantiers, jamais à étendre) |
 | `podman exec plugin-extrascolaire-wordpress-1 php /var/www/html/wp-content/plugins/periscolaire-registration/tests/unit/run.php` | Tests unitaires sans WordPress |
 | `podman run --rm -v "$PWD:/app:ro" docker.io/library/php:7.4-cli php -l /app/<fichier>` | Syntaxe au plancher PHP 7.4 (le conteneur local est en 8.3) |
 | `PSC_CONTAINER_ENGINE=podman npm run test:backup-restore` | Restauration d'un dump dans une base distincte (`bin/verify-database-backup.sh`) |

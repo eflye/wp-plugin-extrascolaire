@@ -33,6 +33,8 @@ Moins de fichiers à maintenir, moins de doubles saisies et une information coh�
 - Estimation des montants pour le mois et l’année.
 - Dépôt de l’assurance scolaire et suivi de sa validation.
 - Menus, messages de la mairie, factures PDF, profil et documents au même endroit.
+- Menu de la cantine reçu par e-mail, avec désinscription depuis le profil ou depuis l’e-mail.
+- Thème encre ou thème clair, au choix, mémorisé sur l’appareil.
 - Historique anonymisé des consultations de l’espace effectuées par la mairie.
 - Gestion du second parent et des personnes autorisées à récupérer les enfants.
 - Réinscription annuelle simplifiée pendant la campagne municipale.
@@ -53,6 +55,7 @@ Le menu de la cantine peut aussi être publié sur la page d’accueil du servic
 - Passage d’année, proposition des nouvelles classes et campagne de réinscription.
 - Journal d’audit des opérations sensibles : chaîne d’intégrité vérifiable, durées de conservation par niveau, export.
 - Mises à jour conduites depuis le back office (**Périscolaire > Maintenance**), sans ligne de commande : adapté à un WordPress en conteneur.
+- Menu d’administration classé par domaine (Cantine & garderie, Communication, Facturation, Familles, Administration), chaque agent ne voyant que ses habilitations.
 
 ![Tableau de bord de la mairie dans WordPress](docs/images/tableau-de-bord-mairie.png)
 
@@ -62,8 +65,9 @@ Un écran dédié, protégé par code et adapté au mobile, affiche les enfants 
 
 - pointer chaque enfant présent ou absent (il reste « à pointer » tant que rien n’est touché), ou toute la liste d’un geste avec « Tous présents » ;
 - renseigner les heures d’arrivée et de départ ;
-- consulter les régimes, allergies et repas apportés ;
+- consulter les régimes et les repas apportés (« midi sans repas ») ;
 - vérifier les personnes autorisées à récupérer un enfant ;
+- afficher à la demande les numéros des parents (« Contact d’urgence »), chaque consultation étant journalisée ;
 - consulter la semaine courante et les huit suivantes.
 
 <p align="center">
@@ -123,6 +127,8 @@ Pendant une consultation mairie, les contrôles restent visibles mais sont désa
 
 Ce projet a été conçu pour le service de **Montgeroult–Courcelles**. Son fonctionnement actuel suit la semaine scolaire du lundi, mardi, jeudi et vendredi, importe le calendrier de la zone C et conserve encore quelques libellés propres au SIDSCM. Une adaptation est donc à prévoir pour un autre territoire ou une autre organisation scolaire.
 
+L’interface est en français. Toutes les chaînes passent par le text domain `periscolaire-registration`, et l’archive embarque leur catalogue (`languages/periscolaire-registration.pot`) : une traduction compilée déposée dans `languages/` serait chargée.
+
 Le plugin ne propose pas de paiement en ligne. Il génère les factures et prépare les fichiers de prélèvement, mais ne transmet aucun ordre à la banque. L’acceptation du règlement se fait par case à cocher horodatée, et la version exacte du texte approuvé (avec le PDF en ligne ce jour-là) est conservée ; ce n’est pas une signature électronique qualifiée.
 
 ## Documentation
@@ -135,7 +141,7 @@ Le plugin ne propose pas de paiement en ligne. Il génère les factures et prép
 - [Export des ordres de prélèvement SEPA](docs/export-pain008.md)
 - [Développement local et tests](docs/developpement-local.md)
 - [Instance de test auto-hébergée avec Docker](docs/self-hosting-docker.md) (pas pour la production)
-- [Inventaire du schéma de données](docs/schema-inventory-2026-09-10.md) (état au 10/09/2026 ; schéma actuel : 4.18.0)
+- [Inventaire du schéma de données](docs/schema-inventory-2026-09-10.md) (état figé au 10/09/2026, schéma 4.5.0 ; le schéma courant est `Psc_Installer::DB_VERSION`, 4.22.0 au 27/10/2026, et chaque migration vit dans `includes/migrations/`)
 - [Contrats d’une journée : présence, repas, facturation](docs/contrats-planning.md)
 - [Filet de sécurité du refactoring](docs/refactoring-safety-net.md)
 - [Feuille de route : ce qui reste ouvert](docs/feuille-de-route.md) (seule liste vivante) et [audits archivés](docs/audits/) (états figés)
@@ -153,7 +159,7 @@ npm run test:local:up    # stack de test jetable, :8081
 npm run test:local       # suite Playwright sur la stack de test
 ```
 
-Les tests de bout en bout écrasent la base qu’ils visent : `npm run test:local` les joue sur la stack de test, jamais sur la stack de travail. Vérifications, scripts `bin/verify-*.php` et publication d’une version : voir [Développement local et tests](docs/developpement-local.md).
+Les tests de bout en bout écrasent la base qu’ils visent : `npm run test:local` les joue sur la stack de test, jamais sur la stack de travail. Vérifications, scripts `bin/verify-*.php` (nommés par domaine), catalogue de traduction (`bin/make-pot.sh`), PHPStan niveau 5 et publication d’une version : voir [Développement local et tests](docs/developpement-local.md).
 
 </details>
 
