@@ -2,7 +2,19 @@
 
 ## Objectif
 
-Passer d'une version antérieure à la version courante (schéma de base 4.20.0), en une seule fois depuis la **5.28.0 ou plus récente** : inutile d'installer les versions intermédiaires. Depuis une version plus ancienne (schéma antérieur à 4.15.0), installez d'abord la **5.32.1**, la dernière à porter ces migrations, puis la version courante ; sinon la page **Maintenance** signale que la base est trop ancienne et rien n'est modifié. Depuis 5.28.0, tout se fait **depuis le backoffice**, dans **Périscolaire › Maintenance**, sans ligne de commande : c'est la méthode adaptée à un WordPress en conteneur. Les commandes WP-CLI restent possibles ; elles sont indiquées en encadré.
+Passer d'une version antérieure à la version courante (schéma de base 4.22.0), en une seule fois depuis la **5.28.0 ou plus récente** : inutile d'installer les versions intermédiaires. Depuis une version plus ancienne (schéma antérieur à 4.15.0), installez d'abord la **5.32.1**, la dernière à porter ces migrations, puis la version courante ; sinon la page **Maintenance** signale que la base est trop ancienne et rien n'est modifié. Depuis 5.28.0, tout se fait **depuis le backoffice**, dans **Périscolaire › Maintenance**, sans ligne de commande : c'est la méthode adaptée à un WordPress en conteneur. Les commandes WP-CLI restent possibles ; elles sont indiquées en encadré.
+
+## Ce qui change entre 5.33 et 5.39
+
+- **Correction manuelle des présences rétablie** (5.39.0) : sur **Périscolaire › Présences déclarées** (l'écran que le journal des modifications nomme « Inscriptions »), cocher ou décocher une prestation pour un enfant puis **Enregistrer et notifier la famille** n'enregistrait rien depuis la 5.0.0, sans message d'erreur. **Après la mise à jour, vérifiez les corrections faites par cet écran depuis la rentrée** : elles n'ont pas été enregistrées, et sont donc absentes du planning, des listes des intervenants, de la commande fournisseur et des factures. Refaites-les ; une facture déjà envoyée dont le calcul change est rectifiée à sa prochaine génération, avec archivage de la version remise à la famille (voir [Factures PDF](../facturation/factures-pdf.md)).
+- **Aucun changement de schéma** en 5.39.0 : l'étape **2. Base de données** de **Périscolaire › Maintenance** reste à **4.22.0**. Si la version installée est la 5.38.1, réinstaller l'archive précédente suffit pour revenir en arrière.
+- **Catalogue de traduction** (5.39.0) : l'archive contient désormais `languages/periscolaire-registration.pot`, le catalogue des chaînes de l'extension. Rien à faire ; une traduction compilée (`.mo`) déposée dans `languages/` serait chargée.
+- **Accessibilité** (5.39.0) : légendes et en-têtes sur tous les tableaux, noms accessibles alignés sur le texte visible. Aucun réglage.
+- **Menu Périscolaire classé par domaine** (5.38.1) : Tableau de bord, puis les sections **Cantine & garderie**, **Communication**, **Facturation**, **Familles** et **Administration**. La section « À traiter » disparaît (son ancien lien mène au tableau de bord) et **Familles** devient **Fiches familles**. Les adresses des écrans et les habilitations ne changent pas : les favoris restent valables.
+- **Pointage à trois états, schéma 4.22.0** (5.38.0) : la présence pointée par les intervenants accepte l'état « à pointer » ; les pointages existants sont conservés tels quels. Chaque enfant part désormais « à pointer » au lieu d'être présent par défaut : prévenez les intervenants, cf. [Écran des intervenants](../gestion-quotidienne/ecran-intervenants.md).
+- **Menus par e-mail et contact d'urgence, schéma 4.21.0** (5.37.0) : une colonne ajoutée à la table des familles. Toutes les familles restent abonnées au menu par e-mail ; elles se désabonnent depuis **Mon profil** ou par le lien en bas de l'e-mail, et la page **Menus** indique combien de familles recevront l'envoi. Sur l'écran des intervenants, le bouton **Contact d'urgence** affiche les numéros des parents et inscrit chaque consultation au **Journal d'audit**.
+- **Thème Clair du portail famille** (5.36.0) : bouton soleil/lune dans le bandeau. **Mettez à jour le thème du site** (archive `montgeroult-familles-X.Y.Z.zip`, version 1.2.0 ou plus récente) : sans lui, le bouton s'affiche en haut du contenu au lieu du bandeau.
+- **Jetons de connexion et habilitations par domaine, schéma 4.19.0 puis 4.20.0** (5.34.0, 5.35.0) : voir ci-dessous, et le journal des modifications de `readme.txt`. Après la 5.35.0, toutes les familles se reconnectent une fois.
 
 ## Ce qui change entre 5.28 et 5.32
 
@@ -42,7 +54,7 @@ Passer d'une version antérieure à la version courante (schéma de base 4.20.0)
 4. **Ouvrez Périscolaire › Maintenance.** La mise à jour de la base se fait au premier affichage du backoffice. La page présente cinq étapes, chacune avec son état (**Fait**, **À faire** ou **Bloquant**) :
 
     - **1. Sauvegarde** : cochez la case une fois l'étape 1 ci-dessus réalisée, puis cliquez sur **Confirmer la sauvegarde**.
-    - **2. Base de données** : l'état doit être **Fait**, avec le schéma **4.18.0** (version 5.32). Les migrations s'enchaînent seules, dans l'ordre. S'il est **Bloquant**, le motif est affiché : cliquez sur **Relancer la mise à jour de la base** une fois la cause levée ; les étapes réussies sont conservées, rien n'est perdu.
+    - **2. Base de données** : l'état doit être **Fait**, avec le schéma **4.22.0** (versions 5.38.0 à 5.39.0 ; 4.18.0 en 5.32, 4.20.0 en 5.35). Les migrations s'enchaînent seules, dans l'ordre. S'il est **Bloquant**, le motif est affiché : cliquez sur **Relancer la mise à jour de la base** une fois la cause levée ; les étapes réussies sont conservées, rien n'est perdu.
 
 5. **Sortez la clé de chiffrement de la base** (étape **3. Clé de chiffrement des IBAN** de la page) :
 
@@ -72,7 +84,7 @@ Passer d'une version antérieure à la version courante (schéma de base 4.20.0)
 
 ## Résultat attendu
 
-Les cinq étapes de **Périscolaire › Maintenance** sont **Fait** : base au schéma 4.18.0, clé des IBAN hors de la base, nouveaux réglages renseignés, recette signée. Aucun avis « tâches planifiées » ne s'affiche sur le tableau de bord. Dans **Réglages › Tarifs**, chaque prestation a un tarif du jour ; dans **Enfants**, les enfants « cantine sans repas » le sont toujours.
+Les cinq étapes de **Périscolaire › Maintenance** sont **Fait** : base au schéma 4.22.0, clé des IBAN hors de la base, nouveaux réglages renseignés, recette signée. Aucun avis « tâches planifiées » ne s'affiche sur le tableau de bord. Dans **Réglages › Tarifs**, chaque prestation a un tarif du jour ; dans **Enfants**, les enfants « cantine sans repas » le sont toujours. Les corrections de présences faites par la mairie depuis la rentrée ont été vérifiées et refaites si nécessaire.
 
 ## Pour aller plus loin
 

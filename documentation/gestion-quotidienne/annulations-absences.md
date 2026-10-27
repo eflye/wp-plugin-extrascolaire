@@ -20,6 +20,9 @@ Pour un signalement familial, la famille doit être connectée à son portail et
 5. La mairie ouvre **Présences déclarées**, sélectionne l'enfant et le jour à corriger, puis modifie les prestations déclarées. Elle clique sur **Enregistrer et notifier la famille** pour enregistrer la correction et prévenir le foyer.
 6. La mairie n'est jamais soumise au préavis : elle peut corriger une réservation même lorsque la famille ne voit plus le jour dans **Annulation prestations**.
 
+!!! warning "Versions 5.0.0 à 5.38.1"
+    Dans ces versions, la correction faite par la mairie depuis **Présences déclarées** n'était jamais enregistrée, sans message d'erreur. Si vous venez de passer en 5.39.0 ou plus récente, vérifiez les corrections faites par cet écran depuis la rentrée et refaites-les, cf. [Notes de mise à jour](../installation/notes-mise-a-jour.md).
+
 ## Résultat attendu
 
 Les annulations valides sont retirées du planning et de la facturation, la famille est informée des corrections mairie et l'historique des présences reste cohérent.

@@ -19,7 +19,7 @@ Le serveur de production reçoit **uniquement l'archive ZIP** de la Release. Il 
     - un `wp-config.php` de développement (`WP_DEBUG` actif, sels ou clés de test) ;
     - l'option `psc_invoice_debug_delete` : ce mode de test autorise la suppression de factures déjà envoyées.
 
-    L'archive publiée ne contient déjà que le code du plugin (`includes/`, `templates/`, `assets/` et les fichiers racine). N'y ajoutez rien.
+    L'archive publiée ne contient déjà que le code du plugin (`includes/`, `templates/`, `assets/`, `languages/` et les fichiers racine). N'y ajoutez rien.
 
 ## Étapes
 

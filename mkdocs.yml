@@ -78,6 +78,7 @@ nav:
           - Commande fournisseur: gestion-quotidienne/commande-fournisseur.md
           - Documents (assurance): gestion-quotidienne/documents-assurance.md
           - Personnes autorisées: gestion-quotidienne/personnes-autorisees.md
+          - Écran des intervenants: gestion-quotidienne/ecran-intervenants.md
       - Facturation:
           - Factures PDF: facturation/factures-pdf.md
           - Mandats SEPA: facturation/mandats-sepa.md

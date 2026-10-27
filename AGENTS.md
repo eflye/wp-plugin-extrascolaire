@@ -19,7 +19,7 @@ Il remplace un calendrier papier trimestriel que les parents remplissaient et qu
 
 **Fonctionnalités en place :** facturation PDF, mandats SEPA, import iCal vacances zone C avec corrections manuelles, workflows de modération, purge RGPD, régimes alimentaires, modèles d'e-mails configurables, annulation / signalement d'absence, menus de cantine, dépôt de documents (attestation d'assurance), tableau de bord secrétaire.
 
-**Statut : en production sur une installation unique** (mairie de Montgeroult). Tout changement de schéma passe par `Psc_Installer` (`DB_VERSION`, `dbDelta()` et, si des données existantes doivent être transformées, une méthode `migrate_X_Y_Z()` couverte par `bin/verify-migrations.php`). La montée n'est garantie que depuis le schéma 4.15.0 (`MIN_UPGRADE_FROM`) ; aucune couche de compatibilité en deçà.
+**Statut : en production sur une installation unique** (mairie de Montgeroult). Tout changement de schéma passe par `Psc_Installer` (`DB_VERSION`, DDL cible dans `includes/migrations/schema.php` appliquée par `dbDelta()` et, si des données existantes doivent être transformées, un fichier `includes/migrations/X-Y-Z.php` — classe `Psc_Migration_X_Y_Z::run()`, déclaré dans `Psc_Installer::MIGRATIONS` — couvert par `bin/verify-migrations.php`). La montée n'est garantie que depuis le schéma 4.15.0 (`MIN_UPGRADE_FROM`) ; aucune couche de compatibilité en deçà.
 
 ---
 
@@ -77,7 +77,7 @@ Pour toute fonctionnalité qui touche aux données :
 - Montants stockés en euros (`DECIMAL(10,2)`), calculés en **centimes entiers** (clé `centimes` de `psc_billing_tariffs()`), convertis en euros par `/ 100.0`. Les factures envoyées ne sont jamais recalculées.
 
 ### 4.2 PHP / WordPress
-- Code compatible PHP 7.4 à 8.3 (`php -l` en CI) et sans erreur PHPStan niveau 3 (`phpstan.neon`) ; suis le style du fichier modifié.
+- Code compatible PHP 7.4 à 8.3 (`php -l` en CI) et sans erreur PHPStan niveau 5 (`phpstan.neon` ; `phpstan-baseline.neon` fige les constats antérieurs, à réduire et jamais à étendre) ; suis le style du fichier modifié.
 - Échappe toute sortie (`esc_html`, `esc_attr`, `esc_url`, `wp_kses_post`) et assainis toute entrée (`sanitize_*`, `absint`).
 - Protège chaque formulaire et chaque action AJAX / REST par un **nonce** et une vérification de capability.
 - Endpoints REST : `permission_callback` explicite qui applique les règles de confidentialité de la section 2.

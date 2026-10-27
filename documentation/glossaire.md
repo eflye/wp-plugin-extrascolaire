@@ -60,6 +60,14 @@ L'autorisation signée par un responsable de facturation permettant à la mairie
 
 Une personne, hors responsables du foyer, habilitée à venir chercher un enfant.
 
+## Intervenant
+
+Un agent de la garderie ou de la cantine. Il consulte les listes d'enfants attendus et pointe les présences depuis l'[écran des intervenants](gestion-quotidienne/ecran-intervenants.md), avec une identité et un code individuel donnés par la mairie, sans compte WordPress.
+
+## Pointage
+
+L'état de présence d'un enfant relevé par l'intervenant un jour et un service donnés : **à pointer** (rien n'a été relevé), **présent** ou **absent**. Il n'entre pas dans la facturation.
+
 ## Habilitation
 
 Un domaine du backoffice ouvert à un agent de la mairie (familles, planning, facturation, messages, configuration, données de santé, journal d'audit), coché sur son profil WordPress. Les habilitations se cumulent ; voir [Accès des agents de la mairie](installation/acces-agents.md).

@@ -2,7 +2,7 @@
 
 ## Objectif
 
-Savoir ce qui a été vérifié sur l'accessibilité du portail des familles, ce qui a été corrigé, et ce qui reste à contrôler par une personne.
+Savoir ce qui a été vérifié sur l'accessibilité du portail des familles, de l'écran des intervenants et des écrans de la mairie, ce qui a été corrigé, et ce qui reste à contrôler par une personne.
 
 ## Ce qui est vérifié automatiquement à chaque modification
 
@@ -13,6 +13,19 @@ La suite `tests/a11y-parcours.spec.ts` tourne dans l'intégration continue. Une 
 - **Clavier seul** : corriger le planning d'un enfant en n'utilisant que le clavier. On atteint l'onglet de l'enfant et une case avec Tab, on les active avec Entrée et Espace, puis l'écriture est vérifiée en base. On demande aussi un lien de connexion au clavier.
 - **Écrans de la mairie** : les écrans d'envoi (menus, factures, commande fournisseur) et les réglages ont leur propre contrôle axe.
 - **Tableaux** (critères RGAA 5.4, 5.6 et 5.7, que axe ne vérifie pas) : un contrôle statique des gabarits (`tests/unit/run.php`) exige une légende `<caption>` sur chaque tableau de données et un attribut `scope` sur chaque cellule d'en-tête, côté familles comme côté mairie.
+
+## Contrôle du 27/10/2026 : corrections apportées
+
+| Défaut relevé | Écrans | Correction |
+|---|---|---|
+| Tableaux sans légende ni en-têtes explicites (RGAA 5.4, 5.6, 5.7) | 29 tableaux, portail des familles, écrans de la mairie et tableaux des e-mails | légende lue par les lecteurs d'écran sur chaque tableau de données, attribut `scope` sur les 235 cellules d'en-tête, libellé « Actions » masqué sur les colonnes d'actions |
+| Nom lu différent du texte affiché (WCAG 2.5.3) | frise des mois du planning, liens d'appel de l'écran des intervenants, boutons **Modifier**, **Remplacer** et **Retirer** | le nom accessible commence par le texte visible |
+| Texte masqué d'un tableau large qui faisait déborder la page | portail des familles à 320 px | le texte masqué reste dans le cadre du tableau |
+
+## Thème Clair et écran des intervenants
+
+- Le bouton **Thème clair** du portail (5.36.0) est utilisable au clavier, annoncé « Thème clair, activé / désactivé » par les lecteurs d'écran, avec un contour de focus contrasté dans les deux thèmes.
+- Sur l'écran des intervenants (5.37.0, 5.38.0), les boutons **Présent** et **Absent** mesurent 48 px de haut, l'état est indiqué par une icône et un texte, le contour de focus est contrasté et l'ensemble s'utilise au clavier. Le contraste du sur-titre du bandeau a été renforcé.
 
 ## Contrôle du 24/09/2026 : corrections apportées
 

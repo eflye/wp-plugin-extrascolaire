@@ -19,4 +19,5 @@ Ce guide s'adresse aux parents qui utilisent l'**espace familles** du site de la
 | lire les messages de la mairie ou lui écrire | [Messages](messages.md) |
 | modifier mes coordonnées, le second parent ou le paiement | [Profil et paiement](profil-paiement.md) |
 | inscrire mes enfants pour l'année suivante | [Réinscription](reinscription.md) |
-| un problème, une question, l'accessibilité | [Aide](aide.md) |
+| ne plus recevoir le menu par e-mail | [Profil et paiement](profil-paiement.md#menus-de-la-cantine-par-e-mail) |
+| afficher l'espace sur fond clair, un problème, une question, l'accessibilité | [Aide](aide.md) |

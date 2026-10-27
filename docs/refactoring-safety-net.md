@@ -9,7 +9,7 @@ contrôles échoue.
 | Contrôle | Commande | Périmètre |
 |---|---|---|
 | Syntaxe PHP | workflow `PHP Lint`, PHP 7.4 à 8.3 | Tous les fichiers PHP hors FPDF tiers |
-| Analyse statique | `composer phpstan` | Sources de `includes/`, niveau 3 |
+| Analyse statique | `composer phpstan` | Sources de `includes/`, niveau 5 (constats antérieurs figés dans `phpstan-baseline.neon`, à réduire, jamais à étendre) |
 | Tests PHP purs | `tests/unit/run.php`, `sepa-export.php`, `menu-labels.php` | Helpers, chiffrement, banque, planning, SEPA et libellés |
 | JavaScript | `npm run lint:js` | Toutes les ressources de `assets/js/` |
 | Banque navigateur | `npm run test:banking` | IBAN/BIC sur les quatre formulaires et 1 066 cas |
