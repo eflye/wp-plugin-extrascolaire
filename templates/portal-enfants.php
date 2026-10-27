@@ -6,13 +6,14 @@
 <?php if (!empty($all_children)): ?>
 <div class="psc-portal-table-scroll">
 <table class="psc-portal-table psc-portal-table--children" data-testid="portal-children-table">
+<caption class="screen-reader-text"><?php esc_html_e('Mes enfants', 'periscolaire-registration'); ?></caption>
   <colgroup>
     <col style="width:12%"><col style="width:16%"><col style="width:9%"><col style="width:11%">
     <col style="width:12%"><col style="width:17%"><col style="width:8%"><col style="width:15%">
   </colgroup>
   <thead>
     <tr>
-      <th><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Classe', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Naissance', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Régime', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Allergies alimentaires', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Actif', 'periscolaire-registration'); ?></th><th></th>
+      <th scope="col"><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Classe', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Naissance', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Régime', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Allergies alimentaires', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Actif', 'periscolaire-registration'); ?></th><th scope="col"><span class="screen-reader-text"><?php esc_html_e('Actions', 'periscolaire-registration'); ?></span></th>
     </tr>
   </thead>
   <tbody>
@@ -116,10 +117,11 @@ if ($psc_active_year) {
   <p class="psc-portal-intro"><?php esc_html_e('Un justificatif à jour est nécessaire pour pouvoir déclarer des jours de cantine ou de garderie pour chaque enfant.', 'periscolaire-registration'); ?></p>
   <div class="psc-portal-table-scroll">
   <table class="psc-portal-table" data-testid="portal-assurance-table">
+  <caption class="screen-reader-text"><?php esc_html_e('Justificatif d’assurance scolaire par enfant', 'periscolaire-registration'); ?></caption>
     <colgroup>
       <col style="width:13%"><col style="width:22%"><col style="width:47%"><col style="width:18%">
     </colgroup>
-    <thead><tr><th><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th><th></th></tr></thead>
+    <thead><tr><th scope="col"><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th><th scope="col"><span class="screen-reader-text"><?php esc_html_e('Actions', 'periscolaire-registration'); ?></span></th></tr></thead>
     <tbody>
     <?php foreach ($psc_active_children as $c): $psc_a = $psc_assurance_map[$c->id] ?? null; ?>
       <tr data-testid="assurance-row-<?php echo esc_attr($c->id); ?>">

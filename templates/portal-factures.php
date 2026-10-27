@@ -7,8 +7,9 @@
 <?php else: ?>
 <div class="psc-portal-table-scroll">
 <table class="psc-portal-table" data-testid="portal-invoices-table">
+<caption class="screen-reader-text"><?php esc_html_e('Mes factures', 'periscolaire-registration'); ?></caption>
   <thead>
-    <tr><th><?php esc_html_e('Mois', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Montant', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th><th></th></tr>
+    <tr><th scope="col"><?php esc_html_e('Mois', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Montant', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th><th scope="col"><span class="screen-reader-text"><?php esc_html_e('Actions', 'periscolaire-registration'); ?></span></th></tr>
   </thead>
   <tbody>
   <?php foreach ($invoices as $inv): ?>

@@ -16,10 +16,11 @@
 
       <div class="psc-portal-table-scroll">
       <table class="psc-portal-table" data-testid="pickup-table-<?php echo esc_attr($c->id); ?>">
+      <caption class="screen-reader-text"><?php echo esc_html(sprintf(__('Personnes autorisées à récupérer %s', 'periscolaire-registration'), $c->prenom . ' ' . $c->nom)); ?></caption>
         <colgroup>
           <col style="width:18%"><col style="width:18%"><col style="width:22%"><col style="width:20%"><col style="width:22%">
         </colgroup>
-        <thead><tr><th><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Téléphone', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Lien', 'periscolaire-registration'); ?></th><th></th></tr></thead>
+        <thead><tr><th scope="col"><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Téléphone', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Lien', 'periscolaire-registration'); ?></th><th scope="col"><span class="screen-reader-text"><?php esc_html_e('Actions', 'periscolaire-registration'); ?></span></th></tr></thead>
         <tbody>
         <?php foreach ($psc_parent_rows as $psc_pr_i => $pr): ?>
           <tr data-testid="pickup-parent-row-<?php echo esc_attr($c->id); ?>-<?php echo esc_attr($psc_pr_i); ?>">

@@ -51,20 +51,20 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 <input type="hidden" name="action" value="psc_edit_parent">
 <input type="hidden" name="id" value="<?php echo esc_attr($edit_parent->id); ?>">
 <table class="form-table">
-<tr><th><label for="psc-edit-nom"><?php esc_html_e('Nom de la famille', 'periscolaire-registration'); ?></label></th>
+<tr><th scope="row"><label for="psc-edit-nom"><?php esc_html_e('Nom de la famille', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-edit-nom" type="text" name="nom" class="regular-text" maxlength="190"
     value="<?php echo esc_attr($edit_parent->nom ?? ''); ?>"></td></tr>
-<tr><th><label for="psc-edit-adresse"><?php esc_html_e('Adresse', 'periscolaire-registration'); ?></label></th>
+<tr><th scope="row"><label for="psc-edit-adresse"><?php esc_html_e('Adresse', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-edit-adresse" type="text" name="adresse" class="large-text" maxlength="255"
     value="<?php echo esc_attr($edit_parent->adresse ?? ''); ?>"></td></tr>
-<tr><th><label for="psc-edit-cp"><?php esc_html_e('Code postal', 'periscolaire-registration'); ?></label></th>
+<tr><th scope="row"><label for="psc-edit-cp"><?php esc_html_e('Code postal', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-edit-cp" type="text" name="code_postal" class="small-text" maxlength="10"
     pattern="[0-9]{5}" title="<?php esc_attr_e('Format attendu : 5 chiffres.', 'periscolaire-registration'); ?>"
     value="<?php echo esc_attr($edit_parent->code_postal ?? ''); ?>"></td></tr>
-<tr><th><label for="psc-edit-ville"><?php esc_html_e('Ville', 'periscolaire-registration'); ?></label></th>
+<tr><th scope="row"><label for="psc-edit-ville"><?php esc_html_e('Ville', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-edit-ville" type="text" name="ville" class="regular-text" maxlength="100"
     value="<?php echo esc_attr($edit_parent->ville ?? ''); ?>"></td></tr>
-<tr><th><?php esc_html_e('Mode de paiement', 'periscolaire-registration'); ?></th>
+<tr><th scope="row"><?php esc_html_e('Mode de paiement', 'periscolaire-registration'); ?></th>
 <td>
     <label><input type="radio" name="payment_mode" value="autre" <?php checked(($edit_parent->payment_mode ?? 'autre') !== 'prelevement'); ?>> <?php esc_html_e('Chèque ou espèces', 'periscolaire-registration'); ?></label><br>
     <label><input type="radio" name="payment_mode" value="prelevement" <?php checked(($edit_parent->payment_mode ?? 'autre') === 'prelevement'); ?>> <?php esc_html_e('Prélèvement automatique (SEPA)', 'periscolaire-registration'); ?></label>
@@ -78,30 +78,30 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 // avec la seule habilitation « Facturation et prélèvements ».
 $psc_masked_iban = psc_read_iban($edit_parent) !== '' ? psc_mask_iban(psc_read_iban($edit_parent)) : '';
 if (current_user_can('psc_manage_billing')): ?>
-<tr><th><label for="psc-edit-sepa-titulaire"><?php esc_html_e('Titulaire du compte', 'periscolaire-registration'); ?></label></th>
+<tr><th scope="row"><label for="psc-edit-sepa-titulaire"><?php esc_html_e('Titulaire du compte', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-edit-sepa-titulaire" type="text" name="sepa_titulaire" class="regular-text" maxlength="190"
     value="<?php echo esc_attr($edit_parent->sepa_titulaire ?? ''); ?>"></td></tr>
-<tr><th><label for="psc-edit-sepa-adresse"><?php esc_html_e('Adresse du titulaire', 'periscolaire-registration'); ?></label></th>
+<tr><th scope="row"><label for="psc-edit-sepa-adresse"><?php esc_html_e('Adresse du titulaire', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-edit-sepa-adresse" type="text" name="sepa_adresse" class="large-text" maxlength="255"
     value="<?php echo esc_attr($edit_parent->sepa_adresse ?? ''); ?>"></td></tr>
-<tr><th><label for="psc-edit-sepa-cp"><?php esc_html_e('Code postal (titulaire)', 'periscolaire-registration'); ?></label></th>
+<tr><th scope="row"><label for="psc-edit-sepa-cp"><?php esc_html_e('Code postal (titulaire)', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-edit-sepa-cp" type="text" name="sepa_code_postal" class="small-text" maxlength="10"
     pattern="[0-9]{5}" title="<?php esc_attr_e('Format attendu : 5 chiffres.', 'periscolaire-registration'); ?>"
     value="<?php echo esc_attr($edit_parent->sepa_code_postal ?? ''); ?>"></td></tr>
-<tr><th><label for="psc-edit-sepa-ville"><?php esc_html_e('Ville (titulaire)', 'periscolaire-registration'); ?></label></th>
+<tr><th scope="row"><label for="psc-edit-sepa-ville"><?php esc_html_e('Ville (titulaire)', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-edit-sepa-ville" type="text" name="sepa_ville" class="regular-text" maxlength="100"
     value="<?php echo esc_attr($edit_parent->sepa_ville ?? ''); ?>"></td></tr>
-<tr><th><label for="psc-edit-sepa-country"><?php esc_html_e('Pays de résidence du titulaire', 'periscolaire-registration'); ?></label></th>
+<tr><th scope="row"><label for="psc-edit-sepa-country"><?php esc_html_e('Pays de résidence du titulaire', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-edit-sepa-country" type="text" name="sepa_country" maxlength="2" pattern="[A-Za-z]{2}" required class="small-text" value="<?php echo esc_attr($edit_parent->sepa_country ?? 'FR'); ?>">
 <p class="description"><?php esc_html_e('Code ISO : FR pour la France. Indiquez le pays de l’adresse du titulaire, même si sa banque est à l’étranger.', 'periscolaire-registration'); ?></p></td></tr>
-<tr><th><label for="psc-edit-sepa-iban"><?php esc_html_e('IBAN', 'periscolaire-registration'); ?></label></th>
+<tr><th scope="row"><label for="psc-edit-sepa-iban"><?php esc_html_e('IBAN', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-edit-sepa-iban" type="text" name="sepa_iban" data-bank-validation="iban" data-bank-error="<?php esc_attr_e('IBAN invalide : vérifiez le pays, la longueur, les caractères et les chiffres de contrôle.', 'periscolaire-registration'); ?>" class="large-text" maxlength="42"
     value="" aria-describedby="psc-edit-sepa-iban-help" placeholder="<?php echo esc_attr($psc_masked_iban !== '' ? $psc_masked_iban : 'FR76 XXXX XXXX XXXX XXXX XXXX XXX'); ?>" autocomplete="off">
 <p class="description" id="psc-edit-sepa-iban-help"><?php echo esc_html($psc_masked_iban !== ''
     /* translators: %s: IBAN masqué */
     ? sprintf(__('IBAN enregistré : %s. Laissez vide pour le conserver ; saisissez un nouvel IBAN pour le remplacer.', 'periscolaire-registration'), $psc_masked_iban)
     : __('Aucun IBAN enregistré.', 'periscolaire-registration')); ?></p></td></tr>
-<tr><th><label for="psc-edit-sepa-bic"><?php esc_html_e('BIC', 'periscolaire-registration'); ?></label></th>
+<tr><th scope="row"><label for="psc-edit-sepa-bic"><?php esc_html_e('BIC', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-edit-sepa-bic" type="text" name="sepa_bic" class="regular-text" maxlength="11"
     value="<?php echo esc_attr($edit_parent->sepa_bic ?? ''); ?>" placeholder="XXXXFRPPXXX"></td></tr>
 <?php if ($psc_masked_iban !== '' || !empty($edit_parent->sepa_bic) || !empty($edit_parent->sepa_titulaire)): ?>
@@ -122,7 +122,7 @@ if (current_user_can('psc_manage_billing')): ?>
 </td></tr>
 <?php endif; ?>
 <?php if (!empty($edit_parent->sepa_mandate_ref)): ?>
-<tr><th><?php esc_html_e('Référence du mandat SEPA', 'periscolaire-registration'); ?></th><td><code><?php echo esc_html($edit_parent->sepa_mandate_ref); ?></code></td></tr>
+<tr><th scope="row"><?php esc_html_e('Référence du mandat SEPA', 'periscolaire-registration'); ?></th><td><code><?php echo esc_html($edit_parent->sepa_mandate_ref); ?></code></td></tr>
 <?php endif; ?>
 </table>
 <?php submit_button(__('Enregistrer les modifications', 'periscolaire-registration')); ?>
@@ -185,8 +185,8 @@ if (current_user_can('psc_manage_billing')): ?>
 <?php wp_nonce_field('psc_add_parent'); ?>
 <input type="hidden" name="action" value="psc_add_parent">
 <table class="form-table">
-<tr><th><label for="psc-p-mail"><?php esc_html_e('Adresse e-mail', 'periscolaire-registration'); ?></label></th><td><input id="psc-p-mail" type="email" name="email" class="regular-text" required></td></tr>
-<tr><th><label for="psc-p-nom"><?php esc_html_e('Nom de la famille', 'periscolaire-registration'); ?></label></th><td><input id="psc-p-nom" type="text" name="nom" class="regular-text" maxlength="190" placeholder="<?php esc_attr_e('Facultatif', 'periscolaire-registration'); ?>"></td></tr>
+<tr><th scope="row"><label for="psc-p-mail"><?php esc_html_e('Adresse e-mail', 'periscolaire-registration'); ?></label></th><td><input id="psc-p-mail" type="email" name="email" class="regular-text" required></td></tr>
+<tr><th scope="row"><label for="psc-p-nom"><?php esc_html_e('Nom de la famille', 'periscolaire-registration'); ?></label></th><td><input id="psc-p-nom" type="text" name="nom" class="regular-text" maxlength="190" placeholder="<?php esc_attr_e('Facultatif', 'periscolaire-registration'); ?>"></td></tr>
 </table>
 <?php submit_button(__('Enregistrer la famille', 'periscolaire-registration')); ?>
 </form>
@@ -195,7 +195,8 @@ if (current_user_can('psc_manage_billing')): ?>
 <div class="psc-box">
 <h2><?php esc_html_e('Familles enregistrées', 'periscolaire-registration'); ?></h2>
 <table class="widefat striped">
-<thead><tr><th><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('E-mail', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Adresse', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Paiement', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Dernière connexion', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Actions', 'periscolaire-registration'); ?></th></tr></thead>
+<caption class="screen-reader-text"><?php esc_html_e('Familles enregistrées', 'periscolaire-registration'); ?></caption>
+<thead><tr><th scope="col"><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('E-mail', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Adresse', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Paiement', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Dernière connexion', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Actions', 'periscolaire-registration'); ?></th></tr></thead>
 <tbody>
 <?php if (empty($parents) && empty($awaiting_confirmation)): ?>
 <tr><td colspan="7"><?php esc_html_e('Aucune famille enregistrée.', 'periscolaire-registration'); ?></td></tr>

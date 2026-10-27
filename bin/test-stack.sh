@@ -13,11 +13,15 @@
 #   bin/test-stack.sh env                affiche les variables à exporter pour la viser
 #   bin/test-stack.sh status             conteneurs et site
 #   bin/test-stack.sh down               détruit conteneurs ET volumes
+#   bin/test-stack.sh reset              down puis up : base neuve, comme la CI
 #
 # Les étapes d'installation reproduisent .github/workflows/e2e.yml : même
 # ordre, même utilisateur (www-data), même page d'accueil. `up` est
 # idempotent — relancé sur une stack déjà installée, il ne fait que
-# vérifier qu'elle répond.
+# vérifier qu'elle répond. Les suites supposent une base neuve (la CI en
+# part toujours) : certains scénarios laissent des traces (passage
+# d'année, factures du mois) qui font échouer le passage suivant — d'où
+# `reset` avant une suite complète.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -174,6 +178,7 @@ cmd_down() {
 case "${1:-}" in
     up)          cmd_up ;;
     down)        cmd_down ;;
+    reset)       cmd_down; cmd_up ;;
     status)      cmd_status ;;
     env)         print_env ;;
     wp)          shift; wp "$@" ;;

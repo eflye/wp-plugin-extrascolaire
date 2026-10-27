@@ -73,11 +73,12 @@ psc_admin_notice_map(array(
 </h2>
 
 <table class="psc-calendar widefat">
+<caption class="screen-reader-text"><?php echo esc_html(sprintf(__('Inscriptions de %s pour le mois, par jour et par prestation', 'periscolaire-registration'), $child->prenom . ' ' . $child->nom)); ?></caption>
 <thead>
 <tr>
-<th><?php esc_html_e('Jour', 'periscolaire-registration'); ?></th>
+<th scope="col"><?php esc_html_e('Jour', 'periscolaire-registration'); ?></th>
 <?php foreach (psc_allowed_services() as $code): ?>
-<th class="psc-center"><abbr class="psc-th-abbr" title="<?php echo esc_attr($services[$code]['label']); ?>"><?php echo esc_html($short[$code]); ?></abbr><br><small><?php echo esc_html(number_format_i18n($services[$code]['price'], 2)); ?> €</small></th>
+<th scope="col" class="psc-center"><abbr class="psc-th-abbr" title="<?php echo esc_attr($services[$code]['label']); ?>"><?php echo esc_html($short[$code]); ?></abbr><br><small><?php echo esc_html(number_format_i18n($services[$code]['price'], 2)); ?> €</small></th>
 <?php endforeach; ?>
 </tr>
 </thead>

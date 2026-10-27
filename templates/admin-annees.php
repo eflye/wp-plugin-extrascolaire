@@ -78,15 +78,15 @@ if ($planning_year):
 
 <table class="form-table">
 <tr>
-<th><label for="psc-sy-start"><?php esc_html_e('Début de l\'année', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-sy-start"><?php esc_html_e('Début de l\'année', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-sy-start" type="date" name="date_start" value="<?php echo esc_attr($planning_year->date_start); ?>" required></td>
 </tr>
 <tr>
-<th><label for="psc-sy-end"><?php esc_html_e('Fin de l\'année', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-sy-end"><?php esc_html_e('Fin de l\'année', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-sy-end" type="date" name="date_end" value="<?php echo esc_attr($planning_year->date_end); ?>" required></td>
 </tr>
 <tr>
-<th><label for="psc-sy-lock"><?php esc_html_e('Préavis de modification', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-sy-lock"><?php esc_html_e('Préavis de modification', 'periscolaire-registration'); ?></label></th>
 <td>
 <input id="psc-sy-lock" type="number" name="lock_hours" min="0" max="720" value="<?php echo esc_attr((int) $planning_year->lock_hours); ?>" class="small-text"> <?php esc_html_e('heures', 'periscolaire-registration'); ?>
 <p class="description"><?php esc_html_e('S\'applique aux deux écritures : une exception à moins de 48 h est refusée côté serveur, et un changement de rythme ne repropage jamais sur les jours déjà verrouillés.', 'periscolaire-registration'); ?></p>
@@ -97,7 +97,8 @@ if ($planning_year):
 <h3><?php esc_html_e('Plages de vacances', 'periscolaire-registration'); ?></h3>
 <p class="description"><?php esc_html_e('Six plages possibles (Toussaint, Noël, hiver, printemps, ponts...). Laissez tout vide pour utiliser le calendrier scolaire officiel importé ci-dessous.', 'periscolaire-registration'); ?></p>
 <table class="widefat striped" style="max-width:560px;">
-<thead><tr><th><?php esc_html_e('Début', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Fin (incluse)', 'periscolaire-registration'); ?></th></tr></thead>
+<caption class="screen-reader-text"><?php esc_html_e('Plages de vacances de l’année scolaire', 'periscolaire-registration'); ?></caption>
+<thead><tr><th scope="col"><?php esc_html_e('Début', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Fin (incluse)', 'periscolaire-registration'); ?></th></tr></thead>
 <tbody>
 <?php for ($i = 0; $i < 6; $i++): $r = isset($planning_ranges[$i]) ? $planning_ranges[$i] : array('', ''); ?>
 <tr>
@@ -114,7 +115,8 @@ if ($planning_year):
 <h3><?php esc_html_e('Jours fériés à exclure', 'periscolaire-registration'); ?></h3>
 <p class="description"><?php esc_html_e('Pré-remplis avec les fériés métropole : retirez ou complétez (ponts, fêtes locales). Un jour retiré redevient un jour d\'école.', 'periscolaire-registration'); ?></p>
 <table class="widefat striped" style="max-width:560px;">
-<thead><tr><th><?php esc_html_e('Date', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Libellé', 'periscolaire-registration'); ?></th><th></th></tr></thead>
+<caption class="screen-reader-text"><?php esc_html_e('Jours fériés exclus du calendrier', 'periscolaire-registration'); ?></caption>
+<thead><tr><th scope="col"><?php esc_html_e('Date', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Libellé', 'periscolaire-registration'); ?></th><th scope="col"><span class="screen-reader-text"><?php esc_html_e('Actions', 'periscolaire-registration'); ?></span></th></tr></thead>
 <tbody>
 <?php foreach ($planning_holidays as $h => $h_label): ?>
 <tr>
@@ -162,7 +164,8 @@ if ($planning_year):
     <strong><?php echo count($pending_affected['families']); ?> <?php esc_html_e('famille(s)', 'periscolaire-registration'); ?></strong><?php esc_html_e(". Ces prestations ne seront pas facturées, et chaque famille concernée recevra un e-mail listant ce qui a été retiré.", 'periscolaire-registration'); ?>
 </p>
 <table class="widefat striped" style="margin-bottom:16px;">
-<thead><tr><th><?php esc_html_e('Famille', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Enfant(s) / prestation(s)', 'periscolaire-registration'); ?></th></tr></thead>
+<caption class="screen-reader-text"><?php esc_html_e('Familles et prestations touchées par la fermeture', 'periscolaire-registration'); ?></caption>
+<thead><tr><th scope="col"><?php esc_html_e('Famille', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Enfant(s) / prestation(s)', 'periscolaire-registration'); ?></th></tr></thead>
 <tbody>
 <?php foreach ($pending_affected['families'] as $fam): ?>
 <tr>
@@ -209,7 +212,8 @@ if ($planning_year):
 <?php if (!empty($candidates)): ?>
 <p class="description"><?php esc_html_e("Années scolaires détectées dans le calendrier importé (intervalle entre deux étés) — cliquez pour préremplir le formulaire ci-dessous, rien n'est créé automatiquement :", 'periscolaire-registration'); ?></p>
 <table class="widefat striped" style="margin-bottom:16px;max-width:600px;">
-<thead><tr><th><?php esc_html_e('Libellé proposé', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Début', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Fin', 'periscolaire-registration'); ?></th><th></th></tr></thead>
+<caption class="screen-reader-text"><?php esc_html_e('Années scolaires détectées dans le calendrier importé', 'periscolaire-registration'); ?></caption>
+<thead><tr><th scope="col"><?php esc_html_e('Libellé proposé', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Début', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Fin', 'periscolaire-registration'); ?></th><th scope="col"><span class="screen-reader-text"><?php esc_html_e('Actions', 'periscolaire-registration'); ?></span></th></tr></thead>
 <tbody>
 <?php foreach ($candidates as $i => $c): ?>
 <tr data-testid="year-candidate-<?php echo esc_attr($i); ?>">
@@ -236,9 +240,9 @@ if ($planning_year):
 <?php wp_nonce_field('psc_add_school_year'); ?>
 <input type="hidden" name="action" value="psc_add_school_year">
 <table class="form-table">
-<tr><th><label for="psc-y-debut"><?php esc_html_e('Date de début', 'periscolaire-registration'); ?></label></th><td><input id="psc-y-debut" type="date" name="date_debut" required aria-describedby="psc-y-debut-help" data-testid="year-debut-input">
+<tr><th scope="row"><label for="psc-y-debut"><?php esc_html_e('Date de début', 'periscolaire-registration'); ?></label></th><td><input id="psc-y-debut" type="date" name="date_debut" required aria-describedby="psc-y-debut-help" data-testid="year-debut-input">
 <p class="description" id="psc-y-debut-help"><?php esc_html_e('L’année est nommée d’après sa rentrée : une date de début en septembre 2026 crée l’année 2026-2027. Une seule année par rentrée.', 'periscolaire-registration'); ?></p></td></tr>
-<tr><th><label for="psc-y-fin"><?php esc_html_e('Date de fin', 'periscolaire-registration'); ?></label></th><td><input id="psc-y-fin" type="date" name="date_fin" required data-testid="year-fin-input"></td></tr>
+<tr><th scope="row"><label for="psc-y-fin"><?php esc_html_e('Date de fin', 'periscolaire-registration'); ?></label></th><td><input id="psc-y-fin" type="date" name="date_fin" required data-testid="year-fin-input"></td></tr>
 </table>
 <?php submit_button(__('Créer l\'année', 'periscolaire-registration'), 'primary', 'submit', true, array('data-testid' => 'year-create-submit')); ?>
 </form>
@@ -247,7 +251,8 @@ if ($planning_year):
 <div class="psc-box">
 <h2><?php esc_html_e('Années existantes', 'periscolaire-registration'); ?></h2>
 <table class="widefat striped">
-<thead><tr><th><?php esc_html_e('Année', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Début', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Fin', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Action', 'periscolaire-registration'); ?></th></tr></thead>
+<caption class="screen-reader-text"><?php esc_html_e('Années scolaires existantes', 'periscolaire-registration'); ?></caption>
+<thead><tr><th scope="col"><?php esc_html_e('Année', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Début', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Fin', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Action', 'periscolaire-registration'); ?></th></tr></thead>
 <tbody>
 <?php if (empty($years)): ?>
 <tr><td colspan="5"><?php esc_html_e('Aucune année scolaire créée pour le moment.', 'periscolaire-registration'); ?></td></tr>
@@ -315,15 +320,15 @@ if ($planning_year):
 <input type="hidden" name="action" value="psc_close_school_day">
 <table class="form-table">
 <tr>
-<th><label for="psc-close-date-debut"><?php esc_html_e('Fermer du', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-close-date-debut"><?php esc_html_e('Fermer du', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-close-date-debut" type="date" name="date_debut" required></td>
 </tr>
 <tr>
-<th><label for="psc-close-date-fin"><?php esc_html_e('Au (optionnel)', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-close-date-fin"><?php esc_html_e('Au (optionnel)', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-close-date-fin" type="date" name="date_fin"></td>
 </tr>
 <tr>
-<th><label for="psc-close-label"><?php esc_html_e('Motif', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-close-label"><?php esc_html_e('Motif', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-close-label" type="text" name="label" placeholder="<?php esc_attr_e('Ex : Formation des enseignants, Vacances de la Toussaint', 'periscolaire-registration'); ?>" maxlength="100" style="width:280px;"></td>
 </tr>
 </table>
@@ -334,7 +339,7 @@ if ($planning_year):
 <?php wp_nonce_field('psc_open_school_day'); ?>
 <input type="hidden" name="action" value="psc_open_school_day">
 <table class="form-table"><tr>
-<th><label for="psc-open-date"><?php esc_html_e('Réouvrir le', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-open-date"><?php esc_html_e('Réouvrir le', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-open-date" type="date" name="date" required></td>
 </tr></table>
 <?php submit_button(__('Réouvrir ce jour', 'periscolaire-registration'), 'secondary', 'submit', false); ?>
@@ -347,7 +352,8 @@ if ($planning_year):
 <h2><?php esc_html_e('Jours fermés (', 'periscolaire-registration'); ?><?php echo (int) array_sum(array_column($groups, 'count')); ?>)</h2>
 <p class="description"><?php esc_html_e('Résultat du dernier chargement du calendrier officiel ci-dessus.', 'periscolaire-registration'); ?></p>
 <table class="widefat striped">
-<thead><tr><th><?php esc_html_e('Période', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Motif', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Jours', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Origine', 'periscolaire-registration'); ?></th></tr></thead>
+<caption class="screen-reader-text"><?php esc_html_e('Jours fermés issus du calendrier officiel', 'periscolaire-registration'); ?></caption>
+<thead><tr><th scope="col"><?php esc_html_e('Période', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Motif', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Jours', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Origine', 'periscolaire-registration'); ?></th></tr></thead>
 <tbody>
 <?php foreach (array_reverse($groups) as $g): ?>
 <tr>
@@ -378,14 +384,14 @@ if ($planning_year):
 <?php wp_nonce_field('psc_stage_promotion'); ?>
 <input type="hidden" name="action" value="psc_stage_promotion">
 <table class="form-table">
-<tr><th><label for="psc-from-year"><?php esc_html_e("Depuis l'année", 'periscolaire-registration'); ?></label></th><td>
+<tr><th scope="row"><label for="psc-from-year"><?php esc_html_e("Depuis l'année", 'periscolaire-registration'); ?></label></th><td>
 <select id="psc-from-year" name="from_year_id" required data-testid="promotion-from-select">
 <?php foreach ($years as $y): ?>
 <option value="<?php echo esc_attr($y->id); ?>" <?php selected($y->statut, 'active'); ?>><?php echo esc_html($y->year_key); ?></option>
 <?php endforeach; ?>
 </select>
 </td></tr>
-<tr><th><label for="psc-to-year"><?php esc_html_e("Vers l'année", 'periscolaire-registration'); ?></label></th><td>
+<tr><th scope="row"><label for="psc-to-year"><?php esc_html_e("Vers l'année", 'periscolaire-registration'); ?></label></th><td>
 <select id="psc-to-year" name="to_year_id" required data-testid="promotion-to-select">
 <?php foreach ($years as $y): ?>
 <option value="<?php echo esc_attr($y->id); ?>" <?php selected($y->statut, 'preparation'); ?>><?php echo esc_html($y->year_key); ?></option>

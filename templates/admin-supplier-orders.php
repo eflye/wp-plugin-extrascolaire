@@ -45,17 +45,18 @@ psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
 <?php else: ?>
 
 <table class="widefat striped psc-recap" data-testid="supplier-quantities-table">
+<caption class="screen-reader-text"><?php esc_html_e('Quantités à commander par jour et par régime', 'periscolaire-registration'); ?></caption>
 <thead>
 <tr>
-    <th rowspan="2"><?php esc_html_e('Jour', 'periscolaire-registration'); ?></th>
-    <th colspan="4" style="text-align:center;color:#9A5B2E;"><?php esc_html_e('Repas de midi', 'periscolaire-registration'); ?></th>
-    <th rowspan="2" style="text-align:center;border-left:2px solid #EDEAE4;"><?php esc_html_e('Goûters', 'periscolaire-registration'); ?></th>
+    <th scope="col" rowspan="2"><?php esc_html_e('Jour', 'periscolaire-registration'); ?></th>
+    <th scope="colgroup" colspan="4" style="text-align:center;color:#9A5B2E;"><?php esc_html_e('Repas de midi', 'periscolaire-registration'); ?></th>
+    <th scope="col" rowspan="2" style="text-align:center;border-left:2px solid #EDEAE4;"><?php esc_html_e('Goûters', 'periscolaire-registration'); ?></th>
 </tr>
 <tr>
-    <th style="text-align:center"><?php esc_html_e('Standard', 'periscolaire-registration'); ?></th>
-    <th style="text-align:center"><?php esc_html_e('Sans porc', 'periscolaire-registration'); ?></th>
-    <th style="text-align:center"><?php esc_html_e('Végétarien', 'periscolaire-registration'); ?></th>
-    <th style="text-align:center"><?php esc_html_e('Total midi', 'periscolaire-registration'); ?></th>
+    <th scope="col" style="text-align:center"><?php esc_html_e('Standard', 'periscolaire-registration'); ?></th>
+    <th scope="col" style="text-align:center"><?php esc_html_e('Sans porc', 'periscolaire-registration'); ?></th>
+    <th scope="col" style="text-align:center"><?php esc_html_e('Végétarien', 'periscolaire-registration'); ?></th>
+    <th scope="col" style="text-align:center"><?php esc_html_e('Total midi', 'periscolaire-registration'); ?></th>
 </tr>
 </thead>
 <tbody>
@@ -72,12 +73,12 @@ psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
 </tbody>
 <tfoot>
 <tr>
-    <th><?php esc_html_e('Total semaine', 'periscolaire-registration'); ?></th>
-    <th style="text-align:center" data-testid="supplier-total-standard"><?php echo (int) $preview['totaux']['standard']; ?></th>
-    <th style="text-align:center" data-testid="supplier-total-sansporc"><?php echo (int) $preview['totaux']['sans_porc']; ?></th>
-    <th style="text-align:center" data-testid="supplier-total-vegetarien"><?php echo (int) $preview['totaux']['vegetarien']; ?></th>
-    <th style="text-align:center" data-testid="supplier-total-midi"><?php echo (int) $preview['totaux']['midi']; ?></th>
-    <th style="text-align:center;border-left:2px solid #EDEAE4" data-testid="supplier-total-gouter"><?php echo (int) $preview['totaux']['gouter']; ?></th>
+    <th scope="row"><?php esc_html_e('Total semaine', 'periscolaire-registration'); ?></th>
+    <td style="text-align:center" data-testid="supplier-total-standard"><?php echo (int) $preview['totaux']['standard']; ?></td>
+    <td style="text-align:center" data-testid="supplier-total-sansporc"><?php echo (int) $preview['totaux']['sans_porc']; ?></td>
+    <td style="text-align:center" data-testid="supplier-total-vegetarien"><?php echo (int) $preview['totaux']['vegetarien']; ?></td>
+    <td style="text-align:center" data-testid="supplier-total-midi"><?php echo (int) $preview['totaux']['midi']; ?></td>
+    <td style="text-align:center;border-left:2px solid #EDEAE4" data-testid="supplier-total-gouter"><?php echo (int) $preview['totaux']['gouter']; ?></td>
 </tr>
 </tfoot>
 </table>
@@ -192,11 +193,11 @@ psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
 <input type="hidden" name="action" value="psc_cancel_class_meals">
 <table class="form-table">
 <tr>
-<th><label for="psc-cantine-date"><?php esc_html_e('Jour', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-cantine-date"><?php esc_html_e('Jour', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-cantine-date" type="date" name="date" required data-testid="cantine-date-input"></td>
 </tr>
 <tr>
-<th><label for="psc-cantine-classe"><?php esc_html_e('Classe', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-cantine-classe"><?php esc_html_e('Classe', 'periscolaire-registration'); ?></label></th>
 <td>
 <select id="psc-cantine-classe" name="classe" data-testid="cantine-classe-select">
 <?php foreach (Psc_School_Years::classe_options() as $code => $label): ?>
@@ -206,7 +207,7 @@ psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
 </td>
 </tr>
 <tr>
-<th><label for="psc-cantine-reason"><?php esc_html_e('Motif', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-cantine-reason"><?php esc_html_e('Motif', 'periscolaire-registration'); ?></label></th>
 <td><textarea id="psc-cantine-reason" name="reason" rows="2" class="large-text" maxlength="500" required placeholder="<?php esc_attr_e('Ex : Sortie scolaire à la ferme pédagogique', 'periscolaire-registration'); ?>" data-testid="cantine-reason-input"></textarea></td>
 </tr>
 </table>
@@ -220,13 +221,14 @@ psc_admin_notice_map($psc_notices, $psc_msg, $psc_msg);
 <p data-testid="supplier-history-empty"><?php esc_html_e('Aucune commande pour le moment.', 'periscolaire-registration'); ?></p>
 <?php else: ?>
 <table class="widefat striped" data-testid="supplier-history-table">
+<caption class="screen-reader-text"><?php esc_html_e('Historique des envois au fournisseur', 'periscolaire-registration'); ?></caption>
 <thead>
 <tr>
-    <th><?php esc_html_e('Semaine', 'periscolaire-registration'); ?></th>
-    <th><?php esc_html_e('Total repas', 'periscolaire-registration'); ?></th>
-    <th><?php esc_html_e('Destinataire', 'periscolaire-registration'); ?></th>
-    <th><?php esc_html_e('Envoyée le', 'periscolaire-registration'); ?></th>
-    <th></th>
+    <th scope="col"><?php esc_html_e('Semaine', 'periscolaire-registration'); ?></th>
+    <th scope="col"><?php esc_html_e('Total repas', 'periscolaire-registration'); ?></th>
+    <th scope="col"><?php esc_html_e('Destinataire', 'periscolaire-registration'); ?></th>
+    <th scope="col"><?php esc_html_e('Envoyée le', 'periscolaire-registration'); ?></th>
+    <th scope="col"><span class="screen-reader-text"><?php esc_html_e('Actions', 'periscolaire-registration'); ?></span></th>
 </tr>
 </thead>
 <tbody>

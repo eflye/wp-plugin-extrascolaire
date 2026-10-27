@@ -20,7 +20,7 @@
       <input type="hidden" name="action" value="psc_conversation_create">
       <table class="form-table">
         <tr>
-          <th><label for="psc-conv-family"><?php esc_html_e('Famille', 'periscolaire-registration'); ?></label></th>
+          <th scope="row"><label for="psc-conv-family"><?php esc_html_e('Famille', 'periscolaire-registration'); ?></label></th>
           <td>
             <select id="psc-conv-family" name="family_id" required>
               <option value=""><?php esc_html_e('— Choisir —', 'periscolaire-registration'); ?></option>
@@ -33,11 +33,11 @@
           </td>
         </tr>
         <tr>
-          <th><label for="psc-conv-sujet"><?php esc_html_e('Sujet', 'periscolaire-registration'); ?></label></th>
+          <th scope="row"><label for="psc-conv-sujet"><?php esc_html_e('Sujet', 'periscolaire-registration'); ?></label></th>
           <td><input id="psc-conv-sujet" type="text" name="sujet" class="regular-text" maxlength="160" required></td>
         </tr>
         <tr>
-          <th><label for="psc-conv-corps"><?php esc_html_e('Message', 'periscolaire-registration'); ?></label></th>
+          <th scope="row"><label for="psc-conv-corps"><?php esc_html_e('Message', 'periscolaire-registration'); ?></label></th>
           <td><textarea id="psc-conv-corps" name="corps" rows="5" class="large-text" maxlength="2000" required></textarea></td>
         </tr>
       </table>
@@ -59,12 +59,13 @@
   </form>
 
   <table class="wp-list-table widefat fixed striped">
+  <caption class="screen-reader-text"><?php esc_html_e('Échanges avec les familles', 'periscolaire-registration'); ?></caption>
     <thead><tr>
-      <th><?php esc_html_e('Famille', 'periscolaire-registration'); ?></th>
-      <th><?php esc_html_e('Sujet', 'periscolaire-registration'); ?></th>
-      <th><?php esc_html_e("Diffusion d'origine", 'periscolaire-registration'); ?></th>
-      <th><?php esc_html_e('Dernier message', 'periscolaire-registration'); ?></th>
-      <th><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th>
+      <th scope="col"><?php esc_html_e('Famille', 'periscolaire-registration'); ?></th>
+      <th scope="col"><?php esc_html_e('Sujet', 'periscolaire-registration'); ?></th>
+      <th scope="col"><?php esc_html_e("Diffusion d'origine", 'periscolaire-registration'); ?></th>
+      <th scope="col"><?php esc_html_e('Dernier message', 'periscolaire-registration'); ?></th>
+      <th scope="col"><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th>
     </tr></thead>
     <tbody>
       <?php if (!$result['items']): ?><tr><td colspan="5"><?php esc_html_e('Aucune conversation.', 'periscolaire-registration'); ?></td></tr><?php endif; ?>

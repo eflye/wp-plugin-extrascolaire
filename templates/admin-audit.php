@@ -92,21 +92,21 @@ $export_ods_url = wp_nonce_url(add_query_arg(array_merge($export_query_args, arr
       <input type="hidden" name="action" value="psc_audit_save_retention">
       <table class="form-table">
         <tr>
-          <th><label for="psc-retention-critique"><?php echo esc_html($niveau_labels['critique']); ?></label></th>
+          <th scope="row"><label for="psc-retention-critique"><?php echo esc_html($niveau_labels['critique']); ?></label></th>
           <td>
             <input type="number" id="psc-retention-critique" name="retention_critique" min="30" max="3650" value="<?php echo (int) psc_audit_retention_days('critique'); ?>" class="small-text"> <?php esc_html_e('jours', 'periscolaire-registration'); ?>
             <p class="description"><?php esc_html_e('Suppressions, désactivations, connexions, bancaire, sécurité du journal lui-même.', 'periscolaire-registration'); ?></p>
           </td>
         </tr>
         <tr>
-          <th><label for="psc-retention-normal"><?php echo esc_html($niveau_labels['normal']); ?></label></th>
+          <th scope="row"><label for="psc-retention-normal"><?php echo esc_html($niveau_labels['normal']); ?></label></th>
           <td>
             <input type="number" id="psc-retention-normal" name="retention_normal" min="30" max="3650" value="<?php echo (int) psc_audit_retention_days('normal'); ?>" class="small-text"> <?php esc_html_e('jours', 'periscolaire-registration'); ?>
             <p class="description"><?php esc_html_e('Créations, modifications courantes, documents, factures.', 'periscolaire-registration'); ?></p>
           </td>
         </tr>
         <tr>
-          <th><label for="psc-retention-volumineux"><?php echo esc_html($niveau_labels['volumineux']); ?></label></th>
+          <th scope="row"><label for="psc-retention-volumineux"><?php echo esc_html($niveau_labels['volumineux']); ?></label></th>
           <td>
             <input type="number" id="psc-retention-volumineux" name="retention_volumineux" min="30" max="3650" value="<?php echo (int) psc_audit_retention_days('volumineux'); ?>" class="small-text"> <?php esc_html_e('jours', 'periscolaire-registration'); ?>
             <p class="description"><?php esc_html_e('Ajustements de planning au jour le jour (rythme, exceptions) — le volume le plus élevé du journal.', 'periscolaire-registration'); ?></p>
@@ -121,13 +121,13 @@ $export_ods_url = wp_nonce_url(add_query_arg(array_merge($export_query_args, arr
     <input type="hidden" name="page" value="psc_audit">
     <table class="form-table">
       <tr>
-        <th><label for="psc-audit-du"><?php esc_html_e('Du', 'periscolaire-registration'); ?></label></th>
+        <th scope="row"><label for="psc-audit-du"><?php esc_html_e('Du', 'periscolaire-registration'); ?></label></th>
         <td><input type="date" id="psc-audit-du" name="du" value="<?php echo esc_attr($filters['du']); ?>"></td>
-        <th><label for="psc-audit-au"><?php esc_html_e('Au', 'periscolaire-registration'); ?></label></th>
+        <th scope="row"><label for="psc-audit-au"><?php esc_html_e('Au', 'periscolaire-registration'); ?></label></th>
         <td><input type="date" id="psc-audit-au" name="au" value="<?php echo esc_attr($filters['au']); ?>"></td>
       </tr>
       <tr>
-        <th><label for="psc-audit-acteur-type"><?php esc_html_e('Type d’acteur', 'periscolaire-registration'); ?></label></th>
+        <th scope="row"><label for="psc-audit-acteur-type"><?php esc_html_e('Type d’acteur', 'periscolaire-registration'); ?></label></th>
         <td>
           <select id="psc-audit-acteur-type" name="acteur_type">
             <option value=""><?php esc_html_e('Tous', 'periscolaire-registration'); ?></option>
@@ -136,7 +136,7 @@ $export_ods_url = wp_nonce_url(add_query_arg(array_merge($export_query_args, arr
             <?php endforeach; ?>
           </select>
         </td>
-        <th><label for="psc-audit-famille"><?php esc_html_e('Famille', 'periscolaire-registration'); ?></label></th>
+        <th scope="row"><label for="psc-audit-famille"><?php esc_html_e('Famille', 'periscolaire-registration'); ?></label></th>
         <td>
           <select id="psc-audit-famille" name="famille_id">
             <option value=""><?php esc_html_e('Toutes', 'periscolaire-registration'); ?></option>
@@ -147,7 +147,7 @@ $export_ods_url = wp_nonce_url(add_query_arg(array_merge($export_query_args, arr
         </td>
       </tr>
       <tr>
-        <th><label for="psc-audit-categorie"><?php esc_html_e('Catégorie', 'periscolaire-registration'); ?></label></th>
+        <th scope="row"><label for="psc-audit-categorie"><?php esc_html_e('Catégorie', 'periscolaire-registration'); ?></label></th>
         <td>
           <select id="psc-audit-categorie" name="categorie">
             <option value=""><?php esc_html_e('Toutes', 'periscolaire-registration'); ?></option>
@@ -156,7 +156,7 @@ $export_ods_url = wp_nonce_url(add_query_arg(array_merge($export_query_args, arr
             <?php endforeach; ?>
           </select>
         </td>
-        <th><label for="psc-audit-niveau"><?php esc_html_e('Niveau', 'periscolaire-registration'); ?></label></th>
+        <th scope="row"><label for="psc-audit-niveau"><?php esc_html_e('Niveau', 'periscolaire-registration'); ?></label></th>
         <td>
           <select id="psc-audit-niveau" name="niveau">
             <option value=""><?php esc_html_e('Tous', 'periscolaire-registration'); ?></option>
@@ -167,7 +167,7 @@ $export_ods_url = wp_nonce_url(add_query_arg(array_merge($export_query_args, arr
         </td>
       </tr>
       <tr>
-        <th><label for="psc-audit-resultat"><?php esc_html_e('Résultat', 'periscolaire-registration'); ?></label></th>
+        <th scope="row"><label for="psc-audit-resultat"><?php esc_html_e('Résultat', 'periscolaire-registration'); ?></label></th>
         <td>
           <select id="psc-audit-resultat" name="resultat">
             <option value=""><?php esc_html_e('Tous', 'periscolaire-registration'); ?></option>
@@ -176,11 +176,11 @@ $export_ods_url = wp_nonce_url(add_query_arg(array_merge($export_query_args, arr
             <?php endforeach; ?>
           </select>
         </td>
-        <th><label for="psc-audit-action"><?php esc_html_e('Code d’action', 'periscolaire-registration'); ?></label></th>
+        <th scope="row"><label for="psc-audit-action"><?php esc_html_e('Code d’action', 'periscolaire-registration'); ?></label></th>
         <td><input type="text" id="psc-audit-action" name="action_code" value="<?php echo esc_attr($filters['action']); ?>" placeholder="famille.suppression"></td>
       </tr>
       <tr>
-        <th><label for="psc-audit-recherche"><?php esc_html_e('Recherche libre', 'periscolaire-registration'); ?></label></th>
+        <th scope="row"><label for="psc-audit-recherche"><?php esc_html_e('Recherche libre', 'periscolaire-registration'); ?></label></th>
         <td colspan="3"><input type="search" id="psc-audit-recherche" name="recherche" value="<?php echo esc_attr($filters['recherche']); ?>" class="regular-text" placeholder="<?php esc_attr_e('Résumé ou nom d’acteur…', 'periscolaire-registration'); ?>"></td>
       </tr>
     </table>

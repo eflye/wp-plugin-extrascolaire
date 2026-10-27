@@ -184,6 +184,7 @@ $psc_active_blocked = Psc_Assurances::status($psc_active_doc) !== 'approved';
         <?php echo esc_html(sprintf(__('S\'applique à chaque semaine d\'école jusqu\'en %s, vacances exclues.', 'periscolaire-registration'), $psc_year ? date_i18n('F Y', strtotime($psc_year->date_end)) : '')); ?>
       </p>
       <table class="psc-pattern-grid" data-testid="pattern-grid" data-child="<?php echo esc_attr($psc_active_child_id); ?>">
+      <caption class="screen-reader-text"><?php echo esc_html(sprintf(__('Rythme habituel de %s, par jour de la semaine et par prestation', 'periscolaire-registration'), $psc_active_name)); ?></caption>
         <thead>
           <tr>
             <th scope="col"><?php esc_html_e('Jour', 'periscolaire-registration'); ?></th>
