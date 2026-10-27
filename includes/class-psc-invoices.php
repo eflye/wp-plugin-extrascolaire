@@ -114,6 +114,57 @@ class Psc_Invoices {
     public static function generate_one($parent_id, $mois, $declared_all = null) {
         global $wpdb;
 
+        $family = self::load_family($parent_id);
+        if (is_wp_error($family)) {
+            return $family;
+        }
+        list($parent, $children) = $family;
+        $child_ids = array_map(function ($c) { return (int) $c->id; }, $children);
+        $declared  = self::declared_for($child_ids, $mois, $declared_all);
+
+        $t_inv    = psc_table('invoices');
+        $existing = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $t_inv WHERE parent_id = %d AND mois = %s",
+            $parent_id, $mois
+        ));
+
+        $computed = self::compute_lines($declared, $child_ids, self::billing_rule_for($existing));
+        if (is_wp_error($computed)) {
+            return $computed;
+        }
+        list($grid, $lines, $flags, $regle) = $computed;
+        $total = self::total_centimes($grid, $lines) / 100.0;
+
+        // Instantané de ce qui a servi au calcul : lignes, tarifs appliqués
+        // et statut « sans repas » de chaque enfant. C'est lui, et non les
+        // réglages courants, qui dira demain ce que portait la facture.
+        $snapshot = self::build_snapshot($children, $grid, $lines, $flags, $total, $regle);
+        // Empreinte de ce que le PDF affiche en plus du calcul (destinataire,
+        // en-tête de la mairie) : hors signature, elle ne sert qu'à décider
+        // si un brouillon inchangé doit être reconstruit.
+        $snapshot['pdf'] = self::pdf_fingerprint($parent, $children);
+
+        $stored = self::store_invoice($existing, (int) $parent_id, $mois, $total, $snapshot);
+        if (is_wp_error($stored)) {
+            return $stored;
+        }
+        list($invoice_id, $version, $untouched) = $stored;
+        if ($untouched) {
+            return $invoice_id;
+        }
+
+        return self::write_pdf($parent, $mois, $children, $grid, $lines, $invoice_id, $version);
+    }
+
+    /**
+     * Famille et enfants facturés (tous les enfants figurent sur le PDF,
+     * même sans inscription).
+     *
+     * @return array{0: object, 1: object[]}|WP_Error
+     */
+    private static function load_family($parent_id) {
+        global $wpdb;
+
         $parent = $wpdb->get_row($wpdb->prepare(
             'SELECT * FROM ' . psc_table('parents') . ' WHERE id = %d',
             $parent_id
@@ -132,42 +183,60 @@ class Psc_Invoices {
         if (empty($children)) {
             return new WP_Error('no_children', __('Aucun enfant pour cette famille.', 'periscolaire-registration'));
         }
+        return array($parent, $children);
+    }
 
-        // Déclarations du mois, source de vérité unique : psc_is_declared
-        // (rythme habituel + exceptions, jours d'école calculés), puis règle
-        // de facturation unique (psc_billing_services).
-        $child_ids = array_map(function ($c) { return (int) $c->id; }, $children);
-        $dates = Psc_School_Year::school_days_in_month($mois);
+    /**
+     * Déclarations du mois, source de vérité unique : psc_is_declared
+     * (rythme habituel + exceptions, jours d'école calculés), puis règle
+     * de facturation unique (psc_billing_services). La résolution déjà
+     * faite par generate_month() est réutilisée quand elle est fournie.
+     *
+     * @param int[]      $child_ids
+     * @param array|null $declared_all declared_map de tout le mois, ou null.
+     * @return array
+     */
+    private static function declared_for(array $child_ids, $mois, $declared_all) {
         if (is_array($declared_all)) {
             $declared = array();
             foreach ($child_ids as $cid) {
                 if (isset($declared_all[$cid])) $declared[$cid] = $declared_all[$cid];
             }
-        } else {
-            $declared = $dates ? Psc_Planning::declared_map($child_ids, $dates) : array();
+            return $declared;
         }
+        $dates = Psc_School_Year::school_days_in_month($mois);
+        return $dates ? Psc_Planning::declared_map($child_ids, $dates) : array();
+    }
 
-        $t_inv    = psc_table('invoices');
-        $existing = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $t_inv WHERE parent_id = %d AND mois = %s",
-            $parent_id, $mois
-        ));
-
-        // Une facture déjà envoyée se recalcule avec la règle sous laquelle
-        // elle a été émise (champ « calcul » de son instantané, 1 à défaut) :
-        // l'adoption d'une nouvelle règle ne la rectifie jamais d'elle-même.
-        // Seul un vrai changement de déclarations peut encore la corriger.
+    /**
+     * Une facture déjà envoyée se recalcule avec la règle sous laquelle
+     * elle a été émise (champ « calcul » de son instantané, 1 à défaut) :
+     * l'adoption d'une nouvelle règle ne la rectifie jamais d'elle-même.
+     * Seul un vrai changement de déclarations peut encore la corriger.
+     *
+     * @param object|null $existing Ligne psc_invoices en place, ou null.
+     * @return int
+     */
+    private static function billing_rule_for($existing) {
         $regle = psc_billing_rule_version();
         if ($existing && !empty($existing->sent_at)) {
             $stored = json_decode((string) ($existing->lines_json ?? ''), true);
             $regle = is_array($stored) && isset($stored['calcul']) ? (int) $stored['calcul'] : 1;
         }
+        return $regle;
+    }
 
-        // Lignes de facture : une par prestation et par tarif. Chaque jour
-        // est facturé au tarif EN VIGUEUR ce jour-là, avec le statut « sans
-        // repas » de ce jour-là (P1-16) : un changement de prix ou de statut
-        // en cours de mois coupe la ligne en deux, il ne réécrit pas les
-        // jours précédents. grid[clé de ligne][child_id] = nombre.
+    /**
+     * Lignes de facture : une par prestation et par tarif. Chaque jour
+     * est facturé au tarif EN VIGUEUR ce jour-là, avec le statut « sans
+     * repas » de ce jour-là (P1-16) : un changement de prix ou de statut
+     * en cours de mois coupe la ligne en deux, il ne réécrit pas les
+     * jours précédents. grid[clé de ligne][child_id] = nombre.
+     *
+     * @return array{0: array, 1: array, 2: array<int, true>, 3: int}|WP_Error
+     *         grid, lignes ordonnées, enfants « sans repas », règle appliquée.
+     */
+    private static function compute_lines(array $declared, array $child_ids, $regle) {
         $sans_repas = Psc_Sans_Repas::periods($child_ids);
         $flags = array();
         $grid = array();
@@ -197,91 +266,35 @@ class Psc_Invoices {
         if (!$has_data) {
             return new WP_Error('no_data', __('Aucune inscription ce mois-ci.', 'periscolaire-registration'));
         }
-        $lines = self::order_lines($lines);
+        return array($grid, self::order_lines($lines), $flags, $regle);
+    }
 
+    /** Total du mois en centimes entiers. */
+    private static function total_centimes(array $grid, array $lines) {
         $total_centimes = 0;
         foreach ($grid as $key => $child_counts) {
             foreach ($child_counts as $cnt) {
                 $total_centimes += $lines[$key]['centimes'] * (int) $cnt;
             }
         }
-        $total = $total_centimes / 100.0;
+        return $total_centimes;
+    }
 
-        // Instantané de ce qui a servi au calcul : lignes, tarifs appliqués
-        // et statut « sans repas » de chaque enfant. C'est lui, et non les
-        // réglages courants, qui dira demain ce que portait la facture.
-        $snapshot = self::build_snapshot($children, $grid, $lines, $flags, $total, $regle);
-        // Empreinte de ce que le PDF affiche en plus du calcul (destinataire,
-        // en-tête de la mairie) : hors signature, elle ne sert qu'à décider
-        // si un brouillon inchangé doit être reconstruit.
-        $snapshot['pdf'] = self::pdf_fingerprint($parent, $children);
+    /**
+     * Enregistre le calcul : insertion d'une facture neuve, recalcul en
+     * place d'un brouillon, ou rectification (version archivée, nouvelle
+     * version à envoyer) d'une facture émise dont le calcul a changé.
+     *
+     * @return array{0: int, 1: int, 2: bool}|WP_Error
+     *         identifiant, version, et vrai si rien n'est à réécrire — ni
+     *         la ligne ni le PDF (facture émise inchangée, brouillon
+     *         inchangé dont le PDF existe).
+     */
+    private static function store_invoice($existing, $parent_id, $mois, $total, array $snapshot) {
+        global $wpdb;
+        $t_inv = psc_table('invoices');
 
-        $version = 1;
-        if ($existing) {
-            $invoice_id = (int) $existing->id;
-            $version    = max(1, (int) $existing->version);
-            $issued     = !empty($existing->sent_at);
-            $changed    = self::snapshot_differs($existing, $snapshot, $total);
-
-            // Facture émise et calcul inchangé : on ne réécrit RIEN, pas
-            // même le PDF — son en-tête porte la date du jour, le régénérer
-            // modifierait un document déjà remis à la famille.
-            if ($issued && !$changed) {
-                return $invoice_id;
-            }
-
-            // Brouillon inchangé (calcul, destinataire, en-tête) dont le PDF
-            // existe : rien à réécrire ni à reconstruire (PERF-09).
-            if (!$issued && !$changed && !empty($existing->pdf_path)
-                && self::stored_pdf_fingerprint($existing) === $snapshot['pdf']
-                && file_exists(psc_private_path($existing->pdf_path))) {
-                return $invoice_id;
-            }
-
-            if ($issued) {
-                // Correction : la version remise à la famille est archivée
-                // telle quelle, PDF compris, avant toute écriture.
-                $archived = self::archive_version($existing);
-                if (is_wp_error($archived)) return $archived;
-
-                $version++;
-                $wpdb->update($t_inv, array(
-                    'total'      => $total,
-                    'version'    => $version,
-                    'lines_json' => wp_json_encode($snapshot),
-                    'pdf_path'   => null,
-                    // La nouvelle version n'a pas été envoyée : la famille
-                    // détient encore la précédente.
-                    'sent_at'    => null,
-                    'created_at' => current_time('mysql'),
-                ), array('id' => $invoice_id));
-
-                if (class_exists('Psc_Audit')) {
-                    Psc_Audit::log('facture.rectification', array(
-                        'objet_type' => 'facture', 'objet_id' => $invoice_id, 'famille_id' => (int) $parent_id,
-                        'meta' => array(
-                            'mois'             => $mois,
-                            'version_archivee' => $version - 1,
-                            'nouvelle_version' => $version,
-                            'total_precedent'  => (float) $existing->total,
-                            'total_nouveau'    => $total,
-                        ),
-                        'resume' => sprintf(
-                            /* translators: 1: mois facturé (AAAA-MM), 2: version archivée, 3: nouvelle version. */
-                            __('Facture %1$s rectifiée : version %2$d archivée, version %3$d à envoyer.', 'periscolaire-registration'),
-                            $mois, $version - 1, $version
-                        ),
-                    ));
-                }
-            } else {
-                // Brouillon : recalcul en place, c'est son rôle.
-                $wpdb->update($t_inv, array(
-                    'total'      => $total,
-                    'lines_json' => wp_json_encode($snapshot),
-                    'created_at' => current_time('mysql'),
-                ), array('id' => $invoice_id));
-            }
-        } else {
+        if (!$existing) {
             $wpdb->insert($t_inv, array(
                 'parent_id'  => $parent_id,
                 'mois'       => $mois,
@@ -292,11 +305,84 @@ class Psc_Invoices {
                 'sent_at'    => null,
                 'created_at' => current_time('mysql'),
             ), array('%d', '%s', '%f', '%d', '%s', '%s', '%s', '%s'));
-            $invoice_id = (int) $wpdb->insert_id;
+            return array((int) $wpdb->insert_id, 1, false);
         }
 
-        // Generate PDF
-        $pdf_path = self::pdf_path($mois, $parent_id);
+        $invoice_id = (int) $existing->id;
+        $version    = max(1, (int) $existing->version);
+        $issued     = !empty($existing->sent_at);
+        $changed    = self::snapshot_differs($existing, $snapshot, $total);
+
+        // Facture émise et calcul inchangé : on ne réécrit RIEN, pas
+        // même le PDF — son en-tête porte la date du jour, le régénérer
+        // modifierait un document déjà remis à la famille.
+        if ($issued && !$changed) {
+            return array($invoice_id, $version, true);
+        }
+
+        // Brouillon inchangé (calcul, destinataire, en-tête) dont le PDF
+        // existe : rien à réécrire ni à reconstruire (PERF-09).
+        if (!$issued && !$changed && !empty($existing->pdf_path)
+            && self::stored_pdf_fingerprint($existing) === $snapshot['pdf']
+            && file_exists(psc_private_path($existing->pdf_path))) {
+            return array($invoice_id, $version, true);
+        }
+
+        if ($issued) {
+            // Correction : la version remise à la famille est archivée
+            // telle quelle, PDF compris, avant toute écriture.
+            $archived = self::archive_version($existing);
+            if (is_wp_error($archived)) return $archived;
+
+            $version++;
+            $wpdb->update($t_inv, array(
+                'total'      => $total,
+                'version'    => $version,
+                'lines_json' => wp_json_encode($snapshot),
+                'pdf_path'   => null,
+                // La nouvelle version n'a pas été envoyée : la famille
+                // détient encore la précédente.
+                'sent_at'    => null,
+                'created_at' => current_time('mysql'),
+            ), array('id' => $invoice_id));
+
+            if (class_exists('Psc_Audit')) {
+                Psc_Audit::log('facture.rectification', array(
+                    'objet_type' => 'facture', 'objet_id' => $invoice_id, 'famille_id' => (int) $parent_id,
+                    'meta' => array(
+                        'mois'             => $mois,
+                        'version_archivee' => $version - 1,
+                        'nouvelle_version' => $version,
+                        'total_precedent'  => (float) $existing->total,
+                        'total_nouveau'    => $total,
+                    ),
+                    'resume' => sprintf(
+                        /* translators: 1: mois facturé (AAAA-MM), 2: version archivée, 3: nouvelle version. */
+                        __('Facture %1$s rectifiée : version %2$d archivée, version %3$d à envoyer.', 'periscolaire-registration'),
+                        $mois, $version - 1, $version
+                    ),
+                ));
+            }
+        } else {
+            // Brouillon : recalcul en place, c'est son rôle.
+            $wpdb->update($t_inv, array(
+                'total'      => $total,
+                'lines_json' => wp_json_encode($snapshot),
+                'created_at' => current_time('mysql'),
+            ), array('id' => $invoice_id));
+        }
+        return array($invoice_id, $version, false);
+    }
+
+    /**
+     * Construit le PDF et enregistre son chemin relatif sur la facture.
+     *
+     * @return int|WP_Error Identifiant de la facture.
+     */
+    private static function write_pdf($parent, $mois, $children, array $grid, array $lines, $invoice_id, $version) {
+        global $wpdb;
+
+        $pdf_path = self::pdf_path($mois, $parent->id);
         if (!wp_mkdir_p(dirname($pdf_path))) {
             return new WP_Error('mkdir_fail', __('Impossible de créer le répertoire des factures.', 'periscolaire-registration'));
         }
@@ -308,7 +394,7 @@ class Psc_Invoices {
 
         // Store relative path
         $rel_path = str_replace(trailingslashit(psc_private_dir()), '', $pdf_path);
-        $wpdb->update($t_inv, array('pdf_path' => $rel_path), array('id' => $invoice_id), array('%s'), array('%d'));
+        $wpdb->update(psc_table('invoices'), array('pdf_path' => $rel_path), array('id' => $invoice_id), array('%s'), array('%d'));
 
         return $invoice_id;
     }
@@ -1088,17 +1174,7 @@ class Psc_Invoices {
     private static function build_pdf($parent, $mois, $children, $grid, $services, $path, $invoice_id, $version = 1) {
         require_once PSC_PATH . 'includes/fpdf/fpdf.php';
 
-        // Billing settings
-        $org_intro   = get_option('psc_billing_org_intro',   '');
-        $org_name    = get_option('psc_billing_org_name',    get_bloginfo('name'));
-        $org_address = get_option('psc_billing_org_address', '');
-        $org_phone   = get_option('psc_billing_org_phone',   '');
-        $org_fax     = get_option('psc_billing_org_fax',     '');
-        $org_email   = get_option('psc_billing_org_email',   '');
-        $org_city    = get_option('psc_billing_org_city',    '');
-        $footer_text = get_option('psc_billing_footer',      '');
-        $logo_left_id  = (int) get_option('psc_billing_logo_left_id',  0);
-        $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
+        $org = self::pdf_org_settings();
 
         list($year, $month_num) = explode('-', $mois);
         $invoice_num  = substr($year, 2) . '-' . $month_num . '-' . str_pad((string) $invoice_id, 3, '0', STR_PAD_LEFT);
@@ -1107,12 +1183,11 @@ class Psc_Invoices {
         // référence, ni chez la famille ni à la comptabilité.
         if ((int) $version > 1) $invoice_num .= '-R' . (int) $version;
         $month_label  = self::month_label($mois);
-        $nom_famille  = trim(($parent->nom ?? '') ?: $parent->email);
         // Horodatage réel : french_full_date() applique lui-même le fuseau du site.
         $date_fr      = self::french_full_date(time());
-        $city_date    = $org_city ? self::enc(sprintf(
+        $city_date    = $org['city'] ? self::enc(sprintf(
             /* translators: 1: ville de la mairie, 2: date en toutes lettres. */
-            __('%1$s, le %2$s', 'periscolaire-registration'), $org_city, $date_fr)) : self::enc($date_fr);
+            __('%1$s, le %2$s', 'periscolaire-registration'), $org['city'], $date_fr)) : self::enc($date_fr);
 
         // Margins: left=20, right=20 → usable = 170mm
         $ml = 20;
@@ -1124,7 +1199,44 @@ class Psc_Invoices {
         $pdf->SetAutoPageBreak(true, 20);
         $pdf->AddPage();
 
-        // ---- HEADER: logos (optional) + texte centré ----
+        self::pdf_header($pdf, $org, $ml, $mr, $pw);
+        self::pdf_address_block($pdf, $parent, $city_date, $ml, $pw);
+        self::pdf_reference($pdf, $invoice_num, $month_label, $ml, $pw);
+        self::pdf_table($pdf, $children, $grid, $services, $ml);
+        self::pdf_footer($pdf, $parent, $org['footer']);
+
+        $pdf->Output('F', $path);
+        return true;
+    }
+
+    /**
+     * Réglages de l'en-tête et du pied des factures (Périscolaire › Réglages).
+     *
+     * @return array<string, mixed>
+     */
+    private static function pdf_org_settings() {
+        return array(
+            'intro'         => get_option('psc_billing_org_intro',   ''),
+            'name'          => get_option('psc_billing_org_name',    get_bloginfo('name')),
+            'address'       => get_option('psc_billing_org_address', ''),
+            'phone'         => get_option('psc_billing_org_phone',   ''),
+            'fax'           => get_option('psc_billing_org_fax',     ''),
+            'email'         => get_option('psc_billing_org_email',   ''),
+            'city'          => get_option('psc_billing_org_city',    ''),
+            'footer'        => get_option('psc_billing_footer',      ''),
+            'logo_left_id'  => (int) get_option('psc_billing_logo_left_id',  0),
+            'logo_right_id' => (int) get_option('psc_billing_logo_right_id', 0),
+        );
+    }
+
+    /**
+     * En-tête : logos (facultatifs, bornés en largeur ET en hauteur) de
+     * part et d'autre du bloc centré (intro, nom, adresse, téléphone,
+     * e-mail), puis séparateur horizontal.
+     *
+     * @param FPDF $pdf
+     */
+    private static function pdf_header($pdf, array $org, $ml, $mr, $pw) {
         // Les logos sont BORNÉS en largeur ET en hauteur (proportions
         // conservées) : un blason portrait dessiné à largeur seule
         // débordait de l'en-tête et recouvrait le bloc d'adresse de la
@@ -1132,8 +1244,8 @@ class Psc_Invoices {
         $valid_exts   = array('JPG', 'JPEG', 'PNG', 'GIF');
         $logo_w       = 35; // largeur du slot de texte réservé de part et d'autre
         $logo_max_h   = 25; // hauteur maximale dessinée — jamais sous le séparateur
-        $logo_l_path  = $logo_left_id  ? get_attached_file($logo_left_id)  : '';
-        $logo_r_path  = $logo_right_id ? get_attached_file($logo_right_id) : '';
+        $logo_l_path  = $org['logo_left_id']  ? get_attached_file($org['logo_left_id'])  : '';
+        $logo_r_path  = $org['logo_right_id'] ? get_attached_file($org['logo_right_id']) : '';
         $has_logo_l   = $logo_l_path && file_exists($logo_l_path)
                         && in_array(strtoupper(pathinfo($logo_l_path, PATHINFO_EXTENSION)), $valid_exts, true);
         $has_logo_r   = $logo_r_path && file_exists($logo_r_path)
@@ -1156,30 +1268,30 @@ class Psc_Invoices {
         }
 
         $pdf->SetXY($txt_x, $y_hdr);
-        if ($org_intro) {
+        if ($org['intro']) {
             $pdf->SetFont('Helvetica', '', 10);
-            $pdf->MultiCell($txt_w, 5, self::enc($org_intro), 0, 'C');
+            $pdf->MultiCell($txt_w, 5, self::enc($org['intro']), 0, 'C');
             $pdf->SetX($txt_x);
         }
         $pdf->SetFont('Helvetica', 'B', 13);
-        $pdf->MultiCell($txt_w, 6, self::enc($org_name), 0, 'C');
+        $pdf->MultiCell($txt_w, 6, self::enc($org['name']), 0, 'C');
         $pdf->SetFont('Helvetica', '', 9);
-        if ($org_address) {
+        if ($org['address']) {
             $pdf->SetX($txt_x);
-            $pdf->MultiCell($txt_w, 4, self::enc($org_address), 0, 'C');
+            $pdf->MultiCell($txt_w, 4, self::enc($org['address']), 0, 'C');
         }
-        if ($org_phone || $org_fax) {
+        if ($org['phone'] || $org['fax']) {
             $tel_line = '';
             /* translators: %s: numéro de téléphone */
-            if ($org_phone) $tel_line = sprintf(__('Tél : %s', 'periscolaire-registration'), $org_phone);
+            if ($org['phone']) $tel_line = sprintf(__('Tél : %s', 'periscolaire-registration'), $org['phone']);
             /* translators: %s: numéro de télécopie */
-            if ($org_fax)   $tel_line .= ($tel_line ? ' – ' : '') . sprintf(__('Télécopie : %s', 'periscolaire-registration'), $org_fax);
+            if ($org['fax'])   $tel_line .= ($tel_line ? ' – ' : '') . sprintf(__('Télécopie : %s', 'periscolaire-registration'), $org['fax']);
             $pdf->SetX($txt_x);
             $pdf->MultiCell($txt_w, 4, self::enc($tel_line), 0, 'C');
         }
-        if ($org_email) {
+        if ($org['email']) {
             $pdf->SetX($txt_x);
-            $pdf->MultiCell($txt_w, 4, self::enc($org_email), 0, 'C');
+            $pdf->MultiCell($txt_w, 4, self::enc($org['email']), 0, 'C');
         }
 
         $pdf->SetY(max($pdf->GetY(), $y_hdr + $logo_drawn_h) + 4);
@@ -1189,8 +1301,16 @@ class Psc_Invoices {
         $pdf->SetLineWidth(0.3);
         $pdf->Line($ml, $pdf->GetY(), 210 - $mr, $pdf->GetY());
         $pdf->Ln(8);
+    }
 
-        // ---- BLOC ADRESSE : famille (gauche) | ville + date (droite) ----
+    /**
+     * Bloc adresse : famille (gauche) | ville + date (droite, sur la ligne
+     * du nom).
+     *
+     * @param FPDF $pdf
+     */
+    private static function pdf_address_block($pdf, $parent, $city_date, $ml, $pw) {
+        $nom_famille = trim(($parent->nom ?? '') ?: $parent->email);
         $y_addr = $pdf->GetY();
         $pdf->SetFont('Helvetica', '', 10);
         $pdf->SetXY($ml, $y_addr);
@@ -1213,8 +1333,15 @@ class Psc_Invoices {
         $pdf->Cell($pw, 5, $city_date, 0, 0, 'R');
 
         $pdf->SetY($y_addr + 20);
+    }
 
-        // ---- RÉFÉRENCE FACTURE ----
+    /**
+     * Référence de la facture (numéro en rouge, comme le PDF de référence)
+     * et mois des prestations.
+     *
+     * @param FPDF $pdf
+     */
+    private static function pdf_reference($pdf, $invoice_num, $month_label, $ml, $pw) {
         $pdf->SetFont('Helvetica', 'B', 10);
         $pdf->SetTextColor(0, 0, 0);
         // "FACTURE N°" en noir, numéro en rouge (comme le PDF de référence)
@@ -1230,9 +1357,16 @@ class Psc_Invoices {
         $pdf->SetFont('Helvetica', 'B', 10);
         $pdf->Cell($pw, 5, self::enc($month_label), 0, 1, 'L');
         $pdf->Ln(5);
+    }
 
-        // ---- TABLEAU ----
-        // Colonnes : nom (large) | tarif par prestation | nombre de prestations | total
+    /**
+     * Tableau des prestations : par type de prestation réellement dû, une
+     * ligne de tarif puis une ligne par enfant ; ligne de total en bas.
+     * Colonnes : nom (large) | tarif par prestation | nombre | total.
+     *
+     * @param FPDF $pdf
+     */
+    private static function pdf_table($pdf, $children, $grid, $services, $ml) {
         $cw = array(91, 28, 28, 23); // somme = 170
 
         // En-tête bi-ligne avec bordures manuelles
@@ -1297,16 +1431,20 @@ class Psc_Invoices {
         $pdf->Cell($cw[0] + $cw[1], $row_h, '',                              1, 0, 'C', true);
         $pdf->Cell($cw[2],           $row_h, __('TOTAL', 'periscolaire-registration'),   1, 0, 'R', true);
         $pdf->Cell($cw[3],           $row_h, self::price_cell($grand_total / 100),  1, 1, 'R', true);
+    }
 
-        // ---- PIED DE PAGE ----
+    /**
+     * Pied de page : mention de prélèvement, pour les familles en
+     * prélèvement SEPA seulement.
+     *
+     * @param FPDF $pdf
+     */
+    private static function pdf_footer($pdf, $parent, $footer_text) {
         if ($footer_text && ($parent->payment_mode ?? 'autre') === 'prelevement') {
             $pdf->Ln(10);
             $pdf->SetFont('Helvetica', 'B', 10);
             $pdf->SetTextColor(0, 0, 0);
             $pdf->Write(5, self::enc($footer_text));
         }
-
-        $pdf->Output('F', $path);
-        return true;
     }
 }
