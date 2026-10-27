@@ -1,11 +1,14 @@
 <?php
 /**
- * wp eval-file tests/integration/p1-final-summary.php
+ * wp eval-file tests/integration/data-protection-contracts.php
  *
- * Dossier de preuves P1 — lecture seule, aucune écriture en base ni sur
- * disque. Elle répond à une seule question : parmi les exigences P1, quelles
- * sont celles qu'un contrat technique tient aujourd'hui, et lesquelles
- * restent suspendues à une décision ou à un constat humain.
+ * Dossier de preuves de la protection des données — lecture seule, aucune
+ * écriture en base ni sur disque. Il répond à une seule question : parmi
+ * les exigences de protection des données (références P1-xx de l'audit),
+ * quelles sont celles qu'un contrat technique tient aujourd'hui, et
+ * lesquelles restent suspendues à une décision ou à un constat humain.
+ *
+ * Origine : audit du 14/10/2026, suivi P1 (relevé final).
  *
  * Elle ne conclut donc PAS que le service est conforme : la moitié de la
  * liste ci-dessous n'est pas dans le pouvoir du code.
@@ -129,6 +132,6 @@ if ($failed) {
     WP_CLI::error(sprintf('%d contrat(s) technique(s) non tenu(s).', count($failed)));
 }
 WP_CLI::log(sprintf(
-    'Dossier P1 : %d contrats techniques tenus, %d décisions manuelles ouvertes. Ce relevé n’établit aucune conformité.',
+    'Dossier protection des données : %d contrats techniques tenus, %d décisions manuelles ouvertes. Ce relevé n’établit aucune conformité.',
     count($proved), 10
 ));

@@ -1,9 +1,18 @@
 /**
- * Corrections du lot 2 de l'audit (données, RGPD, journal, échanges,
- * messages) — ce que bin/verify-audit-lot2.php ne voit pas : les écrans
- * et les contrôles d'habilitation servis par WordPress.
+ * Messages (diffusions) et échanges familles ↔ mairie — sécurité des
+ * écrans : le jeton de diffusion disparaît de l'URL et reste requis ; la
+ * pièce jointe d'un échange est visible et téléchargeable côté mairie
+ * avec l'habilitation « Messages » seulement (et un nonce) ; les écrans
+ * Messages n'affichent ni code brut ni texte venu de l'URL ; la
+ * consultation d'une famille par la mairie ne marque aucun échange lu.
  *
- * Données créées et supprimées par la spec (préfixe « lot2-e2e »).
+ * bin/verify-rgpd.php couvre la logique (pièces jointes, lectures
+ * légères) ; ici, les écrans et les contrôles d'habilitation servis par
+ * WordPress. Les diffusions elles-mêmes sont couvertes par
+ * tests/messages.spec.ts, les échanges par tests/conversations.spec.ts.
+ *
+ * Origine : audit du 14/10/2026, lot 2 (spec scindée par domaine). Données
+ * créées et supprimées par la spec (préfixe « messages-e2e »).
  */
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
@@ -12,13 +21,7 @@ import { readFormPageUrl } from '../playwright/seed-result';
 import { APP_BASE, ENGINE, CONTAINER } from '../helpers/env';
 
 const WP = '/usr/local/bin/wp-cli.phar';
-const PASSWORD = 'Lot2-E2E-Audit-2026';
-const EMAIL = 'lot2-e2e@example.test';
-const IBAN = 'FR7630006000011234567890189';
-const USERS = {
-  familles: { role: 'subscriber', caps: ['psc_manage_families'] },
-  complet: { role: 'subscriber', caps: ['psc_manage_families', 'psc_manage_billing'] },
-};
+const PASSWORD = 'Messages-E2E-2026';
 
 function wpEval(php: string): string {
   return execFileSync(
@@ -26,26 +29,6 @@ function wpEval(php: string): string {
     ['exec', CONTAINER, 'php', WP, 'eval', php, '--path=/var/www/html', '--allow-root'],
     { encoding: 'utf8' }
   ).trim().split('\n').pop() ?? '';
-}
-
-function login(name: string): string {
-  return `psc-lot2-e2e-${name}`;
-}
-
-function familyId(): number {
-  return Number(wpEval(`global $wpdb; echo (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}psc_parents WHERE email=%s",'${EMAIL}'));`));
-}
-
-function storedIban(): string {
-  return wpEval(`global $wpdb; $r=$wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}psc_parents WHERE email=%s",'${EMAIL}')); echo psc_read_iban($r);`);
-}
-
-function cleanup(): void {
-  const logins = Object.keys(USERS).map((name) => `'${login(name)}'`).join(',');
-  wpEval(`global $wpdb; require_once ABSPATH.'wp-admin/includes/user.php';
-    foreach(array(${logins}) as $l){ $u=get_user_by('login',$l); if($u) wp_delete_user((int)$u->ID); }
-    $wpdb->delete($wpdb->prefix.'psc_parents',array('email'=>'${EMAIL}'));
-    echo 'ok';`);
 }
 
 async function loginAs(page: Page, user: string): Promise<void> {
@@ -56,68 +39,15 @@ async function loginAs(page: Page, user: string): Promise<void> {
   await page.waitForURL((url) => !url.pathname.endsWith('/wp-login.php'));
 }
 
-test.describe('Lot 2 — IBAN et habilitation Facturation (RGPD-07)', () => {
-  test.beforeAll(() => {
-    cleanup();
-    for (const [name, { role, caps }] of Object.entries(USERS)) {
-      const grants = caps.map((cap) => `$u->add_cap('${cap}');`).join('');
-      wpEval(`$id=wp_insert_user(array('user_login'=>'${login(name)}','user_pass'=>'${PASSWORD}','user_email'=>'${login(name)}@example.test','role'=>'${role}'));
-        $u=get_user_by('id',$id); ${grants} echo 'ok';`);
-    }
-    wpEval(`global $wpdb; $wpdb->insert($wpdb->prefix.'psc_parents',array('email'=>'${EMAIL}','nom'=>'Lot2E2E','prenom'=>'Famille','active'=>1,
-      'payment_mode'=>'prelevement','sepa_iban'=>psc_encrypt('${IBAN}'),'sepa_bic'=>'AGRIFRPP882','sepa_titulaire'=>'Titulaire Lot2','created_at'=>current_time('mysql'))); echo 'ok';`);
-  });
-
-  test.afterAll(() => cleanup());
-
-  test('« Familles » seule : IBAN masqué, données bancaires non modifiables, même par POST forgé', async ({ page }) => {
-    await loginAs(page, login('familles'));
-    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_parents&edit=${familyId()}`);
-    await expect(page.locator('#psc-edit-sepa-iban')).toHaveCount(0);
-    await expect(page.locator('body')).not.toContainText(IBAN);
-    await expect(page.locator('.psc-readonly-sepa')).toContainText('FR76');
-    const axe = await new AxeBuilder({ page }).include('form').analyze();
-    expect(axe.violations.map((v) => v.id)).toEqual([]);
-
-    // Contrôle serveur : un champ sepa_iban ajouté au formulaire est ignoré.
-    await page.evaluate(() => {
-      const form = document.querySelector('input[name="action"][value="psc_edit_parent"]')?.closest('form');
-      const input = document.createElement('input');
-      input.type = 'hidden'; input.name = 'sepa_iban'; input.value = 'DE89370400440532013000';
-      form?.appendChild(input);
-    });
-    await page.getByRole('button', { name: 'Enregistrer les modifications' }).click();
-    await page.waitForURL(/psc_msg=updated/);
-    expect(storedIban()).toBe(IBAN);
-  });
-
-  test('« Familles » + « Facturation » : champ vide = IBAN conservé, nouvel IBAN enregistré', async ({ page }) => {
-    await loginAs(page, login('complet'));
-    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_parents&edit=${familyId()}`);
-    const field = page.locator('#psc-edit-sepa-iban');
-    await expect(field).toHaveValue('');
-    await expect(page.locator('body')).not.toContainText(IBAN);
-    await page.getByRole('button', { name: 'Enregistrer les modifications' }).click();
-    await page.waitForURL(/psc_msg=updated/);
-    expect(storedIban()).toBe(IBAN);
-
-    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_parents&edit=${familyId()}`);
-    await page.locator('#psc-edit-sepa-iban').fill('FR14 2004 1010 0505 0001 3M02 606');
-    await page.getByRole('button', { name: 'Enregistrer les modifications' }).click();
-    await page.waitForURL(/psc_msg=updated/);
-    expect(storedIban()).toBe('FR1420041010050500013M02606');
-  });
-});
-
-test.describe('Lot 2 — lien de diffusion sans jeton dans l’URL (RGPD-09)', () => {
-  const MSG_EMAIL = 'lot2-e2e-diffusion@example.test';
-  const TOKEN = 'lot2e2elot2e2elot2e2elot2e2e1234';
+test.describe('Lien de diffusion sans jeton dans l’URL (RGPD-09)', () => {
+  const MSG_EMAIL = 'messages-e2e-diffusion@example.test';
+  const TOKEN = 'msge2emsge2emsge2emsge2emsge2e12';
   let messageId = 0;
 
   test.beforeAll(() => {
     messageId = Number(wpEval(`global $wpdb; $wpdb->delete($wpdb->prefix.'psc_parents',array('email'=>'${MSG_EMAIL}'));
-      $wpdb->insert($wpdb->prefix.'psc_parents',array('email'=>'${MSG_EMAIL}','nom'=>'Lot2Diffusion','created_at'=>current_time('mysql'))); $f=(int)$wpdb->insert_id;
-      $wpdb->insert($wpdb->prefix.'psc_messages',array('titre'=>'Diffusion Lot2 E2E','corps'=>'Corps Lot2','statut'=>'envoye','date_envoi'=>current_time('mysql'),'auteur_id'=>1,'created_at'=>current_time('mysql'),'updated_at'=>current_time('mysql'))); $m=(int)$wpdb->insert_id;
+      $wpdb->insert($wpdb->prefix.'psc_parents',array('email'=>'${MSG_EMAIL}','nom'=>'E2EDiffusion','created_at'=>current_time('mysql'))); $f=(int)$wpdb->insert_id;
+      $wpdb->insert($wpdb->prefix.'psc_messages',array('titre'=>'Diffusion messages E2E','corps'=>'Corps E2E','statut'=>'envoye','date_envoi'=>current_time('mysql'),'auteur_id'=>1,'created_at'=>current_time('mysql'),'updated_at'=>current_time('mysql'))); $m=(int)$wpdb->insert_id;
       $wpdb->insert($wpdb->prefix.'psc_message_destinataires',array('message_id'=>$m,'family_id'=>$f,'token'=>'${TOKEN}')); echo $m;`));
   });
 
@@ -130,27 +60,27 @@ test.describe('Lot 2 — lien de diffusion sans jeton dans l’URL (RGPD-09)', (
     await page.goto(`${APP_BASE}/?psc_msg=${messageId}&t=${TOKEN}`);
     expect(page.url()).not.toContain(TOKEN);
     expect(new URL(page.url()).searchParams.get('psc_msg')).toBe(String(messageId));
-    await expect(page.locator('body')).toContainText('Diffusion Lot2 E2E');
+    await expect(page.locator('body')).toContainText('Diffusion messages E2E');
   });
 
   test('un autre navigateur, sans le lien, ne voit pas le message', async ({ browser }) => {
     const context = await browser.newContext();
     const page = await context.newPage();
     await page.goto(`${APP_BASE}/?psc_msg=${messageId}`);
-    await expect(page.locator('body')).not.toContainText('Diffusion Lot2 E2E');
+    await expect(page.locator('body')).not.toContainText('Diffusion messages E2E');
     await page.goto(`${APP_BASE}/?psc_msg=${messageId}&t=mauvais-jeton`);
-    await expect(page.locator('body')).not.toContainText('Diffusion Lot2 E2E');
+    await expect(page.locator('body')).not.toContainText('Diffusion messages E2E');
     await context.close();
   });
 });
 
-test.describe('Lot 2 — pièce jointe d’une famille visible côté mairie (PRA-04)', () => {
-  const CONV_EMAIL = 'lot2-e2e-echange@example.test';
+test.describe('Pièce jointe d’une famille visible côté mairie (PRA-04)', () => {
+  const CONV_EMAIL = 'messages-e2e-echange@example.test';
   const AGENTS = {
     messages: ['psc_manage_messages'],
     familles: ['psc_manage_families'],
   };
-  const agent = (name: string) => `psc-lot2-e2e-pj-${name}`;
+  const agent = (name: string) => `psc-messages-e2e-pj-${name}`;
   let conversationId = 0;
   let messageId = 0;
 
@@ -166,9 +96,9 @@ test.describe('Lot 2 — pièce jointe d’une famille visible côté mairie (PR
         $u=get_user_by('id',$id); ${caps.map((c) => `$u->add_cap('${c}');`).join('')} echo 'ok';`);
     }
     const ids = wpEval(`global $wpdb; $now=current_time('mysql');
-      $wpdb->insert($wpdb->prefix.'psc_parents',array('email'=>'${CONV_EMAIL}','nom'=>'Lot2Echange','active'=>1,'created_at'=>$now)); $f=(int)$wpdb->insert_id;
-      $wpdb->insert($wpdb->prefix.'psc_conversations',array('family_id'=>$f,'sujet'=>'Échange Lot2 E2E','initiee_par'=>'famille','dernier_message_at'=>$now,'dernier_auteur'=>'famille','created_at'=>$now,'updated_at'=>$now)); $c=(int)$wpdb->insert_id;
-      $rel='conversations/lot2-e2e/'.wp_generate_password(12,false).'.pdf'; wp_mkdir_p(dirname(psc_private_path($rel))); file_put_contents(psc_private_path($rel),'%PDF-1.4 lot2 e2e');
+      $wpdb->insert($wpdb->prefix.'psc_parents',array('email'=>'${CONV_EMAIL}','nom'=>'E2EEchange','active'=>1,'created_at'=>$now)); $f=(int)$wpdb->insert_id;
+      $wpdb->insert($wpdb->prefix.'psc_conversations',array('family_id'=>$f,'sujet'=>'Échange messages E2E','initiee_par'=>'famille','dernier_message_at'=>$now,'dernier_auteur'=>'famille','created_at'=>$now,'updated_at'=>$now)); $c=(int)$wpdb->insert_id;
+      $rel='conversations/messages-e2e/'.wp_generate_password(12,false).'.pdf'; wp_mkdir_p(dirname(psc_private_path($rel))); file_put_contents(psc_private_path($rel),'%PDF-1.4 messages e2e');
       $wpdb->insert($wpdb->prefix.'psc_conversation_messages',array('conversation_id'=>$c,'auteur_type'=>'famille','corps'=>'Voici le certificat','piece_jointe_path'=>$rel,'piece_jointe_nom'=>'certificat.pdf','piece_jointe_taille'=>17,'created_at'=>$now));
       echo $c.' '.$wpdb->insert_id;`);
     [conversationId, messageId] = ids.split(' ').map(Number);
@@ -184,7 +114,7 @@ test.describe('Lot 2 — pièce jointe d’une famille visible côté mairie (PR
     const href = await link.getAttribute('href');
     const response = await page.request.get(href ?? '');
     expect(response.status()).toBe(200);
-    expect(await response.text()).toContain('%PDF-1.4 lot2 e2e');
+    expect(await response.text()).toContain('%PDF-1.4 messages e2e');
     const axe = await new AxeBuilder({ page }).include('.psc-conversation-thread').analyze();
     expect(axe.violations.map((v) => v.id)).toEqual([]);
   });
@@ -192,7 +122,7 @@ test.describe('Lot 2 — pièce jointe d’une famille visible côté mairie (PR
   test('sans l’habilitation « Messages », ou sans nonce, le téléchargement est refusé', async ({ page }) => {
     await loginAs(page, agent('messages'));
     const noNonce = await page.request.get(`${APP_BASE}/wp-admin/admin-post.php?action=psc_download_conversation_attachment&message_id=${messageId}`);
-    expect(await noNonce.text()).not.toContain('%PDF-1.4 lot2 e2e');
+    expect(await noNonce.text()).not.toContain('%PDF-1.4 messages e2e');
 
     await page.context().clearCookies();
     await loginAs(page, agent('familles'));
@@ -201,8 +131,8 @@ test.describe('Lot 2 — pièce jointe d’une famille visible côté mairie (PR
   });
 });
 
-test.describe('Lot 2 — écrans Messages sans code brut ni texte de l’URL (PRA-05)', () => {
-  const user = 'psc-lot2-e2e-messages';
+test.describe('Écrans Messages sans code brut ni texte de l’URL (PRA-05)', () => {
+  const user = 'psc-messages-e2e-ecrans';
   test.beforeAll(() => {
     wpEval(`require_once ABSPATH.'wp-admin/includes/user.php'; $u=get_user_by('login','${user}'); if($u) wp_delete_user((int)$u->ID);
       $id=wp_insert_user(array('user_login'=>'${user}','user_pass'=>'${PASSWORD}','user_email'=>'${user}@example.test','role'=>'subscriber'));
@@ -226,30 +156,8 @@ test.describe('Lot 2 — écrans Messages sans code brut ni texte de l’URL (PR
   });
 });
 
-test.describe('Lot 2 — écran Assurances traduisible et accessible (PRA-06)', () => {
-  const user = 'psc-lot2-e2e-assurances';
-  test.beforeAll(() => {
-    wpEval(`require_once ABSPATH.'wp-admin/includes/user.php'; $u=get_user_by('login','${user}'); if($u) wp_delete_user((int)$u->ID);
-      $id=wp_insert_user(array('user_login'=>'${user}','user_pass'=>'${PASSWORD}','user_email'=>'${user}@example.test','role'=>'subscriber'));
-      get_user_by('id',$id)->add_cap('psc_manage_families'); echo 'ok';`);
-  });
-  test.afterAll(() => {
-    wpEval(`require_once ABSPATH.'wp-admin/includes/user.php'; $u=get_user_by('login','${user}'); if($u) wp_delete_user((int)$u->ID); echo 'ok';`);
-  });
-
-  test('le tableau a une légende et des en-têtes de colonnes', async ({ page }) => {
-    await loginAs(page, user);
-    await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_assurances`);
-    await expect(page.getByRole('heading', { level: 1, name: 'Assurances scolaires' })).toBeVisible();
-    await expect(page.locator('table.widefat caption')).toHaveCount(1);
-    await expect(page.locator('table.widefat thead th[scope="col"]')).toHaveCount(4);
-    const axe = await new AxeBuilder({ page }).include('.wrap').analyze();
-    expect(axe.violations.map((v) => v.id)).toEqual([]);
-  });
-});
-
-test.describe('Lot 2 — consultation mairie en lecture seule sur les échanges (SEC-09)', () => {
-  const CONS_EMAIL = 'lot2-e2e-consultation@example.test';
+test.describe('Consultation mairie en lecture seule sur les échanges (SEC-09)', () => {
+  const CONS_EMAIL = 'messages-e2e-consultation@example.test';
   let familyId = 0;
   let conversationId = 0;
 
@@ -259,8 +167,8 @@ test.describe('Lot 2 — consultation mairie en lecture seule sur les échanges 
   test.beforeAll(() => {
     cleanupCons();
     const ids = wpEval(`global $wpdb; $now=current_time('mysql');
-      $wpdb->insert($wpdb->prefix.'psc_parents',array('email'=>'${CONS_EMAIL}','nom'=>'Lot2Consultation','prenom'=>'Famille','active'=>1,'onboarding_seen_at'=>$now,'created_at'=>$now)); $f=(int)$wpdb->insert_id;
-      $c=Psc_Conversations::create_by_mairie($f,'Échange Lot2 consultation','Réponse de la mairie',1);
+      $wpdb->insert($wpdb->prefix.'psc_parents',array('email'=>'${CONS_EMAIL}','nom'=>'E2EConsultation','prenom'=>'Famille','active'=>1,'onboarding_seen_at'=>$now,'created_at'=>$now)); $f=(int)$wpdb->insert_id;
+      $c=Psc_Conversations::create_by_mairie($f,'Échange E2E consultation','Réponse de la mairie',1);
       echo $f.' '.(int)$c;`);
     [familyId, conversationId] = ids.split(' ').map(Number);
   });

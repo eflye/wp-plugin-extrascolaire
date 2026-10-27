@@ -122,8 +122,8 @@ Fichiers :
 - `templates/frontend-portal.php` (ajouté par le lead pendant la phase 2, pour les notices de SEC-02)
 - `includes/helpers/impersonation.php` (ajouté par le lead pendant la phase 2, registre de consultation pour SEC-02 et PRA-04)
 - `tests/integration/capabilities-matrix.php`
-- `bin/verify-audit-lot1.php` (nouveau)
-- `tests/audit-fixes-lot1.spec.ts` (nouveau)
+- `bin/verify-audit-lot1.php` (nouveau ; ancien nom, devenu `bin/verify-sessions-demandes.php` le 27/10/2026)
+- `tests/audit-fixes-lot1.spec.ts` (nouveau ; ancien nom, devenu `tests/sessions-demandes.spec.ts` le 27/10/2026)
 
 **Fonctions partagées à livrer en premier**, puis à annoncer à toute l'équipe :
 - `psc_required_capability($action)` sous forme de table explicite (PRA-02) ;
@@ -158,9 +158,9 @@ Fichiers :
 - `templates/portal-assurance-gate.php`
 - `documentation/rgpd.md`
 - `includes/class-psc-admin-audit.php` et `templates/admin-audit.php` (ajoutés par le lead pendant la phase 2, tâche PERF-05)
-- `tests/unit/retention-policy.php` et `tests/integration/p1-final-summary.php` (ajoutés par le lead pendant la phase 2, tâche RGPD-14)
-- `bin/verify-audit-lot2.php` (nouveau)
-- `tests/audit-fixes-lot2.spec.ts` (nouveau)
+- `tests/unit/retention-policy.php` et `tests/integration/p1-final-summary.php` (ajoutés par le lead pendant la phase 2, tâche RGPD-14 ; ce dernier est un ancien nom, devenu `tests/integration/data-protection-contracts.php` le 27/10/2026)
+- `bin/verify-audit-lot2.php` (nouveau ; ancien nom, devenu `bin/verify-rgpd.php` le 27/10/2026)
+- `tests/audit-fixes-lot2.spec.ts` (nouveau ; ancien nom, scindé le 27/10/2026 en `tests/iban-habilitation.spec.ts`, `tests/messages-echanges-securite.spec.ts` et `tests/assurances-a11y.spec.ts`)
 
 **Fonction partagée à livrer en premier :** `Psc_Audit::forget_child($child_id)` et la nouvelle forme de `forget_family()` (RGPD-04), à annoncer à toute l'équipe.
 
@@ -197,8 +197,8 @@ Fichiers :
 - `templates/admin-supplier-orders.php` et `templates/admin-supplier-settings.php` (ajoutés par le lead pendant la phase 2, tâche PRA-02/L3)
 - `templates/admin-menus.php` et `templates/admin-factures.php` (ajoutés par le lead pendant la phase 2, tâche PERF-02)
 - `bin/verify-envois.php` et `tests/envois.spec.ts` (rattachés après coup, tâche PERF-02 : passage des tests en mode asynchrone)
-- `bin/verify-audit-lot3.php` (nouveau)
-- `tests/audit-fixes-lot3.spec.ts` (nouveau)
+- `bin/verify-audit-lot3.php` (nouveau ; ancien nom, scindé le 27/10/2026 en `bin/verify-notifications.php`, `bin/verify-school-calendar.php` et `bin/verify-performance.php`)
+- `tests/audit-fixes-lot3.spec.ts` (nouveau ; ancien nom, devenu `tests/ecrans-mairie.spec.ts` le 27/10/2026)
 
 **Fonctions partagées à livrer en premier**, puis à annoncer à toute l'équipe :
 - l'avis à l'ancienne adresse, en modèle éditable, par exemple `Psc_Mailer::send_email_change_notice_old($old, $new, $cancel_url)` (pour fix-1, SEC-02) ;
