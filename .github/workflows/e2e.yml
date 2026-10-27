@@ -241,8 +241,38 @@ jobs:
       - name: Dépendances
         run: npm ci
 
+      # Le navigateur vient du CDN de Playwright : le 27/10/2026, quatre
+      # exécutions ont été annulées au délai du job parce que ce
+      # téléchargement a pris 600 à 700 s au lieu de 25 s, scénarios verts.
+      # Il est donc mis en cache par version de @playwright/test, et
+      # sauvegardé dès l'installation (restore + save explicites) pour
+      # qu'un échec ultérieur du job ne fasse pas perdre le cache. Seules
+      # les dépendances système (apt, miroirs Ubuntu) restent à installer.
+      - name: Version de Playwright
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Restaure le navigateur Playwright
+        id: playwright-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
       - name: Navigateur Playwright
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+
+      - name: Sauvegarde le navigateur Playwright
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.playwright-cache.outputs.cache-primary-key }}
+
+      - name: Dépendances système du navigateur
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
 
       - name: Scénarios
         env:
