@@ -861,34 +861,7 @@ class Psc_Requests {
     protected static function approve_request($req, $children, $send_login_email = true) {
         global $wpdb;
 
-        // Règlement, mode de paiement et mandat SEPA déclarés dans la
-        // demande : reportés tels quels sur le compte famille créé.
-        // L'IBAN est transmis sous sa forme déjà chiffrée : psc_encrypt()
-        // est idempotent (préfixe "psc1:"), Psc_Parents::create() ne le
-        // chiffrera donc pas une seconde fois.
-        $parent_extra = array(
-            'adresse'                    => $req->adresse ?? '',
-            'code_postal'                => $req->code_postal ?? '',
-            'ville'                      => $req->ville ?? '',
-            'payment_mode'               => $req->payment_mode ?? 'autre',
-            'sepa_iban'                  => $req->sepa_iban ?? null,
-            'sepa_bic'                   => $req->sepa_bic ?? null,
-            'sepa_titulaire'             => $req->sepa_titulaire ?? null,
-            'sepa_adresse'               => $req->sepa_adresse ?? null,
-            'sepa_code_postal'           => $req->sepa_code_postal ?? null,
-            'sepa_ville'                 => $req->sepa_ville ?? null,
-            'reglement_accepted_at'      => $req->reglement_accepted_at ?? null,
-            'reglement_version_id'       => $req->reglement_version_id ?? null,
-            'sepa_reglement_accepted_at' => $req->sepa_reglement_accepted_at ?? null,
-            'sepa_reglement_version_id'  => $req->sepa_reglement_version_id ?? null,
-            'second_parent_prenom'       => $req->second_parent_prenom ?? null,
-            'second_parent_nom'          => $req->second_parent_nom ?? null,
-            'second_parent_email'        => $req->second_parent_email ?? null,
-            'second_parent_telephone'    => $req->second_parent_telephone ?? null,
-        );
-        if (($req->payment_mode ?? 'autre') === 'prelevement') {
-            $parent_extra['sepa_mandate_ref'] = psc_sepa_mandate_ref($req->id);
-        }
+        $parent_extra = self::approve_parent_fields($req);
 
         // Toute l'approbation — foyer, enfants, inscriptions, clôture de
         // la demande — se déroule dans une transaction : un échec
@@ -897,7 +870,8 @@ class Psc_Requests {
         // une ré-approbation dupliquait ce que le premier passage avait
         // créé. Les tables sont sur le moteur par défaut de la stack
         // cible (MySQL 8 : InnoDB). Les opérations non transactionnelles
-        // (déplacement des justificatifs, e-mail) attendent le commit.
+        // (déplacement des justificatifs, e-mail) attendent le commit
+        // (approve_after_commit()).
         $rollback = static function ($cause) use ($wpdb) {
             $wpdb->query('ROLLBACK');
             // Une cause déjà typée (validation du foyer, e-mail…) est
@@ -921,21 +895,101 @@ class Psc_Requests {
             return $rollback(new WP_Error('psc_request_already_decided', __('Demande déjà traitée.', 'periscolaire-registration')));
         }
 
-        // Création de la famille (ou récupération si elle existe déjà).
+        $parent_id = self::approve_parent($req, $parent_extra);
+        if (!is_int($parent_id)) {
+            return $rollback($parent_id);
+        }
+
+        $created = self::approve_children($req, $children, $parent_id);
+        if (!is_array($created)) {
+            return $rollback($created);
+        }
+
+        if (!self::approve_close_request($req)) {
+            return $rollback(__('Clôture de la demande impossible.', 'periscolaire-registration'));
+        }
+
+        if (false === $wpdb->query('COMMIT')) {
+            return $rollback(__('Validation de la demande impossible.', 'periscolaire-registration'));
+        }
+
+        self::approve_after_commit($req, $parent_id, $created['food_alerts'], $created['promotions'], $send_login_email);
+
+        return $parent_id;
+    }
+
+    /**
+     * Règlement, mode de paiement et mandat SEPA déclarés dans la
+     * demande : reportés tels quels sur le compte famille créé.
+     * L'IBAN est transmis sous sa forme déjà chiffrée : psc_encrypt()
+     * est idempotent (préfixe "psc1:"), Psc_Parents::create() ne le
+     * chiffrera donc pas une seconde fois.
+     *
+     * @return array Champs pour Psc_Parents::create() / update().
+     */
+    private static function approve_parent_fields($req) {
+        $parent_extra = array(
+            'adresse'                    => $req->adresse ?? '',
+            'code_postal'                => $req->code_postal ?? '',
+            'ville'                      => $req->ville ?? '',
+            'payment_mode'               => $req->payment_mode ?? 'autre',
+            'sepa_iban'                  => $req->sepa_iban ?? null,
+            'sepa_bic'                   => $req->sepa_bic ?? null,
+            'sepa_titulaire'             => $req->sepa_titulaire ?? null,
+            'sepa_adresse'               => $req->sepa_adresse ?? null,
+            'sepa_code_postal'           => $req->sepa_code_postal ?? null,
+            'sepa_ville'                 => $req->sepa_ville ?? null,
+            'reglement_accepted_at'      => $req->reglement_accepted_at ?? null,
+            'reglement_version_id'       => $req->reglement_version_id ?? null,
+            'sepa_reglement_accepted_at' => $req->sepa_reglement_accepted_at ?? null,
+            'sepa_reglement_version_id'  => $req->sepa_reglement_version_id ?? null,
+            'second_parent_prenom'       => $req->second_parent_prenom ?? null,
+            'second_parent_nom'          => $req->second_parent_nom ?? null,
+            'second_parent_email'        => $req->second_parent_email ?? null,
+            'second_parent_telephone'    => $req->second_parent_telephone ?? null,
+        );
+        if (($req->payment_mode ?? 'autre') === 'prelevement') {
+            $parent_extra['sepa_mandate_ref'] = psc_sepa_mandate_ref($req->id);
+        }
+        return $parent_extra;
+    }
+
+    /**
+     * Création de la famille (ou récupération si elle existe déjà), dans
+     * la transaction ouverte par approve_request().
+     *
+     * @return int|string|WP_Error Id du foyer, ou la cause à passer au
+     *                             rollback (WP_Error typé, sinon message).
+     */
+    private static function approve_parent($req, array $parent_extra) {
         $parent = Psc_Parents::get_by_email($req->email);
         if ($parent) {
             $parent_id = (int) $parent->id;
             // 0 = valeurs inchangées (succès) ; false/WP_Error = échec.
             $updated = Psc_Parents::update($parent_id, $parent_extra);
             if (is_wp_error($updated) || false === $updated) {
-                return $rollback(is_wp_error($updated) ? $updated : __('Mise à jour du foyer impossible.', 'periscolaire-registration'));
+                return is_wp_error($updated) ? $updated : __('Mise à jour du foyer impossible.', 'periscolaire-registration');
             }
-        } else {
-            $parent_id = Psc_Parents::create($req->email, $req->nom, array_merge($parent_extra, array('prenom' => $req->prenom ?? '')));
-            if (is_wp_error($parent_id) || !$parent_id) {
-                return $rollback(is_wp_error($parent_id) ? $parent_id : __('Création du foyer impossible.', 'periscolaire-registration'));
-            }
+            return $parent_id;
         }
+        $parent_id = Psc_Parents::create($req->email, $req->nom, array_merge($parent_extra, array('prenom' => $req->prenom ?? '')));
+        if (is_wp_error($parent_id) || !$parent_id) {
+            return is_wp_error($parent_id) ? $parent_id : __('Création du foyer impossible.', 'periscolaire-registration');
+        }
+        return $parent_id;
+    }
+
+    /**
+     * Enfants de la demande : fiche, inscription à l'année active,
+     * personnes autorisées ; dans la transaction. Ce qui ne suit pas un
+     * rollback (justificatifs à déplacer, alertes alimentation) est
+     * rendu à l'appelant pour après le commit.
+     *
+     * @return array|string Clés promotions et food_alerts, ou le message
+     *                      d'échec à passer au rollback.
+     */
+    private static function approve_children($req, array $children, $parent_id) {
+        global $wpdb;
 
         $active_year_id = Psc_School_Years::active_id();
 
@@ -959,13 +1013,13 @@ class Psc_Requests {
                 'created_at'              => current_time('mysql'),
             ), array('%d', '%s', '%s', '%s', '%d', '%d', '%d', '%s'));
             if (false === $inserted) {
-                return $rollback(__('Création de l\'enfant impossible.', 'periscolaire-registration'));
+                return __('Création de l\'enfant impossible.', 'periscolaire-registration');
             }
             $child_id = (int) $wpdb->insert_id;
 
             if ($active_year_id) {
                 if (!Psc_School_Years::enroll($child_id, $active_year_id, $c['classe'], 'inscrit', $req->reglement_accepted_at ?? current_time('mysql'), $req->reglement_version_id ?? null)) {
-                    return $rollback(__('Inscription de l\'enfant impossible.', 'periscolaire-registration'));
+                    return __('Inscription de l\'enfant impossible.', 'periscolaire-registration');
                 }
             }
 
@@ -1001,12 +1055,23 @@ class Psc_Requests {
             }
         }
 
-        // Les coordonnées bancaires viennent d'être reportées sur le compte
-        // famille : les conserver en double dans la demande ne sert plus à
-        // rien et doublerait inutilement la surface d'exposition de l'IBAN.
-        // La demande garde le mode de paiement et l'acceptation du règlement,
-        // qui documentent le consentement. Titulaire et adresse du compte
-        // suivent l'IBAN (RGPD-03) : ils sont sur le compte famille.
+        return array('promotions' => $promotions, 'food_alerts' => $food_alerts);
+    }
+
+    /**
+     * Clôture de la demande, dans la transaction.
+     *
+     * Les coordonnées bancaires viennent d'être reportées sur le compte
+     * famille : les conserver en double dans la demande ne sert plus à
+     * rien et doublerait inutilement la surface d'exposition de l'IBAN.
+     * La demande garde le mode de paiement et l'acceptation du règlement,
+     * qui documentent le consentement. Titulaire et adresse du compte
+     * suivent l'IBAN (RGPD-03) : ils sont sur le compte famille.
+     *
+     * @return bool Faux si l'écriture a échoué.
+     */
+    private static function approve_close_request($req) {
+        global $wpdb;
         $updated = $wpdb->update(
             psc_table('requests'),
             array_merge(array(
@@ -1017,13 +1082,17 @@ class Psc_Requests {
             array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s'),
             array('%d')
         );
-        if (false === $updated) {
-            return $rollback(__('Clôture de la demande impossible.', 'periscolaire-registration'));
-        }
+        return false !== $updated;
+    }
 
-        if (false === $wpdb->query('COMMIT')) {
-            return $rollback(__('Validation de la demande impossible.', 'periscolaire-registration'));
-        }
+    /**
+     * Approbation acquise : les opérations non transactionnelles
+     * reprennent. Un échec ici ne laisse qu'un état rattrapable
+     * manuellement (justificatif encore en zone d'attente), jamais
+     * une famille amputée de ses enfants.
+     */
+    private static function approve_after_commit($req, $parent_id, array $food_alerts, array $promotions, $send_login_email) {
+        global $wpdb;
 
         if ($food_alerts) {
             $parent_row = $wpdb->get_row($wpdb->prepare(
@@ -1036,10 +1105,6 @@ class Psc_Requests {
             }
         }
 
-        // Approbation acquise : les opérations non transactionnelles
-        // reprennent. Un échec ici ne laisse qu'un état rattrapable
-        // manuellement (justificatif encore en zone d'attente), jamais
-        // une famille amputée de ses enfants.
         $failed_promotions = array();
         foreach ($promotions as $promotion) {
             if (!Psc_Assurances::promote_pending($promotion[0], $promotion[1], $promotion[2])) {
@@ -1062,8 +1127,6 @@ class Psc_Requests {
         if ($send_login_email) {
             Psc_Parents::send_login_link($req->email, 'approved');
         }
-
-        return $parent_id;
     }
 
     public static function handle_reject() {
