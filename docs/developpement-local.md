@@ -79,6 +79,10 @@ Les scénarios supposent une base neuve, comme en CI : certains laissent des tra
 
 Les deux stacks tournent en même temps ; la stack de test peut rester arrêtée (`podman compose -p psc-test stop`) entre deux sessions et repartir avec `up`.
 
+## Catalogue de traduction
+
+`languages/periscolaire-registration.pot` est le catalogue source des ~2 300 chaînes de l'extension, généré par `bin/make-pot.sh` (`wp i18n make-pot` dans le conteneur, sans WordPress chargé). La CI (`e2e.yml`, étape « Catalogue de traduction à jour ») échoue s'il ne reflète plus le code : après avoir ajouté ou modifié une chaîne, lancez `bin/make-pot.sh` et committez le fichier. Une chaîne avec `%s` doit être précédée d'un commentaire `/* translators: … */`, sinon la génération l'annonce. Aucune traduction compilée n'est embarquée ; un `.mo` déposé dans `languages/` (ou dans `wp-content/languages/plugins/`) serait chargé.
+
 ## Tests
 
 | Commande | Ce qu'elle vérifie |
@@ -138,4 +142,4 @@ Sur un serveur, la même commande s'écrit `wp option update psc_invoice_debug_d
 2. Ouvrir une PR, attendre la CI (lint PHP 7.4 à 8.3, PHPStan, ESLint, Playwright, vérifications autonomes), fusionner.
 3. Poser le tag `vX.Y.Z` sur `main` et le pousser. `release.yml` relance lint et E2E, construit l'archive, la fume dans un WordPress vierge puis par-dessus la version précédente, et publie les deux archives avec `SHA256SUMS`.
 
-L'archive ne contient que `periscolaire-registration.php`, `index.php`, `uninstall.php`, `LICENSE`, `readme.txt`, `README.md`, `includes/`, `templates/` et `assets/`. Toute nouvelle entrée racine suivie par Git doit être ajoutée au paquet ou à la liste d'exclusion de `release.yml`, faute de quoi la publication échoue.
+L'archive ne contient que `periscolaire-registration.php`, `index.php`, `uninstall.php`, `LICENSE`, `readme.txt`, `README.md`, `includes/`, `templates/`, `assets/` et `languages/`. Toute nouvelle entrée racine suivie par Git doit être ajoutée au paquet ou à la liste d'exclusion de `release.yml`, faute de quoi la publication échoue.
