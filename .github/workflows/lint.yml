@@ -55,14 +55,14 @@ jobs:
           php tests/unit/sepa-export.php
           php tests/unit/menu-labels.php
 
-  # Analyse statique du code de l'extension (includes/), niveau 3 —
+  # Analyse statique du code de l'extension (includes/), niveau 5 (baseline phpstan-baseline.neon) —
   # cf. phpstan.neon. Le résultat est indépendant de la version de PHP
   # qui exécute l'outil : une seule version suffit, contrairement au
   # simple lint syntaxique ci-dessus. composer.json ne porte que des
   # dépendances de développement (aucune au runtime : l'extension ne
   # requiert rien de composer pour fonctionner sur un site).
   phpstan:
-    name: PHPStan (includes/, niveau 3)
+    name: PHPStan (includes/, niveau 5)
     runs-on: ubuntu-latest
 
     steps:

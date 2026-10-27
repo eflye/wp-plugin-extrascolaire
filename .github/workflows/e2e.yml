@@ -35,7 +35,11 @@ jobs:
   e2e:
     name: Parcours Playwright
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # ~10 min en temps normal (scénarios 6 à 8 min). La marge absorbe un
+    # runner lent : le 27/10/2026, un apt de 476 s et un téléchargement de
+    # navigateur de 600 s ont annulé des exécutions dont les scénarios
+    # étaient verts.
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
