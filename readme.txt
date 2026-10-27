@@ -53,15 +53,14 @@ dépôt du plugin.
 1. Copier le dossier `periscolaire-registration` dans `wp-content/plugins/`.
 2. Activer le plugin depuis "Extensions" dans l'administration WordPress
    (les tables nécessaires sont créées automatiquement).
-3. Aller dans "Périscolaire > Calendrier scolaire" et cliquer sur "Charger
-   le calendrier officiel" (vacances scolaires zone C).
-4. Aller dans "Périscolaire > Trimestres" et créer le trimestre en cours
-   (dates de début et de fin), puis cliquer sur "Activer".
-5. Ajuster les tarifs et déposer les documents PDF (règlement intérieur,
-   règlement de prélèvement) dans "Périscolaire > Réglages".
-6. Créer une page sur le site (ex. "Inscription périscolaire") et y insérer
+3. Aller dans "Périscolaire > Administration > Année scolaire" : cliquer
+   sur "Charger le calendrier officiel" (vacances scolaires zone C), créer
+   l'année scolaire (dates de début et de fin) et l'activer.
+4. Ajuster les tarifs et déposer les documents PDF (règlement intérieur,
+   règlement de prélèvement) dans "Périscolaire > Administration > Réglages".
+5. Créer une page sur le site (ex. "Inscription périscolaire") et y insérer
    le shortcode : [periscolaire_form]
-7. Communiquer le lien de cette page aux familles. Aucun compte WordPress
+6. Communiquer le lien de cette page aux familles. Aucun compte WordPress
    n'est nécessaire côté famille : la première demande se fait depuis cette
    page publique, puis la connexion se fait par lien reçu par e-mail (voir
    "Version 2.0.0" ci-dessous).
@@ -356,7 +355,7 @@ complet, commit par commit, reste dans le dépôt git.
 = 5.39.0 =
 Aucun changement de schéma de base.
 
-* **Correctif, Périscolaire › Inscriptions :** la correction manuelle des cases par la mairie (cocher ou décocher une prestation pour un enfant, puis « Enregistrer et notifier la famille ») ne s'appliquait jamais depuis la version 5.0.0, sans message d'erreur. Elle fonctionne de nouveau. Si des corrections ont été faites par cet écran depuis la rentrée, vérifiez-les : elles n'ont pas été enregistrées.
+* **Correctif, Périscolaire › Cantine & garderie › Présences déclarées (écran « Inscriptions » dans l'adresse) :** la correction manuelle des cases par la mairie (cocher ou décocher une prestation pour un enfant, puis « Enregistrer et notifier la famille ») ne s'appliquait jamais depuis la version 5.0.0, sans message d'erreur. Elle fonctionne de nouveau. Si des corrections ont été faites par cet écran depuis la rentrée, vérifiez-les : elles n'ont pas été enregistrées.
 * **Accessibilité :** chaque tableau (écrans de la mairie et portail des familles) porte une légende lue par les lecteurs d'écran et des en-têtes de colonnes et de lignes explicites (RGAA 5.4, 5.6, 5.7) ; les liens et boutons dont le libellé lu différait du texte affiché (frise des mois du planning, liens d'appel des intervenants, boutons « Modifier », « Remplacer » et « Retirer ») sont alignés (WCAG 2.5.3) ; un texte masqué des tableaux larges ne fait plus déborder la page sur petit écran.
 * **Traduction :** l'extension embarque son catalogue de chaînes (`languages/periscolaire-registration.pot`, 2 274 entrées), tenu à jour automatiquement ; une traduction compilée déposée dans `languages/` serait chargée.
 * **Sous le capot, sans effet visible :** migrations de schéma rangées dans `includes/migrations/` (un fichier par version), formulaire de demande et validation découpés en étapes, outils de test et d'analyse mis à jour (analyse statique au niveau 5).
