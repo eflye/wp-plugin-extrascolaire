@@ -131,8 +131,12 @@ class Psc_Admin_Inscriptions extends Psc_Admin_Base {
             }
         }
 
-        $diff_added   = array_values(array_diff_key($submitted, $current));
-        $diff_removed = array_values(array_diff_key($current, $submitted));
+        // Les clés « enfant|date|prestation » sont le diff ; les valeurs ne
+        // sont que des drapeaux. array_values() ici livrait des `true` à
+        // explode(), et aucune correction ne s'appliquait (défaut masqué
+        // depuis la 5.0.0, révélé par PHPStan niveau 5).
+        $diff_added   = array_keys(array_diff_key($submitted, $current));
+        $diff_removed = array_keys(array_diff_key($current, $submitted));
 
         // Application du diff : chaque triplet divergent reçoit une
         // exception — la mairie n'est pas soumise au verrou de 48 h.
