@@ -727,3 +727,15 @@ body.psc-sidscm-active main.site-main .entry-content {
 .psc-sidscm-table .psc-sidscm-week-day { min-width: 95px; border-left: 1px solid var(--psc-rule-lighter); }
 .psc-sidscm-table .psc-sidscm-week-day:nth-child(even) { background: rgba(36, 64, 92, 0.04); }
 #psc-sidscm-week { max-width: 100%; padding: 10px; font: inherit; }
+
+/* Texte réservé aux lecteurs d'écran (complément du nom accessible des
+   liens d'appel : le texte visible d'abord, WCAG 2.5.3). */
+.psc-sidscm .screen-reader-text,
+.screen-reader-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(1px, 1px, 1px, 1px);
+    white-space: nowrap;
+}

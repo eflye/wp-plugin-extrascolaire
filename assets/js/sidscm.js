@@ -465,10 +465,13 @@
                 var name = (p.prenom + ' ' + p.nom).trim();
                 var phones = p.phones.length
                     ? p.phones.map(function (ph) {
-                        return '<a class="psc-sidscm-contact-tel" href="tel:' + escapeHtml(ph.tel) + '"' +
-                            ' aria-label="' + escapeHtml(t('emergency_call', ph.label, name) + ' : ' + ph.number) + '">' +
+                        // Nom accessible = texte visible puis complément masqué
+                        // (WCAG 2.5.3 « étiquette dans le nom », règle axe
+                        // label-content-name-mismatch) : pas d'aria-label.
+                        return '<a class="psc-sidscm-contact-tel" href="tel:' + escapeHtml(ph.tel) + '">' +
                             '<span class="psc-sidscm-contact-tel-label">' + escapeHtml(ph.label) + '</span> ' +
-                            '<span class="psc-sidscm-contact-tel-number">' + escapeHtml(ph.number) + '</span></a>';
+                            '<span class="psc-sidscm-contact-tel-number">' + escapeHtml(ph.number) + '</span>' +
+                            '<span class="screen-reader-text"> — ' + escapeHtml(t('emergency_call', ph.label, name)) + '</span></a>';
                     }).join('')
                     : '<span class="psc-sidscm-contact-none">' + t('emergency_no_phone') + '</span>';
                 return '<li class="psc-sidscm-auth-person psc-sidscm-contact">' +

@@ -122,7 +122,9 @@
             var countEl = btn.querySelector('.psc-frieze-count');
             if (countEl) countEl.textContent = count + ' j';
             btn.classList.toggle('is-zero', count === 0);
-            btn.setAttribute('aria-label', labelFor(m) + ' — ' + count + ' ' + (count > 1 ? t('days') : t('day')));
+            // Complément masqué du nom accessible (après le texte visible, WCAG 2.5.3).
+            var srEl = btn.querySelector('.psc-frieze-sr');
+            if (srEl) srEl.textContent = ' — ' + labelFor(m) + ', ' + count + ' ' + (count > 1 ? t('days') : t('day'));
         });
         var estimate = document.querySelector('[data-year-amount]');
         if (estimate && typeof state_year_amount === 'number') {

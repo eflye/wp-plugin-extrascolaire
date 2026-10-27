@@ -56,5 +56,5 @@ $psc_child_num = isset($psc_child_num) ? (string) $psc_child_num : '1';
     <p class="psc-child-allergy-help" style="font-size:11px;color:#665F58;margin:6px 0 0;"><?php esc_html_e('Ne renseignez aucun détail médical ici. La mairie vous contactera oralement et décidera ensuite, si nécessaire, du statut « cantine sans repas ».', 'periscolaire-registration'); ?></p>
   </div>
 
-  <button type="button" class="psc-wizard-remove-btn" aria-label="<?php esc_attr_e('Supprimer cet enfant', 'periscolaire-registration'); ?>" hidden><?php esc_html_e('Retirer', 'periscolaire-registration'); ?></button>
+  <button type="button" class="psc-wizard-remove-btn" aria-label="<?php esc_attr_e('Retirer cet enfant', 'periscolaire-registration'); ?>" hidden><?php esc_html_e('Retirer', 'periscolaire-registration'); ?></button>
 </div>
