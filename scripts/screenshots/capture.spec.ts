@@ -74,9 +74,11 @@ async function frame(page: Page, locator: Locator): Promise<void> {
 }
 
 async function capture(page: Page, filename: string, fullPage = false): Promise<void> {
-  // L'avis « WordPress x.y est disponible » dépend du poste qui capture,
-  // pas de l'extension : il n'a pas sa place dans la documentation.
-  await page.addStyleTag({ content: '.update-nag { display: none !important; }' });
+  // Les avis liés au poste qui capture n'ont pas leur place dans la
+  // documentation : « WordPress x.y est disponible », les étapes de
+  // maintenance d'une installation neuve (stack de test), le retard des
+  // tâches planifiées d'une stack sans trafic.
+  await page.addStyleTag({ content: '.update-nag, [data-testid="notice-maintenance"], [data-testid="notice-cron-late"] { display: none !important; }' });
   await page.screenshot({ path: path.join(SCREENSHOTS_DIR, filename), fullPage });
 }
 
