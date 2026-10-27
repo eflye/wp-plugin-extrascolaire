@@ -30,9 +30,8 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { execFileSync } from 'node:child_process';
+import { ENGINE, CONTAINER } from '../helpers/env';
 
-const ENGINE = process.env.PSC_CONTAINER_ENGINE ?? 'podman';
-const CONTAINER = process.env.PSC_WP_CONTAINER ?? 'plugin-extrascolaire-wordpress-1';
 const CONTAINER_WP_CLI = '/usr/local/bin/wp-cli.phar';
 const CONTAINER_WP_PATH = '/var/www/html';
 const CONTAINER_PLUGIN_PATH = `${CONTAINER_WP_PATH}/wp-content/plugins/periscolaire-registration`;

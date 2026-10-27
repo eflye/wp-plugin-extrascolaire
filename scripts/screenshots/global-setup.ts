@@ -12,11 +12,10 @@ import { createWriteStream, existsSync, mkdirSync, writeFileSync } from 'node:fs
 import { execFileSync } from 'node:child_process';
 import * as https from 'node:https';
 import * as path from 'node:path';
+import { ENGINE, CONTAINER } from '../../helpers/env';
 
 const WP_CLI_URL = 'https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar';
 
-const ENGINE = process.env.PSC_CONTAINER_ENGINE ?? 'podman';
-const CONTAINER = process.env.PSC_WP_CONTAINER ?? 'plugin-extrascolaire-wordpress-1';
 const CONTAINER_WP_CLI = '/usr/local/bin/wp-cli.phar';
 const CONTAINER_WP_PATH = '/var/www/html';
 const CONTAINER_PLUGIN_PATH = `${CONTAINER_WP_PATH}/wp-content/plugins/periscolaire-registration`;

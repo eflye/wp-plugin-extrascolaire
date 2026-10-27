@@ -4,7 +4,7 @@
  * tests/supplier-order.spec.ts.
  */
 
-const MAILPIT_API = 'http://localhost:8025/api/v1';
+import { MAILPIT_API } from './env';
 
 export interface MailpitSummary {
   ID: string;

@@ -21,8 +21,8 @@ import { readSeedResult, readFormPageUrl } from '../playwright/seed-result';
 import { installDemoOverlay, spotlight, subtitle, carton } from '../helpers/demo-overlay';
 import { installMouseHelper } from '../helpers/mouse-helper';
 import { findLatestMessage } from '../helpers/mailpit';
+import { APP_BASE } from '../helpers/env';
 
-const APP_BASE = 'http://localhost:8080';
 /**
  * Page portant le formulaire, lue dans le résultat du peuplement : c'est
  * l'extension elle-même qui la résout, la même que celle de ses liens de

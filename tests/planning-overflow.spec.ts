@@ -20,8 +20,8 @@
 import { test, expect } from '@playwright/test';
 import { readSeedResult, readFormPageUrl } from '../playwright/seed-result';
 import { findLatestMessage } from '../helpers/mailpit';
+import { APP_BASE } from '../helpers/env';
 
-const APP_BASE = 'http://localhost:8080';
 
 const VIEWPORTS = [916, 768, 375] as const;
 

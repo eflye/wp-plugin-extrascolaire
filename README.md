@@ -146,12 +146,13 @@ L’environnement de développement utilise WordPress, MySQL 8 et Mailpit avec P
 
 ```bash
 podman machine start
-MAILPIT_ENABLED=true podman compose --profile mailpit up -d
+MAILPIT_ENABLED=true podman compose --profile mailpit up -d   # stack de travail, :8080
 npm ci
-npx playwright test
+npm run test:local:up    # stack de test jetable, :8081
+npm run test:local       # suite Playwright sur la stack de test
 ```
 
-Les tests de bout en bout modifient la base locale : utilisez une instance de développement. Vérifications, scripts `bin/verify-*.php`, base jetable pour les migrations et publication d’une version : voir [Développement local et tests](docs/developpement-local.md).
+Les tests de bout en bout écrasent la base qu’ils visent : `npm run test:local` les joue sur la stack de test, jamais sur la stack de travail. Vérifications, scripts `bin/verify-*.php` et publication d’une version : voir [Développement local et tests](docs/developpement-local.md).
 
 </details>
 

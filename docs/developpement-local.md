@@ -2,11 +2,12 @@
 
 Guide développeur, non publié sur le site de documentation. La mise en production suit une autre procédure : voir [Déployer une nouvelle version](../documentation/installation/deploiement-zip.md).
 
-## Trois environnements, trois usages
+## Quatre environnements, quatre usages
 
 | Environnement | Ce qu'il reçoit | Données | À quoi il sert |
 | --- | --- | --- | --- |
-| **Poste de développement** (Podman) | Le dépôt, monté dans le conteneur | Fictives, modifiées par les tests | Développer, lancer les tests |
+| **Stack de travail** (Podman, `:8080`) | Le dépôt, monté dans le conteneur | Fictives, conservées d'une session à l'autre | Développer, essayer à la main |
+| **Stack de test** (Podman, `:8081`, `bin/test-stack.sh`) | Le même dépôt, monté dans un second conteneur | Fictives, écrasées par chaque suite | Lancer Playwright et `bin/verify-*.php` sans toucher à la stack de travail |
 | **Instance de test** ([auto-hébergement Docker](self-hosting-docker.md), base jetable) | Le dépôt ou une archive | Fictives | Bêta-test, essai de mise à jour, restauration |
 | **Serveur de production** | L'archive ZIP de la Release, et elle seule | Réelles | Le service |
 
@@ -50,14 +51,37 @@ Montés uniquement par `docker-compose.yml`, jamais présents dans l'archive :
 
 - **Écrire les fichiers en place.** Un outil qui remplace le fichier (`sed -i`, `git stash`) change son inode, et le montage Podman peut continuer à servir l'ancien contenu un moment.
 - **`/tmp` du Mac n'est pas visible du conteneur.** Pour un fichier à passer au conteneur, utilisez `.cache/` du dépôt (ignoré par Git).
-- **La base locale dérive.** Les suites de bout en bout la modifient (année active, passage d'année, données de documentation). Des échecs locaux qui n'existent pas en CI viennent souvent de là ; la CI part d'une base neuve et fait foi.
-- **Réinitialiser l'environnement :** `podman compose --profile mailpit down -v` (supprime les volumes, donc la base locale), puis `up -d`, `wp core install` sous `-u www-data` (admin/admin), activation du thème `Archive` et du plugin, et page « Espace familles » avec `[periscolaire_form]` comme page d'accueil.
+- **Ne lancez pas les suites sur la stack de travail.** `npx playwright test` nu seede le conteneur `plugin-extrascolaire-wordpress-1` : familles, année active et horloge sont remplacées (le `globalSetup` l'annonce avant de le faire). Utilisez la [stack de test](#la-stack-de-test).
+- **Réinitialiser la stack de travail :** `podman compose --profile mailpit down -v` (supprime les volumes, donc la base locale), puis `up -d`, `wp core install` sous `-u www-data` (admin/admin), activation du thème `Archive` et du plugin, et page « Espace familles » avec `[periscolaire_form]` comme page d'accueil — ou, plus simple, `bin/test-stack.sh up` fait tout cela pour la stack de test.
+
+## La stack de test
+
+`bin/test-stack.sh` monte une seconde instance depuis le même `docker-compose.yml`, sous le nom de projet compose `psc-test` et sur d'autres ports (`PSC_WP_PORT`, `PSC_MAILPIT_PORT`). Les volumes sont préfixés par le projet : la base est séparée sans rien déclarer. Le dépôt y est monté en bind comme sur la stack de travail, donc c'est bien le code en cours d'édition qui est testé.
+
+| Service | Accès |
+| --- | --- |
+| `wordpress` | http://localhost:8081 (admin / admin) |
+| `mailpit` | http://localhost:8026 (toujours actif) |
+
+```bash
+npm run test:local:up      # démarre, installe WordPress et active l'extension (idempotent)
+npm run test:local         # toute la suite Playwright, profil test, sur cette stack
+npm run test:local -- tests/invoices.spec.ts   # un seul fichier
+npm run verify:local migrations                # bin/verify-migrations.php, sans risque
+bin/test-stack.sh wp option get psc_db_version # WP-CLI sous www-data
+npm run test:local:down    # détruit conteneurs et volumes
+```
+
+`up` reproduit les étapes d'installation de `.github/workflows/e2e.yml` (même utilisateur `www-data`, `WP_ENVIRONMENT_TYPE local`, thème, extension, page d'accueil). Pour viser la stack depuis un autre outil, `bin/test-stack.sh env` affiche les quatre variables lues par `helpers/env.ts` : `PSC_CONTAINER_ENGINE`, `PSC_WP_CONTAINER`, `PSC_APP_BASE`, `PSC_MAILPIT_API`. Sans elles, scénarios et `globalSetup` visent la stack de travail et la CI.
+
+Les deux stacks tournent en même temps ; la stack de test peut rester arrêtée (`podman compose -p psc-test stop`) entre deux sessions et repartir avec `up`.
 
 ## Tests
 
 | Commande | Ce qu'elle vérifie |
 | --- | --- |
-| `npx playwright test` | Parcours de bout en bout et axe, projets `test` et `demo`. Modifie la base locale. |
+| `npm run test:local` | Parcours de bout en bout et axe, profil `test`, sur la stack de test. |
+| `npx playwright test` | Idem sur la stack de travail (projets `test` et `demo`). **Écrase la base locale.** |
 | `npm run lint:js` | ESLint sur `assets/js` |
 | `podman exec -w /var/www/html/wp-content/plugins/periscolaire-registration plugin-extrascolaire-wordpress-1 php vendor/bin/phpstan analyse --memory-limit=2G` | PHPStan niveau 3 |
 | `podman exec plugin-extrascolaire-wordpress-1 php /var/www/html/wp-content/plugins/periscolaire-registration/tests/unit/run.php` | Tests unitaires sans WordPress |
@@ -69,6 +93,10 @@ Montés uniquement par `docker-compose.yml`, jamais présents dans l'archive :
 Ils jouent le rôle de tests unitaires, avec WordPress chargé. La CI les lance **sous `www-data`**, comme le serveur web : certains comportements (déménagement du dossier privé, droits de fichiers) n'existent pas sous root.
 
 ```bash
+# Sur la stack de test (recommandé)
+npm run verify:local <nom>
+
+# Sur la stack de travail
 podman exec -u www-data -e WP_CLI_CACHE_DIR=/tmp/wp-cli-cache plugin-extrascolaire-wordpress-1 \
   php /usr/local/bin/wp-cli.phar --path=/var/www/html \
   --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-<nom>.php verify-<nom>
@@ -76,15 +104,7 @@ podman exec -u www-data -e WP_CLI_CACHE_DIR=/tmp/wp-cli-cache plugin-extrascolai
 
 `bin/verify-channel-contracts.php` confronte les canaux (commande fournisseur, avis de fermeture, annulation de classe, facture) à la table de décision des [contrats d'une journée](contrats-planning.md).
 
-Ils purgent leurs données avant et après. **Exception : `bin/verify-migrations.php` détruit le schéma du plugin** pour rejouer une montée depuis le schéma 4.15.0 (version 5.28.0, la plus ancienne prise en charge). Ne le lancez jamais sur la base locale : utilisez une base jetable, que le conteneur WordPress choisit par la variable `WORDPRESS_DB_NAME`.
-
-```bash
-podman exec plugin-extrascolaire-db-1 sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS psc_scratch; GRANT ALL ON psc_scratch.* TO \"wordpress\"@\"%\";"'
-S="podman exec -e WORDPRESS_DB_NAME=psc_scratch plugin-extrascolaire-wordpress-1 php /usr/local/bin/wp-cli.phar --allow-root --path=/var/www/html"
-$S core install --url=http://localhost:8080 --title=Scratch --admin_user=admin --admin_password=admin --admin_email=scratch@example.invalid --skip-email
-$S plugin activate periscolaire-registration
-$S --require=/var/www/html/wp-content/plugins/periscolaire-registration/bin/verify-migrations.php verify-migrations
-```
+Ils purgent leurs données avant et après. **Exception : `bin/verify-migrations.php` détruit le schéma du plugin** pour rejouer une montée depuis le schéma 4.15.0 (version 5.28.0, la plus ancienne prise en charge). Ne le lancez jamais sur la stack de travail : `npm run verify:local migrations` le joue sur la stack de test, comme la CI.
 
 Chaque nouvelle vérification se valide par mutation : réintroduire le défaut corrigé doit faire échouer au moins une vérification.
 

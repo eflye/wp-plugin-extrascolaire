@@ -5,8 +5,9 @@
  * TODO, sources PHP, configuration). Cf. .htaccess à la racine du dépôt.
  */
 import { test, expect } from '@playwright/test';
+import { APP_BASE } from '../helpers/env';
 
-const PLUGIN = 'http://localhost:8080/wp-content/plugins/periscolaire-registration';
+const PLUGIN = `${APP_BASE}/wp-content/plugins/periscolaire-registration`;
 
 test('les fichiers de travail du dépôt ne sont pas servis en HTTP', async ({ request }) => {
   for (const path of ['.git/HEAD', '.github/workflows/e2e.yml', 'TODO.md', 'AGENTS.md', 'composer.json', 'package.json', 'includes/helpers/files.php', 'bin/seed-journey.php', 'docker-compose.yml']) {

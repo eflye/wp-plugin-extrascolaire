@@ -16,10 +16,8 @@ import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { execFileSync } from 'node:child_process';
 import { findLatestMessage } from '../helpers/mailpit';
+import { APP_BASE, MAILPIT_API, ENGINE, CONTAINER } from '../helpers/env';
 
-const APP_BASE = 'http://localhost:8080';
-const ENGINE = process.env.PSC_CONTAINER_ENGINE ?? 'podman';
-const CONTAINER = process.env.PSC_WP_CONTAINER ?? 'plugin-extrascolaire-wordpress-1';
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 const WEEK = '2091-01-01';
 
@@ -152,8 +150,8 @@ test.describe('Menus de la cantine par e-mail', () => {
     expect(message.HTML).toContain('Ne plus recevoir les menus par e-mail');
     expect(message.HTML.replace(/&#038;|&amp;/g, '&')).toContain(expected);
 
-    const search = await (await request.get(`http://localhost:8025/api/v1/search?${new URLSearchParams({ query: `to:${email} subject:"01/01/2091"`, limit: '1' })}`)).json() as { messages: { ID: string }[] };
-    const headers = await (await request.get(`http://localhost:8025/api/v1/message/${search.messages[0].ID}/headers`)).json() as Record<string, string[]>;
+    const search = await (await request.get(`${MAILPIT_API}/search?${new URLSearchParams({ query: `to:${email} subject:"01/01/2091"`, limit: '1' })}`)).json() as { messages: { ID: string }[] };
+    const headers = await (await request.get(`${MAILPIT_API}/message/${search.messages[0].ID}/headers`)).json() as Record<string, string[]>;
     expect(headers['List-Unsubscribe']?.[0]).toBe(`<${expected}>`);
     expect(headers['List-Unsubscribe-Post']?.[0]).toBe('List-Unsubscribe=One-Click');
   });

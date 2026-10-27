@@ -2,8 +2,8 @@ import { test, expect, type Locator, type Page } from '@playwright/test';
 import { mkdirSync, readFileSync } from 'node:fs';
 import * as path from 'node:path';
 import { findLatestMessage } from '../../helpers/mailpit';
+import { APP_BASE } from '../../helpers/env';
 
-const APP_BASE = process.env.PSC_APP_BASE ?? 'http://localhost:8080';
 const ADMIN_BASE = `${APP_BASE}/wp-admin`;
 const ADMIN_USER = process.env.PSC_WP_ADMIN_USER ?? 'admin';
 const ADMIN_PASS = process.env.PSC_WP_ADMIN_PASS ?? 'admin';
