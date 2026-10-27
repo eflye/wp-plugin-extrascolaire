@@ -134,11 +134,13 @@ Chaque écran créé ou modifié (parent **et** admin) respecte le RGAA 4.1 :
 ```bash
 # Environnement local
 # (docker-compose.yml : WordPress, MySQL, Mailpit ; podman sur ce poste)
-podman compose up -d
+podman compose up -d                 # stack de travail (:8080), données conservées
+npm run test:local:up                # stack de test jetable (:8081), cf. bin/test-stack.sh
 
-# Tests end-to-end
-npx playwright test
-npx playwright test --ui
+# Tests end-to-end — toujours sur la stack de test : le seed écrase la base visée
+npm run test:local                   # suite complète
+npm run test:local -- tests/<spec>   # un fichier
+npm run verify:local <nom>           # bin/verify-<nom>.php (migrations compris)
 
 # Qualité PHP
 composer phpstan
