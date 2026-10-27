@@ -16,12 +16,10 @@
  */
 import { test, expect, type APIRequestContext, type BrowserContext } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
+import { APP_BASE, ENGINE, CONTAINER } from '../helpers/env';
 
-const APP_BASE = 'http://localhost:8080';
 const AJAX = `${APP_BASE}/wp-admin/admin-ajax.php`;
 const POST = `${APP_BASE}/wp-admin/admin-post.php`;
-const ENGINE = process.env.PSC_CONTAINER_ENGINE ?? 'podman';
-const CONTAINER = process.env.PSC_WP_CONTAINER ?? 'plugin-extrascolaire-wordpress-1';
 const EMAILS = { a: 'isolation-a.e2e@example.test', b: 'isolation-b.e2e@example.test' };
 
 function php(code: string): string {

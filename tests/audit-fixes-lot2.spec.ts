@@ -9,10 +9,8 @@ import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { execFileSync } from 'node:child_process';
 import { readFormPageUrl } from '../playwright/seed-result';
+import { APP_BASE, ENGINE, CONTAINER } from '../helpers/env';
 
-const APP_BASE = 'http://localhost:8080';
-const ENGINE = process.env.PSC_CONTAINER_ENGINE ?? 'podman';
-const CONTAINER = process.env.PSC_WP_CONTAINER ?? 'plugin-extrascolaire-wordpress-1';
 const WP = '/usr/local/bin/wp-cli.phar';
 const PASSWORD = 'Lot2-E2E-Audit-2026';
 const EMAIL = 'lot2-e2e@example.test';

@@ -8,9 +8,8 @@
  */
 import { test, expect } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
+import { ENGINE, CONTAINER } from '../helpers/env';
 
-const ENGINE = process.env.PSC_CONTAINER_ENGINE ?? 'podman';
-const CONTAINER = process.env.PSC_WP_CONTAINER ?? 'plugin-extrascolaire-wordpress-1';
 
 function wp(...args: string[]): string {
   return execFileSync(ENGINE, ['exec', CONTAINER, 'php', '/usr/local/bin/wp-cli.phar', '--allow-root', '--path=/var/www/html', ...args], { encoding: 'utf8' });

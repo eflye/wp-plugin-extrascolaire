@@ -12,7 +12,9 @@
  * base WordPress : les fichiers core sont dans un volume Docker/Podman
  * nommé, invisible du host (seul le plugin est bind-mounté). On passe
  * donc par `podman exec` (ou `docker exec`, configurable) pour lancer
- * WP-CLI dans le conteneur. WP-CLI lui-même n'est pas préinstallé dans
+ * WP-CLI dans le conteneur — cf. helpers/env.ts pour les variables qui
+ * désignent la cible (stack de travail par défaut, stack de test avec
+ * bin/test-stack.sh). WP-CLI lui-même n'est pas préinstallé dans
  * l'image `wordpress:latest` : on le fournit au conteneur au besoin,
  * une fois, depuis un cache local sur le host (le conteneur n'a pas
  * d'accès réseau sortant dans cet environnement).
@@ -23,11 +25,10 @@ import { execFileSync } from 'node:child_process';
 import { createWriteStream, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import * as https from 'node:https';
 import * as path from 'node:path';
+import { ENGINE, CONTAINER, WORK_CONTAINER } from '../helpers/env';
 
 const WP_CLI_URL = 'https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar';
 
-const ENGINE = process.env.PSC_CONTAINER_ENGINE ?? 'podman';
-const CONTAINER = process.env.PSC_WP_CONTAINER ?? 'plugin-extrascolaire-wordpress-1';
 const CONTAINER_WP_CLI = '/usr/local/bin/wp-cli.phar';
 const CONTAINER_WP_PATH = '/var/www/html';
 const CONTAINER_PLUGIN_PATH = `${CONTAINER_WP_PATH}/wp-content/plugins/periscolaire-registration`;
@@ -181,6 +182,17 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
   mkdirSync(OUT_DIR, { recursive: true });
 
   const profiles = selectedProfiles();
+
+  // Le peuplement remplace les familles, l'année active et l'horloge du
+  // site visé. Sur la stack de travail, ce sont les données de
+  // développement qui disparaissent : on le dit avant de le faire, sans
+  // l'interdire (un seed volontaire de la base de travail reste possible).
+  if (CONTAINER === WORK_CONTAINER && !process.env.CI) {
+    console.warn(
+      `[global-setup] ATTENTION : le peuplement va écraser la base de la stack de travail (${CONTAINER}).\n` +
+        '[global-setup] Pour tester sans y toucher : npm run test:local (stack de test, cf. bin/test-stack.sh).'
+    );
+  }
 
   await ensureWpCli();
 

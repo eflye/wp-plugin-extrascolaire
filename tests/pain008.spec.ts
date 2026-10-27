@@ -1,10 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { APP_BASE as base, ENGINE as engine, CONTAINER as container } from '../helpers/env';
 
-const engine = process.env.PSC_CONTAINER_ENGINE ?? 'podman';
-const container = process.env.PSC_WP_CONTAINER ?? 'plugin-extrascolaire-wordpress-1';
-const base = 'http://localhost:8080';
 const wp = (args: string[]) => execFileSync(engine, ['exec', container, 'php', '/usr/local/bin/wp-cli.phar', '--allow-root', ...args], { encoding: 'utf8' });
 const fixture = (mode: string) => wp(['eval-file', '/var/www/html/wp-content/plugins/periscolaire-registration/tests/integration/pain008-fixture.php', mode]);
 

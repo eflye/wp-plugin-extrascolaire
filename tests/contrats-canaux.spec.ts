@@ -11,10 +11,8 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { execFileSync } from 'node:child_process';
+import { APP_BASE, ENGINE, CONTAINER } from '../helpers/env';
 
-const APP_BASE = 'http://localhost:8080';
-const ENGINE = process.env.PSC_CONTAINER_ENGINE ?? 'podman';
-const CONTAINER = process.env.PSC_WP_CONTAINER ?? 'plugin-extrascolaire-wordpress-1';
 const PLUGIN = '/var/www/html/wp-content/plugins/periscolaire-registration';
 
 type Seed = { date: string; forfait: { parent_id: number; child_id: number }; cantine: { parent_id: number; child_id: number } };

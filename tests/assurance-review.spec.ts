@@ -1,8 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
+import { APP_BASE, ENGINE as engine, CONTAINER as container } from '../helpers/env';
 test.use({ channel: 'chromium' });
-const engine = process.env.PSC_CONTAINER_ENGINE || 'podman';
-const container = process.env.PSC_WP_CONTAINER || 'plugin-extrascolaire-wordpress-1';
 const plugin = '/var/www/html/wp-content/plugins/periscolaire-registration';
 function wp(...args: string[]) {
   return execFileSync(engine, ['exec', container, 'php', '/usr/local/bin/wp-cli.phar', '--allow-root', ...args], { encoding: 'utf8' }).trim();
@@ -21,7 +20,7 @@ test('assurances : dépôt mobile, revue, refus, remplacement et acceptation aut
   try {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(login);
-    await page.goto('http://localhost:8080/?psc_tab=cantine2');
+    await page.goto(`${APP_BASE}/?psc_tab=cantine2`);
     // L'assurance manquante de Chloé ne bloque plus Alice ni Bob.
     await expect(page.getByTestId('exception-grid')).toBeVisible();
     await page.getByTestId(`child-tab-${data.chloe_id}`).click();
@@ -45,14 +44,14 @@ test('assurances : dépôt mobile, revue, refus, remplacement et acceptation aut
     await expect(page.getByTestId('portal-section-cantine2').getByTestId('assurance-gate')).toContainText('En attente de validation');
     await page.screenshot({ path: testInfo.outputPath('assurance-mobile.png'), fullPage: true });
     const ap = await admin.newPage();
-    await ap.goto('http://localhost:8080/wp-login.php');
+    await ap.goto(`${APP_BASE}/wp-login.php`);
     await ap.locator('#user_login').fill('admin');
     await ap.locator('#user_pass').fill('admin');
     await ap.locator('#wp-submit').click();
     // Premier écran d'administration de la session : plus lent que les
     // suivants (contraintes, notices) — marge au-delà du délai de navigation.
     await ap.waitForURL('**/wp-admin/**', { timeout: 30_000 });
-    const reviewUrl = `http://localhost:8080/wp-admin/admin.php?page=psc_assurances&child_id=${data.chloe_id}`;
+    const reviewUrl = `${APP_BASE}/wp-admin/admin.php?page=psc_assurances&child_id=${data.chloe_id}`;
     await ap.goto(reviewUrl);
     await expect(ap.locator('iframe')).toBeVisible();
     const docUrl = await ap.locator('iframe').getAttribute('src');
@@ -87,7 +86,7 @@ test('assurances : dépôt mobile, revue, refus, remplacement et acceptation aut
     await expect(page.getByTestId('exception-grid')).toBeVisible();
     // Nouvelle pièce en mode manuel : elle repasse en attente.
     wp('eval', `Psc_Assurances::upsert_row(${data.chloe_id}, 'test/assurance.pdf', 'assurance.pdf');`);
-    await page.goto(`http://localhost:8080/?psc_tab=cantine2&psc_child=${data.chloe_id}`);
+    await page.goto(`${APP_BASE}/?psc_tab=cantine2&psc_child=${data.chloe_id}`);
     await expect(page.getByTestId('portal-section-cantine2').getByTestId('assurance-gate')).toBeVisible();
     wp('option', 'update', 'psc_assurance_review_mode', 'auto');
     await page.reload();

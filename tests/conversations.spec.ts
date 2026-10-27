@@ -13,10 +13,8 @@ import { test, expect, type Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { readFormPageUrl } from '../playwright/seed-result';
 import { findLatestMessage } from '../helpers/mailpit';
+import { APP_BASE, MAILPIT_API, ENGINE, CONTAINER } from '../helpers/env';
 
-const APP_BASE = 'http://localhost:8080';
-const ENGINE = process.env.PSC_CONTAINER_ENGINE ?? 'podman';
-const CONTAINER = process.env.PSC_WP_CONTAINER ?? 'plugin-extrascolaire-wordpress-1';
 const WP = '/usr/local/bin/wp-cli.phar';
 const EMAIL_A = 'conversations-a.e2e@example.test';
 const EMAIL_A_SECOND = 'conversations-a-second.e2e@example.test';
@@ -79,7 +77,7 @@ function conversationCountForFamily(familyId: number): number {
 
 async function countMessages(toEmail: string, subjectContains: string): Promise<number> {
   const query = `to:${toEmail} subject:"${subjectContains}"`;
-  const res = await fetch(`http://localhost:8025/api/v1/search?${new URLSearchParams({ query, limit: '20' })}`);
+  const res = await fetch(`${MAILPIT_API}/search?${new URLSearchParams({ query, limit: '20' })}`);
   const data = (await res.json()) as { messages: unknown[] };
   return data.messages.length;
 }

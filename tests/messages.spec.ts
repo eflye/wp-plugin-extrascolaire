@@ -9,10 +9,8 @@ import { test, expect } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { readFormPageUrl } from '../playwright/seed-result';
 import { findLatestMessage } from '../helpers/mailpit';
+import { APP_BASE, ENGINE, CONTAINER } from '../helpers/env';
 
-const APP_BASE = 'http://localhost:8080';
-const ENGINE = process.env.PSC_CONTAINER_ENGINE ?? 'podman';
-const CONTAINER = process.env.PSC_WP_CONTAINER ?? 'plugin-extrascolaire-wordpress-1';
 const WP = '/usr/local/bin/wp-cli.phar';
 const EMAIL = 'messages.e2e@example.test';
 

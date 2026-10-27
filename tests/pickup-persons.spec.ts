@@ -27,8 +27,8 @@ import { test, expect, type Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { findLatestMessage } from '../helpers/mailpit';
 import { readFormPageUrl } from '../playwright/seed-result';
+import { APP_BASE, ENGINE, CONTAINER } from '../helpers/env';
 
-const APP_BASE = 'http://localhost:8080';
 /**
  * Page portant le formulaire, lue dans le résultat du peuplement : c'est
  * l'extension elle-même qui la résout, la même que celle de ses liens de
@@ -39,8 +39,6 @@ const APP_BASE = 'http://localhost:8080';
 const appPage = () => readFormPageUrl();
 const ADMIN_BASE = `${APP_BASE}/wp-admin`;
 
-const ENGINE = process.env.PSC_CONTAINER_ENGINE ?? 'podman';
-const CONTAINER = process.env.PSC_WP_CONTAINER ?? 'plugin-extrascolaire-wordpress-1';
 const CONTAINER_WP_CLI = '/usr/local/bin/wp-cli.phar';
 const CONTAINER_WP_PATH = '/var/www/html';
 const CONTAINER_PLUGIN_PATH = `${CONTAINER_WP_PATH}/wp-content/plugins/periscolaire-registration`;

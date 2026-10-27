@@ -2,17 +2,18 @@ import { test, expect } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { APP_BASE, ENGINE, CONTAINER } from '../helpers/env';
 
 test('labels menus : aperçu local, compteur, logos et rendu partagé', async ({ page }, testInfo) => {
   const root = path.resolve(__dirname, '..');
-  const config = JSON.parse(execFileSync(process.env.PSC_CONTAINER_ENGINE || 'podman', ['exec', process.env.PSC_WP_CONTAINER || 'plugin-extrascolaire-wordpress-1', 'php', '/usr/local/bin/wp-cli.phar', '--allow-root', 'eval-file', '/var/www/html/wp-content/plugins/periscolaire-registration/tests/integration/menu-label-rendering.php'], { encoding: 'utf8' }));
+  const config = JSON.parse(execFileSync(ENGINE, ['exec', CONTAINER, 'php', '/usr/local/bin/wp-cli.phar', '--allow-root', 'eval-file', '/var/www/html/wp-content/plugins/periscolaire-registration/tests/integration/menu-label-rendering.php'], { encoding: 'utf8' }));
   const cases = JSON.parse(readFileSync(path.join(root, 'tests/unit/menu-label-cases.json'), 'utf8'));
-  await page.goto('http://localhost:8080/wp-login.php');
+  await page.goto(`${APP_BASE}/wp-login.php`);
   await page.locator('#user_login').fill('admin');
   await page.locator('#user_pass').fill('admin');
   await page.locator('#wp-submit').click();
   await page.waitForURL('**/wp-admin/**');
-  await page.goto('http://localhost:8080/wp-admin/admin.php?page=psc_menus&semaine_debut=2026-09-14');
+  await page.goto(`${APP_BASE}/wp-admin/admin.php?page=psc_menus&semaine_debut=2026-09-14`);
   const input = page.locator('[data-menu-input]').first();
   await expect(input).toBeVisible();
   await page.locator('[data-menu-input]').evaluateAll(inputs => inputs.forEach(input => { (input as HTMLTextAreaElement).value = ''; }));
