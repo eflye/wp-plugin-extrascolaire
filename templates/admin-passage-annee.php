@@ -18,7 +18,8 @@
 <input type="hidden" name="action" value="psc_confirm_promotion">
 
 <table class="widefat striped">
-<thead><tr><th><?php esc_html_e('Enfant', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Classe', 'periscolaire-registration'); ?> <?php echo esc_html($from_year->year_key); ?></th><th><?php esc_html_e('Classe proposée', 'periscolaire-registration'); ?> <?php echo esc_html($to_year->year_key); ?></th></tr></thead>
+<caption class="screen-reader-text"><?php esc_html_e('Récapitulatif du passage d’année par enfant', 'periscolaire-registration'); ?></caption>
+<thead><tr><th scope="col"><?php esc_html_e('Enfant', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Classe', 'periscolaire-registration'); ?> <?php echo esc_html($from_year->year_key); ?></th><th scope="col"><?php esc_html_e('Classe proposée', 'periscolaire-registration'); ?> <?php echo esc_html($to_year->year_key); ?></th></tr></thead>
 <tbody>
 <?php foreach ($plan as $row):
     $field_id = 'psc-classe-' . $row['child_id'];

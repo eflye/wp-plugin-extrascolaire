@@ -127,7 +127,7 @@ $psc_next_url = $psc_next_month ? add_query_arg(array('psc_tab' => 'cantine', 'p
             <?php endforeach; ?>
           </tr>
           <tr class="psc-portal-tout-row" data-testid="tout-row-<?php echo esc_attr($child_index); ?>">
-            <th scope="col"></th>
+            <td></td>
             <?php foreach (psc_allowed_services() as $code):
                 $tout_dates = array();
                 $tout_checked_count = 0;

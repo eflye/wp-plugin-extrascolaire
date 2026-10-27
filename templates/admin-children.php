@@ -23,7 +23,7 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 <?php wp_nonce_field('psc_add_child'); ?>
 <input type="hidden" name="action" value="psc_add_child">
 <table class="form-table">
-<tr><th><label for="psc-parent"><?php esc_html_e('Famille', 'periscolaire-registration'); ?></label></th><td>
+<tr><th scope="row"><label for="psc-parent"><?php esc_html_e('Famille', 'periscolaire-registration'); ?></label></th><td>
 <?php if (empty($parents)): ?>
   <em><?php esc_html_e("Enregistrez d'abord une famille dans l'onglet « Familles ».", 'periscolaire-registration'); ?></em>
 <?php else: ?>
@@ -35,9 +35,9 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 </select>
 <?php endif; ?>
 </td></tr>
-<tr><th><label for="psc-nom"><?php esc_html_e("Nom de l'enfant", 'periscolaire-registration'); ?></label></th><td><input id="psc-nom" type="text" name="nom" maxlength="190" required></td></tr>
-<tr><th><label for="psc-prenom"><?php esc_html_e("Prénom de l'enfant", 'periscolaire-registration'); ?></label></th><td><input id="psc-prenom" type="text" name="prenom" maxlength="190" required></td></tr>
-<tr><th><label for="psc-classe"><?php esc_html_e('Classe', 'periscolaire-registration'); ?></label></th><td>
+<tr><th scope="row"><label for="psc-nom"><?php esc_html_e("Nom de l'enfant", 'periscolaire-registration'); ?></label></th><td><input id="psc-nom" type="text" name="nom" maxlength="190" required></td></tr>
+<tr><th scope="row"><label for="psc-prenom"><?php esc_html_e("Prénom de l'enfant", 'periscolaire-registration'); ?></label></th><td><input id="psc-prenom" type="text" name="prenom" maxlength="190" required></td></tr>
+<tr><th scope="row"><label for="psc-classe"><?php esc_html_e('Classe', 'periscolaire-registration'); ?></label></th><td>
 <select id="psc-classe" name="classe">
 <?php foreach ($psc_classe_labels as $v => $l): ?>
 <option value="<?php echo esc_attr($v); ?>"><?php echo esc_html($l); ?></option>
@@ -47,7 +47,7 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 <p class="description"><?php esc_html_e("Aucune année scolaire active : la classe ne pourra pas être enregistrée tant qu'une année n'est pas activée.", 'periscolaire-registration'); ?></p>
 <?php endif; ?>
 </td></tr>
-<tr><th><label for="psc-naissance"><?php esc_html_e('Date de naissance', 'periscolaire-registration'); ?></label></th><td><input id="psc-naissance" type="date" name="naissance" max="<?php echo esc_attr(psc_child_birthdate_max()); ?>"></td></tr>
+<tr><th scope="row"><label for="psc-naissance"><?php esc_html_e('Date de naissance', 'periscolaire-registration'); ?></label></th><td><input id="psc-naissance" type="date" name="naissance" max="<?php echo esc_attr(psc_child_birthdate_max()); ?>"></td></tr>
 </table>
 <?php submit_button(__('Ajouter', 'periscolaire-registration')); ?>
 </form>
@@ -74,7 +74,8 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 <noscript><?php submit_button(__('Filtrer', 'periscolaire-registration'), 'secondary', '', false); ?></noscript>
 </form>
 <table class="widefat striped">
-<thead><tr><th><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Classe', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Naissance', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Régime cantine', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Allergies alimentaires', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Cantine', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Famille', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Assurance', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Action', 'periscolaire-registration'); ?></th></tr></thead>
+<caption class="screen-reader-text"><?php esc_html_e('Liste des enfants', 'periscolaire-registration'); ?></caption>
+<thead><tr><th scope="col"><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Classe', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Naissance', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Régime cantine', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Allergies alimentaires', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Cantine', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Statut', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Famille', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Assurance', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Action', 'periscolaire-registration'); ?></th></tr></thead>
 <tbody>
 <?php if (empty($children)): ?>
 <tr><td colspan="11"><?php esc_html_e('Aucun enfant enregistré', 'periscolaire-registration'); ?><?php echo $selected_year_id ? ' ' . esc_html__('pour cette année', 'periscolaire-registration') : ' ' . esc_html__(" (créez d'abord une année scolaire)", 'periscolaire-registration'); ?>.</td></tr>

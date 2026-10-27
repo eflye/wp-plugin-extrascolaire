@@ -38,16 +38,17 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
     <h3><?php echo $req_family_name !== '' ? esc_html($req_family_name) : esc_html($req->email); ?></h3>
 
     <table class="widefat psc-request-meta">
-      <tr><th><?php esc_html_e('E-mail', 'periscolaire-registration'); ?></th><td><?php echo esc_html($req->email); ?></td></tr>
+    <caption class="screen-reader-text"><?php esc_html_e('Coordonnées de la demande', 'periscolaire-registration'); ?></caption>
+      <tr><th scope="row"><?php esc_html_e('E-mail', 'periscolaire-registration'); ?></th><td><?php echo esc_html($req->email); ?></td></tr>
       <?php if ($req->telephone): ?>
-      <tr><th><?php esc_html_e('Téléphone', 'periscolaire-registration'); ?></th><td><?php echo esc_html($req->telephone); ?></td></tr>
+      <tr><th scope="row"><?php esc_html_e('Téléphone', 'periscolaire-registration'); ?></th><td><?php echo esc_html($req->telephone); ?></td></tr>
       <?php endif; ?>
-      <tr><th><?php esc_html_e('Reçue le', 'periscolaire-registration'); ?></th><td><?php echo esc_html(date_i18n('d/m/Y à H:i', strtotime($req->created_at))); ?></td></tr>
+      <tr><th scope="row"><?php esc_html_e('Reçue le', 'periscolaire-registration'); ?></th><td><?php echo esc_html(date_i18n('d/m/Y à H:i', strtotime($req->created_at))); ?></td></tr>
       <?php if ($req->message): ?>
-      <tr><th><?php esc_html_e('Message', 'periscolaire-registration'); ?></th><td><?php echo nl2br(esc_html($req->message)); ?></td></tr>
+      <tr><th scope="row"><?php esc_html_e('Message', 'periscolaire-registration'); ?></th><td><?php echo nl2br(esc_html($req->message)); ?></td></tr>
       <?php endif; ?>
       <tr>
-        <th><?php esc_html_e('Règlement intérieur', 'periscolaire-registration'); ?></th>
+        <th scope="row"><?php esc_html_e('Règlement intérieur', 'periscolaire-registration'); ?></th>
         <td>
           <?php if (!empty($req->reglement_accepted_at)): ?>
             <span style="color:#007017">✔ <?php esc_html_e('Accepté le', 'periscolaire-registration'); ?> <?php echo esc_html(date_i18n('d/m/Y à H:i', strtotime($req->reglement_accepted_at))); ?></span>
@@ -58,7 +59,7 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
         </td>
       </tr>
       <tr>
-        <th><?php esc_html_e('Mode de paiement', 'periscolaire-registration'); ?></th>
+        <th scope="row"><?php esc_html_e('Mode de paiement', 'periscolaire-registration'); ?></th>
         <td>
           <?php if (($req->payment_mode ?? 'autre') === 'prelevement'): ?>
             <strong><?php esc_html_e('Prélèvement automatique (SEPA)', 'periscolaire-registration'); ?></strong>
@@ -90,7 +91,8 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 
       <h4><?php esc_html_e('Enfant(s) déclaré(s) — corrigez si nécessaire', 'periscolaire-registration'); ?></h4>
       <table class="widefat striped">
-        <thead><tr><th><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Classe', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Naissance', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Régime cantine', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Allergies alimentaires', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Assurance', 'periscolaire-registration'); ?></th></tr></thead>
+      <caption class="screen-reader-text"><?php esc_html_e('Enfants déclarés dans la demande', 'periscolaire-registration'); ?></caption>
+        <thead><tr><th scope="col"><?php esc_html_e('Prénom', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Nom', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Classe', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Naissance', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Régime cantine', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Allergies alimentaires', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Assurance', 'periscolaire-registration'); ?></th></tr></thead>
         <tbody>
         <?php for ($i = 0; $i < Psc_Requests::MAX_CHILDREN; $i++):
             $c = isset($req_children[$i]) ? $req_children[$i] : null;
@@ -167,7 +169,8 @@ psc_admin_notice_map($psc_notices, $psc_msg); ?>
 <h2><?php esc_html_e('Demandes traitées', 'periscolaire-registration'); ?></h2>
 <div class="psc-box">
 <table class="widefat striped">
-<thead><tr><th><?php esc_html_e('E-mail', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Famille', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Décision', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Date', 'periscolaire-registration'); ?></th><th><?php esc_html_e('Motif', 'periscolaire-registration'); ?></th><th></th></tr></thead>
+<caption class="screen-reader-text"><?php esc_html_e('Demandes traitées', 'periscolaire-registration'); ?></caption>
+<thead><tr><th scope="col"><?php esc_html_e('E-mail', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Famille', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Décision', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Date', 'periscolaire-registration'); ?></th><th scope="col"><?php esc_html_e('Motif', 'periscolaire-registration'); ?></th><th scope="col"><span class="screen-reader-text"><?php esc_html_e('Actions', 'periscolaire-registration'); ?></span></th></tr></thead>
 <tbody>
 <?php if (empty($handled)): ?>
 <tr><td colspan="6"><?php esc_html_e('Aucune demande traitée.', 'periscolaire-registration'); ?></td></tr>

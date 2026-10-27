@@ -272,8 +272,8 @@ class Psc_Mailer {
             if ($has_pattern) {
                 $body .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:12px;font-size:13px;">'
                     . '<thead><tr>'
-                    . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Jour', 'periscolaire-registration') . '</th>'
-                    . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Prestations', 'periscolaire-registration') . '</th>'
+                    . '<th scope="col" style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Jour', 'periscolaire-registration') . '</th>'
+                    . '<th scope="col" style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Prestations', 'periscolaire-registration') . '</th>'
                     . '</tr></thead><tbody>' . $rhythm_rows . '</tbody></table>';
             } else {
                 $body .= '<p style="color:#8B8279;font-size:13px;font-style:italic;margin:0 0 12px;">' . __('Aucun rythme habituel déclaré : chaque jour est déclaré à l\'unité.', 'periscolaire-registration') . '</p>';
@@ -295,9 +295,9 @@ class Psc_Mailer {
                 }
                 $body .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:12px;font-size:13px;">'
                     . '<thead><tr>'
-                    . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Date', 'periscolaire-registration') . '</th>'
-                    . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Prestation', 'periscolaire-registration') . '</th>'
-                    . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Type', 'periscolaire-registration') . '</th>'
+                    . '<th scope="col" style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Date', 'periscolaire-registration') . '</th>'
+                    . '<th scope="col" style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Prestation', 'periscolaire-registration') . '</th>'
+                    . '<th scope="col" style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Type', 'periscolaire-registration') . '</th>'
                     . '</tr></thead><tbody>' . $exc_rows . '</tbody></table>';
             } else {
                 $body .= '<p style="color:#8B8279;font-size:13px;font-style:italic;margin:0 0 12px;">' . __('Aucun écart à venir : les mois à venir suivent le rythme habituel.', 'periscolaire-registration') . '</p>';
@@ -454,10 +454,10 @@ class Psc_Mailer {
 
         $html  = '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:13px;margin-bottom:24px;">';
         $html .= '<thead><tr>'
-               . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Date', 'periscolaire-registration') . '</th>'
-               . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Enfant', 'periscolaire-registration') . '</th>'
-               . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Prestation', 'periscolaire-registration') . '</th>'
-               . '<th style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:center;border:1px solid #E5DCC3;">' . __('Modification', 'periscolaire-registration') . '</th>'
+               . '<th scope="col" style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Date', 'periscolaire-registration') . '</th>'
+               . '<th scope="col" style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Enfant', 'periscolaire-registration') . '</th>'
+               . '<th scope="col" style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:left;border:1px solid #E5DCC3;">' . __('Prestation', 'periscolaire-registration') . '</th>'
+               . '<th scope="col" style="background-color:#F5E7DC;color:#24405C;padding:7px 10px;text-align:center;border:1px solid #E5DCC3;">' . __('Modification', 'periscolaire-registration') . '</th>'
                . '</tr></thead><tbody>';
 
         foreach ($diff_rows as $row) {

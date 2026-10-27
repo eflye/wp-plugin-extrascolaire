@@ -76,7 +76,7 @@ if (is_array($psc_sidscm_rejected) && $psc_sidscm_rejected) {
 <input type="hidden" name="action" value="psc_save_tarif">
 <table class="form-table">
 <tr>
-<th><label for="psc-tarif-code"><?php esc_html_e('Prestation', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-tarif-code"><?php esc_html_e('Prestation', 'periscolaire-registration'); ?></label></th>
 <td><select id="psc-tarif-code" name="code" data-testid="tarif-code">
 <?php foreach ($services as $code => $s): ?>
 <option value="<?php echo esc_attr($code); ?>"><?php echo esc_html($s['label'] . ' (' . $code . ')'); ?></option>
@@ -84,12 +84,12 @@ if (is_array($psc_sidscm_rejected) && $psc_sidscm_rejected) {
 </select></td>
 </tr>
 <tr>
-<th><label for="psc-tarif-prix"><?php esc_html_e('Tarif', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-tarif-prix"><?php esc_html_e('Tarif', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-tarif-prix" type="text" inputmode="decimal" name="prix" required pattern="[0-9]+([,.][0-9]{1,2})?" aria-describedby="psc-tarif-prix-aide" data-testid="tarif-prix"> €
 <p class="description" id="psc-tarif-prix-aide"><?php esc_html_e('En euros, par exemple 5,80.', 'periscolaire-registration'); ?></p></td>
 </tr>
 <tr>
-<th><label for="psc-tarif-debut"><?php esc_html_e('À partir du', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-tarif-debut"><?php esc_html_e('À partir du', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-tarif-debut" type="date" name="debut" required value="<?php echo esc_attr(psc_today()); ?>" aria-describedby="psc-tarif-debut-aide" data-testid="tarif-debut">
 <p class="description" id="psc-tarif-debut-aide"><?php esc_html_e('Une date passée change les factures pas encore envoyées de la période ; une facture déjà envoyée n’est rectifiée qu’à sa prochaine régénération, avec archivage de la version remise.', 'periscolaire-registration'); ?></p></td>
 </tr>
@@ -106,7 +106,7 @@ if (is_array($psc_sidscm_rejected) && $psc_sidscm_rejected) {
 <h2><?php esc_html_e('Page de l\'espace famille', 'periscolaire-registration'); ?></h2>
 <table class="form-table">
 <tr>
-<th><label for="psc-form-page"><?php esc_html_e('Page « Espace famille »', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-form-page"><?php esc_html_e('Page « Espace famille »', 'periscolaire-registration'); ?></label></th>
 <td>
   <?php
   wp_dropdown_pages(array(
@@ -131,7 +131,7 @@ if (is_array($psc_sidscm_rejected) && $psc_sidscm_rejected) {
 <p><?php esc_html_e('Au-delà de ce délai avant le jour concerné, les familles ne peuvent plus modifier leur planning en ligne, y compris via le bouton "Annulation / signalement d\'absence" du tableau de bord. La mairie, elle, reste toujours en mesure de corriger depuis ce backoffice.', 'periscolaire-registration'); ?></p>
 <table class="form-table">
 <tr>
-<th><label for="psc-lock"><?php esc_html_e('Préavis minimum', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-lock"><?php esc_html_e('Préavis minimum', 'periscolaire-registration'); ?></label></th>
 <td>
   <input id="psc-lock" type="number" name="lock_hours" min="0" max="720" step="1"
          value="<?php echo esc_attr(psc_lock_hours()); ?>" class="small-text"> <?php esc_html_e('heures', 'periscolaire-registration'); ?>
@@ -143,7 +143,7 @@ if (is_array($psc_sidscm_rejected) && $psc_sidscm_rejected) {
 <h2><?php esc_html_e('Consultation des espaces famille', 'periscolaire-registration'); ?></h2>
 <table class="form-table">
 <tr>
-<th><?php esc_html_e('Transparence envers les familles', 'periscolaire-registration'); ?></th>
+<th scope="row"><?php esc_html_e('Transparence envers les familles', 'periscolaire-registration'); ?></th>
 <td>
   <label>
     <input type="checkbox" name="impersonation_visible_famille" value="1"
@@ -158,7 +158,7 @@ if (is_array($psc_sidscm_rejected) && $psc_sidscm_rejected) {
 <h2><?php esc_html_e('Notifications', 'periscolaire-registration'); ?></h2>
 <table class="form-table">
 <tr>
-<th><?php esc_html_e('Copie à la mairie', 'periscolaire-registration'); ?></th>
+<th scope="row"><?php esc_html_e('Copie à la mairie', 'periscolaire-registration'); ?></th>
 <td>
   <label>
     <input type="checkbox" name="notify_mairie" value="1" <?php checked(psc_notify_mairie_enabled()); ?>>
@@ -167,7 +167,7 @@ if (is_array($psc_sidscm_rejected) && $psc_sidscm_rejected) {
 </td>
 </tr>
 <tr>
-<th><label for="psc-mairie-mail"><?php esc_html_e('Adresse de la mairie', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-mairie-mail"><?php esc_html_e('Adresse de la mairie', 'periscolaire-registration'); ?></label></th>
 <td>
   <input id="psc-mairie-mail" type="email" name="mairie_email" class="regular-text"
          value="<?php echo esc_attr(get_option('psc_mairie_email', '')); ?>"
@@ -176,7 +176,7 @@ if (is_array($psc_sidscm_rejected) && $psc_sidscm_rejected) {
 </td>
 </tr>
 <tr>
-<th><label for="psc-conversations-mail"><?php esc_html_e('Notifications des échanges familles', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-conversations-mail"><?php esc_html_e('Notifications des échanges familles', 'periscolaire-registration'); ?></label></th>
 <td>
   <input id="psc-conversations-mail" type="email" name="conversations_email" class="regular-text"
          value="<?php echo esc_attr(get_option('psc_conversations_email', '')); ?>"
@@ -185,7 +185,7 @@ if (is_array($psc_sidscm_rejected) && $psc_sidscm_rejected) {
 </td>
 </tr>
 <tr>
-<th><?php esc_html_e('Texte des messages dans les e-mails', 'periscolaire-registration'); ?></th>
+<th scope="row"><?php esc_html_e('Texte des messages dans les e-mails', 'periscolaire-registration'); ?></th>
 <td>
   <label for="psc-conversations-contenu">
     <input id="psc-conversations-contenu" type="checkbox" name="conversations_contenu_email" value="1" data-testid="settings-conversations-contenu" <?php checked(psc_conversations_contenu_email()); ?>>
@@ -195,7 +195,7 @@ if (is_array($psc_sidscm_rejected) && $psc_sidscm_rejected) {
 </td>
 </tr>
 <tr>
-<th><label for="psc-conversations-delai"><?php esc_html_e('Délai de réponse annoncé', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-conversations-delai"><?php esc_html_e('Délai de réponse annoncé', 'periscolaire-registration'); ?></label></th>
 <td>
   <input id="psc-conversations-delai" type="number" name="conversations_delai_heures" class="small-text" min="1" max="240"
          value="<?php echo esc_attr(psc_conversations_delai_heures()); ?>"> <?php esc_html_e('heures ouvrées', 'periscolaire-registration'); ?>
@@ -203,7 +203,7 @@ if (is_array($psc_sidscm_rejected) && $psc_sidscm_rejected) {
 </td>
 </tr>
 <tr>
-<th><label for="psc-conversations-tel-urgence"><?php esc_html_e('Téléphone d’urgence du jour', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-conversations-tel-urgence"><?php esc_html_e('Téléphone d’urgence du jour', 'periscolaire-registration'); ?></label></th>
 <td>
   <input id="psc-conversations-tel-urgence" type="text" name="conversations_telephone_urgence" class="regular-text" maxlength="40"
          value="<?php echo esc_attr(psc_conversations_telephone_urgence()); ?>" placeholder="01 23 45 67 89">
@@ -215,7 +215,7 @@ if (is_array($psc_sidscm_rejected) && $psc_sidscm_rejected) {
 <h2><?php esc_html_e("Demandes d'inscription", 'periscolaire-registration'); ?></h2>
 <table class="form-table">
 <tr>
-<th><?php esc_html_e('Validation automatique', 'periscolaire-registration'); ?></th>
+<th scope="row"><?php esc_html_e('Validation automatique', 'periscolaire-registration'); ?></th>
 <td>
   <label>
     <input type="checkbox" name="auto_approve_requests" value="1" <?php checked(psc_auto_approve_requests_enabled()); ?>>
@@ -228,7 +228,7 @@ if (is_array($psc_sidscm_rejected) && $psc_sidscm_rejected) {
 </td>
 </tr>
 <tr>
-<th><label for="psc-login-ttl"><?php esc_html_e('Lien de connexion', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-login-ttl"><?php esc_html_e('Lien de connexion', 'periscolaire-registration'); ?></label></th>
 <td>
   <input id="psc-login-ttl" type="number" name="login_link_ttl_minutes" min="5" max="1440" step="1"
          value="<?php echo esc_attr((int) get_option('psc_login_link_ttl_minutes', 30)); ?>" class="small-text"> <?php esc_html_e('minutes', 'periscolaire-registration'); ?>
@@ -238,7 +238,7 @@ if (is_array($psc_sidscm_rejected) && $psc_sidscm_rejected) {
 </td>
 </tr>
 <tr>
-<th><label for="psc-email-confirm-ttl"><?php esc_html_e('Lien de confirmation par e-mail', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-email-confirm-ttl"><?php esc_html_e('Lien de confirmation par e-mail', 'periscolaire-registration'); ?></label></th>
 <td>
   <input id="psc-email-confirm-ttl" type="number" name="email_confirmation_ttl_days" min="1" max="30" step="1"
          value="<?php echo esc_attr((int) get_option('psc_email_confirmation_ttl_days', 3)); ?>" class="small-text"> <?php esc_html_e('jours', 'periscolaire-registration'); ?>
@@ -250,7 +250,7 @@ if (is_array($psc_sidscm_rejected) && $psc_sidscm_rejected) {
 </table>
 
 <h2><?php esc_html_e('Assurances scolaires', 'periscolaire-registration'); ?></h2>
-<table class="form-table"><tr><th><label for="psc-assurance-review"><?php esc_html_e('Validation des justificatifs', 'periscolaire-registration'); ?></label></th><td>
+<table class="form-table"><tr><th scope="row"><label for="psc-assurance-review"><?php esc_html_e('Validation des justificatifs', 'periscolaire-registration'); ?></label></th><td>
 <select id="psc-assurance-review" name="assurance_review_mode" aria-describedby="psc-assurance-review-help">
 <option value="auto" <?php selected(!Psc_Assurances::manual_review()); ?>><?php esc_html_e('Acceptation automatique après dépôt', 'periscolaire-registration'); ?></option>
 <option value="manual" <?php selected(Psc_Assurances::manual_review()); ?>><?php esc_html_e('Revue par la mairie avant accès au planning', 'periscolaire-registration'); ?></option>
@@ -261,7 +261,7 @@ if (is_array($psc_sidscm_rejected) && $psc_sidscm_rejected) {
 <h2><?php esc_html_e('Calendrier scolaire', 'periscolaire-registration'); ?></h2>
 <table class="form-table">
 <tr>
-<th><label for="psc-ics-url"><?php esc_html_e('URL du calendrier officiel', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-ics-url"><?php esc_html_e('URL du calendrier officiel', 'periscolaire-registration'); ?></label></th>
 <td>
   <input id="psc-ics-url" type="url" name="school_calendar_ics_url" class="regular-text"
          value="<?php echo esc_attr(get_option('psc_school_calendar_ics_url', '')); ?>"
@@ -281,7 +281,7 @@ $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
 <p><?php esc_html_e('Ces informations apparaissent sur les factures PDF envoyées aux familles.', 'periscolaire-registration'); ?></p>
 <table class="form-table">
 <tr>
-<th><label for="psc-org-intro"><?php esc_html_e("Ligne d'introduction", 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-org-intro"><?php esc_html_e("Ligne d'introduction", 'periscolaire-registration'); ?></label></th>
 <td>
     <input id="psc-org-intro" type="text" name="org_intro" class="large-text"
         value="<?php echo esc_attr(get_option('psc_billing_org_intro', '')); ?>"
@@ -290,7 +290,7 @@ $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
 </td>
 </tr>
 <tr>
-<th><label for="psc-org-name"><?php esc_html_e("Nom de l'organisme", 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-org-name"><?php esc_html_e("Nom de l'organisme", 'periscolaire-registration'); ?></label></th>
 <td>
     <input id="psc-org-name" type="text" name="org_name" class="large-text"
         value="<?php echo esc_attr(get_option('psc_billing_org_name', '')); ?>"
@@ -299,28 +299,28 @@ $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
 </td>
 </tr>
 <tr>
-<th><label for="psc-org-address"><?php esc_html_e('Siège social / Adresse', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-org-address"><?php esc_html_e('Siège social / Adresse', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-org-address" type="text" name="org_address" class="large-text"
     value="<?php echo esc_attr(get_option('psc_billing_org_address', '')); ?>"
     placeholder="<?php esc_attr_e('Ex : Siège social : rue de la Vallée 95650 Montgeroult', 'periscolaire-registration'); ?>"></td>
 </tr>
 <tr>
-<th><label for="psc-org-phone"><?php esc_html_e('Téléphone', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-org-phone"><?php esc_html_e('Téléphone', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-org-phone" type="text" name="org_phone" class="regular-text"
     value="<?php echo esc_attr(get_option('psc_billing_org_phone', '')); ?>"></td>
 </tr>
 <tr>
-<th><label for="psc-org-fax"><?php esc_html_e('Télécopie', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-org-fax"><?php esc_html_e('Télécopie', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-org-fax" type="text" name="org_fax" class="regular-text"
     value="<?php echo esc_attr(get_option('psc_billing_org_fax', '')); ?>"></td>
 </tr>
 <tr>
-<th><label for="psc-org-email"><?php esc_html_e('E-mail de contact', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-org-email"><?php esc_html_e('E-mail de contact', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-org-email" type="email" name="org_email" class="regular-text"
     value="<?php echo esc_attr(get_option('psc_billing_org_email', '')); ?>"></td>
 </tr>
 <tr>
-<th><label for="psc-org-city"><?php esc_html_e('Commune', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-org-city"><?php esc_html_e('Commune', 'periscolaire-registration'); ?></label></th>
 <td>
     <input id="psc-org-city" type="text" name="org_city" class="regular-text"
         value="<?php echo esc_attr(get_option('psc_billing_org_city', '')); ?>"
@@ -329,7 +329,7 @@ $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
 </td>
 </tr>
 <tr>
-<th><label for="psc-org-ics"><?php esc_html_e('Identifiant créancier SEPA (ICS)', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-org-ics"><?php esc_html_e('Identifiant créancier SEPA (ICS)', 'periscolaire-registration'); ?></label></th>
 <td>
     <input id="psc-org-ics" type="text" name="org_ics" class="regular-text"
         value="<?php echo esc_attr(get_option('psc_billing_org_ics', '')); ?>"
@@ -338,14 +338,14 @@ $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
 </td>
 </tr>
 <tr>
-<th><label for="psc-org-iban"><?php esc_html_e('IBAN du compte créancier', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-org-iban"><?php esc_html_e('IBAN du compte créancier', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-org-iban" type="text" name="org_iban" class="large-text" maxlength="42" autocomplete="off"
     data-bank-validation="iban" data-bank-error="<?php esc_attr_e('IBAN invalide : vérifiez le pays, la longueur et les clés de contrôle.', 'periscolaire-registration'); ?>"
     value="<?php echo esc_attr(psc_decrypt(get_option('psc_billing_org_iban', '')) ?? ''); ?>">
 <p class="description"><?php esc_html_e('Compte de la collectivité à créditer lors des prélèvements. Nécessaire pour l’export pain.008 ; enregistré chiffré.', 'periscolaire-registration'); ?></p></td>
 </tr>
 <tr>
-<th><label for="psc-org-bic"><?php esc_html_e('BIC de la banque du créancier', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-org-bic"><?php esc_html_e('BIC de la banque du créancier', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-org-bic" type="text" name="org_bic" class="regular-text" maxlength="11" autocomplete="off"
     data-bank-validation="bic" data-bank-error="<?php esc_attr_e('BIC invalide : 8 ou 11 caractères attendus.', 'periscolaire-registration'); ?>"
     value="<?php echo esc_attr(get_option('psc_billing_org_bic', '')); ?>">
@@ -353,7 +353,7 @@ $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
 </tr>
 
 <tr>
-<th><?php esc_html_e('Logo gauche', 'periscolaire-registration'); ?></th>
+<th scope="row"><?php esc_html_e('Logo gauche', 'periscolaire-registration'); ?></th>
 <td>
     <div id="psc-logo-left-preview" style="margin-bottom:6px;">
         <?php if ($logo_left_id) echo wp_get_attachment_image($logo_left_id, 'thumbnail', false, array('style' => 'max-height:60px;max-width:120px;')); ?>
@@ -368,7 +368,7 @@ $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
 </td>
 </tr>
 <tr>
-<th><?php esc_html_e('Logo droit', 'periscolaire-registration'); ?></th>
+<th scope="row"><?php esc_html_e('Logo droit', 'periscolaire-registration'); ?></th>
 <td>
     <div id="psc-logo-right-preview" style="margin-bottom:6px;">
         <?php if ($logo_right_id) echo wp_get_attachment_image($logo_right_id, 'thumbnail', false, array('style' => 'max-height:60px;max-width:120px;')); ?>
@@ -383,7 +383,7 @@ $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
 </td>
 </tr>
 <tr>
-<th><label for="psc-billing-footer"><?php esc_html_e('Texte pied de page', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-billing-footer"><?php esc_html_e('Texte pied de page', 'periscolaire-registration'); ?></label></th>
 <td>
     <input id="psc-billing-footer" type="text" name="footer" class="large-text"
            value="<?php echo esc_attr(get_option('psc_billing_footer', '')); ?>"
@@ -397,7 +397,7 @@ $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
 <p><?php esc_html_e('Notice affichée aux familles au formulaire d’inscription et dans « Mes enfants ». À faire valider par le délégué à la protection des données (DPO) de la collectivité.', 'periscolaire-registration'); ?></p>
 <table class="form-table">
 <tr>
-<th><label for="psc-privacy-municipality"><?php esc_html_e('Responsable du traitement', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-privacy-municipality"><?php esc_html_e('Responsable du traitement', 'periscolaire-registration'); ?></label></th>
 <td>
   <input id="psc-privacy-municipality" type="text" name="privacy_municipality" class="regular-text" maxlength="190"
          value="<?php echo esc_attr(get_option('psc_privacy_municipality', '')); ?>"
@@ -406,7 +406,7 @@ $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
 </td>
 </tr>
 <tr>
-<th><label for="psc-privacy-dpo-email"><?php esc_html_e('E-mail du DPO', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-privacy-dpo-email"><?php esc_html_e('E-mail du DPO', 'periscolaire-registration'); ?></label></th>
 <td>
   <input id="psc-privacy-dpo-email" type="email" name="privacy_dpo_email" class="regular-text"
          value="<?php echo esc_attr(get_option('psc_privacy_dpo_email', '')); ?>" aria-describedby="psc-privacy-dpo-help">
@@ -414,7 +414,7 @@ $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
 </td>
 </tr>
 <tr>
-<th><label for="psc-privacy-rights-email"><?php esc_html_e('E-mail pour exercer ses droits', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-privacy-rights-email"><?php esc_html_e('E-mail pour exercer ses droits', 'periscolaire-registration'); ?></label></th>
 <td>
   <input id="psc-privacy-rights-email" type="email" name="privacy_rights_email" class="regular-text"
          value="<?php echo esc_attr(get_option('psc_privacy_rights_email', '')); ?>" aria-describedby="psc-privacy-rights-help">
@@ -422,7 +422,7 @@ $logo_right_id = (int) get_option('psc_billing_logo_right_id', 0);
 </td>
 </tr>
 <tr>
-<th><label for="psc-privacy-policy-url"><?php esc_html_e('Adresse de la notice complète', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-privacy-policy-url"><?php esc_html_e('Adresse de la notice complète', 'periscolaire-registration'); ?></label></th>
 <td>
   <input id="psc-privacy-policy-url" type="url" name="privacy_policy_url" class="regular-text"
          value="<?php echo esc_attr(get_option('psc_privacy_policy_url', '')); ?>"
@@ -464,7 +464,7 @@ $doc_rp_id = (int) get_option('psc_doc_reglement_prelevement_id', 0);
 <p><?php esc_html_e("Mis à disposition des familles au format PDF dans leur espace connecté (onglet « Documents »), en complément du texte affiché lors de l'inscription.", 'periscolaire-registration'); ?></p>
 <table class="form-table">
 <tr>
-<th><?php esc_html_e('Règlement intérieur', 'periscolaire-registration'); ?></th>
+<th scope="row"><?php esc_html_e('Règlement intérieur', 'periscolaire-registration'); ?></th>
 <td>
     <div id="psc-doc-ri-preview" style="margin-bottom:6px;">
         <?php if ($doc_ri_id): $url = wp_get_attachment_url($doc_ri_id); ?>
@@ -481,7 +481,7 @@ $doc_rp_id = (int) get_option('psc_doc_reglement_prelevement_id', 0);
 </td>
 </tr>
 <tr>
-<th><?php esc_html_e('Règlement prélèvement automatique', 'periscolaire-registration'); ?></th>
+<th scope="row"><?php esc_html_e('Règlement prélèvement automatique', 'periscolaire-registration'); ?></th>
 <td>
     <div id="psc-doc-rp-preview" style="margin-bottom:6px;">
         <?php if ($doc_rp_id): $url = wp_get_attachment_url($doc_rp_id); ?>
@@ -504,7 +504,7 @@ $doc_rp_id = (int) get_option('psc_doc_reglement_prelevement_id', 0);
 <table class="form-table">
 <?php foreach (Psc_School_Years::classe_options() as $code => $label): if ($code === '') continue; ?>
 <tr>
-<th><label for="psc-prog-<?php echo esc_attr($code); ?>"><?php echo esc_html($label); ?></label></th>
+<th scope="row"><label for="psc-prog-<?php echo esc_attr($code); ?>"><?php echo esc_html($label); ?></label></th>
 <td>
 <select id="psc-prog-<?php echo esc_attr($code); ?>" name="progression_<?php echo esc_attr($code); ?>">
 <?php foreach (Psc_School_Years::classe_options() as $next_code => $next_label): if ($next_code === '') continue; ?>
@@ -521,11 +521,11 @@ $doc_rp_id = (int) get_option('psc_doc_reglement_prelevement_id', 0);
 <p><?php esc_html_e("Pendant cette période, un onglet « Réinscription » apparaît dans l'espace connecté des familles pour confirmer chaque enfant pour l'année scolaire en préparation. Laisser vide pour ne jamais afficher cet onglet.", 'periscolaire-registration'); ?></p>
 <table class="form-table">
 <tr>
-<th><label for="psc-reins-debut"><?php esc_html_e('Ouverture', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-reins-debut"><?php esc_html_e('Ouverture', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-reins-debut" type="date" name="reinscription_debut" value="<?php echo esc_attr(get_option('psc_reinscription_debut', '')); ?>"></td>
 </tr>
 <tr>
-<th><label for="psc-reins-fin"><?php esc_html_e('Fermeture', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-reins-fin"><?php esc_html_e('Fermeture', 'periscolaire-registration'); ?></label></th>
 <td><input id="psc-reins-fin" type="date" name="reinscription_fin" value="<?php echo esc_attr(get_option('psc_reinscription_fin', '')); ?>"></td>
 </tr>
 </table>
@@ -538,7 +538,7 @@ $doc_rp_id = (int) get_option('psc_doc_reglement_prelevement_id', 0);
 </p>
 <table class="form-table">
 <tr>
-<th><label for="psc-sidscm-page"><?php esc_html_e('Page "Accès intervenants"', 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-sidscm-page"><?php esc_html_e('Page "Accès intervenants"', 'periscolaire-registration'); ?></label></th>
 <td>
   <?php
   wp_dropdown_pages(array(
@@ -556,7 +556,7 @@ $doc_rp_id = (int) get_option('psc_doc_reglement_prelevement_id', 0);
 </td>
 </tr>
 <tr>
-<th><label for="psc-sidscm-code"><?php esc_html_e("Code d'accès intervenantes SIDSCM", 'periscolaire-registration'); ?></label></th>
+<th scope="row"><label for="psc-sidscm-code"><?php esc_html_e("Code d'accès intervenantes SIDSCM", 'periscolaire-registration'); ?></label></th>
 <td>
   <input id="psc-sidscm-code" type="text" name="sidscm_access_code" class="regular-text" maxlength="40"
          value="<?php echo esc_attr(get_option('psc_sidscm_access_code', '')); ?>"
