@@ -136,10 +136,11 @@ echo esc_html(sprintf(__('La note parle de « %1$s », mais la date retenue est 
             </ul>
         </div>
         <div>
-            <label for="psc-note-menu-jour"><strong><?php esc_html_e('Menu corrigé', 'periscolaire-registration'); ?></strong></label>
-            <textarea id="psc-note-menu-jour" name="menu_jour" rows="<?php echo esc_attr(max(6, count($menu_propose) + 2)); ?>" class="large-text" maxlength="2000"
-                      aria-describedby="psc-note-menu-aide"><?php echo esc_textarea(implode("\n", $menu_propose)); ?></textarea>
-            <p class="description" id="psc-note-menu-aide"><?php esc_html_e('Un plat par ligne. Relisez et corrigez librement : c’est ce texte qui remplacera le menu de ce jour. Terminez une ligne par une étoile (*) pour un produit bio.', 'periscolaire-registration'); ?></p>
+            <h4 id="psc-note-menu-corrige-titre"><?php esc_html_e('Menu corrigé', 'periscolaire-registration'); ?></h4>
+            <div role="group" aria-labelledby="psc-note-menu-corrige-titre" aria-describedby="psc-note-menu-aide" data-testid="note-menu-corrige">
+            <?php echo Psc_Menus::render_type_fields('menu_jour', 'psc-note-menu-jour', Psc_Menus::par_type(implode("\n", $menu_propose), isset($ctx['menu']->{$ctx['jour'] . '_types'}) ? $ctx['menu']->{$ctx['jour'] . '_types'} : '')); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            </div>
+            <p class="description" id="psc-note-menu-aide"><?php esc_html_e('Un plat par ligne, chacun dans son type. Relisez et corrigez librement : ce sont ces champs qui remplaceront le menu de ce jour. Terminez une ligne par une étoile (*) pour un produit bio.', 'periscolaire-registration'); ?></p>
         </div>
     </div>
     <div class="psc-choix-actions">

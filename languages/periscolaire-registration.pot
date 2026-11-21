@@ -2,14 +2,14 @@
 # This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Périscolaire - Inscriptions 5.40.0\n"
+"Project-Id-Version: Périscolaire - Inscriptions 5.41.0\n"
 "Report-Msgid-Bugs-To: https://github.com/eflye/wp-plugin-extrascolaire/issues\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Mairie de Montgeroult\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-21T14:38:04+00:00\n"
+"POT-Creation-Date: 2026-11-21T20:56:34+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: periscolaire-registration\n"
@@ -767,28 +767,28 @@ msgstr ""
 
 #: includes/class-psc-admin-menu-notes.php:108
 #: includes/class-psc-menu-notes.php:346
-#: includes/class-psc-menu-notes.php:365
+#: includes/class-psc-menu-notes.php:367
 msgid "Indiquez le jour de repas concerné par la note."
 msgstr ""
 
 #: includes/class-psc-admin-menu-notes.php:109
-#: includes/class-psc-menu-notes.php:367
+#: includes/class-psc-menu-notes.php:369
 msgid "Ce jour n’est pas un jour de cantine (mercredi, week-end, vacances ou fermeture)."
 msgstr ""
 
 #: includes/class-psc-admin-menu-notes.php:110
-#: includes/class-psc-menu-notes.php:370
+#: includes/class-psc-menu-notes.php:372
 #: templates/admin-menu-note-detail.php:84
 msgid "Aucun menu n’est enregistré pour ce jour : il n’y a rien à corriger."
 msgstr ""
 
 #: includes/class-psc-admin-menu-notes.php:111
-#: includes/class-psc-menu-notes.php:388
+#: includes/class-psc-menu-notes.php:402
 msgid "Le menu corrigé est identique au menu actuel : rien n’a été modifié."
 msgstr ""
 
 #: includes/class-psc-admin-menu-notes.php:112
-#: includes/class-psc-menu-notes.php:379
+#: includes/class-psc-menu-notes.php:393
 msgid "Le menu du jour ne peut pas être vide."
 msgstr ""
 
@@ -859,13 +859,13 @@ msgid "Aucune semaine de menus n’a été reconnue dans ce fichier. Vérifiez q
 msgstr ""
 
 #: includes/class-psc-admin-menu-propositions.php:179
-#: includes/class-psc-menu-propositions.php:549
+#: includes/class-psc-menu-propositions.php:573
 msgid "Aucun plat n’est retenu : il n’y a rien à répondre au fournisseur."
 msgstr ""
 
 #: includes/class-psc-admin-menu-propositions.php:180
-#: includes/class-psc-menu-propositions.php:373
-#: includes/class-psc-menu-propositions.php:553
+#: includes/class-psc-menu-propositions.php:368
+#: includes/class-psc-menu-propositions.php:577
 msgid "Le fichier du fournisseur est introuvable : déposez-le de nouveau."
 msgstr ""
 
@@ -874,8 +874,8 @@ msgid "L'envoi du mail a échoué. Vos choix sont conservés : relancez l'envoi 
 msgstr ""
 
 #: includes/class-psc-admin-menu-propositions.php:182
-#: includes/class-psc-menu-propositions.php:260
-#: includes/class-psc-menu-propositions.php:537
+#: includes/class-psc-menu-propositions.php:255
+#: includes/class-psc-menu-propositions.php:561
 msgid "La réponse est déjà partie : les choix ne sont plus modifiables."
 msgstr ""
 
@@ -2371,7 +2371,7 @@ msgstr ""
 
 #: includes/class-psc-frontend.php:203
 #: includes/class-psc-mailer.php:243
-#: includes/class-psc-menus.php:99
+#: includes/class-psc-menus.php:236
 #: includes/class-psc-supplier-orders.php:21
 #: templates/portal-planning-2.php:198
 msgid "Lundi"
@@ -2379,7 +2379,7 @@ msgstr ""
 
 #: includes/class-psc-frontend.php:204
 #: includes/class-psc-mailer.php:243
-#: includes/class-psc-menus.php:100
+#: includes/class-psc-menus.php:237
 #: includes/class-psc-supplier-orders.php:22
 #: templates/portal-planning-2.php:198
 msgid "Mardi"
@@ -2387,7 +2387,7 @@ msgstr ""
 
 #: includes/class-psc-frontend.php:206
 #: includes/class-psc-mailer.php:243
-#: includes/class-psc-menus.php:101
+#: includes/class-psc-menus.php:238
 #: includes/class-psc-supplier-orders.php:23
 #: templates/portal-planning-2.php:198
 msgid "Jeudi"
@@ -2395,7 +2395,7 @@ msgstr ""
 
 #: includes/class-psc-frontend.php:207
 #: includes/class-psc-mailer.php:243
-#: includes/class-psc-menus.php:102
+#: includes/class-psc-menus.php:239
 #: includes/class-psc-supplier-orders.php:24
 #: templates/portal-planning-2.php:198
 msgid "Vendredi"
@@ -2836,7 +2836,7 @@ msgstr ""
 
 #: includes/class-psc-invoices.php:969
 #: includes/class-psc-invoices.php:1032
-#: includes/class-psc-menu-propositions.php:586
+#: includes/class-psc-menu-propositions.php:610
 #: includes/class-psc-supplier-orders.php:221
 msgid "L'envoi du mail a échoué."
 msgstr ""
@@ -3474,74 +3474,54 @@ msgstr ""
 msgid "La note n’a pas pu être enregistrée."
 msgstr ""
 
-#: includes/class-psc-menu-notes.php:397
+#: includes/class-psc-menu-notes.php:411
 msgid "Le menu n’a pas pu être corrigé."
 msgstr ""
 
-#: includes/class-psc-menu-propositions.php:39
-msgid "Entrée"
-msgstr ""
-
-#: includes/class-psc-menu-propositions.php:40
-msgid "Plat"
-msgstr ""
-
-#: includes/class-psc-menu-propositions.php:41
-msgid "Accompagnement"
-msgstr ""
-
-#: includes/class-psc-menu-propositions.php:42
-msgid "Fromage / laitage"
-msgstr ""
-
-#: includes/class-psc-menu-propositions.php:43
-msgid "Dessert"
-msgstr ""
-
-#: includes/class-psc-menu-propositions.php:49
+#: includes/class-psc-menu-propositions.php:44
 msgid "Choix en cours"
 msgstr ""
 
-#: includes/class-psc-menu-propositions.php:50
+#: includes/class-psc-menu-propositions.php:45
 msgid "Réponse envoyée"
 msgstr ""
 
-#: includes/class-psc-menu-propositions.php:51
+#: includes/class-psc-menu-propositions.php:46
 msgid "Réponse envoyée, menus remplis"
 msgstr ""
 
 #. translators: 1: premier jour de la période, 2: dernier jour (jj/mm/aaaa).
-#: includes/class-psc-menu-propositions.php:80
+#: includes/class-psc-menu-propositions.php:75
 #, php-format
 msgid "%1$s au %2$s"
 msgstr ""
 
-#: includes/class-psc-menu-propositions.php:100
+#: includes/class-psc-menu-propositions.php:95
 #: includes/class-psc-menu-xlsx.php:170
 #: includes/class-psc-menu-xlsx.php:201
 msgid "Ce fichier n’est pas un classeur Excel (.xlsx)."
 msgstr ""
 
-#: includes/class-psc-menu-propositions.php:108
-#: includes/class-psc-menu-propositions.php:112
-#: includes/class-psc-menu-propositions.php:132
+#: includes/class-psc-menu-propositions.php:103
+#: includes/class-psc-menu-propositions.php:107
+#: includes/class-psc-menu-propositions.php:127
 msgid "Le fichier n’a pas pu être enregistré."
 msgstr ""
 
-#: includes/class-psc-menu-propositions.php:258
-#: includes/class-psc-menu-propositions.php:526
+#: includes/class-psc-menu-propositions.php:253
+#: includes/class-psc-menu-propositions.php:550
 msgid "Proposition introuvable."
 msgstr ""
 
-#: includes/class-psc-menu-propositions.php:284
+#: includes/class-psc-menu-propositions.php:279
 msgid "Les choix n’ont pas pu être enregistrés."
 msgstr ""
 
-#: includes/class-psc-menu-propositions.php:339
+#: includes/class-psc-menu-propositions.php:334
 msgid "Etablissement :"
 msgstr ""
 
-#: includes/class-psc-menu-propositions.php:377
+#: includes/class-psc-menu-propositions.php:372
 #: includes/class-psc-menu-xlsx.php:483
 #: includes/class-psc-menu-xlsx.php:487
 #: includes/class-psc-menu-xlsx.php:500
@@ -3550,12 +3530,12 @@ msgstr ""
 msgid "Le fichier rempli n’a pas pu être produit."
 msgstr ""
 
-#: includes/class-psc-menu-propositions.php:544
+#: includes/class-psc-menu-propositions.php:568
 #: includes/class-psc-supplier-orders.php:192
 msgid "Aucune adresse e-mail fournisseur n'est configurée (Périscolaire > Commande fournisseur > Réglages)."
 msgstr ""
 
-#: includes/class-psc-menu-propositions.php:573
+#: includes/class-psc-menu-propositions.php:597
 msgid "La réponse n’a pas pu être enregistrée : rien n’a été envoyé."
 msgstr ""
 
@@ -3563,34 +3543,54 @@ msgstr ""
 msgid "Aucune semaine de menus n’a été reconnue dans ce fichier."
 msgstr ""
 
-#: includes/class-psc-menus.php:43
+#: includes/class-psc-menus.php:31
+msgid "Entrée"
+msgstr ""
+
+#: includes/class-psc-menus.php:32
+msgid "Plat"
+msgstr ""
+
+#: includes/class-psc-menus.php:33
+msgid "Accompagnement"
+msgstr ""
+
+#: includes/class-psc-menus.php:34
+msgid "Fromage / Laitage"
+msgstr ""
+
+#: includes/class-psc-menus.php:35
+msgid "Dessert"
+msgstr ""
+
+#: includes/class-psc-menus.php:128
 msgid "Issu de l'agriculture biologique"
 msgstr ""
 
-#: includes/class-psc-menus.php:43
+#: includes/class-psc-menus.php:128
 msgid "Plat préparé avec des ingrédients issus de l’agriculture biologique."
 msgstr ""
 
-#: includes/class-psc-menus.php:44
+#: includes/class-psc-menus.php:129
 msgid "Label Rouge — garantie qualité supérieure"
 msgstr ""
 
-#: includes/class-psc-menus.php:44
+#: includes/class-psc-menus.php:129
 msgid "Produit Label Rouge, garantie de qualité supérieure."
 msgstr ""
 
-#: includes/class-psc-menus.php:83
+#: includes/class-psc-menus.php:220
 msgid "Les viandes de bœuf, volaille, porc et de veau qui vous sont servies sont issues d’animaux nés, élevés et abattus en France et pouvant être issue de l’agriculture biologique."
 msgstr ""
 
-#: includes/class-psc-menus.php:163
+#: includes/class-psc-menus.php:306
 #: includes/class-psc-supplier-orders.php:70
 #: templates/admin-supplier-orders.php:8
 msgid "Date de semaine invalide."
 msgstr ""
 
 #. translators: %d: identifiant de la famille
-#: includes/class-psc-menus.php:285
+#: includes/class-psc-menus.php:446
 #, php-format
 msgid "Famille #%d (lien de désinscription des menus)"
 msgstr ""
@@ -7270,7 +7270,7 @@ msgid "Semaines du fichier"
 msgstr ""
 
 #: templates/admin-menu-choix-detail.php:74
-#: templates/admin-menus.php:46
+#: templates/admin-menus.php:47
 #: templates/admin-menus.php:104
 #: templates/admin-supplier-orders.php:31
 msgid "Semaine du"
@@ -7618,55 +7618,55 @@ msgstr ""
 msgid "Menu corrigé"
 msgstr ""
 
-#: templates/admin-menu-note-detail.php:142
-msgid "Un plat par ligne. Relisez et corrigez librement : c’est ce texte qui remplacera le menu de ce jour. Terminez une ligne par une étoile (*) pour un produit bio."
-msgstr ""
-
-#: templates/admin-menu-note-detail.php:146
-msgid "Enregistrer le menu corrigé"
+#: templates/admin-menu-note-detail.php:143
+msgid "Un plat par ligne, chacun dans son type. Relisez et corrigez librement : ce sont ces champs qui remplaceront le menu de ce jour. Terminez une ligne par une étoile (*) pour un produit bio."
 msgstr ""
 
 #: templates/admin-menu-note-detail.php:147
+msgid "Enregistrer le menu corrigé"
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:148
 msgid "Seul le menu de ce jour est modifié. Aucun e-mail n’est envoyé."
 msgstr ""
 
-#: templates/admin-menu-note-detail.php:156
+#: templates/admin-menu-note-detail.php:157
 msgid "Classer la note sans modifier le menu"
 msgstr ""
 
-#: templates/admin-menu-note-detail.php:161
+#: templates/admin-menu-note-detail.php:162
 msgid "Lignes du menu modifiées"
 msgstr ""
 
-#: templates/admin-menu-note-detail.php:163
+#: templates/admin-menu-note-detail.php:164
 msgid "Lignes du menu modifiées à la suite de cette note"
 msgstr ""
 
-#: templates/admin-menu-note-detail.php:166
+#: templates/admin-menu-note-detail.php:167
 msgid "Ligne avant"
 msgstr ""
 
-#: templates/admin-menu-note-detail.php:167
+#: templates/admin-menu-note-detail.php:168
 msgid "Ligne après"
 msgstr ""
 
-#: templates/admin-menu-note-detail.php:175
+#: templates/admin-menu-note-detail.php:176
 msgid "Ligne ajoutée"
 msgstr ""
 
-#: templates/admin-menu-note-detail.php:179
+#: templates/admin-menu-note-detail.php:180
 msgid "Ligne retirée"
 msgstr ""
 
-#: templates/admin-menu-note-detail.php:187
+#: templates/admin-menu-note-detail.php:188
 msgid "Ce menu avait déjà été envoyé aux familles ; aucun e-mail n’est reparti."
 msgstr ""
 
-#: templates/admin-menu-note-detail.php:190
+#: templates/admin-menu-note-detail.php:191
 msgid "Voir le menu de cette semaine (pour le relire ou le renvoyer aux familles)"
 msgstr ""
 
-#: templates/admin-menu-note-detail.php:195
+#: templates/admin-menu-note-detail.php:196
 msgid "Cette note a été classée sans modifier le menu."
 msgstr ""
 
@@ -7767,26 +7767,30 @@ msgid "semaine du"
 msgstr ""
 
 #: templates/admin-menus.php:33
-msgid "Une ligne = un plat. Terminez la ligne par une étoile pour un plat bio, par deux étoiles pour un plat Label Rouge : le logo s'affiche automatiquement côté familles et dans l'e-mail."
+msgid "Rangez chaque plat dans son type : entrée, plat, accompagnement, fromage ou laitage, dessert. Les familles voient le type devant le plat ; un type laissé vide ne leur est pas affiché. Plusieurs plats du même type : un par ligne."
 msgstr ""
 
-#: templates/admin-menus.php:39
-msgid "Une semaine = un menu. Seuls les jours d'école effectivement ouverts sont proposés ci-dessous : les vacances scolaires et les fermetures ponctuelles (Périscolaire"
+#: templates/admin-menus.php:34
+msgid "Terminez la ligne par une étoile pour un plat bio, par deux étoiles pour un plat Label Rouge : le logo s'affiche automatiquement côté familles et dans l'e-mail."
 msgstr ""
 
 #: templates/admin-menus.php:40
-msgid "Calendrier scolaire) sont pris en compte automatiquement."
+msgid "Une semaine = un menu. Seuls les jours d'école effectivement ouverts sont proposés ci-dessous : les vacances scolaires et les fermetures ponctuelles (Périscolaire"
 msgstr ""
 
 #: templates/admin-menus.php:41
+msgid "Calendrier scolaire) sont pris en compte automatiquement."
+msgstr ""
+
+#: templates/admin-menus.php:42
 msgid "L'e-mail n'est envoyé qu'après avoir cliqué sur « Envoyer aux familles » dans la liste ci-dessous — l'enregistrement seul reste un brouillon."
 msgstr ""
 
-#: templates/admin-menus.php:48
+#: templates/admin-menus.php:49
 msgid "Changer de semaine"
 msgstr ""
 
-#: templates/admin-menus.php:52
+#: templates/admin-menus.php:53
 msgid "Aucun jour d'école cette semaine-là (vacances scolaires ou jour férié) — pas de service cantine, rien à saisir."
 msgstr ""
 

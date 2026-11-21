@@ -64,10 +64,10 @@ class Psc_Admin_Menu_Notes extends Psc_Admin_Base {
         self::guard('psc_apply_menu_note');
 
         $id = psc_post_int('id');
-        // Zone de texte multi-lignes : assainie ligne par ligne par
-        // Psc_Menu_Notes::apply() (sanitize_text_field() ici écraserait les
-        // retours à la ligne).
-        $texte  = isset($_POST['menu_jour']) && is_string($_POST['menu_jour']) ? wp_unslash($_POST['menu_jour']) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+        // Un champ multi-lignes par type de plat : assainis ligne par
+        // ligne par Psc_Menu_Notes::apply() (sanitize_text_field() ici
+        // écraserait les retours à la ligne).
+        $texte  = isset($_POST['menu_jour']) && (is_array($_POST['menu_jour']) || is_string($_POST['menu_jour'])) ? wp_unslash($_POST['menu_jour']) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
         $result = Psc_Menu_Notes::apply($id, $texte);
         if (is_wp_error($result)) self::back_error($result, $id);
         self::back('note_appliquee', $id);

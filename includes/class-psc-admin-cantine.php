@@ -48,12 +48,12 @@ class Psc_Admin_Cantine extends Psc_Admin_Base {
         $semaine = psc_post('semaine_debut');
         $jours   = array();
         foreach (Psc_Menus::JOURS as $jour) {
-            // Pas psc_post() ici : sanitize_text_field() collapse les
-            // retours à la ligne (conçu pour du texte sur une ligne). Ces
-            // champs sont des textarea multi-lignes ; Psc_Menus::save()
-            // applique déjà sanitize_textarea_field(), qui les préserve —
-            // un seul point de sanitization, sur la bonne fonction.
-            $jours[$jour] = isset($_POST[$jour]) ? wp_unslash($_POST[$jour]) : '';
+            // Pas psc_post() ici : sanitize_text_field() écrase les retours
+            // à la ligne. Chaque jour arrive rangé par type de plat
+            // (lundi[entree]…), un champ multi-lignes par type ;
+            // Psc_Menus::save() applique sanitize_textarea_field(), qui les
+            // préserve — un seul point d'assainissement.
+            $jours[$jour] = isset($_POST[$jour]) && is_array($_POST[$jour]) ? wp_unslash($_POST[$jour]) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
         }
 
         $origin = isset($_POST['origine_viande']) && is_string($_POST['origine_viande']) ? wp_unslash($_POST['origine_viande']) : null;
