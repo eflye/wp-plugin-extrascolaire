@@ -37,6 +37,7 @@ Le fournisseur a reçu son fichier rempli, la ligne du fichier indique **Répons
 ## Pour aller plus loin
 
 - [Menus de cantine](menus-cantine.md)
+- [Notes de changement du fournisseur](notes-changement-fournisseur.md) : les remplacements annoncés après coup par le fournisseur
 - [Commande fournisseur](commande-fournisseur.md)
 - [Modèles d'e-mails](../configuration/modeles-emails.md) : le texte de la réponse est le modèle **Réponse au fournisseur (choix des menus)**
 - [Calendrier et vacances](../configuration/calendrier-vacances.md)
