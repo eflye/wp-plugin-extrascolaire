@@ -1,6 +1,6 @@
 # Labels qualité des menus
 
-La saisie et le stockage restent inchangés : un plat par ligne dans les champs de chaque jour.
+Le texte d’un jour reste stocké un plat par ligne (colonnes `lundi`…`vendredi`). Depuis le schéma 4.25.0, la saisie se fait par type de plat (cinq champs par jour) et le type de chaque ligne est enregistré à côté, dans `<jour>_types` (`entree,plat,fromage,dessert`) : `Psc_Menus::compose()` assemble un jour, `par_type()` le redistribue dans les champs, `types_of()` ne rend les types que s’ils comptent autant d’éléments que le texte de lignes — sinon l’affichage retombe sur la liste sans type.
 
 - `Carottes râpées*` : logo AB.
 - `Poulet fermier rôti**` : logo Label Rouge.

@@ -30,7 +30,8 @@ echo ' ' . esc_html__('Les envois se poursuivent en arrière-plan : le menu sera
 
 <div class="psc-box">
 <h2><?php echo $editing ? esc_html__('Modifier le menu', 'periscolaire-registration') : esc_html__('Saisir un menu', 'periscolaire-registration'); ?> — <?php esc_html_e('semaine du', 'periscolaire-registration'); ?> <?php echo esc_html(date_i18n('d/m/Y', strtotime($target_week))); ?></h2>
-<p><?php esc_html_e("Une ligne = un plat. Terminez la ligne par une étoile pour un plat bio, par deux étoiles pour un plat Label Rouge : le logo s'affiche automatiquement côté familles et dans l'e-mail.", 'periscolaire-registration'); ?></p>
+<p><?php esc_html_e("Rangez chaque plat dans son type : entrée, plat, accompagnement, fromage ou laitage, dessert. Les familles voient le type devant le plat ; un type laissé vide ne leur est pas affiché. Plusieurs plats du même type : un par ligne.", 'periscolaire-registration'); ?></p>
+<p><?php esc_html_e("Terminez la ligne par une étoile pour un plat bio, par deux étoiles pour un plat Label Rouge : le logo s'affiche automatiquement côté familles et dans l'e-mail.", 'periscolaire-registration'); ?></p>
 <div class="psc-menu-examples">
 <p><code>Carottes râpées*</code> → <?php echo Psc_Menus::label_image('bio'); ?></p>
 <p><code>Poulet fermier rôti**</code> → <?php echo Psc_Menus::label_image('label_rouge'); ?></p>
@@ -59,12 +60,11 @@ echo ' ' . esc_html__('Les envois se poursuivent en arrière-plan : le menu sera
 <table class="form-table">
 <?php foreach (Psc_Menus::jour_labels() as $key => $label): if (!isset($open_days[$key])) continue; ?>
 <tr>
-    <th scope="row"><label for="psc-menu-<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?> <span class="description">(<?php echo esc_html(date_i18n('d/m', strtotime($open_days[$key]))); ?>)</span></label></th>
+    <th scope="row" id="psc-menu-<?php echo esc_attr($key); ?>-titre"><?php echo esc_html($label); ?> <span class="description">(<?php echo esc_html(date_i18n('d/m', strtotime($open_days[$key]))); ?>)</span></th>
     <td>
-        <textarea id="psc-menu-<?php echo esc_attr($key); ?>" name="<?php echo esc_attr($key); ?>" rows="3" class="large-text" data-menu-input maxlength="2000"><?php
-            echo esc_textarea($editing ? $editing->$key : '');
-        ?></textarea>
-        <div class="psc-menu-preview" data-menu-preview><?php echo Psc_Menus::render_dishes($editing ? $editing->$key : '', 'preview'); ?></div>
+        <div role="group" aria-labelledby="psc-menu-<?php echo esc_attr($key); ?>-titre" data-testid="menu-jour-<?php echo esc_attr($key); ?>">
+        <?php echo Psc_Menus::render_type_fields($key, 'psc-menu-' . $key, Psc_Menus::par_type($editing ? $editing->$key : '', $editing && isset($editing->{$key . '_types'}) ? $editing->{$key . '_types'} : ''), true); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        </div>
     </td>
 </tr>
 <?php endforeach; ?>

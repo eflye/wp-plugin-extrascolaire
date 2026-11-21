@@ -110,7 +110,7 @@ class Psc_Frontend_Menus extends Psc_Frontend_Base {
             if (!psc_is_school_day($d_date)) continue;
             $content = trim((string) $menu->$key);
             if ($content === '') continue;
-            $days_out[] = array('day' => $label, 'dish' => $content);
+            $days_out[] = array('day' => $label, 'dish' => $content, 'types' => isset($menu->{$key . '_types'}) ? (string) $menu->{$key . '_types'} : '');
         }
         return $days_out;
     }

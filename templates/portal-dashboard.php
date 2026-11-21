@@ -80,7 +80,7 @@
     <?php foreach ($psc_portal_dashboard['menu'] as $m): ?>
     <div>
       <div class="psc-portal-dash-menu-day"><?php echo esc_html($m['day']); ?></div>
-      <div class="psc-portal-dash-menu-dish"><?php echo Psc_Menus::render_dishes($m['dish']); ?></div>
+      <div class="psc-portal-dash-menu-dish"><?php echo Psc_Menus::render_dishes($m['dish'], 'frontend', $m['types'] ?? ''); ?></div>
     </div>
     <?php endforeach; ?>
   <?php elseif (!empty($psc_portal_dashboard['menu_no_school'])): ?>

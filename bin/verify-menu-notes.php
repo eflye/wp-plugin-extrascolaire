@@ -238,6 +238,8 @@ WP_CLI::add_command('verify-menu-notes', function () {
             array('avant' => '', 'apres' => 'Pain'),
         ), 'application : trace des lignes modifiées inattendue');
         $check(count($data['detectes']) === 3, 'application : remplacements annoncés par la note perdus');
+        // Saisie en texte seul : le jour corrigé n'a pas de type, les autres jours n'en gagnent pas.
+        $check($menu->lundi_types === '' && $menu->mardi_types === '', 'types : types inventés pour un menu corrigé en texte seul');
 
         /* ---------------- 7. Note traitée ---------------- */
         $check($code(Psc_Menu_Notes::apply($id, 'Autre menu')) === 'psc_note_verrouillee', 'verrou : note appliquée deux fois');

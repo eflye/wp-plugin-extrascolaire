@@ -11,7 +11,11 @@ Connectez-vous avec un rôle autorisé à gérer la cantine. Préparez les plats
 ## Étapes
 
 1. Ouvrez **Périscolaire › Menus**, onglet **Menus de la semaine**, et choisissez la semaine dans **Semaine du**. Les jours de vacances ou de fermeture ne sont pas proposés.
-2. Renseignez un plat par ligne dans le champ de chaque jour. Pour afficher un label qualité, ajoutez une étoile `*` après le nom du plat pour le label Bio, ou deux étoiles `**` pour le label Label Rouge. Sans étoile, aucun label n'est affiché.
+2. Chaque jour propose cinq champs, toujours affichés : **Entrée**, **Plat**, **Accompagnement**, **Fromage / Laitage** et **Dessert**. Rangez chaque plat dans son type ; pour plusieurs plats du même type (deux desserts, par exemple), saisissez un plat par ligne dans le même champ. Laissez vide un type qui n'est pas servi ce jour-là, par exemple l'accompagnement d'un plat complet : les familles voient le type devant chaque plat, et un type vide ne leur est pas affiché. Pour afficher un label qualité, ajoutez une étoile `*` après le nom du plat pour le label Bio, ou deux étoiles `**` pour le label Label Rouge. Sans étoile, aucun label n'est affiché.
+
+    !!! note
+        Un menu enregistré avant l'arrivée des types s'affiche aux familles comme avant, sans type. Quand vous le rouvrez, ses lignes sont réparties dans l'ordre dans les cinq champs (la première en entrée, la deuxième en plat, et ainsi de suite) : vérifiez la répartition, corrigez-la, puis enregistrez pour que les types apparaissent côté familles.
+
 3. Contrôlez l'aperçu qui se met à jour sous chaque champ : les étoiles disparaissent du texte et le logo correspondant apparaît. Ajoutez l'**Origine de la viande** si cette information doit être communiquée.
 
    ![Formulaire de saisie d'un menu avec un plat par jour, l'aperçu des labels qualité et le champ Origine de la viande](../assets/screenshots/menus-cantine-saisie.png)
@@ -30,7 +34,7 @@ Connectez-vous avec un rôle autorisé à gérer la cantine. Préparez les plats
 
 ## Résultat attendu
 
-Le menu de la semaine est lisible dans le portail famille et l'e-mail, les labels Bio ou Label Rouge sont correctement signalés, et l'envoi n'est daté que lorsqu'il a été accepté pour toutes les familles.
+Le menu de la semaine est lisible dans le portail famille et l'e-mail, chaque plat précédé de son type, les labels Bio ou Label Rouge sont correctement signalés, et l'envoi n'est daté que lorsqu'il a été accepté pour toutes les familles.
 
 ## Pour aller plus loin
 

@@ -34,14 +34,9 @@ class Psc_Menu_Propositions {
     /** Marque posée dans la colonne « Enf » du fichier du fournisseur. */
     const CROIX = 'X';
 
+    /** Mêmes types, mêmes libellés que les menus des familles. */
     public static function categories() {
-        return array(
-            'entree'         => __('Entrée', 'periscolaire-registration'),
-            'plat'           => __('Plat', 'periscolaire-registration'),
-            'accompagnement' => __('Accompagnement', 'periscolaire-registration'),
-            'fromage'        => __('Fromage / laitage', 'periscolaire-registration'),
-            'dessert'        => __('Dessert', 'periscolaire-registration'),
-        );
+        return Psc_Menus::type_labels();
     }
 
     public static function statuts() {
@@ -415,6 +410,27 @@ class Psc_Menu_Propositions {
     }
 
     /**
+     * Plats que les choix produisent, rangés par type : c'est sous cette
+     * forme qu'ils sont enregistrés dans les menus (cf. Psc_Menus::save()).
+     *
+     * @return array array(semaine => array(jour => array(type => ligne de menu))), jours sans plat exclus.
+     */
+    public static function plats_prevus($row) {
+        $out = array();
+        foreach (self::plats_retenus($row) as $semaine => $jours) {
+            foreach ($jours as $jour => $cats) {
+                $par_type = array();
+                foreach (Psc_Menu_Xlsx::CATEGORIES as $cat) {
+                    $line = isset($cats[$cat]) ? self::menu_line($cats[$cat]) : '';
+                    if ($line !== '') $par_type[$cat] = $line;
+                }
+                if ($par_type) $out[$semaine][$jour] = $par_type;
+            }
+        }
+        return $out;
+    }
+
+    /**
      * Menus que les choix produisent : un plat par ligne, dans l'ordre du
      * service.
      *
@@ -422,15 +438,8 @@ class Psc_Menu_Propositions {
      */
     public static function menus_prevus($row) {
         $out = array();
-        foreach (self::plats_retenus($row) as $semaine => $jours) {
-            foreach ($jours as $jour => $cats) {
-                $lines = array();
-                foreach (Psc_Menu_Xlsx::CATEGORIES as $cat) {
-                    $line = isset($cats[$cat]) ? self::menu_line($cats[$cat]) : '';
-                    if ($line !== '') $lines[] = $line;
-                }
-                if ($lines) $out[$semaine][$jour] = implode("\n", $lines);
-            }
+        foreach (self::plats_prevus($row) as $semaine => $jours) {
+            foreach ($jours as $jour => $par_type) $out[$semaine][$jour] = implode("\n", $par_type);
         }
         return $out;
     }
@@ -484,18 +493,33 @@ class Psc_Menu_Propositions {
      */
     public static function remplir_menus($row, array $forcer = array()) {
         global $wpdb;
-        $prevus = self::menus_prevus($row);
+        $prevus = self::plats_prevus($row);
         $out    = array();
         foreach (self::etat_menus($row) as $semaine => $info) {
             if ($info['etat'] === 'sans_choix') continue;
-            if ($info['etat'] === 'a_jour') { $out[$semaine] = 'a_jour'; continue; }
-            if ($info['etat'] === 'envoye_different' && !in_array($semaine, $forcer, true)) { $out[$semaine] = 'conserve'; continue; }
-            $menu  = $info['menu'];
+            $menu = $info['menu'];
+            if ($info['etat'] === 'a_jour') {
+                // Même texte : rien à remplacer, sauf les types des plats
+                // quand le menu n'en porte pas (saisi avant le schéma
+                // 4.25.0, ou à la main en texte seul). Ils sont alors
+                // ajoutés, menu envoyé ou non : le texte lu par les familles
+                // ne change pas, il gagne seulement ses types.
+                $out[$semaine] = 'a_jour';
+                $typer = false;
+                foreach ($prevus[$semaine] as $jour => $par_type) {
+                    if (Psc_Menus::types_of($menu->$jour, $menu->{$jour . '_types'} ?? '') !== array_keys($par_type)) $typer = true;
+                }
+                if (!$typer) continue;
+            } elseif ($info['etat'] === 'envoye_different' && !in_array($semaine, $forcer, true)) {
+                $out[$semaine] = 'conserve';
+                continue;
+            }
             $jours = array();
             foreach (Psc_Menus::JOURS as $jour) $jours[$jour] = $menu ? (string) $menu->$jour : '';
-            foreach ($prevus[$semaine] as $jour => $text) $jours[$jour] = $text;
+            foreach ($prevus[$semaine] as $jour => $par_type) $jours[$jour] = $par_type;
             $saved = Psc_Menus::save($menu ? (int) $menu->id : 0, $semaine, $jours);
-            $out[$semaine] = (is_wp_error($saved) || !$saved) ? 'erreur' : ($menu ? 'remplace' : 'cree');
+            if (is_wp_error($saved) || !$saved) $out[$semaine] = 'erreur';
+            elseif ($info['etat'] !== 'a_jour') $out[$semaine] = $menu ? 'remplace' : 'cree';
         }
         if (!in_array('erreur', $out, true) && $row->statut !== self::BROUILLON && empty($row->menus_remplis_at)) {
             $wpdb->update(

@@ -330,6 +330,24 @@ WP_CLI::add_command('verify-menu-choix', function () {
         $kept = Psc_Menus::get($sent_id);
         $check($kept->jeudi === $prevus['2090-01-16']['jeudi'] && $kept->sent_at === '2089-12-20 10:00:00', 'menus : menu envoyé mal remplacé, ou date d’envoi perdue');
 
+        // Types des plats : enregistrés avec le menu, dans l'ordre du service ; un plat complet n'a pas d'accompagnement.
+        $draft = Psc_Menus::get($draft_id);
+        $check($draft->lundi_types === 'entree,plat,accompagnement,fromage,dessert' && $draft->jeudi_types === 'entree,plat,fromage,dessert', 'types : types des plats non enregistrés au remplissage');
+        $check($draft->mardi_types === implode(',', Psc_Menus::types_of($draft->mardi, $draft->mardi_types)) && $kept->jeudi_types === 'entree,plat,fromage,dessert', 'types : types incohérents avec le texte du jour');
+
+        // Fichier réinjecté sur des menus qui n'ont pas de type (saisis avant
+        // le schéma 4.25.0) : même texte, les types sont ajoutés — menu
+        // envoyé compris, sans confirmation, puisque le texte ne change pas.
+        $wpdb->query($wpdb->prepare("UPDATE $t_menu SET lundi_types = '', mardi_types = '', jeudi_types = '', vendredi_types = '' WHERE id IN (%d, %d)", $draft_id, $sent_id));
+        $check(Psc_Menus::types_of(Psc_Menus::get($draft_id)->lundi, Psc_Menus::get($draft_id)->lundi_types) === array(), 'types : préparation du menu sans type en échec');
+        $retyped = Psc_Menu_Propositions::remplir_menus($row);
+        $check(($retyped['2090-01-09'] ?? '') === 'a_jour' && ($retyped['2090-01-16'] ?? '') === 'a_jour', 'types : réinjection, situation par semaine inattendue');
+        $draft = Psc_Menus::get($draft_id);
+        $kept  = Psc_Menus::get($sent_id);
+        $check($draft->lundi_types === 'entree,plat,accompagnement,fromage,dessert' && $draft->jeudi_types === 'entree,plat,fromage,dessert', 'types : réinjection, types non ajoutés au menu existant');
+        $check($draft->lundi === $prevus['2090-01-09']['lundi'] && $draft->origine_viande === 'Origine de test', 'types : réinjection, texte ou origine de la viande modifiés');
+        $check($kept->jeudi_types === 'entree,plat,fromage,dessert' && $kept->sent_at === '2089-12-20 10:00:00', 'types : réinjection, menu envoyé non typé ou date d’envoi perdue');
+
         /* ---------------- 8. Après l'envoi ---------------- */
         $check($code(Psc_Menu_Propositions::save_choix($id, array('2090-01-09' => array('lundi' => array('entree' => 7))))) === 'psc_proposition_verrouillee', 'verrou : choix modifiables après l’envoi');
         $check($code(Psc_Menu_Propositions::send($id, 'verif-choix-c')) === 'psc_proposition_verrouillee' && count($mails) === 2, 'verrou : réponse renvoyée une seconde fois');

@@ -140,6 +140,13 @@
 .psc-menu-examples { padding: 8px 16px; background: #f6f7f7; border-left: 3px solid #00a32a; margin: 16px 0; }
 .psc-menu-preview { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .psc-menu-preview .psc-menu-dish { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border: 1px solid #dcdcde; border-radius: 14px; background: #fff; color: #24405C; font-size: 12.5px; }
+.psc-menu-type-fields { display: grid; gap: 6px; max-width: 46em; }
+.psc-menu-type-field { display: grid; grid-template-columns: 11em minmax(0, 1fr); gap: 4px 12px; align-items: start; }
+.psc-menu-type-field > label { padding-top: 5px; font-weight: 600; }
+.psc-menu-type-field textarea { margin: 0; resize: vertical; }
+.psc-menu-type-field .psc-menu-preview { margin-top: 4px; }
+.psc-menu-type-field .psc-menu-preview:empty { display: none; }
+@media (max-width: 782px) { .psc-menu-type-field { grid-template-columns: minmax(0, 1fr); } }
 .psc-menu-save { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
 
 .psc-assurance-review { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(0, 2fr); gap: 24px; margin: 24px 0; }

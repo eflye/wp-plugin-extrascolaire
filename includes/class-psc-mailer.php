@@ -516,7 +516,7 @@ class Psc_Mailer {
             $body .= '<tr>'
                 . '<td style="background-color:#F5E7DC;color:#24405C;font-weight:bold;padding:8px 12px;'
                 . 'border:1px solid #E5DCC3;width:110px;vertical-align:top;white-space:nowrap;">' . esc_html($label) . '</td>'
-                . '<td style="padding:8px 12px;border:1px solid #E5DCC3;">' . Psc_Menus::render_dishes($content, 'email') . '</td>'
+                . '<td style="padding:8px 12px;border:1px solid #E5DCC3;">' . Psc_Menus::render_dishes($content, 'email', isset($menu->{$key . '_types'}) ? (string) $menu->{$key . '_types'} : '') . '</td>'
                 . '</tr>';
         }
         $body .= '</table>' . Psc_Menus::render_legend($menu_days);
