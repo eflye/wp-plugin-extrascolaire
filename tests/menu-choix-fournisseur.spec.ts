@@ -198,12 +198,18 @@ test.describe.serial('Choix des menus du fournisseur (backoffice)', () => {
 
     /* ---------------- 5. Menus remplis, restés brouillons ---------------- */
     await page.goto(`${ADMIN_BASE}/admin.php?page=psc_menus&semaine_debut=${S1}`);
-    await expect(page.locator('#psc-menu-lundi')).toHaveValue(
-      "Velouté de légumes (chaud)\nFilet de poulet NOUVELLE AGRICULTURE Vallée d'auge\nPoêlée de légumes*\nCamembert*\nCrème dessert vanille*"
-    );
-    await expect(page.locator('#psc-menu-jeudi')).toHaveValue(
-      'Coleslaw\nLasagnes bolognaises VBF (plat complet)\nMimolette\nYaourt sucré COMMERCE EQUITABLE'
-    );
+    // Chaque plat est rangé dans son type ; un plat complet laisse l'accompagnement vide.
+    await expect(page.locator('#psc-menu-lundi-entree')).toHaveValue('Velouté de légumes (chaud)');
+    await expect(page.locator('#psc-menu-lundi-plat')).toHaveValue("Filet de poulet NOUVELLE AGRICULTURE Vallée d'auge");
+    await expect(page.locator('#psc-menu-lundi-accompagnement')).toHaveValue('Poêlée de légumes*');
+    await expect(page.locator('#psc-menu-lundi-fromage')).toHaveValue('Camembert*');
+    await expect(page.locator('#psc-menu-lundi-dessert')).toHaveValue('Crème dessert vanille*');
+    await expect(page.locator('#psc-menu-jeudi-entree')).toHaveValue('Coleslaw');
+    await expect(page.locator('#psc-menu-jeudi-plat')).toHaveValue('Lasagnes bolognaises VBF (plat complet)');
+    await expect(page.locator('#psc-menu-jeudi-accompagnement')).toHaveValue('');
+    await expect(page.locator('#psc-menu-jeudi-fromage')).toHaveValue('Mimolette');
+    await expect(page.locator('#psc-menu-jeudi-dessert')).toHaveValue('Yaourt sucré COMMERCE EQUITABLE');
+    expect(wpCliEval(`$m = Psc_Menus::get_by_week('${S1}'); echo $m->lundi_types.' '.$m->jeudi_types;`)).toBe('entree,plat,accompagnement,fromage,dessert entree,plat,fromage,dessert');
     expect(wpCliEval(`$m = Psc_Menus::get_by_week('${S1}'); echo $m && !$m->sent_at ? 'brouillon' : 'autre';`)).toBe('brouillon');
     expect(wpCliEval(`echo Psc_Menus::get_by_week('${S2}') ? 'menu' : 'aucun';`)).toBe('menu');
     expect(wpCliEval(`echo Psc_Menus::get_by_week('${S3}') ? 'menu' : 'aucun';`)).toBe('aucun');

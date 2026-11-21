@@ -117,7 +117,10 @@ test.describe.serial('Notes de changement de menus du fournisseur (backoffice)',
     await expect(page.getByTestId('notice-note_jour_modifie')).toBeVisible();
     await expect(page.getByTestId('note-jour-contredit')).toContainText('lundi');
     await expect(page.getByTestId('note-remplacement-0')).toHaveAttribute('data-trouve', '0');
-    await expect(page.locator('#psc-note-menu-jour')).toHaveValue('Salade verte\nGratin de pâtes');
+    // Menu saisi sans type : ses lignes sont réparties dans l'ordre du service.
+    await expect(page.locator('#psc-note-menu-jour-entree')).toHaveValue('Salade verte');
+    await expect(page.locator('#psc-note-menu-jour-plat')).toHaveValue('Gratin de pâtes');
+    await expect(page.locator('#psc-note-menu-jour-dessert')).toHaveValue('');
     await page.locator('#psc-note-jour-date').fill(SEMAINE);
     await page.getByTestId('note-jour-changer').click();
     await expect(page.locator('#psc-note-jour-date')).toHaveValue(SEMAINE);
@@ -132,11 +135,14 @@ test.describe.serial('Notes de changement de menus du fournisseur (backoffice)',
     await expect(page.getByTestId('note-remplacement-1')).toContainText('la ligne « Camembert* » devient « Tomme noire »');
     await expect(page.getByTestId('note-remplacement-2')).toHaveAttribute('data-trouve', '0');
     await expect(page.getByTestId('note-remplacement-2')).toContainText('non retrouvé');
-    // La zone de correction est préremplie : remplacements reconnus reportés, le reste repris tel quel.
-    const corrige = page.locator('#psc-note-menu-jour');
-    await expect(corrige).toHaveValue(
-      'Velouté de légumes (chaud)\nFilet de poulet\nPoêlée de légumes*\nTomme noire\nCrèmes dessert vanille'
-    );
+    // Les cinq champs sont préremplis : remplacements reconnus reportés, le reste repris tel quel.
+    const corrige = page.getByTestId('note-menu-corrige');
+    await expect(corrige.locator('textarea')).toHaveCount(5);
+    await expect(page.locator('#psc-note-menu-jour-entree')).toHaveValue('Velouté de légumes (chaud)');
+    await expect(page.locator('#psc-note-menu-jour-plat')).toHaveValue('Filet de poulet');
+    await expect(page.locator('#psc-note-menu-jour-accompagnement')).toHaveValue('Poêlée de légumes*');
+    await expect(page.locator('#psc-note-menu-jour-fromage')).toHaveValue('Tomme noire');
+    await expect(corrige.getByLabel('Dessert')).toHaveValue('Crèmes dessert vanille');
     await expectAccessible(page);
 
     // Rien n'est modifié tant que la mairie n'a pas enregistré.
@@ -144,7 +150,7 @@ test.describe.serial('Notes de changement de menus du fournisseur (backoffice)',
 
     /* ---------------- 4. Correction à la main, puis enregistrement ---------------- */
     // La mairie corrige librement la proposition (ici, le pluriel repris de la note).
-    await corrige.fill('Velouté de légumes (chaud)\nFilet de poulet\nPoêlée de légumes*\nTomme noire\nCrème dessert vanille');
+    await corrige.getByLabel('Dessert').fill('Crème dessert vanille');
     await page.getByTestId('note-appliquer').click();
     await expect(page.getByTestId('notice-note_appliquee')).toBeVisible();
     await expect(detail).toHaveAttribute('data-statut', 'appliquee');
@@ -158,10 +164,14 @@ test.describe.serial('Notes de changement de menus du fournisseur (backoffice)',
 
     /* ---------------- 5. Menu corrigé, sans envoi ---------------- */
     await page.getByTestId('note-voir-menu').click();
-    await expect(page.locator('#psc-menu-lundi')).toHaveValue(
-      'Velouté de légumes (chaud)\nFilet de poulet\nPoêlée de légumes*\nTomme noire\nCrème dessert vanille'
+    await expect(page.locator('#psc-menu-lundi-fromage')).toHaveValue('Tomme noire');
+    await expect(page.locator('#psc-menu-lundi-dessert')).toHaveValue('Crème dessert vanille');
+    await expect(page.locator('#psc-menu-mardi-entree')).toHaveValue('Salade verte');
+    await expect(page.locator('#psc-menu-mardi-plat')).toHaveValue('Gratin de pâtes');
+    // Le jour corrigé porte désormais ses types ; le mardi, non touché, n'en gagne pas.
+    expect(wpCliEval(`$m = Psc_Menus::get_by_week('${SEMAINE}'); echo str_replace("\\n", '|', $m->lundi).' '.$m->lundi_types.' ['.$m->mardi_types.']';`)).toBe(
+      'Velouté de légumes (chaud)|Filet de poulet|Poêlée de légumes*|Tomme noire|Crème dessert vanille entree,plat,accompagnement,fromage,dessert []'
     );
-    await expect(page.locator('#psc-menu-mardi')).toHaveValue('Salade verte\nGratin de pâtes');
     // La date d'envoi d'origine est conservée et aucun envoi aux familles n'a été lancé.
     expect(wpCliEval(`global $wpdb; $m = Psc_Menus::get_by_week('${SEMAINE}');
       echo $m->sent_at.' '.(int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM '.psc_table('envois').' WHERE objet_type = %s AND objet_id = %d', 'menu', $m->id));`
