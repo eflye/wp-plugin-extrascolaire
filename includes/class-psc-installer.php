@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.23.0';
+    const DB_VERSION = '4.24.0';
     const ROLES_VERSION = '1.5.0';
 
     public static function activate() {

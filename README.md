@@ -141,7 +141,7 @@ Le plugin ne propose pas de paiement en ligne. Il génère les factures et prép
 - [Export des ordres de prélèvement SEPA](docs/export-pain008.md)
 - [Développement local et tests](docs/developpement-local.md)
 - [Instance de test auto-hébergée avec Docker](docs/self-hosting-docker.md) (pas pour la production)
-- [Inventaire du schéma de données](docs/schema-inventory-2026-09-10.md) (état figé au 10/09/2026, schéma 4.5.0 ; le schéma courant est `Psc_Installer::DB_VERSION`, 4.23.0 au 21/11/2026, et chaque migration vit dans `includes/migrations/`)
+- [Inventaire du schéma de données](docs/schema-inventory-2026-09-10.md) (état figé au 10/09/2026, schéma 4.5.0 ; le schéma courant est `Psc_Installer::DB_VERSION`, 4.24.0 au 21/11/2026, et chaque migration vit dans `includes/migrations/`)
 - [Contrats d’une journée : présence, repas, facturation](docs/contrats-planning.md)
 - [Filet de sécurité du refactoring](docs/refactoring-safety-net.md)
 - [Feuille de route : ce qui reste ouvert](docs/feuille-de-route.md) (seule liste vivante) et [audits archivés](docs/audits/) (états figés)

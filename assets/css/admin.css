@@ -180,3 +180,17 @@
     .psc-choix-legend { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; font-weight: 600; margin-bottom: 4px; }
     .psc-choix-table td[data-label]::before { content: attr(data-label) " : "; font-weight: 600; }
 }
+
+/* Notes de changement de menus du fournisseur (Menus > Notes du fournisseur). */
+.psc-note-texte { margin: 0 0 16px; padding: 10px 16px; background: #f6f7f7; border-left: 3px solid #8c8f94; }
+.psc-note-texte p { margin: 4px 0; }
+.psc-note-texte ul { margin: 4px 0 4px 20px; list-style: disc; }
+.psc-note-jour-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 16px; }
+.psc-note-remplacements { margin: 0 0 16px 20px; list-style: disc; }
+.psc-note-remplacements .description { display: block; }
+.psc-note-menus { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 16px 24px; align-items: start; }
+.psc-note-menus h4 { margin: 0 0 6px; font-size: 13px; }
+.psc-note-menus ul { margin: 0 0 0 20px; list-style: disc; }
+.psc-note-menus textarea { margin-top: 6px; }
+@media (max-width: 782px) { .psc-note-menus { grid-template-columns: minmax(0, 1fr); } }
+.psc-note-ignorer { margin: 16px 0 0; }
