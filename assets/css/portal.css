@@ -926,7 +926,8 @@ a.psc-portal-switch-link:focus-visible {
 .psc-portal-menu-today-link {
     background: none;
     border: none;
-    color: var(--psc-gold);
+    /* Sur le fond blanc de la barre : --psc-gold n'y atteint pas 4,5:1. */
+    color: var(--psc-gold-ink);
     font-size: 11px;
     letter-spacing: 0.08em;
     text-decoration: underline;

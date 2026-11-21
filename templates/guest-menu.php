@@ -19,7 +19,7 @@
   <?php foreach ($psc_guest_menu['days'] as $d): ?>
   <tr>
     <th scope="row"><?php echo esc_html($d['day']); ?></th>
-    <td><?php echo Psc_Menus::render_dishes($d['dish']); ?></td>
+    <td><?php echo Psc_Menus::render_dishes($d['dish'], 'frontend', $d['types'] ?? ''); ?></td>
   </tr>
   <?php endforeach; ?>
 </table>
