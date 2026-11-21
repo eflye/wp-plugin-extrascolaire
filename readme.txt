@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.41.0
+Stable tag: 5.42.0
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,16 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.42.0 =
+Schéma de base 4.25.0 (quatre colonnes ajoutées à la table des menus, mise à jour automatique à l'installation ; aucune donnée existante n'est modifiée).
+
+* **Type de plat devant chaque plat du menu :** les familles voient désormais « Entrée », « Plat », « Accompagnement », « Fromage / Laitage » ou « Dessert » à gauche de chaque plat, dans leur espace (onglet Menu et tableau de bord), sur la page publique et dans l'e-mail du menu. Un type sans plat n'est pas affiché.
+* **Saisie par type (Périscolaire › Menus, « Menus de la semaine ») :** chaque jour propose cinq champs, toujours affichés. Rangez chaque plat dans son type ; plusieurs plats du même type se saisissent un par ligne. Les étoiles des labels Bio et Label Rouge fonctionnent comme avant.
+* **Menus déjà enregistrés :** ils restent affichés aux familles comme avant, sans type. Quand vous en rouvrez un, ses lignes sont réparties dans l'ordre dans les cinq champs : vérifiez, corrigez, enregistrez, et les types apparaissent.
+* **Fichier du fournisseur :** les menus remplis depuis « Choix fournisseur » portent leurs types. Un fichier déposé de nouveau sur des menus existants les remplace avec leurs types ; un menu déjà envoyé aux familles dont le contenu diffère n'est toujours remplacé qu'avec votre confirmation.
+* **Notes du fournisseur :** le « Menu corrigé » se relit dans les mêmes cinq champs.
+* **Accessibilité :** contraste du lien « Revenir à cette semaine » de l'onglet Menu des familles corrigé.
 
 = 5.41.0 =
 Schéma de base 4.24.0 (une table ajoutée, mise à jour automatique à l'installation ; aucune donnée existante n'est modifiée).
