@@ -30,6 +30,7 @@ class Psc_Schema {
         $t_invv  = psc_table('invoice_versions');
         $t_menu  = psc_table('menus');
         $t_mprop = psc_table('menu_propositions');
+        $t_mnotes = psc_table('menu_notes');
         $t_sch   = psc_table('school_calendar');
         $t_sup   = psc_table('supplier_orders');
         $t_env   = psc_table('envois');
@@ -298,6 +299,21 @@ CREATE TABLE $t_mprop (
             updated_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
             KEY periode (periode_debut)
+        ) $charset_collate;
+
+CREATE TABLE $t_mnotes (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            fichier_nom VARCHAR(191) NOT NULL,
+            jour_date DATE NULL,
+            texte LONGTEXT NOT NULL,
+            changements_json LONGTEXT NULL,
+            statut VARCHAR(20) NOT NULL DEFAULT 'a_confirmer',
+            applied_at DATETIME NULL,
+            created_by BIGINT UNSIGNED NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            KEY jour (jour_date)
         ) $charset_collate;
 
 CREATE TABLE $t_sch (
