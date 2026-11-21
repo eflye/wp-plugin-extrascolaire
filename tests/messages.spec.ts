@@ -144,7 +144,10 @@ test.describe('Messages aux familles', () => {
       echo wp_json_encode(array_values($out));`));
 
     const slugs = entries.map((e) => e.slug);
-    const labels = entries.map((e) => e.label);
+    // La bulle de comptage (demandes en attente, échanges non lus) suit le
+    // libellé et dépend de ce que les scénarios précédents ont laissé, à
+    // 60 s de cache près : seule la structure du menu est contrôlée ici.
+    const labels = entries.map((e) => e.label.replace(/\s+\d+$/, ''));
 
     expect(slugs).toEqual([
       'psc_dashboard',
