@@ -2,14 +2,14 @@
 # This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Périscolaire - Inscriptions 5.39.0\n"
+"Project-Id-Version: Périscolaire - Inscriptions 5.39.1\n"
 "Report-Msgid-Bugs-To: https://github.com/eflye/wp-plugin-extrascolaire/issues\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Mairie de Montgeroult\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-27T16:11:17+00:00\n"
+"POT-Creation-Date: 2026-11-21T11:19:56+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: periscolaire-registration\n"
@@ -39,10 +39,10 @@ msgstr ""
 #: includes/class-psc-admin-calendar-v2.php:81
 #: includes/class-psc-admin-cantine.php:112
 #: includes/class-psc-admin-cantine.php:240
-#: includes/class-psc-admin-config.php:337
-#: includes/class-psc-admin-config.php:357
-#: includes/class-psc-admin-config.php:373
-#: includes/class-psc-admin-config.php:386
+#: includes/class-psc-admin-config.php:338
+#: includes/class-psc-admin-config.php:358
+#: includes/class-psc-admin-config.php:374
+#: includes/class-psc-admin-config.php:387
 #: includes/class-psc-admin-familles.php:317
 #: includes/class-psc-admin-familles.php:339
 #: includes/class-psc-admin-familles.php:356
@@ -197,7 +197,7 @@ msgstr ""
 
 #: includes/class-psc-admin-audit.php:209
 #: includes/class-psc-mailer.php:458
-#: includes/class-psc-mailer.php:641
+#: includes/class-psc-mailer.php:662
 #: includes/class-psc-sidscm.php:190
 #: templates/admin-assurances.php:30
 #: templates/admin-passage-annee.php:22
@@ -389,20 +389,20 @@ msgstr ""
 msgid "Tarif à venir supprimé."
 msgstr ""
 
-#: includes/class-psc-admin-config.php:142
+#: includes/class-psc-admin-config.php:143
 msgid "Coordonnées du créancier invalides : vérifiez l’IBAN, le BIC et l’ICS. Aucun réglage n’a été modifié."
 msgstr ""
 
-#: includes/class-psc-admin-config.php:350
+#: includes/class-psc-admin-config.php:351
 msgid "Modèles d’e-mails modifiés."
 msgstr ""
 
-#: includes/class-psc-admin-config.php:365
+#: includes/class-psc-admin-config.php:366
 #, php-format
 msgid "Modèle d’e-mail « %s » réinitialisé."
 msgstr ""
 
-#: includes/class-psc-admin-config.php:379
+#: includes/class-psc-admin-config.php:380
 msgid "Tous les modèles d’e-mails réinitialisés."
 msgstr ""
 
@@ -597,7 +597,7 @@ msgstr ""
 
 #: includes/class-psc-admin-inscriptions.php:238
 #: includes/class-psc-mailer.php:275
-#: includes/class-psc-mailer.php:640
+#: includes/class-psc-mailer.php:661
 #: templates/admin-inscriptions.php:79
 #: templates/admin-supplier-orders.php:51
 #: templates/admin-supplier-orders.php:196
@@ -1448,7 +1448,7 @@ msgid "Le bouton de confirmation et la durée de validité du lien sont ajoutés
 msgstr ""
 
 #: includes/class-psc-email-templates.php:58
-#: includes/class-psc-mailer.php:810
+#: includes/class-psc-mailer.php:831
 msgid "Prélèvement automatique activé"
 msgstr ""
 
@@ -1698,53 +1698,75 @@ msgid "Service périscolaire — Montgeroult Courcelles"
 msgstr ""
 
 #: includes/class-psc-email-templates.php:167
-msgid "Échange famille — nouveau message de la mairie"
+msgid "Réponse au fournisseur (choix des menus)"
 msgstr ""
 
 #: includes/class-psc-email-templates.php:168
-msgid "[{{site}}] Nouveau message de la mairie"
+msgid "[{{site}}] Choix des menus — {{periode}}"
 msgstr ""
 
 #: includes/class-psc-email-templates.php:169
-msgid "La mairie vous a répondu dans votre espace famille."
+msgid ""
+"Bonjour,\n"
+"\n"
+"Veuillez trouver ci-joint nos choix de menus pour la période du {{periode}}.\n"
+"\n"
+"Cordialement,\n"
+"{{etablissement}}"
 msgstr ""
 
-#: includes/class-psc-email-templates.php:173
-msgid "Ajoutés automatiquement sous ce texte : le sujet et le texte des messages non lus (si « Inclure le texte des messages » est coché dans Réglages ; jamais les pièces jointes), puis le bouton « Répondre », qui connecte la famille pendant 72 heures."
+#: includes/class-psc-email-templates.php:171
+msgid "Le fichier du fournisseur, rempli avec les choix de la mairie, est joint automatiquement."
+msgstr ""
+
+#: includes/class-psc-email-templates.php:174
+msgid "Échange famille — nouveau message de la mairie"
+msgstr ""
+
+#: includes/class-psc-email-templates.php:175
+msgid "[{{site}}] Nouveau message de la mairie"
 msgstr ""
 
 #: includes/class-psc-email-templates.php:176
+msgid "La mairie vous a répondu dans votre espace famille."
+msgstr ""
+
+#: includes/class-psc-email-templates.php:180
+msgid "Ajoutés automatiquement sous ce texte : le sujet et le texte des messages non lus (si « Inclure le texte des messages » est coché dans Réglages ; jamais les pièces jointes), puis le bouton « Répondre », qui connecte la famille pendant 72 heures."
+msgstr ""
+
+#: includes/class-psc-email-templates.php:183
 msgid "Échange famille — nouveau message d’une famille"
 msgstr ""
 
-#: includes/class-psc-email-templates.php:177
+#: includes/class-psc-email-templates.php:184
 msgid "[{{site}}] Nouveau message d’une famille"
 msgstr ""
 
-#: includes/class-psc-email-templates.php:178
+#: includes/class-psc-email-templates.php:185
 msgid "{{famille}} vient d'écrire dans un échange."
 msgstr ""
 
-#: includes/class-psc-email-templates.php:181
+#: includes/class-psc-email-templates.php:188
 msgid "Ajoutés automatiquement sous ce texte : le sujet et le texte des messages non lus (si « Inclure le texte des messages » est coché dans Réglages ; jamais les pièces jointes), puis le bouton vers la conversation dans le backoffice."
 msgstr ""
 
-#: includes/class-psc-email-templates.php:184
+#: includes/class-psc-email-templates.php:191
 msgid "Envoi de facture"
 msgstr ""
 
-#: includes/class-psc-email-templates.php:185
+#: includes/class-psc-email-templates.php:192
 msgid "Facture périscolaire — {{mois}}"
 msgstr ""
 
-#: includes/class-psc-email-templates.php:186
+#: includes/class-psc-email-templates.php:193
 msgid ""
 "Veuillez trouver en pièce jointe votre facture de services périscolaires pour le mois de {{mois}}.\n"
 "\n"
 "Pour toute question, n'hésitez pas à contacter le secrétariat de {{commune}}."
 msgstr ""
 
-#: includes/class-psc-email-templates.php:188
+#: includes/class-psc-email-templates.php:195
 msgid "Le montant total est affiché dans un encadré. La facture PDF est jointe au message."
 msgstr ""
 
@@ -2408,13 +2430,13 @@ msgid "schéma %1$s trop ancien : mettez d’abord à jour vers la version 5.32.
 msgstr ""
 
 #. translators: 1: version précédente du schéma, 2: nouvelle version.
-#: includes/class-psc-installer.php:252
+#: includes/class-psc-installer.php:255
 #, php-format
 msgid "Schéma de la base mis à jour (%1$s → %2$s)."
 msgstr ""
 
 #. translators: %s: version de l'étape de migration
-#: includes/class-psc-installer.php:314
+#: includes/class-psc-installer.php:317
 #, php-format
 msgid "Mise à jour du schéma arrêtée à l’étape %s ; elle reprendra à cette étape."
 msgstr ""
@@ -2598,6 +2620,7 @@ msgstr ""
 
 #: includes/class-psc-invoices.php:969
 #: includes/class-psc-invoices.php:1032
+#: includes/class-psc-menu-propositions.php:586
 #: includes/class-psc-supplier-orders.php:221
 msgid "L'envoi du mail a échoué."
 msgstr ""
@@ -2873,7 +2896,7 @@ msgstr ""
 
 #: includes/class-psc-mailer.php:299
 #: includes/class-psc-mailer.php:459
-#: includes/class-psc-mailer.php:642
+#: includes/class-psc-mailer.php:663
 #: templates/admin-settings.php:35
 #: templates/admin-settings.php:79
 msgid "Prestation"
@@ -2920,8 +2943,8 @@ msgstr ""
 #: includes/class-psc-mailer.php:348
 #: includes/class-psc-mailer.php:401
 #: includes/class-psc-mailer.php:429
-#: includes/class-psc-mailer.php:770
-#: includes/class-psc-mailer.php:827
+#: includes/class-psc-mailer.php:791
+#: includes/class-psc-mailer.php:848
 #: templates/admin-inscriptions.php:16
 #: templates/admin-pickup-persons.php:6
 msgid "Famille :"
@@ -2929,7 +2952,7 @@ msgstr ""
 
 #: includes/class-psc-mailer.php:349
 #: includes/class-psc-mailer.php:400
-#: includes/class-psc-mailer.php:771
+#: includes/class-psc-mailer.php:792
 msgid "Enfant :"
 msgid_plural "Enfants :"
 msgstr[0] ""
@@ -2940,10 +2963,10 @@ msgid "Modifications apportées par la mairie"
 msgstr ""
 
 #: includes/class-psc-mailer.php:373
-#: includes/class-psc-mailer.php:644
-#: includes/class-psc-mailer.php:674
-#: includes/class-psc-mailer.php:705
-#: includes/class-psc-mailer.php:743
+#: includes/class-psc-mailer.php:665
+#: includes/class-psc-mailer.php:695
+#: includes/class-psc-mailer.php:726
+#: includes/class-psc-mailer.php:764
 msgid "Consulter mon planning"
 msgstr ""
 
@@ -3017,9 +3040,15 @@ msgstr ""
 msgid "Vous recevez ce menu parce que votre enfant est inscrit au service périscolaire. Il reste consultable à tout moment dans l’onglet « Menu » de votre espace famille."
 msgstr ""
 
+#. translators: %s: nom du fichier joint.
+#: includes/class-psc-mailer.php:573
+#, php-format
+msgid "Pièce jointe : %s"
+msgstr ""
+
 #. translators: %s: jour, ex. « lundi 05/01/2026 »
 #. translators: %s: date
-#: includes/class-psc-mailer.php:615
+#: includes/class-psc-mailer.php:636
 #: templates/admin-children.php:134
 #, php-format
 msgid "le %s"
@@ -3027,7 +3056,7 @@ msgstr ""
 
 #. translators: 1: premier jour fermé, 2: dernier jour fermé
 #. translators: 1: date de début, 2: date de fin
-#: includes/class-psc-mailer.php:617
+#: includes/class-psc-mailer.php:638
 #: includes/class-psc-privacy.php:827
 #: templates/admin-children.php:105
 #: templates/admin-settings.php:53
@@ -3035,172 +3064,289 @@ msgstr ""
 msgid "du %1$s au %2$s"
 msgstr ""
 
-#: includes/class-psc-mailer.php:635
+#: includes/class-psc-mailer.php:656
 msgid "Fermeture du service périscolaire"
 msgstr ""
 
-#: includes/class-psc-mailer.php:637
+#: includes/class-psc-mailer.php:658
 msgid "Inscriptions retirées :"
 msgstr ""
 
-#: includes/class-psc-mailer.php:661
+#: includes/class-psc-mailer.php:682
 msgid "Cantine annulée"
 msgstr ""
 
-#: includes/class-psc-mailer.php:671
-#: includes/class-psc-mailer.php:702
+#: includes/class-psc-mailer.php:692
+#: includes/class-psc-mailer.php:723
 msgid "Enfant concerné :"
 msgid_plural "Enfants concernés :"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/class-psc-mailer.php:673
-#: includes/class-psc-mailer.php:704
-#: includes/class-psc-mailer.php:775
+#: includes/class-psc-mailer.php:694
+#: includes/class-psc-mailer.php:725
+#: includes/class-psc-mailer.php:796
 msgid "Cette prestation ne sera pas facturée."
 msgid_plural "Ces prestations ne seront pas facturées."
 msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: nom de la prestation, ex. « Garderie du soir »
-#: includes/class-psc-mailer.php:692
+#: includes/class-psc-mailer.php:713
 #, php-format
 msgid "%s fermée"
 msgstr ""
 
-#: includes/class-psc-mailer.php:725
+#: includes/class-psc-mailer.php:746
 msgid "Forfait journée modifié"
 msgstr ""
 
-#: includes/class-psc-mailer.php:736
+#: includes/class-psc-mailer.php:757
 msgid "aucune prestation restante"
 msgstr ""
 
-#: includes/class-psc-mailer.php:741
+#: includes/class-psc-mailer.php:762
 msgid "Prestations maintenues ce jour-là :"
 msgstr ""
 
-#: includes/class-psc-mailer.php:767
+#: includes/class-psc-mailer.php:788
 msgid "Absence signalée par une famille"
 msgstr ""
 
-#: includes/class-psc-mailer.php:772
+#: includes/class-psc-mailer.php:793
 msgid "Jour :"
 msgstr ""
 
-#: includes/class-psc-mailer.php:773
+#: includes/class-psc-mailer.php:794
 msgid "Prestation annulée :"
 msgid_plural "Prestations annulées :"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/class-psc-mailer.php:776
+#: includes/class-psc-mailer.php:797
 msgid "Voir les enfants"
 msgstr ""
 
-#: includes/class-psc-mailer.php:791
+#: includes/class-psc-mailer.php:812
 msgid "Confirmez votre demande d'inscription"
 msgstr ""
 
-#: includes/class-psc-mailer.php:793
+#: includes/class-psc-mailer.php:814
 msgid "Confirmer ma demande"
 msgstr ""
 
-#: includes/class-psc-mailer.php:794
+#: includes/class-psc-mailer.php:815
 msgid "Votre demande sera ensuite examinée par la mairie, qui vous contactera par e-mail."
 msgstr ""
 
-#: includes/class-psc-mailer.php:796
-#: includes/class-psc-mailer.php:813
+#: includes/class-psc-mailer.php:817
+#: includes/class-psc-mailer.php:834
 msgid "📎 Mandat de prélèvement SEPA joint."
 msgstr ""
 
-#: includes/class-psc-mailer.php:797
+#: includes/class-psc-mailer.php:818
 msgid "Merci de l'imprimer, de le signer, puis de l'adresser à votre banque."
 msgstr ""
 
-#: includes/class-psc-mailer.php:800
+#: includes/class-psc-mailer.php:821
 msgid "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message : aucune donnée ne sera transmise."
 msgstr ""
 
-#: includes/class-psc-mailer.php:814
+#: includes/class-psc-mailer.php:835
 msgid "Merci de l’imprimer, de le signer, puis de l’adresser à votre banque. Conservez-en une copie."
 msgstr ""
 
-#: includes/class-psc-mailer.php:826
+#: includes/class-psc-mailer.php:847
 msgid "E-mail :"
 msgstr ""
 
-#: includes/class-psc-mailer.php:828
+#: includes/class-psc-mailer.php:849
 msgid "Téléphone :"
 msgstr ""
 
-#: includes/class-psc-mailer.php:833
+#: includes/class-psc-mailer.php:854
 msgid "sans porc"
 msgstr ""
 
-#: includes/class-psc-mailer.php:834
+#: includes/class-psc-mailer.php:855
 msgid "sans viande"
 msgstr ""
 
-#: includes/class-psc-mailer.php:839
+#: includes/class-psc-mailer.php:860
 msgid "échange alimentation à prévoir"
 msgstr ""
 
-#: includes/class-psc-mailer.php:848
+#: includes/class-psc-mailer.php:869
 msgid "Nouvelle demande d'inscription"
 msgstr ""
 
-#: includes/class-psc-mailer.php:851
+#: includes/class-psc-mailer.php:872
 msgid "Enfant déclaré :"
 msgid_plural "Enfants déclarés :"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/class-psc-mailer.php:855
+#: includes/class-psc-mailer.php:876
 msgid "Message du parent :"
 msgstr ""
 
-#: includes/class-psc-mailer.php:863
+#: includes/class-psc-mailer.php:884
 msgid "Les informations ci-dessus sont déclaratives et doivent être vérifiées avant validation."
 msgstr ""
 
-#: includes/class-psc-mailer.php:865
+#: includes/class-psc-mailer.php:886
 msgid "Traiter la demande"
 msgstr ""
 
-#: includes/class-psc-mailer.php:890
+#: includes/class-psc-mailer.php:911
 #, php-format
 msgid "Pièce jointe : %s (à ouvrir dans l’espace)"
 msgstr ""
 
-#: includes/class-psc-mailer.php:929
+#: includes/class-psc-mailer.php:950
 #: includes/class-psc-messages-frontend.php:37
 msgid "Nouveau message de la mairie"
 msgstr ""
 
-#: includes/class-psc-mailer.php:932
+#: includes/class-psc-mailer.php:953
 msgid "Répondre dans mon espace famille"
 msgstr ""
 
-#: includes/class-psc-mailer.php:934
+#: includes/class-psc-mailer.php:955
 msgid "Ce bouton vous connecte directement pendant 72 heures. Ne transférez pas cet e-mail."
 msgstr ""
 
-#: includes/class-psc-mailer.php:948
+#: includes/class-psc-mailer.php:969
 msgid "Nouveau message d’une famille"
 msgstr ""
 
-#: includes/class-psc-mailer.php:951
+#: includes/class-psc-mailer.php:972
 msgid "Répondre dans le backoffice"
 msgstr ""
 
-#: includes/class-psc-mailer.php:961
+#: includes/class-psc-mailer.php:982
 msgid "Votre demande d'inscription"
 msgstr ""
 
-#: includes/class-psc-mailer.php:965
+#: includes/class-psc-mailer.php:986
 msgid "Motif communiqué :"
+msgstr ""
+
+#: includes/class-psc-menu-propositions.php:39
+msgid "Entrée"
+msgstr ""
+
+#: includes/class-psc-menu-propositions.php:40
+msgid "Plat"
+msgstr ""
+
+#: includes/class-psc-menu-propositions.php:41
+msgid "Accompagnement"
+msgstr ""
+
+#: includes/class-psc-menu-propositions.php:42
+msgid "Fromage / laitage"
+msgstr ""
+
+#: includes/class-psc-menu-propositions.php:43
+msgid "Dessert"
+msgstr ""
+
+#: includes/class-psc-menu-propositions.php:49
+msgid "Choix en cours"
+msgstr ""
+
+#: includes/class-psc-menu-propositions.php:50
+msgid "Réponse envoyée"
+msgstr ""
+
+#: includes/class-psc-menu-propositions.php:51
+msgid "Réponse envoyée, menus remplis"
+msgstr ""
+
+#. translators: 1: premier jour de la période, 2: dernier jour (jj/mm/aaaa).
+#: includes/class-psc-menu-propositions.php:80
+#, php-format
+msgid "%1$s au %2$s"
+msgstr ""
+
+#: includes/class-psc-menu-propositions.php:100
+#: includes/class-psc-menu-xlsx.php:151
+#: includes/class-psc-menu-xlsx.php:155
+#: includes/class-psc-menu-xlsx.php:168
+#: includes/class-psc-menu-xlsx.php:175
+#: includes/class-psc-menu-xlsx.php:188
+#: includes/class-psc-menu-xlsx.php:196
+#: includes/class-psc-menu-xlsx.php:229
+msgid "Ce fichier n’est pas un classeur Excel (.xlsx)."
+msgstr ""
+
+#: includes/class-psc-menu-propositions.php:108
+#: includes/class-psc-menu-propositions.php:112
+#: includes/class-psc-menu-propositions.php:132
+msgid "Le fichier n’a pas pu être enregistré."
+msgstr ""
+
+#: includes/class-psc-menu-propositions.php:258
+#: includes/class-psc-menu-propositions.php:526
+msgid "Proposition introuvable."
+msgstr ""
+
+#: includes/class-psc-menu-propositions.php:260
+#: includes/class-psc-menu-propositions.php:537
+msgid "La réponse est déjà partie : les choix ne sont plus modifiables."
+msgstr ""
+
+#: includes/class-psc-menu-propositions.php:284
+msgid "Les choix n’ont pas pu être enregistrés."
+msgstr ""
+
+#: includes/class-psc-menu-propositions.php:339
+msgid "Etablissement :"
+msgstr ""
+
+#: includes/class-psc-menu-propositions.php:373
+#: includes/class-psc-menu-propositions.php:553
+msgid "Le fichier du fournisseur est introuvable : déposez-le de nouveau."
+msgstr ""
+
+#: includes/class-psc-menu-propositions.php:377
+#: includes/class-psc-menu-xlsx.php:511
+#: includes/class-psc-menu-xlsx.php:515
+#: includes/class-psc-menu-xlsx.php:528
+#: includes/class-psc-menu-xlsx.php:534
+#: includes/class-psc-menu-xlsx.php:538
+msgid "Le fichier rempli n’a pas pu être produit."
+msgstr ""
+
+#: includes/class-psc-menu-propositions.php:544
+#: includes/class-psc-supplier-orders.php:192
+msgid "Aucune adresse e-mail fournisseur n'est configurée (Périscolaire > Commande fournisseur > Réglages)."
+msgstr ""
+
+#: includes/class-psc-menu-propositions.php:549
+msgid "Aucun plat n’est retenu : il n’y a rien à répondre au fournisseur."
+msgstr ""
+
+#: includes/class-psc-menu-propositions.php:573
+msgid "La réponse n’a pas pu être enregistrée : rien n’a été envoyé."
+msgstr ""
+
+#: includes/class-psc-menu-xlsx.php:126
+msgid "Aucune semaine de menus n’a été reconnue dans ce fichier."
+msgstr ""
+
+#: includes/class-psc-menu-xlsx.php:140
+msgid "Les extensions PHP Zip et DOM sont requises pour lire ce fichier."
+msgstr ""
+
+#: includes/class-psc-menu-xlsx.php:143
+msgid "Le fichier n’a pas pu être lu."
+msgstr ""
+
+#: includes/class-psc-menu-xlsx.php:148
+#: includes/class-psc-menu-xlsx.php:171
+msgid "Le fichier est vide ou dépasse 10 Mo."
 msgstr ""
 
 #: includes/class-psc-menus.php:43
@@ -4768,10 +4914,6 @@ msgstr ""
 
 #: includes/class-psc-sidscm.php:851
 msgid "Fixe"
-msgstr ""
-
-#: includes/class-psc-supplier-orders.php:192
-msgid "Aucune adresse e-mail fournisseur n'est configurée (Périscolaire > Commande fournisseur > Réglages)."
 msgstr ""
 
 #: includes/class-psc-supplier-orders.php:207

@@ -94,7 +94,7 @@ class Psc_Envois {
      * dans la requête courante et confie le reste à la tâche ponctuelle
      * psc_envois_lot (cf. traiter_lot()).
      *
-     * @param string     $type        'menu' | 'facture' | 'commande_fournisseur' | 'fermeture'
+     * @param string     $type        'menu' | 'facture' | 'commande_fournisseur' | 'reponse_menus' | 'fermeture'
      * @param int        $objet_id
      * @param string     $lot         cf. lot()
      * @param array|null $famille_ids Destinataires ; null = un seul envoi sans foyer (fournisseur).
@@ -413,6 +413,7 @@ class Psc_Envois {
             'menu'                 => array('Psc_Menus', 'deliver'),
             'facture'              => array('Psc_Invoices', 'deliver'),
             'commande_fournisseur' => array('Psc_Supplier_Orders', 'deliver'),
+            'reponse_menus'        => array('Psc_Menu_Propositions', 'deliver'),
             'fermeture'            => array('Psc_School_Calendar', 'deliver_closure'),
             'fermeture_service'    => array('Psc_School_Calendar', 'deliver_service_closure'),
             'forfait_declasse'     => array('Psc_School_Calendar', 'deliver_forfait_downgrade'),
