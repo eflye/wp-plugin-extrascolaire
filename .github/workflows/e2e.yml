@@ -7,10 +7,14 @@
 # Tous ces cas sont syntaxiquement irréprochables. Seul un parcours réel les
 # attrape — d'où ce workflow.
 #
-# Les scénarios s'exécutent séquentiellement (playwright.config.ts) : ils
-# partagent une seule instance WordPress et le même compte administrateur.
-# L'horloge du site est figée par le peuplement, de sorte que le résultat ne
-# dépende pas de la date d'exécution.
+# Les scénarios d'une instance WordPress s'exécutent séquentiellement
+# (playwright.config.ts) : ils partagent la base et le même compte
+# administrateur. Pour ne pas attendre la suite entière d'une traite, elle
+# est répartie en quatre lots (`--shard`), un job par lot, chacun sur sa
+# propre instance neuve : à l'intérieur d'un lot l'ordre reste celui de la
+# suite complète, d'un lot à l'autre rien n'est partagé. L'horloge du site
+# est figée par le peuplement, de sorte que le résultat ne dépende pas de la
+# date d'exécution.
 
 name: Scénarios end-to-end
 
@@ -33,13 +37,21 @@ concurrency:
 
 jobs:
   e2e:
-    name: Parcours Playwright
+    name: Parcours Playwright (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
-    # ~10 min en temps normal (scénarios 6 à 8 min). La marge absorbe un
-    # runner lent : le 27/10/2026, un apt de 476 s et un téléchargement de
-    # navigateur de 600 s ont annulé des exécutions dont les scénarios
-    # étaient verts.
-    timeout-minutes: 25
+    # Quatre lots en parallèle : ~4 min par job (installation ~1 min 30,
+    # scénarios ~2 min) au lieu de ~10 min d'une traite. Un lot en échec
+    # n'interrompt pas les autres : on veut la liste complète des scénarios
+    # cassés, pas seulement le premier lot rouge. Le total du `--shard`
+    # ci-dessous et le « /4 » du nom suivent la taille de cette liste.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    # La marge absorbe un runner lent : le 27/10/2026, un apt de 476 s et un
+    # téléchargement de navigateur de 600 s ont annulé des exécutions dont
+    # les scénarios étaient verts.
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -113,6 +125,7 @@ jobs:
       # les chaînes du code : régénéré ici et comparé, date de génération
       # exclue. Sans WordPress chargé : seul WP-CLI est nécessaire.
       - name: Catalogue de traduction à jour
+        if: matrix.shard == 1
         env:
           PSC_CONTAINER_ENGINE: docker
         run: bash bin/make-pot.sh --check
@@ -166,7 +179,10 @@ jobs:
       # dump transactionnel de l'installation, import dans une autre base du
       # serveur jetable, comparaison exacte, puis suppression de la copie et
       # des fichiers temporaires. Aucun dump nominatif n'est publié.
+      # Les contrôles hors scénarios (catalogue, sauvegarde, migration,
+      # vérifications PHP) ne se jouent qu'une fois, sur le premier lot.
       - name: Sauvegarde et restauration isolée
+        if: matrix.shard == 1
         env:
           PSC_CONTAINER_ENGINE: docker
         run: bash bin/verify-database-backup.sh
@@ -179,6 +195,7 @@ jobs:
       # s'exécute donc tout de suite après l'installation, avant le
       # peuplement des scénarios et les autres vérifications.
       - name: Scénario de migration
+        if: matrix.shard == 1
         run: |
           wp() {
             docker exec -u www-data -e WP_CLI_CACHE_DIR=/tmp/wp-cli-cache \
@@ -198,6 +215,7 @@ jobs:
       # intact pour les scénarios qui suivent. WP_CLI::error() sort en
       # code non nul : un invariant cassé échoue l'étape.
       - name: Vérifications PHP autonomes
+        if: matrix.shard == 1
         run: |
           wp() {
             docker exec -u www-data -e WP_CLI_CACHE_DIR=/tmp/wp-cli-cache \
@@ -296,7 +314,7 @@ jobs:
         # scénario en échec : on la répète en fin de step pour la rendre
         # immédiatement lisible sans déplier le log.
         run: |
-          npm run test:e2e 2>&1 | tee /tmp/e2e-output.log
+          npm run test:e2e -- --shard=${{ matrix.shard }}/4 2>&1 | tee /tmp/e2e-output.log
           exit ${PIPESTATUS[0]}
       - name: Résumé des échecs
         if: failure()
@@ -314,7 +332,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-resultats
+          name: playwright-resultats-${{ matrix.shard }}
           path: .playwright/
           retention-days: 7
           # .playwright est un dossier caché : v4 l'exclut par défaut, ce qui
