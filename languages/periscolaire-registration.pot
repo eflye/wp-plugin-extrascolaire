@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-21T14:53:05+00:00\n"
+"POT-Creation-Date: 2026-11-21T14:38:04+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: periscolaire-registration\n"
@@ -37,8 +37,8 @@ msgstr ""
 #: includes/class-psc-admin-assurances.php:30
 #: includes/class-psc-admin-audit.php:26
 #: includes/class-psc-admin-calendar-v2.php:81
-#: includes/class-psc-admin-cantine.php:122
-#: includes/class-psc-admin-cantine.php:270
+#: includes/class-psc-admin-cantine.php:124
+#: includes/class-psc-admin-cantine.php:276
 #: includes/class-psc-admin-config.php:338
 #: includes/class-psc-admin-config.php:358
 #: includes/class-psc-admin-config.php:374
@@ -60,7 +60,7 @@ msgstr ""
 #: includes/class-psc-admin-requests.php:42
 #: includes/class-psc-admin-school-years.php:227
 #: includes/class-psc-admin-school-years.php:270
-#: includes/class-psc-admin.php:884
+#: includes/class-psc-admin.php:886
 #: includes/class-psc-conversations-admin.php:21
 #: includes/class-psc-conversations-admin.php:31
 #: includes/class-psc-conversations-admin.php:46
@@ -323,7 +323,7 @@ msgid "%s enfant(s) au forfait journée (%s famille(s)) : ce jour-là, leurs pre
 msgstr ""
 
 #: includes/class-psc-admin-calendar-v2.php:86
-#: includes/class-psc-admin.php:221
+#: includes/class-psc-admin.php:222
 #: includes/class-psc-privacy.php:712
 #: templates/admin-dashboard.php:8
 #: templates/admin-inscriptions.php:36
@@ -365,30 +365,34 @@ msgstr ""
 msgid "Fermeture exceptionnelle"
 msgstr ""
 
-#: includes/class-psc-admin-cantine.php:127
-#: includes/class-psc-admin.php:175
+#: includes/class-psc-admin-cantine.php:130
+#: includes/class-psc-admin.php:176
 msgid "Menus"
 msgstr ""
 
-#: includes/class-psc-admin-cantine.php:129
+#: includes/class-psc-admin-cantine.php:132
 msgid "Menus de la semaine"
 msgstr ""
 
-#: includes/class-psc-admin-cantine.php:130
+#: includes/class-psc-admin-cantine.php:133
 msgid "Choix fournisseur"
 msgstr ""
 
-#: includes/class-psc-admin-cantine.php:275
-#: includes/class-psc-admin.php:176
+#: includes/class-psc-admin-cantine.php:134
+msgid "Notes du fournisseur"
+msgstr ""
+
+#: includes/class-psc-admin-cantine.php:281
+#: includes/class-psc-admin.php:177
 msgid "Commande fournisseur"
 msgstr ""
 
-#: includes/class-psc-admin-cantine.php:277
+#: includes/class-psc-admin-cantine.php:283
 msgid "Commande"
 msgstr ""
 
-#: includes/class-psc-admin-cantine.php:278
-#: includes/class-psc-admin.php:227
+#: includes/class-psc-admin-cantine.php:284
+#: includes/class-psc-admin.php:228
 #: templates/admin-settings.php:3
 #: templates/partials/import-school-calendar.php:48
 msgid "Réglages"
@@ -702,6 +706,106 @@ msgstr[1] ""
 msgid "Ouvrir Périscolaire › Maintenance"
 msgstr ""
 
+#. translators: %s: taille maximale acceptée, par exemple « 10 Mo ».
+#: includes/class-psc-admin-menu-notes.php:94
+#: includes/class-psc-admin-menu-propositions.php:175
+#, php-format
+msgid "Le fichier est vide ou dépasse la taille maximale acceptée (%s)."
+msgstr ""
+
+#: includes/class-psc-admin-menu-notes.php:96
+msgid "Note lue. Vérifiez le jour concerné, puis relisez le menu corrigé proposé : rien n’est encore modifié."
+msgstr ""
+
+#: includes/class-psc-admin-menu-notes.php:97
+msgid "Jour concerné modifié."
+msgstr ""
+
+#: includes/class-psc-admin-menu-notes.php:98
+msgid "Menu corrigé. Aucun e-mail n’a été envoyé aux familles."
+msgstr ""
+
+#: includes/class-psc-admin-menu-notes.php:99
+msgid "Note classée sans modifier le menu."
+msgstr ""
+
+#: includes/class-psc-admin-menu-notes.php:100
+msgid "Note supprimée. Le menu n’a pas été modifié."
+msgstr ""
+
+#: includes/class-psc-admin-menu-notes.php:101
+msgid "Choisissez la note .docx reçue du fournisseur avant de valider."
+msgstr ""
+
+#: includes/class-psc-admin-menu-notes.php:102
+#: includes/class-psc-admin-menu-propositions.php:172
+#: templates/admin-supplier-orders.php:14
+msgid "Une erreur est survenue."
+msgstr ""
+
+#: includes/class-psc-admin-menu-notes.php:103
+msgid "Ce fichier n’est pas un document Word (.docx). Si la note est dans un autre format, enregistrez-la en .docx depuis Word, ou corrigez le menu à la main."
+msgstr ""
+
+#: includes/class-psc-admin-menu-notes.php:105
+#: includes/class-psc-menu-docx.php:77
+#: includes/class-psc-menu-xlsx.php:166
+msgid "Le fichier n’a pas pu être lu."
+msgstr ""
+
+#: includes/class-psc-admin-menu-notes.php:106
+#: includes/class-psc-admin-menu-propositions.php:176
+#: includes/class-psc-menu-docx.php:75
+#: includes/class-psc-menu-xlsx.php:164
+msgid "Les extensions PHP Zip et DOM sont requises pour lire ce fichier."
+msgstr ""
+
+#: includes/class-psc-admin-menu-notes.php:107
+#: includes/class-psc-menu-docx.php:66
+msgid "Aucun texte n’a été trouvé dans ce document."
+msgstr ""
+
+#: includes/class-psc-admin-menu-notes.php:108
+#: includes/class-psc-menu-notes.php:346
+#: includes/class-psc-menu-notes.php:365
+msgid "Indiquez le jour de repas concerné par la note."
+msgstr ""
+
+#: includes/class-psc-admin-menu-notes.php:109
+#: includes/class-psc-menu-notes.php:367
+msgid "Ce jour n’est pas un jour de cantine (mercredi, week-end, vacances ou fermeture)."
+msgstr ""
+
+#: includes/class-psc-admin-menu-notes.php:110
+#: includes/class-psc-menu-notes.php:370
+#: templates/admin-menu-note-detail.php:84
+msgid "Aucun menu n’est enregistré pour ce jour : il n’y a rien à corriger."
+msgstr ""
+
+#: includes/class-psc-admin-menu-notes.php:111
+#: includes/class-psc-menu-notes.php:388
+msgid "Le menu corrigé est identique au menu actuel : rien n’a été modifié."
+msgstr ""
+
+#: includes/class-psc-admin-menu-notes.php:112
+#: includes/class-psc-menu-notes.php:379
+msgid "Le menu du jour ne peut pas être vide."
+msgstr ""
+
+#: includes/class-psc-admin-menu-notes.php:113
+msgid "L’enregistrement a échoué : rien n’a été modifié."
+msgstr ""
+
+#: includes/class-psc-admin-menu-notes.php:114
+#: includes/class-psc-menu-notes.php:335
+msgid "Cette note a déjà été traitée."
+msgstr ""
+
+#: includes/class-psc-admin-menu-notes.php:115
+#: includes/class-psc-menu-notes.php:333
+msgid "Cette note n’existe plus."
+msgstr ""
+
 #: includes/class-psc-admin-menu-propositions.php:160
 msgid "Aucune adresse e-mail fournisseur n'est configurée. Renseignez-la dans Commande fournisseur › Réglages."
 msgstr ""
@@ -746,25 +850,8 @@ msgstr ""
 msgid "Un menu au moins n’a pas pu être rempli. Réessayez."
 msgstr ""
 
-#: includes/class-psc-admin-menu-propositions.php:172
-#: templates/admin-supplier-orders.php:14
-msgid "Une erreur est survenue."
-msgstr ""
-
 #: includes/class-psc-admin-menu-propositions.php:173
 msgid "Ce fichier n’est pas un classeur Excel (.xlsx). Déposez le fichier reçu du fournisseur, sans le convertir."
-msgstr ""
-
-#. translators: %s: taille maximale acceptée, par exemple « 10 Mo ».
-#: includes/class-psc-admin-menu-propositions.php:175
-#, php-format
-msgid "Le fichier est vide ou dépasse la taille maximale acceptée (%s)."
-msgstr ""
-
-#: includes/class-psc-admin-menu-propositions.php:176
-#: includes/class-psc-menu-docx.php:75
-#: includes/class-psc-menu-xlsx.php:164
-msgid "Les extensions PHP Zip et DOM sont requises pour lire ce fichier."
 msgstr ""
 
 #: includes/class-psc-admin-menu-propositions.php:177
@@ -833,200 +920,200 @@ msgstr ""
 msgid "Passage d’année appliqué à %d enfant(s)."
 msgstr ""
 
-#: includes/class-psc-admin.php:100
+#: includes/class-psc-admin.php:101
 msgid "Habilitations périscolaires"
 msgstr ""
 
-#: includes/class-psc-admin.php:100
+#: includes/class-psc-admin.php:101
 msgid "Une personne peut cumuler plusieurs habilitations. Les cases contrôlent les accès métier côté serveur."
 msgstr ""
 
-#: includes/class-psc-admin.php:146
 #: includes/class-psc-admin.php:147
+#: includes/class-psc-admin.php:148
 #: includes/class-psc-messages.php:16
 msgid "Périscolaire"
 msgstr ""
 
-#: includes/class-psc-admin.php:170
+#: includes/class-psc-admin.php:171
 #: includes/class-psc-frontend.php:305
 #: templates/admin-dashboard.php:3
 msgid "Tableau de bord"
 msgstr ""
 
-#: includes/class-psc-admin.php:173
+#: includes/class-psc-admin.php:174
 msgid "Cantine & garderie"
 msgstr ""
 
-#: includes/class-psc-admin.php:174
+#: includes/class-psc-admin.php:175
 #: templates/admin-inscriptions.php:3
 msgid "Présences déclarées"
 msgstr ""
 
-#: includes/class-psc-admin.php:182
+#: includes/class-psc-admin.php:183
 msgid "Communication"
 msgstr ""
 
-#: includes/class-psc-admin.php:183
+#: includes/class-psc-admin.php:184
 #: templates/admin-conversations-list.php:3
 msgid "Échanges familles"
 msgstr ""
 
-#: includes/class-psc-admin.php:186
+#: includes/class-psc-admin.php:187
 #: templates/admin-messages-list.php:3
 #: templates/admin-messages-list.php:19
 msgid "Messages aux familles"
 msgstr ""
 
-#: includes/class-psc-admin.php:187
+#: includes/class-psc-admin.php:188
 #: templates/admin-email-templates.php:3
 msgid "Modèles d'e-mails"
 msgstr ""
 
-#: includes/class-psc-admin.php:190
+#: includes/class-psc-admin.php:191
 #: includes/class-psc-conversations-frontend.php:261
 #: templates/admin-settings.php:280
 msgid "Facturation"
 msgstr ""
 
-#: includes/class-psc-admin.php:191
+#: includes/class-psc-admin.php:192
 #: templates/admin-factures.php:3
 msgid "Factures"
 msgstr ""
 
-#: includes/class-psc-admin.php:192
+#: includes/class-psc-admin.php:193
 #: templates/admin-comptes-familles.php:3
 msgid "État des comptes"
 msgstr ""
 
-#: includes/class-psc-admin.php:195
+#: includes/class-psc-admin.php:196
 #: templates/admin-parents.php:3
 msgid "Familles"
 msgstr ""
 
-#: includes/class-psc-admin.php:196
+#: includes/class-psc-admin.php:197
 #: templates/admin-requests.php:3
 #: templates/admin-settings.php:215
 msgid "Demandes d'inscription"
 msgstr ""
 
-#: includes/class-psc-admin.php:199
+#: includes/class-psc-admin.php:200
 msgid "Fiches familles"
 msgstr ""
 
-#: includes/class-psc-admin.php:200
+#: includes/class-psc-admin.php:201
 #: templates/admin-messages-stats.php:12
 #: templates/guest-request.php:5
 #: templates/portal-planning-2.php:154
 msgid "Enfants"
 msgstr ""
 
-#: includes/class-psc-admin.php:204
+#: includes/class-psc-admin.php:205
 #: templates/admin-children.php:151
 msgid "Personnes autorisées"
 msgstr ""
 
-#: includes/class-psc-admin.php:207
+#: includes/class-psc-admin.php:208
 #: templates/admin-impersonate.php:3
 msgid "Consulter un espace famille"
 msgstr ""
 
-#: includes/class-psc-admin.php:210
+#: includes/class-psc-admin.php:211
 msgid "Version de règlement"
 msgstr ""
 
-#: includes/class-psc-admin.php:217
+#: includes/class-psc-admin.php:218
 msgid "Administration"
 msgstr ""
 
-#: includes/class-psc-admin.php:226
+#: includes/class-psc-admin.php:227
 msgid "Passage d'année"
 msgstr ""
 
-#: includes/class-psc-admin.php:228
+#: includes/class-psc-admin.php:229
 #: templates/admin-maintenance.php:46
 msgid "Maintenance"
 msgstr ""
 
-#: includes/class-psc-admin.php:233
+#: includes/class-psc-admin.php:234
 #: templates/admin-audit.php:38
 msgid "Journal d'audit"
 msgstr ""
 
-#: includes/class-psc-admin.php:415
+#: includes/class-psc-admin.php:417
 #, php-format
 msgid "%n plats saisis · %b bio · %r Label Rouge (%p % labellisés)"
 msgstr ""
 
-#: includes/class-psc-admin.php:450
+#: includes/class-psc-admin.php:452
 msgid "Périscolaire — le dossier des documents est inutilisable."
 msgstr ""
 
-#: includes/class-psc-admin.php:452
+#: includes/class-psc-admin.php:454
 msgid "L'extension ne peut ni créer ni écrire dans"
 msgstr ""
 
-#: includes/class-psc-admin.php:453
+#: includes/class-psc-admin.php:455
 msgid "Les justificatifs d'assurance et les factures ne pourront pas être enregistrés ni téléchargés tant que ce sera le cas."
 msgstr ""
 
-#: includes/class-psc-admin.php:456
+#: includes/class-psc-admin.php:458
 msgid "Vérifiez la ligne"
 msgstr ""
 
-#: includes/class-psc-admin.php:456
+#: includes/class-psc-admin.php:458
 msgid "de"
 msgstr ""
 
-#: includes/class-psc-admin.php:457
+#: includes/class-psc-admin.php:459
 msgid "le dossier parent doit exister et être accessible en écriture. Si le chemin est erroné, retirez la ligne — l'extension reprendra son emplacement par défaut."
 msgstr ""
 
-#: includes/class-psc-admin.php:476
+#: includes/class-psc-admin.php:478
 msgid "Périscolaire — les documents des familles sont téléchargeables sans connexion."
 msgstr ""
 
-#: includes/class-psc-admin.php:478
+#: includes/class-psc-admin.php:480
 msgid "Les justificatifs d'assurance et les factures sont accessibles publiquement sous"
 msgstr ""
 
-#: includes/class-psc-admin.php:479
+#: includes/class-psc-admin.php:481
 msgid "Le serveur web ne tient pas compte du fichier"
 msgstr ""
 
-#: includes/class-psc-admin.php:480
+#: includes/class-psc-admin.php:482
 msgid "déposé par l'extension."
 msgstr ""
 
-#: includes/class-psc-admin.php:483
+#: includes/class-psc-admin.php:485
 msgid "Correctif, sans accès au serveur :"
 msgstr ""
 
-#: includes/class-psc-admin.php:483
+#: includes/class-psc-admin.php:485
 msgid "ajoutez cette ligne dans"
 msgstr ""
 
-#: includes/class-psc-admin.php:484
+#: includes/class-psc-admin.php:486
 msgid "(avant la ligne"
 msgstr ""
 
-#: includes/class-psc-admin.php:484
+#: includes/class-psc-admin.php:486
 msgid "), puis rechargez cette page. Les documents déjà déposés seront déplacés automatiquement."
 msgstr ""
 
-#: includes/class-psc-admin.php:488
+#: includes/class-psc-admin.php:490
 msgid "Ce dossier se place à côté de la racine du site (et non dedans), ce qui le rend inaccessible par le web quelle que soit la configuration de l'hébergement."
 msgstr ""
 
-#: includes/class-psc-admin.php:489
+#: includes/class-psc-admin.php:491
 msgid "Si votre hébergeur vous donne la main sur la configuration du serveur, une règle"
 msgstr ""
 
-#: includes/class-psc-admin.php:490
+#: includes/class-psc-admin.php:492
 msgid "sur le dossier fonctionne également."
 msgstr ""
 
 #. translators: %d: nombre de jours
-#: includes/class-psc-admin.php:533
+#: includes/class-psc-admin.php:535
 #: includes/class-psc-frontend.php:481
 #, php-format
 msgid "%d jour"
@@ -1034,204 +1121,204 @@ msgid_plural "%d jours"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/class-psc-admin.php:534
+#: includes/class-psc-admin.php:536
 #, php-format
 msgid "%d heure"
 msgid_plural "%d heures"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/class-psc-admin.php:536
+#: includes/class-psc-admin.php:538
 msgid "Périscolaire — les tâches planifiées ne s’exécutent plus."
 msgstr ""
 
 #. translators: %s: durée (ex. « 2 jours »)
-#: includes/class-psc-admin.php:539
+#: includes/class-psc-admin.php:541
 #, php-format
 msgid "La plus ancienne est en retard de %s. Les purges prévues par la politique de conservation et la reprise des envois sont à l’arrêt."
 msgstr ""
 
-#: includes/class-psc-admin.php:543
+#: includes/class-psc-admin.php:545
 msgid "Faites déclencher wp-cron.php régulièrement par l’hébergement (tâche planifiée du serveur ou du conteneur) : voir la documentation, « Tâches planifiées »."
 msgstr ""
 
-#: includes/class-psc-admin.php:558
+#: includes/class-psc-admin.php:560
 msgid "Notice de confidentialité : les familles voient « Collectivité (à adapter) »."
 msgstr ""
 
-#: includes/class-psc-admin.php:559
+#: includes/class-psc-admin.php:561
 msgid "Renseigner le responsable du traitement"
 msgstr ""
 
-#: includes/class-psc-admin.php:572
+#: includes/class-psc-admin.php:574
 msgid "Mode debug de la facturation actif :"
 msgstr ""
 
-#: includes/class-psc-admin.php:573
+#: includes/class-psc-admin.php:575
 msgid "les factures déjà envoyées peuvent être supprimées. À désactiver sur un site de production :"
 msgstr ""
 
-#: includes/class-psc-admin.php:594
+#: includes/class-psc-admin.php:596
 msgid "Périscolaire — la base de données est trop ancienne pour cette version."
 msgstr ""
 
-#: includes/class-psc-admin.php:600
+#: includes/class-psc-admin.php:602
 msgid "Périscolaire — la mise à jour de la base de données est incomplète."
 msgstr ""
 
 #. translators: 1: étape de migration, 2: requête en échec (nature et table)
-#: includes/class-psc-admin.php:605
+#: includes/class-psc-admin.php:607
 #, php-format
 msgid "Elle s’est arrêtée à l’étape %1$s (%2$s). Les étapes précédentes sont conservées ; une nouvelle tentative reprend à cette étape à chaque ouverture du backoffice."
 msgstr ""
 
-#: includes/class-psc-admin.php:607
+#: includes/class-psc-admin.php:609
 #: templates/admin-maintenance.php:97
 msgid "erreur SQL"
 msgstr ""
 
-#: includes/class-psc-admin.php:611
+#: includes/class-psc-admin.php:613
 msgid "Si ce message persiste, transmettez-le à la personne qui maintient le site : la cause est le plus souvent côté hébergement (droits de modification des tables, quota, délai dépassé)."
 msgstr ""
 
-#: includes/class-psc-admin.php:631
+#: includes/class-psc-admin.php:633
 msgid "Périscolaire — des documents n’ont pas pu être déplacés."
 msgstr ""
 
-#: includes/class-psc-admin.php:647
+#: includes/class-psc-admin.php:649
 msgid "Aucun fichier n’a été supprimé, mais ces documents ne peuvent pas être téléchargés depuis l’extension tant qu’ils ne sont pas au nouvel emplacement. Une nouvelle tentative a lieu à chaque chargement. Si ce message persiste, un fichier existe sous le même nom aux deux endroits avec un contenu différent, ou les droits du dossier empêchent le déplacement : comparez les deux fichiers, conservez le bon, puis rechargez cette page."
 msgstr ""
 
-#: includes/class-psc-admin.php:674
+#: includes/class-psc-admin.php:676
 msgid "Périscolaire — contraintes de base de données non posées."
 msgstr ""
 
-#: includes/class-psc-admin.php:676
+#: includes/class-psc-admin.php:678
 msgid "Le site fonctionne, mais l'hébergement a refusé une modification de schéma ou des données empêchent la pose des contraintes ci-dessous. La base ne garantit donc pas elle-même la cohérence des données — la validation applicative reste la première barrière."
 msgstr ""
 
-#: includes/class-psc-admin.php:684
+#: includes/class-psc-admin.php:686
 msgid "Une nouvelle tentative est faite à chaque ouverture du backoffice : cet avertissement disparaîtra seul dès que la contrainte sera posée. S'il persiste, la cause est côté hébergement (dépassement de quota, moteur de table non transactionnel) ou une donnée à corriger dans la liste ci-dessus."
 msgstr ""
 
-#: includes/class-psc-admin.php:713
+#: includes/class-psc-admin.php:715
 msgid "Périscolaire — le journal d’audit signale un problème."
 msgstr ""
 
-#: includes/class-psc-admin.php:715
+#: includes/class-psc-admin.php:717
 #, php-format
 msgid "%d écriture du journal a échoué (repli sur le fichier journal-acces.log)."
 msgid_plural "%d écritures du journal ont échoué (repli sur le fichier journal-acces.log)."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/class-psc-admin.php:718
+#: includes/class-psc-admin.php:720
 msgid "Actions non classées dans le registre d’audit (journalisées sous « inconnu.action ») :"
 msgstr ""
 
-#: includes/class-psc-admin.php:721
+#: includes/class-psc-admin.php:723
 msgid "Voir le journal filtré"
 msgstr ""
 
-#: includes/class-psc-admin.php:725
+#: includes/class-psc-admin.php:727
 msgid "Remettre le compteur à zéro"
 msgstr ""
 
-#: includes/class-psc-admin.php:741
+#: includes/class-psc-admin.php:743
 msgid "mise à null à la suppression"
 msgstr ""
 
-#: includes/class-psc-admin.php:742
+#: includes/class-psc-admin.php:744
 msgid "suppression en cascade"
 msgstr ""
 
-#: includes/class-psc-admin.php:744
+#: includes/class-psc-admin.php:746
 #, php-format
 msgid "Clé étrangère %1$s.%2$s → %3$s (%4$s)"
 msgstr ""
 
-#: includes/class-psc-admin.php:754
+#: includes/class-psc-admin.php:756
 msgid "Unicité de l’e-mail du second parent : plusieurs foyers partagent la même adresse de second parent, à corriger dans Familles avant la pose."
 msgstr ""
 
-#: includes/class-psc-admin.php:755
+#: includes/class-psc-admin.php:757
 msgid "Unicité de l’e-mail du second parent entre foyers."
 msgstr ""
 
 #. translators: %s: table (school_years ou child_school_years)
-#: includes/class-psc-admin.php:761
+#: includes/class-psc-admin.php:763
 #, php-format
 msgid "Contrainte CHECK sur %s.statut (statuts autorisés)."
 msgstr ""
 
-#: includes/class-psc-admin.php:767
+#: includes/class-psc-admin.php:769
 msgid "Contrainte CHECK sur envois.statut (états d’envoi autorisés)."
 msgstr ""
 
-#: includes/class-psc-admin.php:771
+#: includes/class-psc-admin.php:773
 msgid "Contrainte CHECK sur registrations.service : des lignes portent une prestation inconnue de la liste actuelle, à corriger avant la pose."
 msgstr ""
 
-#: includes/class-psc-admin.php:774
+#: includes/class-psc-admin.php:776
 msgid "Contrainte CHECK sur registrations.service (codes de prestation autorisés)."
 msgstr ""
 
-#: includes/class-psc-admin.php:805
+#: includes/class-psc-admin.php:807
 #, php-format
 msgid "%d demande(s) d'inscription en attente de traitement"
 msgstr ""
 
-#: includes/class-psc-admin.php:806
+#: includes/class-psc-admin.php:808
 msgid "Aucune demande d'inscription en attente"
 msgstr ""
 
-#: includes/class-psc-admin.php:817
+#: includes/class-psc-admin.php:819
 #, php-format
 msgid "%d échange non lu"
 msgid_plural "%d échanges non lus"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/class-psc-admin.php:839
+#: includes/class-psc-admin.php:841
 #, php-format
 msgid "Menu de cantine — semaine du %s : %s"
 msgstr ""
 
-#: includes/class-psc-admin.php:841
+#: includes/class-psc-admin.php:843
 msgid "envoyé"
 msgstr ""
 
-#: includes/class-psc-admin.php:841
+#: includes/class-psc-admin.php:843
 msgid "saisi, pas encore envoyé"
 msgstr ""
 
-#: includes/class-psc-admin.php:841
+#: includes/class-psc-admin.php:843
 msgid "pas encore saisi"
 msgstr ""
 
-#: includes/class-psc-admin.php:852
+#: includes/class-psc-admin.php:854
 #, php-format
 msgid "Commande fournisseur — semaine du %s : %s"
 msgstr ""
 
-#: includes/class-psc-admin.php:854
+#: includes/class-psc-admin.php:856
 msgid "envoyée"
 msgstr ""
 
-#: includes/class-psc-admin.php:854
+#: includes/class-psc-admin.php:856
 msgid "pas encore envoyée"
 msgstr ""
 
-#: includes/class-psc-admin.php:863
+#: includes/class-psc-admin.php:865
 msgid "Aucune année scolaire configurée — définissez dates, vacances et fériés pour ouvrir le planning"
 msgstr ""
 
-#: includes/class-psc-admin.php:872
+#: includes/class-psc-admin.php:874
 #, php-format
 msgid "L'année scolaire se termine dans %d jour(s) — préparez la suivante (dates, vacances, fériés)"
 msgstr ""
 
-#: includes/class-psc-admin.php:873
+#: includes/class-psc-admin.php:875
 msgid "L'année scolaire est terminée — configurez la suivante"
 msgstr ""
 
@@ -3361,15 +3448,6 @@ msgstr ""
 msgid "Motif communiqué :"
 msgstr ""
 
-#: includes/class-psc-menu-docx.php:66
-msgid "Aucun texte n’a été trouvé dans ce document."
-msgstr ""
-
-#: includes/class-psc-menu-docx.php:77
-#: includes/class-psc-menu-xlsx.php:166
-msgid "Le fichier n’a pas pu être lu."
-msgstr ""
-
 #: includes/class-psc-menu-docx.php:79
 #: includes/class-psc-menu-xlsx.php:168
 msgid "Le fichier est vide ou dépasse 10 Mo."
@@ -3394,35 +3472,6 @@ msgstr ""
 
 #: includes/class-psc-menu-notes.php:174
 msgid "La note n’a pas pu être enregistrée."
-msgstr ""
-
-#: includes/class-psc-menu-notes.php:333
-msgid "Cette note n’existe plus."
-msgstr ""
-
-#: includes/class-psc-menu-notes.php:335
-msgid "Cette note a déjà été traitée."
-msgstr ""
-
-#: includes/class-psc-menu-notes.php:346
-#: includes/class-psc-menu-notes.php:365
-msgid "Indiquez le jour de repas concerné par la note."
-msgstr ""
-
-#: includes/class-psc-menu-notes.php:367
-msgid "Ce jour n’est pas un jour de cantine (mercredi, week-end, vacances ou fermeture)."
-msgstr ""
-
-#: includes/class-psc-menu-notes.php:370
-msgid "Aucun menu n’est enregistré pour ce jour : il n’y a rien à corriger."
-msgstr ""
-
-#: includes/class-psc-menu-notes.php:379
-msgid "Le menu du jour ne peut pas être vide."
-msgstr ""
-
-#: includes/class-psc-menu-notes.php:388
-msgid "Le menu corrigé est identique au menu actuel : rien n’a été modifié."
 msgstr ""
 
 #: includes/class-psc-menu-notes.php:397
@@ -5324,6 +5373,7 @@ msgstr ""
 #: templates/admin-annees.php:216
 #: templates/admin-factures.php:162
 #: templates/admin-menu-choix.php:39
+#: templates/admin-menu-notes.php:39
 #: templates/admin-menus.php:107
 #: templates/admin-parents.php:199
 #: templates/admin-requests.php:173
@@ -5523,6 +5573,7 @@ msgstr ""
 #: templates/admin-annees.php:304
 #: templates/admin-children.php:176
 #: templates/admin-menu-choix.php:77
+#: templates/admin-menu-notes.php:72
 #: templates/admin-menus.php:173
 #: templates/admin-parents.php:244
 #: templates/admin-parents.php:263
@@ -5686,6 +5737,7 @@ msgstr ""
 
 #: templates/admin-assurances.php:30
 #: templates/admin-menu-choix.php:38
+#: templates/admin-menu-notes.php:38
 msgid "État"
 msgstr ""
 
@@ -7186,6 +7238,7 @@ msgid "Période :"
 msgstr ""
 
 #: templates/admin-menu-choix-detail.php:31
+#: templates/admin-menu-note-detail.php:27
 msgid "État :"
 msgstr ""
 
@@ -7457,11 +7510,224 @@ msgid "Faire les choix"
 msgstr ""
 
 #: templates/admin-menu-choix.php:68
+#: templates/admin-menu-notes.php:63
 msgid "Consulter"
 msgstr ""
 
 #: templates/admin-menu-choix.php:72
 msgid "Supprimer ce fichier et les choix associés ? Les menus déjà remplis sont conservés."
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:22
+msgid "Toutes les notes reçues"
+msgstr ""
+
+#. translators: %s: date et heure de l'application de la note au menu.
+#: templates/admin-menu-note-detail.php:32
+#, php-format
+msgid "— le %s"
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:37
+msgid "Texte de la note"
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:55
+msgid "Jour de repas concerné"
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:57
+msgid "d’après la date du nom du fichier, sauf si vous l’avez modifiée."
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:59
+msgid "Le nom du fichier ne porte pas de date lisible : indiquez le jour de repas concerné."
+msgstr ""
+
+#. translators: 1: jour de la semaine nommé dans la note, 2: jour de la semaine de la date retenue.
+#: templates/admin-menu-note-detail.php:64
+#, php-format
+msgid "La note parle de « %1$s », mais la date retenue est un %2$s. Vérifiez le jour avant d’appliquer."
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:73
+msgid "Autre jour"
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:75
+msgid "Changer le jour"
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:78
+msgid "Menu du jour à corriger"
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:80
+msgid "Indiquez d’abord le jour concerné : le menu de ce jour s’affichera ici, prêt à être corrigé."
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:82
+msgid "Ce jour n’est pas un jour de cantine (mercredi, week-end, vacances ou fermeture) : il n’y a pas de menu à corriger. Vérifiez le jour."
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:85
+msgid "Saisir le menu de cette semaine"
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:88
+msgid "Ce menu a déjà été envoyé aux familles. Il sera corrigé dans le backoffice et dans leur espace, sans nouvel e-mail : utilisez ensuite « Renvoyer » dans l’onglet « Menus de la semaine » si vous souhaitez les prévenir."
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:92
+msgid "Aucun remplacement n’a été reconnu automatiquement dans cette note. Le menu corrigé ci-dessous reprend donc le menu actuel tel quel : modifiez-le à la main en lisant la note."
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:94
+msgid "Ce que la note annonce, et ce qui en a été reporté dans le menu corrigé ci-dessous :"
+msgstr ""
+
+#. translators: 1: produit remplacé, 2: produit de remplacement.
+#: templates/admin-menu-note-detail.php:101
+#, php-format
+msgid "« %1$s » remplacé par « %2$s »"
+msgstr ""
+
+#. translators: 1: ligne actuelle du menu, 2: ligne proposée à la place.
+#: templates/admin-menu-note-detail.php:106
+#, php-format
+msgid "la ligne « %1$s » devient « %2$s »."
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:109
+msgid "produit non retrouvé dans le menu de ce jour : rien n’a été reporté, corrigez la ligne à la main s’il y a lieu."
+msgstr ""
+
+#. translators: %s: remarque entre parenthèses dans la note du fournisseur.
+#: templates/admin-menu-note-detail.php:114
+#, php-format
+msgid "Remarque du fournisseur : %s"
+msgstr ""
+
+#. translators: %s: jour concerné, par exemple « lundi 9 novembre 2026 ».
+#: templates/admin-menu-note-detail.php:130
+#, php-format
+msgid "Menu actuel du %s"
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:139
+msgid "Menu corrigé"
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:142
+msgid "Un plat par ligne. Relisez et corrigez librement : c’est ce texte qui remplacera le menu de ce jour. Terminez une ligne par une étoile (*) pour un produit bio."
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:146
+msgid "Enregistrer le menu corrigé"
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:147
+msgid "Seul le menu de ce jour est modifié. Aucun e-mail n’est envoyé."
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:156
+msgid "Classer la note sans modifier le menu"
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:161
+msgid "Lignes du menu modifiées"
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:163
+msgid "Lignes du menu modifiées à la suite de cette note"
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:166
+msgid "Ligne avant"
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:167
+msgid "Ligne après"
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:175
+msgid "Ligne ajoutée"
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:179
+msgid "Ligne retirée"
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:187
+msgid "Ce menu avait déjà été envoyé aux familles ; aucun e-mail n’est reparti."
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:190
+msgid "Voir le menu de cette semaine (pour le relire ou le renvoyer aux familles)"
+msgstr ""
+
+#: templates/admin-menu-note-detail.php:195
+msgid "Cette note a été classée sans modifier le menu."
+msgstr ""
+
+#: templates/admin-menu-notes.php:11
+msgid "Déposer une note de changement"
+msgstr ""
+
+#: templates/admin-menu-notes.php:12
+msgid "Quand un produit vient à manquer, le fournisseur de repas envoie une note Word annonçant les remplacements. Déposez-la ici telle que vous l’avez reçue, sans la renommer : la date du nom du fichier désigne le jour de repas concerné. Les remplacements reconnus vous sont proposés ; rien n’est modifié sans votre confirmation."
+msgstr ""
+
+#: templates/admin-menu-notes.php:17
+msgid "Note du fournisseur (.docx)"
+msgstr ""
+
+#. translators: %s: taille maximale acceptée, par exemple « 10 Mo ».
+#: templates/admin-menu-notes.php:24
+#, php-format
+msgid "Format Word .docx, %s au plus. Le fichier n’est pas conservé, seul son texte l’est."
+msgstr ""
+
+#: templates/admin-menu-notes.php:26
+msgid "Déposer la note"
+msgstr ""
+
+#: templates/admin-menu-notes.php:31
+msgid "Notes reçues"
+msgstr ""
+
+#: templates/admin-menu-notes.php:33
+msgid "Notes de changement de menus reçues du fournisseur"
+msgstr ""
+
+#: templates/admin-menu-notes.php:36
+msgid "Note"
+msgstr ""
+
+#: templates/admin-menu-notes.php:37
+msgid "Jour concerné"
+msgstr ""
+
+#: templates/admin-menu-notes.php:44
+msgid "Aucune note déposée pour le moment."
+msgstr ""
+
+#. translators: %s: date de dépôt de la note (jj/mm/aaaa).
+#: templates/admin-menu-notes.php:51
+#, php-format
+msgid "Déposée le %s"
+msgstr ""
+
+#: templates/admin-menu-notes.php:54
+msgid "À préciser"
+msgstr ""
+
+#: templates/admin-menu-notes.php:63
+msgid "Vérifier et appliquer"
+msgstr ""
+
+#: templates/admin-menu-notes.php:67
+msgid "Supprimer cette note ? Le menu ne sera pas modifié."
 msgstr ""
 
 #: templates/admin-menus.php:7

@@ -114,24 +114,30 @@ class Psc_Admin_Cantine extends Psc_Admin_Base {
     }
 
     /**
-     * « Menus » réunit deux onglets : ?tab=menus (défaut, saisie et envoi
-     * du menu de la semaine) et ?tab=choix (choix des menus proposés par le
-     * fournisseur, cf. Psc_Admin_Menu_Propositions::render_tab()).
+     * « Menus » réunit trois onglets : ?tab=menus (défaut, saisie et envoi
+     * du menu de la semaine), ?tab=choix (choix des menus proposés par le
+     * fournisseur, cf. Psc_Admin_Menu_Propositions::render_tab()) et
+     * ?tab=notes (notes de changement du fournisseur, cf.
+     * Psc_Admin_Menu_Notes::render_tab()).
      */
     public static function page_menus() {
         if (!current_user_can('psc_manage_presence')) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
 
-        $tab = (isset($_GET['tab']) && sanitize_key(wp_unslash($_GET['tab'])) === 'choix') ? 'choix' : 'menus';
+        $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : '';
+        if (!in_array($tab, array('choix', 'notes'), true)) $tab = 'menus';
 
         echo '<div class="wrap psc-admin">';
         echo '<h1>' . esc_html__('Menus', 'periscolaire-registration') . '</h1>';
         psc_admin_tab_nav('psc_menus', array(
             'menus' => __('Menus de la semaine', 'periscolaire-registration'),
             'choix' => __('Choix fournisseur', 'periscolaire-registration'),
+            'notes' => __('Notes du fournisseur', 'periscolaire-registration'),
         ), $tab);
 
         if ($tab === 'choix') {
             Psc_Admin_Menu_Propositions::render_tab();
+        } elseif ($tab === 'notes') {
+            Psc_Admin_Menu_Notes::render_tab();
         } else {
             self::render_menus_tab();
         }

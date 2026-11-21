@@ -298,6 +298,24 @@ function psc_audit_action_registry() {
         'psc_delete_menu_proposition' => array(
             'action' => 'choix_menus.suppression', 'categorie' => 'configuration', 'objet' => 'choix_menus', 'niveau' => 'normal',
         ),
+        // Notes de changement de menus du fournisseur (Menus > Notes du
+        // fournisseur) : aucune donnée personnelle ; l'application réécrit
+        // un menu, parfois déjà envoyé aux familles.
+        'psc_import_menu_note' => array(
+            'action' => 'note_menus.depot', 'categorie' => 'configuration', 'objet' => 'note_menus', 'niveau' => 'normal',
+        ),
+        'psc_set_menu_note_day' => array(
+            'action' => 'note_menus.jour', 'categorie' => 'configuration', 'objet' => 'note_menus', 'niveau' => 'normal',
+        ),
+        'psc_apply_menu_note' => array(
+            'action' => 'note_menus.application', 'categorie' => 'configuration', 'objet' => 'note_menus', 'niveau' => 'normal',
+        ),
+        'psc_ignore_menu_note' => array(
+            'action' => 'note_menus.ignoree', 'categorie' => 'configuration', 'objet' => 'note_menus', 'niveau' => 'normal',
+        ),
+        'psc_delete_menu_note' => array(
+            'action' => 'note_menus.suppression', 'categorie' => 'configuration', 'objet' => 'note_menus', 'niveau' => 'normal',
+        ),
         // Relecture du classeur du fournisseur rempli : ni donnée
         // personnelle, ni écriture.
         'psc_download_menu_choix' => array('niveau' => 'ignore'),

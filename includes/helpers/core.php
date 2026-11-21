@@ -105,6 +105,13 @@ function psc_capability_map() {
         'psc_fill_menus_from_choix'         => 'psc_manage_presence',
         'psc_download_menu_choix'           => 'psc_manage_presence',
         'psc_delete_menu_proposition'       => 'psc_manage_presence',
+        // Notes de changement de menus du fournisseur (dépôt, jour
+        // concerné, application au menu).
+        'psc_import_menu_note'              => 'psc_manage_presence',
+        'psc_set_menu_note_day'             => 'psc_manage_presence',
+        'psc_apply_menu_note'               => 'psc_manage_presence',
+        'psc_ignore_menu_note'              => 'psc_manage_presence',
+        'psc_delete_menu_note'              => 'psc_manage_presence',
         'psc_cancel_class_meals'            => 'psc_manage_presence',
         'psc_dismiss_cancel_class_meals'    => 'psc_manage_presence',
         'psc_admin_update_registrations'    => 'psc_manage_presence',
