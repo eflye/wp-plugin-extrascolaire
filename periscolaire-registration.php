@@ -47,6 +47,7 @@ require_once PSC_PATH . 'includes/class-psc-invoices.php';
 require_once PSC_PATH . 'includes/class-psc-sepa-export.php';
 require_once PSC_PATH . 'includes/class-psc-sepa-mandate.php';
 require_once PSC_PATH . 'includes/class-psc-menus.php';
+require_once PSC_PATH . 'includes/class-psc-ooxml.php';
 require_once PSC_PATH . 'includes/class-psc-menu-xlsx.php';
 require_once PSC_PATH . 'includes/class-psc-menu-propositions.php';
 require_once PSC_PATH . 'includes/class-psc-messages.php';

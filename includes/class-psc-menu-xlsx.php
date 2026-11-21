@@ -23,11 +23,8 @@ if (!defined('ABSPATH')) exit;
  */
 class Psc_Menu_Xlsx {
 
-    /** Taille maximale du fichier déposé. */
-    const MAX_FILE_SIZE = 10485760; // 10 Mo
-
-    /** Taille maximale (décompressée) d'une partie XML lue : garde-fou contre une archive piégée. */
-    const MAX_XML_SIZE = 8388608; // 8 Mo
+    /** Taille maximale du fichier déposé (cf. Psc_Ooxml). */
+    const MAX_FILE_SIZE = Psc_Ooxml::MAX_FILE_SIZE;
 
     const MAX_SHEETS = 60;
 
@@ -131,71 +128,46 @@ class Psc_Menu_Xlsx {
     }
 
     /**
-     * Ouvre l'archive après les contrôles de base (taille, signature ZIP).
+     * Ouvre l'archive (cf. Psc_Ooxml::open()), erreurs traduites pour le classeur.
      *
      * @return ZipArchive|WP_Error
      */
     private static function open($path) {
-        if (!class_exists('ZipArchive') || !class_exists('DOMDocument')) {
-            return new WP_Error('psc_xlsx_extension', __('Les extensions PHP Zip et DOM sont requises pour lire ce fichier.', 'periscolaire-registration'));
-        }
-        if (!is_string($path) || $path === '' || !is_file($path) || !is_readable($path)) {
-            return new WP_Error('psc_xlsx_illisible', __('Le fichier n’a pas pu être lu.', 'periscolaire-registration'));
-        }
-        clearstatcache(true, $path);
-        $size = (int) filesize($path);
-        if ($size <= 0 || $size > self::MAX_FILE_SIZE) {
-            return new WP_Error('psc_xlsx_taille', __('Le fichier est vide ou dépasse 10 Mo.', 'periscolaire-registration'));
-        }
-        if ((string) file_get_contents($path, false, null, 0, 4) !== "PK\x03\x04") {
-            return new WP_Error('psc_xlsx_format', __('Ce fichier n’est pas un classeur Excel (.xlsx).', 'periscolaire-registration'));
-        }
-        $zip = new ZipArchive();
-        if ($zip->open($path) !== true) {
-            return new WP_Error('psc_xlsx_format', __('Ce fichier n’est pas un classeur Excel (.xlsx).', 'periscolaire-registration'));
-        }
-        return $zip;
+        $zip = Psc_Ooxml::open($path);
+        return is_wp_error($zip) ? self::erreur($zip) : $zip;
     }
 
     /**
-     * Contenu d'une partie de l'archive, bornée en taille décompressée.
+     * Contenu d'une partie de l'archive (cf. Psc_Ooxml::part()).
      *
      * @return string|WP_Error
      */
     private static function part(ZipArchive $zip, $name) {
-        $stat = $zip->statName($name);
-        if (!$stat) {
-            return new WP_Error('psc_xlsx_format', __('Ce fichier n’est pas un classeur Excel (.xlsx).', 'periscolaire-registration'));
-        }
-        if ((int) $stat['size'] > self::MAX_XML_SIZE) {
-            return new WP_Error('psc_xlsx_taille', __('Le fichier est vide ou dépasse 10 Mo.', 'periscolaire-registration'));
-        }
-        $xml = $zip->getFromName($name);
-        if (!is_string($xml) || $xml === '') {
-            return new WP_Error('psc_xlsx_format', __('Ce fichier n’est pas un classeur Excel (.xlsx).', 'periscolaire-registration'));
-        }
-        return $xml;
+        $xml = Psc_Ooxml::part($zip, $name);
+        return is_wp_error($xml) ? self::erreur($xml) : $xml;
     }
 
     /**
-     * Charge une partie XML. Une déclaration DOCTYPE n'a rien à faire dans
-     * un classeur : refusée d'office (entités externes, expansion).
+     * Charge une partie XML (cf. Psc_Ooxml::load()).
      *
      * @return DOMDocument|WP_Error
      */
     private static function load($xml) {
-        if (stripos($xml, '<!DOCTYPE') !== false || stripos($xml, '<!ENTITY') !== false) {
-            return new WP_Error('psc_xlsx_format', __('Ce fichier n’est pas un classeur Excel (.xlsx).', 'periscolaire-registration'));
+        $doc = Psc_Ooxml::load($xml);
+        return is_wp_error($doc) ? self::erreur($doc) : $doc;
+    }
+
+    /** Erreur de Psc_Ooxml, sous le code et le message du classeur. */
+    private static function erreur($error) {
+        switch (Psc_Ooxml::reason($error)) {
+            case 'extension':
+                return new WP_Error('psc_xlsx_extension', __('Les extensions PHP Zip et DOM sont requises pour lire ce fichier.', 'periscolaire-registration'));
+            case 'illisible':
+                return new WP_Error('psc_xlsx_illisible', __('Le fichier n’a pas pu être lu.', 'periscolaire-registration'));
+            case 'taille':
+                return new WP_Error('psc_xlsx_taille', __('Le fichier est vide ou dépasse 10 Mo.', 'periscolaire-registration'));
         }
-        $doc = new DOMDocument();
-        $previous = libxml_use_internal_errors(true);
-        $ok = $doc->loadXML($xml, LIBXML_NONET);
-        libxml_clear_errors();
-        libxml_use_internal_errors($previous);
-        if (!$ok || !$doc->documentElement) {
-            return new WP_Error('psc_xlsx_format', __('Ce fichier n’est pas un classeur Excel (.xlsx).', 'periscolaire-registration'));
-        }
-        return $doc;
+        return new WP_Error('psc_xlsx_format', __('Ce fichier n’est pas un classeur Excel (.xlsx).', 'periscolaire-registration'));
     }
 
     /**
