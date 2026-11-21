@@ -37,6 +37,7 @@ require_once PSC_PATH . 'includes/class-psc-admin-familles.php';
 require_once PSC_PATH . 'includes/class-psc-admin-assurances.php';
 require_once PSC_PATH . 'includes/class-psc-admin-inscriptions.php';
 require_once PSC_PATH . 'includes/class-psc-admin-cantine.php';
+require_once PSC_PATH . 'includes/class-psc-admin-menu-propositions.php';
 require_once PSC_PATH . 'includes/class-psc-admin-invoices.php';
 require_once PSC_PATH . 'includes/class-psc-admin-config.php';
 require_once PSC_PATH . 'includes/class-psc-admin-maintenance.php';

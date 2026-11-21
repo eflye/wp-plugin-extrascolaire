@@ -1,8 +1,8 @@
 <?php if (!defined('ABSPATH')) exit; ?>
-<div class="wrap psc-admin">
-<h1><?php esc_html_e('Menus', 'periscolaire-registration'); ?></h1>
-
 <?php
+/* Rendu comme onglet « Menus de la semaine » de la page « Menus »
+   (cf. Psc_Admin_Cantine::page_menus()) : ni wrap ni <h1> ici, fournis
+   par la page hôte. */
 $psc_notices = array(
     'saved'     => array('updated',  __('Menu enregistré.', 'periscolaire-registration')),
     'sent'      => array('updated',  __('Menu envoyé aux familles.', 'periscolaire-registration')),
@@ -177,5 +177,4 @@ if ($psc_menu_opted_out > 0) {
 <?php endforeach; endif; ?>
 </tbody>
 </table>
-</div>
 </div>

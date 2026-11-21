@@ -277,6 +277,30 @@ function psc_audit_action_registry() {
         'psc_retry_supplier_order' => array(
             'action' => 'commande_fournisseur.relance', 'categorie' => 'communication', 'objet' => 'commande_fournisseur', 'niveau' => 'normal',
         ),
+        // Choix des menus proposés par le fournisseur (Menus > Choix
+        // fournisseur) : aucune donnée personnelle, mais des écritures
+        // (menus remplis) et un envoi extérieur.
+        'psc_import_menu_proposition' => array(
+            'action' => 'choix_menus.depot', 'categorie' => 'configuration', 'objet' => 'choix_menus', 'niveau' => 'normal',
+        ),
+        'psc_save_menu_choix' => array(
+            'action' => 'choix_menus.enregistrement', 'categorie' => 'configuration', 'objet' => 'choix_menus', 'niveau' => 'normal',
+        ),
+        'psc_send_menu_choix' => array(
+            'action' => 'choix_menus.envoi', 'categorie' => 'communication', 'objet' => 'choix_menus', 'niveau' => 'normal',
+        ),
+        'psc_retry_menu_choix' => array(
+            'action' => 'choix_menus.relance', 'categorie' => 'communication', 'objet' => 'choix_menus', 'niveau' => 'normal',
+        ),
+        'psc_fill_menus_from_choix' => array(
+            'action' => 'choix_menus.remplissage_menus', 'categorie' => 'configuration', 'objet' => 'choix_menus', 'niveau' => 'normal',
+        ),
+        'psc_delete_menu_proposition' => array(
+            'action' => 'choix_menus.suppression', 'categorie' => 'configuration', 'objet' => 'choix_menus', 'niveau' => 'normal',
+        ),
+        // Relecture du classeur du fournisseur rempli : ni donnée
+        // personnelle, ni écriture.
+        'psc_download_menu_choix' => array('niveau' => 'ignore'),
         'psc_cancel_class_meals' => array(
             'action' => 'repas.annulation_classe', 'categorie' => 'presences', 'objet' => 'presence', 'niveau' => 'normal',
         ),

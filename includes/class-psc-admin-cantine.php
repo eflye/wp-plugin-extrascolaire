@@ -33,6 +33,11 @@ class Psc_Admin_Cantine extends Psc_Admin_Base {
         self::guard('psc_save_supplier_settings');
         $supplier_mail = isset($_POST['supplier_email']) ? sanitize_email(wp_unslash($_POST['supplier_email'])) : '';
         update_option('psc_supplier_email', is_email($supplier_mail) ? $supplier_mail : '');
+        // Nom porté en face d'« Etablissement » dans le fichier de choix
+        // des menus renvoyé au fournisseur (cf. Psc_Menu_Propositions::marks()).
+        if (isset($_POST['supplier_etablissement'])) {
+            update_option('psc_supplier_etablissement', mb_substr(sanitize_text_field(wp_unslash($_POST['supplier_etablissement'])), 0, 100));
+        }
         self::redirect('psc_supplier_orders', 'settings_saved', array('tab' => 'reglages'));
     }
 
@@ -108,8 +113,33 @@ class Psc_Admin_Cantine extends Psc_Admin_Base {
         exit;
     }
 
+    /**
+     * « Menus » réunit deux onglets : ?tab=menus (défaut, saisie et envoi
+     * du menu de la semaine) et ?tab=choix (choix des menus proposés par le
+     * fournisseur, cf. Psc_Admin_Menu_Propositions::render_tab()).
+     */
     public static function page_menus() {
         if (!current_user_can('psc_manage_presence')) wp_die(esc_html__('Accès refusé.', 'periscolaire-registration'), '', array('response' => 403));
+
+        $tab = (isset($_GET['tab']) && sanitize_key(wp_unslash($_GET['tab'])) === 'choix') ? 'choix' : 'menus';
+
+        echo '<div class="wrap psc-admin">';
+        echo '<h1>' . esc_html__('Menus', 'periscolaire-registration') . '</h1>';
+        psc_admin_tab_nav('psc_menus', array(
+            'menus' => __('Menus de la semaine', 'periscolaire-registration'),
+            'choix' => __('Choix fournisseur', 'periscolaire-registration'),
+        ), $tab);
+
+        if ($tab === 'choix') {
+            Psc_Admin_Menu_Propositions::render_tab();
+        } else {
+            self::render_menus_tab();
+        }
+
+        echo '</div>';
+    }
+
+    private static function render_menus_tab() {
 
         // Une semaine = un menu (Psc_Menus::save() les fusionne déjà par
         // semaine) : le formulaire est ancré sur la semaine, pas sur un id.

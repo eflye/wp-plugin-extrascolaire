@@ -146,3 +146,37 @@
 .psc-assurance-preview { width: 100%; height: 720px; border: 1px solid #c3c4c7; background: #fff; }
 @media (max-width: 900px) { .psc-assurance-review { grid-template-columns: 1fr; } }
 
+
+/* Choix des menus proposés par le fournisseur (Menus > Choix fournisseur). */
+.psc-admin .psc-box.psc-box-wide { max-width: none; }
+.psc-choix-nav { display: flex; flex-wrap: wrap; gap: 6px 14px; list-style: none; margin: 0 0 8px; padding: 0; }
+.psc-choix-nav li { margin: 0; }
+.psc-choix-semaine { margin: 24px 0 0; scroll-margin-top: 48px; }
+.psc-choix-semaine h3 { margin: 0 0 8px; }
+.psc-choix-table { table-layout: fixed; }
+.psc-choix-table th, .psc-choix-table td { vertical-align: top; }
+.psc-choix-table thead th:first-child, .psc-choix-table tbody th { width: 130px; }
+.psc-choix-table tbody th { font-weight: 600; }
+.psc-choix-group { border: 0; margin: 0; padding: 0; min-width: 0; }
+/* Jour et catégorie du groupe : lus par les lecteurs d'écran ; affichés
+   quand le tableau s'empile (écran étroit), l'en-tête des jours n'étant
+   alors plus au-dessus de la cellule. */
+.psc-choix-legend { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.psc-choix-option { display: block; padding: 3px 0 3px 22px; text-indent: -22px; line-height: 1.35; }
+.psc-choix-option input[type="radio"] { margin: 0 4px 0 0; text-indent: 0; }
+.psc-choix-option.psc-choix-sep { border-top: 1px dashed #a7aaad; margin-top: 4px; padding-top: 6px; }
+.psc-choix-tag { color: #50575e; font-size: 12px; }
+.psc-choix-alerte { color: #b32d2e; }
+.psc-choix-menu-etat { margin: 8px 0 0; }
+.psc-choix-resume { list-style: none; margin: 0 0 12px; padding: 0; }
+.psc-choix-resume li { margin: 0 0 6px; }
+.psc-choix-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 24px 0 0; padding: 12px 0 0; border-top: 1px solid #dcdcde; }
+.psc-choix-actions.psc-choix-actions-top { margin: 0 0 12px; padding: 0; border-top: 0; }
+@media (max-width: 960px) {
+    .psc-choix-table { table-layout: auto; }
+    .psc-choix-table, .psc-choix-table thead, .psc-choix-table tbody, .psc-choix-table tr, .psc-choix-table th, .psc-choix-table td { display: block; width: auto !important; }
+    .psc-choix-table thead { position: absolute; width: 1px !important; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .psc-choix-table td { border-top: 1px solid #f0f0f1; }
+    .psc-choix-legend { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; font-weight: 600; margin-bottom: 4px; }
+    .psc-choix-table td[data-label]::before { content: attr(data-label) " : "; font-weight: 600; }
+}

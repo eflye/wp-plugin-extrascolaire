@@ -26,6 +26,13 @@ psc_admin_notice_map($psc_notices, $psc_msg);
   <p class="description"><?php esc_html_e('Seule une personne habilitée aux réglages peut modifier cette adresse.', 'periscolaire-registration'); ?></p>
 </td>
 </tr>
+<tr>
+<th scope="row"><?php esc_html_e('Nom de l’établissement', 'periscolaire-registration'); ?></th>
+<td>
+  <?php $psc_supplier_etab = Psc_Menu_Propositions::etablissement(); ?>
+  <p data-testid="supplier-etablissement-readonly"><?php echo $psc_supplier_etab !== '' ? esc_html($psc_supplier_etab) : esc_html__('Non renseigné.', 'periscolaire-registration'); ?></p>
+</td>
+</tr>
 </table>
 <?php else: ?>
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
@@ -38,7 +45,15 @@ psc_admin_notice_map($psc_notices, $psc_msg);
   <input id="psc-supplier-mail" type="email" name="supplier_email" class="regular-text"
          value="<?php echo esc_attr(get_option('psc_supplier_email', '')); ?>"
          placeholder="cuisine@prestataire.example">
-  <p class="description"><?php esc_html_e("Destinataire de la commande hebdomadaire (onglet Commande ci-dessus).", 'periscolaire-registration'); ?></p>
+  <p class="description"><?php esc_html_e("Destinataire de la commande hebdomadaire (onglet Commande ci-dessus) et de la réponse aux choix de menus (Menus › Choix fournisseur).", 'periscolaire-registration'); ?></p>
+</td>
+</tr>
+<tr>
+<th scope="row"><label for="psc-supplier-etablissement"><?php esc_html_e('Nom de l’établissement', 'periscolaire-registration'); ?></label></th>
+<td>
+  <input id="psc-supplier-etablissement" type="text" name="supplier_etablissement" class="regular-text" maxlength="100"
+         value="<?php echo esc_attr(Psc_Menu_Propositions::etablissement()); ?>" aria-describedby="psc-supplier-etablissement-aide">
+  <p class="description" id="psc-supplier-etablissement-aide"><?php esc_html_e("Inscrit en face d'« Etablissement » sur chaque feuille du fichier de choix des menus renvoyé au fournisseur. Laissez vide pour ne rien inscrire.", 'periscolaire-registration'); ?></p>
 </td>
 </tr>
 </table>
