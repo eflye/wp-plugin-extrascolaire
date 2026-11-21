@@ -29,6 +29,7 @@ class Psc_Schema {
         $t_inv   = psc_table('invoices');
         $t_invv  = psc_table('invoice_versions');
         $t_menu  = psc_table('menus');
+        $t_mprop = psc_table('menu_propositions');
         $t_sch   = psc_table('school_calendar');
         $t_sup   = psc_table('supplier_orders');
         $t_env   = psc_table('envois');
@@ -276,6 +277,27 @@ CREATE TABLE $t_menu (
             updated_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY semaine (semaine_debut)
+        ) $charset_collate;
+
+CREATE TABLE $t_mprop (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            fichier_nom VARCHAR(191) NOT NULL,
+            fichier_path VARCHAR(500) NULL,
+            periode_debut DATE NOT NULL,
+            periode_fin DATE NOT NULL,
+            propositions_json LONGTEXT NOT NULL,
+            choix_json LONGTEXT NULL,
+            statut VARCHAR(20) NOT NULL DEFAULT 'brouillon',
+            supplier_email VARCHAR(191) NULL,
+            email_subject VARCHAR(255) NULL,
+            email_body LONGTEXT NULL,
+            sent_at DATETIME NULL,
+            menus_remplis_at DATETIME NULL,
+            created_by BIGINT UNSIGNED NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            KEY periode (periode_debut)
         ) $charset_collate;
 
 CREATE TABLE $t_sch (

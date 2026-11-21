@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 class Psc_Installer {
 
-    const DB_VERSION = '4.22.0';
+    const DB_VERSION = '4.23.0';
     const ROLES_VERSION = '1.5.0';
 
     public static function activate() {
@@ -219,7 +219,10 @@ class Psc_Installer {
             // dernière n'est retenue qu'avec la passe finale ci-dessous :
             // portée seule à DB_VERSION, une passe finale en échec ne
             // serait plus jamais retentée.
-            if ($version !== self::DB_VERSION) update_option('psc_db_version', $version);
+            // (static:: — un schéma sans étape de migration, table seulement
+            // ajoutée, n'a pas d'entrée dans STEPS : avec self::, l'analyse
+            // statique jugerait la comparaison toujours vraie.)
+            if ($version !== static::DB_VERSION) update_option('psc_db_version', $version);
         }
 
         // Deuxième passe dbDelta, après les migrations : elle vise le
