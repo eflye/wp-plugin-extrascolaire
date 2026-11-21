@@ -2,7 +2,7 @@
 
 **Rôle de ce fichier :** la seule liste vivante de ce qui reste à faire sur le plugin. Elle reprend fidèlement les points restés ouverts, partiels, mis de côté ou en risque accepté des campagnes d'audit archivées dans [`docs/audits/`](audits/), plus les points de l'audit du 27/10/2026.
 
-**Date :** 21/11/2026 (plugin 5.39.1, schéma 4.23.0).
+**Date :** 21/11/2026 (plugin 5.40.0, schéma 4.23.0).
 
 **Règle :** on met à jour **ici**, jamais dans les archives. Un point traité est retiré de ce fichier (ou déplacé dans « Décisions à ne pas rouvrir » si c'est un arbitrage) ; les archives gardent leur état figé et ne sont pas réécrites.
 
