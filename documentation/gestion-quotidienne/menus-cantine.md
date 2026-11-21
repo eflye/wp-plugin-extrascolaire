@@ -6,11 +6,11 @@ Saisissez le menu de chaque jour ouvert, vérifiez son aperçu, puis envoyez-le 
 
 ## Avant de commencer
 
-Connectez-vous avec un rôle autorisé à gérer la cantine. Préparez les plats de la prochaine semaine ouverte et, si besoin, le texte sur l'origine de la viande.
+Connectez-vous avec un rôle autorisé à gérer la cantine. Préparez les plats de la prochaine semaine ouverte et, si besoin, le texte sur l'origine de la viande. Si le fournisseur vous a envoyé son fichier de propositions, commencez par le [choix des menus du fournisseur](choix-menus-fournisseur.md) : les menus sont alors déjà remplis, il reste à les relire et à les envoyer.
 
 ## Étapes
 
-1. Ouvrez **Périscolaire › Menus** et choisissez la semaine dans **Semaine du**. Les jours de vacances ou de fermeture ne sont pas proposés.
+1. Ouvrez **Périscolaire › Menus**, onglet **Menus de la semaine**, et choisissez la semaine dans **Semaine du**. Les jours de vacances ou de fermeture ne sont pas proposés.
 2. Renseignez un plat par ligne dans le champ de chaque jour. Pour afficher un label qualité, ajoutez une étoile `*` après le nom du plat pour le label Bio, ou deux étoiles `**` pour le label Label Rouge. Sans étoile, aucun label n'est affiché.
 3. Contrôlez l'aperçu qui se met à jour sous chaque champ : les étoiles disparaissent du texte et le logo correspondant apparaît. Ajoutez l'**Origine de la viande** si cette information doit être communiquée.
 
@@ -37,5 +37,6 @@ Le menu de la semaine est lisible dans le portail famille et l'e-mail, les label
 - Côté famille : [Tableau de bord](../familles/tableau-de-bord.md) (guide des familles)
 - [Calendrier et vacances](../configuration/calendrier-vacances.md)
 - [Annulations et absences](annulations-absences.md)
+- [Choix des menus du fournisseur](choix-menus-fournisseur.md)
 - [Commande fournisseur](commande-fournisseur.md)
 - [Tableau de bord](tableau-de-bord.md)

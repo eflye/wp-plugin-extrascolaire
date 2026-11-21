@@ -26,6 +26,7 @@ Connectez-vous à WordPress avec un rôle autorisé à gérer les réglages. Les
    | **Notification mairie (nouvelle demande)** | `{{site}}` |
    | **Menu de cantine hebdomadaire** | `{{site}}`, `{{semaine}}` |
    | **Commande fournisseur (cantine & goûters)** | `{{site}}`, `{{semaine}}`, `{{total}}`, `{{gouters}}`, `{{standard}}`, `{{sans_porc}}`, `{{vegetarien}}` |
+   | **Réponse au fournisseur (choix des menus)** | `{{site}}`, `{{periode}}`, `{{etablissement}}` |
    | **Échange famille — nouveau message de la mairie** | `{{site}}` |
    | **Échange famille — nouveau message d’une famille** | `{{site}}`, `{{famille}}` |
    | **Envoi de facture** | `{{mois}}`, `{{nom}}`, `{{commune}}`, `{{total}}` |

@@ -2,7 +2,7 @@
 
 **Rôle de ce fichier :** la seule liste vivante de ce qui reste à faire sur le plugin. Elle reprend fidèlement les points restés ouverts, partiels, mis de côté ou en risque accepté des campagnes d'audit archivées dans [`docs/audits/`](audits/), plus les points de l'audit du 27/10/2026.
 
-**Date :** 27/10/2026 (plugin 5.38.1, schéma 4.22.0).
+**Date :** 21/11/2026 (plugin 5.39.1, schéma 4.23.0).
 
 **Règle :** on met à jour **ici**, jamais dans les archives. Un point traité est retiré de ce fichier (ou déplacé dans « Décisions à ne pas rouvrir » si c'est un arbitrage) ; les archives gardent leur état figé et ne sont pas réécrites.
 
@@ -99,7 +99,19 @@ Sans reste dans cet audit : P0-01, P0-02, P1-03, P1-05, P1-13, P1-14, P1-16, P1-
 | Piste | `bin/verify-performance.php` (PRA-17) vérifie par recherche de texte dans la source que le journal des réglages ne liste que les options modifiées ; un contrôle comportemental (rejouer un enregistrement sans changement, vérifier un journal vide) résisterait aux refactorings. Même idée pour les harnais d'équivalence de la PR #101 (réglages, factures, demandes) : les transformer en `bin/verify-*.php`. | développement | piste |
 | Piste | Fait (PR #91) : navigateur Playwright en cache par version (`actions/cache` sur `~/.cache/ms-playwright`, clé = version de `@playwright/test`). Le 27/10/2026, 4 exécutions E2E ont été annulées au délai de 15 min parce que le téléchargement de Chromium a pris 600 à 700 s au lieu de 25 s ; les scénarios eux-mêmes étaient verts. | développement | piste |
 
-## 5. Décisions à ne pas rouvrir
+## 5. Choix des menus du fournisseur (21/11/2026)
+
+Fonctionnalité développée le 21/11/2026 (schéma 4.23.0, table `psc_menu_propositions`) : dépôt du classeur du fournisseur, choix d'un plat par catégorie et par jour, réponse par e-mail avec le classeur rempli, remplissage des menus après l'envoi. Vérifié par `bin/verify-menu-choix.php` et `tests/menu-choix-fournisseur.spec.ts`. Restent les pistes ci-dessous.
+
+| Point | Constat (ce qui reste) | Qui débloque | Statut |
+|---|---|---|---|
+| Piste | Rouvrir les choix après l'envoi (réponse rectificative au fournisseur) : aujourd'hui les choix sont figés dès que la réponse est partie, une correction passe par un échange direct avec le fournisseur et par la saisie du menu. | mairie, puis développement | piste |
+| Piste | Reprendre dans les menus des familles les autres pictogrammes du fournisseur (local, HVE / MSC, élaboré en cuisine, contient du porc) : seule la mention « BIO » est convertie en logo, faute d'autres labels connus du plugin (`Psc_Menus::quality_labels()`). | mairie, puis développement | piste |
+| Piste | Durée de conservation des classeurs reçus : ils restent dans le répertoire privé jusqu'à leur suppression à la main (aucune donnée personnelle). Une purge au-delà d'une année scolaire les ajouterait à `psc_retention_policies()`. | développement | piste |
+| Piste | Pied de page du gabarit commun des e-mails (`templates/email/layout.php`) : texte `#8B8279` sur `#FAF6F1` en 11 px, contraste 3,5:1 (4,5:1 attendu). Relevé par axe dans l'aperçu de la réponse au fournisseur, exclu du contrôle de cet écran ; concerne tous les e-mails. | développement | piste |
+| Piste | Capture d'écran de l'onglet pour `documentation/gestion-quotidienne/choix-menus-fournisseur.md` (`npm run docs:screenshots`). | développement | piste |
+
+## 6. Décisions à ne pas rouvrir
 
 Arbitrages explicites, repris tels qu'écrits dans les archives et dans [AGENTS.md](../AGENTS.md). Une nouvelle décision de la mairie ou du DPO est nécessaire pour en changer.
 
@@ -110,6 +122,7 @@ Arbitrages explicites, repris tels qu'écrits dans les archives et dans [AGENTS.
 | Factures émises | **Une facture émise n'est jamais réécrite ni supprimée**, même lors d'un effacement RGPD. Une rectification crée une nouvelle version (`-R2`…), l'ancienne reste archivée avec son PDF ; elle n'est déclenchée que par un changement de déclarations ou un tarif / statut daté dans le mois. Le PDF conservé garde l'identité sous laquelle il a été émis ; la ligne parent est anonymisée sur place. | 26/09/2026, P1-16 (validé par la facturation et la mairie), P1-09 ; AUDIT §2 |
 | Conservation des factures | 10 ans révolus après la fin de l'année de facturation (10 ans minimum) ; purge quotidienne **désactivée par défaut**, activable dans Réglages › Confidentialité. | 15/10/2026, RGPD-08 |
 | Règle de facturation d'une journée | Une journée complète (matin, midi, soir) est facturée au forfait ou au forfait sans repas, sans jamais dépasser la somme de ses créneaux ; sinon chaque créneau au tarif unitaire. S'applique aux factures non envoyées ; une facture envoyée n'est jamais rectifiée par le seul changement de règle (`psc_billing_rule_version` dans l'instantané). Montants calculés en **centimes entiers**. | 26/09/2026, P1-15, P1-16 ; AGENTS §4.1 |
+| Choix des menus du fournisseur | La réponse au fournisseur est **son propre classeur, renvoyé rempli** : une croix dans la colonne « Enf » en face du plat retenu, un seul plat par catégorie et par jour (options et végétarien compris), rien dans la colonne « Ad », aucun accompagnement pour un plat complet, nom de l'établissement inscrit sur chaque feuille. **Les menus ne sont remplis qu'après l'envoi de la réponse** ; un menu déjà envoyé aux familles n'est jamais remplacé sans confirmation. Les menus des familles reprennent les cinq lignes telles quelles, avec le seul logo Bio. | 21/11/2026, mairie (photos des feuilles remplies à la main) |
 | Cantine sans repas | **Seul mécanisme pour l'enfant allergique** : le statut « cantine sans repas » posé par la mairie, daté. Le texte libre des allergies est supprimé partout (migration 4.20.0 : tout texte converti en signalement, colonne supprimée), le rapprochement des allergies retiré ; la commande fournisseur ne dépend que de ce statut (ni repas ni goûter). La famille ne fournit qu'un signalement booléen, sans détail médical ; la mairie décide après échange oral. | 15/10/2026, RGPD-10 ; 24/09/2026, P1-06 |
 | Purges RGPD | Un foyer sans enfant et sans activité depuis la durée de conservation des enfants est supprimé via `delete_family()` (anonymisé s'il reste des factures) ; une demande `pending` est purgée au bout de **180 jours** ; un enfant sans ligne d'année est purgé d'après sa date de création ; enfants sortis purgés 400 jours après la sortie ; échanges 395 jours ; journal d'audit 180, 365 ou 1 095 jours selon le niveau ; consultations mairie 365 jours. | 15/10/2026, RGPD-01 ; P2-08, P1-11 |
 | Attestations d'assurance | Conservées jusqu'au 30 septembre qui suit la fin de leur année scolaire, puis supprimées (fichier et colonnes `assurance_*`) ; l'année active est toujours conservée. | 15/10/2026, RGPD-11 |
