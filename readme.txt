@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.40.0
+Stable tag: 5.41.0
 License: GPLv2 or later
 
 == Description ==
@@ -31,8 +31,9 @@ l'administration WordPress) : tableau de bord avec liste de tâches, calendrier
 scolaire (import automatique zone C), configuration de l'année scolaire
 (dates, vacances, fériés), modération des demandes, familles, enfants (avec
 bascule de classe automatique à la rentrée), menus de cantine, choix des
-menus proposés par le fournisseur, commande fournisseur hebdomadaire, facturation mensuelle en PDF, et export CSV pour la
-comptabilité.
+menus proposés par le fournisseur et report de ses notes de changement,
+commande fournisseur hebdomadaire, facturation mensuelle en PDF, et export
+CSV pour la comptabilité.
 
 Depuis une fiche famille, un agent habilité peut aussi ouvrir exactement son
 espace en lecture seule pendant 30 minutes afin de diagnostiquer un problème,
@@ -351,6 +352,14 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.41.0 =
+Schéma de base 4.24.0 (une table ajoutée, mise à jour automatique à l'installation ; aucune donnée existante n'est modifiée).
+
+* **Notes de changement du fournisseur (Périscolaire › Menus, nouvel onglet « Notes du fournisseur ») :** déposez la note Word (.docx) par laquelle le fournisseur de repas annonce un remplacement de dernière minute (« la tomme noire est remplacée par du camembert »). La page reprend le texte de la note et retient comme jour concerné la date qui figure dans le nom du fichier ; vous pouvez la corriger.
+* **Menu corrigé proposé, jamais imposé :** le menu actuel du jour s'affiche à côté d'un menu corrigé, déjà rempli avec les remplacements reconnus. La lecture automatique n'est qu'une aide : vous relisez et modifiez librement ce menu, puis vous l'enregistrez. Rien n'est modifié tant que vous n'avez pas enregistré, et seul le jour concerné est remplacé.
+* **Aucun e-mail automatique aux familles :** un menu déjà envoyé est corrigé dans le backoffice et dans l'espace des familles, sans nouvel envoi. Pour les prévenir, renvoyez le menu depuis « Menus de la semaine ».
+* **Suivi :** chaque note garde son état (à confirmer, appliquée au menu, classée sans modification) et les lignes modifiées ; une note qui ne vous concerne pas se classe sans toucher au menu.
 
 = 5.40.0 =
 Schéma de base 4.23.0 (une table ajoutée, mise à jour automatique à l'installation ; aucune donnée existante n'est modifiée).
