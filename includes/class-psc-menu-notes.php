@@ -353,7 +353,9 @@ class Psc_Menu_Notes {
      * sur le seul jour concerné ; son envoi aux familles n'est ni refait ni
      * modifié.
      *
-     * @param mixed $texte Menu du jour corrigé : une chaîne, un plat par ligne (toute autre valeur vaut un menu vide).
+     * @param mixed $texte Menu du jour corrigé : ses plats rangés par type (array(type => texte), un plat par
+     *                     ligne — les types sont alors enregistrés avec le menu), ou une chaîne, un plat par
+     *                     ligne (toute autre valeur vaut un menu vide).
      * @return int|WP_Error Nombre de lignes modifiées, ajoutées ou retirées.
      */
     public static function apply($id, $texte) {
@@ -370,10 +372,22 @@ class Psc_Menu_Notes {
             return new WP_Error('psc_note_sans_menu', __('Aucun menu n’est enregistré pour ce jour : il n’y a rien à corriger.', 'periscolaire-registration'));
         }
 
-        $lines = array();
-        foreach (preg_split('/\r\n|\r|\n/', is_scalar($texte) ? (string) $texte : '') as $line) {
-            $line = mb_substr(sanitize_text_field($line), 0, 200);
-            if ($line !== '') $lines[] = $line;
+        $clean = function ($value) {
+            $lines = array();
+            foreach (preg_split('/\r\n|\r|\n/', is_scalar($value) ? (string) $value : '') as $line) {
+                $line = mb_substr(sanitize_text_field($line), 0, 200);
+                if ($line !== '') $lines[] = $line;
+            }
+            return $lines;
+        };
+        if (is_array($texte)) {
+            $corrige = array();
+            foreach (Psc_Menus::TYPES as $type) $corrige[$type] = implode("\n", $clean($texte[$type] ?? ''));
+            $day   = Psc_Menus::compose($corrige);
+            $lines = $day['texte'] === '' ? array() : explode("\n", $day['texte']);
+        } else {
+            $lines   = $clean($texte);
+            $corrige = implode("\n", $lines);
         }
         if (!$lines) {
             return new WP_Error('psc_note_vide', __('Le menu du jour ne peut pas être vide.', 'periscolaire-registration'));
@@ -391,7 +405,7 @@ class Psc_Menu_Notes {
         $menu  = $ctx['menu'];
         $jours = array();
         foreach (Psc_Menus::JOURS as $jour) $jours[$jour] = (string) $menu->$jour;
-        $jours[$ctx['jour']] = implode("\n", $lines);
+        $jours[$ctx['jour']] = $corrige;
         $saved = Psc_Menus::save((int) $menu->id, $ctx['semaine'], $jours);
         if (is_wp_error($saved) || !$saved) {
             return new WP_Error('psc_note_stockage', __('Le menu n’a pas pu être corrigé.', 'periscolaire-registration'));

@@ -16,6 +16,26 @@ class Psc_Menus {
     /** Décalage en jours depuis le lundi de la semaine. */
     const JOUR_OFFSETS = array('lundi' => 0, 'mardi' => 1, 'jeudi' => 3, 'vendredi' => 4);
 
+    /**
+     * Types de plat, dans l'ordre du service (mêmes clés que
+     * Psc_Menu_Xlsx::CATEGORIES). Le type de chaque ligne d'un jour est
+     * enregistré dans la colonne `<jour>_types`, à côté du texte.
+     */
+    const TYPES = array('entree', 'plat', 'accompagnement', 'fromage', 'dessert');
+
+    /** Longueur des colonnes `<jour>_types`. */
+    const TYPES_MAX = 255;
+
+    public static function type_labels() {
+        return array(
+            'entree'         => __('Entrée', 'periscolaire-registration'),
+            'plat'           => __('Plat', 'periscolaire-registration'),
+            'accompagnement' => __('Accompagnement', 'periscolaire-registration'),
+            'fromage'        => __('Fromage / Laitage', 'periscolaire-registration'),
+            'dessert'        => __('Dessert', 'periscolaire-registration'),
+        );
+    }
+
     /** Règles partagées avec l’aperçu local : l’ordre des suffixes est significatif. */
     public static function label_rules() {
         return array('suffixes' => array('label_rouge' => '\*\*\s*$', 'bio' => '\*\s*$'), 'cleanup' => array('\*+\s*$', '\*+'));
@@ -38,6 +58,71 @@ class Psc_Menus {
         return $out;
     }
 
+    /** Lignes de plats d'un texte, brutes : exactement celles que parse_menu_lines() retient. */
+    public static function lines($raw): array {
+        $out = array();
+        foreach (preg_split('/\r\n|\r|\n/', (string) $raw) as $line) {
+            $line = trim($line);
+            if ($line !== '' && self::parse_menu_lines($line)) $out[] = $line;
+        }
+        return $out;
+    }
+
+    /**
+     * Type de chaque ligne d'un jour, ou tableau vide quand les types ne
+     * sont pas fiables : menu saisi avant le schéma 4.25.0, texte réécrit
+     * sans ses types, liste qui ne compte pas autant d'éléments que le
+     * texte de lignes. L'affichage retombe alors sur la liste sans type.
+     */
+    public static function types_of($raw, $types): array {
+        $list = array_values(array_filter(explode(',', (string) $types), function ($type) { return $type !== ''; }));
+        if (!$list || count($list) !== count(self::lines($raw))) return array();
+        foreach ($list as $type) {
+            if (!in_array($type, self::TYPES, true)) return array();
+        }
+        return $list;
+    }
+
+    /**
+     * Texte et types d'un jour à partir de ses plats rangés par type
+     * (un plat par ligne dans chaque type).
+     *
+     * @param array $par_type array(type => texte)
+     * @return array array('texte' => un plat par ligne, 'types' => types des lignes, séparés par des virgules)
+     */
+    public static function compose(array $par_type): array {
+        $lines = array();
+        $types = array();
+        foreach (self::TYPES as $type) {
+            $value = isset($par_type[$type]) && is_scalar($par_type[$type]) ? (string) $par_type[$type] : '';
+            foreach (self::lines($value) as $line) {
+                $lines[] = $line;
+                $types[] = $type;
+            }
+        }
+        return array('texte' => implode("\n", $lines), 'types' => implode(',', $types));
+    }
+
+    /**
+     * Plats d'un jour rangés par type, pour les champs du backoffice. Sans
+     * types fiables (cf. types_of()), les lignes sont réparties dans l'ordre
+     * du service — la première en entrée, la deuxième en plat… le surplus
+     * en dessert — et la mairie corrige avant d'enregistrer : rien n'est
+     * deviné en base.
+     *
+     * @return array array(type => texte, un plat par ligne), tous les types présents.
+     */
+    public static function par_type($raw, $types = ''): array {
+        $out  = array_fill_keys(self::TYPES, array());
+        $list = self::types_of($raw, $types);
+        $last = count(self::TYPES) - 1;
+        foreach (self::lines($raw) as $i => $line) {
+            $out[$list ? $list[$i] : self::TYPES[min($i, $last)]][] = $line;
+        }
+        foreach ($out as $type => $lines) $out[$type] = implode("\n", $lines);
+        return $out;
+    }
+
     public static function quality_labels() {
         return array(
             'bio' => array('url' => PSC_URL . 'assets/img/logo-ab.png', 'alt' => __("Issu de l'agriculture biologique", 'periscolaire-registration'), 'legend' => __('Plat préparé avec des ingrédients issus de l’agriculture biologique.', 'periscolaire-registration')),
@@ -52,16 +137,68 @@ class Psc_Menus {
         return '<img src="' . esc_url($item['url']) . '" alt="' . esc_attr($item['alt']) . '" title="' . esc_attr($item['alt']) . '" height="' . (int) $height . '" style="height:' . (int) $height . 'px;width:auto;max-width:none;flex:none;border:0;display:inline-block;vertical-align:middle;">';
     }
 
-    /** HTML échappé partagé par le portail, le tableau de bord, l’impression et l’e-mail. */
-    public static function render_dishes($raw, $context = 'frontend') {
-        $html = '';
+    /**
+     * HTML échappé partagé par le portail, le tableau de bord, l’impression
+     * et l’e-mail. Avec des types fiables ($types, cf. types_of()), chaque
+     * type renseigné précède ses plats ; un type sans plat n'apparaît pas.
+     */
+    public static function render_dishes($raw, $context = 'frontend', $types = '') {
+        $dishes = array();
         foreach (self::parse_menu_lines((string) $raw) as $dish) {
             $style = $context === 'email' ? 'margin:0 0 5px;color:#24405C;' : 'display:flex;align-items:center;gap:8px;color:#24405C;';
-            $html .= '<div class="psc-menu-dish" style="' . $style . '"><span>' . esc_html($dish['name']) . '</span>';
+            $html  = '<div class="psc-menu-dish" style="' . $style . '"><span>' . esc_html($dish['name']) . '</span>';
             if ($dish['label']) $html .= ' ' . self::label_image($dish['label'], $context === 'preview' ? 16 : 22);
-            $html .= '</div>';
+            $dishes[] = $html . '</div>';
         }
-        return $html;
+        $list = self::types_of($raw, $types);
+        if (!$list) return implode('', $dishes);
+
+        $groups = array();
+        foreach ($dishes as $i => $html) {
+            $last = count($groups) - 1;
+            if ($last >= 0 && $groups[$last]['type'] === $list[$i]) $groups[$last]['html'] .= $html;
+            else $groups[] = array('type' => $list[$i], 'html' => $html);
+        }
+        $labels = self::type_labels();
+        if ($context === 'email') {
+            $out = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">';
+            foreach ($groups as $group) {
+                $out .= '<tr><td style="width:120px;padding:1px 10px 0 0;vertical-align:top;color:#4E6C8D;font-size:12px;font-weight:bold;">' . esc_html($labels[$group['type']]) . '</td>'
+                    . '<td style="padding:0;vertical-align:top;">' . $group['html'] . '</td></tr>';
+            }
+            return $out . '</table>';
+        }
+        $out = '<dl class="psc-menu-types" style="margin:0;">';
+        foreach ($groups as $group) {
+            $out .= '<div class="psc-menu-type" data-type="' . esc_attr($group['type']) . '" style="display:flex;flex-wrap:wrap;align-items:baseline;gap:0 12px;margin:0 0 4px;">'
+                . '<dt style="flex:0 0 9.5em;margin:0;color:#4E6C8D;font-size:.85em;font-weight:600;">' . esc_html($labels[$group['type']]) . '</dt>'
+                . '<dd style="flex:1 1 9em;min-width:0;margin:0;">' . $group['html'] . '</dd></div>';
+        }
+        return $out . '</dl>';
+    }
+
+    /**
+     * Champs de saisie d'un jour dans le backoffice : un champ par type,
+     * toujours affichés tous les cinq, un plat par ligne dans chacun.
+     *
+     * @param string $name     Nom du champ de formulaire (« lundi » → lundi[entree]…).
+     * @param string $id       Préfixe des identifiants HTML.
+     * @param array  $par_type array(type => texte), cf. par_type().
+     * @param bool   $preview  Ajoute la zone d'aperçu alimentée par menu-preview.js.
+     */
+    public static function render_type_fields($name, $id, array $par_type, $preview = false) {
+        $html = '<div class="psc-menu-type-fields">';
+        foreach (self::type_labels() as $type => $label) {
+            $value = isset($par_type[$type]) ? (string) $par_type[$type] : '';
+            $field = $id . '-' . $type;
+            $html .= '<div class="psc-menu-type-field">'
+                . '<label for="' . esc_attr($field) . '">' . esc_html($label) . '</label>'
+                . '<div><textarea id="' . esc_attr($field) . '" name="' . esc_attr($name . '[' . $type . ']') . '" rows="' . (int) max(1, count(self::lines($value))) . '" class="large-text" maxlength="400"'
+                . ($preview ? ' data-menu-input' : '') . '>' . esc_textarea($value) . '</textarea>';
+            if ($preview) $html .= '<div class="psc-menu-preview" data-menu-preview>' . self::render_dishes($value, 'preview') . '</div>';
+            $html .= '</div></div>';
+        }
+        return $html . '</div>';
     }
 
     public static function render_legend(array $days) {
@@ -152,6 +289,12 @@ class Psc_Menus {
      * mise à jour — évite un doublon si l'admin déplace la date d'un menu
      * en édition vers une semaine déjà saisie par ailleurs.
      *
+     * Chaque jour de $jours est soit ses plats rangés par type
+     * (array(type => texte), cf. compose()) — le type de chaque ligne est
+     * alors enregistré —, soit un texte seul : ses types sont conservés si
+     * le texte du jour ne change pas, effacés sinon (ils ne décriraient
+     * plus les bonnes lignes).
+     *
      * Renvoie l'id du menu, ou un WP_Error si la semaine est invalide.
      */
     public static function save($id, $semaine_debut, array $jours, $origine_viande = null) {
@@ -166,17 +309,35 @@ class Psc_Menus {
         // Un jour fermé (vacances, férié, fermeture ponctuelle) n'a jamais de
         // contenu, quoi que le formulaire ait pu envoyer — appliqué ici aussi
         // (pas seulement à l'affichage) car c'est la seule garantie fiable.
-        $open   = self::open_days($semaine);
+        $open     = self::open_days($semaine);
+        $existing = self::get_by_week($semaine);
+        // Référence pour conserver les types d'un jour dont le texte ne
+        // change pas (appelants qui ne transmettent que du texte).
+        $before = $existing ?: (absint($id) ? self::get($id) : null);
         $data   = array('semaine_debut' => $semaine, 'updated_at' => current_time('mysql'));
         $format = array('%s', '%s');
         foreach (self::JOURS as $jour) {
-            $data[$jour] = (isset($open[$jour]) && isset($jours[$jour]))
-                ? mb_substr(sanitize_textarea_field($jours[$jour]), 0, 2000)
-                : '';
-            $format[]    = '%s';
+            $value = (isset($open[$jour]) && isset($jours[$jour])) ? $jours[$jour] : '';
+            if (is_array($value)) {
+                $par_type = array();
+                foreach (self::TYPES as $type) {
+                    $par_type[$type] = isset($value[$type]) && is_scalar($value[$type]) ? sanitize_textarea_field((string) $value[$type]) : '';
+                }
+                $day   = self::compose($par_type);
+                $text  = mb_substr($day['texte'], 0, 2000);
+                // Un texte tronqué perd ses dernières lignes : leurs types aussi.
+                $types = implode(',', array_slice(explode(',', $day['types']), 0, count(self::lines($text))));
+            } else {
+                $text  = mb_substr(sanitize_textarea_field(is_scalar($value) ? (string) $value : ''), 0, 2000);
+                $types = ($before && (string) $before->$jour === $text && isset($before->{$jour . '_types'})) ? (string) $before->{$jour . '_types'} : '';
+            }
+            if (strlen($types) > self::TYPES_MAX) $types = '';
+            $data[$jour]            = $text;
+            $data[$jour . '_types'] = $types;
+            $format[]               = '%s';
+            $format[]               = '%s';
         }
 
-        $existing = self::get_by_week($semaine);
         if ($existing) {
             $id = (int) $existing->id;
         }
