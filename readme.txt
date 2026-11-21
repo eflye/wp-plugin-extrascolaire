@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.39.1
+Stable tag: 5.40.0
 License: GPLv2 or later
 
 == Description ==
@@ -30,8 +30,8 @@ La mairie centralise tout dans un backoffice dédié (menu "Périscolaire" dans
 l'administration WordPress) : tableau de bord avec liste de tâches, calendrier
 scolaire (import automatique zone C), configuration de l'année scolaire
 (dates, vacances, fériés), modération des demandes, familles, enfants (avec
-bascule de classe automatique à la rentrée), menus de cantine, commande
-fournisseur hebdomadaire, facturation mensuelle en PDF, et export CSV pour la
+bascule de classe automatique à la rentrée), menus de cantine, choix des
+menus proposés par le fournisseur, commande fournisseur hebdomadaire, facturation mensuelle en PDF, et export CSV pour la
 comptabilité.
 
 Depuis une fiche famille, un agent habilité peut aussi ouvrir exactement son
@@ -351,6 +351,15 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.40.0 =
+Schéma de base 4.23.0 (une table ajoutée, mise à jour automatique à l'installation ; aucune donnée existante n'est modifiée).
+
+* **Choix des menus du fournisseur (Périscolaire › Menus, nouvel onglet « Choix fournisseur ») :** déposez le fichier Excel de propositions reçu du fournisseur de repas, retenez à l'écran un plat par catégorie (entrée, plat, accompagnement, fromage ou laitage, dessert) pour chaque jour de cantine, puis envoyez la réponse. La suggestion de la diététicienne est cochée d'avance ; les mercredis, les vacances et les jours fermés au calendrier ne sont pas proposés.
+* **Réponse au fournisseur :** il reçoit par e-mail son propre fichier rempli, une croix dans la colonne « Enf » en face de chaque plat retenu et le nom de l'établissement sur chaque feuille. Le fichier rempli se télécharge avant l'envoi pour être relu. Un envoi en échec se relance sans rien ressaisir.
+* **Menus remplis automatiquement :** une fois la réponse partie, les menus des semaines choisies sont remplis, un plat par ligne, avec le logo Bio pour les plats signalés « BIO ». Ils restent des brouillons : l'envoi aux familles se fait toujours à la main. Un menu déjà envoyé aux familles n'est jamais remplacé sans confirmation.
+* **Réglages :** le nom de l'établissement inscrit sur le fichier se règle dans Commande fournisseur › Réglages, à côté de l'adresse du fournisseur ; le texte de l'e-mail est le nouveau modèle « Réponse au fournisseur (choix des menus) ».
+* **Page Menus :** l'écran de saisie habituel devient l'onglet « Menus de la semaine », sans autre changement.
 
 = 5.39.1 =
 Aucun changement de schéma de base, aucun changement visible.
