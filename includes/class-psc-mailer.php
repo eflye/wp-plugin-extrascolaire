@@ -549,10 +549,31 @@ class Psc_Mailer {
 
     /**
      * Envoie un sujet et un HTML déjà construits (commande fournisseur
-     * enregistrée avant son envoi, cf. Psc_Supplier_Orders::deliver()).
+     * enregistrée avant son envoi, cf. Psc_Supplier_Orders::deliver() ; réponse
+     * au fournisseur avec son fichier joint, cf. Psc_Menu_Propositions::deliver()).
      */
-    public static function send_raw($to, $subject, $html) {
-        return (bool) self::send($to, $subject, $html);
+    public static function send_raw($to, $subject, $html, $attachments = array()) {
+        return (bool) self::send($to, $subject, $html, $attachments);
+    }
+
+    /**
+     * Construit le sujet et le HTML de la réponse au fournisseur (choix des
+     * menus) SANS l'envoyer : utilisé par l'aperçu avant envoi et par
+     * l'envoi, qui enregistre ce rendu (cf. Psc_Menu_Propositions::send()).
+     * Le fichier rempli part en pièce jointe.
+     */
+    public static function build_menu_choices($proposition) {
+        $vars = array(
+            'site'          => self::site_name(),
+            'periode'       => Psc_Menu_Propositions::periode_label($proposition),
+            'etablissement' => Psc_Menu_Propositions::etablissement(),
+        );
+        $subject = Psc_Email_Templates::subject('menu_choices', $vars);
+        /* translators: %s: nom du fichier joint. */
+        $piece = sprintf(__('Pièce jointe : %s', 'periscolaire-registration'), Psc_Menu_Propositions::response_name($proposition));
+        $body  = self::intro('menu_choices', $vars) . self::info_box(esc_html($piece));
+
+        return array('subject' => $subject, 'html' => self::layout($body, $subject));
     }
 
     /**

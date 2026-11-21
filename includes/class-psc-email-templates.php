@@ -163,6 +163,13 @@ class Psc_Email_Templates {
                 'has_footer' => true,
                 'footer'  => __('Service périscolaire — Montgeroult Courcelles', 'periscolaire-registration'),
             ),
+            'menu_choices' => array(
+                'label'   => __('Réponse au fournisseur (choix des menus)', 'periscolaire-registration'),
+                'subject' => __('[{{site}}] Choix des menus — {{periode}}', 'periscolaire-registration'),
+                'body'    => __("Bonjour,\n\nVeuillez trouver ci-joint nos choix de menus pour la période du {{periode}}.\n\nCordialement,\n{{etablissement}}", 'periscolaire-registration'),
+                'vars'    => array('{{site}}', '{{periode}}', '{{etablissement}}'),
+                'note'    => __('Le fichier du fournisseur, rempli avec les choix de la mairie, est joint automatiquement.', 'periscolaire-registration'),
+            ),
             'conversation_famille' => array(
                 'label'   => __('Échange famille — nouveau message de la mairie', 'periscolaire-registration'),
                 'subject' => __('[{{site}}] Nouveau message de la mairie', 'periscolaire-registration'),
