@@ -2,14 +2,14 @@
 # This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Périscolaire - Inscriptions 5.39.1\n"
+"Project-Id-Version: Périscolaire - Inscriptions 5.40.0\n"
 "Report-Msgid-Bugs-To: https://github.com/eflye/wp-plugin-extrascolaire/issues\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Mairie de Montgeroult\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-21T10:45:24+00:00\n"
+"POT-Creation-Date: 2026-11-21T14:53:05+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: periscolaire-registration\n"
@@ -762,7 +762,8 @@ msgid "Le fichier est vide ou dépasse la taille maximale acceptée (%s)."
 msgstr ""
 
 #: includes/class-psc-admin-menu-propositions.php:176
-#: includes/class-psc-menu-xlsx.php:140
+#: includes/class-psc-menu-docx.php:75
+#: includes/class-psc-menu-xlsx.php:164
 msgid "Les extensions PHP Zip et DOM sont requises pour lire ce fichier."
 msgstr ""
 
@@ -3360,6 +3361,74 @@ msgstr ""
 msgid "Motif communiqué :"
 msgstr ""
 
+#: includes/class-psc-menu-docx.php:66
+msgid "Aucun texte n’a été trouvé dans ce document."
+msgstr ""
+
+#: includes/class-psc-menu-docx.php:77
+#: includes/class-psc-menu-xlsx.php:166
+msgid "Le fichier n’a pas pu être lu."
+msgstr ""
+
+#: includes/class-psc-menu-docx.php:79
+#: includes/class-psc-menu-xlsx.php:168
+msgid "Le fichier est vide ou dépasse 10 Mo."
+msgstr ""
+
+#: includes/class-psc-menu-docx.php:81
+#: includes/class-psc-menu-notes.php:151
+msgid "Ce fichier n’est pas un document Word (.docx)."
+msgstr ""
+
+#: includes/class-psc-menu-notes.php:39
+msgid "À confirmer"
+msgstr ""
+
+#: includes/class-psc-menu-notes.php:40
+msgid "Appliquée au menu"
+msgstr ""
+
+#: includes/class-psc-menu-notes.php:41
+msgid "Ignorée"
+msgstr ""
+
+#: includes/class-psc-menu-notes.php:174
+msgid "La note n’a pas pu être enregistrée."
+msgstr ""
+
+#: includes/class-psc-menu-notes.php:333
+msgid "Cette note n’existe plus."
+msgstr ""
+
+#: includes/class-psc-menu-notes.php:335
+msgid "Cette note a déjà été traitée."
+msgstr ""
+
+#: includes/class-psc-menu-notes.php:346
+#: includes/class-psc-menu-notes.php:365
+msgid "Indiquez le jour de repas concerné par la note."
+msgstr ""
+
+#: includes/class-psc-menu-notes.php:367
+msgid "Ce jour n’est pas un jour de cantine (mercredi, week-end, vacances ou fermeture)."
+msgstr ""
+
+#: includes/class-psc-menu-notes.php:370
+msgid "Aucun menu n’est enregistré pour ce jour : il n’y a rien à corriger."
+msgstr ""
+
+#: includes/class-psc-menu-notes.php:379
+msgid "Le menu du jour ne peut pas être vide."
+msgstr ""
+
+#: includes/class-psc-menu-notes.php:388
+msgid "Le menu corrigé est identique au menu actuel : rien n’a été modifié."
+msgstr ""
+
+#: includes/class-psc-menu-notes.php:397
+msgid "Le menu n’a pas pu être corrigé."
+msgstr ""
+
 #: includes/class-psc-menu-propositions.php:39
 msgid "Entrée"
 msgstr ""
@@ -3399,13 +3468,8 @@ msgid "%1$s au %2$s"
 msgstr ""
 
 #: includes/class-psc-menu-propositions.php:100
-#: includes/class-psc-menu-xlsx.php:151
-#: includes/class-psc-menu-xlsx.php:155
-#: includes/class-psc-menu-xlsx.php:168
-#: includes/class-psc-menu-xlsx.php:175
-#: includes/class-psc-menu-xlsx.php:188
-#: includes/class-psc-menu-xlsx.php:196
-#: includes/class-psc-menu-xlsx.php:229
+#: includes/class-psc-menu-xlsx.php:170
+#: includes/class-psc-menu-xlsx.php:201
 msgid "Ce fichier n’est pas un classeur Excel (.xlsx)."
 msgstr ""
 
@@ -3429,11 +3493,11 @@ msgid "Etablissement :"
 msgstr ""
 
 #: includes/class-psc-menu-propositions.php:377
-#: includes/class-psc-menu-xlsx.php:511
-#: includes/class-psc-menu-xlsx.php:515
-#: includes/class-psc-menu-xlsx.php:528
-#: includes/class-psc-menu-xlsx.php:534
-#: includes/class-psc-menu-xlsx.php:538
+#: includes/class-psc-menu-xlsx.php:483
+#: includes/class-psc-menu-xlsx.php:487
+#: includes/class-psc-menu-xlsx.php:500
+#: includes/class-psc-menu-xlsx.php:506
+#: includes/class-psc-menu-xlsx.php:510
 msgid "Le fichier rempli n’a pas pu être produit."
 msgstr ""
 
@@ -3446,17 +3510,8 @@ msgstr ""
 msgid "La réponse n’a pas pu être enregistrée : rien n’a été envoyé."
 msgstr ""
 
-#: includes/class-psc-menu-xlsx.php:126
+#: includes/class-psc-menu-xlsx.php:123
 msgid "Aucune semaine de menus n’a été reconnue dans ce fichier."
-msgstr ""
-
-#: includes/class-psc-menu-xlsx.php:143
-msgid "Le fichier n’a pas pu être lu."
-msgstr ""
-
-#: includes/class-psc-menu-xlsx.php:148
-#: includes/class-psc-menu-xlsx.php:171
-msgid "Le fichier est vide ou dépasse 10 Mo."
 msgstr ""
 
 #: includes/class-psc-menus.php:43

@@ -50,6 +50,8 @@ require_once PSC_PATH . 'includes/class-psc-menus.php';
 require_once PSC_PATH . 'includes/class-psc-ooxml.php';
 require_once PSC_PATH . 'includes/class-psc-menu-xlsx.php';
 require_once PSC_PATH . 'includes/class-psc-menu-propositions.php';
+require_once PSC_PATH . 'includes/class-psc-menu-docx.php';
+require_once PSC_PATH . 'includes/class-psc-menu-notes.php';
 require_once PSC_PATH . 'includes/class-psc-messages.php';
 require_once PSC_PATH . 'includes/class-psc-messages-admin.php';
 require_once PSC_PATH . 'includes/class-psc-messages-frontend.php';
