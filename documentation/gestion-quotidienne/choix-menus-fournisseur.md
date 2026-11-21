@@ -11,7 +11,7 @@ Connectez-vous avec un rôle autorisé à gérer la cantine. Enregistrez sur vot
 ## Étapes
 
 1. Ouvrez **Périscolaire › Menus**, onglet **Choix fournisseur**. Sous **Déposer le fichier du fournisseur**, choisissez le fichier reçu puis cliquez sur **Déposer le fichier**. Rien n'est envoyé à cette étape.
-2. La page affiche une semaine par feuille du fichier. Pour chaque jour de cantine, retenez un plat par catégorie : **Entrée**, **Plat**, **Accompagnement**, **Fromage / laitage**, **Dessert**. La suggestion de la diététicienne est cochée d'avance. Les plats marqués *(option)* sont les substitutions permanentes du fournisseur, celui marqué *(végétarien)* est le plat végétarien du jour.
+2. La page affiche une semaine par feuille du fichier. Pour chaque jour de cantine, retenez un plat par catégorie : **Entrée**, **Plat**, **Accompagnement**, **Fromage / Laitage**, **Dessert**. La suggestion de la diététicienne est cochée d'avance. Les plats marqués *(option)* sont les substitutions permanentes du fournisseur, celui marqué *(végétarien)* est le plat végétarien du jour.
 3. Cochez **Aucun** pour ne rien commander dans une catégorie, par exemple l'accompagnement d'un plat complet.
 
     !!! note
@@ -21,7 +21,7 @@ Connectez-vous avec un rôle autorisé à gérer la cantine. Enregistrez sur vot
 5. Sur la page de vérification, relisez le destinataire, le nombre de plats cochés et le tableau de chaque semaine. Cliquez sur **Télécharger le fichier rempli pour le relire** si vous voulez voir le fichier tel que le fournisseur le recevra : une croix figure dans la colonne « Enf » en face de chaque plat retenu.
 6. Sous chaque semaine, une phrase indique ce qu'il adviendra du menu : créé, remplacé s'il existait sans avoir été envoyé, ou laissé tel quel s'il a déjà été envoyé aux familles.
 7. Cliquez sur **Envoyer la réponse au fournisseur**. Le fournisseur reçoit un e-mail avec son fichier rempli en pièce jointe. Pour corriger un choix avant l'envoi, cliquez sur **Modifier les choix**.
-8. Une fois la réponse partie, les menus des semaines choisies sont remplis : un plat par ligne, avec le logo Bio pour les plats que le fournisseur signale « BIO ». Ils restent des brouillons. Ouvrez l'onglet **Menus de la semaine** pour les relire, les compléter et les [envoyer aux familles](menus-cantine.md).
+8. Une fois la réponse partie, les menus des semaines choisies sont remplis : chaque plat est rangé dans son type (entrée, plat, accompagnement, fromage / laitage, dessert), avec le logo Bio pour les plats que le fournisseur signale « BIO ». Ils restent des brouillons. Si un menu identique existait déjà sans type, ses types sont ajoutés sans rien changer à son texte. Ouvrez l'onglet **Menus de la semaine** pour les relire, les compléter et les [envoyer aux familles](menus-cantine.md).
 9. Si un menu avait déjà été envoyé aux familles pour une des semaines, il n'est pas modifié. Pour le remplacer malgré tout, cliquez sur **Remplacer le menu du…** sous la semaine concernée, puis renvoyez-le aux familles.
 
     !!! warning
