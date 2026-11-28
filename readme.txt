@@ -4,7 +4,7 @@ Tags: périscolaire, mairie, inscription, cantine, garderie
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 5.42.0
+Stable tag: 5.42.1
 License: GPLv2 or later
 
 == Description ==
@@ -352,6 +352,14 @@ La trace lisible entre deux mises à jour, côté mairie : le garde-fou de la
 release (tag refusé s'il ne correspond pas à PSC_VERSION) garantit la
 numérotation, il ne reste qu'à tenir cette section à chaque tag. L'historique
 complet, commit par commit, reste dans le dépôt git.
+
+= 5.42.1 =
+Aucun changement de schéma (4.25.0) ni de données.
+
+* **Choix des menus du fournisseur présenté comme le fichier reçu (Périscolaire › Menus, « Choix fournisseur ») :** la grille reprend la présentation du classeur, avec une couleur par jour, un bandeau par catégorie et une case par plat. Cliquez n'importe où dans la case d'un plat pour le retenir : la case retenue est encadrée.
+* **Repères visuels :** la suggestion de la diététicienne est en gras souligné, les plats BIO ont un fond vert, le plat végétarien un fond vert pâle et la mention « végétarien », les substitutions permanentes la mention « option ». Une légende les rappelle au-dessus de la grille.
+* **Jours sans cantine :** le mercredi, les vacances, les jours fériés et les fermetures gardent leur colonne, grisée, avec la mention « Pas de cantine ».
+* **Vérification avant l'envoi :** le récapitulatif des plats retenus utilise les mêmes couleurs.
 
 = 5.42.0 =
 Schéma de base 4.25.0 (quatre colonnes ajoutées à la table des menus, mise à jour automatique à l'installation ; aucune donnée existante n'est modifiée).
