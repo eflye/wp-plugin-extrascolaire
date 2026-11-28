@@ -2,14 +2,14 @@
 # This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Périscolaire - Inscriptions 5.41.0\n"
+"Project-Id-Version: Périscolaire - Inscriptions 5.42.0\n"
 "Report-Msgid-Bugs-To: https://github.com/eflye/wp-plugin-extrascolaire/issues\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Mairie de Montgeroult\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-21T20:56:34+00:00\n"
+"POT-Creation-Date: 2026-11-28T10:01:28+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: periscolaire-registration\n"
@@ -154,8 +154,8 @@ msgstr ""
 
 #: includes/class-psc-admin-audit.php:204
 #: templates/admin-audit.php:150
-#: templates/admin-menu-choix-detail.php:104
-#: templates/admin-menu-choix-recap.php:29
+#: templates/admin-menu-choix-detail.php:112
+#: templates/admin-menu-choix-recap.php:31
 #: templates/admin-messages-edit.php:15
 msgid "Catégorie"
 msgstr ""
@@ -348,6 +348,7 @@ msgid "Week-end"
 msgstr ""
 
 #: includes/class-psc-admin-calendar-v2.php:254
+#: includes/class-psc-admin-menu-propositions.php:198
 #: includes/class-psc-frontend.php:205
 msgid "Mercredi"
 msgstr ""
@@ -883,27 +884,27 @@ msgstr ""
 msgid "Ce fichier n’existe plus."
 msgstr ""
 
-#: includes/class-psc-admin-menu-propositions.php:190
+#: includes/class-psc-admin-menu-propositions.php:218
 msgid "ligne des jours (LUNDI…) introuvable"
 msgstr ""
 
-#: includes/class-psc-admin-menu-propositions.php:191
+#: includes/class-psc-admin-menu-propositions.php:219
 msgid "colonne « Enf » introuvable"
 msgstr ""
 
-#: includes/class-psc-admin-menu-propositions.php:192
+#: includes/class-psc-admin-menu-propositions.php:220
 msgid "aucun plat reconnu"
 msgstr ""
 
-#: includes/class-psc-admin-menu-propositions.php:193
+#: includes/class-psc-admin-menu-propositions.php:221
 msgid "dates de la semaine non reconnues"
 msgstr ""
 
-#: includes/class-psc-admin-menu-propositions.php:194
+#: includes/class-psc-admin-menu-propositions.php:222
 msgid "semaine déjà présente dans une autre feuille"
 msgstr ""
 
-#: includes/class-psc-admin-menu-propositions.php:195
+#: includes/class-psc-admin-menu-propositions.php:223
 msgid "feuille illisible"
 msgstr ""
 
@@ -1472,7 +1473,7 @@ msgstr ""
 #: includes/class-psc-conversations-frontend.php:299
 #: includes/class-psc-frontend.php:217
 #: includes/class-psc-privacy.php:719
-#: templates/admin-menu-choix-detail.php:147
+#: templates/admin-menu-choix-detail.php:169
 #: templates/portal-planning-2.php:285
 msgid "Aucun"
 msgstr ""
@@ -7262,126 +7263,163 @@ msgid "Relancer l’envoi"
 msgstr ""
 
 #: templates/admin-menu-choix-detail.php:69
-msgid "Retenez un plat par catégorie pour chaque jour de cantine. La suggestion de la diététicienne est cochée d’avance ; « Aucun » ne commande rien dans la catégorie (par exemple l’accompagnement d’un plat complet). Les mercredis et les jours fermés au calendrier scolaire ne sont pas proposés."
+msgid "Retenez un plat par catégorie pour chaque jour de cantine, en cliquant sa case. La suggestion de la diététicienne est cochée d’avance ; « Aucun » ne commande rien dans la catégorie (par exemple l’accompagnement d’un plat complet). Les mercredis et les jours fermés au calendrier scolaire restent grisés."
 msgstr ""
 
 #: templates/admin-menu-choix-detail.php:71
-msgid "Semaines du fichier"
+msgid "Gras souligné"
+msgstr ""
+
+#: templates/admin-menu-choix-detail.php:71
+msgid "suggestion de la diététicienne"
+msgstr ""
+
+#: templates/admin-menu-choix-detail.php:72
+msgid "Fond vert"
+msgstr ""
+
+#: templates/admin-menu-choix-detail.php:72
+msgid "produit BIO"
+msgstr ""
+
+#: templates/admin-menu-choix-detail.php:73
+msgid "Fond vert pâle"
+msgstr ""
+
+#: templates/admin-menu-choix-detail.php:73
+msgid "plat végétarien"
 msgstr ""
 
 #: templates/admin-menu-choix-detail.php:74
+msgid "Petits caractères"
+msgstr ""
+
+#: templates/admin-menu-choix-detail.php:74
+msgid "option proposée tous les jours"
+msgstr ""
+
+#: templates/admin-menu-choix-detail.php:77
+msgid "Semaines du fichier"
+msgstr ""
+
+#: templates/admin-menu-choix-detail.php:80
 #: templates/admin-menus.php:47
 #: templates/admin-menus.php:104
 #: templates/admin-supplier-orders.php:31
 msgid "Semaine du"
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:76
+#: templates/admin-menu-choix-detail.php:82
 msgid "(fermée)"
 msgstr ""
 
 #. translators: %s: lundi de la semaine (jj/mm/aaaa).
-#: templates/admin-menu-choix-detail.php:92
+#: templates/admin-menu-choix-detail.php:98
 #: templates/admin-menu-choix-recap.php:17
 #, php-format
 msgid "Semaine du %s"
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:95
+#: templates/admin-menu-choix-detail.php:101
 msgid "Aucun jour de cantine cette semaine-là (vacances scolaires, jour férié ou fermeture) : aucun choix à faire."
 msgstr ""
 
 #. translators: %s: lundi de la semaine (jj/mm/aaaa).
-#: templates/admin-menu-choix-detail.php:100
+#: templates/admin-menu-choix-detail.php:108
 #, php-format
 msgid "Choix des plats pour la semaine du %s"
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:123
+#: templates/admin-menu-choix-detail.php:126
+#: templates/admin-menu-choix-recap.php:45
+msgid "Pas de cantine"
+msgstr ""
+
+#: templates/admin-menu-choix-detail.php:139
 msgid "Aucune proposition"
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:138
+#: templates/admin-menu-choix-detail.php:159
 msgid "suggestion"
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:162
+#: templates/admin-menu-choix-detail.php:187
 msgid "Enregistrer les choix"
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:163
+#: templates/admin-menu-choix-detail.php:188
 msgid "Enregistrer et vérifier avant l’envoi"
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:164
+#: templates/admin-menu-choix-detail.php:189
 msgid "Rien ne part au fournisseur sans votre confirmation à l’étape suivante."
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:170
+#: templates/admin-menu-choix-detail.php:195
 msgid "Vérifier avant l’envoi"
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:172
+#: templates/admin-menu-choix-detail.php:197
 msgid "Destinataire :"
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:179
+#: templates/admin-menu-choix-detail.php:204
 msgid "Établissement inscrit sur le fichier :"
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:180
+#: templates/admin-menu-choix-detail.php:205
 msgid "aucun (réglage vide)"
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:182
+#: templates/admin-menu-choix-detail.php:207
 msgid "Pièce jointe :"
 msgstr ""
 
 #. translators: 1: nombre de croix posées dans le fichier, 2: nombre de jours de cantine concernés.
-#: templates/admin-menu-choix-detail.php:187
+#: templates/admin-menu-choix-detail.php:212
 #, php-format
 msgid "%1$d plats cochés sur %2$d jours de cantine"
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:198
+#: templates/admin-menu-choix-detail.php:223
 msgid "Télécharger le fichier rempli pour le relire"
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:203
+#: templates/admin-menu-choix-detail.php:228
 msgid "E-mail qui sera envoyé"
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:204
+#: templates/admin-menu-choix-detail.php:229
 #: templates/admin-supplier-orders.php:102
 #: templates/admin-supplier-orders.php:261
 msgid "Sujet :"
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:205
+#: templates/admin-menu-choix-detail.php:230
 msgid "Aperçu de l’e-mail qui sera envoyé au fournisseur"
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:211
+#: templates/admin-menu-choix-detail.php:236
 msgid "Modifier les choix"
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:217
+#: templates/admin-menu-choix-detail.php:242
 msgid "Envoyer la réponse au fournisseur"
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:219
+#: templates/admin-menu-choix-detail.php:244
 msgid "Les menus des semaines choisies seront remplis dès que la réponse sera partie."
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:229
+#: templates/admin-menu-choix-detail.php:254
 msgid "Télécharger le fichier envoyé"
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:242
+#: templates/admin-menu-choix-detail.php:267
 msgid "Remplir les menus avec ces choix"
 msgstr ""
 
-#: templates/admin-menu-choix-detail.php:246
+#: templates/admin-menu-choix-detail.php:271
 msgid "Les menus remplis restent des brouillons : leur envoi aux familles se fait depuis l’onglet « Menus de la semaine »."
 msgstr ""
 
@@ -7390,67 +7428,67 @@ msgid "Aucun jour de cantine cette semaine-là (vacances scolaires, jour férié
 msgstr ""
 
 #. translators: %s: lundi de la semaine (jj/mm/aaaa).
-#: templates/admin-menu-choix-recap.php:25
+#: templates/admin-menu-choix-recap.php:27
 #, php-format
 msgid "Plats retenus pour la semaine du %s"
 msgstr ""
 
-#: templates/admin-menu-choix-recap.php:44
+#: templates/admin-menu-choix-recap.php:58
 msgid "Aucun plat"
 msgstr ""
 
-#: templates/admin-menu-choix-recap.php:57
+#: templates/admin-menu-choix-recap.php:73
 msgid "Après l’envoi, le menu de cette semaine sera créé."
 msgstr ""
 
-#: templates/admin-menu-choix-recap.php:58
+#: templates/admin-menu-choix-recap.php:74
 msgid "Un menu non envoyé existe déjà pour cette semaine : après l’envoi, il sera remplacé sur les jours choisis."
 msgstr ""
 
-#: templates/admin-menu-choix-recap.php:59
+#: templates/admin-menu-choix-recap.php:75
 msgid "Le menu de cette semaine correspond déjà à ces choix."
 msgstr ""
 
-#: templates/admin-menu-choix-recap.php:60
+#: templates/admin-menu-choix-recap.php:76
 msgid "Un menu a déjà été envoyé aux familles pour cette semaine : il ne sera pas modifié sans votre confirmation, que vous pourrez donner après l’envoi."
 msgstr ""
 
-#: templates/admin-menu-choix-recap.php:61
+#: templates/admin-menu-choix-recap.php:77
 msgid "Aucun plat retenu cette semaine : aucun menu ne sera rempli."
 msgstr ""
 
-#: templates/admin-menu-choix-recap.php:68
+#: templates/admin-menu-choix-recap.php:84
 msgid "Menu non rempli."
 msgstr ""
 
-#: templates/admin-menu-choix-recap.php:69
+#: templates/admin-menu-choix-recap.php:85
 msgid "Le menu de cette semaine diffère de ces choix (modifié à la main, ou pas encore rempli)."
 msgstr ""
 
-#: templates/admin-menu-choix-recap.php:70
+#: templates/admin-menu-choix-recap.php:86
 msgid "Menu rempli avec ces choix."
 msgstr ""
 
-#: templates/admin-menu-choix-recap.php:71
+#: templates/admin-menu-choix-recap.php:87
 msgid "Un menu avait déjà été envoyé aux familles pour cette semaine : il n’a pas été remplacé."
 msgstr ""
 
-#: templates/admin-menu-choix-recap.php:72
+#: templates/admin-menu-choix-recap.php:88
 msgid "Aucun plat retenu cette semaine."
 msgstr ""
 
 #. translators: %s: lundi de la semaine (jj/mm/aaaa).
-#: templates/admin-menu-choix-recap.php:79
+#: templates/admin-menu-choix-recap.php:95
 #, php-format
 msgid "Voir le menu du %s"
 msgstr ""
 
-#: templates/admin-menu-choix-recap.php:85
+#: templates/admin-menu-choix-recap.php:101
 msgid "Remplacer ce menu, déjà envoyé aux familles, par les plats retenus ? Les familles ne sont pas prévenues : pensez à leur renvoyer le menu."
 msgstr ""
 
 #. translators: %s: lundi de la semaine (jj/mm/aaaa).
-#: templates/admin-menu-choix-recap.php:92
+#: templates/admin-menu-choix-recap.php:108
 #, php-format
 msgid "Remplacer le menu du %s"
 msgstr ""

@@ -66,7 +66,13 @@ $psc_groupes = array(
 
 <?php if ($etape === 'choix'): ?>
 
-<p><?php esc_html_e('Retenez un plat par catégorie pour chaque jour de cantine. La suggestion de la diététicienne est cochée d’avance ; « Aucun » ne commande rien dans la catégorie (par exemple l’accompagnement d’un plat complet). Les mercredis et les jours fermés au calendrier scolaire ne sont pas proposés.', 'periscolaire-registration'); ?></p>
+<p><?php esc_html_e('Retenez un plat par catégorie pour chaque jour de cantine, en cliquant sa case. La suggestion de la diététicienne est cochée d’avance ; « Aucun » ne commande rien dans la catégorie (par exemple l’accompagnement d’un plat complet). Les mercredis et les jours fermés au calendrier scolaire restent grisés.', 'periscolaire-registration'); ?></p>
+<ul class="psc-choix-legende" data-testid="choix-legende">
+    <li><span class="psc-choix-ex is-suggestion"><?php esc_html_e('Gras souligné', 'periscolaire-registration'); ?></span> <?php esc_html_e('suggestion de la diététicienne', 'periscolaire-registration'); ?></li>
+    <li><span class="psc-choix-ex is-bio"><?php esc_html_e('Fond vert', 'periscolaire-registration'); ?></span> <?php esc_html_e('produit BIO', 'periscolaire-registration'); ?></li>
+    <li><span class="psc-choix-ex is-vegetarien"><?php esc_html_e('Fond vert pâle', 'periscolaire-registration'); ?></span> <?php esc_html_e('plat végétarien', 'periscolaire-registration'); ?></li>
+    <li><span class="psc-choix-ex is-option"><?php esc_html_e('Petits caractères', 'periscolaire-registration'); ?></span> <?php esc_html_e('option proposée tous les jours', 'periscolaire-registration'); ?></li>
+</ul>
 
 <nav aria-label="<?php esc_attr_e('Semaines du fichier', 'periscolaire-registration'); ?>">
 <ul class="psc-choix-nav">
@@ -94,66 +100,85 @@ echo esc_html(sprintf(__('Semaine du %s', 'periscolaire-registration'), $psc_sem
 <?php if (empty($psc_info['jours'])): ?>
 <p><em><?php esc_html_e('Aucun jour de cantine cette semaine-là (vacances scolaires, jour férié ou fermeture) : aucun choix à faire.', 'periscolaire-registration'); ?></em></p>
 <?php else: ?>
-<table class="widefat striped psc-choix-table">
+<?php $psc_grille = Psc_Admin_Menu_Propositions::grille_jours($psc_semaine, $psc_info); ?>
+<div class="psc-choix-scroll">
+<table class="psc-choix-table">
 <caption class="screen-reader-text"><?php
 /* translators: %s: lundi de la semaine (jj/mm/aaaa). */
 echo esc_html(sprintf(__('Choix des plats pour la semaine du %s', 'periscolaire-registration'), $psc_sem_label));
 ?></caption>
 <thead>
 <tr>
-    <th scope="col"><?php esc_html_e('Catégorie', 'periscolaire-registration'); ?></th>
-    <?php foreach ($psc_info['jours'] as $psc_jour => $psc_day): ?>
-    <th scope="col"><?php echo esc_html(($psc_jours[$psc_jour] ?? ucfirst($psc_jour)) . ' ' . date_i18n('d/m', strtotime($psc_day['date']))); ?></th>
+    <th scope="col" class="psc-choix-coin"><span class="screen-reader-text"><?php esc_html_e('Catégorie', 'periscolaire-registration'); ?></span></th>
+    <?php foreach ($psc_grille as $psc_jour => $psc_col): ?>
+    <th scope="col" class="psc-choix-jour psc-choix-jour-<?php echo esc_attr($psc_jour); ?><?php echo $psc_col['ouvert'] ? '' : ' psc-choix-ferme'; ?>"><?php echo esc_html($psc_col['label']); ?></th>
     <?php endforeach; ?>
 </tr>
 </thead>
 <tbody>
+<?php $psc_premiere = true; ?>
 <?php foreach ($psc_cats as $psc_cat => $psc_cat_label): ?>
-<tr>
-    <th scope="row"><?php echo esc_html($psc_cat_label); ?></th>
-    <?php foreach ($psc_info['jours'] as $psc_jour => $psc_day): ?>
+<tr class="psc-choix-cat psc-choix-cat-<?php echo esc_attr($psc_cat); ?>">
+    <th scope="row"><span><?php echo esc_html($psc_cat_label); ?></span></th>
+    <?php foreach ($psc_grille as $psc_jour => $psc_col): ?>
+    <?php if (!$psc_col['ouvert']): ?>
+        <?php if ($psc_premiere): ?>
+        <td class="psc-choix-jour-<?php echo esc_attr($psc_jour); ?> psc-choix-ferme" rowspan="<?php echo esc_attr(count($psc_cats)); ?>"><?php esc_html_e('Pas de cantine', 'periscolaire-registration'); ?></td>
+        <?php endif; ?>
+        <?php continue; ?>
+    <?php endif; ?>
     <?php
+    $psc_day     = $psc_info['jours'][$psc_jour];
     $psc_plats   = isset($psc_day['plats'][$psc_cat]) ? (array) $psc_day['plats'][$psc_cat] : array();
     $psc_current = (int) ($choix[$psc_semaine][$psc_jour][$psc_cat] ?? 0);
     $psc_name    = 'choix[' . $psc_semaine . '][' . $psc_jour . '][' . $psc_cat . ']';
-    $psc_legend  = ($psc_jours[$psc_jour] ?? ucfirst($psc_jour)) . ' ' . date_i18n('d/m', strtotime($psc_day['date'])) . ' — ' . $psc_cat_label;
+    $psc_legend  = $psc_col['label'] . ' — ' . $psc_cat_label;
     ?>
-    <td>
+    <td class="psc-choix-jour-<?php echo esc_attr($psc_jour); ?>">
         <?php if (!$psc_plats): ?>
-            <span aria-hidden="true">—</span><span class="screen-reader-text"><?php esc_html_e('Aucune proposition', 'periscolaire-registration'); ?></span>
+            <p class="psc-choix-vide"><span aria-hidden="true">—</span><span class="screen-reader-text"><?php esc_html_e('Aucune proposition', 'periscolaire-registration'); ?></span></p>
         <?php else: ?>
         <fieldset class="psc-choix-group" data-testid="choix-<?php echo esc_attr($psc_semaine . '-' . $psc_jour . '-' . $psc_cat); ?>">
             <legend class="psc-choix-legend"><?php echo esc_html($psc_legend); ?></legend>
             <?php $psc_prev = 'p'; $psc_first = true; ?>
             <?php foreach ($psc_plats as $psc_plat): ?>
             <?php
-            $psc_g   = (string) ($psc_plat['g'] ?? 'p');
-            $psc_sep = $psc_g !== 'p' && $psc_prev === 'p';
+            $psc_g     = (string) ($psc_plat['g'] ?? 'p');
+            $psc_class = 'psc-choix-option';
+            if ($psc_g !== $psc_prev) $psc_class .= ' psc-choix-sep';
+            if ($psc_g === 'p' && $psc_first) $psc_class .= ' is-suggestion';
+            if ($psc_g === 'v') $psc_class .= ' is-vegetarien';
+            if ($psc_g === 'o') $psc_class .= ' is-option';
+            if (Psc_Admin_Menu_Propositions::est_bio($psc_plat['t'])) $psc_class .= ' is-bio';
             $psc_prev = $psc_g;
             ?>
-            <label class="psc-choix-option<?php echo $psc_sep ? ' psc-choix-sep' : ''; ?>">
-                <input type="radio" name="<?php echo esc_attr($psc_name); ?>" value="<?php echo esc_attr((int) $psc_plat['r']); ?>" <?php checked($psc_current, (int) $psc_plat['r']); ?>>
-                <span><?php echo esc_html($psc_plat['t']); ?></span>
-                <?php if ($psc_g === 'p' && $psc_first): ?>
-                    <span class="psc-choix-tag">(<?php esc_html_e('suggestion', 'periscolaire-registration'); ?>)</span>
-                <?php elseif (isset($psc_groupes[$psc_g])): ?>
-                    <span class="psc-choix-tag">(<?php echo esc_html($psc_groupes[$psc_g]); ?>)</span>
-                <?php endif; ?>
+            <label class="<?php echo esc_attr($psc_class); ?>">
+                <span class="psc-choix-plat">
+                    <span class="psc-choix-nom"><?php echo esc_html($psc_plat['t']); ?></span>
+                    <?php if ($psc_g === 'p' && $psc_first): ?>
+                        <span class="screen-reader-text">(<?php esc_html_e('suggestion', 'periscolaire-registration'); ?>)</span>
+                    <?php elseif (isset($psc_groupes[$psc_g])): ?>
+                        <span class="psc-choix-tag"><?php echo esc_html($psc_groupes[$psc_g]); ?></span>
+                    <?php endif; ?>
+                </span>
+                <span class="psc-choix-coche"><input type="radio" name="<?php echo esc_attr($psc_name); ?>" value="<?php echo esc_attr((int) $psc_plat['r']); ?>" <?php checked($psc_current, (int) $psc_plat['r']); ?>></span>
             </label>
             <?php if ($psc_g === 'p') $psc_first = false; ?>
             <?php endforeach; ?>
-            <label class="psc-choix-option psc-choix-sep">
-                <input type="radio" name="<?php echo esc_attr($psc_name); ?>" value="0" <?php checked($psc_current, 0); ?>>
-                <em><?php esc_html_e('Aucun', 'periscolaire-registration'); ?></em>
+            <label class="psc-choix-option psc-choix-sep is-aucun">
+                <span class="psc-choix-plat"><em><?php esc_html_e('Aucun', 'periscolaire-registration'); ?></em></span>
+                <span class="psc-choix-coche"><input type="radio" name="<?php echo esc_attr($psc_name); ?>" value="0" <?php checked($psc_current, 0); ?>></span>
             </label>
         </fieldset>
         <?php endif; ?>
     </td>
     <?php endforeach; ?>
+    <?php $psc_premiere = false; ?>
 </tr>
 <?php endforeach; ?>
 </tbody>
 </table>
+</div>
 <?php endif; ?>
 </section>
 <?php endforeach; ?>

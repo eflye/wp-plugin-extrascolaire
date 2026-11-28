@@ -19,36 +19,52 @@ echo esc_html(sprintf(__('Semaine du %s', 'periscolaire-registration'), $psc_sem
 <?php if (empty($psc_info['jours'])): ?>
 <p><em><?php esc_html_e('Aucun jour de cantine cette semaine-là (vacances scolaires, jour férié ou fermeture) : rien n’est coché sur cette feuille.', 'periscolaire-registration'); ?></em></p>
 <?php else: ?>
-<table class="widefat striped psc-choix-table">
+<?php $psc_grille = Psc_Admin_Menu_Propositions::grille_jours($psc_semaine, $psc_info); ?>
+<div class="psc-choix-scroll">
+<table class="psc-choix-table psc-choix-table-recap">
 <caption class="screen-reader-text"><?php
 /* translators: %s: lundi de la semaine (jj/mm/aaaa). */
 echo esc_html(sprintf(__('Plats retenus pour la semaine du %s', 'periscolaire-registration'), $psc_sem_label));
 ?></caption>
 <thead>
 <tr>
-    <th scope="col"><?php esc_html_e('Catégorie', 'periscolaire-registration'); ?></th>
-    <?php foreach ($psc_info['jours'] as $psc_jour => $psc_day): ?>
-    <th scope="col"><?php echo esc_html(($psc_jours[$psc_jour] ?? ucfirst($psc_jour)) . ' ' . date_i18n('d/m', strtotime($psc_day['date']))); ?></th>
+    <th scope="col" class="psc-choix-coin"><span class="screen-reader-text"><?php esc_html_e('Catégorie', 'periscolaire-registration'); ?></span></th>
+    <?php foreach ($psc_grille as $psc_jour => $psc_col): ?>
+    <th scope="col" class="psc-choix-jour psc-choix-jour-<?php echo esc_attr($psc_jour); ?><?php echo $psc_col['ouvert'] ? '' : ' psc-choix-ferme'; ?>"><?php echo esc_html($psc_col['label']); ?></th>
     <?php endforeach; ?>
 </tr>
 </thead>
 <tbody>
+<?php $psc_premiere = true; ?>
 <?php foreach ($psc_cats as $psc_cat => $psc_cat_label): ?>
-<tr>
-    <th scope="row"><?php echo esc_html($psc_cat_label); ?></th>
-    <?php foreach ($psc_info['jours'] as $psc_jour => $psc_day): ?>
-    <td data-label="<?php echo esc_attr(($psc_jours[$psc_jour] ?? ucfirst($psc_jour)) . ' ' . date_i18n('d/m', strtotime($psc_day['date']))); ?>" data-testid="choix-recap-<?php echo esc_attr($psc_semaine . '-' . $psc_jour . '-' . $psc_cat); ?>"><?php
-        if (isset($retenus[$psc_semaine][$psc_jour][$psc_cat])) {
-            echo esc_html($retenus[$psc_semaine][$psc_jour][$psc_cat]);
+<tr class="psc-choix-cat psc-choix-cat-<?php echo esc_attr($psc_cat); ?>">
+    <th scope="row"><span><?php echo esc_html($psc_cat_label); ?></span></th>
+    <?php foreach ($psc_grille as $psc_jour => $psc_col): ?>
+    <?php if (!$psc_col['ouvert']): ?>
+        <?php if ($psc_premiere): ?>
+        <td class="psc-choix-jour-<?php echo esc_attr($psc_jour); ?> psc-choix-ferme" rowspan="<?php echo esc_attr(count($psc_cats)); ?>"><?php esc_html_e('Pas de cantine', 'periscolaire-registration'); ?></td>
+        <?php endif; ?>
+        <?php continue; ?>
+    <?php endif; ?>
+    <?php
+    $psc_retenu = isset($retenus[$psc_semaine][$psc_jour][$psc_cat]) ? (string) $retenus[$psc_semaine][$psc_jour][$psc_cat] : '';
+    $psc_class  = 'psc-choix-jour-' . $psc_jour . ' psc-choix-retenu';
+    if ($psc_retenu !== '' && Psc_Admin_Menu_Propositions::est_bio($psc_retenu)) $psc_class .= ' is-bio';
+    ?>
+    <td class="<?php echo esc_attr($psc_class); ?>" data-label="<?php echo esc_attr($psc_col['label']); ?>" data-testid="choix-recap-<?php echo esc_attr($psc_semaine . '-' . $psc_jour . '-' . $psc_cat); ?>"><?php
+        if ($psc_retenu !== '') {
+            echo esc_html($psc_retenu);
         } else {
             echo '<span aria-hidden="true">—</span><span class="screen-reader-text">' . esc_html__('Aucun plat', 'periscolaire-registration') . '</span>';
         }
     ?></td>
     <?php endforeach; ?>
+    <?php $psc_premiere = false; ?>
 </tr>
 <?php endforeach; ?>
 </tbody>
 </table>
+</div>
 
 <p class="psc-choix-menu-etat" data-testid="choix-menu-etat-<?php echo esc_attr($psc_semaine); ?>" data-etat="<?php echo esc_attr($psc_etat); ?>">
 <?php if ($etape === 'envoi'): ?>
