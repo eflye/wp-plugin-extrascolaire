@@ -134,6 +134,16 @@ test.describe.serial('Choix des menus du fournisseur (backoffice)', () => {
     await expect(page.getByTestId(`choix-semaine-${S3}`).locator('input[type="radio"]')).toHaveCount(0);
     await expect(page.getByTestId(`choix-${S1}-mercredi-entree`)).toHaveCount(0);
 
+    // Grille reprise du classeur : cinq colonnes du lundi au vendredi, le
+    // mercredi grisé ; la suggestion et le BIO sont marqués sur leur case.
+    const grille = page.getByTestId(`choix-semaine-${S1}`).locator('table');
+    await expect(grille.locator('thead th.psc-choix-jour')).toHaveCount(5);
+    await expect(grille.locator('thead th.psc-choix-ferme')).toHaveText(/^Mercredi 11\/01$/);
+    await expect(grille.locator('tbody td.psc-choix-ferme')).toHaveText('Pas de cantine');
+    await expect(page.getByTestId('choix-legende')).toContainText('suggestion de la diététicienne');
+    await expect(page.getByTestId(`choix-${S1}-lundi-entree`).locator('label.is-suggestion.is-bio')).toContainText('Velouté de légumes BIO');
+    await expect(page.getByTestId(`choix-${S1}-lundi-plat`).locator('label.is-vegetarien')).toContainText('végétarien');
+
     // La suggestion de la diététicienne est cochée d'avance.
     const lundiEntree = page.getByTestId(`choix-${S1}-lundi-entree`);
     await expect(lundiEntree.getByRole('radio', { name: /^Velouté de légumes BIO/ })).toBeChecked();
@@ -157,6 +167,7 @@ test.describe.serial('Choix des menus du fournisseur (backoffice)', () => {
     await expect(page.getByTestId('choix-total')).toHaveText('39 plats cochés sur 8 jours de cantine');
     await expect(page.getByTestId(`choix-recap-${S1}-lundi-entree`)).toHaveText('Velouté de légumes (chaud)');
     await expect(page.getByTestId(`choix-recap-${S1}-jeudi-accompagnement`)).toContainText('Aucun plat');
+    await expect(page.getByTestId(`choix-recap-${S1}`).locator('tbody td.psc-choix-ferme')).toHaveText('Pas de cantine');
     await expect(page.getByTestId(`choix-menu-etat-${S1}`)).toHaveAttribute('data-etat', 'absent');
     await expect(page.getByTestId('choix-sujet')).toContainText('09/01/2090 au 27/01/2090');
     await expectAccessible(page);

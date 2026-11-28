@@ -11,11 +11,11 @@ Connectez-vous avec un rôle autorisé à gérer la cantine. Enregistrez sur vot
 ## Étapes
 
 1. Ouvrez **Périscolaire › Menus**, onglet **Choix fournisseur**. Sous **Déposer le fichier du fournisseur**, choisissez le fichier reçu puis cliquez sur **Déposer le fichier**. Rien n'est envoyé à cette étape.
-2. La page affiche une semaine par feuille du fichier. Pour chaque jour de cantine, retenez un plat par catégorie : **Entrée**, **Plat**, **Accompagnement**, **Fromage / Laitage**, **Dessert**. La suggestion de la diététicienne est cochée d'avance. Les plats marqués *(option)* sont les substitutions permanentes du fournisseur, celui marqué *(végétarien)* est le plat végétarien du jour.
+2. La page affiche une semaine par feuille du fichier. Pour chaque jour de cantine, retenez un plat par catégorie : **Entrée**, **Plat**, **Accompagnement**, **Fromage / Laitage**, **Dessert**. La grille reprend la présentation du fichier du fournisseur : une couleur par jour, un bandeau par catégorie, une case par plat. Cliquez n'importe où dans la case d'un plat pour le retenir ; la case retenue est encadrée. La suggestion de la diététicienne, en gras souligné, est cochée d'avance. Les plats BIO ont un fond vert, le plat végétarien du jour un fond vert pâle et la mention *végétarien*, les substitutions permanentes du fournisseur la mention *option*.
 3. Cochez **Aucun** pour ne rien commander dans une catégorie, par exemple l'accompagnement d'un plat complet.
 
     !!! note
-        Les mercredis, les vacances scolaires, les jours fériés et les fermetures enregistrées dans le calendrier ne sont pas proposés : une semaine entièrement fermée n'appelle aucun choix. Si une semaine devrait être ouverte, corrigez d'abord le [calendrier](../configuration/calendrier-vacances.md).
+        Les mercredis, les vacances scolaires, les jours fériés et les fermetures enregistrées dans le calendrier ne sont pas proposés : leur colonne reste grisée, avec la mention « Pas de cantine », et une semaine entièrement fermée n'appelle aucun choix. Si une semaine devrait être ouverte, corrigez d'abord le [calendrier](../configuration/calendrier-vacances.md).
 
 4. Cliquez sur **Enregistrer les choix** pour reprendre plus tard, ou sur **Enregistrer et vérifier avant l'envoi** quand tout est choisi.
 5. Sur la page de vérification, relisez le destinataire, le nombre de plats cochés et le tableau de chaque semaine. Cliquez sur **Télécharger le fichier rempli pour le relire** si vous voulez voir le fichier tel que le fournisseur le recevra : une croix figure dans la colonne « Enf » en face de chaque plat retenu.

@@ -160,19 +160,63 @@
 .psc-choix-nav li { margin: 0; }
 .psc-choix-semaine { margin: 24px 0 0; scroll-margin-top: 48px; }
 .psc-choix-semaine h3 { margin: 0 0 8px; }
-.psc-choix-table { table-layout: fixed; }
-.psc-choix-table th, .psc-choix-table td { vertical-align: top; }
-.psc-choix-table thead th:first-child, .psc-choix-table tbody th { width: 130px; }
-.psc-choix-table tbody th { font-weight: 600; }
-.psc-choix-group { border: 0; margin: 0; padding: 0; min-width: 0; }
+/* Grille reprise du classeur du fournisseur : une couleur par jour, un
+   bandeau par catégorie, une case par plat (cliquable en entier). Les
+   couleurs doublent toujours un texte : jour en en-tête, catégorie dans le
+   bandeau, « BIO » dans le libellé, « végétarien » et « option » en étiquette. */
+.psc-choix-scroll { overflow-x: auto; }
+.psc-choix-table { width: 100%; min-width: 900px; table-layout: fixed; border-collapse: separate; border-spacing: 0 8px; color: #1d2327; }
+.psc-choix-table th, .psc-choix-table td { padding: 0; vertical-align: top; }
+.psc-choix-jour-lundi { --psc-jour: #ee7bd8; --psc-jour-pale: #fbe3f6; }
+.psc-choix-jour-mardi { --psc-jour: #f28b84; --psc-jour-pale: #fde4e2; }
+.psc-choix-jour-mercredi { --psc-jour: #f5c242; --psc-jour-pale: #fdf1cf; }
+.psc-choix-jour-jeudi { --psc-jour: #6cc8c8; --psc-jour-pale: #dcf2f2; }
+.psc-choix-jour-vendredi { --psc-jour: #66c7f9; --psc-jour-pale: #dbf1fe; }
+.psc-choix-table .psc-choix-coin { width: 46px; }
+.psc-choix-table thead .psc-choix-jour { padding: 8px 6px; background: var(--psc-jour); border: 2px solid var(--psc-jour); font-size: 13px; font-weight: 700; text-align: center; text-transform: uppercase; }
+.psc-choix-table thead .psc-choix-ferme { width: 110px; }
+.psc-choix-table tbody th { width: 46px; text-align: center; vertical-align: middle; font-weight: 600; }
+.psc-choix-table tbody th span { display: inline-block; padding: 8px 0; writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; }
+/* Récapitulatif : une seule ligne par catégorie, bandeau à l'horizontale. */
+.psc-choix-table-recap .psc-choix-coin, .psc-choix-table-recap tbody th { width: 130px; }
+.psc-choix-table-recap tbody th span { padding: 8px 6px; writing-mode: horizontal-tb; transform: none; white-space: normal; }
+.psc-choix-cat-entree th { background: #f6d3fb; }
+.psc-choix-cat-plat th { background: #f8d5a8; }
+.psc-choix-cat-accompagnement th { background: #fdfdb0; }
+.psc-choix-cat-fromage th { background: #b5f7d6; }
+.psc-choix-cat-dessert th { background: #cdeaff; }
+.psc-choix-table tbody td { background: #fff; border: 2px solid var(--psc-jour, #c3c4c7); }
+.psc-choix-table tbody td.psc-choix-ferme { padding: 12px 6px; background: #f0f0f1; color: #50575e; font-style: italic; text-align: center; vertical-align: middle; }
+.psc-choix-table tbody td.psc-choix-retenu { padding: 10px 8px; text-align: center; vertical-align: middle; }
+.psc-choix-table tbody td.is-bio, .psc-choix-option.is-bio, .psc-choix-ex.is-bio { background: #b9df84; }
+.psc-choix-vide { margin: 0; padding: 10px 8px; text-align: center; }
+/* La case « Aucun » s'étire jusqu'au bas de la cellule quand un autre jour
+   propose plus de plats (height: 1px laisse la cellule suivre sa rangée). */
+.psc-choix-table tbody td { height: 1px; }
+.psc-choix-group { display: flex; flex-direction: column; height: 100%; border: 0; margin: 0; padding: 0; min-width: 0; }
+.psc-choix-option.is-aucun { flex: 1; }
 /* Jour et catégorie du groupe : lus par les lecteurs d'écran ; affichés
    quand le tableau s'empile (écran étroit), l'en-tête des jours n'étant
    alors plus au-dessus de la cellule. */
 .psc-choix-legend { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.psc-choix-option { display: block; padding: 3px 0 3px 22px; text-indent: -22px; line-height: 1.35; }
-.psc-choix-option input[type="radio"] { margin: 0 4px 0 0; text-indent: 0; }
-.psc-choix-option.psc-choix-sep { border-top: 1px dashed #a7aaad; margin-top: 4px; padding-top: 6px; }
-.psc-choix-tag { color: #50575e; font-size: 12px; }
+.psc-choix-option { display: flex; align-items: stretch; min-height: 36px; border-top: 1px solid var(--psc-jour, #c3c4c7); line-height: 1.35; cursor: pointer; }
+.psc-choix-group .psc-choix-option:first-of-type { border-top: 0; }
+.psc-choix-option.psc-choix-sep { border-top-width: 3px; }
+.psc-choix-plat { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 8px; text-align: center; overflow-wrap: anywhere; }
+.psc-choix-coche { flex: 0 0 32px; display: flex; align-items: center; justify-content: center; border-left: 1px solid var(--psc-jour, #c3c4c7); background: #fff; }
+.psc-choix-coche input[type="radio"] { margin: 0; }
+.psc-choix-option.is-suggestion .psc-choix-nom, .psc-choix-ex.is-suggestion { font-weight: 700; text-decoration: underline; }
+.psc-choix-option.is-vegetarien, .psc-choix-ex.is-vegetarien { background: #eef2e3; }
+.psc-choix-option.is-option, .psc-choix-ex.is-option { font-size: 12px; }
+.psc-choix-option.is-option { min-height: 28px; }
+.psc-choix-option:hover { background-color: var(--psc-jour-pale, #f6f7f7); }
+.psc-choix-option:has(input:checked) { background-color: var(--psc-jour-pale, #f6f7f7); box-shadow: inset 0 0 0 2px #1d2327; font-weight: 600; }
+.psc-choix-option.is-bio:hover, .psc-choix-option.is-bio:has(input:checked) { background-color: #b9df84; }
+.psc-choix-option:focus-within { outline: 2px solid #2271b1; outline-offset: -2px; }
+.psc-choix-tag { color: #50575e; font-size: 11px; font-weight: 400; }
+.psc-choix-legende { display: flex; flex-wrap: wrap; gap: 6px 18px; list-style: none; margin: 0 0 12px; padding: 0; font-size: 12px; }
+.psc-choix-legende li { margin: 0; }
+.psc-choix-ex { display: inline-block; padding: 2px 6px; border: 1px solid #c3c4c7; }
 .psc-choix-alerte { color: #b32d2e; }
 .psc-choix-menu-etat { margin: 8px 0 0; }
 .psc-choix-resume { list-style: none; margin: 0 0 12px; padding: 0; }
@@ -180,12 +224,17 @@
 .psc-choix-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 24px 0 0; padding: 12px 0 0; border-top: 1px solid #dcdcde; }
 .psc-choix-actions.psc-choix-actions-top { margin: 0 0 12px; padding: 0; border-top: 0; }
 @media (max-width: 960px) {
-    .psc-choix-table { table-layout: auto; }
+    .psc-choix-table { min-width: 0; table-layout: auto; border-spacing: 0; }
     .psc-choix-table, .psc-choix-table thead, .psc-choix-table tbody, .psc-choix-table tr, .psc-choix-table th, .psc-choix-table td { display: block; width: auto !important; }
     .psc-choix-table thead { position: absolute; width: 1px !important; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-    .psc-choix-table td { border-top: 1px solid #f0f0f1; }
-    .psc-choix-legend { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; font-weight: 600; margin-bottom: 4px; }
+    .psc-choix-table tbody th { margin-top: 12px; padding: 6px 8px; text-align: left; }
+    .psc-choix-table tbody th span { padding: 0; writing-mode: horizontal-tb; transform: none; }
+    .psc-choix-table tbody td { border-width: 0 0 0 6px; margin-top: 6px; }
+    .psc-choix-table tbody td.psc-choix-ferme { display: none; }
+    .psc-choix-table tbody td.psc-choix-retenu { text-align: left; }
+    .psc-choix-legend { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; font-weight: 600; padding: 6px 8px 2px; }
     .psc-choix-table td[data-label]::before { content: attr(data-label) " : "; font-weight: 600; }
+}
 }
 
 /* Notes de changement de menus du fournisseur (Menus > Notes du fournisseur). */

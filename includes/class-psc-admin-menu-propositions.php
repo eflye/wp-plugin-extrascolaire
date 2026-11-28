@@ -184,6 +184,34 @@ class Psc_Admin_Menu_Propositions extends Psc_Admin_Base {
         );
     }
 
+    /**
+     * Colonnes de la grille d'une semaine, du lundi au vendredi comme sur
+     * le classeur du fournisseur : les jours sans cantine (mercredi,
+     * vacances, férié, fermeture) gardent leur colonne, grisée.
+     *
+     * @param string $semaine Lundi de la semaine (Y-m-d).
+     * @param array  $info    Semaine rendue par Psc_Menu_Propositions::semaines().
+     * @return array array(jour => array('label' => « Lundi 09/01 », 'ouvert' => bool))
+     */
+    public static function grille_jours($semaine, array $info) {
+        // Le mercredi n'est pas un jour de cantine (absent de Psc_Menus::jour_labels()).
+        $labels = Psc_Menus::jour_labels() + array('mercredi' => __('Mercredi', 'periscolaire-registration'));
+        $out    = array();
+        foreach (array('lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi') as $offset => $jour) {
+            $ts = strtotime($semaine . " +{$offset} days");
+            $out[$jour] = array(
+                'label'  => $labels[$jour] . ' ' . date_i18n('d/m', $ts),
+                'ouvert' => !empty($info['jours'][$jour]),
+            );
+        }
+        return $out;
+    }
+
+    /** Vrai si le libellé d'un plat le dit issu de l'agriculture biologique (fond vert du classeur). */
+    public static function est_bio($texte) {
+        return (bool) preg_match('/\bbio\b/iu', (string) $texte);
+    }
+
     /** Motif d'une feuille écartée à la lecture, en clair. */
     public static function motif_label($motif) {
         $labels = array(
